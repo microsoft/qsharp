@@ -38,51 +38,67 @@ use val::GlobalId;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("array too large")]
+    #[diagnostic(code("Qsc.Eval.ArrayTooLarge"))]
     ArrayTooLarge(#[label("this array has too many items")] Span),
 
     #[error("invalid array length: {0}")]
-    Count(i64, #[label("cannot be used as a length")] Span),
+    #[diagnostic(code("Qsc.Eval.InvalidArrayLength"))]
+    InvalidArrayLength(i64, #[label("cannot be used as a length")] Span),
 
     #[error("division by zero")]
+    #[diagnostic(code("Qsc.Eval.DivZero"))]
     DivZero(#[label("cannot divide by zero")] Span),
 
     #[error("empty range")]
+    #[diagnostic(code("Qsc.Eval.EmptyRange"))]
     EmptyRange(#[label("the range cannot be empty")] Span),
 
     #[error("value cannot be used as an index: {0}")]
-    IndexVal(i64, #[label("invalid index")] Span),
+    #[diagnostic(code("Qsc.Eval.InvalidIndex"))]
+    InvalidIndex(i64, #[label("invalid index")] Span),
 
     #[error("integer too large for operation")]
+    #[diagnostic(code("Qsc.Eval.IntTooLarge"))]
     IntTooLarge(i64, #[label("this value is too large")] Span),
 
     #[error("missing specialization: {0}")]
+    #[diagnostic(code("Qsc.Eval.MissingSpec"))]
     MissingSpec(String, #[label("callable has no {0} specialization")] Span),
 
     #[error("index out of range: {0}")]
-    OutOfRange(i64, #[label("out of range")] Span),
+    #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
+    IndexOutOfRange(i64, #[label("out of range")] Span),
 
     #[error("negative integers cannot be used here: {0}")]
-    Negative(i64, #[label("invalid negative integer")] Span),
+    #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
+    InvalidNegativeInt(i64, #[label("invalid negative integer")] Span),
 
     #[error("output failure")]
-    Output(#[label("failed to generate output")] Span),
+    #[diagnostic(code("Qsc.Eval.OutputFail"))]
+    OutputFail(#[label("failed to generate output")] Span),
 
     #[error("qubits in gate invocation are not unique")]
+    #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
     QubitUniqueness(#[label] Span),
 
     #[error("range with step size of zero")]
+    #[diagnostic(code("Qsc.Eval.RangeStepZero"))]
     RangeStepZero(#[label("invalid range")] Span),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
+    #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize),
 
-    #[error("symbol is not bound")]
-    Unbound(#[label] Span),
+    #[error("name is not bound")]
+    #[diagnostic(code("Qsc.Eval.UnboundName"))]
+    UnboundName(#[label] Span),
 
     #[error("unknown intrinsic `{0}`")]
+    #[diagnostic(code("Qsc.Eval.UnknownIntrinsic"))]
     UnknownIntrinsic(String, #[label("callable has no implementation")] Span),
 
     #[error("program failed: {0}")]
+    #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] Span),
 }
 
@@ -155,7 +171,7 @@ impl AsIndex for i64 {
     fn as_index(&self, span: Span) -> Self::Output {
         match (*self).try_into() {
             Ok(index) => Ok(index),
-            Err(_) => Err(Error::IndexVal(*self, span)),
+            Err(_) => Err(Error::InvalidIndex(*self, span)),
         }
     }
 }
@@ -685,7 +701,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         let item_val = self.pop_val();
         let s = match size_val.try_into() {
             Ok(i) => Ok(i),
-            Err(_) => Err(Error::Count(size_val, span)),
+            Err(_) => Err(Error::InvalidArrayLength(size_val, span)),
         }?;
         self.push_val(Value::Array(vec![item_val; s].into()));
         Ok(())
@@ -783,7 +799,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.push_val(arg);
                 return Ok(());
             }
-            None => return Err(Error::Unbound(callee_span)),
+            None => return Err(Error::UnboundName(callee_span)),
         };
 
         let spec = spec_from_functor_app(functor);
@@ -895,7 +911,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         let update = self.pop_val();
         let index = self.pop_val().unwrap_int();
         if index < 0 {
-            return Err(Error::Negative(index, span));
+            return Err(Error::InvalidNegativeInt(index, span));
         }
         let i = index.as_index(span)?;
         let mut values = values.iter().cloned().collect::<Vec<_>>();
@@ -903,7 +919,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Some(value) => {
                 *value = update;
             }
-            None => return Err(Error::OutOfRange(index, span)),
+            None => return Err(Error::IndexOutOfRange(index, span)),
         }
         self.push_val(Value::Array(values.into()));
         Ok(())
@@ -1013,7 +1029,7 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
             },
             FunctorApp::default(),
         ),
-        Res::Local(node) => env.get(node).ok_or(Error::Unbound(span))?.value.clone(),
+        Res::Local(node) => env.get(node).ok_or(Error::UnboundName(span))?.value.clone(),
     })
 }
 
@@ -1026,7 +1042,7 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
                 var.value = rhs;
             }
             Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
-            None => return Err(Error::Unbound(lhs.span)),
+            None => return Err(Error::UnboundName(lhs.span)),
         },
         (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
             for (expr, val) in var_tup.iter().zip(tup.iter()) {
@@ -1094,7 +1110,7 @@ fn resolve_closure(
         .iter()
         .map(|&arg| Some(env.get(arg)?.value.clone()))
         .collect();
-    let args: Vec<_> = args.ok_or(Error::Unbound(span))?;
+    let args: Vec<_> = args.ok_or(Error::UnboundName(span))?;
     let callable = GlobalId {
         package,
         item: callable,
@@ -1118,7 +1134,7 @@ fn index_array(arr: &[Value], index: i64, span: Span) -> Result<Value, Error> {
     let i = index.as_index(span)?;
     match arr.get(i) {
         Some(v) => Ok(v.clone()),
-        None => Err(Error::OutOfRange(index, span)),
+        None => Err(Error::IndexOutOfRange(index, span)),
     }
 }
 
@@ -1228,7 +1244,7 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Valu
         Value::BigInt(val) => {
             let rhs_val = rhs_val.unwrap_int();
             if rhs_val < 0 {
-                Err(Error::Negative(rhs_val, rhs_span))
+                Err(Error::InvalidNegativeInt(rhs_val, rhs_span))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
                     Ok(v) => Ok(v),
@@ -1241,7 +1257,7 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Valu
         Value::Int(val) => {
             let rhs_val = rhs_val.unwrap_int();
             if rhs_val < 0 {
-                Err(Error::Negative(rhs_val, rhs_span))
+                Err(Error::InvalidNegativeInt(rhs_val, rhs_span))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
                     Ok(v) => Ok(v),
