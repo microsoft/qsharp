@@ -100,7 +100,7 @@ impl<'a> Context<'a> {
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
                 Some(Res::Local(_)) | None => Ty::Err,
             },
-            TyKind::Param(name) => Ty::Param((*name.name).into()),
+            TyKind::Param { name, ty } => Ty::Param((*name.name).into()),
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }

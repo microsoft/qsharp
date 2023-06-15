@@ -14,7 +14,7 @@ use qsc_hir::{
         Ty, UdtField,
     },
 };
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -50,7 +50,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             };
             (ty, Vec::new())
         }
-        TyKind::Param(name) => (Ty::Param((*name.name).into()), Vec::new()),
+        TyKind::Param { name, ty } => (Ty::Param((*name.name).into()), Vec::new()),
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
@@ -145,7 +145,7 @@ pub(super) fn ast_callable_scheme(
 }
 
 pub(crate) fn synthesize_callable_generics(
-    generics: &[Box<Ident>],
+    generics: &Box<[(Ident, qsc_ast::ast::Ty)]>,
     input: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     let mut params = ast_callable_generics(generics);
@@ -198,11 +198,11 @@ fn synthesize_functor_params_in_pat(
     }
 }
 
-fn ast_callable_generics(generics: &[Box<Ident>]) -> Vec<GenericParam> {
+fn ast_callable_generics(generics: &Box<[(Ident, qsc_ast::ast::Ty)]>) -> Vec<GenericParam> {
     generics
         .iter()
         .map(|param| GenericParam {
-            name: ParamName::Symbol((*param.name).into()),
+            name: ParamName::Symbol(Arc::from(&*param.0.name)),
             kind: ParamKind::Ty,
         })
         .collect()

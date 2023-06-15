@@ -221,8 +221,8 @@ impl Resolver {
                 self.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
-                decl.generics.iter().for_each(|ident| {
-                    scope.ty_vars.insert(Rc::clone(&ident.name), ident.id);
+                decl.generics.iter().for_each(|(ident, ty)| {
+                    scope.ty_vars.insert(Rc::clone(&ident.name), ty.id);
                 });
             }
             ast::ItemKind::Ty(name, _) => {
@@ -316,10 +316,21 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
-        if let ast::TyKind::Path(path) = &*ty.kind {
-            self.resolver.resolve(NameKind::Ty, path);
-        } else {
-            ast_visit::walk_ty(self, ty);
+        dbg!(&ty);
+        match &*ty.kind {
+            ast::TyKind::Path(path) => {
+                self.resolver.resolve(NameKind::Ty, path);
+            }
+            ast::TyKind::Param { name, ty } => {
+                let path = ast::Path {
+                    id: name.id,
+                    span: name.span,
+                    namespace: Default::default(),
+                    name: Box::new(name.clone()),
+                };
+                self.resolver.resolve(NameKind::Ty, &path);
+            }
+            _ => ast_visit::walk_ty(self, ty),
         }
     }
 
@@ -579,7 +590,6 @@ fn resolve(
     let mut vars = true;
 
     dbg!(&locals);
-    dbg!(&name);
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name) {
@@ -634,6 +644,14 @@ fn resolve(
     }
 }
 
+/// Implements shadowing rules within a single scope.
+/// A local variable always wins out against an item with the same name, if they're declared in
+/// the same scope. It is implemented in a way that resembles Rust:
+/// ```
+/// let foo = || 1;
+/// fn foo() => i32 { 2 }
+/// dbg!(foo()); // 1, not 2
+/// ```
 fn resolve_scope_locals(
     kind: NameKind,
     globals: &GlobalScope,
@@ -641,7 +659,6 @@ fn resolve_scope_locals(
     vars: bool,
     name: &str,
 ) -> Option<Res> {
-    dbg!(&kind);
     if vars {
         match kind {
             NameKind::Term => {
@@ -650,7 +667,7 @@ fn resolve_scope_locals(
                 }
             }
             NameKind::Ty => {
-                if let Some(&id) = scope.ty_vars.get(dbg!(name)) {
+                if let Some(&id) = scope.ty_vars.get(name) {
                     return Some(Res::Local(id));
                 }
             }
