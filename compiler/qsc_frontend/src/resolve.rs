@@ -67,7 +67,6 @@ pub(super) enum Error {
     NotFound(String, #[label] Span),
 }
 
-#[derive(Debug)]
 struct Scope {
     kind: ScopeKind,
     opens: HashMap<Rc<str>, Vec<Open>>,
@@ -114,20 +113,19 @@ impl GlobalScope {
     }
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq)]
 enum ScopeKind {
     Namespace(Rc<str>),
     Callable,
     Block,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 enum NameKind {
     Ty,
     Term,
 }
 
-#[derive(Debug)]
 struct Open {
     namespace: Rc<str>,
     span: Span,

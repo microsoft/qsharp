@@ -121,8 +121,10 @@ pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
-    //    decl.generics.iter().for_each(|p| vis.visit_ident(p));
-    decl.generics.iter().for_each(|(_, ty)| vis.visit_ty(ty));
+    decl.generics.iter().for_each(|(ident, ty)| {
+        vis.visit_ident(ident);
+        vis.visit_ty(ty);
+    });
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
     decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
