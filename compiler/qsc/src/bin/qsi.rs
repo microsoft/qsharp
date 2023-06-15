@@ -165,6 +165,7 @@ fn print_prompt(continuation: bool) {
 
 fn print_interpret_result(line: &str, result: Result<Value, Vec<LineError>>) {
     match result {
+        Ok(Value::Tuple(items)) if items.is_empty() => {}
         Ok(value) => println!("{value}"),
         Err(errors) => {
             let source: Arc<str> = line.into();
