@@ -11,6 +11,8 @@ import { inspect } from "node:util";
 import { marked } from "marked";
 
 import { katas } from "../katas/content/katas.js";
+import { it } from "node:test";
+import { Console } from "node:console";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas", "content");
@@ -100,6 +102,12 @@ function buildItemContent(item, kataDir) {
 
 function buildKataContent(kata, katasDir) {
   const kataDir = join(katasDir, kata.directory);
+  const itemsJson = readFileSync(join(kataDir, "items.json"), "utf8");
+  const items = JSON.parse(itemsJson);
+  for (const item of items) {
+    console.log(item);
+  }
+
   let itemsContent = [];
   for (const item of kata.items) {
     const moduleContent = buildItemContent(item, kataDir);
