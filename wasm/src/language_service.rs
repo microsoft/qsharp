@@ -192,17 +192,13 @@ where
         })
         .to_string();
 
-        let mut pre_message = err.to_string();
+        let mut message = err.to_string();
         for source in iter::successors(err.source(), |e| e.source()) {
-            write!(pre_message, ": {source}").expect("message should be writable");
+            write!(message, ": {source}").expect("message should be writable");
         }
         if let Some(help) = err.help() {
-            write!(pre_message, "\n\nhelp: {help}").expect("message should be writable");
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
         }
-
-        // Newlines in JSON need to be double escaped
-        // TODO: Maybe some other chars too: https://stackoverflow.com/a/5191059
-        let message = pre_message.replace('\n', "\\\\n");
 
         let code = err.code().map(|code| VSDiagnosticCode {
             value: code.to_string(),

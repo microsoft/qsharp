@@ -217,7 +217,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
+        assert_eq!(err.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
