@@ -7,7 +7,7 @@ pub mod compile;
 mod error;
 pub mod interpret;
 
-pub use qsc_frontend::compile::{PackageStore, SourceMap};
+pub use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 
 pub mod hir {
     pub use qsc_hir::{hir::*, *};

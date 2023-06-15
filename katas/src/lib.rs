@@ -8,10 +8,8 @@ mod tests;
 
 use qsc::{
     interpret::{output::Receiver, stateless, Value},
-    SourceMap,
+    SourceContents, SourceMap, SourceName,
 };
-
-use qsc_frontend::compile::{SourceContents, SourceName};
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
 
