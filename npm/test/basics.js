@@ -137,7 +137,7 @@ namespace Kata {
   const results = evtTarget.getResults();
 
   assert(results.length === 1);
-  assert(results[0].events.length === 2);
+  assert(results[0].events.length === 4);
   assert(passed);
 });
 
@@ -160,7 +160,7 @@ namespace Kata {
   compiler.terminate();
 
   assert(results.length === 1);
-  assert(results[0].events.length === 4);
+  assert(results[0].events.length === 6);
   assert(!passed);
 });
 
