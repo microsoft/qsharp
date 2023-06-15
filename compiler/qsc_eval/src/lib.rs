@@ -89,9 +89,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize),
 
-    #[error("symbol is not bound")]
-    #[diagnostic(code("Qsc.Eval.UnboundSymbol"))]
-    UnboundSymbol(#[label] Span),
+    #[error("name is not bound")]
+    #[diagnostic(code("Qsc.Eval.UnboundName"))]
+    UnboundName(#[label] Span),
 
     #[error("unknown intrinsic `{0}`")]
     #[diagnostic(code("Qsc.Eval.UnknownIntrinsic"))]
@@ -799,7 +799,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.push_val(arg);
                 return Ok(());
             }
-            None => return Err(Error::UnboundSymbol(callee_span)),
+            None => return Err(Error::UnboundName(callee_span)),
         };
 
         let spec = spec_from_functor_app(functor);
@@ -1029,11 +1029,7 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
             },
             FunctorApp::default(),
         ),
-        Res::Local(node) => env
-            .get(node)
-            .ok_or(Error::UnboundSymbol(span))?
-            .value
-            .clone(),
+        Res::Local(node) => env.get(node).ok_or(Error::UnboundName(span))?.value.clone(),
     })
 }
 
@@ -1046,7 +1042,7 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
                 var.value = rhs;
             }
             Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
-            None => return Err(Error::UnboundSymbol(lhs.span)),
+            None => return Err(Error::UnboundName(lhs.span)),
         },
         (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
             for (expr, val) in var_tup.iter().zip(tup.iter()) {
@@ -1114,7 +1110,7 @@ fn resolve_closure(
         .iter()
         .map(|&arg| Some(env.get(arg)?.value.clone()))
         .collect();
-    let args: Vec<_> = args.ok_or(Error::UnboundSymbol(span))?;
+    let args: Vec<_> = args.ok_or(Error::UnboundName(span))?;
     let callable = GlobalId {
         package,
         item: callable,
