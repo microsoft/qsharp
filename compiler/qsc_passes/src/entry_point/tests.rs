@@ -46,7 +46,7 @@ fn test_entry_point_attr_missing() {
         &expect![[r#"
             [
                 EntryPoint(
-                    EntryPointMissing,
+                    NotFound,
                 ),
             ]
         "#]],
@@ -68,7 +68,7 @@ fn test_entry_point_attr_multiple() {
         &expect![[r#"
             [
                 EntryPoint(
-                    DuplicateEntryPoint(
+                    Duplicate(
                         "Main",
                         Span {
                             lo: 49,
@@ -77,7 +77,7 @@ fn test_entry_point_attr_multiple() {
                     ),
                 ),
                 EntryPoint(
-                    DuplicateEntryPoint(
+                    Duplicate(
                         "Main2",
                         Span {
                             lo: 106,

@@ -43,16 +43,22 @@ enum ErrorKind {
     #[diagnostic(transparent)]
     Lex(lex::Error),
     #[error("invalid {0} literal")]
+    #[diagnostic(code("Qsc.Parse.Literal"))]
     Lit(&'static str, #[label] Span),
     #[error("unknown escape sequence: `{0}`")]
+    #[diagnostic(code("Qsc.Parse.Escape"))]
     Escape(char, #[label] Span),
     #[error("expected {0}, found {1}")]
+    #[diagnostic(code("Qsc.Parse.Token"))]
     Token(TokenKind, TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
+    #[diagnostic(code("Qsc.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
+    #[diagnostic(code("Qsc.Parse.Convert"))]
     Convert(&'static str, &'static str, #[label] Span),
     #[error("expected statement to end with a semicolon")]
+    #[diagnostic(code("Qsc.Parse.MissingSemi"))]
     MissingSemi(#[label] Span),
 }
 
