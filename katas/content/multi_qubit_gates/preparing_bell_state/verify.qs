@@ -1,49 +1,26 @@
 namespace Kata {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Katas;
 
-    operation BellStateReference (qs : Qubit[]) : Unit is Adj {
+    operation BellStateReference (qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
         CNOT(qs[0], qs[1]);
     }
 
-    operation Verify() : Bool {
-        let task = BellState;
-        let taskRef = BellStateReference;
+    operation VerifyExercise() : Bool {
+        let op = BellState;
+        let reference = BellStateReference;
+        let isCorrect = VerifyMultiQubitOperation(op, reference);
 
-        mutable isCorrect = false;
-        {
-            use targetRegister = Qubit[2];
-            task(targetRegister);
-            Adjoint taskRef(targetRegister);
-            set isCorrect = CheckAllZero(targetRegister);
-            ResetAll(targetRegister);
-        }
-
+        // Output different feedback to the user depending on whether the exercise was correct.
+        use target = Qubit[2];
         if isCorrect {
-            use targetRegister = Qubit[2];
-            task(targetRegister);
-            Message("Qubits state after setting them into a Bell state:");
-            DumpMachine();
-            ResetAll(targetRegister);
+            ShowEffectOnQuantumState(target, op);
         } else {
-            {
-                use expected = Qubit[2];
-                taskRef(expected);
-                Message("Expected qubits state:");
-                DumpMachine();
-                ResetAll(expected);
-            }
-
-            {
-                use actual = Qubit[2];
-                task(actual);
-                Message("Actual qubits state:");
-                DumpMachine();
-                ResetAll(actual);
-            }
+            ShowQuantumStateComparison(target, op, reference);
         }
 
-        return isCorrect;
+        isCorrect
     }
 }

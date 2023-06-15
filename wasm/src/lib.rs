@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::{run_kata, KATA_ENTRY};
+use katas::verify_exercise;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -181,11 +181,17 @@ export interface IDiagnostic {
     message: string;
     severity: "error" | "warning" | "info"
     code?: {
-        value: number;  // Can also be a string, but number would be preferable
-        target: string; // URI for more info - could be a custom URI for pretty errors
+        value: string;
+        target: string;
     }
 }
 "#;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VSDiagnosticCode {
+    value: String,
+    target: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
@@ -193,16 +199,13 @@ pub struct VSDiagnostic {
     pub end_pos: usize,
     pub message: String,
     pub severity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<VSDiagnosticCode>,
 }
 
 impl VSDiagnostic {
     pub fn json(&self) -> serde_json::Value {
-        json!({
-            "message": self.message,
-            "severity": self.severity,
-            "start_pos": self.start_pos,
-            "end_pos": self.end_pos
-        })
+        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
     }
 }
 
@@ -229,11 +232,17 @@ where
             write!(message, "\n\nhelp: {help}").expect("message should be writable");
         }
 
+        let code = err.code().map(|code| VSDiagnosticCode {
+            value: code.to_string(),
+            target: "".to_string(),
+        });
+
         VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity,
             message,
+            code,
         }
     }
 }
@@ -385,27 +394,25 @@ pub fn run(
 
 fn run_kata_exercise_internal(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
-    let sources = SourceMap::new(
-        [
-            ("kata".into(), kata_implementation.into()),
+    verify_exercise(
+        vec![
+            ("exercise".into(), exercise_implementation.into()),
             ("verifier".into(), verification_source.into()),
         ],
-        Some(KATA_ENTRY.into()),
-    );
-
-    run_kata(sources, &mut CallbackReceiver { event_cb })
+        &mut CallbackReceiver { event_cb },
+    )
 }
 
 #[wasm_bindgen]
 pub fn run_kata_exercise(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, kata_implementation, |msg: &str| {
+    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
