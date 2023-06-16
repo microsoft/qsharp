@@ -85,7 +85,7 @@ fn main() -> miette::Result<ExitCode> {
             Ok(context) => context,
             Err(errors) => {
                 for error in errors {
-                    eprintln!("{:?}", Report::new(error));
+                    eprintln!("error: {:?}", Report::new(error));
                 }
                 return Ok(ExitCode::FAILURE);
             }
@@ -97,7 +97,7 @@ fn main() -> miette::Result<ExitCode> {
         Ok(interpreter) => interpreter,
         Err(errors) => {
             for error in errors {
-                eprintln!("{:?}", Report::new(error));
+                eprintln!("error: {:?}", Report::new(error));
             }
             return Ok(ExitCode::FAILURE);
         }
@@ -174,7 +174,7 @@ fn print_interpret_result(line: &str, result: Result<Value, Vec<LineError>>) {
                     eprintln!("{stack_trace}");
                 }
                 let report = Report::new(error).with_source_code(Arc::clone(&source));
-                eprintln!("{report:?}");
+                eprintln!("error: {report:?}");
             }
         }
     }
@@ -192,7 +192,7 @@ fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) -> ExitCode {
                     eprintln!("{stack_trace}");
                 }
                 let report = Report::new(error);
-                eprintln!("{report:?}");
+                eprintln!("error: {report:?}");
             }
             ExitCode::FAILURE
         }

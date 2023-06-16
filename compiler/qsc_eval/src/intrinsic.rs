@@ -45,12 +45,12 @@ pub(crate) fn call(
             let (state, qubit_count) = capture_quantum_state();
             match out.state(state, qubit_count) {
                 Ok(_) => Ok(Value::unit()),
-                Err(_) => Err(Error::Output(name_span)),
+                Err(_) => Err(Error::OutputFail(name_span)),
             }
         }
         "Message" => match out.message(&arg.unwrap_string()) {
             Ok(_) => Ok(Value::unit()),
-            Err(_) => Err(Error::Output(name_span)),
+            Err(_) => Err(Error::OutputFail(name_span)),
         },
         "CheckZero" => Ok(Value::Bool(qubit_is_zero(arg.unwrap_qubit().0))),
         "ArcCos" => Ok(Value::Double(arg.unwrap_double().acos())),

@@ -83,7 +83,7 @@ export function Editor(props: {
 
     const errList = markers.map((err) => ({
       location: `main.qs@(${err.startLineNumber},${err.startColumn})`,
-      msg: err.message.split("\\\\n\\\\n"),
+      msg: err.message.split("\n\n"),
     }));
     setErrors(errList);
   }
