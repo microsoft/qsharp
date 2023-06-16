@@ -270,9 +270,9 @@ test("state change", async () => {
   const resultsHandler = new QscEventTarget(false);
   const stateChanges = [];
 
-  compiler.onstatechange = (state) => {
+  compiler.setStateHandler((state) => {
     stateChanges.push(state);
-  };
+  });
   const code = `namespace Test {
     @EntryPoint()
     operation MyEntry() : Result {

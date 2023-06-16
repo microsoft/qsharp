@@ -17,7 +17,8 @@
       "node": "./dist/main.js",
       "default": "./dist/browser.js"
     },
-    "./worker": "./dist/worker-browser.js"
+    "./worker": "./dist/worker-browser.js",
+    "./comlink-worker": "./dist/comlink-worker.js"
   },
   "scripts": {
     "build": "npm run generate && npm run build:tsc",
@@ -29,5 +30,8 @@
   "files": [
     "dist",
     "lib"
-  ]
+  ],
+  "dependencies": {
+    "comlink": "^4.4.1"
+  }
 }

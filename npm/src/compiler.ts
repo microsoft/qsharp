@@ -28,7 +28,7 @@ export interface ICompiler {
     verify_code: string,
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
-  onstatechange: ((state: CompilerState) => void) | null;
+  setStateHandler(onstatechange: (state: CompilerState) => void): Promise<void>;
 }
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -57,12 +57,19 @@ function errToDiagnostic(err: any): VSDiagnostic {
 export class Compiler implements ICompiler {
   private wasm: Wasm;
 
-  onstatechange: ((state: CompilerState) => void) | null = null;
+  private onstatechange: ((state: CompilerState) => void) | null = null;
 
   constructor(wasm: Wasm) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
     globalThis.qscGitHash = this.wasm.git_hash();
+  }
+
+  setStateHandler(
+    onstatechange: (state: CompilerState) => void
+  ): Promise<void> {
+    this.onstatechange = onstatechange;
+    return Promise.resolve();
   }
 
   async checkCode(code: string): Promise<VSDiagnostic[]> {

@@ -47,11 +47,13 @@ export function createWorkerProxy(
   const queue: RequestState[] = [];
   let curr: RequestState | undefined;
   let state: CompilerState = "idle";
+  let onstatechange: ((state: CompilerState) => void) | null = null;
 
   function setState(newState: CompilerState) {
+    // called browserside when we're about to send a request
     if (state === newState) return;
     state = newState;
-    if (proxy.onstatechange) proxy.onstatechange(state);
+    if (onstatechange) onstatechange(state);
   }
 
   function queueRequest(
@@ -204,7 +206,10 @@ export function createWorkerProxy(
     runKata(user_code, verify_code, evtHandler) {
       return queueRequest("runKata", [user_code, verify_code], evtHandler);
     },
-    onstatechange: null,
+    setStateHandler(handler: (state: CompilerState) => void): Promise<void> {
+      onstatechange = handler;
+      return Promise.resolve();
+    },
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
     terminate: () => {
       log.info("Terminating the worker");
