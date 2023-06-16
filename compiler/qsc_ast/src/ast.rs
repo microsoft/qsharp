@@ -521,7 +521,7 @@ pub enum TyKind {
         /// e.g., function foo<'U> -> `U` is the name.
         name: Ident,
         /// The actual type info for the type parameter.
-        ty: Ty,
+        type_info: Ty,
     },
     /// A tuple type.
     Tuple(Box<[Ty]>),

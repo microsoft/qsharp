@@ -649,7 +649,7 @@ fn resolve(
 /// Implements shadowing rules within a single scope.
 /// A local variable always wins out against an item with the same name, if they're declared in
 /// the same scope. It is implemented in a way that resembles Rust:
-/// ```
+/// ```rust
 /// let foo = || 1;
 /// fn foo() => i32 { 2 }
 /// dbg!(foo()); // 1, not 2

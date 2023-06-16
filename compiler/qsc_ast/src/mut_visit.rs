@@ -187,7 +187,10 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         }
         TyKind::Hole => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Param { ty, name } => {
+        TyKind::Param {
+            type_info: ty,
+            name,
+        } => {
             vis.visit_ident(name);
             vis.visit_ty(ty);
         }

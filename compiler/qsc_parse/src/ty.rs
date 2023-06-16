@@ -93,7 +93,10 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         Ok(TyKind::Hole)
     } else if let Some((name, ty)) = opt(s, param)? {
-        Ok(TyKind::Param { name, ty })
+        Ok(TyKind::Param {
+            name,
+            type_info: ty,
+        })
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
