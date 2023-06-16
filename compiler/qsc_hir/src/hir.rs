@@ -73,14 +73,14 @@ impl Display for NodeId {
 
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
-        assert!(!value.is_default(), "default node ID should be assigned");
+        assert!(!value.is_default(), "default node ID should be replaced");
         value.0 as usize
     }
 }
 
 impl PartialEq for NodeId {
     fn eq(&self, other: &Self) -> bool {
-        assert!(!self.is_default(), "default node ID should be assigned");
+        assert!(!self.is_default(), "default node ID should be replaced");
         self.0 == other.0
     }
 }
@@ -89,14 +89,14 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be assigned");
+        assert!(!self.is_default(), "default node ID should be replaced");
         self.0.partial_cmp(&other.0)
     }
 }
 
 impl Ord for NodeId {
     fn cmp(&self, other: &Self) -> Ordering {
-        assert!(!self.is_default(), "default node ID should be assigned");
+        assert!(!self.is_default(), "default node ID should be replaced");
         self.0.cmp(&other.0)
     }
 }
