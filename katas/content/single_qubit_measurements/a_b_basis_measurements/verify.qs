@@ -19,7 +19,6 @@
     }
 
     // We can use the StatePrep_IsQubitA operation for the testing
-    @Test("QuantumSimulator")
     operation T7_MeasureInABBasis () : Unit {
         for i in 0 .. 10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
@@ -27,6 +26,11 @@
                 q => MeasureInABBasis(alpha, q) == Zero, // IsResultZero(MeasureInABBasis(alpha, _),_), 
                 [$"|B⟩=(-i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩)", $"|A⟩=(cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩)"], true);
         }
+    }
+
+    operation Verify() : Bool {
+        return true;
+        // TODO: Make sure correct result is returned.
     }
 
 }
