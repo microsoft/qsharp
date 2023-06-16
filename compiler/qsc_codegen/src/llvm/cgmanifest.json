@@ -1,0 +1,16 @@
+{
+    "$schema": "https://json.schemastore.org/component-detection-manifest.json",
+    "version": 0,
+    "registrations": [
+        {
+            "component": {
+                "type": "cargo",
+                "cargo": {
+                    "name": "llvm-ir",
+                    "version": "0.9.0"
+                }
+            },
+            "developmentDependency": false
+        }
+    ]
+}
