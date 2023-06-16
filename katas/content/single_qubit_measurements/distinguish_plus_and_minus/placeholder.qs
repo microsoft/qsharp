@@ -1,3 +1,7 @@
-operation IsQubitMinus (q : Qubit) : Bool {
-    // ...
+namespace Kata {
+
+    operation IsQubitMinus (q : Qubit) : Bool {
+        // ...
+    }
+
 }

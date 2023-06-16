@@ -1,6 +1,3 @@
-// Run this cell using Ctrl+Enter (⌘+Enter on Mac)
-// Run the next cell to see the output
-
 namespace Kata {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;

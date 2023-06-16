@@ -1,3 +1,5 @@
+namespace Kata.Reference {
+
     // ------------------------------------------------------
     // Exercise 3. Distinguish |+❭ and |-❭ using Measure operation
     // ------------------------------------------------------
@@ -16,3 +18,5 @@
     operation T3_IsQubitMinus () : Unit {
         DistinguishTwoStates(StatePrep_IsQubitMinus, IsQubitMinus, ["|+⟩", "|-⟩"], false);
     }
+
+}

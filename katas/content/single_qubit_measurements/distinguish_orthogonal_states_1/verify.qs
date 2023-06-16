@@ -1,3 +1,4 @@
+namespace Kata.Reference {
     // ------------------------------------------------------
     // Exercise 5. Distinguish specific orthogonal states
     // ------------------------------------------------------
@@ -20,3 +21,4 @@
         DistinguishTwoStates(StatePrep_IsQubitPsiPlus, IsQubitPsiPlus, 
             ["|ψ₋⟩", "|ψ₊⟩"], false);
     }
+}

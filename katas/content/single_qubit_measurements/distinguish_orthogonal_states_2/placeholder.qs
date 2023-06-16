@@ -1,3 +1,7 @@
-operation IsQubitA (alpha : Double, q : Qubit) : Bool {
-    // ...
+namespace Kata {
+
+    operation IsQubitA (alpha : Double, q : Qubit) : Bool {
+        // ...
+    }
+
 }

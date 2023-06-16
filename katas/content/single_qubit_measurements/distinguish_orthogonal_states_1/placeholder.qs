@@ -1,5 +1,8 @@
-open Microsoft.Quantum.Math;
+namespace Kata {
+    open Microsoft.Quantum.Math;
 
-operation IsQubitPsiPlus (q : Qubit) : Bool {
-    // ...
+    operation IsQubitPsiPlus (q : Qubit) : Bool {
+        // ...
+    }
+
 }
