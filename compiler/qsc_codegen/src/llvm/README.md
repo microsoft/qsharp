@@ -1,4 +1,4 @@
-# LLVM Rust Types Standalone Port
+# LLVM Rust Types Port
 
 This is a port of a small subset of the [Rust llvm-ir](https://github.com/cdisselkoen/llvm-ir) crate to provide a
 Rust types for LLVM structures. Here, instead of populating the contents via calls into LLVM native libraries, it avoids any actual
