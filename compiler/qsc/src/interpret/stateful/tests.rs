@@ -85,7 +85,7 @@ mod given_interpreter {
             is_only_error(&result, &output, "name error: `x` not found");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, &output, "runtime error: symbol is not bound");
+            is_only_error(&result, &output, "runtime error: name is not bound");
         }
 
         #[test]
@@ -120,7 +120,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "function Foo() : Int { invalid }");
             is_only_error(&result, &output, "name error: `invalid` not found");
             let (result, output) = line(&mut interpreter, "Foo()");
-            is_only_error(&result, &output, "runtime error: symbol is not bound");
+            is_only_error(&result, &output, "runtime error: name is not bound");
         }
 
         #[test]

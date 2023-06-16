@@ -484,7 +484,7 @@ fn binop_andb_invalid() {
             #1 0-11 "2.8 &&& 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -645,7 +645,7 @@ fn binop_orb_invalid() {
             #1 0-11 "2.8 ||| 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -673,7 +673,7 @@ fn binop_xorb_invalid() {
             #1 0-11 "2.8 ^^^ 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }

@@ -37,6 +37,7 @@ pub enum Error {
     AdjGen(adj_gen::Error),
 
     #[error("specialization generation missing required body implementation")]
+    #[diagnostic(code("Qsc.SpecGen.MissingBody"))]
     MissingBody(#[label] Span),
 }
 
