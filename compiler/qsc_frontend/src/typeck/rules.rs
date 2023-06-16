@@ -102,7 +102,7 @@ impl<'a> Context<'a> {
                 // a path should never resolve to a parameter,
                 // as there is a syntactic difference between
                 // paths and parameters.
-                // so realistically, by construction, `Param` here is unreachable.
+                // So realistically, by construction, `Param` here is unreachable.
                 | resolve::Res::Param(_)) => Ty::Err,
             },
             TyKind::Param(name) => match self.names.get(name.id) {

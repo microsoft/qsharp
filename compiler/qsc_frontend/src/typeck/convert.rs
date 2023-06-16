@@ -49,7 +49,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
                 // a path should never resolve to a parameter,
                 // as there is a syntactic difference between
                 // paths and parameters.
-                // so realistically, by construction, `Param` here is unreachable.
+                // So realistically, by construction, `Param` here is unreachable.
                 | resolve::Res::Param(_))
                 => Ty::Err,
             };
