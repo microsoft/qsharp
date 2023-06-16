@@ -940,6 +940,7 @@ dependencies = [
  "getrandom",
  "js-sys",
  "katas",
+ "log",
  "miette",
  "num-bigint",
  "num-complex",

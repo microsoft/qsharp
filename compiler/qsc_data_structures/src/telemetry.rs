@@ -10,9 +10,15 @@ pub trait Log: Sync + Send {
 static TELEM_ENABLED: AtomicBool = AtomicBool::new(false);
 static TELEM_GLOBAL: OnceLock<&dyn Log> = OnceLock::new();
 
-pub fn set_telemetry_logger(logger: &'static dyn Log) {
-    let _ = TELEM_GLOBAL.set(logger); // TODO: Error handling
+/// # Errors
+///
+/// Will return an error if the telemetry logger has already been set
+pub fn set_telemetry_logger(logger: &'static dyn Log) -> Result<(), &str> {
+    TELEM_GLOBAL
+        .set(logger)
+        .map_err(|_| "attempted to set a telemetry logger after it was already assigned")?;
     TELEM_ENABLED.store(true, Ordering::Release);
+    Ok(())
 }
 
 #[inline]

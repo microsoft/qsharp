@@ -28,10 +28,18 @@ if (workerData && typeof workerData.qscLogLevel === "number") {
 const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 const postMessage = port.postMessage.bind(port);
 
+function telemetryHandler(telemetry: string) {
+  postMessage({ type: "telemetry-event", event: telemetry });
+}
+
+// Set up logging and telemetry as soon as possible after instantiating
+log.onLevelChanged = (level) => wasm.setLogLevel(level);
+log.setTelemetryCollector(telemetryHandler);
+wasm.initLogging(log.logWithLevel, log.getLogLevel());
+wasm.initTelemetry(log.logTelemetry);
+
 const evtTarget = getWorkerEventHandlers(postMessage);
-const compiler = new Compiler(wasm, (telemetry: string) =>
-  postMessage({ type: "telemetry-event", event: telemetry })
-);
+const compiler = new Compiler(wasm);
 
 function messageHandler(data: CompilerReqMsg) {
   if (!data.type || typeof data.type !== "string") {

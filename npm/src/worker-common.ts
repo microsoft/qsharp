@@ -42,8 +42,7 @@ type RequestState = {
 export function createWorkerProxy(
   postMessage: (msg: CompilerReqMsg) => void,
   setMsgHandler: (handler: (e: ResponseMsgType) => void) => void,
-  terminator: () => void,
-  ontelemetry?: (msg: string) => void
+  terminator: () => void
 ): ICompilerWorker {
   const queue: RequestState[] = [];
   let curr: RequestState | undefined;
@@ -128,7 +127,7 @@ export function createWorkerProxy(
   function onMsgFromWorker(msg: CompilerRespMsg | CompilerEventMsg) {
     // If a telemetry event, and there is a listener, call it.
     if (msg.type === "telemetry-event") {
-      proxy.ontelemetry?.(msg.event);
+      log.logTelemetry(msg.event);
       return;
     }
 
@@ -212,7 +211,6 @@ export function createWorkerProxy(
       return queueRequest("runKata", [user_code, verify_code], evtHandler);
     },
     onstatechange: null,
-    ontelemetry: ontelemetry || null,
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
     terminate: () => {
       log.info("Terminating the worker");

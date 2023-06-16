@@ -19,14 +19,20 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 let wasm: Wasm | null = null;
 const require = createRequire(import.meta.url);
 
-export function getCompiler(ontelemetry?: (msg: string) => void): ICompiler {
-  if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-  return new Compiler(wasm, ontelemetry);
+export function getCompiler(): ICompiler {
+  if (!wasm) {
+    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+    // Set up logging and telemetry as soon as possible after instantiating
+    wasm.initLogging(log.logWithLevel, log.getLogLevel());
+    log.onLevelChanged = (level) => wasm?.setLogLevel(level);
+    if (log.isTelemetryEnabled()) {
+      wasm.initTelemetry(log.logTelemetry);
+    }
+  }
+  return new Compiler(wasm);
 }
 
-export function getCompilerWorker(
-  ontelemetry?: (msg: string) => void
-): ICompilerWorker {
+export function getCompilerWorker(): ICompilerWorker {
   const thisDir = dirname(fileURLToPath(import.meta.url));
   const worker = new Worker(join(thisDir, "worker-node.js"), {
     workerData: { qscLogLevel: log.getLogLevel() },
@@ -38,10 +44,5 @@ export function getCompilerWorker(
     worker.addListener("message", handler);
   const onTerminate = () => worker.terminate();
 
-  return createWorkerProxy(
-    postMessage,
-    setMsgHandler,
-    onTerminate,
-    ontelemetry
-  );
+  return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
 }

@@ -11,7 +11,10 @@ import { QscEventTarget } from "../dist/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
+/** @type {string[]} */
+const telemetryEvents = [];
 log.setLogLevel("warn");
+log.setTelemetryCollector((event) => telemetryEvents.push(event));
 
 /**
  *
@@ -40,13 +43,12 @@ test("telemetry", () => {
         use q1 = Qubit();
     }
   }`;
-  /** @type {Array<string>} */
-  const events = [];
-  const compiler = getCompiler((telemetry) => events.push(telemetry));
+  telemetryEvents.length = 0;
+  const compiler = getCompiler();
   compiler.checkCode(code);
-  assert(events.length > 1);
+  assert(telemetryEvents.length > 1);
   assert(
-    events.some((val) =>
+    telemetryEvents.some((val) =>
       val.includes("Tried to allocate a qubit in a function")
     )
   );
@@ -234,15 +236,14 @@ test("worker telemetry", async () => {
         use q1 = Qubit();
     }
   }`;
-  /** @type {Array<string>} */
-  const events = [];
-  const compiler = getCompilerWorker((msg) => events.push(msg));
+  telemetryEvents.length = 0;
+  const compiler = getCompilerWorker();
   let result = await compiler.checkCode(code);
   compiler.terminate();
   assert(result[0].message === "functions cannot allocate qubits");
-  assert(events.length > 1);
+  assert(telemetryEvents.length > 1);
   assert(
-    events.some((val) =>
+    telemetryEvents.some((val) =>
       val.includes("Tried to allocate a qubit in a function")
     )
   );

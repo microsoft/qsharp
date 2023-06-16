@@ -25,22 +25,30 @@ export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
   }
 }
 
-export async function getCompiler(
-  ontelemetry?: (msg: string) => void
-): Promise<ICompiler> {
+async function instantiateWasm() {
   if (!wasmModule) throw "Wasm module must be loaded first";
-  if (!wasmInstance) wasmInstance = await initWasm(wasmModule);
+  if (!wasmInstance) {
+    wasmInstance = await initWasm(wasmModule);
 
-  return new Compiler(wasm, ontelemetry);
+    // Set up logging and telemetry as soon as possible after instantiating
+    wasm.initLogging(log.logWithLevel, log.getLogLevel());
+    log.onLevelChanged = (level) => wasm.setLogLevel(level);
+    if (log.isTelemetryEnabled()) {
+      wasm.initTelemetry(log.logTelemetry);
+    }
+  }
+}
+
+export async function getCompiler(): Promise<ICompiler> {
+  if (!wasmInstance) await instantiateWasm();
+
+  return new Compiler(wasm);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.
-export function getCompilerWorker(
-  workerArg: string | Worker,
-  ontelemetry?: (msg: string) => void
-): ICompilerWorker {
+export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
   // Create or use the WebWorker
@@ -60,12 +68,7 @@ export function getCompilerWorker(
     (worker.onmessage = (ev) => handler(ev.data));
   const onTerminate = () => worker.terminate();
 
-  return createWorkerProxy(
-    postMessage,
-    setMsgHandler,
-    onTerminate,
-    ontelemetry
-  );
+  return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
 }
 
 export type { ICompilerWorker };

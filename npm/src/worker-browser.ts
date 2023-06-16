@@ -19,6 +19,10 @@ const evtTarget = getWorkerEventHandlers(self.postMessage);
 
 let compiler: Compiler | null = null;
 
+function telemetryHandler(telemetry: string) {
+  self.postMessage({ type: "telemetry-event", event: telemetry });
+}
+
 // This export should be assigned to 'self.onmessage' in a WebWorker
 export function messageHandler(e: MessageEvent) {
   const data = e.data;
@@ -31,10 +35,15 @@ export function messageHandler(e: MessageEvent) {
   switch (data.type) {
     case "init":
       log.setLogLevel(data.qscLogLevel);
+      log.setTelemetryCollector(telemetryHandler);
       wasm.initSync(data.wasmModule);
-      compiler = new Compiler(wasm, (telemetry: string) =>
-        self.postMessage({ type: "telemetry-event", event: telemetry })
-      );
+
+      // Set up logging and telemetry as soon as possible after instantiating
+      wasm.initLogging(log.logWithLevel, log.getLogLevel());
+      wasm.initTelemetry(log.logTelemetry);
+      log.onLevelChanged = (level) => wasm.setLogLevel(level);
+
+      compiler = new Compiler(wasm);
       break;
     default:
       if (!compiler) {

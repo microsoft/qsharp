@@ -29,7 +29,6 @@ export interface ICompiler {
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
   onstatechange: ((state: CompilerState) => void) | null;
-  ontelemetry: ((msg: string) => void) | null;
 }
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -59,15 +58,10 @@ export class Compiler implements ICompiler {
   private wasm: Wasm;
 
   onstatechange: ((state: CompilerState) => void) | null = null;
-  ontelemetry: ((msg: string) => void) | null = null;
 
-  constructor(wasm: Wasm, telemetryHandler?: (msg: string) => void) {
+  constructor(wasm: Wasm) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
-    if (typeof telemetryHandler === "function") {
-      this.ontelemetry = telemetryHandler;
-      wasm.initTelemetry(this.ontelemetry);
-    }
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 

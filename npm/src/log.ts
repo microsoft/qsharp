@@ -24,6 +24,9 @@ declare global {
 }
 
 export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
+export type TelemetryCollector = (event: string) => void;
+
+let telemetryCollector: TelemetryCollector | null = null;
 
 export const log = {
   setLogLevel(level: LogLevel | number) {
@@ -39,7 +42,9 @@ export const log = {
     } else {
       globalThis.qscLogLevel = level;
     }
+    this.onLevelChanged?.(globalThis.qscLogLevel);
   },
+  onLevelChanged: null as ((level: number) => void) | null,
   getLogLevel(): number {
     return globalThis.qscLogLevel || 0;
   },
@@ -60,17 +65,43 @@ export const log = {
     // console.trace in JavaScript just writes a stack trace at info level, so use 'debug'
     if (qscLogLevel >= 5) console.debug(...args);
   },
-  /* eslint-enable @typescript-eslint/no-explicit-any */
   never(val: never) {
     // Utility function to ensure exhaustive type checking. See https://stackoverflow.com/a/39419171
     log.error("Exhaustive type checking didn't account for: %o", val);
   },
+  logWithLevel(level: number, ...args: any) {
+    switch (level) {
+      case 1:
+        log.error(...args);
+        break;
+      case 2:
+        log.warn(...args);
+        break;
+      case 3:
+        log.info(...args);
+        break;
+      case 4:
+        log.debug(...args);
+        break;
+      case 5:
+        log.trace(...args);
+        break;
+      default:
+        log.error("Invalid logLevel: ", level);
+    }
+  },
+  setTelemetryCollector(handler: TelemetryCollector) {
+    telemetryCollector = handler;
+  },
+  logTelemetry(event: string) {
+    telemetryCollector?.(event);
+  },
+  isTelemetryEnabled() {
+    return !!telemetryCollector;
+  },
 };
-
-// Default to the 'error' level for logging
-if (typeof globalThis.qscLogLevel === "undefined") {
-  log.setLogLevel("error");
-}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Enable globally for easy interaction and debugging in live environments
 globalThis.qscLog = log;
+globalThis.qscLogLevel = globalThis.qscLogLevel || 0;
