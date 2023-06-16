@@ -16,11 +16,9 @@ import { inspect } from "node:util";
 
 import { marked } from "marked";
 
-import { katas } from "../katas/content/katas.js";
-
-const thisDir = dirname(fileURLToPath(import.meta.url));
-const katasContentDir = join(thisDir, "..", "katas", "content");
-const katasGeneratedContentDir = join(thisDir, "src");
+const scriptDirPath = dirname(fileURLToPath(import.meta.url));
+const katasContentPath = join(scriptDirPath, "..", "katas", "content");
+const katasGeneratedContentPath = join(scriptDirPath, "src");
 const katasContentFileNames = {
   index: "content.md",
   qsharpExample: "example.qs",
@@ -47,9 +45,9 @@ function getTitleFromMarkdown(markdown) {
   return firstLine.replace(titleRe, "");
 }
 
-function buildExampleContent(id, directory) {
-  const source = readFileSync(join(directory, "example.qs"), "utf8");
-  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+function buildExampleContent(id, path) {
+  const source = readFileSync(join(path, "example.qs"), "utf8");
+  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -62,14 +60,11 @@ function buildExampleContent(id, directory) {
   };
 }
 
-function buildExerciseContent(id, directory) {
-  const placeholderSource = readFileSync(
-    join(directory, "placeholder.qs"),
-    "utf8"
-  );
-  const referenceSource = readFileSync(join(directory, "reference.qs"), "utf8");
-  const verificationSource = readFileSync(join(directory, "verify.qs"), "utf8");
-  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+function buildExerciseContent(id, path) {
+  const placeholderSource = readFileSync(join(path, "placeholder.qs"), "utf8");
+  const referenceSource = readFileSync(join(path, "reference.qs"), "utf8");
+  const verificationSource = readFileSync(join(path, "verify.qs"), "utf8");
+  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -84,8 +79,8 @@ function buildExerciseContent(id, directory) {
   };
 }
 
-function buildReadingContent(id, directory) {
-  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+function buildReadingContent(id, path) {
+  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -109,7 +104,7 @@ function symmetricDifference(setA, setB) {
   return difference;
 }
 
-function getItemType(itemDir) {
+function getItemType(path) {
   const itemTypeFileSets = {
     reading: new Set([katasContentFileNames.index]),
     example: new Set([
@@ -124,43 +119,43 @@ function getItemType(itemDir) {
     ]),
   };
 
-  const itemFiles = new Set(readdirSync(itemDir));
+  const itemFiles = new Set(readdirSync(path));
   return Object.keys(itemTypeFileSets).find(function (key) {
     const fileSet = itemTypeFileSets[key];
     return symmetricDifference(fileSet, itemFiles).size === 0;
   });
 }
 
-function buildItemContent(itemDir) {
-  const itemId = `${basename(dirname(itemDir))}__${basename(itemDir)}`;
-  const itemType = getItemType(itemDir);
+function buildItemContent(path) {
+  const itemId = `${basename(dirname(path))}__${basename(path)}`;
+  const itemType = getItemType(path);
   if (itemType === "example") {
-    return buildExampleContent(itemId, itemDir);
+    return buildExampleContent(itemId, path);
   } else if (itemType === "exercise") {
-    return buildExerciseContent(itemId, itemDir);
+    return buildExerciseContent(itemId, path);
   } else if (itemType === "reading") {
-    return buildReadingContent(itemId, itemDir);
+    return buildReadingContent(itemId, path);
   }
 
   throw new Error(`Unknown module type ${itemType}`);
 }
 
-function buildKataContent(kata, katasDir) {
-  const kataDir = join(katasDir, kata.directory);
-  const itemsJson = readFileSync(join(kataDir, "items.json"), "utf8");
+function buildKataContent(path) {
+  const kataId = basename(path);
+  const itemsJson = readFileSync(join(path, "items.json"), "utf8");
   const items = JSON.parse(itemsJson);
   let itemsContent = [];
   for (const item of items) {
-    const itemDir = join(kataDir, item);
+    const itemDir = join(path, item);
     const itemContent = buildItemContent(itemDir);
     itemsContent.push(itemContent);
   }
 
-  const contentAsMarkdown = readFileSync(join(kataDir, "content.md"), "utf8");
+  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
-    id: kata.directory,
+    id: kataId,
     title: title,
     contentAsMarkdown: contentAsMarkdown,
     contentAsHtml: contentAsHtml,
@@ -168,19 +163,22 @@ function buildKataContent(kata, katasDir) {
   };
 }
 
-function buildKatasContentJs(katasDir, outDir) {
+function buildKatasContentJs(katasPath, outputPath) {
   console.log("Building katas content");
+  const katasJson = readFileSync(join(katasPath, "katas.json"), "utf8");
+  const katasDirs = JSON.parse(katasJson);
   var katasContent = [];
-  for (const kata of katas) {
-    var kataContent = buildKataContent(kata, katasDir);
+  for (const kataDir of katasDirs) {
+    const kataPath = join(katasPath, kataDir);
+    var kataContent = buildKataContent(kataPath);
     katasContent.push(kataContent);
   }
 
-  if (!existsSync(outDir)) {
-    mkdirSync(outDir);
+  if (!existsSync(outputPath)) {
+    mkdirSync(outputPath);
   }
 
-  const contentJsPath = join(outDir, "katas-content.generated.ts");
+  const contentJsPath = join(outputPath, "katas-content.generated.ts");
   writeFileSync(
     contentJsPath,
     "export const katas = " + inspect(katasContent, { depth: null }),
@@ -188,4 +186,4 @@ function buildKatasContentJs(katasDir, outDir) {
   );
 }
 
-buildKatasContentJs(katasContentDir, katasGeneratedContentDir);
+buildKatasContentJs(katasContentPath, katasGeneratedContentPath);
