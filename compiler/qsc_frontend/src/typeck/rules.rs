@@ -98,9 +98,17 @@ impl<'a> Context<'a> {
                 Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
+                // a path should never resolve to a parameter,
+                // as there is a syntactic difference between
+                // paths and parameters.
+                // so realistically, by construction, this is unreachable.
+                Some(Res::Param(_)) => Ty::Err,
                 Some(Res::Local(_)) | None => Ty::Err,
             },
-            TyKind::Param { name, .. } => Ty::Param((*name.name).into()),
+            TyKind::Param(name) => match self.names.get(name.id) {
+                Some(Res::Param(id)) => Ty::Param(*id),
+                _ => Ty::Err,
+            },
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
@@ -338,7 +346,9 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
-                Some(Res::PrimTy(_) | Res::UnitTy) => panic!("expression resolves to type"),
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                    panic!("expression resolves to type")
+                }
             },
             ExprKind::Range(start, step, end) => {
                 let mut diverges = false;

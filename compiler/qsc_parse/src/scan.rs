@@ -100,10 +100,6 @@ impl<'a> Scanner<'a> {
     pub(super) fn into_errors(self) -> Vec<Error> {
         self.errors
     }
-
-    pub(super) fn input(&self) -> &str {
-        self.input
-    }
 }
 
 fn eof(offset: usize) -> Token {

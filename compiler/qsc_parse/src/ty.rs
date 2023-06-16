@@ -4,11 +4,9 @@
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
-
 use super::{
     keyword::Keyword,
-    prim::{opt, path, seq, token},
+    prim::{ident, opt, path, seq, token},
     scan::Scanner,
     Error, Parser, Result,
 };
@@ -54,18 +52,9 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     }
 }
 
-pub(super) fn param(s: &mut Scanner) -> Result<(Ident, Ty)> {
+pub(super) fn param(s: &mut Scanner) -> Result<Box<Ident>> {
     token(s, TokenKind::Apos)?;
-    ty(s).map(|ty| {
-        (
-            Ident {
-                id: ty.id,
-                span: ty.span,
-                name: Rc::from(&s.input()[ty.span]),
-            },
-            ty,
-        )
-    })
+    ident(s)
 }
 
 fn array(s: &mut Scanner) -> Result<()> {
@@ -92,11 +81,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         Ok(TyKind::Hole)
-    } else if let Some((name, ty)) = opt(s, param)? {
-        Ok(TyKind::Param {
-            name,
-            type_info: ty,
-        })
+    } else if let Some(name) = opt(s, param)? {
+        Ok(TyKind::Param(name))
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {

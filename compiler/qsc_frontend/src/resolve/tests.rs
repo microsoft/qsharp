@@ -38,6 +38,7 @@ impl<'a> Renamer<'a> {
                 Res::Local(node) => format!("local{node}"),
                 Res::PrimTy(prim) => format!("{prim:?}"),
                 Res::UnitTy => "Unit".to_string(),
+                Res::Param(id) => format!("param{id}"),
             };
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
         }
@@ -1734,11 +1735,13 @@ fn use_unbound_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'local>(local9: 'U) : 'U {
+                function item1<'param0>(local9: 'U) : 'U {
                     local9
                 }
             }
-            // NotFound("'U", Span { lo: TODO, hi: TODO })
+
+            // NotFound("U", Span { lo: 37, hi: 38 })
+            // NotFound("U", Span { lo: 43, hi: 44 })
         "#]],
     );
 }
@@ -1754,7 +1757,7 @@ fn resolve_local_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'local0>(local9: 'local0) : 'local0{
+                function item1<'param0>(local9: 'param0) : 'param0 {
                     local9
                 }
             }

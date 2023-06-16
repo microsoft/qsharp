@@ -6,7 +6,6 @@ use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
-    sync::Arc,
 };
 
 /// A type.
@@ -19,7 +18,7 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(Arc<str>),
+    Param(ParamId),
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
@@ -95,7 +94,7 @@ impl Scheme {
     /// Returns an error if the given arguments do not match the scheme parameters.
     pub fn instantiate(&self, args: &[GenericArg]) -> Result<Arrow, InstantiationError> {
         if args.len() == self.params.len() {
-            let args: HashMap<_, _> = self.params.iter().map(|p| &p.name).zip(args).collect();
+            let args: HashMap<_, _> = self.params.iter().map(|p| &p.id).zip(args).collect();
             instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
         } else {
             Err(InstantiationError::Arity)
@@ -109,25 +108,22 @@ pub enum InstantiationError {
     /// The number of generic arguments does not match the number of generic parameters.
     Arity,
     /// A generic argument does not match the kind of its corresponding generic parameter.
-    Kind(ParamName),
+    Kind(ParamId),
 }
 
 fn instantiate_ty<'a>(
-    arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
+    arg: impl Fn(&ParamId) -> Option<&'a GenericArg> + Copy,
     ty: &Ty,
 ) -> Result<Ty, InstantiationError> {
     match ty {
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(param) => {
-            let name = ParamName::Symbol(Arc::clone(param));
-            match arg(&name) {
-                Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
-                Some(_) => Err(InstantiationError::Kind(name)),
-                None => Ok(ty.clone()),
-            }
-        }
+        Ty::Param(param) => match arg(&param) {
+            Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
+            Some(_) => Err(InstantiationError::Kind(*param)),
+            None => Ok(ty.clone()),
+        },
         Ty::Tuple(items) => Ok(Ty::Tuple(
             items
                 .iter()
@@ -138,16 +134,15 @@ fn instantiate_ty<'a>(
 }
 
 fn instantiate_arrow_ty<'a>(
-    arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
+    arg: impl Fn(&ParamId) -> Option<&'a GenericArg> + Copy,
     arrow: &Arrow,
 ) -> Result<Arrow, InstantiationError> {
     let input = instantiate_ty(arg, &arrow.input)?;
     let output = instantiate_ty(arg, &arrow.output)?;
-    let functors = if let FunctorSet::Param(id) = arrow.functors {
-        let name = ParamName::Id(id);
-        match arg(&name) {
+    let functors = if let FunctorSet::Param(param) = arrow.functors {
+        match arg(&param) {
             Some(GenericArg::Functor(functor_arg)) => *functor_arg,
-            Some(_) => return Err(InstantiationError::Kind(name)),
+            Some(_) => return Err(InstantiationError::Kind(param)),
             None => arrow.functors,
         }
     } else {
@@ -165,8 +160,8 @@ fn instantiate_arrow_ty<'a>(
 /// A generic parameter.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GenericParam {
-    /// The parameter name.
-    pub name: ParamName,
+    /// The parameter id.
+    pub id: ParamId,
     /// The parameter kind.
     pub kind: ParamKind,
 }
@@ -174,26 +169,8 @@ pub struct GenericParam {
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.kind {
-            ParamKind::Ty => write!(f, "{}: type", self.name),
-            ParamKind::Functor(min) => write!(f, "{}: functor ({min})", self.name),
-        }
-    }
-}
-
-/// A generic parameter name.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum ParamName {
-    /// A string identifier.
-    Symbol(Arc<str>),
-    /// A numeric identifier.
-    Id(ParamId),
-}
-
-impl Display for ParamName {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            ParamName::Symbol(symbol) => Display::fmt(symbol, f),
-            ParamName::Id(id) => Display::fmt(id, f),
+            ParamKind::Ty => write!(f, "{}: type", self.id),
+            ParamKind::Functor(min) => write!(f, "{}: functor ({min})", self.id),
         }
     }
 }
@@ -216,6 +193,12 @@ impl ParamId {
     #[must_use]
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
+    }
+}
+
+impl From<usize> for ParamId {
+    fn from(value: usize) -> Self {
+        ParamId(value as u32)
     }
 }
 

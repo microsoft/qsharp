@@ -243,7 +243,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         token(s, TokenKind::Gt)?;
         params
     } else {
-        Default::default()
+        Vec::new()
     };
 
     let input = pat(s)?;

@@ -334,7 +334,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The generic parameters to the callable.
-    pub generics: Box<[(Ident, Ty)]>,
+    pub generics: Box<[Box<Ident>]>,
     /// The input to the callable.
     pub input: Box<Pat>,
     /// The return type of the callable.
@@ -358,7 +358,7 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for (_, param) in self.generics.iter() {
+            for param in self.generics.iter() {
                 write!(indent, "\n{param}")?;
             }
             indent = set_indentation(indent, 1);
@@ -516,13 +516,7 @@ pub enum TyKind {
     /// A named type.
     Path(Box<Path>),
     /// A type parameter.
-    Param {
-        /// The name given to the type parameter.
-        /// e.g., function foo<'U> -> `U` is the name.
-        name: Ident,
-        /// The actual type info for the type parameter.
-        type_info: Ty,
-    },
+    Param(Box<Ident>),
     /// A tuple type.
     Tuple(Box<[Ty]>),
 }
@@ -544,7 +538,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param { name, .. } => write!(indent, "\nType Param {name}")?,
+            TyKind::Param(name) => write!(indent, "\nType Param {name}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;

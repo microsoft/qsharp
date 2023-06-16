@@ -14,7 +14,7 @@ use qsc_hir::{
     assigner::Assigner,
     global,
     hir::{self, ItemId, LocalItemId, PackageId},
-    ty::Prim,
+    ty::{ParamId, Prim},
 };
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -39,6 +39,8 @@ pub(super) enum Res {
     Item(ItemId),
     /// A local variable.
     Local(NodeId),
+    /// A type/functor parameter in the generics section of the parent callable decl.
+    Param(qsc_hir::ty::ParamId),
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -76,7 +78,7 @@ struct Scope {
     tys: HashMap<Rc<str>, ItemId>,
     terms: HashMap<Rc<str>, ItemId>,
     vars: HashMap<Rc<str>, NodeId>,
-    ty_vars: HashMap<Rc<str>, NodeId>,
+    ty_vars: HashMap<Rc<str>, ParamId>,
 }
 
 impl Scope {
@@ -235,9 +237,10 @@ impl Resolver {
     }
 
     fn bind_type_arguments(&mut self, decl: &CallableDecl) {
-        decl.generics.iter().for_each(|(ident, ty)| {
+        decl.generics.iter().enumerate().for_each(|(ix, ident)| {
             let scope = self.scopes.last_mut().expect("type args should have scope");
-            scope.ty_vars.insert(Rc::clone(&ident.name), ty.id);
+            scope.ty_vars.insert(Rc::clone(&ident.name), ix.into());
+            self.names.insert(ident.id, Res::Param(ix.into()));
         });
     }
 }
@@ -327,12 +330,12 @@ impl AstVisitor<'_> for With<'_> {
             ast::TyKind::Path(path) => {
                 self.resolver.resolve(NameKind::Ty, path);
             }
-            ast::TyKind::Param { name, .. } => {
+            ast::TyKind::Param(ident) => {
                 let path = ast::Path {
-                    id: name.id,
-                    span: name.span,
+                    id: ident.id,
+                    span: ident.span,
                     namespace: Option::default(),
-                    name: Box::new(name.clone()),
+                    name: Box::clone(ident),
                 };
                 self.resolver.resolve(NameKind::Ty, &path);
             }
@@ -654,7 +657,7 @@ fn resolve(
 /// the same scope. It is implemented in a way that resembles Rust:
 /// ```rust
 /// let foo = || 1;
-/// fn foo() => i32 { 2 }
+/// fn foo() -> i32 { 2 }
 /// dbg!(foo()); // 1, not 2
 /// ```
 fn resolve_scope_locals(
@@ -673,7 +676,7 @@ fn resolve_scope_locals(
             }
             NameKind::Ty => {
                 if let Some(&id) = scope.ty_vars.get(name) {
-                    return Some(Res::Local(id));
+                    return Some(Res::Param(id));
                 }
             }
         }
