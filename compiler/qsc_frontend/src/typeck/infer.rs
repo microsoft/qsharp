@@ -161,7 +161,7 @@ impl Class {
             Class::Integral(ty) if check_integral(&ty) => (Vec::new(), Vec::new()),
             Class::Integral(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassIntegral(ty, span))],
+                vec![Error(ErrorKind::MissingClassInteger(ty, span))],
             ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
             Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),

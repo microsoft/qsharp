@@ -17,21 +17,27 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("functions cannot use conjugate expressions")]
-    Conj(#[label] Span),
+    #[diagnostic(code("Qsc.CallableLimits.Conjugate"))]
+    Conjugate(#[label] Span),
 
     #[error("functions cannot have functor expressions")]
+    #[diagnostic(code("Qsc.CallableLimits.Functor"))]
     Functor(#[label] Span),
 
     #[error("functions cannot call operations")]
+    #[diagnostic(code("Qsc.CallableLimits.OpCall"))]
     OpCall(#[label] Span),
 
     #[error("functions cannot allocate qubits")]
+    #[diagnostic(code("Qsc.CallableLimits.QubitAlloc"))]
     QubitAlloc(#[label] Span),
 
     #[error("functions cannot use repeat-loop expressions")]
+    #[diagnostic(code("Qsc.CallableLimits.Repeat"))]
     Repeat(#[label] Span),
 
     #[error("functions cannot have specializations")]
+    #[diagnostic(code("Qsc.CallableLimits.Spec"))]
     Spec(#[label] Span),
 }
 
@@ -73,7 +79,7 @@ impl Visitor<'_> for CallableLimits {
                 }
             }
             ExprKind::Conjugate(..) => {
-                self.errors.push(Error::Conj(expr.span));
+                self.errors.push(Error::Conjugate(expr.span));
             }
             ExprKind::Repeat(..) => {
                 self.errors.push(Error::Repeat(expr.span));

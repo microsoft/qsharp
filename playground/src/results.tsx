@@ -159,10 +159,7 @@ export function ResultsTab(props: {
   const resultLabel =
     typeof resultState.currResult?.result === "string"
       ? resultToLabel(resultState.currResult?.result || "")
-      : `ERROR: ${resultState.currResult?.result.message.replace(
-          /\\n/g,
-          "\n"
-        )}`;
+      : `ERROR: ${resultState.currResult?.result.message}`;
 
   function moveToIndex(idx: number, filter: string) {
     const results = evtTarget.getResults();
