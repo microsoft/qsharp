@@ -98,12 +98,12 @@ impl<'a> Context<'a> {
                 Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
+                None | Some(resolve::Res::Local(_)
                 // a path should never resolve to a parameter,
                 // as there is a syntactic difference between
                 // paths and parameters.
-                // so realistically, by construction, this is unreachable.
-                Some(Res::Param(_)) => Ty::Err,
-                Some(Res::Local(_)) | None => Ty::Err,
+                // so realistically, by construction, `Param` here is unreachable.
+                | resolve::Res::Param(_)) => Ty::Err,
             },
             TyKind::Param(name) => match self.names.get(name.id) {
                 Some(Res::Param(id)) => Ty::Param(*id),

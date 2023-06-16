@@ -45,12 +45,13 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
                 Some(&resolve::Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
-                Some(resolve::Res::Local(_)) | None => Ty::Err,
+                None | Some(resolve::Res::Local(_)
                 // a path should never resolve to a parameter,
                 // as there is a syntactic difference between
                 // paths and parameters.
-                // so realistically, by construction, this is unreachable.
-                Some(resolve::Res::Param(_)) => Ty::Err,
+                // so realistically, by construction, `Param` here is unreachable.
+                | resolve::Res::Param(_))
+                => Ty::Err,
             };
             (ty, Vec::new())
         }

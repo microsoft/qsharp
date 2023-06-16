@@ -119,7 +119,7 @@ fn instantiate_ty<'a>(
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(param) => match arg(&param) {
+        Ty::Param(param) => match arg(param) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
             Some(_) => Err(InstantiationError::Kind(*param)),
             None => Ok(ty.clone()),
@@ -197,6 +197,7 @@ impl ParamId {
 }
 
 impl From<usize> for ParamId {
+    #[allow(clippy::cast_possible_truncation)]
     fn from(value: usize) -> Self {
         ParamId(value as u32)
     }
