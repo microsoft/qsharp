@@ -3,7 +3,13 @@
 
 // @ts-check
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
@@ -15,6 +21,7 @@ import { katas } from "../katas/content/katas.js";
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas", "content");
 const katasGeneratedContentDir = join(thisDir, "src");
+const katasContentFileNames = { textIndex: "content.md" };
 
 function getTitleFromMarkdown(markdown) {
   const titleRe = /#+ /;
@@ -98,13 +105,31 @@ function buildItemContent(item, kataDir) {
   throw new Error(`Unknown module type ${item.type}`);
 }
 
+function symmetricDifference(setA, setB) {
+  const difference = new Set(setA);
+  for (const elem of setB) {
+    if (difference.has(elem)) {
+      difference.delete(elem);
+    } else {
+      difference.add(elem);
+    }
+  }
+  return difference;
+}
+
 function getItemType(itemDir) {
-  
+  const readingFiles = new Set([katasContentFileNames.textIndex]);
+  console.log(readingFiles);
+  const itemFiles = new Set(readdirSync(itemDir));
+  console.log(itemFiles);
+  const isReading = symmetricDifference(readingFiles, itemFiles).size === 0;
+  console.log(isReading);
 }
 
 function buildItemContentNew(itemDir) {
   const itemId = `${basename(dirname(itemDir))}__${basename(itemDir)}`;
   console.log(itemId);
+  getItemType(itemDir);
   // TODO: Build the content object depending on the files present in the folder.
 }
 
@@ -114,7 +139,6 @@ function buildKataContent(kata, katasDir) {
   const items = JSON.parse(itemsJson);
   for (const item of items) {
     const itemDir = join(kataDir, item);
-    console.log(item);
     buildItemContentNew(itemDir);
   }
 
