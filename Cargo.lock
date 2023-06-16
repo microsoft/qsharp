@@ -829,10 +829,6 @@ dependencies = [
 [[package]]
 name = "qsc_codegen"
 version = "0.0.0"
-dependencies = [
- "qsc_frontend",
- "qsc_hir",
-]
 
 [[package]]
 name = "qsc_data_structures"

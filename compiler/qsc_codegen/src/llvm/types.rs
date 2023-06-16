@@ -1,8 +1,6 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_hir::hir::{PrimTy, Ty};
-
 use super::module::AddrSpace;
 use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
@@ -276,35 +274,6 @@ impl Builder {
             metadata_type: TypeRef::new(Type::Metadata),
             label_type: TypeRef::new(Type::Label),
             token_type: TypeRef::new(Type::Token),
-        }
-    }
-
-    /// Get the LLVM type corresponding to the given HIR type
-    #[must_use]
-    pub fn map_ty(&mut self, ty: &Ty) -> TypeRef {
-        match ty {
-            Ty::Array(_) => todo!(),
-            Ty::Arrow(_) => todo!(),
-            Ty::Infer(_) => todo!(),
-            Ty::Param(_) => todo!(),
-            Ty::Prim(prim) => match prim {
-                PrimTy::BigInt => todo!(),
-                PrimTy::Bool => self.bool(),
-                PrimTy::Double => self.fp(FPType::Double),
-                PrimTy::Int => self.i64(),
-                PrimTy::Pauli => self.int(2),
-                PrimTy::Qubit => self.qubit(),
-                PrimTy::Range => todo!(),
-                PrimTy::RangeTo => todo!(),
-                PrimTy::RangeFrom => todo!(),
-                PrimTy::RangeFull => todo!(),
-                PrimTy::Result => self.result(),
-                PrimTy::String => todo!(),
-            },
-            Ty::Tuple(tup) if tup.is_empty() => self.void(),
-            Ty::Tuple(_) => todo!(),
-            Ty::Udt(_) => todo!(),
-            Ty::Err => panic!("error types should not be present during code generation"),
         }
     }
 
