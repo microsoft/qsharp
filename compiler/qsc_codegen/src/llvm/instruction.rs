@@ -55,7 +55,6 @@ pub enum Instruction {
     Alloca(Alloca),
     Load(Load),
     Store(Store),
-    Fence(Fence),
     CmpXchg(CmpXchg),
     AtomicRMW(AtomicRMW),
     GetElementPtr(GetElementPtr),
@@ -115,7 +114,6 @@ impl HasDebugLoc for Instruction {
             Instruction::Alloca(i) => i.get_debug_loc(),
             Instruction::Load(i) => i.get_debug_loc(),
             Instruction::Store(i) => i.get_debug_loc(),
-            Instruction::Fence(i) => i.get_debug_loc(),
             Instruction::CmpXchg(i) => i.get_debug_loc(),
             Instruction::AtomicRMW(i) => i.get_debug_loc(),
             Instruction::GetElementPtr(i) => i.get_debug_loc(),
@@ -175,7 +173,7 @@ impl Instruction {
             Instruction::InsertValue(i) => Some(&i.dest),
             Instruction::Alloca(i) => Some(&i.dest),
             Instruction::Load(i) => Some(&i.dest),
-            Instruction::Store(_) | Instruction::Fence(_) => None,
+            Instruction::Store(_) => None,
             Instruction::CmpXchg(i) => Some(&i.dest),
             Instruction::AtomicRMW(i) => Some(&i.dest),
             Instruction::GetElementPtr(i) => Some(&i.dest),
@@ -199,64 +197,6 @@ impl Instruction {
             Instruction::Freeze(i) => Some(&i.dest),
             Instruction::Call(i) => i.dest.as_ref(),
             Instruction::VAArg(i) => Some(&i.dest),
-        }
-    }
-
-    /// Whether the `Instruction` is atomic
-    #[must_use]
-    pub fn is_atomic(&self) -> bool {
-        match self {
-            Instruction::Add(_)
-            | Instruction::Sub(_)
-            | Instruction::Mul(_)
-            | Instruction::UDiv(_)
-            | Instruction::SDiv(_)
-            | Instruction::URem(_)
-            | Instruction::SRem(_)
-            | Instruction::And(_)
-            | Instruction::Or(_)
-            | Instruction::Xor(_)
-            | Instruction::Shl(_)
-            | Instruction::LShr(_)
-            | Instruction::AShr(_)
-            | Instruction::FAdd(_)
-            | Instruction::FSub(_)
-            | Instruction::FMul(_)
-            | Instruction::FDiv(_)
-            | Instruction::FRem(_)
-            | Instruction::FNeg(_)
-            | Instruction::ExtractElement(_)
-            | Instruction::InsertElement(_)
-            | Instruction::ShuffleVector(_)
-            | Instruction::ExtractValue(_)
-            | Instruction::InsertValue(_)
-            | Instruction::Alloca(_)
-            | Instruction::GetElementPtr(_)
-            | Instruction::Trunc(_)
-            | Instruction::ZExt(_)
-            | Instruction::SExt(_)
-            | Instruction::FPTrunc(_)
-            | Instruction::FPExt(_)
-            | Instruction::FPToUI(_)
-            | Instruction::FPToSI(_)
-            | Instruction::UIToFP(_)
-            | Instruction::SIToFP(_)
-            | Instruction::PtrToInt(_)
-            | Instruction::IntToPtr(_)
-            | Instruction::BitCast(_)
-            | Instruction::AddrSpaceCast(_)
-            | Instruction::ICmp(_)
-            | Instruction::FCmp(_)
-            | Instruction::Phi(_)
-            | Instruction::Select(_)
-            | Instruction::Freeze(_)
-            | Instruction::Call(_)
-            | Instruction::VAArg(_) => false,
-
-            Instruction::Fence(_) | Instruction::CmpXchg(_) | Instruction::AtomicRMW(_) => true,
-
-            Instruction::Load(i) => i.atomicity.is_some(),
-            Instruction::Store(i) => i.atomicity.is_some(),
         }
     }
 }
@@ -304,7 +244,6 @@ impl Display for Instruction {
             Instruction::Alloca(i) => write!(f, "{i}"),
             Instruction::Load(i) => write!(f, "{i}"),
             Instruction::Store(i) => write!(f, "{i}"),
-            Instruction::Fence(i) => write!(f, "{i}"),
             Instruction::CmpXchg(i) => write!(f, "{i}"),
             Instruction::AtomicRMW(i) => write!(f, "{i}"),
             Instruction::GetElementPtr(i) => write!(f, "{i}"),
@@ -384,8 +323,6 @@ macro_rules! impl_unop {
 }
 
 // impls which are shared by all BinaryOps.
-// If possible, prefer `impl_binop!` or `impl_binop!`, which
-// provide additional impls
 macro_rules! impl_binop {
     ($inst:ty, $id:ident, $dispname:expr) => {
         impl_hasresult!($inst);
@@ -460,8 +397,6 @@ pub struct Add {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -475,8 +410,6 @@ pub struct Sub {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -490,8 +423,6 @@ pub struct Mul {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -505,7 +436,6 @@ pub struct UDiv {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -519,7 +449,6 @@ pub struct SDiv {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -598,8 +527,6 @@ pub struct Shl {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -613,7 +540,6 @@ pub struct LShr {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -627,7 +553,6 @@ pub struct AShr {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -641,7 +566,6 @@ pub struct FAdd {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub fast_math_flags: FastMathFlags,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -655,7 +579,6 @@ pub struct FSub {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub fast_math_flags: FastMathFlags,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -669,7 +592,6 @@ pub struct FMul {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub fast_math_flags: FastMathFlags,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -683,7 +605,6 @@ pub struct FDiv {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub fast_math_flags: FastMathFlags,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -697,7 +618,6 @@ pub struct FRem {
     pub operand0: Operand,
     pub operand1: Operand,
     pub dest: Name,
-    // pub fast_math_flags: FastMathFlags,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -710,7 +630,6 @@ impl_binop!(FRem, FRem, "frem");
 pub struct FNeg {
     pub operand: Operand,
     pub dest: Name,
-    // pub fast_math_flags: FastMathFlags,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -902,9 +821,6 @@ impl Display for Alloca {
 pub struct Load {
     pub address: Operand,
     pub dest: Name,
-    pub volatile: bool,
-    pub atomicity: Option<Atomicity>,
-    pub alignment: u32,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -917,17 +833,7 @@ impl Display for Load {
         // the destination type (that's a little hard to get for us here, and
         // it's completely redundant with the address type anyway)
         write!(f, "{} = load ", &self.dest)?;
-        if self.atomicity.is_some() {
-            write!(f, "atomic ")?;
-        }
-        if self.volatile {
-            write!(f, "volatile ")?;
-        }
         write!(f, "{}", &self.address)?;
-        if let Some(a) = &self.atomicity {
-            write!(f, " {a}")?;
-        }
-        write!(f, ", align {}", &self.alignment)?;
         if self.debugloc.is_some() {
             write!(f, " (with debugloc)")?;
         }
@@ -941,9 +847,6 @@ impl Display for Load {
 pub struct Store {
     pub address: Operand,
     pub value: Operand,
-    pub volatile: bool,
-    pub atomicity: Option<Atomicity>,
-    pub alignment: u32,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -952,37 +855,7 @@ impl_inst!(Store, Store);
 impl Display for Store {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "store ")?;
-        if self.atomicity.is_some() {
-            write!(f, "atomic ")?;
-        }
-        if self.volatile {
-            write!(f, "volatile ")?;
-        }
         write!(f, "{}, {}", &self.value, &self.address)?;
-        if let Some(a) = &self.atomicity {
-            write!(f, " {a}")?;
-        }
-        write!(f, ", align {}", &self.alignment)?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
-        Ok(())
-    }
-}
-
-/// Memory-ordering fence.
-/// See [LLVM 14 docs on the 'fence' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#fence-instruction)
-#[derive(PartialEq, Clone, Debug)]
-pub struct Fence {
-    pub atomicity: Atomicity,
-    pub debugloc: Option<DebugLoc>,
-}
-
-impl_inst!(Fence, Fence);
-
-impl Display for Fence {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "fence {}", &self.atomicity)?;
         if self.debugloc.is_some() {
             write!(f, " (with debugloc)")?;
         }
@@ -999,10 +872,6 @@ pub struct CmpXchg {
     pub replacement: Operand,
     pub dest: Name,
     pub volatile: bool,
-    /// This includes the "success" `MemoryOrdering`
-    pub atomicity: Atomicity,
-    /// This is the "failure" `MemoryOrdering`
-    pub failure_memory_ordering: MemoryOrdering,
     pub weak: bool,
     pub debugloc: Option<DebugLoc>,
 }
@@ -1021,12 +890,8 @@ impl Display for CmpXchg {
         }
         write!(
             f,
-            "{}, {}, {} {} {}",
-            &self.address,
-            &self.expected,
-            &self.replacement,
-            &self.atomicity,
-            &self.failure_memory_ordering,
+            "{}, {}, {}",
+            &self.address, &self.expected, &self.replacement,
         )?;
         if self.debugloc.is_some() {
             write!(f, " (with debugloc)")?;
@@ -1045,7 +910,6 @@ pub struct AtomicRMW {
     pub value: Operand,
     pub dest: Name,
     pub volatile: bool,
-    pub atomicity: Atomicity,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -1059,7 +923,7 @@ impl Display for AtomicRMW {
             write!(f, "volatile ")?;
         }
         write!(f, "{} ", &self.operation)?;
-        write!(f, "{}, {} {}", &self.address, &self.value, &self.atomicity)?;
+        write!(f, "{}, {}", &self.address, &self.value)?;
         if self.debugloc.is_some() {
             write!(f, " (with debugloc)")?;
         }
@@ -1408,8 +1272,8 @@ pub struct Call {
     pub arguments: Vec<(Operand, Vec<ParameterAttribute>)>,
     pub return_attributes: Vec<ParameterAttribute>,
     pub dest: Option<Name>, // will be None if the `function` returns void
-    pub function_attributes: Vec<Attribute>, // llvm-hs has the equivalent of Vec<Either<GroupID, FunctionAttribute>>, but I'm not sure how the GroupID option comes up
-    pub is_tail_call: bool, // llvm-hs has the more sophisticated structure Option<TailCallKind>, but the LLVM C API just gives us true/false
+    pub function_attributes: Vec<Attribute>,
+    pub is_tail_call: bool,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -1465,57 +1329,6 @@ impl Display for VAArg {
             write!(f, " (with debugloc)")?;
         }
         Ok(())
-    }
-}
-
-/// See [LLVM 14 docs on Atomic Memory Ordering Constraints](https://releases.llvm.org/14.0.0/docs/LangRef.html#ordering)
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Atomicity {
-    pub synch_scope: SynchronizationScope,
-    pub mem_ordering: MemoryOrdering,
-}
-
-impl Display for Atomicity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.synch_scope {
-            SynchronizationScope::SingleThread => write!(f, "syncscope(\"singlethread\") "),
-            SynchronizationScope::System => Ok(()),
-        }?;
-        write!(f, "{}", &self.mem_ordering)?;
-        Ok(())
-    }
-}
-
-/// See [LLVM 14 docs on Atomic Memory Ordering Constraints](https://releases.llvm.org/14.0.0/docs/LangRef.html#ordering)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum SynchronizationScope {
-    SingleThread,
-    System,
-}
-
-/// See [LLVM 14 docs on Atomic Memory Ordering Constraints](https://releases.llvm.org/14.0.0/docs/LangRef.html#ordering)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum MemoryOrdering {
-    Unordered,
-    Monotonic,
-    Acquire,
-    Release,
-    AcquireRelease,
-    SequentiallyConsistent,
-    NotAtomic, // since we only have a `MemoryOrdering` on atomic instructions, we should never need this. But empirically, some atomic instructions -- e.g. the first 'atomicrmw' instruction in our 'atomic_no_syncscope' test -- have this `MemoryOrdering`
-}
-
-impl Display for MemoryOrdering {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            MemoryOrdering::Unordered => write!(f, "unordered"),
-            MemoryOrdering::Monotonic => write!(f, "monotonic"),
-            MemoryOrdering::Acquire => write!(f, "acquire"),
-            MemoryOrdering::Release => write!(f, "release"),
-            MemoryOrdering::AcquireRelease => write!(f, "acq_rel"),
-            MemoryOrdering::SequentiallyConsistent => write!(f, "seq_cst"),
-            MemoryOrdering::NotAtomic => write!(f, "not_atomic"),
-        }
     }
 }
 

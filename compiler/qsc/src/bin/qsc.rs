@@ -7,7 +7,7 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
-use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, SourceMap, SourceName};
+use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::Package;
 use std::{
     concat, fs,
@@ -49,7 +49,6 @@ struct Cli {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
     Hir,
-    Qir,
 }
 
 fn main() -> miette::Result<ExitCode> {
@@ -69,13 +68,12 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (mut unit, errors) = compile(&store, &dependencies, sources);
+    let (unit, errors) = compile(&store, &dependencies, sources);
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
-            Emit::Qir => emit_qir(&mut unit, out_dir)?,
         }
     }
 
@@ -122,11 +120,4 @@ fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     fs::write(path, package.to_string())
         .into_diagnostic()
         .context("could not emit HIR")
-}
-
-fn emit_qir(unit: &mut CompileUnit, dir: impl AsRef<Path>) -> miette::Result<()> {
-    let path = dir.as_ref().join("qir.ll");
-    fs::write(path, qsc_codegen::emit_qir(unit))
-        .into_diagnostic()
-        .context("could not emit LLVM IR")
 }

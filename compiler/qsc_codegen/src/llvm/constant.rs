@@ -32,13 +32,13 @@ pub enum Constant {
         // unsigned if necessary (e.g., UDiv vs SDiv).
         value: u64,
     },
-    Float(Float),
+    Float(Double),
     /// The `TypeRef` here must be to a `PointerType`. See [LLVM 14 docs on Simple Constants](https://releases.llvm.org/14.0.0/docs/LangRef.html#simple-constants)
     Null(TypeRef),
     /// A zero-initialized array or struct (or scalar).
     AggregateZero(TypeRef),
     Struct {
-        name: Option<String>, // llvm-hs-pure has Option<Name> here, but I don't think struct types can be numbered
+        name: Option<String>,
         values: Vec<ConstantRef>,
         is_packed: bool,
     },
@@ -118,33 +118,12 @@ pub enum Constant {
     Select(Select),
 }
 
-/// All of these `Float` variants should have data associated with them, but
-/// Rust only has `f32` and `f64` floating-point types, and furthermore,
-/// it's not clear how to get 16-, 80-, or 128-bit FP constant values through
-/// the LLVM C API (the getters seem to only be exposed in the C++ API?)
 #[derive(PartialEq, Clone, Debug)]
-#[allow(non_camel_case_types)]
-pub enum Float {
-    Half,
-    BFloat,
-    Single(f32),
-    Double(f64),
-    Quadruple,
-    X86_FP80,
-    PPC_FP128,
-}
+pub struct Double(pub f64);
 
-impl Display for Float {
+impl Display for Double {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Float::Half => write!(f, "half"),
-            Float::BFloat => write!(f, "bfloat"),
-            Float::Single(s) => write!(f, "float {s}"),
-            Float::Double(d) => write!(f, "double {d}"),
-            Float::Quadruple => write!(f, "quadruple"),
-            Float::X86_FP80 => write!(f, "x86_fp80"),
-            Float::PPC_FP128 => write!(f, "ppc_fp128"),
-        }
+        write!(f, "double {}", self.0)
     }
 }
 
@@ -383,8 +362,6 @@ macro_rules! impl_binop {
 pub struct Add {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(Add, Add);
@@ -394,8 +371,6 @@ impl_binop!(Add, "add");
 pub struct Sub {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(Sub, Sub);
@@ -405,8 +380,6 @@ impl_binop!(Sub, "sub");
 pub struct Mul {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(Mul, Mul);
@@ -416,7 +389,6 @@ impl_binop!(Mul, "mul");
 pub struct UDiv {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(UDiv, UDiv);
@@ -426,7 +398,6 @@ impl_binop!(UDiv, "udiv");
 pub struct SDiv {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(SDiv, SDiv);
@@ -481,8 +452,6 @@ impl_binop!(Xor, "xor");
 pub struct Shl {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub nsw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
-    // pub nuw: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(Shl, Shl);
@@ -492,7 +461,6 @@ impl_binop!(Shl, "shl");
 pub struct LShr {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(LShr, LShr);
@@ -502,7 +470,6 @@ impl_binop!(LShr, "lshr");
 pub struct AShr {
     pub operand0: ConstantRef,
     pub operand1: ConstantRef,
-    // pub exact: bool,  // getters for these seem to not be exposed in the LLVM C API, only in the C++ one
 }
 
 impl_constexpr!(AShr, AShr);

@@ -15,7 +15,7 @@ pub struct Function {
     pub is_var_arg: bool,
     pub return_type: TypeRef,
     pub basic_blocks: Vec<BasicBlock>,
-    pub function_attributes: Vec<Attribute>, // llvm-hs-pure has Vec<Either<GroupID, FunctionAttribute>>, but I'm not sure how the GroupID ones come about
+    pub function_attributes: Vec<Attribute>,
     pub return_attributes: Vec<ParameterAttribute>,
     pub linkage: Linkage,
     pub visibility: Visibility,
@@ -160,9 +160,9 @@ pub enum Attribute {
     UWTable,
     StringAttribute {
         kind: String,
-        value: String, // for no value, use ""
+        value: String,
     },
-    UnknownAttribute, // this is used if we get a value not in the above list
+    UnknownAttribute,
 }
 
 /// `ParameterAttribute`s can apply to function parameters as well as function return types.
@@ -189,12 +189,9 @@ pub enum ParameterAttribute {
     SwiftError,
     ImmArg,
     NoUndef,
-    StringAttribute {
-        kind: String,
-        value: String, // for no value, use ""
-    },
-    UnknownAttribute, // this is used if we get an EnumAttribute not in the above list; or, for LLVM 11 or lower, also for some TypeAttributes (due to C API limitations)
-    UnknownTypeAttribute(TypeRef), // this is used if we get a TypeAttribute not in the above list
+    StringAttribute { kind: String, value: String },
+    UnknownAttribute,
+    UnknownTypeAttribute(TypeRef),
 }
 
 pub type GroupID = usize;
