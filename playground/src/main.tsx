@@ -35,7 +35,7 @@ declare global {
 }
 
 function telemetryHandler(msg: string) {
-  // TODO: This is for demo purposes. Wire up to the real telemetry library.
+  // NOTE: This is for demo purposes. Wire up to the real telemetry library.
   console.log("Received telemetry event: ", msg);
 }
 

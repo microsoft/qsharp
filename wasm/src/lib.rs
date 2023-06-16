@@ -168,7 +168,7 @@ pub fn init_logging(callback: JsValue, level: i32) -> Result<(), JsError> {
 
 #[wasm_bindgen(js_name=setLogLevel)]
 pub fn set_log_level(level: i32) {
-    // TODO: Maybe accept a string here too for user-friendliness
+    // NOTE: Could also accept a string here too for user-friendliness
     log::set_max_level(match level {
         1 => LevelFilter::Error,
         2 => LevelFilter::Warn,

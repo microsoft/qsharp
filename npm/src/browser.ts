@@ -11,11 +11,12 @@ import { ResponseMsgType, createWorkerProxy } from "./worker-common.js";
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
+let wasmModulePromise: Promise<void> | null = null;
 
 // Used to track if an instance is already instantiated
-let wasmInstance: wasm.InitOutput;
+let wasmInstance: Promise<wasm.InitOutput> | null = null;
 
-export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
+async function wasmLoader(uriOrBuffer: string | ArrayBuffer) {
   if (typeof uriOrBuffer === "string") {
     const wasmRequst = await fetch(uriOrBuffer);
     const wasmBuffer = await wasmRequst.arrayBuffer();
@@ -25,23 +26,43 @@ export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
   }
 }
 
-async function instantiateWasm() {
-  if (!wasmModule) throw "Wasm module must be loaded first";
-  if (!wasmInstance) {
-    wasmInstance = await initWasm(wasmModule);
+export function loadWasmModule(
+  uriOrBuffer: string | ArrayBuffer
+): Promise<void> {
+  // Only initiate if not already in flight, to avoid race conditions
+  if (!wasmModulePromise) {
+    wasmModulePromise = wasmLoader(uriOrBuffer);
+  }
+  return wasmModulePromise;
+}
 
-    // Set up logging and telemetry as soon as possible after instantiating
-    wasm.initLogging(log.logWithLevel, log.getLogLevel());
-    log.onLevelChanged = (level) => wasm.setLogLevel(level);
-    if (log.isTelemetryEnabled()) {
-      wasm.initTelemetry(log.logTelemetry);
-    }
+async function instantiateWasm() {
+  // Ensure loading the module has been initiated, and wait for it.
+  if (!wasmModulePromise) throw "Wasm module must be loaded first";
+  await wasmModulePromise;
+  if (!wasmModule) throw "Wasm module failed to load";
+
+  if (wasmInstance) {
+    // Either in flight or already complete. The prior request will do the init,
+    // so just wait on that.
+    await wasmInstance;
+    return;
+  }
+
+  // Set the promise to signal this is in flight, then wait on the result.
+  wasmInstance = initWasm(wasmModule);
+  await wasmInstance;
+
+  // Once ready, set up logging and telemetry as soon as possible after instantiating
+  wasm.initLogging(log.logWithLevel, log.getLogLevel());
+  log.onLevelChanged = (level) => wasm.setLogLevel(level);
+  if (log.isTelemetryEnabled()) {
+    wasm.initTelemetry(log.logTelemetry);
   }
 }
 
 export async function getCompiler(): Promise<ICompiler> {
-  if (!wasmInstance) await instantiateWasm();
-
+  await instantiateWasm();
   return new Compiler(wasm);
 }
 
