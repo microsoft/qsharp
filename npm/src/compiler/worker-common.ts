@@ -3,7 +3,8 @@
 
 import { log } from "../log.js";
 import { ICompletionList } from "../../lib/web/qsc_wasm.js";
-import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
+import { DumpMsg, MessageMsg } from "./common.js";
+import { VSDiagnostic } from "../vsdiagnostic.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";

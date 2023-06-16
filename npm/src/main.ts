@@ -29,7 +29,7 @@ export function getCompiler(): ICompiler {
 
 export function getCompilerWorker(): ICompilerWorker {
   const thisDir = dirname(fileURLToPath(import.meta.url));
-  const worker = new Worker(join(thisDir, "worker-node.js"), {
+  const worker = new Worker(join(thisDir, "./compiler/worker-node.js"), {
     workerData: { qscLogLevel: log.getLogLevel() },
   });
 

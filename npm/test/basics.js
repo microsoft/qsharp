@@ -7,7 +7,7 @@ import assert from "node:assert";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
 import { getCompiler, getCompilerWorker } from "../dist/main.js";
-import { QscEventTarget } from "../dist/events.js";
+import { QscEventTarget } from "../dist/compiler/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
@@ -18,7 +18,7 @@ log.setLogLevel("warn");
  * @param {string} code
  * @param {string} expr
  * @param {boolean} useWorker
- * @returns {Promise<import("../dist/common.js").ShotResult>}
+ * @returns {Promise<import("../dist/compiler/common.js").ShotResult>}
  */
 export function runSingleShot(code, expr, useWorker) {
   return new Promise((resolve, reject) => {

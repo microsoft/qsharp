@@ -3,7 +3,8 @@
 
 import type { IDiagnostic, ICompletionList } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
-import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
+import { eventStringToMsg } from "./common.js";
+import { mapDiagnostics, VSDiagnostic } from "../vsdiagnostic.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
