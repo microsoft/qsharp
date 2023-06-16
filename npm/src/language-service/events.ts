@@ -4,7 +4,7 @@
 import { VSDiagnostic } from "../vsdiagnostic.js";
 import { log } from "../log.js";
 
-type Diagnostics = {
+export type Diagnostics = {
   uri: string;
   version: number;
   diagnostics: VSDiagnostic[];
