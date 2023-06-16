@@ -94,7 +94,13 @@ impl Scheme {
     /// Returns an error if the given arguments do not match the scheme parameters.
     pub fn instantiate(&self, args: &[GenericArg]) -> Result<Arrow, InstantiationError> {
         if args.len() == self.params.len() {
-            let args: HashMap<_, _> = self.params.iter().map(|p| &p.id).zip(args).collect();
+            let args: HashMap<_, _> = self
+                .params
+                .iter()
+                .enumerate()
+                .map(|(ix, _)| ParamId::from(ix))
+                .zip(args)
+                .collect();
             instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
         } else {
             Err(InstantiationError::Arity)
@@ -160,8 +166,6 @@ fn instantiate_arrow_ty<'a>(
 /// A generic parameter.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GenericParam {
-    /// The parameter id.
-    pub id: ParamId,
     /// The parameter kind.
     pub kind: ParamKind,
 }
@@ -169,8 +173,8 @@ pub struct GenericParam {
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.kind {
-            ParamKind::Ty => write!(f, "{}: type", self.id),
-            ParamKind::Functor(min) => write!(f, "{}: functor ({min})", self.id),
+            ParamKind::Ty => write!(f, "parameter type"),
+            ParamKind::Functor(min) => write!(f, "functor ({min})"),
         }
     }
 }

@@ -171,7 +171,6 @@ fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<Gener
         Ty::Arrow(arrow) => match arrow.functors {
             FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
                 let param = GenericParam {
-                    id: *next_param,
                     kind: ParamKind::Functor(functors),
                 };
                 arrow.functors = FunctorSet::Param(*next_param);
@@ -212,9 +211,7 @@ fn synthesize_functor_params_in_pat(
 fn ast_callable_generics(generics: &[Box<Ident>]) -> Vec<GenericParam> {
     generics
         .iter()
-        .enumerate()
-        .map(|(ix, _param)| GenericParam {
-            id: ix.into(),
+        .map(|_param| GenericParam {
             kind: ParamKind::Ty,
         })
         .collect()

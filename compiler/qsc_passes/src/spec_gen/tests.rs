@@ -1655,7 +1655,7 @@ fn lambda_adj_calls_adj() {
                     Callable 6 [60-106] (operation):
                         name: Ident 7 [70-73] "Foo"
                         generics:
-                            0: functor (Adj)
+                            functor (Adj)
                         input: Pat 8 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 9 [74-76] "op"
                         output: Unit
                         functors: empty set
