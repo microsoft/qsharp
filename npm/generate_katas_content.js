@@ -21,7 +21,13 @@ import { katas } from "../katas/content/katas.js";
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas", "content");
 const katasGeneratedContentDir = join(thisDir, "src");
-const katasContentFileNames = { textIndex: "content.md" };
+const katasContentFileNames = {
+  index: "content.md",
+  qsharpExample: "example.qs",
+  qsharpPlaceholder: "placeholder.qs",
+  qsharpSolution: "reference.qs",
+  qsharpVerify: "verify.qs",
+};
 
 function getTitleFromMarkdown(markdown) {
   const titleRe = /#+ /;
@@ -91,20 +97,6 @@ function buildReadingContent(id, directory) {
   };
 }
 
-function buildItemContent(item, kataDir) {
-  const itemDir = join(kataDir, item.directory);
-  const itemId = `${basename(kataDir)}__${item.directory}`;
-  if (item.type === "example") {
-    return buildExampleContent(itemId, itemDir);
-  } else if (item.type === "exercise") {
-    return buildExerciseContent(itemId, itemDir);
-  } else if (item.type === "reading") {
-    return buildReadingContent(itemId, itemDir);
-  }
-
-  throw new Error(`Unknown module type ${item.type}`);
-}
-
 function symmetricDifference(setA, setB) {
   const difference = new Set(setA);
   for (const elem of setB) {
@@ -118,34 +110,50 @@ function symmetricDifference(setA, setB) {
 }
 
 function getItemType(itemDir) {
-  const readingFiles = new Set([katasContentFileNames.textIndex]);
-  console.log(readingFiles);
+  const itemTypeFileSets = {
+    reading: new Set([katasContentFileNames.index]),
+    example: new Set([
+      katasContentFileNames.index,
+      katasContentFileNames.qsharpExample,
+    ]),
+    exercise: new Set([
+      katasContentFileNames.index,
+      katasContentFileNames.qsharpPlaceholder,
+      katasContentFileNames.qsharpSolution,
+      katasContentFileNames.qsharpVerify,
+    ]),
+  };
+
   const itemFiles = new Set(readdirSync(itemDir));
-  console.log(itemFiles);
-  const isReading = symmetricDifference(readingFiles, itemFiles).size === 0;
-  console.log(isReading);
+  return Object.keys(itemTypeFileSets).find(function (key) {
+    const fileSet = itemTypeFileSets[key];
+    return symmetricDifference(fileSet, itemFiles).size === 0;
+  });
 }
 
-function buildItemContentNew(itemDir) {
+function buildItemContent(itemDir) {
   const itemId = `${basename(dirname(itemDir))}__${basename(itemDir)}`;
-  console.log(itemId);
-  getItemType(itemDir);
-  // TODO: Build the content object depending on the files present in the folder.
+  const itemType = getItemType(itemDir);
+  if (itemType === "example") {
+    return buildExampleContent(itemId, itemDir);
+  } else if (itemType === "exercise") {
+    return buildExerciseContent(itemId, itemDir);
+  } else if (itemType === "reading") {
+    return buildReadingContent(itemId, itemDir);
+  }
+
+  throw new Error(`Unknown module type ${itemType}`);
 }
 
 function buildKataContent(kata, katasDir) {
   const kataDir = join(katasDir, kata.directory);
   const itemsJson = readFileSync(join(kataDir, "items.json"), "utf8");
   const items = JSON.parse(itemsJson);
+  let itemsContent = [];
   for (const item of items) {
     const itemDir = join(kataDir, item);
-    buildItemContentNew(itemDir);
-  }
-
-  let itemsContent = [];
-  for (const item of kata.items) {
-    const moduleContent = buildItemContent(item, kataDir);
-    itemsContent.push(moduleContent);
+    const itemContent = buildItemContent(itemDir);
+    itemsContent.push(itemContent);
   }
 
   const contentAsMarkdown = readFileSync(join(kataDir, "content.md"), "utf8");
