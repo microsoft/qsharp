@@ -3,10 +3,10 @@
 
 import { log } from "../log.js";
 import { ICompletionList } from "../../lib/web/qsc_wasm.js";
-import { DumpMsg, MessageMsg, VSDiagnostic } from "../common.js";
+import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
-import { CancellationToken } from "../cancellation.js";
-import { IQscEventTarget, QscEventTarget, makeEvent } from "../events.js";
+import { CancellationToken } from "./cancellation.js";
+import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
 
 /*
 The WorkerProxy works by queuing up requests to send over to the Worker, only

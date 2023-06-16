@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { ShotResult, Dump, Result } from "./common.js";
-import { log } from "./log.js";
+import { log } from "../log.js";
 
 // Create strongly typed compiler events
 type QscEvent<T> = Event & { detail: T };
