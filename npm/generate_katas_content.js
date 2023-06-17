@@ -19,7 +19,7 @@ import { marked } from "marked";
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "katas", "content");
 const katasGeneratedContentPath = join(scriptDirPath, "src");
-const katasContentFileNames = {
+const contentFileNames = {
   index: "content.md",
   qsharpExample: "example.qs",
   qsharpPlaceholder: "placeholder.qs",
@@ -46,8 +46,14 @@ function getTitleFromMarkdown(markdown) {
 }
 
 function buildExampleContent(id, path) {
-  const source = readFileSync(join(path, "example.qs"), "utf8");
-  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
+  const source = readFileSync(
+    join(path, contentFileNames.qsharpExample),
+    "utf8"
+  );
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -61,10 +67,22 @@ function buildExampleContent(id, path) {
 }
 
 function buildExerciseContent(id, path) {
-  const placeholderSource = readFileSync(join(path, "placeholder.qs"), "utf8");
-  const referenceSource = readFileSync(join(path, "reference.qs"), "utf8");
-  const verificationSource = readFileSync(join(path, "verify.qs"), "utf8");
-  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
+  const placeholderSource = readFileSync(
+    join(path, contentFileNames.qsharpPlaceholder),
+    "utf8"
+  );
+  const referenceSource = readFileSync(
+    join(path, contentFileNames.qsharpSolution),
+    "utf8"
+  );
+  const verificationSource = readFileSync(
+    join(path, contentFileNames.qsharpVerify),
+    "utf8"
+  );
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -80,7 +98,10 @@ function buildExerciseContent(id, path) {
 }
 
 function buildReadingContent(id, path) {
-  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -106,16 +127,13 @@ function symmetricDifference(setA, setB) {
 
 function getItemType(path) {
   const itemTypeFileSets = {
-    reading: new Set([katasContentFileNames.index]),
-    example: new Set([
-      katasContentFileNames.index,
-      katasContentFileNames.qsharpExample,
-    ]),
+    reading: new Set([contentFileNames.index]),
+    example: new Set([contentFileNames.index, contentFileNames.qsharpExample]),
     exercise: new Set([
-      katasContentFileNames.index,
-      katasContentFileNames.qsharpPlaceholder,
-      katasContentFileNames.qsharpSolution,
-      katasContentFileNames.qsharpVerify,
+      contentFileNames.index,
+      contentFileNames.qsharpPlaceholder,
+      contentFileNames.qsharpSolution,
+      contentFileNames.qsharpVerify,
     ]),
   };
 
@@ -151,7 +169,10 @@ function buildKataContent(path) {
     itemsContent.push(itemContent);
   }
 
-  const contentAsMarkdown = readFileSync(join(path, "content.md"), "utf8");
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
