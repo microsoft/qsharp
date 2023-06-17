@@ -966,6 +966,7 @@ name = "qsls"
 version = "0.0.0"
 dependencies = [
  "enum-iterator",
+ "expect-test",
  "indoc 2.0.0",
  "log",
  "miette",
