@@ -23,7 +23,7 @@ const contentFileNames = {
   index: "content.md",
   qsharpExample: "example.qs",
   qsharpPlaceholder: "placeholder.qs",
-  qsharpSolution: "reference.qs",
+  qsharpSolution: "solution.qs",
   qsharpVerify: "verify.qs",
 };
 
