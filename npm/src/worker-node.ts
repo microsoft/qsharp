@@ -13,7 +13,7 @@ import { parentPort, workerData } from "node:worker_threads";
 import * as wasm from "../lib/node/qsc_wasm.cjs";
 import { Compiler } from "./compiler.js";
 import { log } from "./log.js";
-import { CompilerWorker, eventTransferHandler } from "./worker-common.js";
+import { eventTransferHandler } from "./worker-common.js";
 import nodeEndpoint from "comlink/dist/umd/node-adapter.js";
 import events from "events";
 events.setMaxListeners(300);
@@ -21,13 +21,12 @@ events.setMaxListeners(300);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 Comlink.transferHandlers.set("EVENT", eventTransferHandler as any);
 
-class NodeCompilerWorker extends CompilerWorker {
+class NodeCompilerWorker extends Compiler {
   constructor() {
-    super();
+    super(wasm);
     if (workerData && typeof workerData.qscLogLevel === "number") {
       log.setLogLevel(workerData.qscLogLevel);
     }
-    this.compiler = new Compiler(wasm);
   }
 }
 

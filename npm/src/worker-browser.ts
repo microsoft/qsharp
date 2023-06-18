@@ -5,7 +5,7 @@ import * as Comlink from "comlink";
 import * as wasm from "../lib/web/qsc_wasm.js";
 import { Compiler } from "./compiler.js";
 import { log } from "./log.js";
-import { CompilerWorker, eventTransferHandler } from "./worker-common.js";
+import { eventTransferHandler } from "./worker-common.js";
 
 // This module supports running the compiler inside a browser WebWorker. This is set as
 // the "qsharp/worker" entry point using 'conditional exports' in package.json.
@@ -13,11 +13,11 @@ import { CompilerWorker, eventTransferHandler } from "./worker-common.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 Comlink.transferHandlers.set("EVENT", eventTransferHandler as any);
 
-class WebCompilerWorker extends CompilerWorker {
+class WebCompilerWorker extends Compiler {
   init(wasmModule: WebAssembly.Module, qscLogLevel: number) {
     log.setLogLevel(qscLogLevel);
     wasm.initSync(wasmModule);
-    this.compiler = new Compiler(wasm);
+    super.initWasm(wasm);
   }
 }
 

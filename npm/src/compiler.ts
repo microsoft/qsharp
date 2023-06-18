@@ -55,11 +55,17 @@ function errToDiagnostic(err: any): VSDiagnostic {
 }
 
 export class Compiler implements ICompiler {
-  private wasm: QscWasm;
+  private wasm: QscWasm | undefined;
 
   private onstatechange: ((state: CompilerState) => void) | null = null;
 
-  constructor(wasm: QscWasm) {
+  constructor(wasm?: QscWasm) {
+    if (wasm) {
+      this.initWasm(wasm);
+    }
+  }
+
+  initWasm(wasm: QscWasm) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
     globalThis.qscGitHash = this.wasm.git_hash();
@@ -73,16 +79,19 @@ export class Compiler implements ICompiler {
   }
 
   async checkCode(code: string): Promise<VSDiagnostic[]> {
-    const diags = this.wasm.check_code(code) as IDiagnostic[];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const diags = this.wasm!.check_code(code) as IDiagnostic[];
     return mapDiagnostics(diags, code);
   }
 
   async getHir(code: string): Promise<string> {
-    return this.wasm.get_hir(code);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this.wasm!.get_hir(code);
   }
 
   async getCompletions(): Promise<ICompletionList> {
-    return this.wasm.get_completions();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this.wasm!.get_completions();
   }
 
   async run(
@@ -99,7 +108,8 @@ export class Compiler implements ICompiler {
     // But we don't care about the response from the main thread so this is ok.
     if (this.onstatechange) this.onstatechange("busy");
 
-    this.wasm.run(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.wasm!.run(
       code,
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
@@ -122,7 +132,9 @@ export class Compiler implements ICompiler {
       // Heads up: when running in a web worker, these callbacks are async.
       // But we don't care about the response from the main thread so this is ok.
       if (this.onstatechange) this.onstatechange("busy");
-      success = this.wasm.run_kata_exercise(
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      success = this.wasm!.run_kata_exercise(
         verify_code,
         user_code,
         (msg: string) => onCompilerEvent(msg, eventHandler)

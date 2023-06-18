@@ -34,51 +34,6 @@ export const eventTransferHandler = {
   },
 };
 
-// TODO: this seems unnecessary?!
-/**
- * This wrapper exists to allow different ways of constructing a compiler
- * worker, but frankly this approach seems wrong. Maybe a factory?
- */
-export class CompilerWorker {
-  protected compiler: ICompiler | undefined;
-
-  checkCode(code: string): Promise<VSDiagnostic[]> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.compiler!.checkCode(code);
-  }
-  getHir(code: string): Promise<string> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.compiler!.getHir(code);
-  }
-  getCompletions(): Promise<ICompletionList> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.compiler!.getCompletions();
-  }
-  run(
-    code: string,
-    expr: string,
-    shots: number,
-    eventHandler: IQscEventTarget
-  ): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.compiler!.run(code, expr, shots, eventHandler);
-  }
-  runKata(
-    user_code: string,
-    verify_code: string,
-    eventHandler: IQscEventTarget
-  ): Promise<boolean> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.compiler!.runKata(user_code, verify_code, eventHandler);
-  }
-  setStateHandler(
-    onstatechange: (state: CompilerState) => void
-  ): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.compiler!.setStateHandler(onstatechange);
-  }
-}
-
 /**
  * This is a proxy to be used on the main thread side.
  * It exists to
