@@ -8,7 +8,7 @@ import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
-type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
+type QscWasm = typeof import("../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
@@ -55,11 +55,11 @@ function errToDiagnostic(err: any): VSDiagnostic {
 }
 
 export class Compiler implements ICompiler {
-  private wasm: Wasm;
+  private wasm: QscWasm;
 
   private onstatechange: ((state: CompilerState) => void) | null = null;
 
-  constructor(wasm: Wasm) {
+  constructor(wasm: QscWasm) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
     globalThis.qscGitHash = this.wasm.git_hash();
@@ -94,6 +94,9 @@ export class Compiler implements ICompiler {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
+
+    // Heads up: when running in a web worker, these callbacks are async.
+    // But we don't care about the response from the main thread so this is ok.
     if (this.onstatechange) this.onstatechange("busy");
 
     this.wasm.run(
@@ -103,6 +106,8 @@ export class Compiler implements ICompiler {
       shots
     );
 
+    // Heads up: when running in a web worker, these callbacks are async.
+    // But we don't care about the response from the main thread so this is ok.
     if (this.onstatechange) this.onstatechange("idle");
   }
 
@@ -114,6 +119,8 @@ export class Compiler implements ICompiler {
     let success = false;
     let err: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
+      // Heads up: when running in a web worker, these callbacks are async.
+      // But we don't care about the response from the main thread so this is ok.
       if (this.onstatechange) this.onstatechange("busy");
       success = this.wasm.run_kata_exercise(
         verify_code,
@@ -123,6 +130,9 @@ export class Compiler implements ICompiler {
     } catch (e) {
       err = e;
     }
+
+    // Heads up: when running in a web worker, these callbacks are async.
+    // But we don't care about the response from the main thread so this is ok.
     if (this.onstatechange) this.onstatechange("idle");
     // Currently the kata wasm doesn't emit the success/failure events, so do those here.
     if (!err) {

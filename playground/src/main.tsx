@@ -5,7 +5,7 @@ import { render } from "preact";
 import {
   CompilerState,
   QscEventTarget,
-  getCompilerComlinkProxy,
+  getCompilerWorker,
   loadWasmModule,
   getAllKatas,
   Kata,
@@ -42,7 +42,7 @@ const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait 
 
 function createCompiler(onStateChange: (val: CompilerState) => void) {
   log.info("In createCompiler");
-  const compiler = getCompilerComlinkProxy(workerPath);
+  const compiler = getCompilerWorker(workerPath);
   compiler.setStateHandler(onStateChange);
   return compiler;
 }

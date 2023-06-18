@@ -281,14 +281,25 @@ test("state change", async () => {
     }
   }`;
   await compiler.run(code, "", 10, resultsHandler);
+  // The sequencing here should be fine, even though
+  // the worker does *not* wait for the main thread to handle
+  // the "idle" state change event before completing.
+  // The worker will post the state change event to the
+  // main thread, then it will post another event signaling
+  // the completion of run(). As long as the main thread
+  // receives the events in order and handles the state change
+  // synchronously, the order is as we expect.
+  //
+  // messages between main thread and worker:
+  // -> run() request ->
+  //                <- onstatechange() request <-
+  //                <- run() response <-
+  // -> onstatechange() response ->
+
   compiler.terminate();
-  // There SHOULDN'T be a race condition here between the 'run' promise completing and the
-  // statechange events firing, as the run promise should 'resolve' in the next microtask,
-  // whereas the idle event should fire synchronously when the queue is empty.
-  // For more details, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#task_queues_vs._microtasks
-  assert(stateChanges.length === 2);
-  assert(stateChanges[0] === "busy");
-  assert(stateChanges[1] === "idle");
+  assert.equal(stateChanges.length, 2);
+  assert.equal(stateChanges[0], "busy");
+  assert.equal(stateChanges[1], "idle");
 });
 
 test("cancel worker", () => {
@@ -329,9 +340,9 @@ test("cancel worker", () => {
       assert(Array.isArray(result) && result.length === 0);
 
       // Old requests were cancelled
-      assert(cancelledArray.length === 2);
-      assert(cancelledArray[0] === "terminated");
-      assert(cancelledArray[1] === "terminated");
+      assert.equal(cancelledArray.length, 2);
+      assert.equal(cancelledArray[0], "terminated");
+      assert.equal(cancelledArray[1], "terminated");
       resolve(null);
     }, 4);
   });

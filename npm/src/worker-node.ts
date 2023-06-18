@@ -8,36 +8,33 @@
 //         workerData: {qscLogLevel: log.getLogLevel() }
 //     });
 
-import { isMainThread, parentPort, workerData } from "node:worker_threads";
-
+import * as Comlink from "comlink";
+import { parentPort, workerData } from "node:worker_threads";
 import * as wasm from "../lib/node/qsc_wasm.cjs";
-import { log } from "./log.js";
 import { Compiler } from "./compiler.js";
-import {
-  CompilerReqMsg,
-  getWorkerEventHandlers,
-  handleMessageInWorker,
-} from "./worker-common.js";
+import { log } from "./log.js";
+import { CompilerWorker, eventTransferHandler } from "./worker-common.js";
+import nodeEndpoint from "comlink/dist/umd/node-adapter.js";
+import events from "events";
+events.setMaxListeners(300);
 
-if (isMainThread)
-  throw "Worker script should be loaded in a Worker thread only";
-if (workerData && typeof workerData.qscLogLevel === "number") {
-  log.setLogLevel(workerData.qscLogLevel);
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+Comlink.transferHandlers.set("EVENT", eventTransferHandler as any);
 
-const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-const postMessage = port.postMessage.bind(port);
-
-const evtTarget = getWorkerEventHandlers(postMessage);
-const compiler = new Compiler(wasm);
-
-function messageHandler(data: CompilerReqMsg) {
-  if (!data.type || typeof data.type !== "string") {
-    log.error(`Unrecognized msg: %O"`, data);
-    return;
+class NodeCompilerWorker extends CompilerWorker {
+  constructor() {
+    super();
+    if (workerData && typeof workerData.qscLogLevel === "number") {
+      log.setLogLevel(workerData.qscLogLevel);
+    }
+    this.compiler = new Compiler(wasm);
   }
-
-  handleMessageInWorker(data, compiler, postMessage, evtTarget);
 }
 
-port.addListener("message", messageHandler);
+const compiler = new NodeCompilerWorker();
+
+// @ts-expect-error TypeScript really doesn't believe that the default
+// export from node-adapter is callable. But it is.
+Comlink.expose(compiler, nodeEndpoint(parentPort));
+
+export type INodeCompilerWorker = typeof compiler;
