@@ -233,12 +233,7 @@ if build_npm:
 
     if run_tests:
         print("Running tests for the npm package")
-        npm_test_args = [
-            "node",
-            "--test",
-            "--test-name-pattern=cancel",
-            "--trace-warnings",
-        ]
+        npm_test_args = ["node", "--test"]
         subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
 
 if build_play:

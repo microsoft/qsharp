@@ -4,7 +4,7 @@
 // This module is the entry point for browser environments. For Node.js environment,
 // the "./main.js" module is the entry point.
 
-import initWasm, * as qscWasm from "../lib/web/qsc_wasm.js";
+import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler.js";
 import * as Comlink from "comlink";
@@ -15,7 +15,7 @@ import { IWebCompilerWorker } from "./worker-browser.js";
 let wasmModule: WebAssembly.Module | null = null;
 
 // Used to track if an instance is already instantiated
-let wasmInstance: qscWasm.InitOutput;
+let wasmInstance: wasm.InitOutput;
 
 export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
   if (typeof uriOrBuffer === "string") {
@@ -31,9 +31,12 @@ export async function getCompiler(): Promise<ICompiler> {
   if (!wasmModule) throw "Wasm module must be loaded first";
   if (!wasmInstance) wasmInstance = await initWasm(wasmModule);
 
-  return new Compiler(qscWasm);
+  return new Compiler(wasm);
 }
 
+// Create the compiler inside a WebWorker and proxy requests.
+// If the Worker was already created via other means and is ready to receive
+// messages, then the worker may be passed in and it will be initialized.
 export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
