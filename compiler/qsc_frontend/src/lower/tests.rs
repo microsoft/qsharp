@@ -1597,7 +1597,7 @@ fn nested_params() {
                     Callable 0 [17-55] (function):
                         name: Ident 1 [26-29] "Foo"
                         generics:
-                            0: parameter type
+                            0: type
                             1: functor (empty set)
                         input: Pat 2 [34-45] [Type ('0 => Unit is 1)]: Bind: Ident 3 [34-35] "f"
                         output: Unit
