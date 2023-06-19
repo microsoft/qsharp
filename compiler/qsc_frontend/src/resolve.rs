@@ -40,7 +40,7 @@ pub(super) enum Res {
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
-    Param(qsc_hir::ty::ParamId),
+    Param(ParamId),
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
