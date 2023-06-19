@@ -261,3 +261,132 @@ fn hover_identifier_nested_ref() {
         "#]],
     );
 }
+
+#[test]
+fn hover_lambda() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let a = 3;
+                let ◉la↘mbda◉ = (x, y) => a;
+                let b = lambda(1.2, "yes");
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nlambda ((Double, String) => Int)\n```\n",
+                    span: Span {
+                        start: 110,
+                        end: 116,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_lambda_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let a = 3;
+                let lambda = (x, y) => a;
+                let b = ◉la↘mbda◉(1.2, "yes");
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nlambda ((Double, String) => Int)\n```\n",
+                    span: Span {
+                        start: 156,
+                        end: 162,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_lambda_param() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let a = 3;
+                let lambda = (x, ◉↘y◉) => a;
+                let b = lambda(1.2, "yes");
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation lambda (Int, (Double, String)) => Int\n```\n",
+                    span: Span {
+                        start: 119,
+                        end: 130,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_lambda_param_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let lambda = (x, y) => ◉↘y◉;
+                let a = lambda(1.2, "yes");
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation lambda ((Double, String),) => String\n```\n",
+                    span: Span {
+                        start: 92,
+                        end: 103,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_lambda_closure_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let a = 3;
+                let lambda = (x, y) => ◉↘a◉;
+                let b = lambda(1.2, "yes");
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation lambda (Int, (Double, String)) => Int\n```\n",
+                    span: Span {
+                        start: 119,
+                        end: 130,
+                    },
+                },
+            )
+        "#]],
+    );
+}
