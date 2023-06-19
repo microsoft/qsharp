@@ -615,7 +615,7 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
-    /// A record field update.
+    /// A record field update: `a w/ B <- c`.
     UpdateField(Box<Expr>, Field, Box<Expr>),
     /// A variable and its generic arguments.
     Var(Res, Vec<GenericArg>),

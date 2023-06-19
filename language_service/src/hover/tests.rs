@@ -60,3 +60,204 @@ fn hover_callable_with_callable_types() {
         "#]],
     );
 }
+
+#[test]
+fn hover_call() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit { ◉B↘ar◉(); }
+
+            operation Bar() : Unit {}
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation Bar Unit => Unit\n```\n",
+                    span: Span {
+                        start: 63,
+                        end: 66,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let ◉↘x◉ = 3;
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nx Int\n```\n",
+                    span: Span {
+                        start: 83,
+                        end: 84,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let x = 3;
+                let y = ◉↘x◉;
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nx Int\n```\n",
+                    span: Span {
+                        start: 114,
+                        end: 115,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier_tuple() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let (x, ◉↘y◉) = (3, 1.4);
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\ny Double\n```\n",
+                    span: Span {
+                        start: 87,
+                        end: 88,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier_tuple_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let (x, y) = (3, 1.4);
+                let z = ◉↘y◉;
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\ny Double\n```\n",
+                    span: Span {
+                        start: 126,
+                        end: 127,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier_for_loop() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                for ◉↘i◉ in 0..10 {
+                    let y = i;
+                }
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\ni Int\n```\n",
+                    span: Span {
+                        start: 83,
+                        end: 84,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier_for_loop_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                for i in 0..10 {
+                    let y = ◉↘i◉;
+                }
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\ni Int\n```\n",
+                    span: Span {
+                        start: 124,
+                        end: 125,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_identifier_nested_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let x = 3;
+                if true {
+                    let y = ◉↘x◉;
+                }
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nx Int\n```\n",
+                    span: Span {
+                        start: 144,
+                        end: 145,
+                    },
+                },
+            )
+        "#]],
+    );
+}
