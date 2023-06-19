@@ -20,7 +20,7 @@ const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "katas", "content");
 const katasGeneratedContentPath = join(scriptDirPath, "src");
 const contentFileNames = {
-  index: "content.md",
+  index: "index.md",
   qsharpExample: "example.qs",
   qsharpPlaceholder: "placeholder.qs",
   qsharpSolution: "solution.qs",
