@@ -329,10 +329,10 @@ fn hover_lambda_param() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\noperation lambda (Int, (Double, String)) => Int\n```\n",
+                    contents: "```qsharp\ny String\n```\n",
                     span: Span {
-                        start: 119,
-                        end: 130,
+                        start: 123,
+                        end: 124,
                     },
                 },
             )
@@ -354,9 +354,9 @@ fn hover_lambda_param_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\noperation lambda ((Double, String),) => String\n```\n",
+                    contents: "```qsharp\ny String\n```\n",
                     span: Span {
-                        start: 92,
+                        start: 102,
                         end: 103,
                     },
                 },
@@ -380,9 +380,9 @@ fn hover_lambda_closure_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\noperation lambda (Int, (Double, String)) => Int\n```\n",
+                    contents: "```qsharp\nclosed Int\n```\n",
                     span: Span {
-                        start: 119,
+                        start: 129,
                         end: 130,
                     },
                 },
