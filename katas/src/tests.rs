@@ -132,7 +132,9 @@ fn validate_item(path: impl AsRef<Path>) {
     );
     if let Some(example_path) = example_source_path {
         validate_example(example_path);
-    } else if let Some((placeholder_source, reference_source, verify_source)) = exercise_sources_paths {
+    } else if let Some((placeholder_source, reference_source, verify_source)) =
+        exercise_sources_paths
+    {
         validate_exercise(placeholder_source, reference_source, verify_source);
     }
 }
