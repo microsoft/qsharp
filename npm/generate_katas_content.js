@@ -25,6 +25,7 @@ const contentFileNames = {
   qsharpPlaceholder: "placeholder.qs",
   qsharpSolution: "solution.qs",
   qsharpVerify: "verify.qs",
+  textSolution: "solution.md",
 };
 
 function getTitleFromMarkdown(markdown) {
@@ -84,6 +85,11 @@ function buildExerciseContent(id, path) {
     "utf8"
   );
   const contentAsHtml = marked.parse(contentAsMarkdown);
+  const solutionAsMarkdown = readFileSync(
+    join(path, contentFileNames.textSolution),
+    "utf8"
+  );
+  const solutionAsHtml = marked.parse(solutionAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
     type: "exercise",
@@ -94,6 +100,8 @@ function buildExerciseContent(id, path) {
     verificationImplementation: verificationSource,
     contentAsMarkdown: contentAsMarkdown,
     contentAsHtml: contentAsHtml,
+    solutionAsMarkdown: solutionAsMarkdown,
+    solutionAsHtml: solutionAsHtml,
   };
 }
 
@@ -134,6 +142,7 @@ function getItemType(path) {
       contentFileNames.qsharpPlaceholder,
       contentFileNames.qsharpSolution,
       contentFileNames.qsharpVerify,
+      contentFileNames.textSolution,
     ]),
   };
 
