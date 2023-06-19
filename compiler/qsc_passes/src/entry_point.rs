@@ -17,17 +17,21 @@ use thiserror::Error;
 pub enum Error {
     #[error("duplicate entry point callable `{0}`")]
     #[diagnostic(help("only one callable should be annotated with the entry point attribute"))]
-    DuplicateEntryPoint(String, #[label] Span),
+    #[diagnostic(code("Qsc.EntryPoint.Duplicate"))]
+    Duplicate(String, #[label] Span),
 
     #[error("entry point cannot have parameters")]
-    EntryPointArgs(#[label] Span),
+    #[diagnostic(code("Qsc.EntryPoint.Args"))]
+    Args(#[label] Span),
 
     #[error("entry point must have body implementation only")]
-    EntryPointBody(#[label("cannot have specialization implementation")] Span),
+    #[diagnostic(code("Qsc.EntryPoint.BodyMissing"))]
+    BodyMissing(#[label("cannot have specialization implementation")] Span),
 
     #[error("entry point not found")]
     #[diagnostic(help("a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"))]
-    EntryPointMissing,
+    #[diagnostic(code("Qsc.EntryPoint.NotFound"))]
+    NotFound,
 }
 
 /// Extracts a single entry point callable declaration, if found.
@@ -49,11 +53,11 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
         };
         if arg_count == 0 {
             if ep.adj.is_some() || ep.ctl.is_some() || ep.ctl_adj.is_some() {
-                Err(vec![PassErr::EntryPoint(Error::EntryPointBody(ep.span))])
+                Err(vec![PassErr::EntryPoint(Error::BodyMissing(ep.span))])
             } else {
                 match &ep.body.body {
                     qsc_hir::hir::SpecBody::Gen(_) => {
-                        Err(vec![PassErr::EntryPoint(Error::EntryPointBody(ep.span))])
+                        Err(vec![PassErr::EntryPoint(Error::BodyMissing(ep.span))])
                     }
                     qsc_hir::hir::SpecBody::Impl(_, block) => Ok(Expr {
                         id: NodeId::default(),
@@ -64,21 +68,14 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
                 }
             }
         } else {
-            Err(vec![PassErr::EntryPoint(Error::EntryPointArgs(
-                ep.input.span,
-            ))])
+            Err(vec![PassErr::EntryPoint(Error::Args(ep.input.span))])
         }
     } else if entry_points.is_empty() {
-        Err(vec![PassErr::EntryPoint(Error::EntryPointMissing)])
+        Err(vec![PassErr::EntryPoint(Error::NotFound)])
     } else {
         Err(entry_points
             .into_iter()
-            .map(|ep| {
-                PassErr::EntryPoint(Error::DuplicateEntryPoint(
-                    ep.name.name.to_string(),
-                    ep.name.span,
-                ))
-            })
+            .map(|ep| PassErr::EntryPoint(Error::Duplicate(ep.name.name.to_string(), ep.name.span)))
             .collect())
     }
 }
