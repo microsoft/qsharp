@@ -166,7 +166,7 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty => write!(f, "parameter type"),
+            GenericParam::Ty => write!(f, "type"),
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
         }
     }
@@ -196,7 +196,11 @@ impl ParamId {
 impl From<usize> for ParamId {
     #[allow(clippy::cast_possible_truncation)]
     fn from(value: usize) -> Self {
-        ParamId(value as u32)
+        ParamId(
+            value
+                .try_into()
+                .expect("Type Parameter ID does not fit into u32"),
+        )
     }
 }
 

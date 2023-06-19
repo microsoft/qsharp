@@ -236,9 +236,12 @@ impl Resolver {
         }
     }
 
-    fn bind_type_arguments(&mut self, decl: &CallableDecl) {
+    fn bind_type_parameters(&mut self, decl: &CallableDecl) {
         decl.generics.iter().enumerate().for_each(|(ix, ident)| {
-            let scope = self.scopes.last_mut().expect("type args should have scope");
+            let scope = self
+                .scopes
+                .last_mut()
+                .expect("type parameters should have scope");
             scope.ty_vars.insert(Rc::clone(&ident.name), ix.into());
             self.names.insert(ident.id, Res::Param(ix.into()));
         });
@@ -309,7 +312,7 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         self.with_scope(ScopeKind::Callable, |visitor| {
-            visitor.resolver.bind_type_arguments(decl);
+            visitor.resolver.bind_type_parameters(decl);
             visitor.resolver.bind_pat(&decl.input);
             ast_visit::walk_callable_decl(visitor, decl);
         });
