@@ -183,7 +183,7 @@ def check_prereqs(install=False):
             )
             exit(1)
     else:
-        raise Exception("Unable to determine the wasm-pack version")
+        print("Unable to determine the wasm-pack version")
 
 
 if __name__ == "__main__":
