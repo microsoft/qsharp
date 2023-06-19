@@ -10,9 +10,11 @@ This repository contains Q# tooling, specifically:
 - **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
 - **[vscode](./vscode/)**: Visual Studio Code extension
+- **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
 
-There are also the learning 'katas' and Q# samples in the `./katas` and `./samples`
-directories, respectively.
+There are also the tutorials and samples in the `./katas` and `./samples` directories, respectively.
+
+Code from this repository powers the Q# development experience on <https://quantum.microsoft.com>.
 
 ## Building
 
