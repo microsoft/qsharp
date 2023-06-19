@@ -27,7 +27,7 @@ export function Nav(props: {
         </div>
       ))}
 
-      <div class="nav-1">Katas</div>
+      <div class="nav-1">Tutorials</div>
       {props.katas.map((name) => (
         <div
           class={
