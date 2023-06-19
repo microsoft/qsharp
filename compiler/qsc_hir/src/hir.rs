@@ -10,7 +10,9 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
+    cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
+    hash::{Hash, Hasher},
     rc::Rc,
     result,
     str::FromStr,
@@ -31,10 +33,12 @@ fn set_indentation<'a, 'b>(
 }
 
 /// A unique identifier for an HIR node.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NodeId(usize);
+#[derive(Clone, Copy, Debug)]
+pub struct NodeId(u32);
 
 impl NodeId {
+    const DEFAULT_VALUE: u32 = u32::MAX;
+
     /// The ID of the first node.
     pub const FIRST: Self = Self(0);
 
@@ -47,13 +51,13 @@ impl NodeId {
     /// True if this is the default ID.
     #[must_use]
     pub fn is_default(self) -> bool {
-        self == Self::default()
+        self.0 == Self::DEFAULT_VALUE
     }
 }
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self(usize::MAX)
+        Self(Self::DEFAULT_VALUE)
     }
 }
 
@@ -69,13 +73,37 @@ impl Display for NodeId {
 
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
-        value.0
+        assert!(!value.is_default(), "default node ID should be replaced");
+        value.0 as usize
     }
 }
 
-impl From<usize> for NodeId {
-    fn from(value: usize) -> Self {
-        NodeId(value)
+impl PartialEq for NodeId {
+    fn eq(&self, other: &Self) -> bool {
+        assert!(!self.is_default(), "default node ID should be replaced");
+        self.0 == other.0
+    }
+}
+
+impl Eq for NodeId {}
+
+impl PartialOrd for NodeId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        assert!(!self.is_default(), "default node ID should be replaced");
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Ord for NodeId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        assert!(!self.is_default(), "default node ID should be replaced");
+        self.0.cmp(&other.0)
+    }
+}
+
+impl Hash for NodeId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 
