@@ -163,25 +163,18 @@ fn instantiate_arrow_ty<'a>(
     })
 }
 
-/// A generic parameter.
-#[derive(Clone, Debug, PartialEq)]
-pub struct GenericParam {
-    /// The parameter kind.
-    pub kind: ParamKind,
-}
-
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self.kind {
-            ParamKind::Ty => write!(f, "parameter type"),
-            ParamKind::Functor(min) => write!(f, "functor ({min})"),
+        match self {
+            GenericParam::Ty => write!(f, "parameter type"),
+            GenericParam::Functor(min) => write!(f, "functor ({min})"),
         }
     }
 }
 
 /// The kind of a generic parameter.
 #[derive(Clone, Debug, PartialEq)]
-pub enum ParamKind {
+pub enum GenericParam {
     /// A type parameter.
     Ty,
     /// A functor parameter with a lower bound.

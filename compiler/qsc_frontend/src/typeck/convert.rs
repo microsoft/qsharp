@@ -9,9 +9,7 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir,
-    ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, ParamKind, Scheme, Ty, UdtField,
-    },
+    ty::{Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtField},
 };
 use std::rc::Rc;
 
@@ -170,9 +168,7 @@ fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<Gener
         Ty::Array(item) => synthesize_functor_params(next_param, item),
         Ty::Arrow(arrow) => match arrow.functors {
             FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
-                let param = GenericParam {
-                    kind: ParamKind::Functor(functors),
-                };
+                let param = GenericParam::Functor(functors);
                 arrow.functors = FunctorSet::Param(*next_param);
                 *next_param = next_param.successor();
                 vec![param]
@@ -209,12 +205,7 @@ fn synthesize_functor_params_in_pat(
 }
 
 fn ast_callable_generics(generics: &[Box<Ident>]) -> Vec<GenericParam> {
-    generics
-        .iter()
-        .map(|_param| GenericParam {
-            kind: ParamKind::Ty,
-        })
-        .collect()
+    generics.iter().map(|_param| GenericParam::Ty).collect()
 }
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
