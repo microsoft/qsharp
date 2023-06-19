@@ -133,11 +133,10 @@ def check_prereqs(install=False):
         raise Exception("Unable to determine the Node.js version.")
 
     ### Check the wasm_pack version ###
-    # This is a workaround since the --version option was removed in the latest release.
-    get_wasm_pack_version_from_help = lambda help: help.decode().splitlines()[0]
     try:
+        # This is a workaround since the --version option was removed in the latest release.
         wasm_pack_help = subprocess.check_output(["wasm-pack", "--help"])
-        wasm_pack_version = get_wasm_pack_version_from_help(wasm_pack_help)
+        wasm_pack_version = wasm_pack_help.decode().splitlines()[0]
         print(f"Detected wasm-pack version {wasm_pack_version}")
     except FileNotFoundError:
         if install == True:
@@ -166,7 +165,7 @@ def check_prereqs(install=False):
                     subprocess.run(["sh", file_name], check=True)
 
             wasm_pack_help = subprocess.check_output(["wasm-pack", "--help"])
-            wasm_pack_version = get_wasm_pack_version_from_help(wasm_pack_help)
+            wasm_pack_version = wasm_pack_help.decode().splitlines()[0]
         else:
             print(
                 "wasm-pack not found. Please install from https://rustwasm.github.io/wasm-pack/installer/"
