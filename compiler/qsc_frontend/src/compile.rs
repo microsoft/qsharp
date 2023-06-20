@@ -12,7 +12,10 @@ use crate::{
 use miette::{
     Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
 };
-use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
+use qsc_ast::{
+    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor,
+    validate::Validator as AstValidator, visit::Visitor,
+};
 use qsc_data_structures::{
     index_map::{self, IndexMap},
     span::Span,
@@ -21,6 +24,8 @@ use qsc_hir::{
     assigner::Assigner as HirAssigner,
     global,
     hir::{self, PackageId},
+    validate::Validator as HirValidator,
+    visit::Visitor as _,
 };
 use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
@@ -218,6 +223,7 @@ pub fn compile(
     let (mut package, parse_errors) = parse_all(&sources);
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut package);
+    AstValidator::default().visit_package(&package);
 
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
@@ -226,6 +232,7 @@ pub fn compile(
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
         .lower_package(&package);
+    HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
     let errors = parse_errors
