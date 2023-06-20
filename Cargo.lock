@@ -844,6 +844,7 @@ dependencies = [
  "criterion",
  "env_logger",
  "indoc 2.0.0",
+ "log",
  "miette",
  "num-bigint",
  "num-complex",

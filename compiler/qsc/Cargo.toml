@@ -12,6 +12,7 @@ license.workspace = true
 [dependencies]
 clap = { workspace = true, features = ["derive", "cargo"] }
 env_logger = { workspace = true }
+log = { workspace = true }
 miette = { workspace = true, features = ["fancy"] }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
