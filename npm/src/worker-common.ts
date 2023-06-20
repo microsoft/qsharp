@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "./log.js";
+import { TelemetryEvent, log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
@@ -357,6 +357,6 @@ type CompilerEventMsg =
   | { type: "dumpMachine-event"; event: DumpMsg }
   | { type: "success-event"; event: string }
   | { type: "failure-event"; event: any } // eslint-disable-line @typescript-eslint/no-explicit-any
-  | { type: "telemetry-event"; event: string };
+  | { type: "telemetry-event"; event: TelemetryEvent };
 
 export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;

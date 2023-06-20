@@ -34,9 +34,10 @@ declare global {
   const MathJax: { typeset: () => void };
 }
 
-function telemetryHandler(msg: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function telemetryHandler({ id, data }: { id: string; data?: any }) {
   // NOTE: This is for demo purposes. Wire up to the real telemetry library.
-  console.log("Received telemetry event: ", msg);
+  console.log(`Received telemetry event "${id}" with data: %o`, id, data);
 }
 
 function createCompiler(onStateChange: (val: CompilerState) => void) {

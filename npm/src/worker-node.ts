@@ -11,7 +11,7 @@
 import { isMainThread, parentPort, workerData } from "node:worker_threads";
 
 import * as wasm from "../lib/node/qsc_wasm.cjs";
-import { log } from "./log.js";
+import { TelemetryEvent, log } from "./log.js";
 import { Compiler } from "./compiler.js";
 import {
   CompilerReqMsg,
@@ -28,7 +28,7 @@ if (workerData && typeof workerData.qscLogLevel === "number") {
 const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 const postMessage = port.postMessage.bind(port);
 
-function telemetryHandler(telemetry: string) {
+function telemetryHandler(telemetry: TelemetryEvent) {
   postMessage({ type: "telemetry-event", event: telemetry });
 }
 

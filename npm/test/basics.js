@@ -11,7 +11,7 @@ import { QscEventTarget } from "../dist/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
-/** @type {string[]} */
+/** @type {import("../dist/log.js").TelemetryEvent[]} */
 const telemetryEvents = [];
 log.setLogLevel("warn");
 log.setTelemetryCollector((event) => telemetryEvents.push(event));
@@ -36,23 +36,6 @@ export function runSingleShot(code, expr, useWorker) {
       .finally(() => (useWorker ? compiler.terminate() : null));
   });
 }
-
-test("telemetry", () => {
-  let code = `namespace Test {
-    function Answer() : Unit {
-        use q1 = Qubit();
-    }
-  }`;
-  telemetryEvents.length = 0;
-  const compiler = getCompiler();
-  compiler.checkCode(code);
-  assert(telemetryEvents.length > 1);
-  assert(
-    telemetryEvents.some((val) =>
-      val.includes("Tried to allocate a qubit in a function")
-    )
-  );
-});
 
 test("basic eval", async () => {
   let code = `namespace Test {
@@ -253,14 +236,12 @@ test("worker telemetry", async () => {
   }`;
   telemetryEvents.length = 0;
   const compiler = getCompilerWorker();
-  let result = await compiler.checkCode(code);
+  const resultsHandler = new QscEventTarget(true);
+  await compiler.run(code, "Test.Answer()", 51, resultsHandler);
   compiler.terminate();
-  assert(result[0].message === "functions cannot allocate qubits");
   assert(telemetryEvents.length > 1);
   assert(
-    telemetryEvents.some((val) =>
-      val.includes("Tried to allocate a qubit in a function")
-    )
+    telemetryEvents.some((val) => val.id === "Run" && val.data?.shots === 51)
   );
 });
 

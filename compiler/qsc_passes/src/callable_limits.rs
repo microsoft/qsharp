@@ -6,7 +6,6 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_data_structures::telemetry;
 use qsc_hir::{
     hir::{CallableDecl, CallableKind, Expr, ExprKind, Package, Stmt, StmtKind},
     ty::{FunctorSetValue, Ty},
@@ -66,7 +65,6 @@ impl Visitor<'_> for CallableLimits {
     fn visit_stmt(&mut self, stmt: &Stmt) {
         if let StmtKind::Qubit(..) = &stmt.kind {
             self.errors.push(Error::QubitAlloc(stmt.span));
-            telemetry::log("Tried to allocate a qubit in a function");
         }
         visit::walk_stmt(self, stmt);
     }

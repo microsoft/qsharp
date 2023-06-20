@@ -7,7 +7,7 @@
 // `import { messageHandler } from "qsharp/worker"` and assign this to 'self.onmessage'.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import { log } from "./log.js";
+import { TelemetryEvent, log } from "./log.js";
 import { Compiler } from "./compiler.js";
 import {
   getWorkerEventHandlers,
@@ -19,7 +19,7 @@ const evtTarget = getWorkerEventHandlers(self.postMessage);
 
 let compiler: Compiler | null = null;
 
-function telemetryHandler(telemetry: string) {
+function telemetryHandler(telemetry: TelemetryEvent) {
   self.postMessage({ type: "telemetry-event", event: telemetry });
 }
 
