@@ -10,4 +10,4 @@ repository.workspace = true
 
 [dependencies]
 miette = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"]}
