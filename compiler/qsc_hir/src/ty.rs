@@ -194,7 +194,6 @@ impl ParamId {
 }
 
 impl From<usize> for ParamId {
-    #[allow(clippy::cast_possible_truncation)]
     fn from(value: usize) -> Self {
         ParamId(
             value
