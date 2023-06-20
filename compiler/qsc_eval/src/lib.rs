@@ -21,7 +21,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
     NodeId, PackageId, Pat, PatKind, PrimField, Res, SpecBody, SpecGen, Stmt, StmtKind,
-    StringComponent, TernOp, UnOp,
+    StringComponent, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -38,51 +38,67 @@ use val::GlobalId;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("array too large")]
+    #[diagnostic(code("Qsc.Eval.ArrayTooLarge"))]
     ArrayTooLarge(#[label("this array has too many items")] Span),
 
     #[error("invalid array length: {0}")]
-    Count(i64, #[label("cannot be used as a length")] Span),
+    #[diagnostic(code("Qsc.Eval.InvalidArrayLength"))]
+    InvalidArrayLength(i64, #[label("cannot be used as a length")] Span),
 
     #[error("division by zero")]
+    #[diagnostic(code("Qsc.Eval.DivZero"))]
     DivZero(#[label("cannot divide by zero")] Span),
 
     #[error("empty range")]
+    #[diagnostic(code("Qsc.Eval.EmptyRange"))]
     EmptyRange(#[label("the range cannot be empty")] Span),
 
     #[error("value cannot be used as an index: {0}")]
-    IndexVal(i64, #[label("invalid index")] Span),
+    #[diagnostic(code("Qsc.Eval.InvalidIndex"))]
+    InvalidIndex(i64, #[label("invalid index")] Span),
 
     #[error("integer too large for operation")]
+    #[diagnostic(code("Qsc.Eval.IntTooLarge"))]
     IntTooLarge(i64, #[label("this value is too large")] Span),
 
     #[error("missing specialization: {0}")]
+    #[diagnostic(code("Qsc.Eval.MissingSpec"))]
     MissingSpec(String, #[label("callable has no {0} specialization")] Span),
 
     #[error("index out of range: {0}")]
-    OutOfRange(i64, #[label("out of range")] Span),
+    #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
+    IndexOutOfRange(i64, #[label("out of range")] Span),
 
     #[error("negative integers cannot be used here: {0}")]
-    Negative(i64, #[label("invalid negative integer")] Span),
+    #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
+    InvalidNegativeInt(i64, #[label("invalid negative integer")] Span),
 
     #[error("output failure")]
-    Output(#[label("failed to generate output")] Span),
+    #[diagnostic(code("Qsc.Eval.OutputFail"))]
+    OutputFail(#[label("failed to generate output")] Span),
 
     #[error("qubits in gate invocation are not unique")]
+    #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
     QubitUniqueness(#[label] Span),
 
     #[error("range with step size of zero")]
+    #[diagnostic(code("Qsc.Eval.RangeStepZero"))]
     RangeStepZero(#[label("invalid range")] Span),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
+    #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize),
 
-    #[error("symbol is not bound")]
-    Unbound(#[label] Span),
+    #[error("name is not bound")]
+    #[diagnostic(code("Qsc.Eval.UnboundName"))]
+    UnboundName(#[label] Span),
 
     #[error("unknown intrinsic `{0}`")]
+    #[diagnostic(code("Qsc.Eval.UnknownIntrinsic"))]
     UnknownIntrinsic(String, #[label("callable has no implementation")] Span),
 
     #[error("program failed: {0}")]
+    #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] Span),
 }
 
@@ -155,7 +171,7 @@ impl AsIndex for i64 {
     fn as_index(&self, span: Span) -> Self::Output {
         match (*self).try_into() {
             Ok(index) => Ok(index),
-            Err(_) => Err(Error::IndexVal(*self, span)),
+            Err(_) => Err(Error::InvalidIndex(*self, span)),
         }
     }
 }
@@ -267,13 +283,13 @@ enum Action<'a> {
     Consume,
     Fail(Span),
     Field(&'a Field),
-    If(&'a Block, Option<&'a Expr>),
+    If(&'a Expr, Option<&'a Expr>),
     Index(Span),
     Range(bool, bool, bool),
     Return,
     StringConcat(usize),
     StringLit(&'a Rc<str>),
-    TernOp(TernOp, &'a Expr, &'a Expr),
+    UpdateIndex(Span),
     Tuple(usize),
     UnOp(UnOp),
     UpdateField(&'a Field),
@@ -432,8 +448,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::Field(expr, field) => self.cont_field(expr, field),
             ExprKind::For(..) => panic!("for-loop should be eliminated by passes"),
             ExprKind::Hole => panic!("hole expr should be disallowed by passes"),
-            ExprKind::If(cond_expr, then_block, else_expr) => {
-                self.cont_if(cond_expr, then_block, else_expr.as_ref().map(AsRef::as_ref));
+            ExprKind::If(cond_expr, then_expr, else_expr) => {
+                self.cont_if(cond_expr, then_expr, else_expr.as_ref().map(AsRef::as_ref));
             }
             ExprKind::Index(arr, index) => self.cont_index(arr, index),
             ExprKind::Lit(lit) => self.push_val(lit_to_val(lit)),
@@ -441,7 +457,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::Repeat(..) => panic!("repeat-loop should be eliminated by passes"),
             ExprKind::Return(expr) => self.cont_ret(expr),
             ExprKind::String(components) => self.cont_string(components),
-            ExprKind::TernOp(op, lhs, mid, rhs) => self.cont_ternop(*op, lhs, mid, rhs),
+            ExprKind::UpdateIndex(lhs, mid, rhs) => self.update_index(lhs, mid, rhs),
             ExprKind::Tuple(tup) => self.cont_tup(tup),
             ExprKind::UnOp(op, expr) => self.cont_unop(*op, expr),
             ExprKind::UpdateField(record, field, replace) => {
@@ -481,8 +497,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_expr(expr);
     }
 
-    fn cont_if(&mut self, cond_expr: &'a Expr, then_block: &'a Block, else_expr: Option<&'a Expr>) {
-        self.push_action(Action::If(then_block, else_expr));
+    fn cont_if(&mut self, cond_expr: &'a Expr, then_expr: &'a Expr, else_expr: Option<&'a Expr>) {
+        self.push_action(Action::If(then_expr, else_expr));
         self.push_expr(cond_expr);
     }
 
@@ -511,7 +527,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
 
     fn cont_assign_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
         self.push_action(Action::Assign(lhs));
-        self.cont_ternop(TernOp::UpdateIndex, lhs, mid, rhs);
+        self.update_index(lhs, mid, rhs);
         self.push_val(Value::unit());
     }
 
@@ -604,19 +620,11 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         }
     }
 
-    fn cont_ternop(&mut self, op: TernOp, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
-        match op {
-            TernOp::Cond => {
-                self.push_action(Action::TernOp(op, mid, rhs));
-                self.push_expr(lhs);
-            }
-            TernOp::UpdateIndex => {
-                self.push_action(Action::TernOp(op, mid, rhs));
-                self.push_expr(lhs);
-                self.push_expr(rhs);
-                self.push_expr(mid);
-            }
-        }
+    fn update_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
+        self.push_action(Action::UpdateIndex(mid.span));
+        self.push_expr(lhs);
+        self.push_expr(rhs);
+        self.push_expr(mid);
     }
 
     fn cont_unop(&mut self, op: UnOp, expr: &'a Expr) {
@@ -666,7 +674,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 ));
             }
             Action::Field(field) => self.eval_field(field),
-            Action::If(then_block, else_expr) => self.eval_if(then_block, else_expr),
+            Action::If(then_expr, else_expr) => self.eval_if(then_expr, else_expr),
             Action::Index(span) => self.eval_index(span)?,
             Action::Range(has_start, has_step, has_end) => {
                 self.eval_range(has_start, has_step, has_end);
@@ -674,7 +682,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Action::Return => self.eval_ret(),
             Action::StringConcat(len) => self.eval_string_concat(len),
             Action::StringLit(str) => self.push_val(Value::String(Rc::clone(str))),
-            Action::TernOp(op, mid, rhs) => self.eval_ternop(op, mid, rhs)?,
+            Action::UpdateIndex(span) => self.eval_update_index(span)?,
             Action::Tuple(len) => self.eval_tup(len),
             Action::UnOp(op) => self.eval_unop(op),
             Action::UpdateField(field) => self.eval_update_field(field),
@@ -693,7 +701,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         let item_val = self.pop_val();
         let s = match size_val.try_into() {
             Ok(i) => Ok(i),
-            Err(_) => Err(Error::Count(size_val, span)),
+            Err(_) => Err(Error::InvalidArrayLength(size_val, span)),
         }?;
         self.push_val(Value::Array(vec![item_val; s].into()));
         Ok(())
@@ -791,7 +799,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.push_val(arg);
                 return Ok(());
             }
-            None => return Err(Error::Unbound(callee_span)),
+            None => return Err(Error::UnboundName(callee_span)),
         };
 
         let spec = spec_from_functor_app(functor);
@@ -835,9 +843,9 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(val);
     }
 
-    fn eval_if(&mut self, then_block: &'a Block, else_expr: Option<&'a Expr>) {
+    fn eval_if(&mut self, then_expr: &'a Expr, else_expr: Option<&'a Expr>) {
         if self.pop_val().unwrap_bool() {
-            self.push_block(then_block);
+            self.push_expr(then_expr);
         } else if let Some(else_expr) = else_expr {
             self.push_expr(else_expr);
         } else {
@@ -898,33 +906,22 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(Value::String(string.into()));
     }
 
-    fn eval_ternop(&mut self, op: TernOp, mid: &'a Expr, rhs: &'a Expr) -> Result<(), Error> {
-        match op {
-            TernOp::Cond => {
-                if self.pop_val().unwrap_bool() {
-                    self.push_expr(mid);
-                } else {
-                    self.push_expr(rhs);
-                }
-            }
-            TernOp::UpdateIndex => {
-                let values = self.pop_val().unwrap_array();
-                let update = self.pop_val();
-                let index = self.pop_val().unwrap_int();
-                if index < 0 {
-                    return Err(Error::Negative(index, mid.span));
-                }
-                let i = index.as_index(mid.span)?;
-                let mut values = values.iter().cloned().collect::<Vec<_>>();
-                match values.get_mut(i) {
-                    Some(value) => {
-                        *value = update;
-                    }
-                    None => return Err(Error::OutOfRange(index, mid.span)),
-                }
-                self.push_val(Value::Array(values.into()));
-            }
+    fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
+        let values = self.pop_val().unwrap_array();
+        let update = self.pop_val();
+        let index = self.pop_val().unwrap_int();
+        if index < 0 {
+            return Err(Error::InvalidNegativeInt(index, span));
         }
+        let i = index.as_index(span)?;
+        let mut values = values.iter().cloned().collect::<Vec<_>>();
+        match values.get_mut(i) {
+            Some(value) => {
+                *value = update;
+            }
+            None => return Err(Error::IndexOutOfRange(index, span)),
+        }
+        self.push_val(Value::Array(values.into()));
         Ok(())
     }
 
@@ -1032,7 +1029,7 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
             },
             FunctorApp::default(),
         ),
-        Res::Local(node) => env.get(node).ok_or(Error::Unbound(span))?.value.clone(),
+        Res::Local(node) => env.get(node).ok_or(Error::UnboundName(span))?.value.clone(),
     })
 }
 
@@ -1045,7 +1042,7 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
                 var.value = rhs;
             }
             Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
-            None => return Err(Error::Unbound(lhs.span)),
+            None => return Err(Error::UnboundName(lhs.span)),
         },
         (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
             for (expr, val) in var_tup.iter().zip(tup.iter()) {
@@ -1113,7 +1110,7 @@ fn resolve_closure(
         .iter()
         .map(|&arg| Some(env.get(arg)?.value.clone()))
         .collect();
-    let args: Vec<_> = args.ok_or(Error::Unbound(span))?;
+    let args: Vec<_> = args.ok_or(Error::UnboundName(span))?;
     let callable = GlobalId {
         package,
         item: callable,
@@ -1137,7 +1134,7 @@ fn index_array(arr: &[Value], index: i64, span: Span) -> Result<Value, Error> {
     let i = index.as_index(span)?;
     match arr.get(i) {
         Some(v) => Ok(v.clone()),
-        None => Err(Error::OutOfRange(index, span)),
+        None => Err(Error::IndexOutOfRange(index, span)),
     }
 }
 
@@ -1247,7 +1244,7 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Valu
         Value::BigInt(val) => {
             let rhs_val = rhs_val.unwrap_int();
             if rhs_val < 0 {
-                Err(Error::Negative(rhs_val, rhs_span))
+                Err(Error::InvalidNegativeInt(rhs_val, rhs_span))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
                     Ok(v) => Ok(v),
@@ -1260,7 +1257,7 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Valu
         Value::Int(val) => {
             let rhs_val = rhs_val.unwrap_int();
             if rhs_val < 0 {
-                Err(Error::Negative(rhs_val, rhs_span))
+                Err(Error::InvalidNegativeInt(rhs_val, rhs_span))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
                     Ok(v) => Ok(v),

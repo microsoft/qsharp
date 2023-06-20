@@ -25,16 +25,22 @@ use thiserror::Error;
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
     #[diagnostic(help("supported attributes are: EntryPoint"))]
+    #[diagnostic(code("Qsc.LowerAst.UnknownAttr"))]
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
+    #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
     InvalidAttrArgs(&'static str, #[label] Span),
     #[error("missing callable body")]
+    #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
     MissingBody(#[label] Span),
     #[error("duplicate specialization")]
+    #[diagnostic(code("Qsc.LowerAst.DuplicateSpec"))]
     DuplicateSpec(#[label] Span),
     #[error("invalid use of elided pattern")]
+    #[diagnostic(code("Qsc.LowerAst.InvalidElidedPat"))]
     InvalidElidedPat(#[label] Span),
     #[error("invalid pattern for specialization declaration")]
+    #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
 }
 
@@ -441,7 +447,12 @@ impl With<'_> {
             ast::ExprKind::Hole => hir::ExprKind::Hole,
             ast::ExprKind::If(cond, if_true, if_false) => hir::ExprKind::If(
                 Box::new(self.lower_expr(cond)),
-                self.lower_block(if_true),
+                Box::new(hir::Expr {
+                    id: self.assigner.next_node(),
+                    span: if_true.span,
+                    ty: self.tys.terms.get(if_true.id).map_or(Ty::Err, Clone::clone),
+                    kind: hir::ExprKind::Block(self.lower_block(if_true)),
+                }),
                 if_false.as_ref().map(|e| Box::new(self.lower_expr(e))),
             ),
             ast::ExprKind::Index(container, index) => hir::ExprKind::Index(
@@ -491,14 +502,11 @@ impl With<'_> {
                     .map(|c| self.lower_string_component(c))
                     .collect(),
             ),
-            ast::ExprKind::TernOp(ast::TernOp::Cond, cond, if_true, if_false) => {
-                hir::ExprKind::TernOp(
-                    hir::TernOp::Cond,
-                    Box::new(self.lower_expr(cond)),
-                    Box::new(self.lower_expr(if_true)),
-                    Box::new(self.lower_expr(if_false)),
-                )
-            }
+            ast::ExprKind::TernOp(ast::TernOp::Cond, cond, if_true, if_false) => hir::ExprKind::If(
+                Box::new(self.lower_expr(cond)),
+                Box::new(self.lower_expr(if_true)),
+                Some(Box::new(self.lower_expr(if_false))),
+            ),
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
                 if let Some(field) = resolve::extract_field_name(self.names, index) {
                     let record = self.lower_expr(container);
@@ -506,8 +514,7 @@ impl With<'_> {
                     let replace = self.lower_expr(replace);
                     hir::ExprKind::UpdateField(Box::new(record), field, Box::new(replace))
                 } else {
-                    hir::ExprKind::TernOp(
-                        hir::TernOp::UpdateIndex,
+                    hir::ExprKind::UpdateIndex(
                         Box::new(self.lower_expr(container)),
                         Box::new(self.lower_expr(index)),
                         Box::new(self.lower_expr(replace)),

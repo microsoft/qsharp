@@ -48,6 +48,7 @@ pub(super) enum Res {
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
+    #[diagnostic(code("Qsc.Resolve.Ambiguous"))]
     Ambiguous {
         name: String,
         first_open: String,
@@ -61,9 +62,11 @@ pub(super) enum Error {
     },
 
     #[error("duplicate declaration of `{0}` in namespace `{1}`")]
+    #[diagnostic(code("Qsc.Resolve.Duplicate"))]
     Duplicate(String, String, #[label] Span),
 
     #[error("`{0}` not found")]
+    #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
 }
 

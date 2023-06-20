@@ -11,7 +11,11 @@ export interface VSDiagnostic {
   start_pos: number;
   end_pos: number;
   message: string;
-  severity: number;
+  severity: "error" | "warning" | "info";
+  code?: {
+    value: string;
+    target: string;
+  };
 }
 
 export type Result =

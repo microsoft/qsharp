@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::{run_kata, KATA_ENTRY};
+use katas::verify_exercise;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -15,6 +15,7 @@ use qsc::{
     PackageStore, SourceMap,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
@@ -178,34 +179,33 @@ export interface IDiagnostic {
     start_pos: number;
     end_pos: number;
     message: string;
-    severity: number; // [0, 1, 2] = [error, warning, info]
+    severity: "error" | "warning" | "info"
     code?: {
-        value: number;  // Can also be a string, but number would be preferable
-        target: string; // URI for more info - could be a custom URI for pretty errors
+        value: string;
+        target: string;
     }
 }
 "#;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VSDiagnosticCode {
+    value: String,
+    target: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
     pub message: String,
-    pub severity: i32,
+    pub severity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<VSDiagnosticCode>,
 }
 
-impl std::fmt::Display for VSDiagnostic {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            r#"{{
-    "message": "{}",
-    "severity": {},
-    "start_pos": {},
-    "end_pos": {}
-}}"#,
-            self.message, self.severity, self.start_pos, self.end_pos
-        )
+impl VSDiagnostic {
+    pub fn json(&self) -> serde_json::Value {
+        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
     }
 }
 
@@ -217,25 +217,32 @@ where
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let severity = err.severity().unwrap_or(Severity::Error);
+        let severity = (match err.severity().unwrap_or(Severity::Error) {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+            Severity::Advice => "info",
+        })
+        .to_string();
 
-        let mut pre_message = err.to_string();
+        let mut message = err.to_string();
         for source in iter::successors(err.source(), |e| e.source()) {
-            write!(pre_message, ": {source}").expect("message should be writable");
+            write!(message, ": {source}").expect("message should be writable");
         }
         if let Some(help) = err.help() {
-            write!(pre_message, "\n\nhelp: {help}").expect("message should be writable");
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
         }
 
-        // Newlines in JSON need to be double escaped
-        // TODO: Maybe some other chars too: https://stackoverflow.com/a/5191059
-        let message = pre_message.replace('\n', "\\\\n");
+        let code = err.code().map(|code| VSDiagnosticCode {
+            value: code.to_string(),
+            target: "".to_string(),
+        });
 
         VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
-            severity: severity as i32,
+            severity,
             message,
+            code,
         }
     }
 }
@@ -317,10 +324,8 @@ where
     }
 
     fn message(&mut self, msg: &str) -> Result<(), output::Error> {
-        let mut msg_str = String::new();
-        write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
-            .expect("Writing to a string should succeed");
-        (self.event_cb)(&msg_str);
+        let msg_json = json!({"type": "Message", "message": msg});
+        (self.event_cb)(&msg_json.to_string());
         Ok(())
     }
 }
@@ -337,28 +342,26 @@ where
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
         let diag: VSDiagnostic = (&e).into();
-        let msg = format!(
-            r#"{{"type": "Result", "success": false, "result": {}}}"#,
-            diag
-        );
-        (out.event_cb)(&msg);
+        let msg = json!(
+            {"type": "Result", "success": false, "result": diag});
+        (out.event_cb)(&msg.to_string());
         return Err(e);
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
         let result = context.eval(&mut out);
         let mut success = true;
-        let msg = match result {
-            Ok(value) => format!(r#""{value}""#),
+        let msg: serde_json::Value = match result {
+            Ok(value) => serde_json::Value::String(value.to_string()),
             Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from(&errors[0]).to_string()
+                VSDiagnostic::from(&errors[0]).json()
             }
         };
 
-        let msg_string = format!(r#"{{"type": "Result", "success": {success}, "result": {msg}}}"#);
+        let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
         (out.event_cb)(&msg_string);
     }
     Ok(())
@@ -391,27 +394,25 @@ pub fn run(
 
 fn run_kata_exercise_internal(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
-    let sources = SourceMap::new(
-        [
-            ("kata".into(), kata_implementation.into()),
+    verify_exercise(
+        vec![
+            ("exercise".into(), exercise_implementation.into()),
             ("verifier".into(), verification_source.into()),
         ],
-        Some(KATA_ENTRY.into()),
-    );
-
-    run_kata(sources, &mut CallbackReceiver { event_cb })
+        &mut CallbackReceiver { event_cb },
+    )
 }
 
 #[wasm_bindgen]
 pub fn run_kata_exercise(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, kata_implementation, |msg: &str| {
+    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
@@ -438,7 +439,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
+        assert_eq!(err.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -509,7 +510,55 @@ mod test {
         );
         assert!(result.is_ok());
     }
+    #[test]
+    fn message_with_escape_sequences() {
+        let code = r#"namespace Sample {
+            open Microsoft.Quantum.Diagnostics;
 
+            operation main() : Unit {
+                Message("\ta\n\t");
+
+                return ();
+            }
+        }"#;
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#"\ta\n\t"#) || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+    #[test]
+    fn message_with_backslashes() {
+        let code = r#"namespace Sample {
+            open Microsoft.Quantum.Diagnostics;
+
+            operation main() : Unit {
+                Message("hi \\World");
+                Message("hello { \\World [");
+
+                return ();
+            }
+        }"#;
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(
+                    _msg_.contains("hello { \\\\World [")
+                        || _msg_.contains("hi \\\\World")
+                        || _msg_.contains("result")
+                );
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
     #[test]
     fn test_entrypoint() {
         let code = r#"namespace Sample {
@@ -545,9 +594,9 @@ mod test {
             code,
             expr,
             |msg| {
-                assert!(msg.contains(r#""success": false"#));
-                assert!(msg.contains(r#""message": "entry point not found"#));
-                assert!(msg.contains(r#""start_pos": 0"#));
+                assert!(msg.contains(r#""success":false"#));
+                assert!(msg.contains(r#""message":"entry point not found"#));
+                assert!(msg.contains(r#""start_pos":0"#));
             },
             1,
         );

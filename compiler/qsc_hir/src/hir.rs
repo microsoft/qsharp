@@ -10,7 +10,9 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
+    cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
+    hash::{Hash, Hasher},
     rc::Rc,
     result,
     str::FromStr,
@@ -31,10 +33,12 @@ fn set_indentation<'a, 'b>(
 }
 
 /// A unique identifier for an HIR node.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NodeId(usize);
+#[derive(Clone, Copy, Debug)]
+pub struct NodeId(u32);
 
 impl NodeId {
+    const DEFAULT_VALUE: u32 = u32::MAX;
+
     /// The ID of the first node.
     pub const FIRST: Self = Self(0);
 
@@ -47,13 +51,13 @@ impl NodeId {
     /// True if this is the default ID.
     #[must_use]
     pub fn is_default(self) -> bool {
-        self == Self::default()
+        self.0 == Self::DEFAULT_VALUE
     }
 }
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self(usize::MAX)
+        Self(Self::DEFAULT_VALUE)
     }
 }
 
@@ -69,13 +73,37 @@ impl Display for NodeId {
 
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
-        value.0
+        assert!(!value.is_default(), "default node ID should be replaced");
+        value.0 as usize
     }
 }
 
-impl From<usize> for NodeId {
-    fn from(value: usize) -> Self {
-        NodeId(value)
+impl PartialEq for NodeId {
+    fn eq(&self, other: &Self) -> bool {
+        assert!(!self.is_default(), "default node ID should be replaced");
+        self.0 == other.0
+    }
+}
+
+impl Eq for NodeId {}
+
+impl PartialOrd for NodeId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        assert!(!self.is_default(), "default node ID should be replaced");
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Ord for NodeId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        assert!(!self.is_default(), "default node ID should be replaced");
+        self.0.cmp(&other.0)
+    }
+}
+
+impl Hash for NodeId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 
@@ -568,7 +596,7 @@ pub enum ExprKind {
     /// Note that, as a special case, `elif ...` is effectively parsed as `else if ...`, without a
     /// block wrapping the `if`. This distinguishes `elif ...` from `else { if ... }`, which does
     /// have a block.
-    If(Box<Expr>, Block, Option<Box<Expr>>),
+    If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
     /// A literal.
@@ -581,8 +609,8 @@ pub enum ExprKind {
     Return(Box<Expr>),
     /// A string.
     String(Vec<StringComponent>),
-    /// A ternary operator.
-    TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
+    /// Update array index: `a w/ b <- c`.
+    UpdateIndex(Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Expr>),
     /// A unary operator.
@@ -629,8 +657,8 @@ impl Display for ExprKind {
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
             ExprKind::String(components) => display_string(indent, components)?,
-            ExprKind::TernOp(op, expr1, expr2, expr3) => {
-                display_tern_op(indent, *op, expr1, expr2, expr3)?;
+            ExprKind::UpdateIndex(expr1, expr2, expr3) => {
+                display_update_index(indent, expr1, expr2, expr3)?;
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
@@ -784,7 +812,7 @@ fn display_for(
 fn display_if(
     mut indent: Indented<Formatter>,
     cond: &Expr,
-    body: &Block,
+    body: &Expr,
     els: &Option<Box<Expr>>,
 ) -> fmt::Result {
     write!(indent, "If:")?;
@@ -858,14 +886,13 @@ fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent
     Ok(())
 }
 
-fn display_tern_op(
+fn display_update_index(
     mut indent: Indented<Formatter>,
-    op: TernOp,
     expr1: &Expr,
     expr2: &Expr,
     expr3: &Expr,
 ) -> fmt::Result {
-    write!(indent, "TernOp ({op:?}):")?;
+    write!(indent, "UpdateIndex:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr1}")?;
     write!(indent, "\n{expr2}")?;
@@ -1335,13 +1362,4 @@ pub enum BinOp {
     Sub,
     /// Bitwise XOR: `^^^`.
     XorB,
-}
-
-/// A ternary operator.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TernOp {
-    /// Conditional: `a ? b | c`.
-    Cond,
-    /// Update array index: `a w/ b <- c`.
-    UpdateIndex,
 }

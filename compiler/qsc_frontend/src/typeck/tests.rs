@@ -484,7 +484,7 @@ fn binop_andb_invalid() {
             #1 0-11 "2.8 &&& 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -645,7 +645,7 @@ fn binop_orb_invalid() {
             #1 0-11 "2.8 ||| 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -673,7 +673,7 @@ fn binop_xorb_invalid() {
             #1 0-11 "2.8 ^^^ 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -2212,7 +2212,7 @@ fn local_function_last_stmt_is_unit_block() {
         indoc! {"
             namespace A {
                 function Foo() : Int {
-                    Bar()
+                    Bar();
                     function Bar() : Int { 4 }
                 }
             }
@@ -2220,14 +2220,14 @@ fn local_function_last_stmt_is_unit_block() {
         "",
         &expect![[r##"
             #6 30-32 "()" : Unit
-            #10 39-95 "{\n        Bar()\n        function Bar() : Int { 4 }\n    }" : Unit
+            #10 39-96 "{\n        Bar();\n        function Bar() : Int { 4 }\n    }" : Unit
             #12 49-54 "Bar()" : Int
             #13 49-52 "Bar" : (Unit -> Int)
             #16 52-54 "()" : Unit
-            #21 75-77 "()" : Unit
-            #25 84-89 "{ 4 }" : Int
-            #27 86-87 "4" : Int
-            Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 63, hi: 89 }))))
+            #21 76-78 "()" : Unit
+            #25 85-90 "{ 4 }" : Int
+            #27 87-88 "4" : Int
+            Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 64, hi: 90 }))))
         "##]],
     );
 }

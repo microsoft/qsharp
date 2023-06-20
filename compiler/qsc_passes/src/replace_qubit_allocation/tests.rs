@@ -535,7 +535,7 @@ fn test_early_returns() {
         &expect![[r#"
             Package:
                 Item 0 [0-241] (Public):
-                    Namespace (Ident 31 [10-15] "input"): Item 1
+                    Namespace (Ident 33 [10-15] "input"): Item 1
                 Item 1 [22-239] (Public):
                     Parent: 0
                     Callable 0 [22-239] (operation):
@@ -552,54 +552,54 @@ fn test_early_returns() {
                                         Expr _id_ [59-60] [Type Unit]: Unit
                                 Stmt 9 [80-151]: Expr: Expr 10 [80-151] [Type Unit]: If:
                                     Expr 11 [83-87] [Type Bool]: Lit: Bool(true)
-                                    Block 12 [88-151] [Type Unit]:
+                                    Expr 12 [88-151] [Type Unit]: Expr Block: Block 13 [88-151] [Type Unit]:
                                         Stmt _id_ [106-107]: Local (Immutable):
-                                            Pat _id_ [106-107] [Type Qubit]: Bind: Ident 15 [106-107] "b"
+                                            Pat _id_ [106-107] [Type Qubit]: Bind: Ident 16 [106-107] "b"
                                             Expr _id_ [106-107] [Type Qubit]: Call:
                                                 Expr _id_ [106-107] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                                 Expr _id_ [106-107] [Type Unit]: Unit
-                                        Stmt 17 [131-141]: Semi: Expr _id_ [131-140] [Type ?2]: Expr Block: Block _id_ [131-140] [Type ?2]:
+                                        Stmt 18 [131-141]: Semi: Expr _id_ [131-140] [Type ?2]: Expr Block: Block _id_ [131-140] [Type ?2]:
                                             Stmt _id_ [138-140]: Local (Immutable):
-                                                Pat _id_ [138-140] [Type Unit]: Bind: Ident 32 [138-140] "generated_ident_32"
-                                                Expr 19 [138-140] [Type Unit]: Unit
+                                                Pat _id_ [138-140] [Type Unit]: Bind: Ident 34 [138-140] "generated_ident_34"
+                                                Expr 20 [138-140] [Type Unit]: Unit
                                             Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type Unit]: Call:
                                                 Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [106-107] [Type Qubit]: Var: Local 15
+                                                Expr _id_ [106-107] [Type Qubit]: Var: Local 16
                                             Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                                 Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                                 Expr _id_ [59-60] [Type Qubit]: Var: Local 7
-                                            Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type ?2]: Return: Expr _id_ [138-140] [Type Unit]: Var: Local 32
+                                            Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type ?2]: Return: Expr _id_ [138-140] [Type Unit]: Var: Local 34
                                         Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type Unit]: Call:
                                             Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                            Expr _id_ [106-107] [Type Qubit]: Var: Local 15
+                                            Expr _id_ [106-107] [Type Qubit]: Var: Local 16
                                 Stmt _id_ [161-233]: Local (Immutable):
-                                    Pat _id_ [161-233] [Type Unit]: Bind: Ident 34 [161-233] "generated_ident_34"
-                                    Expr 21 [161-233] [Type Unit]: If:
-                                        Expr 22 [164-169] [Type Bool]: Lit: Bool(false)
-                                        Block 23 [170-233] [Type Unit]:
+                                    Pat _id_ [161-233] [Type Unit]: Bind: Ident 36 [161-233] "generated_ident_36"
+                                    Expr 22 [161-233] [Type Unit]: If:
+                                        Expr 23 [164-169] [Type Bool]: Lit: Bool(false)
+                                        Expr 24 [170-233] [Type Unit]: Expr Block: Block 25 [170-233] [Type Unit]:
                                             Stmt _id_ [188-189]: Local (Immutable):
-                                                Pat _id_ [188-189] [Type Qubit]: Bind: Ident 26 [188-189] "c"
+                                                Pat _id_ [188-189] [Type Qubit]: Bind: Ident 28 [188-189] "c"
                                                 Expr _id_ [188-189] [Type Qubit]: Call:
                                                     Expr _id_ [188-189] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                                     Expr _id_ [188-189] [Type Unit]: Unit
-                                            Stmt 28 [213-223]: Semi: Expr _id_ [213-222] [Type ?5]: Expr Block: Block _id_ [213-222] [Type ?5]:
+                                            Stmt 30 [213-223]: Semi: Expr _id_ [213-222] [Type ?5]: Expr Block: Block _id_ [213-222] [Type ?5]:
                                                 Stmt _id_ [220-222]: Local (Immutable):
-                                                    Pat _id_ [220-222] [Type Unit]: Bind: Ident 33 [220-222] "generated_ident_33"
-                                                    Expr 30 [220-222] [Type Unit]: Unit
+                                                    Pat _id_ [220-222] [Type Unit]: Bind: Ident 35 [220-222] "generated_ident_35"
+                                                    Expr 32 [220-222] [Type Unit]: Unit
                                                 Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type Unit]: Call:
                                                     Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                    Expr _id_ [188-189] [Type Qubit]: Var: Local 26
+                                                    Expr _id_ [188-189] [Type Qubit]: Var: Local 28
                                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 7
-                                                Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type ?5]: Return: Expr _id_ [220-222] [Type Unit]: Var: Local 33
+                                                Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type ?5]: Return: Expr _id_ [220-222] [Type Unit]: Var: Local 35
                                             Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type Unit]: Call:
                                                 Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [188-189] [Type Qubit]: Var: Local 26
+                                                Expr _id_ [188-189] [Type Qubit]: Var: Local 28
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 7
-                                Stmt _id_ [161-233]: Expr: Expr _id_ [161-233] [Type Unit]: Var: Local 34
+                                Stmt _id_ [161-233]: Expr: Expr _id_ [161-233] [Type Unit]: Var: Local 36
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -796,7 +796,7 @@ fn test_unrelated_unaffected() {
         &expect![[r#"
             Package:
                 Item 0 [0-161] (Public):
-                    Namespace (Ident 21 [10-15] "input"): Item 1
+                    Namespace (Ident 22 [10-15] "input"): Item 1
                 Item 1 [22-159] (Public):
                     Parent: 0
                     Callable 0 [22-159] (operation):
@@ -808,13 +808,13 @@ fn test_unrelated_unaffected() {
                             Block 4 [44-159] [Type Int]:
                                 Stmt 5 [54-95]: Expr: Expr 6 [54-95] [Type Unit]: If:
                                     Expr 7 [57-61] [Type Bool]: Lit: Bool(true)
-                                    Block 8 [62-95] [Type Unit]:
-                                        Stmt 9 [76-85]: Semi: Expr 10 [76-84] [Type ?0]: Return: Expr 11 [83-84] [Type Int]: Lit: Int(3)
-                                Stmt 12 [105-153]: Expr: Expr 13 [105-153] [Type Int]: Expr Block: Block 14 [105-153] [Type Int]:
-                                    Stmt 15 [119-129]: Local (Immutable):
-                                        Pat 16 [123-124] [Type Int]: Bind: Ident 17 [123-124] "x"
-                                        Expr 18 [127-128] [Type Int]: Lit: Int(4)
-                                    Stmt 19 [142-143]: Expr: Expr 20 [142-143] [Type Int]: Var: Local 17
+                                    Expr 8 [62-95] [Type Unit]: Expr Block: Block 9 [62-95] [Type Unit]:
+                                        Stmt 10 [76-85]: Semi: Expr 11 [76-84] [Type ?0]: Return: Expr 12 [83-84] [Type Int]: Lit: Int(3)
+                                Stmt 13 [105-153]: Expr: Expr 14 [105-153] [Type Int]: Expr Block: Block 15 [105-153] [Type Int]:
+                                    Stmt 16 [119-129]: Local (Immutable):
+                                        Pat 17 [123-124] [Type Int]: Bind: Ident 18 [123-124] "x"
+                                        Expr 19 [127-128] [Type Int]: Lit: Int(4)
+                                    Stmt 20 [142-143]: Expr: Expr 21 [142-143] [Type Int]: Var: Local 18
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
