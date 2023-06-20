@@ -4,15 +4,20 @@
 
 This repository contains Q# tooling, specifically:
 
-- **[compiler](./compiler/qsc/)**: command line compiler
-- **[library](./library/)**: standard library
-- **[npm](./npm/)**: Q# npm module
+- **[compiler](./compiler/qsc/)**: core compiler logic and command-line tooling
+- **[fuzz](./fuzz/)**: fuzz testing infrastructure
+- **[jupyterlab](./jupyterlab/)**: JupyterLab extension
+- **[language_service](./language_service/)**: Q# language service and editor features
+- **[library](./library/)**: Q# standard library
+- **[npm](./npm/)**: Q# npm package
 - **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
 - **[vscode](./vscode/)**: Visual Studio Code extension
+- **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
 
-There are also the learning 'katas' and Q# samples in the `./katas` and `./samples`
-directories, respectively.
+There are also the tutorials and samples in the `./katas` and `./samples` directories, respectively.
+
+Code from this repository powers the Q# development experience on <https://quantum.microsoft.com>.
 
 ## Building
 
