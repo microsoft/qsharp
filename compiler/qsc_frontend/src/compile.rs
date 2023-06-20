@@ -14,7 +14,7 @@ use miette::{
 };
 use qsc_ast::{
     assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor,
-    validate::Validator as AstValidator, visit::Visitor,
+    validate::Validator as AstValidator, visit::Visitor as _,
 };
 use qsc_data_structures::{
     index_map::{self, IndexMap},
