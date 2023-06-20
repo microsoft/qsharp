@@ -380,7 +380,7 @@ fn hover_lambda_closure_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nclosed Int\n```\n",
+                    contents: "```qsharp\na Int\n```\n",
                     span: Span {
                         start: 129,
                         end: 130,
