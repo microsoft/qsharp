@@ -1662,3 +1662,115 @@ fn comment_four_slashes() {
         "#]],
     );
 }
+
+#[test]
+fn unfinished_generic() {
+    check(
+        "'  T",
+        &expect![[r#"
+            [
+                Err(
+                    UnfinishedGeneric(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+#[test]
+fn unfinished_generic_2() {
+    check(
+        "'// test
+         T",
+        &expect![[r#"
+            [
+                Err(
+                    UnfinishedGeneric(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 18,
+                            hi: 19,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn unfinished_generic_3() {
+    check(
+        "'    T",
+        &expect![[r#"
+            [
+                Err(
+                    UnfinishedGeneric(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+#[test]
+fn correct_generic() {
+    check(
+        "'T",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Apos,
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 1,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

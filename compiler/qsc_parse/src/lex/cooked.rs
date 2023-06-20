@@ -51,6 +51,10 @@ pub(crate) enum Error {
     #[error("unrecognized character `{0}`")]
     #[diagnostic(code("Qsc.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
+
+    #[error("unfinished generic")]
+    #[diagnostic(code("Qsc.Lex.UnfinishedGeneric"))]
+    UnfinishedGeneric(#[label] Span),
 }
 
 impl Error {
@@ -64,6 +68,7 @@ impl Error {
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
+            Self::UnfinishedGeneric(span) => Self::UnfinishedGeneric(span + offset),
         }
     }
 }
@@ -320,7 +325,15 @@ impl<'a> Lexer<'a> {
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
-            raw::TokenKind::Single(single) => self.single(single).map(Some),
+            raw::TokenKind::Single(single) => self
+                .single(
+                    single,
+                    Span {
+                        hi: token.offset,
+                        lo: token.offset,
+                    },
+                )
+                .map(Some),
             raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
                 Ok(Some(TokenKind::String(StringToken::Normal)))
             }
@@ -357,7 +370,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
+    fn single(&mut self, single: Single, span: Span) -> Result<TokenKind, Error> {
         match single {
             Single::Amp => {
                 let op = ClosedBinOp::AmpAmpAmp;
@@ -365,7 +378,18 @@ impl<'a> Lexer<'a> {
                 self.expect(Single::Amp, TokenKind::ClosedBinOp(op))?;
                 Ok(self.closed_bin_op(op))
             }
-            Single::Apos => Ok(TokenKind::Apos),
+            Single::Apos => {
+                // disallow whitespace and comments after apostrophes
+                // see https://github.com/microsoft/qsharp/issues/407 for context
+                if matches!(
+                    self.tokens.peek().map(|tok| tok.kind),
+                    Some(raw::TokenKind::Whitespace | raw::TokenKind::Comment(_))
+                ) {
+                    Err(Error::UnfinishedGeneric(span))
+                } else {
+                    Ok(TokenKind::Apos)
+                }
+            }
             Single::At => Ok(TokenKind::At),
             Single::Bang => {
                 if self.next_if_eq(Single::Eq) {
