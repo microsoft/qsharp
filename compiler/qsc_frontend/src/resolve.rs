@@ -68,6 +68,10 @@ pub(super) enum Error {
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
+
+    #[error("This name shadows a global item.")]
+    #[diagnostic(code("Qsc.Resolve.ShadowsGlobal"))]
+    ShadowsGlobal(#[label] Span),
 }
 
 struct Scope {
@@ -599,7 +603,11 @@ fn resolve(
     if candidates.is_empty() && namespace.is_empty() {
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name);
-        assert!(candidates.len() <= 1, "ambiguity in prelude resolution");
+        if candidates.len() > 1 {
+            // if candidates only increased to >1 after checking implicit opens, then we know this shadows a
+            // global namespace either from the globals or the prelude.
+            return Err(Error::ShadowsGlobal(path.span));
+        }
         if let Some(res) = single(candidates) {
             return Ok(res);
         }

@@ -516,3 +516,26 @@ fn std_dependency() {
     let unit = compile(&store, &[std], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
+#[test]
+fn name_shadows_prelude() {
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store));
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"namespace Microsoft.Quantum.Canon{function Length () :n{ }}
+            namespace Mc{operation i() :t{Length"}
+            .into(),
+        )],
+        Some("Foo.Main()".into()),
+    );
+
+    let unit = compile(&store, &[std], sources);
+    let errors: Vec<Error> = unit.errors;
+    assert!(errors.iter().any(|x| matches!(
+        x,
+        Error(super::ErrorKind::Resolve(
+            super::resolve::Error::ShadowsGlobal(_)
+        ))
+    )));
+}
