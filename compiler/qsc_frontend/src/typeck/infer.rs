@@ -15,6 +15,7 @@ use std::{
     fmt::Debug,
 };
 
+#[derive(Debug)]
 pub(super) struct Solution {
     tys: IndexMap<InferTyId, Ty>,
     functors: IndexMap<InferFunctorId, FunctorSet>,
@@ -175,6 +176,22 @@ impl Class {
     }
 }
 
+/// Meta-level descriptions about the source of a type.
+pub(super) enum TyMeta {
+    Divergent,
+    NotDivergent { span: Span },
+}
+
+impl TyMeta {
+    pub(super) fn not_divergent(span: Span) -> Self {
+        TyMeta::NotDivergent { span }
+    }
+
+    pub(crate) fn divergent() -> TyMeta {
+        TyMeta::Divergent
+    }
+}
+
 /// An argument type and tags describing the call syntax.
 #[derive(Clone, Debug)]
 pub(super) enum ArgTy {
@@ -274,6 +291,7 @@ struct App {
     errors: Vec<Error>,
 }
 
+#[derive(Debug)]
 enum Constraint {
     Class(Class, Span),
     Eq {
@@ -290,6 +308,8 @@ enum Constraint {
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
+    /// Metadata about the construction of types.
+    ty_metadata: IndexMap<InferTyId, TyMeta>,
     next_ty: InferTyId,
     next_functor: InferFunctorId,
 }
@@ -300,6 +320,7 @@ impl Inferrer {
             constraints: VecDeque::new(),
             next_ty: InferTyId::default(),
             next_functor: InferFunctorId::default(),
+            ty_metadata: IndexMap::default(),
         }
     }
 
@@ -318,9 +339,10 @@ impl Inferrer {
     }
 
     /// Returns a unique unconstrained type variable.
-    pub(super) fn fresh_ty(&mut self) -> Ty {
+    pub(super) fn fresh_ty(&mut self, meta: TyMeta) -> Ty {
         let fresh = self.next_ty;
         self.next_ty = fresh.successor();
+        self.ty_metadata.insert(fresh, meta);
         Ty::Infer(fresh)
     }
 
@@ -337,7 +359,7 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param.kind {
-                ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
+                ParamKind::Ty => GenericArg::Ty(self.fresh_ty(TyMeta::not_divergent(span))),
                 ParamKind::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -369,11 +391,35 @@ impl Inferrer {
                 self.constraints.push_front(constraint);
             }
         }
+        let mut unresolved_ty_errs = self.find_unresolved_types(&mut solver);
+        let (solution, mut errs) = solver.into_solution();
+        errs.append(&mut unresolved_ty_errs);
+        (solution, errs)
+    }
 
-        solver.into_solution()
+    fn find_unresolved_types(&self, solver: &mut Solver) -> Vec<Error> {
+        self.ty_metadata
+            .iter()
+            .filter_map(|(id, meta)| {
+                if solver.solution.tys.get(id).is_none() {
+                    match meta {
+                        TyMeta::Divergent => {
+                            solver.solution.tys.insert(id, Ty::UNIT);
+                            None
+                        }
+                        TyMeta::NotDivergent { span } => {
+                            Some(Error(ErrorKind::AmbiguousType(*span)))
+                        }
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
+#[derive(Debug)]
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     functor_end: InferFunctorId,

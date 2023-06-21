@@ -3186,3 +3186,27 @@ fn instantiate_duplicate_ty_param_names() {
         "##]],
     );
 }
+#[test]
+fn ambiguous_generic() {
+    check(
+        "namespace Test { 
+            function Foo<'T>(x: 'T) : 'T { x }
+            function Bar() : () { let x = Foo([]); } 
+        }",
+        "",
+        &expect![[r##"
+            #7 46-53 "(x: 'T)" : 'T
+            #8 47-52 "x: 'T" : 'T
+            #14 59-64 "{ x }" : 'T
+            #16 61-62 "x" : 'T
+            #22 89-91 "()" : Unit
+            #24 97-117 "{ let x = Foo([]); }" : Unit
+            #26 103-104 "x" : (?2)[]
+            #28 107-114 "Foo([])" : (?2)[]
+            #29 107-110 "Foo" : ((?2)[] -> (?2)[])
+            #32 110-114 "([])" : (?2)[]
+            #33 111-113 "[]" : (?2)[]
+            Error(Resolve(Unresolved("x", Span { lo: 53, hi: 56 })))
+        "##]],
+    );
+}

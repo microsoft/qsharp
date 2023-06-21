@@ -3,7 +3,7 @@
 
 use super::{
     convert,
-    infer::{self, ArgTy, Class, Inferrer},
+    infer::{self, ArgTy, Class, Inferrer, TyMeta},
     Error, Table,
 };
 use crate::resolve::{self, Names, Res};
@@ -92,7 +92,7 @@ impl<'a> Context<'a> {
                     }),
                 ),
             })),
-            TyKind::Hole => self.inferrer.fresh_ty(),
+            TyKind::Hole => self.inferrer.fresh_ty(TyMeta::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
                 Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
@@ -169,7 +169,9 @@ impl<'a> Context<'a> {
                     }
                     self.diverge_if(diverges, converge(Ty::Array(Box::new(first.ty))))
                 }
-                None => converge(Ty::Array(Box::new(self.inferrer.fresh_ty()))),
+                None => converge(Ty::Array(Box::new(
+                    self.inferrer.fresh_ty(TyMeta::not_divergent(expr.span)),
+                ))),
             },
             ExprKind::ArrayRepeat(item, size) => {
                 let item = self.infer_expr(item);
@@ -207,7 +209,7 @@ impl<'a> Context<'a> {
                     ArgTy::to_ty,
                     input,
                 );
-                let output_ty = self.inferrer.fresh_ty();
+                let output_ty = self.inferrer.fresh_ty(TyMeta::not_divergent(expr.span));
                 self.inferrer.class(
                     expr.span,
                     Class::Call {
@@ -231,7 +233,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Field(record, name) => {
                 let record = self.infer_expr(record);
-                let item_ty = self.inferrer.fresh_ty();
+                let item_ty = self.inferrer.fresh_ty(TyMeta::not_divergent(expr.span));
                 self.inferrer.class(
                     expr.span,
                     Class::HasField {
@@ -276,7 +278,7 @@ impl<'a> Context<'a> {
             ExprKind::Index(container, index) => {
                 let container = self.infer_expr(container);
                 let index = self.infer_expr(index);
-                let item_ty = self.inferrer.fresh_ty();
+                let item_ty = self.inferrer.fresh_ty(TyMeta::not_divergent(expr.span));
                 self.inferrer.class(
                     expr.span,
                     Class::HasIndex {
@@ -419,7 +421,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Hole => {
                 self.typed_holes.push((expr.id, expr.span));
-                converge(self.inferrer.fresh_ty())
+                converge(self.inferrer.fresh_ty(TyMeta::not_divergent(expr.span)))
             }
             ExprKind::Err => converge(Ty::Err),
         };
@@ -438,7 +440,7 @@ impl<'a> Context<'a> {
     ) -> Partial<T> {
         match expr.kind.as_ref() {
             ExprKind::Hole => {
-                let ty = self.inferrer.fresh_ty();
+                let ty = self.inferrer.fresh_ty(TyMeta::not_divergent(expr.span));
                 self.record(expr.id, ty.clone());
                 converge(hole(ty))
             }
@@ -472,7 +474,7 @@ impl<'a> Context<'a> {
                 operand
             }
             UnOp::Functor(Functor::Ctl) => {
-                let with_ctls = self.inferrer.fresh_ty();
+                let with_ctls = self.inferrer.fresh_ty(TyMeta::not_divergent(span));
                 self.inferrer.class(
                     span,
                     Class::Ctl {
@@ -492,7 +494,7 @@ impl<'a> Context<'a> {
                 operand
             }
             UnOp::Unwrap => {
-                let base = self.inferrer.fresh_ty();
+                let base = self.inferrer.fresh_ty(TyMeta::not_divergent(span));
                 self.inferrer.class(
                     span,
                     Class::Unwrap {
@@ -604,7 +606,7 @@ impl<'a> Context<'a> {
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
         let ty = match &*pat.kind {
             PatKind::Bind(name, None) => {
-                let ty = self.inferrer.fresh_ty();
+                let ty = self.inferrer.fresh_ty(TyMeta::not_divergent(pat.span));
                 self.record(name.id, ty.clone());
                 ty
             }
@@ -613,7 +615,9 @@ impl<'a> Context<'a> {
                 self.record(name.id, ty.clone());
                 ty
             }
-            PatKind::Discard(None) | PatKind::Elided => self.inferrer.fresh_ty(),
+            PatKind::Discard(None) | PatKind::Elided => {
+                self.inferrer.fresh_ty(TyMeta::not_divergent(pat.span))
+            }
             PatKind::Discard(Some(ty)) => self.infer_ty(ty),
             PatKind::Paren(inner) => self.infer_pat(inner),
             PatKind::Tuple(items) => {
@@ -657,7 +661,7 @@ impl<'a> Context<'a> {
 
     fn diverge(&mut self) -> Partial<Ty> {
         Partial {
-            ty: self.inferrer.fresh_ty(),
+            ty: self.inferrer.fresh_ty(TyMeta::divergent()),
             diverges: true,
         }
     }
