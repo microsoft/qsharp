@@ -407,9 +407,7 @@ impl Inferrer {
                             solver.solution.tys.insert(id, Ty::UNIT);
                             None
                         }
-                        TyMeta::NotDivergent { span } => {
-                            Some(Error(ErrorKind::AmbiguousType(*span)))
-                        }
+                        TyMeta::NotDivergent { span } => Some(Error(ErrorKind::AmbiguousTy(*span))),
                     }
                 } else {
                     None

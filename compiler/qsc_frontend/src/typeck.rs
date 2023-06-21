@@ -103,6 +103,6 @@ enum ErrorKind {
     TyHole(Ty, #[label] Span),
     #[error("insufficient type information to infer type")]
     #[diagnostic(help("provide a type annotation"))]
-    #[diagnostic(code("Qsc.TypeCk.AmbiguousType"))]
-    AmbiguousType(#[label] Span),
+    #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
+    AmbiguousTy(#[label] Span),
 }
