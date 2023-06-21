@@ -458,17 +458,6 @@ fn return_forbidden() {
         "{return 4;}",
         &expect![[r#"
             [
-                NonUnitBlock(
-                    Infer(
-                        InferTyId(
-                            1,
-                        ),
-                    ),
-                    Span {
-                        lo: 0,
-                        hi: 11,
-                    },
-                ),
                 ExprForbidden(
                     Span {
                         lo: 1,
