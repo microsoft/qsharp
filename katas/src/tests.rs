@@ -38,7 +38,7 @@ fn extract_exercise_sources_paths(
     };
 
     let placeholder_path = get_path("placeholder.qs");
-    let reference_path = get_path("reference.qs");
+    let reference_path = get_path("solution.qs");
     let verify_path = get_path("verify.qs");
     if placeholder_path.is_none() || reference_path.is_none() || verify_path.is_none() {
         return None;
@@ -103,7 +103,7 @@ fn validate_item(path: impl AsRef<Path>) {
     let mut exercise_source_path_map: collections::HashMap<String, std::option::Option<PathBuf>> =
         collections::HashMap::from([
             ("placeholder.qs".to_string(), None),
-            ("reference.qs".to_string(), None),
+            ("solution.qs".to_string(), None),
             ("verify.qs".to_string(), None),
         ]);
 
@@ -132,9 +132,9 @@ fn validate_item(path: impl AsRef<Path>) {
     );
     if let Some(example_path) = example_source_path {
         validate_example(example_path);
-    }
-
-    if let Some((placeholder_source, reference_source, verify_source)) = exercise_sources_paths {
+    } else if let Some((placeholder_source, reference_source, verify_source)) =
+        exercise_sources_paths
+    {
         validate_exercise(placeholder_source, reference_source, verify_source);
     }
 }
