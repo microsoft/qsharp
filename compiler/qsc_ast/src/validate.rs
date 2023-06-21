@@ -8,21 +8,21 @@ use crate::{
     },
     visit::{self, Visitor},
 };
-use std::collections::HashSet;
+use qsc_data_structures::index_map::IndexMap;
 
 #[derive(Default)]
 pub struct Validator {
-    ids: HashSet<NodeId>,
+    ids: IndexMap<NodeId, ()>,
 }
 
 impl Validator {
     fn check(&mut self, id: NodeId) {
         if id.is_default() {
             panic!("default node ID should be replaced")
-        } else if self.ids.contains(&id) {
+        } else if self.ids.contains_key(id) {
             panic!("duplicate node ID");
         } else {
-            self.ids.insert(id);
+            self.ids.insert(id, ());
         }
     }
 }
