@@ -535,7 +535,7 @@ fn name_shadows_prelude() {
     assert!(errors.iter().any(|x| matches!(
         x,
         Error(super::ErrorKind::Resolve(
-            super::resolve::Error::ShadowsGlobal(_)
+            super::resolve::Error::PreludeAmbiguity(_)
         ))
     )));
 }

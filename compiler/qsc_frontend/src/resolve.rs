@@ -69,9 +69,9 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
 
-    #[error("This name shadows a global item.")]
-    #[diagnostic(code("Qsc.Resolve.ShadowsGlobal"))]
-    ShadowsGlobal(#[label] Span),
+    #[error("This name results in ambiguity in a prelude namespace.")]
+    #[diagnostic(code("Qsc.Resolve.PreludeAmbiguity"))]
+    PreludeAmbiguity(#[label] Span),
 }
 
 struct Scope {
@@ -606,7 +606,7 @@ fn resolve(
         if candidates.len() > 1 {
             // if candidates only increased to >1 after checking implicit opens, then we know this shadows a
             // global namespace either from the globals or the prelude.
-            return Err(Error::ShadowsGlobal(path.span));
+            return Err(Error::PreludeAmbiguity(path.span));
         }
         if let Some(res) = single(candidates) {
             return Ok(res);

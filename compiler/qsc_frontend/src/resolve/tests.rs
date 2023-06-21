@@ -412,7 +412,7 @@ fn ambiguous_prelude() {
                 }
             }
 
-            // ShadowsGlobal(Span { lo: 181, hi: 182 })
+            // PreludeAmbiguity(Span { lo: 181, hi: 182 })
         "#]],
     );
 }
