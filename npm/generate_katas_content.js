@@ -1,6 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/**
+ * Katas Taxonomy
+ *
+ * A Kata is a top-level container of educational items (exercises and examples) which are used to explain a particular
+ * topic.
+ *
+ * This file builds the content for all the Katas. The katas ordering is conveyed by the katas.json file where each
+ * string in the array represents a folder that contains all the data to build the kata.
+ *
+ * Each Kata is organized in a directory where an index.md file, an items.json file, and multiple sub-directories are
+ * present. Each sub-directory represents an item within the Kata and its specific content depends on the type of item
+ * it represents.
+ */
+
 // @ts-check
 
 import {
