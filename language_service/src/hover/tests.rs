@@ -390,3 +390,29 @@ fn hover_lambda_closure_ref() {
         "#]],
     );
 }
+
+#[test]
+fn hover_identifier_udt() {
+    check(
+        r#"
+        namespace Test {
+            newtype Pair = (fst : Int, snd : Int);
+            operation Foo() : Unit {
+                let a = Pair(3, 4);
+                let b = ◉↘a◉;
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\na Pair\n```\n",
+                    span: Span {
+                        start: 174,
+                        end: 175,
+                    },
+                },
+            )
+        "#]],
+    );
+}
