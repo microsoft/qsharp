@@ -3186,3 +3186,22 @@ fn instantiate_duplicate_ty_param_names() {
         "##]],
     );
 }
+#[test]
+fn invalid_ident() {
+    check(
+        r#"namespace NS {
+    function Foo() : () {
+        let x : 'invalid = 0;
+    }
+}
+        "#,
+        "",
+        &expect![[r##"
+            #6 31-33 "()" : Unit
+            #8 39-76 "{\n        let x : 'invalid = 0;\n    }" : Unit
+            #10 53-65 "x : 'invalid" : ?
+            #14 68-69 "0" : Int
+            Error(Resolve(NotFound("invalid", Span { lo: 58, hi: 65 })))
+        "##]],
+    );
+}
