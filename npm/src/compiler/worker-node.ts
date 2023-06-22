@@ -14,7 +14,6 @@ import * as wasm from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { Compiler } from "./compiler.js";
 import {
-  CompilerReqMsg,
   getWorkerEventHandlers,
   handleMessageInWorker,
 } from "./worker-common.js";
@@ -31,7 +30,7 @@ const postMessage = port.postMessage.bind(port);
 const evtTarget = getWorkerEventHandlers(postMessage);
 const compiler = new Compiler(wasm);
 
-function messageHandler(data: CompilerReqMsg) {
+function messageHandler(data: any) {
   if (!data.type || typeof data.type !== "string") {
     log.error(`Unrecognized msg: %O"`, data);
     return;

@@ -18,7 +18,9 @@ type CoreType<TServiceWorker> = Exclude<
   }
 >;
 
-export interface IServiceEventTarget<TEvents extends { type: string }> {
+export interface IServiceEventTarget<
+  TEvents extends { type: string; detail: unknown }
+> {
   addEventListener<T extends TEvents["type"]>(
     type: T,
     listener: (event: Extract<TEvents, { type: T }>) => void
@@ -40,7 +42,7 @@ export interface IServiceEventTarget<TEvents extends { type: string }> {
 // }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type RequestState<TEvents extends { type: string }> = {
+type RequestState<TEvents extends IServiceEventMessage> = {
   type: string;
   args: any[];
   resolve: (val: any) => void;
@@ -51,6 +53,16 @@ type RequestState<TEvents extends { type: string }> = {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Get the possible 'result' types from a compiler response
+interface IServiceResponseMessage {
+  type: string;
+  result: unknown;
+}
+
+interface IServiceEventMessage {
+  type: string;
+  detail: unknown;
+}
+
 type ExtractResult<TRespMsg> = TRespMsg extends { result: infer R } ? R : never;
 export type ResponseMessageWithType<TRespMsg> = {
   messageType: "response";
@@ -58,7 +70,10 @@ export type ResponseMessageWithType<TRespMsg> = {
 export type EventMessageWithType<TEventMsg> = {
   messageType: "event";
 } & TEventMsg;
-// end parameters
+
+export type ServiceResponseMessageWithType =
+  | ResponseMessageWithType<IServiceResponseMessage>
+  | EventMessageWithType<IServiceEventMessage>;
 
 // Real types (not parameters)
 export type ServiceState = "idle" | "busy";
@@ -86,9 +101,9 @@ complete the request.
  */
 export function createWorkerProxy<
   TServiceReqMsg extends { type: string; args: unknown[] },
-  TServiceRespMsg extends { type: string; result: unknown },
-  TServiceEvents extends Event & { type: string },
-  TServiceEventMsg extends { type: string; event: unknown },
+  TServiceRespMsg extends IServiceResponseMessage,
+  TServiceEvents extends Event & IServiceEventMessage,
+  TServiceEventMsg extends IServiceEventMessage,
   TEventTarget extends IServiceEventTarget<TServiceEvents>,
   TServiceWorker extends IServiceWorker
 >(
@@ -106,7 +121,6 @@ export function createWorkerProxy<
     // TODO: I should be able to make this strongly typed if it's not an array but an object
     args: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) => { msg: TServiceReqMsg; longRunning: boolean } | null,
-  makePassThroughEvent: (msg: TServiceEventMsg) => TServiceEvents | null,
   makeResult: (
     msg: TServiceRespMsg
   ) => { success: boolean; data: TServiceRespMsg["result"] } | null,
@@ -196,8 +210,8 @@ export function createWorkerProxy<
     log.debug("Received message from worker: %o", msg);
 
     if (msg.messageType === "event") {
-      const event = makePassThroughEvent(msg);
-      if (!event) return;
+      const event = new Event(msg.type) as TServiceEvents;
+      event.detail = msg.detail;
 
       log.debug("Posting event: %o", msg);
       curr.uiEventTarget?.dispatchEvent(event);
@@ -260,29 +274,29 @@ export function createWorkerProxy<
 
 // Used by the worker to handle service events by posting a message back to the client
 export function getWorkerEventHandlersGeneric<
-  TServiceEvents extends Event & { type: string },
-  TEventTarget extends IServiceEventTarget<TServiceEvents>,
-  TServiceEventMsg extends { type: string; event: unknown }
+  TEvent extends { type: string; detail: unknown } // e.g. QscEventData
 >(
-  postMessage: (msg: TServiceEventMsg) => void,
-  eventMap: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [eventName in TServiceEvents["type"]]: (ev: any) => TServiceEventMsg;
-  }
-): TEventTarget {
+  eventNames: TEvent["type"][],
+  postMessage: (msg: EventMessageWithType<TEvent>) => void
+): IServiceEventTarget<TEvent> {
   log.debug("Constructing WorkerEventHandler");
 
-  const logAndPost = (msg: TServiceEventMsg) => {
+  const logAndPost = (msg: EventMessageWithType<TEvent>) => {
     log.debug("Sending event message from worker: %o", msg);
-    postMessage({ messageType: "event", ...msg });
+    postMessage(msg);
   };
-  const serviceEventTarget = new EventTarget() as TEventTarget;
+  const serviceEventTarget =
+    new EventTarget() as unknown as IServiceEventTarget<TEvent>;
 
-  Object.keys(eventMap).forEach((eventName: TServiceEvents["type"]) => {
+  eventNames.forEach((eventName: TEvent["type"]) => {
     log.debug("subscribing to event %s", eventName);
 
     serviceEventTarget.addEventListener(eventName, (ev) => {
-      logAndPost(eventMap[eventName](ev));
+      logAndPost({
+        messageType: "event",
+        type: ev.type,
+        detail: ev.detail,
+      } as EventMessageWithType<TEvent>);
     });
   });
 

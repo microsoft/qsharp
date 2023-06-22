@@ -5,10 +5,12 @@ import { ShotResult, Dump, Result } from "./common.js";
 import { log } from "../log.js";
 
 // Create strongly typed compiler events
-export type QscEvents = Event & (
-  | { type: "Message", detail: string }
-  | { type: "DumpMachine", detail: Dump }
-  | { type: "Result", detail: Result });
+export type QscEventData =
+| { type: "Message", detail: string }
+| { type: "DumpMachine", detail: Dump }
+| { type: "Result", detail: Result }
+
+export type QscEvents = Event & QscEventData;
 
 export type QscUiEvents = QscEvents | Event & { type: "uiResultsRefresh", detail: undefined };
 

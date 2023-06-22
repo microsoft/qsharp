@@ -4,19 +4,17 @@
 import { log } from "../log.js";
 import { ICompiler, ICompilerWorker } from "./compiler.js";
 import {
-  makeEvent as makeCompilerEvent,
+  QscEventData,
   type QscEvents,
-  QscEvent,
 } from "./events.js";
 
 import { ICompletionList } from "../../lib/web/qsc_wasm.js";
-import { DumpMsg, MessageMsg } from "./common.js";
 import { VSDiagnostic } from "../vsdiagnostic.js";
 import { EventMessageWithType, IServiceEventTarget, ResponseMessageWithType, ServiceState, createWorkerProxy, getWorkerEventHandlersGeneric, invokeWorkerMethod } from "../worker-common.js";
 
 type IQscEventTarget = IServiceEventTarget<QscEvents>;
 
-export type CompilerReqMsg =
+type CompilerReqMsg =
   | { type: "checkCode"; args: [string] }
   | { type: "getHir"; args: [string] }
   | { type: "getCompletions"; args: [] }
@@ -31,12 +29,7 @@ type CompilerRespMsg =
   | { type: "runKata-result"; result: boolean }
   | { type: "error-result"; result: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-
-type CompilerEventMsg =
-  | { type: "message-event"; event: MessageMsg }
-  | { type: "dumpMachine-event"; event: DumpMsg }
-  | { type: "success-event"; event: string }
-  | { type: "failure-event"; event: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+type CompilerEventMsg = QscEventData;
 
 export type ResponseMsgType =
   | ResponseMessageWithType<CompilerRespMsg>
@@ -81,37 +74,6 @@ function makeRequestMessage(
 
   log.debug("request message: " + JSON.stringify(msg));
   return { msg, longRunning };
-}
-
-function makePassThroughEvent(msg: CompilerEventMsg): QscEvents | null {
-  const msgType = msg.type;
-  switch (msgType) {
-    // Event type messages don't complete the request
-    case "message-event": {
-      return makeCompilerEvent("Message", msg.event.message) as QscEvents;
-    }
-    case "dumpMachine-event": {
-      return makeCompilerEvent("DumpMachine", msg.event.state) as QscEvents;
-    }
-    case "failure-event": {
-      const failEvent = makeCompilerEvent("Result", {
-        success: false,
-        value: msg.event,
-      });
-      return failEvent as QscEvents;
-    }
-    case "success-event": {
-      const successEvent = makeCompilerEvent("Result", {
-        success: true,
-        value: msg.event,
-      });
-      return successEvent as QscEvents;
-    }
-
-    default:
-      log.never(msg);
-      return null;
-  }
 }
 
 function makeResult(msg: CompilerRespMsg) {
@@ -190,38 +152,12 @@ export function handleMessageInWorker(
   );
 }
 
-const eventMap = {
-  Message: (ev: QscEvent<"Message">) => ({
-    type: "message-event",
-    event: { type: "Message", message: ev.detail },
-  }),
-  DumpMachine: (ev: QscEvent<"DumpMachine">) => ({
-    type: "dumpMachine-event",
-    event: { type: "DumpMachine", state: ev.detail },
-  }),
-  Result: (ev: QscEvent<"Result">) =>
-    ev.detail.success
-      ? {
-          type: "success-event",
-          event: ev.detail.value,
-        }
-      : {
-          type: "failure-event",
-          event: ev.detail.value,
-        },
-} as {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [eventName in QscEvents["type"]]: (ev: any) => CompilerEventMsg;
-};
-
 export function getWorkerEventHandlers(
   postMessage: (msg: CompilerEventMsg) => void
 ): IQscEventTarget {
   return getWorkerEventHandlersGeneric<
-    QscEvents,
-    IQscEventTarget,
-    CompilerEventMsg
-  >(postMessage, eventMap);
+    QscEvents
+  >(["DumpMachine", "Message", "Result"], postMessage);
 }
 
 export function createCompilerProxy(
@@ -241,7 +177,6 @@ export function createCompilerProxy(
     setMsgHandler,
     terminator,
     makeRequestMessage,
-    makePassThroughEvent,
     makeResult,
     methodToRequestMessage
   );

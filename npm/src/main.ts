@@ -35,9 +35,12 @@ export function getCompilerWorker(): ICompilerWorker {
 
   // If you lose the 'this' binding, some environments have issues.
   const postMessage = worker.postMessage.bind(worker);
-  const setMsgHandler = (handler: (e: ResponseMsgType) => void) =>
-    worker.addListener("message", handler);
   const onTerminate = () => worker.terminate();
 
-  return createCompilerProxy(postMessage, setMsgHandler, onTerminate);
+  return createCompilerProxy(
+    postMessage,
+    (handler: (e: ResponseMsgType) => void) =>
+      worker.addListener("message", handler),
+    onTerminate
+  );
 }
