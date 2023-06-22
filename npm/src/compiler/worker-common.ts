@@ -17,12 +17,13 @@ const requests: { [M in keyof ICompilerMethodsOnly] : { longRunning: boolean }  
   runKata: { longRunning: true }
 }
 
+const events: QscEventData["type"][] = ["DumpMachine", "Message", "Result"];
 export function getWorkerEventHandlers(
   postMessage: (msg: QscEventData) => void
 ) {
   return getWorkerEventHandlersGeneric<
   QscEventData
-  >(["DumpMachine", "Message", "Result"], postMessage);
+  >(events, postMessage);
 }
 
 export type WorkerToMainMessage =
