@@ -177,18 +177,18 @@ impl Class {
 }
 
 /// Meta-level descriptions about the source of a type.
-pub(super) enum TyMeta {
+pub(super) enum TySource {
     Divergent,
     NotDivergent { span: Span },
 }
 
-impl TyMeta {
+impl TySource {
     pub(super) fn not_divergent(span: Span) -> Self {
-        TyMeta::NotDivergent { span }
+        TySource::NotDivergent { span }
     }
 
-    pub(crate) fn divergent() -> TyMeta {
-        TyMeta::Divergent
+    pub(crate) fn divergent() -> TySource {
+        TySource::Divergent
     }
 }
 
@@ -309,7 +309,7 @@ enum Constraint {
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
     /// Metadata about the construction of types.
-    ty_metadata: IndexMap<InferTyId, TyMeta>,
+    ty_metadata: IndexMap<InferTyId, TySource>,
     next_ty: InferTyId,
     next_functor: InferFunctorId,
 }
@@ -339,7 +339,7 @@ impl Inferrer {
     }
 
     /// Returns a unique unconstrained type variable.
-    pub(super) fn fresh_ty(&mut self, meta: TyMeta) -> Ty {
+    pub(super) fn fresh_ty(&mut self, meta: TySource) -> Ty {
         let fresh = self.next_ty;
         self.next_ty = fresh.successor();
         self.ty_metadata.insert(fresh, meta);
@@ -359,7 +359,7 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty => GenericArg::Ty(self.fresh_ty(TyMeta::not_divergent(span))),
+                GenericParam::Ty => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -403,11 +403,13 @@ impl Inferrer {
             .filter_map(|(id, meta)| {
                 if solver.solution.tys.get(id).is_none() {
                     match meta {
-                        TyMeta::Divergent => {
+                        TySource::Divergent => {
                             solver.solution.tys.insert(id, Ty::UNIT);
                             None
                         }
-                        TyMeta::NotDivergent { span } => Some(Error(ErrorKind::AmbiguousTy(*span))),
+                        TySource::NotDivergent { span } => {
+                            Some(Error(ErrorKind::AmbiguousTy(*span)))
+                        }
                     }
                 } else {
                     None
