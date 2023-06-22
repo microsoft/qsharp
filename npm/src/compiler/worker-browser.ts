@@ -3,10 +3,10 @@
 
 import * as wasm from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
+import { invokeWorkerMethod } from "../worker-common.js";
 import { Compiler } from "./compiler.js";
 import {
-  getWorkerEventHandlers,
-  handleMessageInWorker,
+  getWorkerEventHandlers
 } from "./worker-common.js";
 
 // Used to sent messages back to the client when events occur during request processing
@@ -36,7 +36,7 @@ export function messageHandler(e: MessageEvent) {
           data
         );
       } else {
-        handleMessageInWorker(data, compiler, self.postMessage, evtTarget);
+        invokeWorkerMethod(data, compiler, self.postMessage, evtTarget);
       }
   }
 }

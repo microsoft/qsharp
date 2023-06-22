@@ -5,18 +5,15 @@ import { log } from "./log.js";
 import { CancellationToken } from "./cancellation.js";
 
 // These will be parameters
+export type RequestMessage<T extends { [x: string]: (...args: any[]) => any }> =
+  {
+    [K in keyof T]: { type: K; args: Parameters<T[K]> };
+  }[keyof T];
+
 type IServiceWorker = {
   onstatechange: ((state: ServiceState) => void) | null;
   terminate: () => void;
 };
-
-type CoreType<TServiceWorker> = Exclude<
-  TServiceWorker,
-  {
-    onstatechange: ((state: ServiceState) => void) | null;
-    terminate: () => void;
-  }
->;
 
 export interface IServiceEventTarget<
   TEvents extends { type: string; detail: unknown }
@@ -41,18 +38,21 @@ export interface IServiceEventTarget<
 //   return makeCompilerEvent<QscEvents>(type, detail);
 // }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type RequestState<TEvents extends IServiceEventMessage> = {
-  type: string;
-  args: any[];
+type RequestState<
+  TServiceReqMsg extends IServiceRequestMessage,
+  TEvents extends IServiceEventMessage
+> = TServiceReqMsg & {
   resolve: (val: any) => void;
   reject: (err: any) => void;
   uiEventTarget?: IServiceEventTarget<TEvents>;
   cancellationToken?: CancellationToken;
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
-// Get the possible 'result' types from a compiler response
+interface IServiceRequestMessage {
+  type: string;
+  args: unknown[];
+}
+
 interface IServiceResponseMessage {
   type: string;
   result: unknown;
@@ -100,7 +100,7 @@ complete the request.
  * @returns
  */
 export function createWorkerProxy<
-  TServiceReqMsg extends { type: string; args: unknown[] },
+  TServiceReqMsg extends IServiceRequestMessage,
   TServiceRespMsg extends IServiceResponseMessage,
   TServiceEvents extends Event & IServiceEventMessage,
   TServiceEventMsg extends IServiceEventMessage,
@@ -116,27 +116,13 @@ export function createWorkerProxy<
     ) => void
   ) => void,
   terminator: () => void,
-  makeRequestMessage: (
-    type: string,
-    // TODO: I should be able to make this strongly typed if it's not an array but an object
-    args: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
-  ) => { msg: TServiceReqMsg; longRunning: boolean } | null,
+  methods: { [M in TServiceReqMsg["type"]]: { longRunning: boolean } },
   makeResult: (
     msg: TServiceRespMsg
-  ) => { success: boolean; data: TServiceRespMsg["result"] } | null,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  methodToRequestMessage: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [method in keyof CoreType<TServiceWorker>]: (...args: any[]) => {
-      request: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      args: any[];
-      uiEventTarget?: TEventTarget;
-    };
-  }
+  ) => { success: boolean; data: TServiceRespMsg["result"] } | null
 ): TServiceWorker {
-  const queue: RequestState<TServiceEvents>[] = [];
-  let curr: RequestState<TServiceEvents> | undefined;
+  const queue: RequestState<TServiceReqMsg, TServiceEvents>[] = [];
+  let curr: RequestState<TServiceReqMsg, TServiceEvents> | undefined;
   let state: ServiceState = "idle";
 
   function setState(newState: ServiceState) {
@@ -146,20 +132,19 @@ export function createWorkerProxy<
   }
 
   function queueRequest(
-    type: string,
-    args: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
+    msg: TServiceReqMsg,
     uiEventTarget?: TEventTarget,
     cancellationToken?: CancellationToken
   ): Promise<ExtractResult<TServiceRespMsg>> {
     return new Promise((resolve, reject) => {
       queue.push({
-        type,
-        args,
+        type: msg.type,
+        args: msg.args,
         resolve,
         reject,
         uiEventTarget,
         cancellationToken,
-      });
+      } as RequestState<TServiceReqMsg, TServiceEvents>);
 
       // If nothing was running when this got added, kick off processing
       if (queue.length === 1) doNextRequest();
@@ -184,18 +169,16 @@ export function createWorkerProxy<
       setState("idle");
       return;
     }
-    console.log(`handling request ${curr.type}`);
+    log.debug(`handling request ${curr.type}`);
 
-    const msg = makeRequestMessage(curr.type, curr.args);
-    if (!msg) {
-      return;
-    }
-    if (msg.longRunning) {
+    const msg = { type: curr.type, args: curr.args };
+    log.debug("request message: " + JSON.stringify(msg));
+    if (methods[curr.type as TServiceReqMsg["type"]].longRunning) {
       setState("busy");
     }
 
     if (log.getLogLevel() >= 4) log.debug("Posting message to worker: %o", msg);
-    postMessage(msg.msg);
+    postMessage(msg as TServiceReqMsg);
   }
 
   function onMsgFromWorker(
@@ -236,19 +219,24 @@ export function createWorkerProxy<
   // @ts-expect-error let's just power through this TypeScript
   const proxy: TServiceWorker = {};
 
-  for (const methodName of Object.keys(methodToRequestMessage)) {
+  for (const methodName of Object.keys(methods)) {
     // @ts-expect-error let's just power through this TypeScript
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     proxy[methodName] = (...args: any[]) => {
-      console.log(`method ${methodName} called`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = methodToRequestMessage[
-        methodName as keyof CoreType<TServiceWorker>
-      ](...args);
-      log.debug(
-        `about to queue a request with args ${JSON.stringify(data.args)}`
+      log.debug(`method ${methodName} called`);
+      const longRunning =
+        methods[methodName as TServiceReqMsg["type"]].longRunning;
+      // TODO: make the event target the first argument and then this won't be so painful
+      let uiEventTarget: TEventTarget | undefined = undefined;
+      if (longRunning) {
+        uiEventTarget = args[args.length - 1];
+        args = args.slice(0, args.length - 1);
+      }
+      log.debug(`about to queue a request with args ${JSON.stringify(args)}`);
+      return queueRequest(
+        { type: methodName, args } as TServiceReqMsg,
+        uiEventTarget
       );
-      return queueRequest(data.request, data.args, data.uiEventTarget);
     };
   }
   proxy.onstatechange = null;

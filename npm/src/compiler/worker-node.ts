@@ -14,9 +14,9 @@ import * as wasm from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { Compiler } from "./compiler.js";
 import {
-  getWorkerEventHandlers,
-  handleMessageInWorker,
+  getWorkerEventHandlers
 } from "./worker-common.js";
+import { invokeWorkerMethod } from "../worker-common.js";
 
 if (isMainThread)
   throw "Worker script should be loaded in a Worker thread only";
@@ -36,7 +36,7 @@ function messageHandler(data: any) {
     return;
   }
 
-  handleMessageInWorker(data, compiler, postMessage, evtTarget);
+  invokeWorkerMethod(data, compiler, postMessage, evtTarget);
 }
 
 port.addListener("message", messageHandler);
