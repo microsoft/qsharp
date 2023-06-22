@@ -231,3 +231,48 @@ function buildKatasContentJs(katasPath, outputPath) {
 }
 
 buildKatasContentJs(katasContentPath, katasGeneratedContentPath);
+
+function generateKataContent(path) {
+  const indexFilePath = join(path, contentFileNames.index);
+  if (!existsSync(indexFilePath)) {
+    throw new Error(
+      `${contentFileNames.index} file not found for kata at the ${path} directory`
+    );
+  }
+
+  const sections = [];
+  return {
+    sections: sections,
+  };
+}
+
+function generateKatasContent(katasPath, outputPath) {
+  console.log("Generating katas content");
+  const indexJson = readFileSync(join(katasPath, "index.json"), "utf8");
+  const katasDirs = JSON.parse(indexJson);
+  var katas = [];
+  for (const kataDir of katasDirs) {
+    const kataPath = join(katasPath, kataDir);
+    const kata = generateKataContent(kataPath);
+    katas.push(kata);
+  }
+
+  const katasContent = {
+    katas: katas,
+    codeDependencies: [],
+  };
+
+  // Save the JS object to a file.
+  if (!existsSync(outputPath)) {
+    mkdirSync(outputPath);
+  }
+
+  const contentJsPath = join(outputPath, "katas-content.new.generated.ts");
+  writeFileSync(
+    contentJsPath,
+    "export const katasContent = " + inspect(katasContent, { depth: null }),
+    "utf-8"
+  );
+}
+
+generateKatasContent(katasContentPath, katasGeneratedContentPath);
