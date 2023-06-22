@@ -8,7 +8,7 @@ import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import {
-  ResponseMsgType as CompilerResponseMsgType,
+  WorkerToMainMessage as CompilerResponseMsgType,
   createCompilerProxy as createCompilerWorkerProxy,
 } from "./compiler/worker-common.js";
 import {

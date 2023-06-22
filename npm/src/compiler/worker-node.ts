@@ -12,7 +12,7 @@ import { isMainThread, parentPort, workerData } from "node:worker_threads";
 
 import * as wasm from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
-import { Compiler } from "./compiler.js";
+import { Compiler, ICompiler } from "./compiler.js";
 import {
   getWorkerEventHandlers
 } from "./worker-common.js";
@@ -36,7 +36,7 @@ function messageHandler(data: any) {
     return;
   }
 
-  invokeWorkerMethod(data, compiler, postMessage, evtTarget);
+  invokeWorkerMethod(data, compiler as Omit<ICompiler, "onstatechange">, postMessage, evtTarget);
 }
 
 port.addListener("message", messageHandler);

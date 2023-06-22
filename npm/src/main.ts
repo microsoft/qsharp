@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import {
-  ResponseMsgType,
+  WorkerToMainMessage,
   createCompilerProxy,
 } from "./compiler/worker-common.js";
 
@@ -39,7 +39,7 @@ export function getCompilerWorker(): ICompilerWorker {
 
   return createCompilerProxy(
     postMessage,
-    (handler: (e: ResponseMsgType) => void) =>
+    (handler: (e: WorkerToMainMessage) => void) =>
       worker.addListener("message", handler),
     onTerminate
   );

@@ -5,10 +5,22 @@ import { log } from "./log.js";
 import { CancellationToken } from "./cancellation.js";
 
 // These will be parameters
-export type RequestMessage<T extends { [x: string]: (...args: any[]) => any }> =
-  {
-    [K in keyof T]: { type: K; args: Parameters<T[K]> };
-  }[keyof T];
+export type RequestMessage<
+  T extends { [x in keyof T]: (...args: any[]) => any }
+> = {
+  [K in keyof T]: { type: K; args: Parameters<T[K]> };
+}[keyof T];
+
+export type ResponseMessage<
+  T extends { [x in keyof T]: (...args: any[]) => Promise<any> }
+> = {
+  [K in keyof T]: {
+    type: K;
+    result:
+      | { success: true; result: Awaited<ReturnType<T[K]>> }
+      | { success: false; error: unknown };
+  };
+}[keyof T];
 
 type IServiceWorker = {
   onstatechange: ((state: ServiceState) => void) | null;
@@ -55,7 +67,9 @@ interface IServiceRequestMessage {
 
 interface IServiceResponseMessage {
   type: string;
-  result: unknown;
+  result:
+    | { success: true; result: unknown }
+    | { success: false; error: unknown };
 }
 
 interface IServiceEventMessage {
@@ -104,7 +118,6 @@ export function createWorkerProxy<
   TServiceRespMsg extends IServiceResponseMessage,
   TServiceEvents extends Event & IServiceEventMessage,
   TServiceEventMsg extends IServiceEventMessage,
-  TEventTarget extends IServiceEventTarget<TServiceEvents>,
   TServiceWorker extends IServiceWorker
 >(
   postMessage: (msg: TServiceReqMsg) => void,
@@ -116,10 +129,7 @@ export function createWorkerProxy<
     ) => void
   ) => void,
   terminator: () => void,
-  methods: { [M in TServiceReqMsg["type"]]: { longRunning: boolean } },
-  makeResult: (
-    msg: TServiceRespMsg
-  ) => { success: boolean; data: TServiceRespMsg["result"] } | null
+  methods: { [M in TServiceReqMsg["type"]]: { longRunning: boolean } }
 ): TServiceWorker {
   const queue: RequestState<TServiceReqMsg, TServiceEvents>[] = [];
   let curr: RequestState<TServiceReqMsg, TServiceEvents> | undefined;
@@ -133,7 +143,7 @@ export function createWorkerProxy<
 
   function queueRequest(
     msg: TServiceReqMsg,
-    uiEventTarget?: TEventTarget,
+    uiEventTarget?: IServiceEventTarget<TServiceEvents>,
     cancellationToken?: CancellationToken
   ): Promise<ExtractResult<TServiceRespMsg>> {
     return new Promise((resolve, reject) => {
@@ -199,7 +209,10 @@ export function createWorkerProxy<
       log.debug("Posting event: %o", msg);
       curr.uiEventTarget?.dispatchEvent(event);
     } else if (msg.messageType === "response") {
-      const result = makeResult(msg);
+      const result = {
+        success: msg.result.success,
+        data: msg.result.success ? msg.result.result : msg.result.error,
+      };
       if (!result) return;
       if (result.success) {
         curr.resolve(result.data);
@@ -227,7 +240,8 @@ export function createWorkerProxy<
       const longRunning =
         methods[methodName as TServiceReqMsg["type"]].longRunning;
       // TODO: make the event target the first argument and then this won't be so painful
-      let uiEventTarget: TEventTarget | undefined = undefined;
+      let uiEventTarget: IServiceEventTarget<TServiceEvents> | undefined =
+        undefined;
       if (longRunning) {
         uiEventTarget = args[args.length - 1];
         args = args.slice(0, args.length - 1);
@@ -291,34 +305,21 @@ export function getWorkerEventHandlersGeneric<
   return serviceEventTarget;
 }
 
-type Method<C, T extends keyof C> = C[T] extends (...args: infer A) => infer R
-  ? { argsTuple: A; returnType: R }
-  : never;
-
-type MethodOf<T, M extends keyof T> = T[M] extends (...args: any[]) => any
-  ? M
-  : never;
-
 // This is the main function that the worker thread should delegate incoming messages to
-export function invokeWorkerMethod<C, T extends keyof C>(
-  data: {
-    type: MethodOf<C, T>;
-    args: Method<C, T>["argsTuple"];
-  },
-  service: C,
-  postMessage: (msg: {
-    messageType: "response";
-    type: string;
-    result: unknown;
-  }) => void,
+export function invokeWorkerMethod<
+  TService extends { [x in keyof TService]: (...args: any[]) => any }
+>(
+  data: RequestMessage<TService>,
+  service: TService,
+  postMessage: (
+    msg: ResponseMessageWithType<ResponseMessage<TService>>
+  ) => void,
   serviceEventTarget: unknown // IServiceEventTarget<TServiceEvents>
 ) {
   log.debug(`Handling message in worker: ${data.type.toString()}`);
-  const logAndPost = (msg: {
-    messageType: "response";
-    type: string;
-    result: unknown;
-  }) => {
+  const logAndPost = (
+    msg: ResponseMessageWithType<ResponseMessage<TService>>
+  ) => {
     log.debug("Sending response message from worker: %o", msg);
     postMessage(msg);
   };
@@ -330,15 +331,13 @@ export function invokeWorkerMethod<C, T extends keyof C>(
       )}`
     );
     service[data.type]
-      // @ts-expect-error Just... ok
       .call(service, ...data.args, serviceEventTarget)
       // @ts-expect-error yepyep
       .then((result) =>
         logAndPost({
           messageType: "response",
-          // @ts-expect-error yepyepyep
-          type: data.type + "-result",
-          result,
+          type: data.type,
+          result: { success: true, result },
         })
       );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -347,7 +346,10 @@ export function invokeWorkerMethod<C, T extends keyof C>(
     // If this happens then the wasm code likely threw an exception/paniced rather than
     // completing gracefully and fullfilling the promise. Communicate to the client
     // that there was an error and it should reject the current request
-
-    logAndPost({ messageType: "response", type: "error-result", result: err });
+    logAndPost({
+      messageType: "response",
+      type: data.type,
+      result: { success: false, error: err },
+    });
   }
 }

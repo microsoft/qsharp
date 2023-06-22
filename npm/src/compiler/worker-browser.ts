@@ -6,6 +6,7 @@ import { log } from "../log.js";
 import { invokeWorkerMethod } from "../worker-common.js";
 import { Compiler } from "./compiler.js";
 import {
+  ICompilerMethodsOnly,
   getWorkerEventHandlers
 } from "./worker-common.js";
 
@@ -36,7 +37,7 @@ export function messageHandler(e: MessageEvent) {
           data
         );
       } else {
-        invokeWorkerMethod(data, compiler, self.postMessage, evtTarget);
+        invokeWorkerMethod(data, compiler as ICompilerMethodsOnly, self.postMessage, evtTarget);
       }
   }
 }
