@@ -111,7 +111,7 @@ impl<'a> Context<'a> {
             TyKind::Param(name) => match self.names.get(name.id) {
                 Some(Res::Param(id)) => Ty::Param(*id),
                 None => Ty::Err,
-                _ => unreachable!(
+                Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \
                     is syntactic differentiation"
                 ),
