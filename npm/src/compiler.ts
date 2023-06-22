@@ -66,7 +66,15 @@ export class Compiler implements ICompiler {
   }
 
   async checkCode(code: string): Promise<VSDiagnostic[]> {
-    const diags = this.wasm.check_code(code) as IDiagnostic[];
+    // Temporary implementation until we have the language
+    // service notifications properly wired up to the editor.
+    let diags: IDiagnostic[] = [];
+    const languageService = new this.wasm.LanguageService(
+      (uri: string, version: number, errors: IDiagnostic[]) => {
+        diags = errors;
+      }
+    );
+    languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);
   }
 
@@ -75,7 +83,12 @@ export class Compiler implements ICompiler {
   }
 
   async getCompletions(): Promise<ICompletionList> {
-    return this.wasm.get_completions();
+    // Temporary implementation until we have the language
+    // service properly wired up to the editor.
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    const languageService = new this.wasm.LanguageService(() => {});
+    languageService.update_document("code", 1, "");
+    return languageService.get_completions("code", 1);
   }
 
   async run(
