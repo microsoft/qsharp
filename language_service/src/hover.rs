@@ -32,8 +32,8 @@ pub(crate) fn get_hover(
     offset: u32,
 ) -> Option<Hover> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.source_map, source_name, offset);
-    let package = &compilation.package;
+    let offset = map_offset(&compilation.ast_unit.sources, source_name, offset);
+    let package = &compilation.ast_unit.package;
 
     let mut hover_visitor = HoverVisitor {
         compilation,
@@ -42,15 +42,17 @@ pub(crate) fn get_hover(
         start: 0,
         end: 0,
     };
-    hover_visitor.visit_package(package);
+    todo!("hover visitor needs converting into ast visitor from hir visitor");
 
-    hover_visitor.header.map(|header| Hover {
-        contents: header,
-        span: Span {
-            start: hover_visitor.start,
-            end: hover_visitor.end,
-        },
-    })
+    // hover_visitor.visit_package(package);
+
+    // hover_visitor.header.map(|header| Hover {
+    //     contents: header,
+    //     span: Span {
+    //         start: hover_visitor.start,
+    //         end: hover_visitor.end,
+    //     },
+    // })
 }
 
 struct FindDeclFromItemId<'a> {

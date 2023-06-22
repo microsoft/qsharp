@@ -416,3 +416,58 @@ fn hover_identifier_udt() {
         "#]],
     );
 }
+
+#[test]
+fn hover_udt() {
+    check(
+        r#"
+        namespace Test {
+            newtype ◉P↘air◉ = (Int, snd : Int);
+        }
+    "#,
+        &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn hover_udt_ref() {
+    check(
+        r#"
+        namespace Test {
+            newtype Pair = (Int, snd : Int);
+            operation Foo() : Unit {
+                let a = ◉P↘air◉(3, 4);
+            }
+        }
+    "#,
+        &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn hover_udt_field() {
+    check(
+        r#"
+        namespace Test {
+            newtype Pair = (Int, ◉s↘nd◉ : Int);
+        }
+    "#,
+        &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn hover_udt_field_ref() {
+    check(
+        r#"
+        namespace Test {
+            newtype Pair = (Int, snd : Int);
+            operation Foo() : Unit {
+                let a = Pair(3, 4);
+                let b = a::◉s↘nd◉;
+            }
+        }
+    "#,
+        &expect![[r#""#]],
+    );
+}

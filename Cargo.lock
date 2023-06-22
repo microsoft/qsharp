@@ -827,6 +827,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "qsc_ast",
  "qsc_codegen",
  "qsc_data_structures",
  "qsc_eval",

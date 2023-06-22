@@ -20,7 +20,8 @@ use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
-pub(super) struct Table {
+#[derive(Debug, Default)]
+pub struct Table {
     pub(super) udts: HashMap<ItemId, Udt>,
     pub(super) terms: IndexMap<NodeId, Ty>,
     pub(super) generics: IndexMap<NodeId, Vec<GenericArg>>,

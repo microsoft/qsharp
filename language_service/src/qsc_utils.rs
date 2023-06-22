@@ -1,21 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::hir::{Package, PackageId};
-use qsc::Span;
+use qsc::hir::PackageId;
 use qsc::{
-    compile::{self, Error},
+    compile::{self},
     PackageStore, SourceMap,
 };
+use qsc::{AstUnit, Span};
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
 pub(crate) struct Compilation {
     pub package_store: PackageStore,
     pub std_package_id: PackageId,
-    pub package: Package,
-    pub source_map: SourceMap,
-    pub errors: Vec<Error>,
+    pub ast_unit: AstUnit,
 }
 
 pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Compilation {
@@ -24,13 +22,11 @@ pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Comp
 
     // Source map only contains the current document.
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (compile_unit, errors) = compile::compile(&package_store, &[std_package_id], source_map);
+    let (ast_unit, errors) = compile::ast(&package_store, &[std_package_id], source_map);
     Compilation {
         package_store,
         std_package_id,
-        package: compile_unit.package,
-        source_map: compile_unit.sources,
-        errors,
+        ast_unit,
     }
 }
 

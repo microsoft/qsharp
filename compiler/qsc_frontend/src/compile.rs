@@ -7,7 +7,7 @@ mod tests;
 use crate::{
     lower::{self, Lowerer},
     resolve::{self, Names, Resolver},
-    typeck::{self, Checker},
+    typeck::{self, Checker, Table},
 };
 use miette::{
     Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
@@ -30,6 +30,14 @@ use thiserror::Error;
 pub struct CompileUnit {
     pub package: hir::Package,
     pub assigner: HirAssigner,
+    pub sources: SourceMap,
+    pub errors: Vec<Error>,
+}
+
+#[derive(Debug, Default)]
+pub struct AstUnit {
+    pub package: ast::Package,
+    pub tys: Table,
     pub sources: SourceMap,
     pub errors: Vec<Error>,
 }
@@ -240,6 +248,36 @@ pub fn compile(
     CompileUnit {
         package,
         assigner: hir_assigner,
+        sources,
+        errors,
+    }
+}
+
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &[PackageId],
+    sources: SourceMap,
+) -> AstUnit {
+    let (mut package, parse_errors) = parse_all(&sources);
+    let mut ast_assigner = AstAssigner::new();
+    ast_assigner.visit_package(&mut package);
+
+    let mut hir_assigner = HirAssigner::new();
+    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
+    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
+
+    let errors = parse_errors
+        .into_iter()
+        .map(Into::into)
+        .chain(name_errors.into_iter().map(Into::into))
+        .chain(ty_errors.into_iter().map(Into::into))
+        .map(Error)
+        .collect();
+
+    AstUnit {
+        package,
+        tys,
         sources,
         errors,
     }
