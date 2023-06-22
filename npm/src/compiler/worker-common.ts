@@ -2,338 +2,26 @@
 // Licensed under the MIT License.
 
 import { log } from "../log.js";
+import { ICompiler, ICompilerWorker } from "./compiler.js";
+import {
+  makeEvent as makeCompilerEvent,
+  type QscEvents,
+  QscEvent,
+} from "./events.js";
+
 import { ICompletionList } from "../../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg } from "./common.js";
 import { VSDiagnostic } from "../vsdiagnostic.js";
-import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
-import { CancellationToken } from "./cancellation.js";
-import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
+import { EventMessageWithType, IServiceEventTarget, ResponseMessageWithType, ServiceState, createWorkerProxy, getWorkerEventHandlersGeneric, invokeWorkerMethod } from "../worker-common.js";
 
-/*
-The WorkerProxy works by queuing up requests to send over to the Worker, only
-ever having one in flight at a time. By queuing on the caller side, this allows
-for cancellation (it checks if a request is cancelled before sending to the worker).
-
-The queue contains an entry for each request with the data to send, the promise
-to resolve, the event handler, and the cancellation token. When a request completes
-the next one (if present) is fetched from the queue. If it is marked as cancelled,
-it is resolved immediately, else it is marked as the current request and the command
-sent to the worker. As events occurs on the current request the event handler is
-invoked. When the response is received this is used to resolve the promise and
-complete the request.
-*/
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type RequestState = {
-  type: string;
-  args: any[];
-  resolve: (val: any) => void;
-  reject: (err: any) => void;
-  evtTarget?: IQscEventTarget;
-  cancellationToken?: CancellationToken;
-};
-/* eslint-enable @typescript-eslint/no-explicit-any */
-
-/**
- * @param postMessage A function to post messages to the worker
- * @param setMsgHandler A function to call to set the callback for messages received from the worker
- * @param terminator A function to call to tear down the worker thread
- * @returns
- */
-export function createWorkerProxy(
-  postMessage: (msg: CompilerReqMsg) => void,
-  setMsgHandler: (handler: (e: ResponseMsgType) => void) => void,
-  terminator: () => void
-): ICompilerWorker {
-  const queue: RequestState[] = [];
-  let curr: RequestState | undefined;
-  let state: CompilerState = "idle";
-
-  function setState(newState: CompilerState) {
-    if (state === newState) return;
-    state = newState;
-    if (proxy.onstatechange) proxy.onstatechange(state);
-  }
-
-  function queueRequest(
-    type: string,
-    args: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
-    evtTarget?: IQscEventTarget,
-    cancellationToken?: CancellationToken
-  ): Promise<RespResultTypes> {
-    return new Promise((resolve, reject) => {
-      queue.push({ type, args, resolve, reject, evtTarget, cancellationToken });
-
-      // If nothing was running when this got added, kick off processing
-      if (queue.length === 1) doNextRequest();
-    });
-  }
-
-  function doNextRequest() {
-    if (curr) return;
-
-    while ((curr = queue.shift())) {
-      // eslint-disable-line no-cond-assign
-      if (curr.cancellationToken?.isCancellationRequested) {
-        curr.reject("cancelled");
-        continue;
-      } else {
-        break;
-      }
-    }
-    if (!curr) {
-      // Nothing else queued, signal that we're now idle and exit.
-      log.debug("Worker queue is empty");
-      setState("idle");
-      return;
-    }
-
-    let msg: CompilerReqMsg | null = null;
-    switch (curr.type) {
-      case "checkCode":
-        msg = { type: "checkCode", code: curr.args[0] };
-        break;
-      case "getHir":
-        msg = { type: "getHir", code: curr.args[0] };
-        break;
-      case "getCompletions":
-        msg = { type: "getCompletions" };
-        break;
-      case "run":
-        // run and runKata can take a long time, so set state to busy
-        setState("busy");
-        msg = {
-          type: "run",
-          code: curr.args[0],
-          expr: curr.args[1],
-          shots: curr.args[2],
-        };
-        break;
-      case "runKata":
-        setState("busy");
-        msg = {
-          type: "runKata",
-          user_code: curr.args[0],
-          verify_code: curr.args[1],
-        };
-        break;
-      default:
-        log.error("message type is invalid");
-        return;
-    }
-    if (log.getLogLevel() >= 4) log.debug("Posting message to worker: %o", msg);
-    postMessage(msg);
-  }
-
-  function onMsgFromWorker(msg: CompilerRespMsg | CompilerEventMsg) {
-    if (!curr) {
-      log.error("No active request when message received: %o", msg);
-      return;
-    }
-    if (log.getLogLevel() >= 4)
-      log.debug("Received message from worker: %o", msg);
-
-    const msgType = msg.type;
-    switch (msgType) {
-      // Event type messages don't complete the request
-      case "message-event": {
-        const msgEvent = makeEvent("Message", msg.event.message);
-        curr.evtTarget?.dispatchEvent(msgEvent);
-        return;
-      }
-      case "dumpMachine-event": {
-        const dmpEvent = makeEvent("DumpMachine", msg.event.state);
-        curr.evtTarget?.dispatchEvent(dmpEvent);
-        return;
-      }
-      case "failure-event": {
-        const failEvent = makeEvent("Result", {
-          success: false,
-          value: msg.event,
-        });
-        curr.evtTarget?.dispatchEvent(failEvent);
-        return;
-      }
-      case "success-event": {
-        const successEvent = makeEvent("Result", {
-          success: true,
-          value: msg.event,
-        });
-        curr.evtTarget?.dispatchEvent(successEvent);
-        return;
-      }
-
-      // Response type messages. Resolve and complete this request.
-      case "checkCode-result":
-      case "getHir-result":
-      case "getCompletions-result":
-      case "run-result":
-      case "runKata-result":
-        curr.resolve(msg.result);
-        curr = undefined;
-        doNextRequest();
-        return;
-
-      case "error-result":
-        // Something unexpected failed the request. Reject and move on.
-        curr.reject(msg.result);
-        curr = undefined;
-        doNextRequest();
-        return;
-
-      default:
-        log.never(msg);
-        return;
-    }
-  }
-
-  setMsgHandler(onMsgFromWorker);
-
-  const proxy: ICompilerWorker = {
-    checkCode(code) {
-      return queueRequest("checkCode", [code]);
-    },
-    getHir(code) {
-      return queueRequest("getHir", [code]);
-    },
-    getCompletions() {
-      return queueRequest("getCompletions", []);
-    },
-    run(code, expr, shots, evtHandler) {
-      return queueRequest("run", [code, expr, shots], evtHandler);
-    },
-    runKata(user_code, verify_code, evtHandler) {
-      return queueRequest("runKata", [user_code, verify_code], evtHandler);
-    },
-    onstatechange: null,
-    // Kill the worker without a chance to shutdown. May be needed if it is not responding.
-    terminate: () => {
-      log.info("Terminating the worker");
-      if (curr) {
-        log.debug("Terminating running worker item of type: %s", curr.type);
-        curr.reject("terminated");
-      }
-      // Reject any outstanding items
-      while (queue.length) {
-        const item = queue.shift();
-        log.debug("Terminating outstanding work item of type: %s", item?.type);
-        item?.reject("terminated");
-      }
-      terminator();
-    },
-  };
-  return proxy;
-}
-
-// Used by the worker to handle compiler events by posting a message back to the client
-export function getWorkerEventHandlers(
-  postMessage: (msg: CompilerEventMsg) => void
-): IQscEventTarget {
-  log.debug("Constructing WorkerEventHandler");
-
-  const logAndPost = (msg: CompilerEventMsg) => {
-    log.debug("Sending event message from worker: %o", msg);
-    postMessage(msg);
-  };
-  const evtTarget = new QscEventTarget(false);
-
-  evtTarget.addEventListener("Message", (ev) => {
-    logAndPost({
-      type: "message-event",
-      event: { type: "Message", message: ev.detail },
-    });
-  });
-
-  evtTarget.addEventListener("DumpMachine", (ev) => {
-    logAndPost({
-      type: "dumpMachine-event",
-      event: { type: "DumpMachine", state: ev.detail },
-    });
-  });
-
-  evtTarget.addEventListener("Result", (ev) => {
-    if (ev.detail.success) {
-      logAndPost({ type: "success-event", event: ev.detail.value });
-    } else {
-      logAndPost({ type: "failure-event", event: ev.detail.value });
-    }
-  });
-
-  return evtTarget;
-}
-
-// This is the main function that the worker thread should delegate incoming messages to
-export function handleMessageInWorker(
-  data: CompilerReqMsg,
-  compiler: ICompiler,
-  postMessage: (msg: CompilerRespMsg) => void,
-  evtTarget: IQscEventTarget
-) {
-  log.debug("Handling message in worker: %o", data);
-  const logIntercepter = (msg: CompilerRespMsg) => {
-    log.debug("Sending response message from worker: %o", msg);
-    postMessage(msg);
-  };
-
-  try {
-    const msgType = data.type;
-    switch (msgType) {
-      case "checkCode":
-        compiler
-          .checkCode(data.code)
-          .then((result) =>
-            logIntercepter({ type: "checkCode-result", result })
-          );
-        break;
-      case "getHir":
-        compiler
-          .getHir(data.code)
-          .then((result) => logIntercepter({ type: "getHir-result", result }));
-        break;
-      case "getCompletions":
-        compiler
-          .getCompletions()
-          .then((result) =>
-            logIntercepter({ type: "getCompletions-result", result })
-          );
-        break;
-      case "run":
-        compiler
-          .run(data.code, data.expr, data.shots, evtTarget)
-          // 'run' can throw on compiler errors, which should be reported as events for
-          // each 'shot', so just resolve as run 'complete' regardless.
-          .finally(() =>
-            logIntercepter({ type: "run-result", result: undefined })
-          );
-        break;
-      case "runKata":
-        compiler
-          .runKata(data.user_code, data.verify_code, evtTarget)
-          .then((result) => logIntercepter({ type: "runKata-result", result }))
-          // It shouldn't throw, but just in case there's a runtime or compiler failure
-          .catch(() =>
-            logIntercepter({ type: "runKata-result", result: false })
-          );
-        break;
-      default:
-        log.never(msgType);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    // If this happens then the wasm code likely threw an exception/paniced rather than
-    // completing gracefully and fullfilling the promise. Communicate to the client
-    // that there was an error and it should reject the current request
-
-    logIntercepter({ type: "error-result", result: err });
-  }
-}
+type IQscEventTarget = IServiceEventTarget<QscEvents>;
 
 export type CompilerReqMsg =
-  | { type: "checkCode"; code: string }
-  | { type: "getHir"; code: string }
-  | { type: "getCompletions" }
-  | { type: "run"; code: string; expr: string; shots: number }
-  | { type: "runKata"; user_code: string; verify_code: string };
+  | { type: "checkCode"; args: [string] }
+  | { type: "getHir"; args: [string] }
+  | { type: "getCompletions"; args: [] }
+  | { type: "run"; args: [string, string, number] }
+  | { type: "runKata"; args: [string, string] };
 
 type CompilerRespMsg =
   | { type: "checkCode-result"; result: VSDiagnostic[] }
@@ -343,9 +31,6 @@ type CompilerRespMsg =
   | { type: "runKata-result"; result: boolean }
   | { type: "error-result"; result: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-// Get the possible 'result' types from a compiler response
-type ExtractResult<T> = T extends { result: infer R } ? R : never;
-type RespResultTypes = ExtractResult<CompilerRespMsg>;
 
 type CompilerEventMsg =
   | { type: "message-event"; event: MessageMsg }
@@ -353,4 +38,212 @@ type CompilerEventMsg =
   | { type: "success-event"; event: string }
   | { type: "failure-event"; event: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;
+export type ResponseMsgType =
+  | ResponseMessageWithType<CompilerRespMsg>
+  | EventMessageWithType<CompilerEventMsg>;
+
+function makeRequestMessage(
+  type: string,
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  args: any[]
+): { msg: CompilerReqMsg; longRunning: boolean } | null {
+  let msg: CompilerReqMsg;
+  let longRunning = false;
+  switch (type) {
+    case "checkCode":
+      msg = { type: "checkCode", args: args as [string] };
+      break;
+    case "getHir":
+      msg = { type: "getHir", args: args as [string] };
+      break;
+    case "getCompletions":
+      msg = { type: "getCompletions", args: args as [] };
+      break;
+    case "run":
+      // run and runKata can take a long time, so set state to busy
+      longRunning = true;
+      msg = {
+        type: "run",
+        args: args as [string, string, number],
+      };
+      break;
+    case "runKata":
+      longRunning = true;
+      msg = {
+        type: "runKata",
+        args: args as [string, string],
+      };
+      break;
+    default:
+      log.error("message type is invalid");
+      return null;
+  }
+
+  log.debug("request message: " + JSON.stringify(msg));
+  return { msg, longRunning };
+}
+
+function makePassThroughEvent(msg: CompilerEventMsg): QscEvents | null {
+  const msgType = msg.type;
+  switch (msgType) {
+    // Event type messages don't complete the request
+    case "message-event": {
+      return makeCompilerEvent("Message", msg.event.message) as QscEvents;
+    }
+    case "dumpMachine-event": {
+      return makeCompilerEvent("DumpMachine", msg.event.state) as QscEvents;
+    }
+    case "failure-event": {
+      const failEvent = makeCompilerEvent("Result", {
+        success: false,
+        value: msg.event,
+      });
+      return failEvent as QscEvents;
+    }
+    case "success-event": {
+      const successEvent = makeCompilerEvent("Result", {
+        success: true,
+        value: msg.event,
+      });
+      return successEvent as QscEvents;
+    }
+
+    default:
+      log.never(msg);
+      return null;
+  }
+}
+
+function makeResult(msg: CompilerRespMsg) {
+  const msgType = msg.type;
+  switch (msgType) {
+    // Response type messages. Resolve and complete this request.
+    case "checkCode-result":
+    case "getHir-result":
+    case "getCompletions-result":
+    case "run-result":
+    case "runKata-result":
+      return { success: true, data: msg.result };
+
+    case "error-result":
+      // Something unexpected failed the request. Reject and move on.
+      return { success: false, data: msg.result };
+
+    default:
+      log.never(msg);
+      return null;
+  }
+}
+
+// this should be combined with "makeRequestMsg" pretty sure
+const methodToRequestMessage = {
+  checkCode(code: string) {
+    return { request: "checkCode", args: [code] };
+  },
+  getHir(code: string) {
+    return { request: "getHir", args: [code] };
+  },
+  getCompletions() {
+    return { request: "getCompletions", args: [] };
+  },
+  run(
+    code: string,
+    expr: string,
+    shots: number,
+    uiEventTarget: IQscEventTarget
+  ) {
+    return { request: "run", args: [code, expr, shots], uiEventTarget };
+  },
+  runKata(
+    user_code: string,
+    verify_code: string,
+    uiEventTarget: IQscEventTarget
+  ) {
+    return {
+      request: "runKata",
+      args: [user_code, verify_code],
+      uiEventTarget,
+    };
+  },
+} as {
+  [method in keyof Exclude<
+    ICompiler,
+    { onstatechange: ((state: ServiceState) => void) | null }
+  >]: (...args: any[]) => {
+    request: string;
+    args: any[];
+    uiEventTarget?: IQscEventTarget;
+  };
+};
+
+export function handleMessageInWorker(
+  data: CompilerReqMsg,
+  compiler: ICompiler,
+  postMessage: (msg: CompilerRespMsg) => void,
+  serviceEventTarget: IQscEventTarget
+) {
+  return invokeWorkerMethod(
+    data as any,
+    compiler,
+    postMessage as any,
+    serviceEventTarget
+  );
+}
+
+const eventMap = {
+  Message: (ev: QscEvent<"Message">) => ({
+    type: "message-event",
+    event: { type: "Message", message: ev.detail },
+  }),
+  DumpMachine: (ev: QscEvent<"DumpMachine">) => ({
+    type: "dumpMachine-event",
+    event: { type: "DumpMachine", state: ev.detail },
+  }),
+  Result: (ev: QscEvent<"Result">) =>
+    ev.detail.success
+      ? {
+          type: "success-event",
+          event: ev.detail.value,
+        }
+      : {
+          type: "failure-event",
+          event: ev.detail.value,
+        },
+} as {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [eventName in QscEvents["type"]]: (ev: any) => CompilerEventMsg;
+};
+
+export function getWorkerEventHandlers(
+  postMessage: (msg: CompilerEventMsg) => void
+): IQscEventTarget {
+  return getWorkerEventHandlersGeneric<
+    QscEvents,
+    IQscEventTarget,
+    CompilerEventMsg
+  >(postMessage, eventMap);
+}
+
+export function createCompilerProxy(
+  postMessage: (msg: CompilerReqMsg) => void,
+  setMsgHandler: (handler: (e: ResponseMsgType) => void) => void,
+  terminator: () => void
+) {
+  return createWorkerProxy<
+    CompilerReqMsg,
+    CompilerRespMsg,
+    QscEvents,
+    CompilerEventMsg,
+    IQscEventTarget,
+    ICompilerWorker
+  >(
+    postMessage,
+    setMsgHandler,
+    terminator,
+    makeRequestMessage,
+    makePassThroughEvent,
+    makeResult,
+    methodToRequestMessage
+  );
+}
+// end

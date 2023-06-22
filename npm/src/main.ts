@@ -13,7 +13,7 @@ import { log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import {
   ResponseMsgType,
-  createWorkerProxy,
+  createCompilerProxy,
 } from "./compiler/worker-common.js";
 
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
@@ -39,5 +39,5 @@ export function getCompilerWorker(): ICompilerWorker {
     worker.addListener("message", handler);
   const onTerminate = () => worker.terminate();
 
-  return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
+  return createCompilerProxy(postMessage, setMsgHandler, onTerminate);
 }

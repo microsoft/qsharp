@@ -9,7 +9,7 @@ import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import {
   ResponseMsgType as CompilerResponseMsgType,
-  createWorkerProxy as createCompilerWorkerProxy,
+  createCompilerProxy as createCompilerWorkerProxy,
 } from "./compiler/worker-common.js";
 import {
   ResponseMsgType as LanguageServiceResponseMsgType,

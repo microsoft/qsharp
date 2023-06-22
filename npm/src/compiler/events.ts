@@ -8,8 +8,11 @@ import { log } from "../log.js";
 export type QscEvents = Event & (
   | { type: "Message", detail: string }
   | { type: "DumpMachine", detail: Dump }
-  | { type: "Result", detail: Result }
-  | { type: "uiResultsRefresh", detail: undefined });
+  | { type: "Result", detail: Result });
+
+export type QscUiEvents = QscEvents | Event & { type: "uiResultsRefresh", detail: undefined };
+
+export type QscEvent<T extends QscEvents["type"]> = Extract<QscEvents, { type: T }>;
 
 // Strongly typed event target for compiler operations.
 export interface IQscEventTarget {
@@ -48,21 +51,21 @@ export class QscEventTarget implements IQscEventTarget {
   private supportsUiRefresh = false;
 
   // Overrides for the base EventTarget methods to limit to expected event types
-  addEventListener<T extends QscEvents["type"]>(
+  addEventListener<T extends QscUiEvents["type"]>(
     type: T,
     listener: (event: Extract<QscEvents, { type: T }>) => void
   ): void {
     this.eventTarget.addEventListener(type, listener as EventListener);
   }
 
-  removeEventListener<T extends QscEvents["type"]>(
+  removeEventListener<T extends QscUiEvents["type"]>(
     type: T,
     listener: (event: Extract<QscEvents, { type: T }>) => void
   ): void {
     this.eventTarget.removeEventListener(type, listener as EventListener);
   }
 
-  dispatchEvent(event: QscEvents): boolean {
+  dispatchEvent(event: QscUiEvents): boolean {
     if (log.getLogLevel() >= 4) log.debug("Dispatching event: %o", event);
     return this.eventTarget.dispatchEvent(event);
   }
@@ -130,7 +133,7 @@ export class QscEventTarget implements IQscEventTarget {
 
   private onUiRefresh() {
     this.animationFrameId = 0;
-    const uiRefreshEvent = makeEvent("uiResultsRefresh", undefined);
+    const uiRefreshEvent = new Event("uiResultsRefresh") as QscUiEvents;
     this.dispatchEvent(uiRefreshEvent);
   }
 

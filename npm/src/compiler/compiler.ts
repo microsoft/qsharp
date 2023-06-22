@@ -98,18 +98,28 @@ export class Compiler implements ICompiler {
     shots: number,
     eventHandler: IQscEventTarget
   ): Promise<void> {
+    log.debug("Running code...", typeof code, typeof expr, typeof eventHandler, typeof shots);
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
     if (this.onstatechange) this.onstatechange("busy");
 
-    this.wasm.run(
+          // 'run' can throw on compiler errors, which should be reported as events for
+          // each 'shot', so just resolve as run 'complete' regardless.
+          // TODO: this is refactoring of preexisting logic, but how well did it work really?
+      try {
+          this.wasm.run(
       code,
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
       shots
     );
+          } catch (e) {
+            log.warn('compiler run method threw', e)
+            return;
+          }
 
+          log.debug('compiler done ')
     if (this.onstatechange) this.onstatechange("idle");
   }
 
@@ -171,5 +181,6 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       log.never(msgType);
       throw "Unexpected message type";
   }
+  log.debug('worker dispatching event ' + JSON.stringify(qscEvent));
   eventTarget.dispatchEvent(qscEvent);
 }
