@@ -11,7 +11,17 @@ use qsc_data_structures::span::Span;
 #[derive(Debug)]
 pub(super) struct NoBarrierError;
 
-pub(super) struct Scanner<'a> {
+/// Scans over the token stream. Notably enforces LL(1) parser behavior via
+/// its lack of a [Clone] implementation and limited peek functionality.
+/// This struct should never be clonable, and it should never be able to
+/// peek more than one token ahead, to maintain LL(1) enforcement.
+/// The following code should not build.
+/// ```compile_fail
+/// use qsc_parse::scan;
+/// let x = scan::Scanner::new("");
+/// x.clone();
+/// ```
+pub struct Scanner<'a> {
     input: &'a str,
     tokens: Lexer<'a>,
     barriers: Vec<&'a [TokenKind]>,
@@ -21,7 +31,7 @@ pub(super) struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
-    pub(super) fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str) -> Self {
         let mut tokens = Lexer::new(input);
         let (peek, errors) = next_ok(&mut tokens);
         Self {

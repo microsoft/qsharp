@@ -10,6 +10,9 @@ mod item;
 mod keyword;
 mod lex;
 mod prim;
+#[cfg(test)]
+pub mod scan;
+#[cfg(not(test))]
 mod scan;
 mod stmt;
 #[cfg(test)]
