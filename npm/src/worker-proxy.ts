@@ -6,10 +6,27 @@ import { CancellationToken } from "./cancellation.js";
 
 /**
  * Used as a type constraint for a "service", i.e. an object
- * we can create proxy methods for. All of the members of the
- * type should be methods that return promises.
+ * we can create proxy methods for. The type shouldn't define
+ * any non-method properties.
  */
-type ServiceMethods<T> = { [x in keyof T]: (...args: any[]) => Promise<any> };
+type ServiceMethods<T> = { [x in keyof T]: (...args: any[]) => any };
+
+/**
+ * Defines the service methods that the proxy will handle and their types.
+ * "request" is a normal async method.
+ * "requestWithProgress" methods take an @see IServiceEventTarget to
+ *   communicate events back to the main thread as they run. They also set
+ *   the service state to "busy" while they run.
+ * "addEventListener" and "removeEventListener" methods are used to
+ *   subscribe to events from the service.
+ */
+export type MethodMap<T> = {
+  [M in keyof T]:
+    | "request"
+    | "requestWithProgress"
+    | "addEventListener"
+    | "removeEventListener";
+};
 
 /** Methods added to the service when wrapped in a proxy */
 export type IServiceProxy = {
@@ -17,7 +34,7 @@ export type IServiceProxy = {
   terminate: () => void;
 };
 
-/** Longrunning methods will set the service state to "busy" */
+/** "requestWithProgress" type methods will set the service state to "busy" */
 export type ServiceState = "idle" | "busy";
 
 /** Request message from a main thread to the worker */
@@ -50,9 +67,9 @@ interface IServiceEventMessage {
 
 /**
  * Strongly typed EventTarget interface. Used as a constraint for the
- * event target longrunning methods should take in the service.
+ * event target that "requestWithProgress" methods should take in the service.
  */
-interface IServiceEventTarget<TEvents extends IServiceEventMessage> {
+export interface IServiceEventTarget<TEvents extends IServiceEventMessage> {
   addEventListener<T extends TEvents["type"]>(
     type: T,
     listener: (event: Event & Extract<TEvents, { type: T }>) => void
@@ -96,9 +113,7 @@ complete the request.
  *
  * @param postMessage A function to post messages to the worker
  * @param terminator A function to call to tear down the worker thread
- * @param methods A map of method names to whether they are longrunning or not.
- * Longrunning method names set the worker state to "busy". They also take
- * an EventTarget for progress updates to the caller.
+ * @param methods A map of method names to be proxied and some metadata @see MethodMap
  * @returns The proxy object. The caller should then set the onMsgFromWorker
  * property to a callback that will receive messages from the worker.
  */
@@ -108,7 +123,7 @@ export function createProxy<
 >(
   postMessage: (msg: RequestMessage<TService>) => void,
   terminator: () => void,
-  methods: { [M in keyof TService]: { longRunning: boolean } }
+  methods: MethodMap<TService>
 ): TService &
   IServiceProxy & {
     onMsgFromWorker: (
@@ -116,6 +131,7 @@ export function createProxy<
     ) => void;
   } {
   const queue: RequestState<TService, TServiceEventMsg>[] = [];
+  const eventTarget = new EventTarget();
   let curr: RequestState<TService, TServiceEventMsg> | undefined;
   let state: ServiceState = "idle";
 
@@ -161,38 +177,41 @@ export function createProxy<
     }
     if (!curr) {
       // Nothing else queued, signal that we're now idle and exit.
-      log.debug("Worker queue is empty");
+      log.debug("Proxy: Worker queue is empty");
       setState("idle");
       return;
     }
-    log.debug(`handling request ${curr.type.toString()}`);
 
     const msg = { type: curr.type, args: curr.args };
-    log.debug("request message: " + JSON.stringify(msg));
-    if (methods[curr.type].longRunning) {
+    if (methods[curr.type] === "requestWithProgress") {
       setState("busy");
     }
 
-    if (log.getLogLevel() >= 4) log.debug("Posting message to worker: %o", msg);
+    log.debug("Proxy: Posting message to worker: %o", msg);
     postMessage(msg);
   }
 
   function onMsgFromWorker(
     msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
   ) {
-    if (!curr) {
-      log.error("No active request when message received: %o", msg);
-      return;
-    }
-    log.debug("Received message from worker: %o", msg);
+    if (log.getLogLevel() >= 4)
+      log.debug("Proxy: Received message from worker: %s", JSON.stringify(msg));
 
     if (msg.messageType === "event") {
       const event = new Event(msg.type) as Event & TServiceEventMsg;
       event.detail = msg.detail;
 
-      log.debug("Posting event: %o", msg);
-      curr.requestEventTarget?.dispatchEvent(event);
+      log.debug("Proxy: Posting event: %o", msg);
+      // Post to a currently attached event target if there's a "requestWithProgress"
+      // in progress
+      curr?.requestEventTarget?.dispatchEvent(event);
+      // Also post to the general event target
+      eventTarget.dispatchEvent(event);
     } else if (msg.messageType === "response") {
+      if (!curr) {
+        log.error("Proxy: No active request when message received: %o", msg);
+        return;
+      }
       const result = {
         success: msg.result.success,
         data: msg.result.success ? msg.result.result : msg.result.error,
@@ -211,48 +230,72 @@ export function createProxy<
     }
   }
 
+  // Create the proxy object to be returned
   const proxy = {} as TService &
     IServiceProxy & { onMsgFromWorker: typeof onMsgFromWorker };
 
+  // Assign each method with the desired proxying behavior
   for (const methodName of Object.keys(methods) as (keyof TService &
     string)[]) {
-    // @ts-expect-error - very tricky to derive the type of the actual method here
+    // @ts-expect-error - tricky to derive the type of the actual method here
     proxy[methodName] = (...args: any[]) => {
-      log.debug(`method ${methodName} called`);
-      const longRunning = methods[methodName].longRunning;
-      // TODO: make the event target the first argument and then this won't be so painful
-      let uiEventTarget: IServiceEventTarget<TServiceEventMsg> | undefined =
-        undefined;
-      if (longRunning) {
-        uiEventTarget = args[args.length - 1];
-        args = args.slice(0, args.length - 1);
+      let requestEventTarget:
+        | IServiceEventTarget<TServiceEventMsg>
+        | undefined = undefined;
+
+      switch (methods[methodName]) {
+        case "addEventListener":
+          {
+            // @ts-expect-error - can't get the typing of the rest parameters quite right
+            eventTarget.addEventListener(...args);
+          }
+          break;
+        case "removeEventListener":
+          {
+            // @ts-expect-error - can't get the typing of the rest parameters quite right
+            eventTarget.removeEventListener(...args);
+          }
+          break;
+        case "requestWithProgress": {
+          // For progress methods, the last argument is the event target
+          requestEventTarget = args[args.length - 1];
+          args = args.slice(0, args.length - 1);
+        }
+        // fallthrough
+        case "request": {
+          return queueRequest(
+            { type: methodName, args } as RequestMessage<TService>,
+            requestEventTarget
+          );
+        }
       }
-      log.debug(`about to queue a request with args ${JSON.stringify(args)}`);
-      return queueRequest(
-        { type: methodName, args } as RequestMessage<TService>,
-        uiEventTarget
-      );
     };
   }
+
   proxy.onstatechange = null;
   proxy.terminate = () => {
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
-    log.info("Terminating the worker");
+    log.info("Proxy: Terminating the worker");
     if (curr) {
-      log.debug("Terminating running worker item of type: %s", curr.type);
+      log.debug(
+        "Proxy: Terminating running worker item of type: %s",
+        curr.type
+      );
       curr.reject("terminated");
     }
     // Reject any outstanding items
     while (queue.length) {
       const item = queue.shift();
-      log.debug("Terminating outstanding work item of type: %s", item?.type);
+      log.debug(
+        "Proxy: Terminating outstanding work item of type: %s",
+        item?.type
+      );
       item?.reject("terminated");
     }
     terminator();
   };
   proxy.onMsgFromWorker = onMsgFromWorker;
 
-  console.log(`returning proxy`);
   return proxy;
 }
 
@@ -260,8 +303,7 @@ export function createProxy<
  * Function to wrap a service in a dispatcher. To be used in the worker thread.
  *
  * @param service The service to be wrapped
- * @param methods A map of method names to whether they are longrunning or not. Should
- * match the list passed into @see createProxy.
+ * @param methods A map of method names. Should match the list passed into @see createProxy.
  * @param eventNames The list of event names that the service can emit
  * @param postMessage A function to post messages back to the main thread
  * @returns A function that takes a message and invokes the corresponding
@@ -275,15 +317,19 @@ export function createDispatcher<
     msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
   ) => void,
   service: TService,
-  methods: { [M in keyof TService]: { longRunning: boolean } },
+  methods: MethodMap<TService>,
   eventNames: TServiceEventMsg["type"][]
 ) {
-  log.debug("Constructing WorkerEventHandler");
+  log.debug("Worker: Constructing WorkerEventHandler");
 
   function logAndPost(
     msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
   ) {
-    log.debug("Sending %s message from worker: %o", msg.messageType, msg);
+    log.debug(
+      "Worker: Sending %s message from worker: %o",
+      msg.messageType,
+      msg
+    );
     postMessage(msg);
   }
 
@@ -299,17 +345,26 @@ export function createDispatcher<
         detail: ev.detail,
       });
     });
+
+    // If there's an addEventListener on the object itself, forward those events as well.
+    if ((service as any).addEventListener) {
+      (service as any).addEventListener(eventName, (ev: any) => {
+        logAndPost({
+          messageType: "event",
+          type: ev.type,
+          detail: ev.detail,
+        });
+      });
+    }
   });
 
   return function invokeMethod(req: RequestMessage<TService>) {
-    log.debug(`Handling message in worker: ${req.type.toString()}`);
-
-    // Pass the eventTarget to the methods marked as longRunning.
+    // Pass the eventTarget to the methods marked as taking progress
     return service[req.type]
       .call(
         service,
         ...req.args,
-        methods[req.type].longRunning ? eventTarget : undefined
+        methods[req.type] === "requestWithProgress" ? eventTarget : undefined
       )
       .then((result: any) =>
         logAndPost({

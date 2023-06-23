@@ -3,6 +3,7 @@
 
 import {
   EventMessage,
+  MethodMap,
   RequestMessage,
   ResponseMessage,
   createDispatcher,
@@ -11,12 +12,12 @@ import {
 import { ICompiler } from "./compiler.js";
 import { QscEventData } from "./events.js";
 
-const requests: { [M in keyof ICompiler]: { longRunning: boolean } } = {
-  checkCode: { longRunning: false },
-  getHir: { longRunning: false },
-  getCompletions: { longRunning: false },
-  run: { longRunning: true },
-  runKata: { longRunning: true },
+const requests: MethodMap<ICompiler> = {
+  checkCode: "request",
+  getHir: "request",
+  getCompletions: "request",
+  run: "requestWithProgress",
+  runKata: "requestWithProgress",
 };
 
 const events: QscEventData["type"][] = ["DumpMachine", "Message", "Result"];

@@ -5,18 +5,15 @@
 // the "./main.js" module is the entry point.
 
 import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
-import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import { createCompilerProxy } from "./compiler/worker-proxy.js";
 import {
-  ResponseMsgType as LanguageServiceResponseMsgType,
-  createWorkerProxy as createLanguageServiceWorkerProxy,
-} from "./language-service/worker-common.js";
-import { ILanguageServiceEventTarget } from "./language-service/events.js";
-import {
   ILanguageService,
+  ILanguageServiceWorker,
   QSharpLanguageService,
 } from "./language-service/language-service.js";
+import { createLanguageServiceProxy } from "./language-service/worker-proxy.js";
+import { LogLevel, log } from "./log.js";
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -71,23 +68,20 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
   return proxy;
 }
 
-export async function getLanguageService(
-  eventTarget: ILanguageServiceEventTarget
-): Promise<ILanguageService> {
+export async function getLanguageService(): Promise<ILanguageService> {
   if (!wasmModule) throw "Wasm module must be loaded first";
   if (!wasmPromise) wasmPromise = initWasm(wasmModule);
   await wasmPromise;
 
-  return new QSharpLanguageService(wasm, eventTarget);
+  return new QSharpLanguageService(wasm);
 }
 
-// Create the language service inside a WebWorker and proxy requests.
+// Create the compiler inside a WebWorker and proxy requests.
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.
 export function getLanguageServiceWorker(
-  workerArg: string | Worker,
-  eventTarget: ILanguageServiceEventTarget
-): ILanguageService {
+  workerArg: string | Worker
+): ILanguageServiceWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
   // Create or use the WebWorker
@@ -103,29 +97,28 @@ export function getLanguageServiceWorker(
 
   // If you lose the 'this' binding, some environments have issues
   const postMessage = worker.postMessage.bind(worker);
-  const setMsgHandler = (
-    handler: (e: LanguageServiceResponseMsgType) => void
-  ) => (worker.onmessage = (ev) => handler(ev.data));
+  const onTerminate = () => worker.terminate();
 
-  return createLanguageServiceWorkerProxy(
-    postMessage,
-    setMsgHandler,
-    eventTarget
-  );
+  // Create the proxy which will forward method calls to the worker
+  const proxy = createLanguageServiceProxy(postMessage, onTerminate);
+
+  // Let proxy handle response and event messages from the worker
+  worker.onmessage = (ev) => proxy.onMsgFromWorker(ev.data);
+  return proxy;
 }
 
-export type { ICompilerWorker };
-export { log, type LogLevel };
 export { type Dump, type ShotResult } from "./compiler/common.js";
-export { type VSDiagnostic } from "./vsdiagnostic.js";
 export { type CompilerState } from "./compiler/compiler.js";
+export { QscEventTarget } from "./compiler/events.js";
 export {
   getAllKatas,
   getKata,
-  type Kata,
-  type KataItem,
   type Example,
   type Exercise,
+  type Kata,
+  type KataItem,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
-export { QscEventTarget } from "./compiler/events.js";
+export { type VSDiagnostic } from "./vsdiagnostic.js";
+export { log, type LogLevel };
+export type { ICompilerWorker };

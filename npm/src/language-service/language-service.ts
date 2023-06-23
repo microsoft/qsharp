@@ -10,15 +10,23 @@ import type {
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
+  VSDiagnostic,
   mapDiagnostics,
   mapUtf16UnitsToUtf8Units,
   mapUtf8UnitsToUtf16Units,
 } from "../vsdiagnostic.js";
-import { ILanguageServiceEventTarget, makeEvent } from "./events.js";
+import { IServiceEventTarget, IServiceProxy } from "../worker-proxy.js";
+type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
-// The wasm types generated for the node.js bundle are just the exported APIs,
-// so use those as the set used by the shared compiler
-type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
+// Only one event type for now
+export type LanguageServiceEvent = {
+  type: "diagnostics";
+  detail: {
+    uri: string;
+    version: number;
+    diagnostics: VSDiagnostic[];
+  };
+};
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
@@ -31,26 +39,35 @@ export interface ILanguageService {
     documentUri: string,
     offset: number
   ): Promise<IDefinition | null>;
+
+  addEventListener<T extends LanguageServiceEvent["type"]>(
+    type: T,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
+  ): void;
+
+  removeEventListener<T extends LanguageServiceEvent["type"]>(
+    type: T,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
+  ): void;
 }
 
-export class QSharpLanguageService implements ILanguageService {
-  private wasm: Wasm;
-  private eventHandler: ILanguageServiceEventTarget;
-  private languageService: LanguageService;
+export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
-  // We need to keep a copy of the code for mapping diagnostics
-  // It would be much better if the wasm layer could do the utf16 mapping
-  // but here we are
+export class QSharpLanguageService implements ILanguageService {
+  private languageService: LanguageService;
+  private eventHandler =
+    new EventTarget() as IServiceEventTarget<LanguageServiceEvent>;
+
+  // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
   private code: { [uri: string]: string } = {};
 
-  constructor(wasm: Wasm, eventHandler: ILanguageServiceEventTarget) {
+  constructor(wasm: QscWasm) {
     log.info("Constructing a QSharpLanguageService instance");
-    this.wasm = wasm;
-    this.eventHandler = eventHandler;
-    this.languageService = new this.wasm.LanguageService(
+    this.languageService = new wasm.LanguageService(
       this.onDiagnostics.bind(this)
     );
-    // TODO: do we call free() on this at some point?
+    // TODO: languageService needs to be disposed of with free(), but not sure
+    // what an appropriate point would be yet.
   }
 
   async updateDocument(
@@ -65,21 +82,6 @@ export class QSharpLanguageService implements ILanguageService {
   async closeDocument(documentUri: string): Promise<void> {
     delete this.code[documentUri];
     this.languageService.close_document(documentUri);
-  }
-
-  onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
-    try {
-      const code = this.code[uri];
-      this.eventHandler.dispatchEvent(
-        makeEvent("diagnostics", {
-          uri,
-          version,
-          diagnostics: mapDiagnostics(diagnostics, code),
-        })
-      );
-    } catch (e) {
-      log.error("Error in onDiagnostics", e);
-    }
   }
 
   async getCompletions(
@@ -125,5 +127,34 @@ export class QSharpLanguageService implements ILanguageService {
       ];
     }
     return result;
+  }
+
+  addEventListener<T extends LanguageServiceEvent["type"]>(
+    type: T,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
+  ) {
+    this.eventHandler.addEventListener(type, listener);
+  }
+
+  removeEventListener<T extends LanguageServiceEvent["type"]>(
+    type: T,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
+  ) {
+    this.eventHandler.removeEventListener(type, listener);
+  }
+
+  onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
+    try {
+      const code = this.code[uri];
+      const event = new Event("diagnostics") as LanguageServiceEvent & Event;
+      event.detail = {
+        uri,
+        version,
+        diagnostics: mapDiagnostics(diagnostics, code),
+      };
+      this.eventHandler.dispatchEvent(event);
+    } catch (e) {
+      log.error("Error in onDiagnostics", e);
+    }
   }
 }

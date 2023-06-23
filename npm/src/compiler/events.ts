@@ -3,6 +3,7 @@
 
 import { ShotResult, Dump, Result } from "./common.js";
 import { log } from "../log.js";
+import { IServiceEventTarget } from "../worker-proxy.js";
 
 // Create strongly typed compiler events
 export type QscEventData =
@@ -18,19 +19,7 @@ export type QscEvent<T extends QscEvents["type"]> = Extract<
 >;
 
 // Strongly typed event target for compiler operations.
-export interface IQscEventTarget {
-  addEventListener<T extends QscEvents["type"]>(
-    type: T,
-    listener: (event: Extract<QscEvents, { type: T }>) => void
-  ): void;
-
-  removeEventListener<T extends QscEvents["type"]>(
-    type: T,
-    listener: (event: Extract<QscEvents, { type: T }>) => void
-  ): void;
-
-  dispatchEvent(event: QscEvents): boolean;
-}
+export type IQscEventTarget = IServiceEventTarget<QscEventData>;
 
 // Convenience method that also provides type safety
 export function makeEvent<E extends QscEvents>(

@@ -4,15 +4,10 @@
 import * as wasm from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import { QSharpLanguageService } from "./language-service.js";
-import {
-  getWorkerEventHandlers,
-  handleMessageInWorker,
-} from "./worker-common.js";
+import { createLanguageServiceDispatcher } from "./worker-proxy.js";
 
-// Used to sent messages back to the client when events occur during request processing
-const evtTarget = getWorkerEventHandlers(self.postMessage);
-
-let languageService: QSharpLanguageService | null = null;
+let invokeCompiler: ReturnType<typeof createLanguageServiceDispatcher> | null =
+  null;
 
 // This export should be assigned to 'self.onmessage' in a WebWorker
 export function messageHandler(e: MessageEvent) {
@@ -25,18 +20,24 @@ export function messageHandler(e: MessageEvent) {
 
   switch (data.type) {
     case "init":
-      log.setLogLevel(data.qscLogLevel);
-      wasm.initSync(data.wasmModule);
-      languageService = new QSharpLanguageService(wasm, evtTarget);
+      {
+        log.setLogLevel(data.qscLogLevel);
+        wasm.initSync(data.wasmModule);
+        const languageService = new QSharpLanguageService(wasm);
+        invokeCompiler = createLanguageServiceDispatcher(
+          self.postMessage.bind(self),
+          languageService
+        );
+      }
       break;
     default:
-      if (!languageService) {
+      if (!invokeCompiler) {
         log.error(
           `Received message before the compiler was initialized: %o`,
           data
         );
       } else {
-        handleMessageInWorker(data, languageService, self.postMessage);
+        invokeCompiler(data);
       }
   }
 }

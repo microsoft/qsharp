@@ -6,20 +6,18 @@
 import assert from "node:assert";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
-import { getCompiler, getCompilerWorker } from "../dist/main.js";
+import {
+  getCompiler,
+  getCompilerWorker,
+  getLanguageService,
+  getLanguageServiceWorker,
+} from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
 
-/**
- *
- * @param {string} code
- * @param {string} expr
- * @param {boolean} useWorker
- * @returns {Promise<import("../dist/compiler/common.js").ShotResult>}
- */
 export function runSingleShot(code, expr, useWorker) {
   return new Promise((resolve, reject) => {
     const resultsHandler = new QscEventTarget(true);
@@ -335,4 +333,54 @@ test("cancel worker", () => {
       resolve(null);
     }, 4);
   });
+});
+
+test("language service diagnostics", async () => {
+  const languageService = getLanguageService();
+  languageService.addEventListener("diagnostics", (event) => {
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: expected (Double, Qubit), found Qubit"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+  );
+});
+
+test("language service diagnostics - web worker", async () => {
+  const languageService = getLanguageServiceWorker();
+  languageService.addEventListener("diagnostics", (event) => {
+    log.info("did receive diagnostics event");
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: expected (Double, Qubit), found Qubit"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+  );
+  languageService.terminate();
 });
