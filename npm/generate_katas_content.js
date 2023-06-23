@@ -232,6 +232,26 @@ function buildKatasContentJs(katasPath, outputPath) {
 
 buildKatasContentJs(katasContentPath, katasGeneratedContentPath);
 
+function generateKataSections(markdown) {
+  const macroRegex = /@\[\w+\]\([^@]+\)\s+/g;
+  let matchArray;
+  let currentIndex = 0;
+  const sections = [];
+  while ((matchArray = macroRegex.exec(markdown)) !== null) {
+    let delta = matchArray.index - currentIndex;
+    if (delta > 0) {
+      // TODO: Create Text section.
+      sections.push(markdown.substring(currentIndex, matchArray.index));
+    }
+
+    // TODO: Create macro section.
+    sections.push(matchArray[0]);
+    currentIndex = macroRegex.lastIndex;
+  }
+
+  return sections;
+}
+
 function generateKataContent(path) {
   const kataId = basename(path);
   const indexFilePath = join(path, contentFileNames.index);
@@ -242,23 +262,7 @@ function generateKataContent(path) {
   }
 
   const katasMarkdown = readFileSync(indexFilePath, "utf8");
-  const macroRegex = /@\[\w+\]\([\S\s]+\)\s+/g;
-  var matchArray;
-  let currentIndex = 0;
-  const textSections = [];
-  while ((matchArray = macroRegex.exec(katasMarkdown)) !== null) {
-    console.log(``);
-    let delta = matchArray.index - currentIndex;
-    if (delta > 0) {
-      textSections.push(
-        katasMarkdown.substring(currentIndex, matchArray.index)
-      );
-    }
-    textSections.push(matchArray[0]);
-    currentIndex = macroRegex.lastIndex;
-  }
-
-  const sections = textSections;
+  const sections = generateKataSections(katasMarkdown);
   return {
     id: kataId,
     sections: sections,
