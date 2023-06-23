@@ -1,0 +1,48 @@
+# Publishing VSCode Extensions https://code.visualstudio.com/api/working-with-extensions/publishing-extension
+#   * $(PAT): https://stackoverflow.com/questions/58192624/publishing-vs-code-extension-via-azure-devops/58195815#58195815
+#   * Extension Manifest (package.json): https://code.visualstudio.com/api/references/extension-manifest
+
+variables:
+  Ver.Major: 0
+  Ver.Minor: 0
+  Ver.Patch: 0
+
+name: $(BuildId)
+
+trigger: none
+
+jobs:
+- job: "Publish"
+  pool: 
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.11'
+
+  - script: |
+      python ./prereqs.py --install
+      npm install -g @vscode/vsce
+    displayName: Install VSCE Pub Prereqs
+    
+  - script: |
+      python build.py --wasm --npm --vscode
+    displayName: Build VSCode Extension
+      
+  - script: |
+      cp ../LICENSE.txt .
+      vsce package $(Ver.Major).$(Ver.Minor).$(Ver.Patch)
+    displayName: Pack VSCode Extension
+    workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+
+  - script: |
+      vsce publish --pre-release --pat $(PAT) 2>&1 > pub.log
+    displayName: Publish VSCode Extension
+    workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+
+  - script: |
+      dir
+      cat pub.log
+    displayName: If failed, display VSCode Publishing Results
+    condition: failed()
+    workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
