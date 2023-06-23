@@ -89,10 +89,7 @@ export class Compiler implements ICompiler {
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
     this.languageService = new this.wasm.LanguageService(
-      this.onDiagnostics.bind(this),
-      (msg: string) => {
-        log.info(msg);
-      }
+      this.onDiagnostics.bind(this)
     );
     // TODO: should call free() on this at some point?
   }
