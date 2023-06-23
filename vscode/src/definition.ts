@@ -1,24 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { type getCompiler } from "qsharp";
+import { ILanguageService } from "qsharp";
 import * as vscode from "vscode";
 
-type ICompiler = Awaited<ReturnType<typeof getCompiler>>;
-
-export function createDefinitionProvider(compiler: ICompiler) {
-  return new QSharpDefinitionProvider(compiler);
+export function createDefinitionProvider(languageService: ILanguageService) {
+  return new QSharpDefinitionProvider(languageService);
 }
 
 class QSharpDefinitionProvider implements vscode.DefinitionProvider {
-  constructor(public compiler: ICompiler) {}
+  constructor(public languageService: ILanguageService) {}
 
   async provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
   ) {
-    const definition = await this.compiler.getDefinition(
+    const definition = await this.languageService.getDefinition(
       document.uri.toString(),
-      document.getText(),
       document.offsetAt(position)
     );
     if (!definition) return null;

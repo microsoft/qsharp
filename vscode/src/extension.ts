@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget, getCompiler, loadWasmModule } from "qsharp";
+import { ILanguageService, getLanguageService, loadWasmModule } from "qsharp";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
@@ -40,19 +40,21 @@ export async function activate(context: vscode.ExtensionContext) {
     );
   };
 
-  const { compiler, evtTarget } = await loadCompiler(context.extensionUri);
+  const languageService = await loadLanguageService(context.extensionUri);
 
-  context.subscriptions.push(...registerDocumentUpdateHandlers(compiler));
+  context.subscriptions.push(
+    ...registerDocumentUpdateHandlers(languageService)
+  );
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  context.subscriptions.push(startCheckingQSharp(evtTarget));
+  context.subscriptions.push(startCheckingQSharp(languageService));
 
   // completions
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
       "qsharp",
-      createCompletionItemProvider(compiler),
+      createCompletionItemProvider(languageService),
       "."
     )
   );
@@ -61,7 +63,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(
       "qsharp",
-      createHoverProvider(compiler)
+      createHoverProvider(languageService)
     )
   );
 
@@ -69,14 +71,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
       "qsharp",
-      createDefinitionProvider(compiler)
+      createDefinitionProvider(languageService)
     )
   );
 }
 
-function registerDocumentUpdateHandlers(
-  compiler: Awaited<ReturnType<typeof getCompiler>>
-) {
+function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   vscode.workspace.textDocuments.forEach((document) => {
     updateIfQsharpDocument(document);
   });
@@ -97,14 +97,14 @@ function registerDocumentUpdateHandlers(
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
       if (vscode.languages.match("qsharp", document)) {
-        compiler.closeDocument(document.uri.toString());
+        languageService.closeDocument(document.uri.toString());
       }
     })
   );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (vscode.languages.match("qsharp", document)) {
-      compiler.updateDocument(
+      languageService.updateDocument(
         document.uri.toString(),
         document.version,
         document.getText()
@@ -118,10 +118,9 @@ function registerDocumentUpdateHandlers(
 /**
  * Loads the Q# compiler including the WASM module
  */
-async function loadCompiler(baseUri: vscode.Uri) {
+async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const evtTarget = new QscEventTarget(false);
-  return { compiler: await getCompiler(evtTarget), evtTarget };
+  return await getLanguageService();
 }

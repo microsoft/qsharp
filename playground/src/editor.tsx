@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
   ICompilerWorker,
+  ILanguageServiceWorker,
   QscEventTarget,
   VSDiagnostic,
   log,
@@ -52,6 +53,7 @@ export function Editor(props: {
   showShots: boolean;
   setHir: (hir: string) => void;
   activeTab: ActiveTab;
+  languageService: ILanguageServiceWorker;
 }) {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
@@ -99,7 +101,7 @@ export function Editor(props: {
 
     const model = editor.current?.getModel();
     if (model) {
-      await props.compiler.updateDocument(
+      await props.languageService.updateDocument(
         model.uri.toString(),
         model.getVersionId(),
         code
@@ -121,9 +123,9 @@ export function Editor(props: {
     try {
       if (props.kataVerify) {
         // This is for a kata. Provide the verification code.
-        await props.compiler.runKata(code, props.kataVerify);
+        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
       } else {
-        await props.compiler.run(code, runExpr, shotCount);
+        await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
       }
     } catch (err) {
       // This could fail for several reasons, e.g. the run being cancelled.
@@ -149,9 +151,8 @@ export function Editor(props: {
         model: monaco.editor.ITextModel,
         position: monaco.Position
       ) => {
-        const completions = await props.compiler.getCompletions(
+        const completions = await props.languageService.getCompletions(
           model.uri.toString(),
-          model.getValue(),
           model.getOffsetAt(position)
         );
         return {
@@ -187,9 +188,8 @@ export function Editor(props: {
         model: monaco.editor.ITextModel,
         position: monaco.Position
       ) => {
-        const hover = await props.compiler.getHover(
+        const hover = await props.languageService.getHover(
           model.uri.toString(),
-          model.getValue(),
           model.getOffsetAt(position)
         );
 
@@ -216,9 +216,8 @@ export function Editor(props: {
         model: monaco.editor.ITextModel,
         position: monaco.Position
       ) => {
-        const definition = await props.compiler.getDefinition(
+        const definition = await props.languageService.getDefinition(
           model.uri.toString(),
-          model.getValue(),
           model.getOffsetAt(position)
         );
 
@@ -260,10 +259,10 @@ export function Editor(props: {
   }, []);
 
   useEffect(() => {
-    props.evtTarget.addEventListener("diagnostics", (evt) =>
+    props.languageService.addEventListener("diagnostics", (evt) =>
       onCheck(evt.detail.diagnostics)
     );
-  }, [props.compiler]);
+  }, [props.languageService]);
 
   useEffect(() => {
     // Whenever the active tab changes, run check again.

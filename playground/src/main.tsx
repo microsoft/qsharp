@@ -13,6 +13,7 @@ import {
   log,
   LogLevel,
   samples,
+  getLanguageServiceWorker,
 } from "qsharp";
 
 import { Nav } from "./nav.js";
@@ -32,7 +33,8 @@ if (logLevelUri) log.setLogLevel(logLevelUri as LogLevel);
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
-const workerPath = basePath + "libs/worker.js";
+const compilerWorkerPath = basePath + "libs/compiler-worker.js";
+const languageServiceWorkerPath = basePath + "libs/language-service-worker.js";
 
 declare global {
   const MathJax: { typeset: () => void };
@@ -40,23 +42,21 @@ declare global {
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
-function createCompiler(
-  onStateChange: (val: CompilerState) => void,
-  qscEvtTarget: QscEventTarget
-) {
+function createCompiler(onStateChange: (val: CompilerState) => void) {
   log.info("In createCompiler");
-  const compiler = getCompilerWorker(workerPath, qscEvtTarget);
+  const compiler = getCompilerWorker(compilerWorkerPath);
   compiler.onstatechange = onStateChange;
   return compiler;
 }
 
 function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
-  const qscEvtTarget = new QscEventTarget(true);
-  const [evtTarget] = useState(qscEvtTarget);
   const [compiler, setCompiler] = useState(() =>
-    createCompiler(setCompilerState, qscEvtTarget)
+    createCompiler(setCompilerState)
   );
+  const [evtTarget] = useState(new QscEventTarget(true));
+
+  const languageService = getLanguageServiceWorker(languageServiceWorkerPath);
 
   const [currentNavItem, setCurrentNavItem] = useState(
     props.linkedCode ? "linked" : "Minimal"
@@ -70,7 +70,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   const onRestartCompiler = () => {
     compiler.terminate();
-    const newCompiler = createCompiler(setCompilerState, qscEvtTarget);
+    const newCompiler = createCompiler(setCompilerState);
     setCompiler(newCompiler);
     setCompilerState("idle");
   };
@@ -128,6 +128,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             shotError={shotError}
             setHir={setHir}
             activeTab={activeTab}
+            languageService={languageService}
           ></Editor>
           <OutputTabs
             evtTarget={evtTarget}
@@ -145,6 +146,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           compiler={compiler}
           compilerState={compilerState}
           onRestartCompiler={onRestartCompiler}
+          languageService={languageService}
         ></Katas>
       )}
       <div id="popup"></div>

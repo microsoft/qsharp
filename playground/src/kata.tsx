@@ -2,7 +2,13 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef } from "preact/hooks";
-import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
+import {
+  CompilerState,
+  ICompilerWorker,
+  ILanguageServiceWorker,
+  Kata,
+  QscEventTarget,
+} from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 
@@ -11,6 +17,7 @@ export function Kata(props: {
   compiler: ICompilerWorker;
   compilerState: CompilerState;
   onRestartCompiler: () => void;
+  languageService: ILanguageServiceWorker;
 }) {
   const kataContent = useRef<HTMLDivElement>(null);
   const itemContent = useRef<(HTMLDivElement | null)[]>([]);
@@ -81,6 +88,7 @@ export function Kata(props: {
               key={item.id}
               setHir={() => ({})}
               activeTab="results-tab"
+              languageService={props.languageService}
             ></Editor>
             <OutputTabs
               key={item.id + "-results"}

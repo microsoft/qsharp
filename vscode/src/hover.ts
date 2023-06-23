@@ -1,24 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { type getCompiler } from "qsharp";
+import { ILanguageService } from "qsharp";
 import * as vscode from "vscode";
 
-type ICompiler = Awaited<ReturnType<typeof getCompiler>>;
-
-export function createHoverProvider(compiler: ICompiler) {
-  return new QSharpHoverProvider(compiler);
+export function createHoverProvider(languageService: ILanguageService) {
+  return new QSharpHoverProvider(languageService);
 }
 
 class QSharpHoverProvider implements vscode.HoverProvider {
-  constructor(public compiler: ICompiler) {}
+  constructor(public languageService: ILanguageService) {}
 
   async provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
   ) {
-    const hover = await this.compiler.getHover(
+    const hover = await this.languageService.getHover(
       document.uri.toString(),
-      document.getText(),
       document.offsetAt(position)
     );
     return (

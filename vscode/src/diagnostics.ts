@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget, VSDiagnostic } from "qsharp";
+import { ILanguageService, VSDiagnostic } from "qsharp";
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 
-export function startCheckingQSharp(evtTarget: QscEventTarget) {
+export function startCheckingQSharp(languageService: ILanguageService) {
   const diagCollection =
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
 
@@ -53,11 +53,11 @@ export function startCheckingQSharp(evtTarget: QscEventTarget) {
     );
   }
 
-  evtTarget.addEventListener("diagnostics", onDiagnostics);
+  languageService.addEventListener("diagnostics", onDiagnostics);
 
   return {
     dispose: () => {
-      evtTarget.removeEventListener("diagnostics", onDiagnostics);
+      languageService.removeEventListener("diagnostics", onDiagnostics);
     },
   };
 }

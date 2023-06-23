@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { type getCompiler } from "qsharp";
+import { ILanguageService } from "qsharp";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
 
-type ICompiler = Awaited<ReturnType<typeof getCompiler>>;
-
-export function createCompletionItemProvider(compiler: ICompiler) {
-  return new QSharpCompletionItemProvider(compiler);
+export function createCompletionItemProvider(
+  languageService: ILanguageService
+) {
+  return new QSharpCompletionItemProvider(languageService);
 }
 
 class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
-  constructor(public compiler: ICompiler) {}
+  constructor(public languageService: ILanguageService) {}
 
   async provideCompletionItems(
     document: vscode.TextDocument,
@@ -18,9 +18,8 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
   ) {
-    const completions = await this.compiler.getCompletions(
+    const completions = await this.languageService.getCompletions(
       document.uri.toString(),
-      document.getText(),
       document.offsetAt(position)
     );
     return completions.items.map((c) => {
