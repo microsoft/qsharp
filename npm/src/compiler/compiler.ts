@@ -99,21 +99,12 @@ export class Compiler implements ICompiler {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
-
-    // 'run' can throw on compiler errors, which should be reported as events for
-    // each 'shot', so just resolve as run 'complete' regardless.
-    // TODO: this is refactoring of preexisting logic, but how well did it work really?
-    try {
-      this.wasm.run(
-        code,
-        expr,
-        (msg: string) => onCompilerEvent(msg, eventHandler),
-        shots
-      );
-    } catch (e) {
-      log.warn("compiler run method threw", e);
-      return;
-    }
+    this.wasm.run(
+      code,
+      expr,
+      (msg: string) => onCompilerEvent(msg, eventHandler),
+      shots
+    );
   }
 
   async runKata(

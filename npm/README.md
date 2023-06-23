@@ -36,7 +36,7 @@ the browser (see <https://esbuild.github.io/api/#how-conditions-work>).
 
 ## Design
 
-This package provides two services, the compiler and the language service. 
+This package provides two services, the compiler and the language service.
 
 The API for using these
 services is similar whether using a browser or Node.js, and whether running
@@ -44,7 +44,7 @@ in the main thread or a worker thread. You instantiate the service, and call ope
 which complete in the order called.
 
 All operations return a Promise which resolves then the operation is complete. Some operations
-may also emit events, such as debug messages or state dumps as they are processed. The service 
+may also emit events, such as debug messages or state dumps as they are processed. The service
 itself can also emit events which can be subscribed to using `addEventListener`.
 
 `ICompiler` usage example:
@@ -53,19 +53,22 @@ itself can also emit events which can be subscribed to using `addEventListener`.
 const codeSample = "namespace Test { operation Main() {....} }";
 const entryPoint = "Test.Main()";
 
-const compiler  = getCompilerWorker();
+const compiler = getCompilerWorker();
 const runEvents = new QscEventTarget(false /* store record of events */);
 
 // Log any DumpMachine calls
-runEvents.addEventListener('DumpMachine', (evt) => console.log("DumpMachine: %o", evt.detail));
+runEvents.addEventListener("DumpMachine", (evt) =>
+  console.log("DumpMachine: %o", evt.detail)
+);
 
-compiler.run(codeSample, entryPoint, 1 /* shots */, runEvents)
-        .then(result => console.log("Run result: %s", result))
-        .catch(err => console.error("Run failed with: %o", err));
+compiler
+  .run(codeSample, entryPoint, 1 /* shots */, runEvents)
+  .then((result) => console.log("Run result: %s", result))
+  .catch((err) => console.error("Run failed with: %o", err));
 
 // Also run the below request, which only returns a result but emits no events
 const checkResult = await compiler.checkCode(codeSample);
-console.log('check result was: %o', checkResult);
+console.log("check result was: %o", checkResult);
 ```
 
 `ILanguageService` usage example:
@@ -75,7 +78,7 @@ const codeSample = "namespace Test { operation Main() {....} }";
 const languageService = getLanguageServiceWorker();
 
 languageService.addEventListener("diagnostics", (event) => {
-  console.log('language service reported errors: %o', event.detail.diagnostics);
+  console.log("language service reported errors: %o", event.detail.diagnostics);
 });
 
 // Update the document contents in response to changes in the editor
