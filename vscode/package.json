@@ -1,7 +1,7 @@
 {
-  "name": "qs",
-  "displayName": "MS/QS",
-  "description": "QS Lang Supp",
+  "name": "qsharp-vscode",
+  "displayName": "Q# (new)",
+  "description": "Q# Language Support",
   "version": "0.0.0",
   "publisher": "quantum",
   "type": "module",

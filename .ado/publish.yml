@@ -14,7 +14,7 @@ trigger: none
 jobs:
 - job: "Publish"
   pool: 
-    vmImage: 'windows-latest'
+    vmImage: 'ubuntu-latest'
   steps:
   - task: UsePythonVersion@0
     inputs:
