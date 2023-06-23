@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, NodeId},
+    ast::{self, CallableDecl, Ident, NodeId},
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -14,7 +14,7 @@ use qsc_hir::{
     assigner::Assigner,
     global,
     hir::{self, ItemId, LocalItemId, PackageId},
-    ty::Prim,
+    ty::{ParamId, Prim},
 };
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -39,6 +39,8 @@ pub(super) enum Res {
     Item(ItemId),
     /// A local variable.
     Local(NodeId),
+    /// A type/functor parameter in the generics section of the parent callable decl.
+    Param(ParamId),
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -76,6 +78,7 @@ struct Scope {
     tys: HashMap<Rc<str>, ItemId>,
     terms: HashMap<Rc<str>, ItemId>,
     vars: HashMap<Rc<str>, NodeId>,
+    ty_vars: HashMap<Rc<str>, ParamId>,
 }
 
 impl Scope {
@@ -86,6 +89,7 @@ impl Scope {
             tys: HashMap::new(),
             terms: HashMap::new(),
             vars: HashMap::new(),
+            ty_vars: HashMap::new(),
         }
     }
 
@@ -178,8 +182,18 @@ impl Resolver {
         (self.names, self.errors)
     }
 
-    fn resolve(&mut self, kind: NameKind, path: &ast::Path) {
-        match resolve(kind, &self.globals, &self.scopes, path) {
+    fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
+        let namespace = None;
+        match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
+            Ok(id) => self.names.insert(name.id, id),
+            Err(err) => self.errors.push(err),
+        }
+    }
+
+    fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) {
+        let name = &path.name;
+        let namespace = &path.namespace;
+        match resolve(kind, &self.globals, &self.scopes, name, namespace) {
             Ok(id) => self.names.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
@@ -230,6 +244,17 @@ impl Resolver {
             }
             ast::ItemKind::Err => {}
         }
+    }
+
+    fn bind_type_parameters(&mut self, decl: &CallableDecl) {
+        decl.generics.iter().enumerate().for_each(|(ix, ident)| {
+            let scope = self
+                .scopes
+                .last_mut()
+                .expect("type parameters should have scope");
+            scope.ty_vars.insert(Rc::clone(&ident.name), ix.into());
+            self.names.insert(ident.id, Res::Param(ix.into()));
+        });
     }
 }
 
@@ -296,7 +321,9 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        self.with_pat(ScopeKind::Callable, &decl.input, |visitor| {
+        self.with_scope(ScopeKind::Callable, |visitor| {
+            visitor.resolver.bind_type_parameters(decl);
+            visitor.resolver.bind_pat(&decl.input);
             ast_visit::walk_callable_decl(visitor, decl);
         });
     }
@@ -312,10 +339,14 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
-        if let ast::TyKind::Path(path) = &*ty.kind {
-            self.resolver.resolve(NameKind::Ty, path);
-        } else {
-            ast_visit::walk_ty(self, ty);
+        match &*ty.kind {
+            ast::TyKind::Path(path) => {
+                self.resolver.resolve_path(NameKind::Ty, path);
+            }
+            ast::TyKind::Param(ident) => {
+                self.resolver.resolve_ident(NameKind::Ty, ident);
+            }
+            _ => ast_visit::walk_ty(self, ty),
         }
     }
 
@@ -373,7 +404,7 @@ impl AstVisitor<'_> for With<'_> {
                     visitor.visit_expr(output);
                 });
             }
-            ast::ExprKind::Path(path) => self.resolver.resolve(NameKind::Term, path),
+            ast::ExprKind::Path(path) => self.resolver.resolve_path(NameKind::Term, path),
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
                 self.visit_expr(container);
                 if !is_field_update(&self.resolver.globals, &self.resolver.scopes, index) {
@@ -497,7 +528,11 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
     // unqualified path that doesn't resolve to a local, assume that it's meant to be a field name.
     match &*index.kind {
         ast::ExprKind::Path(path) if path.namespace.is_none() => !matches!(
-            resolve(NameKind::Term, globals, scopes, path),
+            {
+                let name = &path.name;
+                let namespace = &path.namespace;
+                resolve(NameKind::Term, globals, scopes, name, namespace)
+            },
             Ok(Res::Local(_))
         ),
         _ => false,
@@ -567,23 +602,23 @@ fn resolve(
     kind: NameKind,
     globals: &GlobalScope,
     locals: &[Scope],
-    path: &ast::Path,
+    name: &Ident,
+    namespace: &Option<Box<Ident>>,
 ) -> Result<Res, Error> {
-    let name = path.name.name.as_ref();
-    let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let mut candidates = HashMap::new();
     let mut vars = true;
-
+    let name_str = &(*name.name);
+    let namespace = namespace.as_ref().map_or("", |i| &i.name);
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
-            if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name) {
+            if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
                 // Local declarations shadow everything.
                 return Ok(res);
             }
         }
 
         if let Some(namespaces) = scope.opens.get(namespace) {
-            candidates = resolve_explicit_opens(kind, globals, namespaces, name);
+            candidates = resolve_explicit_opens(kind, globals, namespaces, name_str);
             if !candidates.is_empty() {
                 // Explicit opens shadow prelude and unopened globals.
                 break;
@@ -598,7 +633,7 @@ fn resolve(
 
     if candidates.is_empty() && namespace.is_empty() {
         // Prelude shadows unopened globals.
-        let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name);
+        let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name_str);
         assert!(candidates.len() <= 1, "ambiguity in prelude resolution");
         if let Some(res) = single(candidates) {
             return Ok(res);
@@ -606,7 +641,7 @@ fn resolve(
     }
 
     if candidates.is_empty() {
-        if let Some(&res) = globals.get(kind, namespace, name) {
+        if let Some(&res) = globals.get(kind, namespace, name_str) {
             // An unopened global is the last resort.
             return Ok(res);
         }
@@ -616,18 +651,27 @@ fn resolve(
         let mut opens: Vec<_> = candidates.into_values().collect();
         opens.sort_unstable_by_key(|open| open.span);
         Err(Error::Ambiguous {
-            name: name.to_string(),
+            name: name_str.to_string(),
             first_open: opens[0].namespace.to_string(),
             second_open: opens[1].namespace.to_string(),
-            name_span: path.span,
+            name_span: name.span,
             first_open_span: opens[0].span,
             second_open_span: opens[1].span,
         })
     } else {
-        single(candidates.into_keys()).ok_or_else(|| Error::NotFound(name.to_string(), path.span))
+        single(candidates.into_keys())
+            .ok_or_else(|| Error::NotFound(name_str.to_string(), name.span))
     }
 }
 
+/// Implements shadowing rules within a single scope.
+/// A local variable always wins out against an item with the same name, if they're declared in
+/// the same scope. It is implemented in a way that resembles Rust:
+/// ```rust
+/// let foo = || 1;
+/// fn foo() -> i32 { 2 }
+/// dbg!(foo()); // 1, not 2
+/// ```
 fn resolve_scope_locals(
     kind: NameKind,
     globals: &GlobalScope,
@@ -636,8 +680,17 @@ fn resolve_scope_locals(
     name: &str,
 ) -> Option<Res> {
     if vars {
-        if let Some(&id) = scope.vars.get(name) {
-            return Some(Res::Local(id));
+        match kind {
+            NameKind::Term => {
+                if let Some(&id) = scope.vars.get(name) {
+                    return Some(Res::Local(id));
+                }
+            }
+            NameKind::Ty => {
+                if let Some(&id) = scope.ty_vars.get(name) {
+                    return Some(Res::Param(id));
+                }
+            }
         }
     }
 

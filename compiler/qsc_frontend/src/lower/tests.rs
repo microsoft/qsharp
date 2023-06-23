@@ -1583,3 +1583,29 @@ fn item_docs() {
                         ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn nested_params() {
+    check_hir(
+        "namespace Test { function Foo<'T>(f: 'T => ()) : () { } }",
+        &expect![[r#"
+            Package:
+                Item 0 [0-57] (Public):
+                    Namespace (Ident 6 [10-14] "Test"): Item 1
+                Item 1 [17-55] (Public):
+                    Parent: 0
+                    Callable 0 [17-55] (function):
+                        name: Ident 1 [26-29] "Foo"
+                        generics:
+                            0: type
+                            1: functor (empty set)
+                        input: Pat 2 [34-45] [Type ('0 => Unit is 1)]: Bind: Ident 3 [34-35] "f"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [17-55]: Impl:
+                            Block 5 [52-55]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
