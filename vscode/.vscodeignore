@@ -2,3 +2,4 @@ src/**
 .gitignore
 tsconfig.json
 **/*.map
+../**/*
