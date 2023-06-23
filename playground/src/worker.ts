@@ -1,3 +1,3 @@
-import { compilerMessageHandler } from "qsharp/worker";
+import { messageHandler } from "qsharp/worker";
 
-self.onmessage = compilerMessageHandler;
+self.onmessage = messageHandler;
