@@ -232,21 +232,43 @@ function buildKatasContentJs(katasPath, outputPath) {
 
 buildKatasContentJs(katasContentPath, katasGeneratedContentPath);
 
-function generateKataSections(markdown) {
-  const macroRegex = /@\[\w+\]\([^@]+\)\s+/g;
-  let matchArray;
-  let currentIndex = 0;
-  const sections = [];
-  while ((matchArray = macroRegex.exec(markdown)) !== null) {
-    let delta = matchArray.index - currentIndex;
-    if (delta > 0) {
-      // TODO: Create Text section.
-      sections.push(markdown.substring(currentIndex, matchArray.index));
-    }
+function generateTextSection(markdown) {
+  const html = marked.parse(markdown);
+  return {
+    type: "text",
+    contentAsMarkdown: markdown,
+    contentAsHtml: html,
+  };
+}
 
-    // TODO: Create macro section.
-    sections.push(matchArray[0]);
-    currentIndex = macroRegex.lastIndex;
+function generateSections(markdown) {
+  const sections = [];
+  const macroRegex = /@\[\w+\]\([^@]+\)\s+/g;
+  let latestProcessedIndex = 0;
+  while (latestProcessedIndex < markdown.length) {
+    const matchArray = macroRegex.exec(markdown);
+    if (matchArray !== null) {
+      // If there is something between the last processed index and the start of the match, create a text section for
+      // it.
+      const delta = matchArray.index - latestProcessedIndex;
+      if (delta > 0) {
+        const textSection = generateTextSection(
+          markdown.substring(latestProcessedIndex, matchArray.index)
+        );
+        sections.push(textSection);
+      }
+
+      // TODO: Create macro section.
+      sections.push(matchArray[0]);
+      latestProcessedIndex = macroRegex.lastIndex;
+    } else {
+      // No more matches were found, create a text section with the remaining content.
+      const textSection = generateTextSection(
+        markdown.substring(latestProcessedIndex, markdown.length)
+      );
+      sections.push(textSection);
+      latestProcessedIndex = markdown.length;
+    }
   }
 
   return sections;
@@ -262,7 +284,7 @@ function generateKataContent(path) {
   }
 
   const katasMarkdown = readFileSync(indexFilePath, "utf8");
-  const sections = generateKataSections(katasMarkdown);
+  const sections = generateSections(katasMarkdown);
   return {
     id: kataId,
     sections: sections,
