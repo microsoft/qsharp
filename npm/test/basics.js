@@ -6,29 +6,25 @@
 import assert from "node:assert";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
-import { getCompiler, getCompilerWorker } from "../dist/main.js";
-import { QscEventTarget } from "../dist/events.js";
+import {
+  getCompiler,
+  getCompilerWorker,
+  getLanguageService,
+  getLanguageServiceWorker,
+} from "../dist/main.js";
+import { QscEventTarget } from "../dist/compiler/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
 
-/**
- *
- * @param {string} code
- * @param {string} expr
- * @param {boolean} useWorker
- * @returns {Promise<import("../dist/common.js").ShotResult>}
- */
 export function runSingleShot(code, expr, useWorker) {
   return new Promise((resolve, reject) => {
     const resultsHandler = new QscEventTarget(true);
-    const compiler = useWorker
-      ? getCompilerWorker(resultsHandler)
-      : getCompiler(resultsHandler);
+    const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
     compiler
-      .run(code, expr, 1)
+      .run(code, expr, 1, resultsHandler)
       .then(() => resolve(resultsHandler.getResults()[0]))
       .catch((err) => reject(err))
       /* @ts-expect-error: ICompiler does not include 'terminate' */
@@ -64,25 +60,35 @@ namespace Test {
 });
 
 test("one syntax error", async () => {
-  const evtTarget = new QscEventTarget(true);
-  evtTarget.addEventListener("diagnostics", (evt) => {
-    diagnostics = true;
-    assert.equal(evt.detail.diagnostics.length, 1);
-    assert.equal(evt.detail.diagnostics[0].start_pos, 14);
-    assert.equal(evt.detail.diagnostics[0].end_pos, 15);
-  });
-  const compiler = getCompiler(evtTarget);
-  let diagnostics = false;
-  await compiler.updateDocument("<buffer>", 1, "namespace Foo []");
-  assert(diagnostics);
+  const compiler = getCompiler();
+
+  const diags = await compiler.checkCode("namespace Foo []");
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].start_pos, 14);
+  assert.equal(diags[0].end_pos, 15);
+});
+
+test("error with newlines", async () => {
+  const compiler = getCompiler();
+
+  const diags = await compiler.checkCode(
+    "namespace input { operation Foo(a) : Unit {} }"
+  );
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].start_pos, 32);
+  assert.equal(diags[0].end_pos, 33);
+  assert.equal(
+    diags[0].message,
+    "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations"
+  );
 });
 
 test("completions include CNOT", async () => {
-  const compiler = getCompiler(new QscEventTarget(false));
-  await compiler.updateDocument("<source>", 1, "");
-  let results = await compiler.getCompletions("<source>", "", 0);
+  const compiler = getCompiler();
+
+  let results = await compiler.getCompletions();
   let cnot = results.items.find((x) => x.label === "CNOT");
-  assert.ok(cnot, `items are ${results.items.map((i) => i.label).join(", ")}`);
+  assert.ok(cnot);
 });
 
 test("dump and message output", async () => {
@@ -113,27 +119,21 @@ test("type error", async () => {
             return [m1];
         }
     }`;
-  const evtTarget = new QscEventTarget(true);
-  evtTarget.addEventListener("diagnostics", (evt) => {
-    diagnostics = true;
-    const diags = evt.detail;
-    assert.equal(diags.diagnostics.length, 1);
-    assert.equal(diags.diagnostics[0].start_pos, 99);
-    assert.equal(diags.diagnostics[0].end_pos, 105);
-    assert.equal(
-      diags.diagnostics[0].message,
-      "type error: expected (Double, Qubit), found Qubit"
-    );
-  });
-  const compiler = getCompiler(evtTarget);
-  let diagnostics = false;
-  await compiler.updateDocument("<buffer>", 1, code);
-  assert(diagnostics);
+  const compiler = getCompiler();
+  let result = await compiler.checkCode(code);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].start_pos, 99);
+  assert.equal(result[0].end_pos, 105);
+  assert.equal(
+    result[0].message,
+    "type error: expected (Double, Qubit), found Qubit"
+  );
 });
 
 test("kata success", async () => {
   const evtTarget = new QscEventTarget(true);
-  const compiler = getCompiler(evtTarget);
+  const compiler = getCompiler();
   const code = `
 namespace Kata {
   operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
@@ -146,7 +146,7 @@ namespace Kata {
   assert(firstExercise.type === "exercise");
   const verifyCode = firstExercise.verificationImplementation;
 
-  const passed = await compiler.runKata(code, verifyCode);
+  const passed = await compiler.runKata(code, verifyCode, evtTarget);
   const results = evtTarget.getResults();
 
   assert(results.length === 1);
@@ -156,7 +156,7 @@ namespace Kata {
 
 test("kata incorrect", async () => {
   const evtTarget = new QscEventTarget(true);
-  const compiler = getCompilerWorker(evtTarget);
+  const compiler = getCompilerWorker();
   const code = `
 namespace Kata {
   operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
@@ -168,7 +168,7 @@ namespace Kata {
   assert(firstExercise.type === "exercise");
   const verifyCode = firstExercise.verificationImplementation;
 
-  const passed = await compiler.runKata(code, verifyCode);
+  const passed = await compiler.runKata(code, verifyCode, evtTarget);
   const results = evtTarget.getResults();
   compiler.terminate();
 
@@ -179,7 +179,7 @@ namespace Kata {
 
 test("kata syntax error", async () => {
   const evtTarget = new QscEventTarget(true);
-  const compiler = getCompiler(evtTarget);
+  const compiler = getCompiler();
   const code = `
 namespace Kata {
   operaion ApplyY(q : Qubit) : Unt is Adj + Ctl {
@@ -191,7 +191,7 @@ namespace Kata {
   assert(firstExercise.type === "exercise");
   const verifyCode = firstExercise.verificationImplementation;
 
-  await compiler.runKata(code, verifyCode);
+  await compiler.runKata(code, verifyCode, evtTarget);
   const results = evtTarget.getResults();
 
   assert.equal(results.length, 1);
@@ -210,23 +210,17 @@ test("worker check", async () => {
             return [m1];
         }
     }`;
-  const evtTarget = new QscEventTarget(true);
-  evtTarget.addEventListener("diagnostics", (evt) => {
-    diagnostics = true;
-    const diags = evt.detail;
-    assert.equal(diags.diagnostics.length, 1);
-    assert.equal(diags.diagnostics[0].start_pos, 99);
-    assert.equal(diags.diagnostics[0].end_pos, 105);
-    assert.equal(
-      diags.diagnostics[0].message,
-      "type error: expected (Double, Qubit), found Qubit"
-    );
-  });
-  const compiler = getCompilerWorker(evtTarget);
-  let diagnostics = false;
-  await compiler.updateDocument("<buffer>", 1, code);
+  const compiler = getCompilerWorker();
+  let result = await compiler.checkCode(code);
   compiler.terminate();
-  assert(diagnostics);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].start_pos, 99);
+  assert.equal(result[0].end_pos, 105);
+  assert.equal(
+    result[0].message,
+    "type error: expected (Double, Qubit), found Qubit"
+  );
 });
 
 test("worker 100 shots", async () => {
@@ -240,8 +234,8 @@ test("worker 100 shots", async () => {
   let expr = `Test.Answer()`;
 
   const resultsHandler = new QscEventTarget(true);
-  const compiler = getCompilerWorker(resultsHandler);
-  await compiler.run(code, expr, 100);
+  const compiler = getCompilerWorker();
+  await compiler.run(code, expr, 100, resultsHandler);
   compiler.terminate();
 
   const results = resultsHandler.getResults();
@@ -255,28 +249,23 @@ test("worker 100 shots", async () => {
 });
 
 test("Run samples", async () => {
+  const compiler = getCompilerWorker();
   const resultsHandler = new QscEventTarget(true);
-  const compiler = getCompilerWorker(resultsHandler);
 
   for await (const sample of samples) {
-    await compiler.run(sample.code, "", 1);
+    await compiler.run(sample.code, "", 1, resultsHandler);
   }
 
   compiler.terminate();
   assert.equal(resultsHandler.resultCount(), samples.length);
-  resultsHandler.getResults().forEach((result, i) => {
-    assert(
-      result.success,
-      `sample ${i}: ${samples[i].title} failed, result: ${JSON.stringify(
-        result.result
-      )}`
-    );
+  resultsHandler.getResults().forEach((result) => {
+    assert(result.success);
   });
 });
 
 test("state change", async () => {
+  const compiler = getCompilerWorker();
   const resultsHandler = new QscEventTarget(false);
-  const compiler = getCompilerWorker(resultsHandler);
   const stateChanges = [];
 
   compiler.onstatechange = (state) => {
@@ -289,7 +278,7 @@ test("state change", async () => {
         return M(q1);
     }
   }`;
-  await compiler.run(code, "", 10);
+  await compiler.run(code, "", 10, resultsHandler);
   compiler.terminate();
   // There SHOULDN'T be a race condition here between the 'run' promise completing and the
   // statechange events firing, as the run promise should 'resolve' in the next microtask,
@@ -313,14 +302,14 @@ test("cancel worker", () => {
     }`;
 
     const cancelledArray = [];
-    const evtTarget = new QscEventTarget(false);
-    const compiler = getCompilerWorker(evtTarget);
+    const compiler = getCompilerWorker();
+    const resultsHandler = new QscEventTarget(false);
 
     // Queue some tasks that will never complete
-    compiler.run(code, "", 10).catch((err) => {
+    compiler.run(code, "", 10, resultsHandler).catch((err) => {
       cancelledArray.push(err);
     });
-    compiler.updateDocument("<buffer>", 1, code).catch((err) => {
+    compiler.checkCode(code).catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -330,19 +319,12 @@ test("cancel worker", () => {
       compiler.terminate();
 
       // Start a new compiler and ensure that works fine
-      const compiler2 = getCompilerWorker(evtTarget);
-      evtTarget.addEventListener("diagnostics", (evt) => {
-        diagnostics = true;
-        // New 'check' result is good
-        assert(
-          Array.isArray(evt.detail.diagnostics) &&
-            evt.detail.diagnostics.length === 0
-        );
-      });
-      let diagnostics = false;
-      await compiler2.updateDocument("<buffer>", 1, code);
+      const compiler2 = getCompilerWorker();
+      const result = await compiler2.checkCode(code);
       compiler2.terminate();
-      assert(diagnostics);
+
+      // New 'check' result is good
+      assert(Array.isArray(result) && result.length === 0);
 
       // Old requests were cancelled
       assert(cancelledArray.length === 2);
@@ -351,4 +333,54 @@ test("cancel worker", () => {
       resolve(null);
     }, 4);
   });
+});
+
+test("language service diagnostics", async () => {
+  const languageService = getLanguageService();
+  languageService.addEventListener("diagnostics", (event) => {
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: expected (Double, Qubit), found Qubit"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+  );
+});
+
+test("language service diagnostics - web worker", async () => {
+  const languageService = getLanguageServiceWorker();
+  languageService.addEventListener("diagnostics", (event) => {
+    log.info("did receive diagnostics event");
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: expected (Double, Qubit), found Qubit"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+  );
+  languageService.terminate();
 });

@@ -1,6 +1,6 @@
 # qsharp npm module
 
-This package contains the qsharp compiler functionality shipped for consumption via npm.
+This package contains the qsharp compiler and language service functionality shipped for consumption via npm.
 
 The source is written in TypeScript, which is compiled to ECMAScript modules in the ./dist directory.
 The wasm binaries from the Rust builds are copied to the ./lib directory.
@@ -36,41 +36,53 @@ the browser (see <https://esbuild.github.io/api/#how-conditions-work>).
 
 ## Design
 
-The API for using this module is similar whether using a browser or Node.js, and whether running
-in the main thread or a worker thread. You instantiate the compiler, and call operations on it
+This package provides two services, the compiler and the language service.
+
+The API for using these
+services is similar whether using a browser or Node.js, and whether running
+in the main thread or a worker thread. You instantiate the service, and call operations on it
 which complete in the order called.
 
 All operations return a Promise which resolves then the operation is complete. Some operations
-may also emit events, such as debug messages or state dumps as they are processed. A call may
-also be passed a CancellationToken so that if the result is no longer needed then the operation
-may be cancelled before starting.
+may also emit events, such as debug messages or state dumps as they are processed. The service
+itself can also emit events which can be subscribed to using `addEventListener`.
 
-If the caller is not interested in any interim events or being able to cancel the request,
-these arguments are optional. For example:
+`ICompiler` usage example:
 
 ```js
 const codeSample = "namespace Test { operation Main() {....} }";
 const entryPoint = "Test.Main()";
 
-const compiler  = getCompilerWorker();
-const cancelSrc = new CancellationTokenSource();
+const compiler = getCompilerWorker();
 const runEvents = new QscEventTarget(false /* store record of events */);
 
 // Log any DumpMachine calls
-runEvents.addEventListener('DumpMachine', (evt) => console.log("DumpMachine: %o", evt.detail));
+runEvents.addEventListener("DumpMachine", (evt) =>
+  console.log("DumpMachine: %o", evt.detail)
+);
 
-compiler.run(codeSample, entryPoint, 1 /* shots */, runEvents, cancelSrc.token)
-        .then(result => console.log("Run result: %s", result));
-        .catch(err => console.err("Run failed with: %o", err));
+compiler
+  .run(codeSample, entryPoint, 1 /* shots */, runEvents)
+  .then((result) => console.log("Run result: %s", result))
+  .catch((err) => console.error("Run failed with: %o", err));
 
-cancelButton.addEventListener('click', () => {
-    // Try to cancel the operation if still pending
-    tokenSource.cancel();
+// Also run the below request, which only returns a result but emits no events
+const checkResult = await compiler.checkCode(codeSample);
+console.log("check result was: %o", checkResult);
+```
+
+`ILanguageService` usage example:
+
+```js
+const codeSample = "namespace Test { operation Main() {....} }";
+const languageService = getLanguageServiceWorker();
+
+languageService.addEventListener("diagnostics", (event) => {
+  console.log("language service reported errors: %o", event.detail.diagnostics);
 });
 
-// Also run the below request, but don't care about events or cancellation, just the result
-const checkResult = await compiler.check(code);
-console.log('check result was: %o', checkResult);
+// Update the document contents in response to changes in the editor
+languageService.updateDocument("test.qs", 1, codeSample);
 ```
 
 Promises, Events, and Cancellation are based on JavaScript or Web standards, or the VS Code API:

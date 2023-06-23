@@ -1,18 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// Each DumpMachine output is represented as an object where each key is a basis
-// state, e.g., "|3>" and the value is the [real, imag] parts of the complex amplitude.
-export type Dump = {
-  [index: string]: [number, number];
-};
-
-export type Diagnostics = {
-  uri: string;
-  version: number;
-  diagnostics: VSDiagnostic[];
-};
-
 export interface VSDiagnostic {
   start_pos: number;
   end_pos: number;
@@ -23,101 +11,6 @@ export interface VSDiagnostic {
     target: string;
   };
 }
-
-export type Result =
-  | { success: true; value: string }
-  | { success: false; value: VSDiagnostic };
-
-export interface DumpMsg {
-  type: "DumpMachine";
-  state: Dump;
-}
-
-export interface MessageMsg {
-  type: "Message";
-  message: string;
-}
-
-export interface ResultMsg {
-  type: "Result";
-  result: Result;
-}
-
-export interface DiagnosticsMsg {
-  type: "diagnostics";
-  diagnostics: Diagnostics;
-}
-
-export type EventMsg = ResultMsg | DumpMsg | MessageMsg | DiagnosticsMsg;
-
-function outputAsResult(msg: string): ResultMsg | null {
-  try {
-    const obj = JSON.parse(msg);
-    if (obj?.type == "Result" && typeof obj.success == "boolean") {
-      return {
-        type: "Result",
-        result: {
-          success: obj.success,
-          value: obj.result,
-        },
-      };
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function outputAsMessage(msg: string): MessageMsg | null {
-  try {
-    const obj = JSON.parse(msg);
-    if (obj?.type == "Message" && typeof obj.message == "string") {
-      return obj as MessageMsg;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function outputAsDump(msg: string): DumpMsg | null {
-  try {
-    const obj = JSON.parse(msg);
-    if (obj?.type == "DumpMachine" && typeof obj.state == "object") {
-      return obj as DumpMsg;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-export function outputAsDiagnostics(msg: string): DiagnosticsMsg | null {
-  try {
-    const obj = JSON.parse(msg);
-    if (obj?.type === "diagnostics" && typeof obj.diagnostics == "object") {
-      return obj as DiagnosticsMsg;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-export function eventStringToMsg(msg: string): EventMsg | null {
-  return (
-    outputAsResult(msg) ||
-    outputAsMessage(msg) ||
-    outputAsDump(msg) ||
-    outputAsDiagnostics(msg)
-  );
-}
-
-export type ShotResult = {
-  success: boolean;
-  result: string | VSDiagnostic;
-  events: Array<MessageMsg | DumpMsg>;
-};
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]
 // index), however VS Code and Monaco handle positions as utf-16 code unit positions
