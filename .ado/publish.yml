@@ -30,7 +30,7 @@ jobs:
     displayName: Build VSCode Extension
       
   - script: |
-      copy ..\LICENSE.txt .
+      cp ..\LICENSE.txt .
       vsce package $(Ver.Major).$(Ver.Minor).$(Ver.Patch)
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
@@ -42,7 +42,7 @@ jobs:
 
   - script: |
       dir
-      type pub.log
+      cat pub.log
     displayName: If failed, display VSCode Publishing Results
     condition: failed()
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
