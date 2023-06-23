@@ -10,6 +10,7 @@ variables:
 name: $(BuildId)
 
 trigger: none
+pr: none
 
 jobs:
 - job: "Publish"
