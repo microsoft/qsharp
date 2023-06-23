@@ -1,6 +1,6 @@
 {
   "name": "qsharp-vscode",
-  "displayName": "Q# (new)",
+  "displayName": "Q# (preview)",
   "description": "Q# Language Support",
   "version": "0.0.0",
   "publisher": "quantum",
