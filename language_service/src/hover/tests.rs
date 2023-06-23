@@ -17,11 +17,8 @@ fn hover_callable() {
     "#,
         Some(indoc!(
             r#"```qsharp
-        operation Foo() : Unit
-        ```
-
-        Doc comment!
-
+            operation Foo() : Unit
+            ```
         "#
         )),
     );

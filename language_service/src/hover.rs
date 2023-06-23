@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
-use qsc::hir::{ty::Ty, visit::Visitor, CallableKind, Item, ItemKind};
+use qsc::hir::{ty::Ty, visit::Visitor, CallableDecl, CallableKind};
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
@@ -53,43 +53,39 @@ struct CallableFinder {
 }
 
 impl Visitor<'_> for CallableFinder {
-    fn visit_item(&mut self, item: &Item) {
-        if let ItemKind::Callable(decl) = &item.kind {
-            if span_contains(decl.name.span, self.offset) {
-                let kind = match decl.kind {
-                    CallableKind::Function => "function",
-                    CallableKind::Operation => "operation",
-                };
+    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        if span_contains(decl.name.span, self.offset) {
+            let kind = match decl.kind {
+                CallableKind::Function => "function",
+                CallableKind::Operation => "operation",
+            };
 
-                let header = format!(
-                    "```qsharp
+            // Doc comments would be formatted as markdown into this
+            // string once we're able to parse them out.
+            let header = format!(
+                "```qsharp
 {} {}{} : {}
 ```
-
-{}
-
 ",
-                    kind,
-                    decl.name.name,
-                    match &decl.input.ty {
-                        Ty::Tuple(items) => {
-                            // I'm just doing this so I can format Unit as ()
-                            if items.is_empty() {
-                                "()".to_string()
-                            } else {
-                                format!("{}", &decl.input.ty)
-                            }
+                kind,
+                decl.name.name,
+                match &decl.input.ty {
+                    Ty::Tuple(items) => {
+                        // I'm just doing this so I can format Unit as ()
+                        if items.is_empty() {
+                            "()".to_string()
+                        } else {
+                            format!("{}", &decl.input.ty)
                         }
-                        x => x.to_string(),
-                    },
-                    decl.output,
-                    item.doc
-                );
+                    }
+                    x => x.to_string(),
+                },
+                decl.output
+            );
 
-                self.header = Some(header);
-                self.start = decl.name.span.lo;
-                self.end = decl.name.span.hi;
-            }
+            self.header = Some(header);
+            self.start = decl.name.span.lo;
+            self.end = decl.name.span.hi;
         }
     }
 }
