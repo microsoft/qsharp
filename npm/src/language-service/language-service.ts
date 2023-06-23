@@ -39,6 +39,7 @@ export interface ILanguageService {
     documentUri: string,
     offset: number
   ): Promise<IDefinition | null>;
+  dispose(): Promise<void>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
@@ -66,8 +67,6 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService = new wasm.LanguageService(
       this.onDiagnostics.bind(this)
     );
-    // TODO: languageService needs to be disposed of with free(), but not sure
-    // what an appropriate point would be yet.
   }
 
   async updateDocument(
@@ -127,6 +126,10 @@ export class QSharpLanguageService implements ILanguageService {
       ];
     }
     return result;
+  }
+
+  async dispose() {
+    this.languageService.free();
   }
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
