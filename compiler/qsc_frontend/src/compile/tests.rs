@@ -248,7 +248,7 @@ fn entry_error() {
 
     let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert_eq!(
-        ("<entry>", Span { lo: 0, hi: 5 }),
+        ("<entry>", Span { lo: 4, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
     );
 }

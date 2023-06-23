@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Katas;
 
     operation GlobalPhaseIReference(q : Qubit) : Unit is Adj + Ctl {
         X(q);
@@ -8,50 +8,19 @@ namespace Kata {
         Y(q);
     }
 
-    operation Verify() : Bool {
-        let task = GlobalPhaseI;
-        let taskRef = GlobalPhaseIReference;
+    operation VerifyExercise() : Bool {
+        let isCorrect = VerifySingleQubitOperation(GlobalPhaseI, GlobalPhaseIReference);
 
-        mutable isCorrect = false;
-
-        // Explicit scopes are used to make output from DumpMachine calls more useful.
-        {
-            use (ctl, target) = (Qubit(), Qubit());
-            within {
-                H(ctl);
-            }
-            apply {
-                Controlled task([ctl], target);
-                Adjoint Controlled taskRef([ctl], target);
-            }
-            set isCorrect = CheckAllZero([ctl, target]);
-            ResetAll([ctl, target]);
-        }
-
+        // Output different feedback to the user depending on whether the exercise was correct.
+        use target = Qubit[1];
+        let op = register => GlobalPhaseI(register[0]);
+        let reference = register => GlobalPhaseIReference(register[0]);
         if isCorrect {
-            use target = Qubit();
-            task(target);
-            Message("Qubit state after applying a global phase to the |0⟩ state:");
-            DumpMachine();
-            Reset(target);
+            ShowEffectOnQuantumState(target, op);
         } else {
-            {
-                use expected = Qubit();
-                taskRef(expected);
-                Message("Expected state after applying operation:");
-                DumpMachine();
-                Reset(expected);
-            }
-
-            {
-                use actual = Qubit();
-                task(actual);
-                Message("Actual state after applying operation:");
-                DumpMachine();
-                Reset(actual);
-            }
+            ShowQuantumStateComparison(target, op, reference);
         }
 
-        return isCorrect;
+        isCorrect
     }
 }

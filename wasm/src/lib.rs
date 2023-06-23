@@ -2,18 +2,18 @@
 // Licensed under the MIT License.
 
 use crate::language_service::VSDiagnostic;
-use katas::{run_kata, KATA_ENTRY};
+use katas::verify_exercise;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
     compile,
+    hir::PackageId,
     interpret::{
         output::{self, Receiver},
         stateless,
     },
     PackageStore, SourceMap,
 };
-use qsc_hir::hir::PackageId;
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -25,19 +25,37 @@ pub fn git_hash() -> JsValue {
     JsValue::from_str(env!("QSHARP_GIT_HASH"))
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const IDiagnostic: &'static str = r#"
-export interface IDiagnostic {
-    start_pos: number;
-    end_pos: number;
-    message: string;
-    severity: "error" | "warning" | "info"
-    code?: {
-        value: number;  // Can also be a string, but number would be preferable
-        target: string; // URI for more info - could be a custom URI for pretty errors
+impl VSDiagnostic {
+    pub fn json(&self) -> serde_json::Value {
+        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
     }
 }
-"#;
+
+fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
+    thread_local! {
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new(compile::core());
+            let std = store.insert(compile::std(&store));
+            (store, std)
+        };
+    }
+
+    STORE_STD.with(|(store, std)| {
+        let sources = SourceMap::new([("code".into(), code.into())], None);
+        let (unit, errors) = compile::compile(store, &[*std], sources);
+        (
+            unit.package,
+            errors.into_iter().map(|error| (&error).into()).collect(),
+        )
+    })
+}
+
+#[wasm_bindgen]
+pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
+    let (package, _) = compile(code);
+    let hir = package.to_string();
+    Ok(serde_wasm_bindgen::to_value(&hir)?)
+}
 
 struct CallbackReceiver<F>
 where
@@ -128,32 +146,6 @@ where
 }
 
 #[wasm_bindgen]
-pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
-    let (package, _) = compile(code);
-    let hir = package.to_string();
-    Ok(serde_wasm_bindgen::to_value(&hir)?)
-}
-
-fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
-    thread_local! {
-        static STORE_STD: (PackageStore, PackageId) = {
-            let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store));
-            (store, std)
-        };
-    }
-
-    STORE_STD.with(|(store, std)| {
-        let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (unit, errors) = compile::compile(store, &[*std], sources);
-        (
-            unit.package,
-            errors.into_iter().map(|error| (&error).into()).collect(),
-        )
-    })
-}
-
-#[wasm_bindgen]
 pub fn run(
     code: &str,
     expr: &str,
@@ -180,27 +172,25 @@ pub fn run(
 
 fn run_kata_exercise_internal(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
-    let sources = SourceMap::new(
-        [
-            ("kata".into(), kata_implementation.into()),
+    verify_exercise(
+        vec![
+            ("exercise".into(), exercise_implementation.into()),
             ("verifier".into(), verification_source.into()),
         ],
-        Some(KATA_ENTRY.into()),
-    );
-
-    run_kata(sources, &mut CallbackReceiver { event_cb })
+        &mut CallbackReceiver { event_cb },
+    )
 }
 
 #[wasm_bindgen]
 pub fn run_kata_exercise(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, kata_implementation, |msg: &str| {
+    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
@@ -218,30 +208,16 @@ pub fn run_kata_exercise(
 
 #[cfg(test)]
 mod test {
-    use qsc::compile::Error;
-
-    use crate::VSDiagnostic;
-
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
-        let mut error_callback_called = false;
-        {
-            let mut lang_serv = qsls::LanguageService::new(
-                |_: &str, _: u32, diagnostics: &[Error]| {
-                    error_callback_called = true;
-                    assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
-                    let err = diagnostics.first().unwrap();
-                    let diag = VSDiagnostic::from(err);
+        let (_, diag) = crate::compile(code);
+        assert_eq!(diag.len(), 1, "{diag:#?}");
+        let err = diag.first().unwrap();
 
-                    assert_eq!(diag.start_pos, 32);
-                    assert_eq!(diag.end_pos, 33);
-                    assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
-                },
-            );
-            lang_serv.update_document("<code>", 1, code);
-        }
-        assert!(error_callback_called)
+        assert_eq!(err.start_pos, 32);
+        assert_eq!(err.end_pos, 33);
+        assert_eq!(err.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -268,28 +244,28 @@ mod test {
         assert_eq!(count.get(), 2);
     }
 
-    // #[test]
-    // fn fail_ry() {
-    //     let code = "namespace Sample {
-    //         operation main() : Result[] {
-    //             use q1 = Qubit();
-    //             Ry(q1);
-    //             let m1 = M(q1);
-    //             return [m1];
-    //         }
-    //     }";
+    #[test]
+    fn fail_ry() {
+        let code = "namespace Sample {
+            operation main() : Result[] {
+                use q1 = Qubit();
+                Ry(q1);
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
 
-    //     let errors = crate::check_code_internal(code);
-    //     assert_eq!(errors.len(), 1, "{errors:#?}");
+        let (_, errors) = crate::compile(code);
+        assert_eq!(errors.len(), 1, "{errors:#?}");
 
-    //     let error = errors.first().unwrap();
-    //     assert_eq!(error.start_pos, 111);
-    //     assert_eq!(error.end_pos, 117);
-    //     assert_eq!(
-    //         error.message,
-    //         "type error: expected (Double, Qubit), found Qubit"
-    //     );
-    // }
+        let error = errors.first().unwrap();
+        assert_eq!(error.start_pos, 111);
+        assert_eq!(error.end_pos, 117);
+        assert_eq!(
+            error.message,
+            "type error: expected (Double, Qubit), found Qubit"
+        );
+    }
 
     #[test]
     fn test_message() {

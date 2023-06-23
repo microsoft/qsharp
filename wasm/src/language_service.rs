@@ -1,52 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use log::{error, LevelFilter, Log};
 use miette::{Diagnostic, Severity};
 use qsc::compile;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::{fmt::Write, iter, panic, sync::OnceLock};
+use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
-
-struct Logger(js_sys::Function);
-// We'll always be on the same JavaScript thread where the logger function was passed in,
-// so let's pretend js_sys::Function is thread-safe to make set_hook() happy.
-unsafe impl Send for Logger {}
-unsafe impl Sync for Logger {}
-impl Log for Logger {
-    fn enabled(&self, _metadata: &log::Metadata) -> bool {
-        true
-    }
-
-    fn log(&self, record: &log::Record) {
-        self.0
-            .call1(&JsValue::NULL, &JsValue::from(format!("{}", record.args())))
-            .expect("logging callback should not fail");
-    }
-
-    fn flush(&self) {}
-}
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
-static LOGGER_SET: OnceLock<bool> = OnceLock::new();
-
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
-        if LOGGER_SET.set(true).is_ok() {
-            log::set_boxed_logger(Box::new(Logger(logger.clone())))
-                .expect("setting logger should succeed");
-            log::set_max_level(LevelFilter::Trace);
-        }
-
-        panic::set_hook(Box::new(|info: &panic::PanicInfo| {
-            error!("{}", info);
-        }));
-
+    pub fn new(diagnostics_callback: &js_sys::Function) -> Self {
         let diagnostics_callback = diagnostics_callback.clone();
         let inner = qsls::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
@@ -179,23 +146,34 @@ pub struct Span {
     pub end: u32,
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const IDiagnostic: &'static str = r#"
+export interface IDiagnostic {
+    start_pos: number;
+    end_pos: number;
+    message: string;
+    severity: "error" | "warning" | "info"
+    code?: {
+        value: string;
+        target: string;
+    }
+}
+"#;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VSDiagnosticCode {
+    value: String,
+    target: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
     pub message: String,
     pub severity: String,
-}
-
-impl VSDiagnostic {
-    pub fn json(&self) -> serde_json::Value {
-        json!({
-            "message": self.message,
-            "severity": self.severity,
-            "start_pos": self.start_pos,
-            "end_pos": self.end_pos
-        })
-    }
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<VSDiagnosticCode>,
 }
 
 impl<T> From<&T> for VSDiagnostic
@@ -214,23 +192,25 @@ where
         })
         .to_string();
 
-        let mut pre_message = err.to_string();
+        let mut message = err.to_string();
         for source in iter::successors(err.source(), |e| e.source()) {
-            write!(pre_message, ": {source}").expect("message should be writable");
+            write!(message, ": {source}").expect("message should be writable");
         }
         if let Some(help) = err.help() {
-            write!(pre_message, "\n\nhelp: {help}").expect("message should be writable");
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
         }
 
-        // Newlines in JSON need to be double escaped
-        // TODO: Maybe some other chars too: https://stackoverflow.com/a/5191059
-        let message = pre_message.replace('\n', "\\\\n");
+        let code = err.code().map(|code| VSDiagnosticCode {
+            value: code.to_string(),
+            target: "".to_string(),
+        });
 
         VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity,
             message,
+            code,
         }
     }
 }

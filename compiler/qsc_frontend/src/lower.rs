@@ -25,16 +25,22 @@ use thiserror::Error;
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
     #[diagnostic(help("supported attributes are: EntryPoint"))]
+    #[diagnostic(code("Qsc.LowerAst.UnknownAttr"))]
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
+    #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
     InvalidAttrArgs(&'static str, #[label] Span),
     #[error("missing callable body")]
+    #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
     MissingBody(#[label] Span),
     #[error("duplicate specialization")]
+    #[diagnostic(code("Qsc.LowerAst.DuplicateSpec"))]
     DuplicateSpec(#[label] Span),
     #[error("invalid use of elided pattern")]
+    #[diagnostic(code("Qsc.LowerAst.InvalidElidedPat"))]
     InvalidElidedPat(#[label] Span),
     #[error("invalid pattern for specialization declaration")]
+    #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
 }
 
@@ -679,7 +685,8 @@ impl With<'_> {
         match self.names.get(path.id) {
             Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
-            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) | None => hir::Res::Err,
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
+            | None => hir::Res::Err,
         }
     }
 

@@ -16,19 +16,14 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 js-sys = { workspace = true }
 katas = { path = "../katas"}
-log = { workspace = true, features = [ "std" ] }
 miette = { workspace = true}
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsls = { path = "../language_service" }
 qsc = { path = "../compiler/qsc" }
-qsc_hir = { path = "../compiler/qsc_hir" }
-qsc_frontend = { path = "../compiler/qsc_frontend" }
-qsc_data_structures = { path = "../compiler/qsc_data_structures" }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
-enum-iterator = { workspace = true }
 serde_json = { workspace = true }
 
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.

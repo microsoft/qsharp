@@ -77,6 +77,21 @@ test("one syntax error", async () => {
   assert(diagnostics);
 });
 
+test("error with newlines", async () => {
+  const compiler = getCompiler();
+
+  const diags = await compiler.checkCode(
+    "namespace input { operation Foo(a) : Unit {} }"
+  );
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].start_pos, 32);
+  assert.equal(diags[0].end_pos, 33);
+  assert.equal(
+    diags[0].message,
+    "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations"
+  );
+});
+
 test("completions include CNOT", async () => {
   const compiler = getCompiler(new QscEventTarget(false));
   await compiler.updateDocument("<source>", 1, "");
@@ -150,7 +165,7 @@ namespace Kata {
   const results = evtTarget.getResults();
 
   assert(results.length === 1);
-  assert(results[0].events.length === 2);
+  assert(results[0].events.length === 4);
   assert(passed);
 });
 
@@ -173,7 +188,7 @@ namespace Kata {
   compiler.terminate();
 
   assert(results.length === 1);
-  assert(results[0].events.length === 4);
+  assert(results[0].events.length === 6);
   assert(!passed);
 });
 

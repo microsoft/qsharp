@@ -639,7 +639,7 @@ fn binop_exp_bigint_negative_exp() {
         "2L^-3",
         &expect![[r#"
             (
-                Negative(
+                InvalidNegativeInt(
                     -3,
                     Span {
                         lo: 3,
@@ -708,7 +708,7 @@ fn binop_exp_int_negative_exp() {
         "2^-3",
         &expect![[r#"
             (
-                Negative(
+                InvalidNegativeInt(
                     -3,
                     Span {
                         lo: 2,
@@ -1354,7 +1354,7 @@ fn array_slice_out_of_range_expr() {
         "[1, 2, 3, 4, 5][0..7]",
         &expect![[r#"
             (
-                OutOfRange(
+                IndexOutOfRange(
                     5,
                     Span {
                         lo: 16,
@@ -1376,7 +1376,7 @@ fn array_index_negative_expr() {
         "[1, 2, 3][-2]",
         &expect![[r#"
             (
-                IndexVal(
+                InvalidIndex(
                     -2,
                     Span {
                         lo: 10,
@@ -1398,7 +1398,7 @@ fn array_index_out_of_range_expr() {
         "[1, 2, 3][4]",
         &expect![[r#"
             (
-                OutOfRange(
+                IndexOutOfRange(
                     4,
                     Span {
                         lo: 10,
@@ -1667,7 +1667,7 @@ fn update_invalid_index_range_expr() {
         "[1, 2, 3] w/ 7 <- 4",
         &expect![[r#"
             (
-                OutOfRange(
+                IndexOutOfRange(
                     7,
                     Span {
                         lo: 13,
@@ -1689,7 +1689,7 @@ fn update_invalid_index_negative_expr() {
         "[1, 2, 3] w/ -1 <- 4",
         &expect![[r#"
             (
-                Negative(
+                InvalidNegativeInt(
                     -1,
                     Span {
                         lo: 13,

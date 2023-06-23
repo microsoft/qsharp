@@ -937,18 +937,13 @@ dependencies = [
 name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
- "enum-iterator",
  "getrandom",
  "js-sys",
  "katas",
- "log",
  "miette",
  "num-bigint",
  "num-complex",
  "qsc",
- "qsc_data_structures",
- "qsc_frontend",
- "qsc_hir",
  "qsls",
  "serde",
  "serde-wasm-bindgen",

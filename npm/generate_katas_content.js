@@ -1,20 +1,46 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/**
+ * Katas Taxonomy
+ *
+ * A Kata is a top-level container of educational items (exercises and examples) which are used to explain a particular
+ * topic.
+ *
+ * This file builds the content for all the Katas. The katas ordering is conveyed by the katas.json file where each
+ * string in the array represents a folder that contains all the data to build the kata.
+ *
+ * Each Kata is organized in a directory where an index.md file, an items.json file, and multiple sub-directories are
+ * present. Each sub-directory represents an item within the Kata and its specific content depends on the type of item
+ * it represents.
+ */
+
 // @ts-check
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 
 import { marked } from "marked";
 
-import { katas } from "../katas/content/katas.js";
-
-const thisDir = dirname(fileURLToPath(import.meta.url));
-const katasContentDir = join(thisDir, "..", "katas", "content");
-const katasGeneratedContentDir = join(thisDir, "src");
+const scriptDirPath = dirname(fileURLToPath(import.meta.url));
+const katasContentPath = join(scriptDirPath, "..", "katas", "content");
+const katasGeneratedContentPath = join(scriptDirPath, "src");
+const contentFileNames = {
+  index: "index.md",
+  qsharpExample: "example.qs",
+  qsharpPlaceholder: "placeholder.qs",
+  qsharpSolution: "solution.qs",
+  qsharpVerify: "verify.qs",
+  textSolution: "solution.md",
+};
 
 function getTitleFromMarkdown(markdown) {
   const titleRe = /#+ /;
@@ -34,9 +60,15 @@ function getTitleFromMarkdown(markdown) {
   return firstLine.replace(titleRe, "");
 }
 
-function buildExampleContent(id, directory) {
-  const source = readFileSync(join(directory, "example.qs"), "utf8");
-  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+function buildExampleContent(id, path) {
+  const source = readFileSync(
+    join(path, contentFileNames.qsharpExample),
+    "utf8"
+  );
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -49,15 +81,29 @@ function buildExampleContent(id, directory) {
   };
 }
 
-function buildExerciseContent(id, directory) {
+function buildExerciseContent(id, path) {
   const placeholderSource = readFileSync(
-    join(directory, "placeholder.qs"),
+    join(path, contentFileNames.qsharpPlaceholder),
     "utf8"
   );
-  const referenceSource = readFileSync(join(directory, "reference.qs"), "utf8");
-  const verificationSource = readFileSync(join(directory, "verify.qs"), "utf8");
-  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+  const referenceSource = readFileSync(
+    join(path, contentFileNames.qsharpSolution),
+    "utf8"
+  );
+  const verificationSource = readFileSync(
+    join(path, contentFileNames.qsharpVerify),
+    "utf8"
+  );
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
+  const solutionAsMarkdown = readFileSync(
+    join(path, contentFileNames.textSolution),
+    "utf8"
+  );
+  const solutionAsHtml = marked.parse(solutionAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
     type: "exercise",
@@ -68,11 +114,16 @@ function buildExerciseContent(id, directory) {
     verificationImplementation: verificationSource,
     contentAsMarkdown: contentAsMarkdown,
     contentAsHtml: contentAsHtml,
+    solutionAsMarkdown: solutionAsMarkdown,
+    solutionAsHtml: solutionAsHtml,
   };
 }
 
-function buildReadingContent(id, directory) {
-  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+function buildReadingContent(id, path) {
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
@@ -84,33 +135,71 @@ function buildReadingContent(id, directory) {
   };
 }
 
-function buildItemContent(item, kataDir) {
-  const itemDir = join(kataDir, item.directory);
-  const itemId = `${basename(kataDir)}__${item.directory}`;
-  if (item.type === "example") {
-    return buildExampleContent(itemId, itemDir);
-  } else if (item.type === "exercise") {
-    return buildExerciseContent(itemId, itemDir);
-  } else if (item.type === "reading") {
-    return buildReadingContent(itemId, itemDir);
+function symmetricDifference(setA, setB) {
+  const difference = new Set(setA);
+  for (const elem of setB) {
+    if (difference.has(elem)) {
+      difference.delete(elem);
+    } else {
+      difference.add(elem);
+    }
   }
-
-  throw new Error(`Unknown module type ${item.type}`);
+  return difference;
 }
 
-function buildKataContent(kata, katasDir) {
-  const kataDir = join(katasDir, kata.directory);
-  let itemsContent = [];
-  for (const item of kata.items) {
-    const moduleContent = buildItemContent(item, kataDir);
-    itemsContent.push(moduleContent);
+function getItemType(path) {
+  const itemTypeFileSets = {
+    reading: new Set([contentFileNames.index]),
+    example: new Set([contentFileNames.index, contentFileNames.qsharpExample]),
+    exercise: new Set([
+      contentFileNames.index,
+      contentFileNames.qsharpPlaceholder,
+      contentFileNames.qsharpSolution,
+      contentFileNames.qsharpVerify,
+      contentFileNames.textSolution,
+    ]),
+  };
+
+  const itemFiles = new Set(readdirSync(path));
+  return Object.keys(itemTypeFileSets).find(function (key) {
+    const fileSet = itemTypeFileSets[key];
+    return symmetricDifference(fileSet, itemFiles).size === 0;
+  });
+}
+
+function buildItemContent(path) {
+  const itemId = `${basename(dirname(path))}__${basename(path)}`;
+  const itemType = getItemType(path);
+  if (itemType === "example") {
+    return buildExampleContent(itemId, path);
+  } else if (itemType === "exercise") {
+    return buildExerciseContent(itemId, path);
+  } else if (itemType === "reading") {
+    return buildReadingContent(itemId, path);
   }
 
-  const contentAsMarkdown = readFileSync(join(kataDir, "content.md"), "utf8");
+  throw new Error(`Unknown module type ${itemType}`);
+}
+
+function buildKataContent(path) {
+  const kataId = basename(path);
+  const itemsJson = readFileSync(join(path, "items.json"), "utf8");
+  const items = JSON.parse(itemsJson);
+  let itemsContent = [];
+  for (const item of items) {
+    const itemDir = join(path, item);
+    const itemContent = buildItemContent(itemDir);
+    itemsContent.push(itemContent);
+  }
+
+  const contentAsMarkdown = readFileSync(
+    join(path, contentFileNames.index),
+    "utf8"
+  );
   const contentAsHtml = marked.parse(contentAsMarkdown);
   const title = getTitleFromMarkdown(contentAsMarkdown);
   return {
-    id: kata.directory,
+    id: kataId,
     title: title,
     contentAsMarkdown: contentAsMarkdown,
     contentAsHtml: contentAsHtml,
@@ -118,19 +207,22 @@ function buildKataContent(kata, katasDir) {
   };
 }
 
-function buildKatasContentJs(katasDir, outDir) {
+function buildKatasContentJs(katasPath, outputPath) {
   console.log("Building katas content");
+  const katasJson = readFileSync(join(katasPath, "katas.json"), "utf8");
+  const katasDirs = JSON.parse(katasJson);
   var katasContent = [];
-  for (const kata of katas) {
-    var kataContent = buildKataContent(kata, katasDir);
+  for (const kataDir of katasDirs) {
+    const kataPath = join(katasPath, kataDir);
+    var kataContent = buildKataContent(kataPath);
     katasContent.push(kataContent);
   }
 
-  if (!existsSync(outDir)) {
-    mkdirSync(outDir);
+  if (!existsSync(outputPath)) {
+    mkdirSync(outputPath);
   }
 
-  const contentJsPath = join(outDir, "katas-content.generated.ts");
+  const contentJsPath = join(outputPath, "katas-content.generated.ts");
   writeFileSync(
     contentJsPath,
     "export const katas = " + inspect(katasContent, { depth: null }),
@@ -138,4 +230,4 @@ function buildKatasContentJs(katasDir, outDir) {
   );
 }
 
-buildKatasContentJs(katasContentDir, katasGeneratedContentDir);
+buildKatasContentJs(katasContentPath, katasGeneratedContentPath);
