@@ -6,15 +6,16 @@ import { log } from "../log.js";
 
 // Create strongly typed compiler events
 export type QscEventData =
-| { type: "Message", detail: string }
-| { type: "DumpMachine", detail: Dump }
-| { type: "Result", detail: Result }
+  | { type: "Message"; detail: string }
+  | { type: "DumpMachine"; detail: Dump }
+  | { type: "Result"; detail: Result };
 
 export type QscEvents = Event & QscEventData;
 
-export type QscUiEvents = QscEvents | Event & { type: "uiResultsRefresh", detail: undefined };
-
-export type QscEvent<T extends QscEvents["type"]> = Extract<QscEvents, { type: T }>;
+export type QscEvent<T extends QscEvents["type"]> = Extract<
+  QscEvents,
+  { type: T }
+>;
 
 // Strongly typed event target for compiler operations.
 export interface IQscEventTarget {
@@ -44,6 +45,16 @@ export function makeEvent<E extends QscEvents>(
 function makeResultObj(): ShotResult {
   return { success: false, result: "", events: [] };
 }
+
+// The actual event target implementation adds one more event type
+// to notify the UI that the results should be refreshed.
+// This event does not come from the compiler service itself
+// so it's not exposed as part of QscEvents or IQscEventTarget.
+// Direct consumers of QscEventTarget can attach a listener for
+// this event.
+type QscUiEvents =
+  | QscEvents
+  | (Event & { type: "uiResultsRefresh"; detail: undefined });
 
 export class QscEventTarget implements IQscEventTarget {
   private eventTarget = new EventTarget();

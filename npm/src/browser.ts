@@ -7,10 +7,7 @@
 import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
-import {
-  WorkerToMainMessage as CompilerResponseMsgType,
-  createCompilerProxy as createCompilerWorkerProxy,
-} from "./compiler/worker-common.js";
+import { createCompilerProxy } from "./compiler/worker-proxy.js";
 import {
   ResponseMsgType as LanguageServiceResponseMsgType,
   createWorkerProxy as createLanguageServiceWorkerProxy,
@@ -64,11 +61,14 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 
   // If you lose the 'this' binding, some environments have issues
   const postMessage = worker.postMessage.bind(worker);
-  const setMsgHandler = (handler: (e: CompilerResponseMsgType) => void) =>
-    (worker.onmessage = (ev) => handler(ev.data));
   const onTerminate = () => worker.terminate();
 
-  return createCompilerWorkerProxy(postMessage, setMsgHandler, onTerminate);
+  // Create the proxy which will forward method calls to the worker
+  const proxy = createCompilerProxy(postMessage, onTerminate);
+
+  // Let proxy handle response and event messages from the worker
+  worker.onmessage = (ev) => proxy.onMsgFromWorker(ev.data);
+  return proxy;
 }
 
 export async function getLanguageService(

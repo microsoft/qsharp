@@ -11,10 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
-import {
-  WorkerToMainMessage,
-  createCompilerProxy,
-} from "./compiler/worker-common.js";
+import { createCompilerProxy } from "./compiler/worker-proxy.js";
 
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
 // and not in the main thread.
@@ -33,14 +30,15 @@ export function getCompilerWorker(): ICompilerWorker {
     workerData: { qscLogLevel: log.getLogLevel() },
   });
 
-  // If you lose the 'this' binding, some environments have issues.
-  const postMessage = worker.postMessage.bind(worker);
-  const onTerminate = () => worker.terminate();
-
-  return createCompilerProxy(
-    postMessage,
-    (handler: (e: WorkerToMainMessage) => void) =>
-      worker.addListener("message", handler),
-    onTerminate
+  // Create the proxy which will forward method calls to the worker
+  const proxy = createCompilerProxy(
+    // If you lose the 'this' binding, some environments have issues.
+    worker.postMessage.bind(worker),
+    () => worker.terminate()
   );
+
+  // Let proxy handle response and event messages from the worker
+  worker.addListener("message", proxy.onMsgFromWorker);
+
+  return proxy;
 }

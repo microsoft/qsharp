@@ -9,15 +9,10 @@
 //     });
 
 import { isMainThread, parentPort, workerData } from "node:worker_threads";
-
 import * as wasm from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { Compiler } from "./compiler.js";
-import {
-  ICompilerMethodsOnly,
-  getWorkerEventHandlers
-} from "./worker-common.js";
-import { invokeWorkerMethod } from "../worker-common.js";
+import { createCompilerDispatcher } from "./worker-proxy.js";
 
 if (isMainThread)
   throw "Worker script should be loaded in a Worker thread only";
@@ -26,10 +21,11 @@ if (workerData && typeof workerData.qscLogLevel === "number") {
 }
 
 const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+
 const postMessage = port.postMessage.bind(port);
 
-const evtTarget = getWorkerEventHandlers(postMessage);
 const compiler = new Compiler(wasm);
+const invokeCompiler = createCompilerDispatcher(postMessage, compiler);
 
 function messageHandler(data: any) {
   if (!data.type || typeof data.type !== "string") {
@@ -37,7 +33,7 @@ function messageHandler(data: any) {
     return;
   }
 
-  invokeWorkerMethod(data, compiler as ICompilerMethodsOnly, postMessage, evtTarget);
+  invokeCompiler(data);
 }
 
 port.addListener("message", messageHandler);

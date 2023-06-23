@@ -6,6 +6,7 @@ import { log } from "../log.js";
 import { eventStringToMsg } from "./common.js";
 import { mapDiagnostics, VSDiagnostic } from "../vsdiagnostic.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
+import { IServiceProxy, ServiceState } from "../worker-proxy.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -13,7 +14,6 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
-export type CompilerState = "idle" | "busy";
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
@@ -29,11 +29,11 @@ export interface ICompiler {
     verify_code: string,
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
-  onstatechange: ((state: CompilerState) => void) | null;
 }
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
-export type ICompilerWorker = ICompiler & { terminate: () => void };
+export type ICompilerWorker = ICompiler & IServiceProxy;
+export type CompilerState = ServiceState;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function errToDiagnostic(err: any): VSDiagnostic {
@@ -57,8 +57,6 @@ function errToDiagnostic(err: any): VSDiagnostic {
 
 export class Compiler implements ICompiler {
   private wasm: Wasm;
-
-  onstatechange: ((state: CompilerState) => void) | null = null;
 
   constructor(wasm: Wasm) {
     log.info("Constructing a Compiler instance");
@@ -98,29 +96,24 @@ export class Compiler implements ICompiler {
     shots: number,
     eventHandler: IQscEventTarget
   ): Promise<void> {
-    log.debug("Running code...", typeof code, typeof expr, typeof eventHandler, typeof shots);
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
-    if (this.onstatechange) this.onstatechange("busy");
 
-          // 'run' can throw on compiler errors, which should be reported as events for
-          // each 'shot', so just resolve as run 'complete' regardless.
-          // TODO: this is refactoring of preexisting logic, but how well did it work really?
-      try {
-          this.wasm.run(
-      code,
-      expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler),
-      shots
-    );
-          } catch (e) {
-            log.warn('compiler run method threw', e)
-            return;
-          }
-
-          log.debug('compiler done ')
-    if (this.onstatechange) this.onstatechange("idle");
+    // 'run' can throw on compiler errors, which should be reported as events for
+    // each 'shot', so just resolve as run 'complete' regardless.
+    // TODO: this is refactoring of preexisting logic, but how well did it work really?
+    try {
+      this.wasm.run(
+        code,
+        expr,
+        (msg: string) => onCompilerEvent(msg, eventHandler),
+        shots
+      );
+    } catch (e) {
+      log.warn("compiler run method threw", e);
+      return;
+    }
   }
 
   async runKata(
@@ -131,7 +124,6 @@ export class Compiler implements ICompiler {
     let success = false;
     let err: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
-      if (this.onstatechange) this.onstatechange("busy");
       success = this.wasm.run_kata_exercise(
         verify_code,
         user_code,
@@ -140,7 +132,6 @@ export class Compiler implements ICompiler {
     } catch (e) {
       err = e;
     }
-    if (this.onstatechange) this.onstatechange("idle");
     // Currently the kata wasm doesn't emit the success/failure events, so do those here.
     if (!err) {
       const evt = makeEvent("Result", {
@@ -181,6 +172,6 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       log.never(msgType);
       throw "Unexpected message type";
   }
-  log.debug('worker dispatching event ' + JSON.stringify(qscEvent));
+  log.debug("worker dispatching event " + JSON.stringify(qscEvent));
   eventTarget.dispatchEvent(qscEvent);
 }
