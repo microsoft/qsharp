@@ -30,7 +30,7 @@ jobs:
     displayName: Build VSCode Extension
       
   - script: |
-      cp ..\LICENSE.txt .
+      cp ../LICENSE.txt .
       vsce package $(Ver.Major).$(Ver.Minor).$(Ver.Patch)
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
