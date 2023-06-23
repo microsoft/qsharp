@@ -233,6 +233,7 @@ function buildKatasContentJs(katasPath, outputPath) {
 buildKatasContentJs(katasContentPath, katasGeneratedContentPath);
 
 function generateKataContent(path) {
+  const kataId = basename(path);
   const indexFilePath = join(path, contentFileNames.index);
   if (!existsSync(indexFilePath)) {
     throw new Error(
@@ -240,8 +241,26 @@ function generateKataContent(path) {
     );
   }
 
-  const sections = [];
+  const katasMarkdown = readFileSync(indexFilePath, "utf8");
+  const macroRegex = /@\[\w+\]\([\S\s]+\)\s+/g;
+  var matchArray;
+  let currentIndex = 0;
+  const textSections = [];
+  while ((matchArray = macroRegex.exec(katasMarkdown)) !== null) {
+    console.log(``);
+    let delta = matchArray.index - currentIndex;
+    if (delta > 0) {
+      textSections.push(
+        katasMarkdown.substring(currentIndex, matchArray.index)
+      );
+    }
+    textSections.push(matchArray[0]);
+    currentIndex = macroRegex.lastIndex;
+  }
+
+  const sections = textSections;
   return {
+    id: kataId,
     sections: sections,
   };
 }
