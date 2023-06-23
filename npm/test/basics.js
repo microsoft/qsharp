@@ -384,3 +384,37 @@ test("language service diagnostics - web worker", async () => {
   );
   languageService.terminate();
 });
+async function testCompilerError(useWorker) {
+  const compiler = useWorker ? getCompilerWorker() : getCompiler();
+  compiler.onstatechange = (state) => {
+    lastState = state;
+  };
+  const events = new QscEventTarget(true);
+  let promiseResult = undefined;
+  let lastState = undefined;
+  await compiler
+    .run("invalid code", "", 1, events)
+    .then(() => {
+      promiseResult = "success";
+    })
+    .catch(() => {
+      promiseResult = "failure";
+    });
+
+  if (useWorker) {
+    // Resetting the state only works when using the worker.
+    // Not desired, but expected.
+    assert.equal(lastState, "idle");
+  }
+  assert.equal(promiseResult, "failure");
+  const results = events.getResults();
+  assert.equal(results.length, 1);
+  assert.equal(results[0].success, false);
+  if (useWorker) {
+    // @ts-expect-error terminate() only exists on the worker
+    compiler.terminate();
+  }
+}
+
+test("compiler error on run", () => testCompilerError(false));
+test("compiler error on run - worker", () => testCompilerError(true));
