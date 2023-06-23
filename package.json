@@ -3,8 +3,7 @@
   "workspaces": [
     "./npm",
     "./playground",
-    "./vscode",
-    "./lsp"
+    "./vscode"
   ],
   "license": "MIT",
   "engines": {
