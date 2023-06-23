@@ -8,4 +8,5 @@ pub mod global;
 pub mod hir;
 pub mod mut_visit;
 pub mod ty;
+pub mod validate;
 pub mod visit;

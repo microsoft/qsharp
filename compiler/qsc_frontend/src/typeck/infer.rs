@@ -6,8 +6,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     hir::{ItemId, PrimField, Res},
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericArg, InferFunctorId, InferTyId, ParamKind, Prim,
-        Scheme, Ty, Udt,
+        Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, InferFunctorId, InferTyId,
+        Prim, Scheme, Ty, Udt,
     },
 };
 use std::{
@@ -161,7 +161,7 @@ impl Class {
             Class::Integral(ty) if check_integral(&ty) => (Vec::new(), Vec::new()),
             Class::Integral(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassIntegral(ty, span))],
+                vec![Error(ErrorKind::MissingClassInteger(ty, span))],
             ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
             Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
@@ -336,12 +336,12 @@ impl Inferrer {
         let args: Vec<_> = scheme
             .params()
             .iter()
-            .map(|param| match param.kind {
-                ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
-                ParamKind::Functor(expected) => {
+            .map(|param| match param {
+                GenericParam::Ty => GenericArg::Ty(self.fresh_ty()),
+                GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
-                        expected,
+                        expected: *expected,
                         actual,
                         span,
                     });

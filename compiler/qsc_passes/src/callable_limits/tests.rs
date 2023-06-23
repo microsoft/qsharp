@@ -32,7 +32,7 @@ fn funcs_cannot_use_conj() {
         "},
         &expect![[r#"
             [
-                Conj(
+                Conjugate(
                     Span {
                         lo: 51,
                         hi: 69,

@@ -15,6 +15,7 @@ use thiserror::Error;
 pub enum Error {
     #[error("operation does not support the adjoint functor")]
     #[diagnostic(help("each operation called inside an operation with compiler-generated adjoint specializations must support the adjoint functor"))]
+    #[diagnostic(code("Qsc.AdjGen.MissingAdjFunctor"))]
     MissingAdjFunctor(#[label] Span),
 
     #[error(transparent)]
