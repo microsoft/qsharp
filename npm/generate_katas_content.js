@@ -24,7 +24,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 
@@ -284,11 +284,28 @@ function generateExampleSection(kataPath, properties) {
   };
 }
 
+function getCodeDependencyId(codeDependencyPath, basePath) {
+  return relative(basePath, codeDependencyPath).replace(sep, "__");
+}
+
+function generateCodeDependencies(paths, globalCodeSources) {
+  const codeDependencies = [];
+  for (const path of paths) {
+    const id = getCodeDependencyId(path, globalCodeSources.basePath);
+    if (!(id in globalCodeSources.sources)) {
+      const code = tryReadFile(path, "Could not read code dependency");
+      globalCodeSources.sources[id] = code;
+      codeDependencies.push(id);
+    }
+  }
+  return codeDependencies;
+}
+
 function generateExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
   const requiredProperties = [
     "id",
-    "codeDependencies",
+    "codeDependenciesPaths",
     "verificationSourcePath",
     "placeholderSourcePath",
     "solutionSourcePath",
@@ -305,11 +322,18 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   }
 
   // Generate the object using the macro properties.
-  console.log(kataPath);
-  console.log(globalCodeSources);
+  const resolvedCodeDependenciesPaths = properties.codeDependenciesPaths.map(
+    (path) => join(kataPath, path)
+  );
+  const codeDependencies = generateCodeDependencies(
+    resolvedCodeDependenciesPaths,
+    globalCodeSources
+  );
+
   return {
     type: "exercise",
     id: properties.id,
+    codeDependencies: codeDependencies,
   };
 }
 
@@ -383,9 +407,11 @@ function generateKataContent(path, globalCodeSources) {
     markdownPath,
     "Could not read the contents of the kata markdown file"
   );
+  const title = getTitleFromMarkdown(markdown);
   const sections = generateSections(path, markdown, globalCodeSources);
   return {
     id: kataId,
+    title: title,
     sections: sections,
   };
 }
@@ -403,7 +429,7 @@ function generateKatasContent(katasPath, outputPath) {
   );
   const globalCodeSources = {
     basePath: katasPath,
-    sources: [],
+    sources: {},
   };
   var katas = [];
   for (const kataDir of katasDirs) {
@@ -414,7 +440,7 @@ function generateKatasContent(katasPath, outputPath) {
 
   const katasContent = {
     katas: katas,
-    codeDependencies: [],
+    codeDependencies: globalCodeSources.sources,
   };
 
   // Save the JS object to a file.

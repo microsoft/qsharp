@@ -25,11 +25,14 @@ When printing the state of multi-qubit systems, this function outputs the same i
 
 @[exercise]({
 "id": "prepare_basis_state",
-"codeDependencies": [],
-"verificationSourcePath": "prepare_basis_state/Verification.qs",
-"placeholderSourcePath": "prepare_basis_state/Placeholder.qs",
-"solutionSourcePath": "prepare_basis_state/Solution.qs",
-"solutionDescriptionPath": "prepare_basis_state/solution.md"
+"codeDependenciesPaths": [
+"../KatasLibrary.qs",
+"./Common.qs"
+],
+"verificationSourcePath": "./prepare_basis_state/Verification.qs",
+"placeholderSourcePath": "./prepare_basis_state/Placeholder.qs",
+"solutionSourcePath": "./prepare_basis_state/Solution.qs",
+"solutionDescriptionPath": "./prepare_basis_state/solution.md"
 })
 
 ## Conclusion
