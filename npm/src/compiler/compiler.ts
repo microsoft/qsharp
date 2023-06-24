@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type { IDiagnostic, ICompletionList } from "../../lib/node/qsc_wasm.cjs";
+import type { ICompletionList } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
-import { eventStringToMsg } from "./common.js";
-import { mapDiagnostics, VSDiagnostic } from "../vsdiagnostic.js";
-import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
+import { VSDiagnostic } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
+import { eventStringToMsg } from "./common.js";
+import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -15,7 +15,6 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
-  checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   getCompletions(): Promise<ICompletionList>;
   run(
@@ -62,19 +61,6 @@ export class Compiler implements ICompiler {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
     globalThis.qscGitHash = this.wasm.git_hash();
-  }
-
-  async checkCode(code: string): Promise<VSDiagnostic[]> {
-    // Temporary implementation until we have the language
-    // service notifications properly wired up to the editor.
-    let diags: IDiagnostic[] = [];
-    const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number, errors: IDiagnostic[]) => {
-        diags = errors;
-      }
-    );
-    languageService.update_document("code", 1, code);
-    return mapDiagnostics(diags, code);
   }
 
   async getHir(code: string): Promise<string> {
