@@ -43,7 +43,6 @@ export const log = {
   getLogLevel(): number {
     return globalThis.qscLogLevel || 0;
   },
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   error(...args: any) {
     if (qscLogLevel >= 1) console.error(...args);
   },
@@ -60,7 +59,6 @@ export const log = {
     // console.trace in JavaScript just writes a stack trace at info level, so use 'debug'
     if (qscLogLevel >= 5) console.debug(...args);
   },
-  /* eslint-enable @typescript-eslint/no-explicit-any */
   never(val: never) {
     // Utility function to ensure exhaustive type checking. See https://stackoverflow.com/a/39419171
     log.error("Exhaustive type checking didn't account for: %o", val);
