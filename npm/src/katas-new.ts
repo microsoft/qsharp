@@ -28,3 +28,8 @@ export type Kata = {
   title: string;
   sections: KataSection[];
 };
+
+export type GlobalCodeSource = {
+  id: string;
+  code: string;
+};

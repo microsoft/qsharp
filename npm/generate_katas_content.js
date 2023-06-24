@@ -35,6 +35,8 @@ const katasContentPath = join(scriptDirPath, "..", "katas", "content");
 const katasGeneratedContentPath = join(scriptDirPath, "src");
 const contentFileNames = {
   index: "index.md",
+  katasIndex: "index.json",
+  kataMarkdown: "index.md",
   qsharpExample: "example.qs",
   qsharpPlaceholder: "placeholder.qs",
   qsharpSolution: "solution.qs",
@@ -269,10 +271,11 @@ function generateExampleSection(kataPath, properties) {
     );
   }
 
+  // Generate the object using the macro properties.
   const codePath = join(kataPath, properties.codePath);
   const code = tryReadFile(
     codePath,
-    `Could not read the contents of example code file at ${codePath}`
+    "Could not read the contents of the example code file"
   );
   return {
     type: "example",
@@ -281,15 +284,36 @@ function generateExampleSection(kataPath, properties) {
   };
 }
 
-function generateExerciseSection(kataPath, properties) {
+function generateExerciseSection(kataPath, properties, globalCodeSources) {
+  // Validate that the data contains the required properties.
+  const requiredProperties = [
+    "id",
+    "codeDependencies",
+    "verificationSourcePath",
+    "placeholderSourcePath",
+    "solutionSourcePath",
+    "solutionDescriptionPath",
+  ];
+  const missingProperties = getMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `Exercise macro is missing the following properties: ${missingProperties}`
+    );
+  }
+
+  // Generate the object using the macro properties.
   console.log(kataPath);
+  console.log(globalCodeSources);
   return {
     type: "exercise",
     id: properties.id,
   };
 }
 
-function generateMacroSection(kataPath, match) {
+function generateMacroSection(kataPath, match, globalCodeSources) {
   const type = match.groups.type;
   const propertiesJson = match.groups.json;
   const properties = tryParseJSON(
@@ -299,7 +323,7 @@ function generateMacroSection(kataPath, match) {
   if (type === "example") {
     return generateExampleSection(kataPath, properties);
   } else if (type === "exercise") {
-    return generateExerciseSection(kataPath, properties);
+    return generateExerciseSection(kataPath, properties, globalCodeSources);
   }
 
   throw new Error(`Unknown macro type ${type}`);
@@ -314,7 +338,7 @@ function generateTextSection(markdown) {
   };
 }
 
-function generateSections(kataPath, markdown) {
+function generateSections(kataPath, markdown, globalCodeSources) {
   const sections = [];
   const macroRegex = /@\[(?<type>\w+)\]\((?<json>[^@]+)\)\s+/g;
   let latestProcessedIndex = 0;
@@ -332,7 +356,11 @@ function generateSections(kataPath, markdown) {
       }
 
       // Create a section object that corresponds to the found macro.
-      const macroSection = generateMacroSection(kataPath, match);
+      const macroSection = generateMacroSection(
+        kataPath,
+        match,
+        globalCodeSources
+      );
       sections.push(macroSection);
       latestProcessedIndex = macroRegex.lastIndex;
     } else {
@@ -348,17 +376,14 @@ function generateSections(kataPath, markdown) {
   return sections;
 }
 
-function generateKataContent(path) {
+function generateKataContent(path, globalCodeSources) {
   const kataId = basename(path);
-  const indexFilePath = join(path, contentFileNames.index);
-  if (!existsSync(indexFilePath)) {
-    throw new Error(
-      `${contentFileNames.index} file not found for kata at "${path}".`
-    );
-  }
-
-  const markdown = readFileSync(indexFilePath, "utf8");
-  const sections = generateSections(path, markdown);
+  const markdownPath = join(path, contentFileNames.kataMarkdown);
+  const markdown = tryReadFile(
+    markdownPath,
+    "Could not read the contents of the kata markdown file"
+  );
+  const sections = generateSections(path, markdown, globalCodeSources);
   return {
     id: kataId,
     sections: sections,
@@ -367,16 +392,23 @@ function generateKataContent(path) {
 
 function generateKatasContent(katasPath, outputPath) {
   console.log("Generating katas content");
-  const indexPath = join(katasPath, "index.json");
-  const indexJson = readFileSync(indexPath, "utf8");
+  const indexPath = join(katasPath, contentFileNames.katasIndex);
+  const indexJson = tryReadFile(
+    indexPath,
+    "Could not read the contents of the katas index file"
+  );
   const katasDirs = tryParseJSON(
     indexJson,
     `Invalid katas index at ${indexPath}`
   );
+  const globalCodeSources = {
+    basePath: katasPath,
+    sources: [],
+  };
   var katas = [];
   for (const kataDir of katasDirs) {
     const kataPath = join(katasPath, kataDir);
-    const kata = generateKataContent(kataPath);
+    const kata = generateKataContent(kataPath, globalCodeSources);
     katas.push(kata);
   }
 
