@@ -386,9 +386,13 @@ test("language service diagnostics - web worker", async () => {
 });
 async function testCompilerError(useWorker) {
   const compiler = useWorker ? getCompilerWorker() : getCompiler();
-  compiler.onstatechange = (state) => {
-    lastState = state;
-  };
+  if (useWorker) {
+    // @ts-expect-error onstatechange only exists on the worker
+    compiler.onstatechange = (state) => {
+      lastState = state;
+    };
+  }
+
   const events = new QscEventTarget(true);
   let promiseResult = undefined;
   let lastState = undefined;
@@ -401,16 +405,13 @@ async function testCompilerError(useWorker) {
       promiseResult = "failure";
     });
 
-  if (useWorker) {
-    // Resetting the state only works when using the worker.
-    // Not desired, but expected.
-    assert.equal(lastState, "idle");
-  }
   assert.equal(promiseResult, "failure");
   const results = events.getResults();
   assert.equal(results.length, 1);
   assert.equal(results[0].success, false);
   if (useWorker) {
+    // Only the worker has state change events
+    assert.equal(lastState, "idle");
     // @ts-expect-error terminate() only exists on the worker
     compiler.terminate();
   }

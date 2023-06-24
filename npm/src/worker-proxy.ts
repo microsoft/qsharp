@@ -375,8 +375,7 @@ export function createDispatcher<
       )
       .catch((err: any) =>
         logAndPost({
-          // TODO: test this
-          // If this happens then the wasm code likely threw an exception/paniced rather than
+          // If this happens then the wasm code likely threw an exception/panicked rather than
           // completing gracefully and fullfilling the promise. Communicate to the client
           // that there was an error and it should reject the current request
           messageType: "response",
