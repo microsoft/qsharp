@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type { ICompletionList } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { VSDiagnostic } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
@@ -16,7 +15,6 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   getHir(code: string): Promise<string>;
-  getCompletions(): Promise<ICompletionList>;
   run(
     code: string,
     expr: string,
@@ -65,15 +63,6 @@ export class Compiler implements ICompiler {
 
   async getHir(code: string): Promise<string> {
     return this.wasm.get_hir(code);
-  }
-
-  async getCompletions(): Promise<ICompletionList> {
-    // Temporary implementation until we have the language
-    // service properly wired up to the editor.
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    const languageService = new this.wasm.LanguageService(() => {});
-    languageService.update_document("code", 1, "");
-    return languageService.get_completions("code", 1);
   }
 
   async run(

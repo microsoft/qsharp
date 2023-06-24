@@ -59,14 +59,6 @@ namespace Test {
   assert(result.result === "Zero");
 });
 
-test("completions include CNOT", async () => {
-  const compiler = getCompiler();
-
-  let results = await compiler.getCompletions();
-  let cnot = results.items.find((x) => x.label === "CNOT");
-  assert.ok(cnot);
-});
-
 test("dump and message output", async () => {
   let code = `namespace Test {
         function Answer() : Int {

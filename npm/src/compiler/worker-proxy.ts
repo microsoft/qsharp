@@ -14,7 +14,6 @@ import { QscEventData } from "./events.js";
 
 const requests: MethodMap<ICompiler> = {
   getHir: "request",
-  getCompletions: "request",
   run: "requestWithProgress",
   runKata: "requestWithProgress",
 };
