@@ -50,7 +50,7 @@ fn hover_callable_with_callable_types() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\noperation Foo (Int => Int is 0) => (Int => Int)\n```\n",
+                    contents: "```qsharp\noperation Foo (Int => Int) => (Int => Int)\n```\n",
                     span: Span {
                         start: 77,
                         end: 80,
@@ -98,7 +98,7 @@ fn hover_identifier() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nx Int\n```\n",
+                    contents: "```qsharp\nx: Int\n```\n",
                     span: Span {
                         start: 83,
                         end: 84,
@@ -123,7 +123,7 @@ fn hover_identifier_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nx Int\n```\n",
+                    contents: "```qsharp\nx: Int\n```\n",
                     span: Span {
                         start: 114,
                         end: 115,
@@ -147,7 +147,7 @@ fn hover_identifier_tuple() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\ny Double\n```\n",
+                    contents: "```qsharp\ny: Double\n```\n",
                     span: Span {
                         start: 87,
                         end: 88,
@@ -172,7 +172,7 @@ fn hover_identifier_tuple_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\ny Double\n```\n",
+                    contents: "```qsharp\ny: Double\n```\n",
                     span: Span {
                         start: 126,
                         end: 127,
@@ -198,7 +198,7 @@ fn hover_identifier_for_loop() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\ni Int\n```\n",
+                    contents: "```qsharp\ni: Int\n```\n",
                     span: Span {
                         start: 83,
                         end: 84,
@@ -224,7 +224,7 @@ fn hover_identifier_for_loop_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\ni Int\n```\n",
+                    contents: "```qsharp\ni: Int\n```\n",
                     span: Span {
                         start: 124,
                         end: 125,
@@ -251,7 +251,7 @@ fn hover_identifier_nested_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nx Int\n```\n",
+                    contents: "```qsharp\nx: Int\n```\n",
                     span: Span {
                         start: 144,
                         end: 145,
@@ -277,7 +277,7 @@ fn hover_lambda() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nlambda ((Double, String) => Int)\n```\n",
+                    contents: "```qsharp\nlambda: ((Double, String) => Int)\n```\n",
                     span: Span {
                         start: 110,
                         end: 116,
@@ -303,7 +303,7 @@ fn hover_lambda_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nlambda ((Double, String) => Int)\n```\n",
+                    contents: "```qsharp\nlambda: ((Double, String) => Int)\n```\n",
                     span: Span {
                         start: 156,
                         end: 162,
@@ -329,7 +329,7 @@ fn hover_lambda_param() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\ny String\n```\n",
+                    contents: "```qsharp\ny: String\n```\n",
                     span: Span {
                         start: 123,
                         end: 124,
@@ -354,7 +354,7 @@ fn hover_lambda_param_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\ny String\n```\n",
+                    contents: "```qsharp\ny: String\n```\n",
                     span: Span {
                         start: 102,
                         end: 103,
@@ -380,7 +380,7 @@ fn hover_lambda_closure_ref() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\na Int\n```\n",
+                    contents: "```qsharp\na: Int\n```\n",
                     span: Span {
                         start: 129,
                         end: 130,
@@ -406,7 +406,7 @@ fn hover_identifier_udt() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\na Pair\n```\n",
+                    contents: "```qsharp\na: Pair\n```\n",
                     span: Span {
                         start: 174,
                         end: 175,
@@ -425,7 +425,17 @@ fn hover_udt() {
             newtype ◉P↘air◉ = (Int, snd : Int);
         }
     "#,
-        &expect![[r#""#]],
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nPair\n```\n",
+                    span: Span {
+                        start: 46,
+                        end: 50,
+                    },
+                },
+            )
+        "#]],
     );
 }
 
@@ -435,12 +445,47 @@ fn hover_udt_ref() {
         r#"
         namespace Test {
             newtype Pair = (Int, snd : Int);
+            operation Foo() : ◉P↘air◉ {
+                Pair(3, 4)
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nPair\n```\n",
+                    span: Span {
+                        start: 101,
+                        end: 105,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_udt_constructor() {
+    check(
+        r#"
+        namespace Test {
+            newtype Pair = (Int, snd : Int);
             operation Foo() : Unit {
                 let a = ◉P↘air◉(3, 4);
             }
         }
     "#,
-        &expect![[r#""#]],
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nPair\n```\n",
+                    span: Span {
+                        start: 132,
+                        end: 136,
+                    },
+                },
+            )
+        "#]],
     );
 }
 
@@ -452,7 +497,17 @@ fn hover_udt_field() {
             newtype Pair = (Int, ◉s↘nd◉ : Int);
         }
     "#,
-        &expect![[r#""#]],
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nsnd: Int\n```\n",
+                    span: Span {
+                        start: 59,
+                        end: 62,
+                    },
+                },
+            )
+        "#]],
     );
 }
 
@@ -468,6 +523,16 @@ fn hover_udt_field_ref() {
             }
         }
     "#,
-        &expect![[r#""#]],
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nsnd: Int\n```\n",
+                    span: Span {
+                        start: 171,
+                        end: 174,
+                    },
+                },
+            )
+        "#]],
     );
 }

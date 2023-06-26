@@ -12,7 +12,12 @@ use crate::{
 use miette::{
     Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
 };
-use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
+use qsc_ast::{
+    assigner::Assigner as AstAssigner,
+    ast::{self},
+    mut_visit::MutVisitor,
+    visit::Visitor,
+};
 use qsc_data_structures::{
     index_map::{self, IndexMap},
     span::Span,
@@ -29,17 +34,17 @@ use thiserror::Error;
 #[derive(Debug, Default)]
 pub struct CompileUnit {
     pub package: hir::Package,
+    pub ast: AstPackage,
     pub assigner: HirAssigner,
     pub sources: SourceMap,
     pub errors: Vec<Error>,
 }
 
 #[derive(Debug, Default)]
-pub struct AstUnit {
+pub struct AstPackage {
     pub package: ast::Package,
     pub tys: Table,
-    pub sources: SourceMap,
-    pub errors: Vec<Error>,
+    pub names: Names,
 }
 
 #[derive(Debug, Default)]
@@ -223,17 +228,17 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
 ) -> CompileUnit {
-    let (mut package, parse_errors) = parse_all(&sources);
+    let (mut ast_package, parse_errors) = parse_all(&sources);
     let mut ast_assigner = AstAssigner::new();
-    ast_assigner.visit_package(&mut package);
+    ast_assigner.visit_package(&mut ast_package);
 
     let mut hir_assigner = HirAssigner::new();
-    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
-    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
+    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &ast_package);
+    let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&package);
+        .lower_package(&ast_package);
     let lower_errors = lowerer.drain_errors();
 
     let errors = parse_errors
@@ -247,37 +252,12 @@ pub fn compile(
 
     CompileUnit {
         package,
+        ast: AstPackage {
+            package: ast_package,
+            tys,
+            names,
+        },
         assigner: hir_assigner,
-        sources,
-        errors,
-    }
-}
-
-#[allow(clippy::module_name_repetitions)]
-pub fn compile_ast(
-    store: &PackageStore,
-    dependencies: &[PackageId],
-    sources: SourceMap,
-) -> AstUnit {
-    let (mut package, parse_errors) = parse_all(&sources);
-    let mut ast_assigner = AstAssigner::new();
-    ast_assigner.visit_package(&mut package);
-
-    let mut hir_assigner = HirAssigner::new();
-    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
-    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
-
-    let errors = parse_errors
-        .into_iter()
-        .map(Into::into)
-        .chain(name_errors.into_iter().map(Into::into))
-        .chain(ty_errors.into_iter().map(Into::into))
-        .map(Error)
-        .collect();
-
-    AstUnit {
-        package,
-        tys,
         sources,
         errors,
     }

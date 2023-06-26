@@ -29,12 +29,13 @@ const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Intrinsic",
 ];
 
-pub(super) type Names = IndexMap<NodeId, Res>;
+// All AST Path nodes get mapped
+pub type Names = IndexMap<NodeId, Res>;
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(super) enum Res {
+pub enum Res {
     /// A global item.
     Item(ItemId),
     /// A local variable.

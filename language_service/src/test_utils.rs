@@ -43,10 +43,11 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (ast_unit, errors) = compile::ast(&package_store, &[std_package_id], source_map);
+    let (unit, errors) = compile::compile(&package_store, &[std_package_id], source_map);
     Compilation {
         package_store,
         std_package_id,
-        ast_unit,
+        unit,
+        errors,
     }
 }

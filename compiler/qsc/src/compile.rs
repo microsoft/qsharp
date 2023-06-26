@@ -3,7 +3,7 @@
 
 use crate::error::WithSource;
 use miette::{Diagnostic, Report};
-use qsc_frontend::compile::{AstUnit, CompileUnit, PackageStore, SourceMap};
+use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes};
 use thiserror::Error;
@@ -32,22 +32,6 @@ pub fn compile(
         for error in run_default_passes(store.core(), &mut unit) {
             errors.push(error.into());
         }
-    }
-
-    (unit, errors)
-}
-
-/// Compiles only into the AST.
-#[must_use]
-pub fn ast(
-    store: &PackageStore,
-    dependencies: &[PackageId],
-    sources: SourceMap,
-) -> (AstUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile_ast(store, dependencies, sources);
-    let mut errors = Vec::new();
-    for error in unit.errors.drain(..) {
-        errors.push(error.into());
     }
 
     (unit, errors)
