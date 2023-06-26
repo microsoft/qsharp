@@ -374,8 +374,8 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for param in &self.generics {
-                write!(indent, "\n{param}")?;
+            for (ix, param) in self.generics.iter().enumerate() {
+                write!(indent, "\n{ix}: {param}")?;
             }
             indent = set_indentation(indent, 1);
         }
