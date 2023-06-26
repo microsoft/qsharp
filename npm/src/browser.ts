@@ -70,5 +70,13 @@ export {
   type Example,
   type Exercise,
 } from "./katas.js";
+export {
+  getAllKatasN,
+  getKataN,
+  type KataN,
+  type KataSection,
+  type ExampleN,
+  type ExerciseN,
+} from "./katas-new.js";
 export { default as samples } from "./samples.generated.js";
 export { QscEventTarget } from "./events.js";

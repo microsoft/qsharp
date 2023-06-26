@@ -1,10 +1,15 @@
-export type Example = {
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+import { katasContent } from "./katas-content.new.generated.js";
+
+export type ExampleN = {
   type: "example";
   id: string;
   code: string;
 };
 
-export type Exercise = {
+export type ExerciseN = {
   type: "exercise";
   id: string;
   codeDependencies: string[];
@@ -21,10 +26,22 @@ export type Text = {
   contentAsMarkdown: string;
 };
 
-export type KataSection = Example | Exercise | Text;
+export type KataSection = ExampleN | ExerciseN | Text;
 
-export type Kata = {
+export type KataN = {
   id: string;
   title: string;
   sections: KataSection[];
 };
+
+export async function getAllKatasN(): Promise<KataN[]> {
+  return katasContent.katas as KataN[];
+}
+
+export async function getKataN(id: string): Promise<KataN> {
+  const katas = await getAllKatasN();
+  return (
+    katas.find((k) => k.id === id) ||
+    Promise.reject(`Failed to get kata with id: ${id}`)
+  );
+}
