@@ -4,15 +4,12 @@
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
+use std::fmt::Display;
 
-use crate::qsc_utils::{map_offset, span_contains, Compilation};
-use qsc::hir::{
-    ty::{FunctorSetValue, Ty},
-    visit::{walk_callable_decl, walk_expr, walk_item, walk_pat, Visitor},
-    CallableDecl, CallableKind, Expr, ExprKind, Ident, Item, ItemKind, LocalItemId, NodeId, Pat,
-    PatKind, Res,
-};
+use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
+use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::ast::{self, CallableDecl, CallableKind, Expr, ExprKind, NodeId, Pat, PatKind, Path};
+use qsc::{hir, resolve};
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
@@ -32,8 +29,8 @@ pub(crate) fn get_hover(
     offset: u32,
 ) -> Option<Hover> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.ast_unit.sources, source_name, offset);
-    let package = &compilation.ast_unit.package;
+    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let package = &compilation.unit.ast.package;
 
     let mut hover_visitor = HoverVisitor {
         compilation,
@@ -42,67 +39,16 @@ pub(crate) fn get_hover(
         start: 0,
         end: 0,
     };
-    todo!("hover visitor needs converting into ast visitor from hir visitor");
 
-    // hover_visitor.visit_package(package);
+    hover_visitor.visit_package(package);
 
-    // hover_visitor.header.map(|header| Hover {
-    //     contents: header,
-    //     span: Span {
-    //         start: hover_visitor.start,
-    //         end: hover_visitor.end,
-    //     },
-    // })
-}
-
-struct FindDeclFromItemId<'a> {
-    item_id: LocalItemId,
-    decl: Option<&'a CallableDecl>,
-}
-
-impl<'a> Visitor<'a> for FindDeclFromItemId<'a> {
-    fn visit_item(&mut self, item: &'a Item) {
-        if item.id == self.item_id {
-            walk_item(self, item);
-        }
-    }
-
-    fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        self.decl = Some(decl);
-    }
-}
-
-struct FindIdentFromNodeId<'a> {
-    node_id: NodeId,
-    ident: Option<(&'a Ident, &'a Ty)>,
-}
-
-impl<'a> Visitor<'a> for FindIdentFromNodeId<'a> {
-    fn visit_pat(&mut self, pat: &'a Pat) {
-        match &pat.kind {
-            PatKind::Bind(ident) => {
-                if ident.id == self.node_id {
-                    self.ident = Some((ident, &pat.ty));
-                }
-            }
-            _ => walk_pat(self, pat),
-        }
-    }
-}
-
-struct FindTypeNameFromItemId {
-    item_id: LocalItemId,
-    ty_name: Option<Rc<str>>,
-}
-
-impl Visitor<'_> for FindTypeNameFromItemId {
-    fn visit_item(&mut self, item: &'_ Item) {
-        if item.id == self.item_id {
-            if let ItemKind::Ty(name, _) = &item.kind {
-                self.ty_name = Some(name.name.clone());
-            }
-        }
-    }
+    hover_visitor.header.map(|header| Hover {
+        contents: header,
+        span: Span {
+            start: hover_visitor.start,
+            end: hover_visitor.end,
+        },
+    })
 }
 
 struct HoverVisitor<'a> {
@@ -114,9 +60,51 @@ struct HoverVisitor<'a> {
 }
 
 impl Visitor<'_> for HoverVisitor<'_> {
+    fn visit_item(&mut self, item: &'_ ast::Item) {
+        if span_contains(item.span, self.offset) {
+            match &*item.kind {
+                ast::ItemKind::Callable(decl) => self.visit_callable_decl(decl),
+                ast::ItemKind::Ty(ident, def) => {
+                    // ToDo: UDTs should show their description
+                    if span_contains(ident.span, self.offset) {
+                        self.header = Some(header_from(&ident.name.to_string()));
+                        self.start = ident.span.lo;
+                        self.end = ident.span.hi;
+                    } else {
+                        self.visit_ty_def(def);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn visit_ty_def(&mut self, def: &'_ ast::TyDef) {
+        if span_contains(def.span, self.offset) {
+            if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
+                if let Some(ident) = ident {
+                    if span_contains(ident.span, self.offset) {
+                        self.header = Some(header_from_name(
+                            &ident.name,
+                            &get_type_name_from_ast_ty(ty),
+                        ));
+                        self.start = ident.span.lo;
+                        self.end = ident.span.hi;
+                    } else {
+                        self.visit_ty(ty);
+                    }
+                } else {
+                    self.visit_ty(ty);
+                }
+            } else {
+                walk_ty_def(self, def);
+            }
+        }
+    }
+
     fn visit_callable_decl(&mut self, decl: &'_ CallableDecl) {
         if span_contains(decl.name.span, self.offset) {
-            self.header = Some(self.header_from_call_decl(decl));
+            self.header = Some(self.header_from_ast_call_decl(decl));
             self.start = decl.name.span.lo;
             self.end = decl.name.span.hi;
         } else if span_contains(decl.span, self.offset) {
@@ -126,131 +114,264 @@ impl Visitor<'_> for HoverVisitor<'_> {
 
     fn visit_pat(&mut self, pat: &'_ Pat) {
         if span_contains(pat.span, self.offset) {
-            match &pat.kind {
-                PatKind::Bind(ident) => {
-                    self.header = Some(self.header_from_ident(ident, &pat.ty));
-                    self.start = pat.span.lo;
-                    self.end = pat.span.hi;
+            match &*pat.kind {
+                PatKind::Bind(ident, anno) => {
+                    if span_contains(ident.span, self.offset) {
+                        self.header =
+                            Some(header_from_name(&ident.name, &self.get_type_name(pat.id)));
+                        self.start = ident.span.lo;
+                        self.end = ident.span.hi;
+                    } else if let Some(ty) = anno {
+                        self.visit_ty(ty);
+                    }
                 }
                 _ => walk_pat(self, pat),
             }
         }
     }
 
+    fn visit_ty(&mut self, ty: &'_ ast::Ty) {
+        if span_contains(ty.span, self.offset) {
+            match &*ty.kind {
+                ast::TyKind::Path(path) => {
+                    self.header = Some(header_from(&print_path(path)));
+                    self.start = path.span.lo;
+                    self.end = path.span.hi;
+                }
+                _ => walk_ty(self, ty),
+            }
+        }
+    }
+
     fn visit_expr(&mut self, expr: &'_ Expr) {
         if span_contains(expr.span, self.offset) {
-            if let ExprKind::Var(r, _) = &expr.kind {
-                self.header = match r {
-                    Res::Err => None,
-                    Res::Item(item_id) => {
-                        let mut finder_pass = FindDeclFromItemId {
-                            item_id: item_id.item,
-                            decl: None,
-                        };
-                        let decl = if let Some(package_id) = item_id.package {
-                            let foreign_package = &self
-                                .compilation
-                                .package_store
-                                .get(package_id)
-                                .unwrap_or_else(|| panic!("bad package id: {package_id}"))
-                                .package;
-                            finder_pass.visit_package(foreign_package);
-                            finder_pass.decl
-                        } else {
-                            finder_pass.visit_package(&self.compilation.package);
-                            finder_pass.decl
-                        };
-                        decl.map(|decl| self.header_from_call_decl(decl))
-                    }
-                    Res::Local(node_id) => {
-                        let mut finder_pass = FindIdentFromNodeId {
-                            node_id: *node_id,
-                            ident: None,
-                        };
-                        finder_pass.visit_package(&self.compilation.package);
-                        finder_pass
-                            .ident
-                            .map(|(ident, ty)| self.header_from_ident(ident, ty))
-                    }
-                };
-                self.start = expr.span.lo;
-                self.end = expr.span.hi;
-            } else {
-                walk_expr(self, expr);
+            match &*expr.kind {
+                ExprKind::Path(path) => {
+                    self.header = Some(self.get_reference(path));
+                    self.start = expr.span.lo;
+                    self.end = expr.span.hi;
+                }
+                ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
+                    self.header = Some(header_from_name(&field.name, &self.get_type_name(expr.id)));
+                    self.start = field.span.lo;
+                    self.end = field.span.hi;
+                }
+                _ => walk_expr(self, expr),
             }
         }
     }
 }
 
 impl HoverVisitor<'_> {
-    fn header_from_call_decl(&mut self, decl: &CallableDecl) -> String {
+    fn header_from_ast_call_decl(&mut self, decl: &ast::CallableDecl) -> String {
         let (kind, arrow) = match decl.kind {
             CallableKind::Function => ("function", "->"),
             CallableKind::Operation => ("operation", "=>"),
         };
 
-        let functors = if let FunctorSetValue::Empty = decl.functors {
-            String::new()
-        } else {
-            format!(" is {}", decl.functors)
-        };
+        // ToDo: Functors
+        // let functors = if let FunctorSetValue::Empty = decl.functors {
+        //     String::new()
+        // } else {
+        //     format!(" is {}", decl.functors)
+        // };
 
         // Doc comments would be formatted as markdown into this
         // string once we're able to parse them out.
         format!(
             "```qsharp
-{} {} {} {} {}{}
+{} {} {} {} {}
 ```
 ",
             kind,
             decl.name.name,
-            self.get_type_name(&decl.input.ty),
+            self.get_type_name(decl.input.id),
             arrow,
-            self.get_type_name(&decl.output),
-            functors
+            get_type_name_from_ast_ty(&decl.output),
         )
     }
 
-    fn header_from_ident(&mut self, ident: &Ident, ty: &Ty) -> String {
+    fn header_from_hir_call_decl(&self, decl: &hir::CallableDecl) -> String {
+        let (kind, arrow) = match decl.kind {
+            hir::CallableKind::Function => ("function", "->"),
+            hir::CallableKind::Operation => ("operation", "=>"),
+        };
+
+        // ToDo: Functors
+        // let functors = if let FunctorSetValue::Empty = decl.functors {
+        //     String::new()
+        // } else {
+        //     format!(" is {}", decl.functors)
+        // };
+
+        // Doc comments would be formatted as markdown into this
+        // string once we're able to parse them out.
         format!(
             "```qsharp
-{} {}
+{} {} {} {} {}
 ```
 ",
-            ident.name,
-            self.get_type_name(ty),
+            kind,
+            decl.name.name,
+            self.get_type_name_from_hir_ty(&decl.input.ty),
+            arrow,
+            self.get_type_name_from_hir_ty(&decl.output),
         )
     }
 
-    fn get_type_name(&mut self, ty: &Ty) -> String {
+    fn get_reference(&self, path: &Path) -> String {
+        let res = self
+            .compilation
+            .unit
+            .ast
+            .names
+            .get(path.id)
+            .unwrap_or_else(|| panic!("Can't find definition for reference node: {}", path.id));
+        match &res {
+            resolve::Res::Item(item_id) => {
+                let item = find_item(self.compilation, item_id).unwrap_or_else(|| {
+                    panic!("Can't find definition for reference node: {}", path.id)
+                });
+                match &item.kind {
+                    hir::ItemKind::Callable(decl) => self.header_from_hir_call_decl(decl),
+                    hir::ItemKind::Namespace(_, _) => {
+                        panic!(
+                            "Reference node should not refer to a namespace: {}",
+                            path.id
+                        )
+                    }
+                    hir::ItemKind::Ty(ident, udt) => header_from_hir_udt(ident, udt),
+                }
+            }
+            resolve::Res::Local(node_id) => {
+                header_from_name(&print_path(path), &self.get_type_name(*node_id))
+            }
+            resolve::Res::PrimTy(prim) => match prim {
+                hir::ty::Prim::RangeTo | hir::ty::Prim::RangeFrom | hir::ty::Prim::RangeFull => {
+                    "Range".to_owned()
+                }
+                ty => format!("{ty:?}"),
+            },
+            resolve::Res::UnitTy => "Unit".to_owned(),
+        }
+    }
+
+    fn get_type_name(&self, node_id: NodeId) -> String {
+        let ty = self
+            .compilation
+            .unit
+            .ast
+            .tys
+            .terms
+            .get(node_id)
+            .unwrap_or_else(|| panic!("Can't find type for node: {node_id}"));
+        self.get_type_name_from_hir_ty(ty)
+    }
+
+    fn get_type_name_from_hir_ty(&self, ty: &hir::ty::Ty) -> String {
         match ty {
-            Ty::Udt(res) => match res {
-                Res::Item(item_id) => {
-                    let mut finder_pass = FindTypeNameFromItemId {
-                        item_id: item_id.item,
-                        ty_name: None,
-                    };
-                    let ty_name = if let Some(package_id) = item_id.package {
-                        let foreign_package = &self
-                            .compilation
-                            .package_store
-                            .get(package_id)
-                            .unwrap_or_else(|| panic!("bad package id: {package_id}"))
-                            .package;
-                        finder_pass.visit_package(foreign_package);
-                        finder_pass.ty_name
-                    } else {
-                        finder_pass.visit_package(&self.compilation.package);
-                        finder_pass.ty_name
-                    };
-                    match ty_name {
-                        Some(rc) => rc.to_string(),
-                        None => ty.to_string(),
+            hir::ty::Ty::Array(item) => format!("{}[]", self.get_type_name_from_hir_ty(item)),
+            hir::ty::Ty::Arrow(arrow) => {
+                format!(
+                    "({} {} {})",
+                    self.get_type_name_from_hir_ty(&arrow.input),
+                    match arrow.kind {
+                        hir::CallableKind::Function => "->",
+                        hir::CallableKind::Operation => "=>",
+                    },
+                    self.get_type_name_from_hir_ty(&arrow.output)
+                )
+            }
+            hir::ty::Ty::Tuple(tys) => {
+                if tys.is_empty() {
+                    "Unit".to_owned()
+                } else {
+                    let elements = tys
+                        .iter()
+                        .map(|e| self.get_type_name_from_hir_ty(e))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!("({elements})")
+                }
+            }
+            hir::ty::Ty::Udt(res) => match res {
+                hir::Res::Item(item_id) => {
+                    let item = find_item(self.compilation, item_id)
+                        .unwrap_or_else(|| panic!("Can't find type with item id: {item_id}"));
+                    match &item.kind {
+                        hir::ItemKind::Ty(ident, _) => ident.name.to_string(),
+                        _ => panic!("UDT has invalid resolution."),
                     }
                 }
-                _ => panic!("UDT has invalid item id."),
+                _ => panic!("UDT has invalid resolution."),
             },
             _ => ty.to_string(),
         }
+    }
+}
+
+fn header_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
+    format!(
+        "```qsharp
+{}
+```
+",
+        name.name
+    )
+}
+
+fn header_from_name(name: &impl Display, ty_name: &String) -> String {
+    format!(
+        "```qsharp
+{name}: {ty_name}
+```
+"
+    )
+}
+
+fn header_from(display: &impl Display) -> String {
+    format!(
+        "```qsharp
+{display}
+```
+"
+    )
+}
+
+fn get_type_name_from_ast_ty(ty: &ast::Ty) -> String {
+    match &*ty.kind {
+        qsc::ast::TyKind::Array(ty) => format!("{}[]", get_type_name_from_ast_ty(ty)),
+        qsc::ast::TyKind::Arrow(kind, input, output, _) => {
+            let input = get_type_name_from_ast_ty(input);
+            let output = get_type_name_from_ast_ty(output);
+            let arrow = match kind {
+                CallableKind::Function => "->",
+                CallableKind::Operation => "=>",
+            };
+            format!("({input} {arrow} {output})")
+        }
+        qsc::ast::TyKind::Hole => "_".to_owned(),
+        qsc::ast::TyKind::Paren(ty) => get_type_name_from_ast_ty(ty),
+        qsc::ast::TyKind::Path(path) => print_path(path),
+        qsc::ast::TyKind::Param(id) => id.name.to_string(),
+        qsc::ast::TyKind::Tuple(tys) => {
+            if tys.is_empty() {
+                "Unit".to_owned()
+            } else {
+                let elements = tys
+                    .iter()
+                    .map(get_type_name_from_ast_ty)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("({elements})")
+            }
+        }
+    }
+}
+
+fn print_path(path: &Path) -> String {
+    match &path.namespace {
+        Some(ns) => format!("{ns}.{}", path.name.name),
+        None => format!("{}", path.name.name),
     }
 }
