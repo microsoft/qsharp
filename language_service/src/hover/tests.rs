@@ -499,7 +499,7 @@ fn hover_udt() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nPair\n```\n",
+                    contents: "```qsharp\nPair: (Int, snd: Int)\n```\n",
                     span: Span {
                         start: 29,
                         end: 33,

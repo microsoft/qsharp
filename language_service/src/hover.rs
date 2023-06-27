@@ -75,7 +75,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                 ast::ItemKind::Ty(ident, def) => {
                     // ToDo: UDTs should show their description
                     if span_contains(ident.span, self.offset) {
-                        self.header = Some(header_from(&ident.name.to_string()));
+                        self.header = Some(header_from_ast_udt(ident, def));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -334,28 +334,64 @@ impl HoverVisitor<'_> {
 
 // ToDo: display more info for UDTs
 fn header_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
+    let name = &name.name;
+    // ToDo: HIR UDTs need to be refactored to allow for String Representation
+    //let def = udt_to_string(def);
+
     format!(
         "```qsharp
-{}
+{name}
 ```
-",
-        name.name
+"
     )
+}
+
+// ToDo: HIR UDTs need to be refactored to allow for String Representation
+// fn udt_to_string(def: &hir::ty::Udt) -> String {
+//     todo!()
+// }
+
+fn header_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
+    let name = &name.name;
+    let def = ty_def_to_string(def);
+
+    format!(
+        "```qsharp
+{name}: {def}
+```
+"
+    )
+}
+
+fn ty_def_to_string(def: &ast::TyDef) -> String {
+    match &*def.kind {
+        ast::TyDefKind::Field(name, ty) => {
+            let ty = get_type_name_from_ast_ty(ty);
+            match name {
+                Some(name) => format!("{}: {ty}", name.name),
+                None => ty,
+            }
+        }
+        ast::TyDefKind::Paren(def) => ty_def_to_string(def),
+        ast::TyDefKind::Tuple(tys) => {
+            if tys.is_empty() {
+                "Unit".to_owned()
+            } else {
+                let elements = tys
+                    .iter()
+                    .map(|def| ty_def_to_string(def))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("({elements})")
+            }
+        }
+    }
 }
 
 fn header_from_name(name: &impl Display, ty_name: &String) -> String {
     format!(
         "```qsharp
 {name}: {ty_name}
-```
-"
-    )
-}
-
-fn header_from(display: &impl Display) -> String {
-    format!(
-        "```qsharp
-{display}
 ```
 "
     )
