@@ -69,9 +69,18 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
 
-    #[error("This name results in ambiguity in a prelude namespace.")]
-    #[diagnostic(code("Qsc.Resolve.PreludeAmbiguity"))]
-    PreludeAmbiguity(#[label] Span),
+    #[error("`{name}` could refer to the item in {candidate_a} or an item in {candidate_b}")]
+    #[diagnostic(help(
+        "a namespace should not be declared with the same name as a namespace in the prelude"
+    ))]
+    #[diagnostic(code("Qsc.Resolve.AmbiguousPrelude"))]
+    AmbiguousPrelude {
+        name: String,
+        candidate_a: String,
+        candidate_b: String,
+        #[label]
+        span: Span,
+    },
 }
 
 struct Scope {
@@ -604,12 +613,20 @@ fn resolve(
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name);
         if candidates.len() > 1 {
-            // if candidates only increased to >1 after checking implicit opens, then we know this shadows a
-            // global namespace either from the globals or the prelude.
-            return Err(Error::PreludeAmbiguity(path.span));
+            let mut candidates = candidates
+                .into_iter()
+                .map(|candidate| candidate.namespace.to_string());
+            let candidate_a = candidates.next().unwrap();
+            let candidate_b = candidates.next().unwrap();
+            return Err(Error::AmbiguousPrelude {
+                span: path.span,
+                name: name.to_string(),
+                candidate_a,
+                candidate_b,
+            });
         }
         if let Some(res) = single(candidates) {
-            return Ok(res);
+            return Ok(res.result);
         }
     }
 
@@ -661,18 +678,31 @@ fn resolve_scope_locals(
 
     None
 }
+#[derive(PartialEq, Hash, Eq, Debug)]
+/// Represents the resolution of implicit opens, but also
+/// retains the namespace that the resolution comes from.
+/// This retained namespace string is used for error reporting.
+struct ImplicitOpenResolution<'a> {
+    /// the namespace that the `result` comes from.
+    namespace: &'a str,
+    /// the resolution that results from looking for a specific name in `namespace`.
+    result: Res,
+}
 
-fn resolve_implicit_opens(
+fn resolve_implicit_opens<'a, 'b>(
     kind: NameKind,
-    globals: &GlobalScope,
-    namespaces: impl IntoIterator<Item = impl AsRef<str>>,
-    name: &str,
-) -> HashSet<Res> {
+    globals: &'b GlobalScope,
+    namespaces: impl IntoIterator<Item = &'a &'a str>,
+    name: &'b str,
+) -> HashSet<ImplicitOpenResolution<'a>> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         let namespace = namespace.as_ref();
         if let Some(&res) = globals.get(kind, namespace, name) {
-            candidates.insert(res);
+            candidates.insert(ImplicitOpenResolution {
+                namespace,
+                result: res.clone(),
+            });
         }
     }
     candidates

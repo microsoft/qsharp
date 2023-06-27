@@ -517,14 +517,18 @@ fn std_dependency() {
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 #[test]
-fn name_shadows_prelude() {
+fn introduce_namespace_ambiguity() {
     let mut store = PackageStore::new(super::core());
     let std = store.insert(super::std(&store));
     let sources = SourceMap::new(
         [(
             "test".into(),
-            indoc! {"namespace Microsoft.Quantum.Canon{function Length () :n{ }}
-            namespace Mc{operation i() :t{Length"}
+            indoc! {"namespace Microsoft.Quantum.Canon {
+                function Length () : () { }
+            }
+                namespace Foo {
+                    function Main (): () { Length }
+                }"}
             .into(),
         )],
         Some("Foo.Main()".into()),
@@ -535,7 +539,7 @@ fn name_shadows_prelude() {
     assert!(errors.iter().any(|x| matches!(
         x,
         Error(super::ErrorKind::Resolve(
-            super::resolve::Error::PreludeAmbiguity(_)
+            super::resolve::Error::AmbiguousPrelude { .. }
         ))
     )));
 }

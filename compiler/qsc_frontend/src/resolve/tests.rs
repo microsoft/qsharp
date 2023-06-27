@@ -412,7 +412,7 @@ fn ambiguous_prelude() {
                 }
             }
 
-            // PreludeAmbiguity(Span { lo: 181, hi: 182 })
+            // AmbiguousPrelude { name: "A", candidate_a: "Microsoft.Quantum.Canon", candidate_b: "Microsoft.Quantum.Core", span: Span { lo: 181, hi: 182 } }
         "#]],
     );
 }
