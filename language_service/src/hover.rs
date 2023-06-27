@@ -35,15 +35,15 @@ pub(crate) fn get_hover(
     let mut hover_visitor = HoverVisitor {
         compilation,
         offset,
-        header: None,
+        contents: None,
         start: 0,
         end: 0,
     };
 
     hover_visitor.visit_package(package);
 
-    hover_visitor.header.map(|header| Hover {
-        contents: header,
+    hover_visitor.contents.map(|contents| Hover {
+        contents,
         span: Span {
             start: hover_visitor.start,
             end: hover_visitor.end,
@@ -54,7 +54,7 @@ pub(crate) fn get_hover(
 struct HoverVisitor<'a> {
     compilation: &'a Compilation,
     offset: u32,
-    header: Option<String>,
+    contents: Option<String>,
     start: u32,
     end: u32,
 }
@@ -65,7 +65,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_contains(decl.name.span, self.offset) {
-                        self.header = Some(self.header_from_ast_call_decl(decl, &item.doc));
+                        self.contents = Some(self.contents_from_ast_call_decl(decl, &item.doc));
                         self.start = decl.name.span.lo;
                         self.end = decl.name.span.hi;
                     } else if span_contains(decl.span, self.offset) {
@@ -73,9 +73,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     }
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    // ToDo: UDTs should show their description
                     if span_contains(ident.span, self.offset) {
-                        self.header = Some(header_from_ast_udt(ident, def));
+                        self.contents = Some(contents_from_ast_udt(ident, def));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -92,7 +91,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.header = Some(header_from_name(
+                        self.contents = Some(contents_from_name(
                             &ident.name,
                             &get_type_name_from_ast_ty(ty),
                         ));
@@ -115,8 +114,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
-                        self.header =
-                            Some(header_from_name(&ident.name, &self.get_type_name(pat.id)));
+                        self.contents =
+                            Some(contents_from_name(&ident.name, &self.get_type_name(pat.id)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -132,7 +131,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
-                    self.header = Some(header_from_name(&field.name, &self.get_type_name(expr.id)));
+                    self.contents = Some(contents_from_name(
+                        &field.name,
+                        &self.get_type_name(expr.id),
+                    ));
                     self.start = field.span.lo;
                     self.end = field.span.hi;
                 }
@@ -143,49 +145,46 @@ impl Visitor<'_> for HoverVisitor<'_> {
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
         if span_contains(path.span, self.offset) {
-            let res = self
-                .compilation
-                .unit
-                .ast
-                .names
-                .get(path.id)
-                .unwrap_or_else(|| panic!("Can't find definition for reference node: {}", path.id));
-            match &res {
-                resolve::Res::Item(item_id) => {
-                    let item = find_item(self.compilation, item_id).unwrap_or_else(|| {
-                        panic!("Can't find definition for reference node: {}", path.id)
-                    });
-                    self.header = match &item.kind {
-                        hir::ItemKind::Callable(decl) => {
-                            Some(self.header_from_hir_call_decl(decl, &item.doc))
+            let res = self.compilation.unit.ast.names.get(path.id);
+            if let Some(res) = res {
+                match &res {
+                    resolve::Res::Item(item_id) => {
+                        if let Some(item) = find_item(self.compilation, item_id) {
+                            self.contents = match &item.kind {
+                                hir::ItemKind::Callable(decl) => {
+                                    Some(self.contents_from_hir_call_decl(decl, &item.doc))
+                                }
+                                hir::ItemKind::Namespace(_, _) => {
+                                    panic!(
+                                        "Reference node should not refer to a namespace: {}",
+                                        path.id
+                                    )
+                                }
+                                hir::ItemKind::Ty(ident, udt) => {
+                                    Some(contents_from_hir_udt(ident, udt))
+                                }
+                            };
+                            self.start = path.span.lo;
+                            self.end = path.span.hi;
                         }
-                        hir::ItemKind::Namespace(_, _) => {
-                            panic!(
-                                "Reference node should not refer to a namespace: {}",
-                                path.id
-                            )
-                        }
-                        hir::ItemKind::Ty(ident, udt) => Some(header_from_hir_udt(ident, udt)),
-                    };
-                    self.start = path.span.lo;
-                    self.end = path.span.hi;
-                }
-                resolve::Res::Local(node_id) => {
-                    self.header = Some(header_from_name(
-                        &print_path(path),
-                        &self.get_type_name(*node_id),
-                    ));
-                    self.start = path.span.lo;
-                    self.end = path.span.hi;
-                }
-                _ => {}
-            };
+                    }
+                    resolve::Res::Local(node_id) => {
+                        self.contents = Some(contents_from_name(
+                            &print_path(path),
+                            &self.get_type_name(*node_id),
+                        ));
+                        self.start = path.span.lo;
+                        self.end = path.span.hi;
+                    }
+                    _ => {}
+                };
+            }
         }
     }
 }
 
 impl HoverVisitor<'_> {
-    fn header_from_ast_call_decl(&mut self, decl: &ast::CallableDecl, doc: &Rc<str>) -> String {
+    fn contents_from_ast_call_decl(&mut self, decl: &ast::CallableDecl, doc: &Rc<str>) -> String {
         let (kind, arrow) = match decl.kind {
             ast::CallableKind::Function => ("function", "->"),
             ast::CallableKind::Operation => ("operation", "=>"),
@@ -229,7 +228,7 @@ impl HoverVisitor<'_> {
         }
     }
 
-    fn header_from_hir_call_decl(&self, decl: &hir::CallableDecl, doc: &Rc<str>) -> String {
+    fn contents_from_hir_call_decl(&self, decl: &hir::CallableDecl, doc: &Rc<str>) -> String {
         let (kind, arrow) = match decl.kind {
             hir::CallableKind::Function => ("function", "->"),
             hir::CallableKind::Operation => ("operation", "=>"),
@@ -273,15 +272,11 @@ impl HoverVisitor<'_> {
     }
 
     fn get_type_name(&self, node_id: ast::NodeId) -> String {
-        let ty = self
-            .compilation
-            .unit
-            .ast
-            .tys
-            .terms
-            .get(node_id)
-            .unwrap_or_else(|| panic!("Can't find type for node: {node_id}"));
-        self.get_type_name_from_hir_ty(ty)
+        if let Some(ty) = self.compilation.unit.ast.tys.terms.get(node_id) {
+            self.get_type_name_from_hir_ty(ty)
+        } else {
+            "?".to_string()
+        }
     }
 
     // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
@@ -318,11 +313,13 @@ impl HoverVisitor<'_> {
             }
             hir::ty::Ty::Udt(res) => match res {
                 hir::Res::Item(item_id) => {
-                    let item = find_item(self.compilation, item_id)
-                        .unwrap_or_else(|| panic!("Can't find type with item id: {item_id}"));
-                    match &item.kind {
-                        hir::ItemKind::Ty(ident, _) => ident.name.to_string(),
-                        _ => panic!("UDT has invalid resolution."),
+                    if let Some(item) = find_item(self.compilation, item_id) {
+                        match &item.kind {
+                            hir::ItemKind::Ty(ident, _) => ident.name.to_string(),
+                            _ => panic!("UDT has invalid resolution."),
+                        }
+                    } else {
+                        "?".to_string()
                     }
                 }
                 _ => panic!("UDT has invalid resolution."),
@@ -332,11 +329,8 @@ impl HoverVisitor<'_> {
     }
 }
 
-// ToDo: display more info for UDTs
-fn header_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
+fn contents_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
     let name = &name.name;
-    // ToDo: HIR UDTs need to be refactored to allow for String Representation
-    //let def = udt_to_string(def);
 
     format!(
         "```qsharp
@@ -346,12 +340,7 @@ fn header_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
     )
 }
 
-// ToDo: HIR UDTs need to be refactored to allow for String Representation
-// fn udt_to_string(def: &hir::ty::Udt) -> String {
-//     todo!()
-// }
-
-fn header_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
+fn contents_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
     let name = &name.name;
     let def = ty_def_to_string(def);
 
@@ -388,7 +377,7 @@ fn ty_def_to_string(def: &ast::TyDef) -> String {
     }
 }
 
-fn header_from_name(name: &impl Display, ty_name: &String) -> String {
+fn contents_from_name(name: &impl Display, ty_name: &String) -> String {
     format!(
         "```qsharp
 {name}: {ty_name}
