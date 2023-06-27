@@ -109,9 +109,8 @@ export function Editor(props: {
   }
 
   hirRef.current = async function updateHir() {
-    // This should get called on initial load and on every document update.
     const code = editor.current?.getValue();
-    if (code == null) throw new Error("Why is code null?");
+    if (code == null) return;
 
     if (props.activeTab === "hir-tab") {
       props.setHir(await props.compiler.getHir(code));
