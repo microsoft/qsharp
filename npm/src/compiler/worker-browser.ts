@@ -27,12 +27,12 @@ export function messageHandler(e: MessageEvent) {
         log.setLogLevel(data.qscLogLevel);
         log.setTelemetryCollector(telemetryHandler);
         wasm.initSync(data.wasmModule);
-        
+
         // Set up logging and telemetry as soon as possible after instantiating
         wasm.initLogging(log.logWithLevel, log.getLogLevel());
         wasm.initTelemetry(log.logTelemetry);
         log.onLevelChanged = (level) => wasm.setLogLevel(level);
-        
+
         const compiler = new Compiler(wasm);
         invokeCompiler = createCompilerDispatcher(
           self.postMessage.bind(self),
