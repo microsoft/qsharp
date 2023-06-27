@@ -231,7 +231,8 @@ test("worker check", async () => {
 test("worker telemetry", async () => {
   let code = `namespace Test {
     function Answer() : Unit {
-        use q1 = Qubit();
+        let foo = 0;
+        let bar = 12 / foo;
     }
   }`;
   telemetryEvents.length = 0;
