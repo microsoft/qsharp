@@ -267,7 +267,6 @@ function registerMonacoLanguageServiceProviders(
         range: {
           startLineNumber: definitionPosition.lineNumber,
           startColumn: definitionPosition.column,
-          // TODO: get accurate range from language service
           endLineNumber: definitionPosition.lineNumber,
           endColumn: definitionPosition.column + 1,
         },
