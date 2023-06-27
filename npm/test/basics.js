@@ -6,8 +6,13 @@
 import assert from "node:assert";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
-import { getCompiler, getCompilerWorker } from "../dist/main.js";
-import { QscEventTarget } from "../dist/events.js";
+import {
+  getCompiler,
+  getCompilerWorker,
+  getLanguageService,
+  getLanguageServiceWorker,
+} from "../dist/main.js";
+import { QscEventTarget } from "../dist/compiler/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
@@ -343,11 +348,69 @@ test("cancel worker", () => {
   });
 });
 
+test("language service diagnostics", async () => {
+  const languageService = getLanguageService();
+  let gotDiagnostics = false;
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: expected (Double, Qubit), found Qubit"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+  );
+  assert(gotDiagnostics);
+});
+
+test("language service diagnostics - web worker", async () => {
+  const languageService = getLanguageServiceWorker();
+  let gotDiagnostics = false;
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: expected (Double, Qubit), found Qubit"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+  );
+  languageService.terminate();
+  assert(gotDiagnostics);
+});
 async function testCompilerError(useWorker) {
   const compiler = useWorker ? getCompilerWorker() : getCompiler();
-  compiler.onstatechange = (state) => {
-    lastState = state;
-  };
+  if (useWorker) {
+    // @ts-expect-error onstatechange only exists on the worker
+    compiler.onstatechange = (state) => {
+      lastState = state;
+    };
+  }
+
   const events = new QscEventTarget(true);
   let promiseResult = undefined;
   let lastState = undefined;
@@ -360,16 +423,13 @@ async function testCompilerError(useWorker) {
       promiseResult = "failure";
     });
 
-  if (useWorker) {
-    // Resetting the state only works when using the worker.
-    // Not desired, but expected.
-    assert.equal(lastState, "idle");
-  }
   assert.equal(promiseResult, "failure");
   const results = events.getResults();
   assert.equal(results.length, 1);
   assert.equal(results[0].success, false);
   if (useWorker) {
+    // Only the worker has state change events
+    assert.equal(lastState, "idle");
     // @ts-expect-error terminate() only exists on the worker
     compiler.terminate();
   }
