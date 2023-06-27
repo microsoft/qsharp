@@ -536,3 +536,21 @@ fn hover_udt_field_ref() {
         "#]],
     );
 }
+
+#[test]
+fn hover_primitive_type() {
+    check(
+        r#"
+        namespace Test {
+            newtype Pair = (◉I↘nt◉, snd : Int);
+            operation Foo() : Unit {
+                let a = Pair(3, 4);
+                let b = a::snd;
+            }
+        }
+    "#,
+        &expect![[r#"
+            None
+        "#]],
+    );
+}

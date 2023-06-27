@@ -130,27 +130,9 @@ impl Visitor<'_> for HoverVisitor<'_> {
         }
     }
 
-    fn visit_ty(&mut self, ty: &'_ ast::Ty) {
-        if span_contains(ty.span, self.offset) {
-            match &*ty.kind {
-                ast::TyKind::Path(path) => {
-                    self.header = Some(header_from(&print_path(path)));
-                    self.start = path.span.lo;
-                    self.end = path.span.hi;
-                }
-                _ => walk_ty(self, ty),
-            }
-        }
-    }
-
     fn visit_expr(&mut self, expr: &'_ Expr) {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
-                ExprKind::Path(path) => {
-                    self.header = Some(self.get_reference(path));
-                    self.start = expr.span.lo;
-                    self.end = expr.span.hi;
-                }
                 ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
                     self.header = Some(header_from_name(&field.name, &self.get_type_name(expr.id)));
                     self.start = field.span.lo;
@@ -158,6 +140,46 @@ impl Visitor<'_> for HoverVisitor<'_> {
                 }
                 _ => walk_expr(self, expr),
             }
+        }
+    }
+
+    fn visit_path(&mut self, path: &'_ Path) {
+        if span_contains(path.span, self.offset) {
+            let res = self
+                .compilation
+                .unit
+                .ast
+                .names
+                .get(path.id)
+                .unwrap_or_else(|| panic!("Can't find definition for reference node: {}", path.id));
+            match &res {
+                resolve::Res::Item(item_id) => {
+                    let item = find_item(self.compilation, item_id).unwrap_or_else(|| {
+                        panic!("Can't find definition for reference node: {}", path.id)
+                    });
+                    self.header = match &item.kind {
+                        hir::ItemKind::Callable(decl) => Some(self.header_from_hir_call_decl(decl)),
+                        hir::ItemKind::Namespace(_, _) => {
+                            panic!(
+                                "Reference node should not refer to a namespace: {}",
+                                path.id
+                            )
+                        }
+                        hir::ItemKind::Ty(ident, udt) => Some(header_from_hir_udt(ident, udt)),
+                    };
+                    self.start = path.span.lo;
+                    self.end = path.span.hi;
+                }
+                resolve::Res::Local(node_id) => {
+                    self.header = Some(header_from_name(
+                        &print_path(path),
+                        &self.get_type_name(*node_id),
+                    ));
+                    self.start = path.span.lo;
+                    self.end = path.span.hi;
+                }
+                _ => {}
+            };
         }
     }
 }
@@ -219,43 +241,6 @@ impl HoverVisitor<'_> {
         )
     }
 
-    fn get_reference(&self, path: &Path) -> String {
-        let res = self
-            .compilation
-            .unit
-            .ast
-            .names
-            .get(path.id)
-            .unwrap_or_else(|| panic!("Can't find definition for reference node: {}", path.id));
-        match &res {
-            resolve::Res::Item(item_id) => {
-                let item = find_item(self.compilation, item_id).unwrap_or_else(|| {
-                    panic!("Can't find definition for reference node: {}", path.id)
-                });
-                match &item.kind {
-                    hir::ItemKind::Callable(decl) => self.header_from_hir_call_decl(decl),
-                    hir::ItemKind::Namespace(_, _) => {
-                        panic!(
-                            "Reference node should not refer to a namespace: {}",
-                            path.id
-                        )
-                    }
-                    hir::ItemKind::Ty(ident, udt) => header_from_hir_udt(ident, udt),
-                }
-            }
-            resolve::Res::Local(node_id) => {
-                header_from_name(&print_path(path), &self.get_type_name(*node_id))
-            }
-            resolve::Res::PrimTy(prim) => match prim {
-                hir::ty::Prim::RangeTo | hir::ty::Prim::RangeFrom | hir::ty::Prim::RangeFull => {
-                    "Range".to_owned()
-                }
-                ty => format!("{ty:?}"),
-            },
-            resolve::Res::UnitTy => "Unit".to_owned(),
-        }
-    }
-
     fn get_type_name(&self, node_id: NodeId) -> String {
         let ty = self
             .compilation
@@ -268,6 +253,7 @@ impl HoverVisitor<'_> {
         self.get_type_name_from_hir_ty(ty)
     }
 
+    // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
     fn get_type_name_from_hir_ty(&self, ty: &hir::ty::Ty) -> String {
         match ty {
             hir::ty::Ty::Array(item) => format!("{}[]", self.get_type_name_from_hir_ty(item)),
@@ -310,6 +296,7 @@ impl HoverVisitor<'_> {
     }
 }
 
+// ToDo: display more info for UDTs
 fn header_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
     format!(
         "```qsharp
