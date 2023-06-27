@@ -14,6 +14,7 @@ import {
   LogLevel,
   samples,
   getLanguageServiceWorker,
+  ILanguageService,
 } from "qsharp";
 
 import { Nav } from "./nav.js";
@@ -57,6 +58,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [evtTarget] = useState(new QscEventTarget(true));
 
   const languageService = getLanguageServiceWorker(languageServiceWorkerPath);
+  registerMonacoLanguageServiceProviders(languageService);
 
   const [currentNavItem, setCurrentNavItem] = useState(
     props.linkedCode ? "linked" : "Minimal"
@@ -173,6 +175,106 @@ async function loaded() {
   }
 
   render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
+}
+
+function registerMonacoLanguageServiceProviders(
+  languageService: ILanguageService
+) {
+  monaco.languages.registerCompletionItemProvider("qsharp", {
+    // @ts-expect-error - Monaco's types expect range to be defined,
+    // but it's actually optional and the default behavior is better
+    provideCompletionItems: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      const completions = await languageService.getCompletions(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+      return {
+        suggestions: completions.items.map((i) => {
+          let kind;
+          switch (i.kind) {
+            case "function":
+              kind = monaco.languages.CompletionItemKind.Function;
+              break;
+            case "module":
+              kind = monaco.languages.CompletionItemKind.Module;
+              break;
+            case "keyword":
+              kind = monaco.languages.CompletionItemKind.Keyword;
+              break;
+            case "issue":
+              kind = monaco.languages.CompletionItemKind.Issue;
+              break;
+          }
+          return {
+            label: i.label,
+            kind: kind,
+            insertText: i.label,
+            range: undefined,
+          };
+        }),
+      };
+    },
+  });
+
+  monaco.languages.registerHoverProvider("qsharp", {
+    provideHover: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      const hover = await languageService.getHover(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+
+      if (hover) {
+        const start = model.getPositionAt(hover.span.start);
+        const end = model.getPositionAt(hover.span.end);
+
+        return {
+          contents: [{ value: hover.contents }],
+          range: {
+            startLineNumber: start.lineNumber,
+            startColumn: start.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column,
+          },
+        };
+      }
+      return null;
+    },
+  });
+
+  monaco.languages.registerDefinitionProvider("qsharp", {
+    provideDefinition: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      const definition = await languageService.getDefinition(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+
+      if (!definition) return null;
+      const uri = monaco.Uri.parse(definition.source);
+      const definitionPosition =
+        uri.toString() === model.uri.toString()
+          ? model.getPositionAt(definition.offset)
+          : { lineNumber: 1, column: 1 };
+      return {
+        uri,
+        range: {
+          startLineNumber: definitionPosition.lineNumber,
+          startColumn: definitionPosition.column,
+          // TODO: get accurate range from language service
+          endLineNumber: definitionPosition.lineNumber,
+          endColumn: definitionPosition.column + 1,
+        },
+      };
+    },
+  });
 }
 
 // Monaco provides the 'require' global for loading modules.
