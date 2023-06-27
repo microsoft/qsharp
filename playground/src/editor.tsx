@@ -8,6 +8,7 @@ import {
   CompilerState,
   ICompilerWorker,
   ILanguageServiceWorker,
+  LanguageServiceEvent,
   QscEventTarget,
   VSDiagnostic,
   log,
@@ -172,12 +173,19 @@ export function Editor(props: {
   }, []);
 
   useEffect(() => {
-    props.languageService.addEventListener("diagnostics", (evt) => {
+    function onDiagnostics(evt: LanguageServiceEvent) {
       const diagnostics = evt.detail.diagnostics;
       errMarks.current.checkDiags = diagnostics;
       markErrors(evt.detail.version);
       setHasCheckErrors(diagnostics.length > 0);
-    });
+    }
+
+    props.languageService.addEventListener("diagnostics", onDiagnostics);
+
+    return () => {
+      log.info("Removing diagnostics listener");
+      props.languageService.removeEventListener("diagnostics", onDiagnostics);
+    };
   }, [props.languageService]);
 
   useEffect(() => {
