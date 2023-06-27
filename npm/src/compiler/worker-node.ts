@@ -25,7 +25,11 @@ const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-
 const postMessage = port.postMessage.bind(port);
 
 function telemetryHandler(telemetry: TelemetryEvent) {
-  postMessage({ type: "telemetry-event", event: telemetry });
+  postMessage({
+    messageType: "event",
+    type: "telemetry-event",
+    detail: telemetry,
+  });
 }
 
 // Set up logging and telemetry as soon as possible after instantiating

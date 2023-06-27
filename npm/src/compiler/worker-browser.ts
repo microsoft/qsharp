@@ -9,7 +9,11 @@ import { createCompilerDispatcher } from "./worker-proxy.js";
 let invokeCompiler: ReturnType<typeof createCompilerDispatcher> | null = null;
 
 function telemetryHandler(telemetry: TelemetryEvent) {
-  self.postMessage({ type: "telemetry-event", detail: telemetry });
+  self.postMessage({
+    messageType: "event",
+    type: "telemetry-event",
+    detail: telemetry,
+  });
 }
 
 // This export should be assigned to 'self.onmessage' in a WebWorker
