@@ -24,7 +24,6 @@ declare global {
 }
 
 export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TelemetryEvent = { id: string; data?: any };
 export type TelemetryCollector = (event: TelemetryEvent) => void;
 
@@ -109,7 +108,6 @@ export const log = {
     return !!telemetryCollector;
   },
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Enable globally for easy interaction and debugging in live environments
 globalThis.qscLog = log;
