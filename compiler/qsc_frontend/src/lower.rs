@@ -52,7 +52,7 @@ enum ItemScope {
 
 pub(super) struct Lowerer {
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    locals: IndexMap<hir::NodeId, (hir::Ident, Ty)>,
+    locals: IndexMap<hir::NodeId, Ty>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
@@ -633,9 +633,7 @@ impl With<'_> {
         let kind = match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let name = self.lower_ident(name);
-                self.lowerer
-                    .locals
-                    .insert(name.id, (name.clone(), ty.clone()));
+                self.lowerer.locals.insert(name.id, ty.clone());
                 hir::PatKind::Bind(name)
             }
             ast::PatKind::Discard(_) => hir::PatKind::Discard,

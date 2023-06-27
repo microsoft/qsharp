@@ -86,7 +86,7 @@ impl MutVisitor for VarReplacer<'_> {
 
 pub(super) fn lift(
     assigner: &mut Assigner,
-    locals: &IndexMap<NodeId, (Ident, Ty)>,
+    locals: &IndexMap<NodeId, Ty>,
     mut lambda: Lambda,
     span: Span,
 ) -> (Vec<NodeId>, CallableDecl) {
@@ -112,11 +112,11 @@ pub(super) fn lift(
         let &new_id = substitutions
             .get(&id)
             .expect("free variable should have substitution");
-        let original_ident = locals
+        let ty = locals
             .get(id)
             .expect("free variable should be a local")
             .clone();
-        (new_id, original_ident)
+        (new_id, ty)
     });
 
     let mut input = closure_input(substituted_vars, lambda.input, span);
@@ -128,7 +128,7 @@ pub(super) fn lift(
         kind: lambda.kind,
         name: Ident {
             id: assigner.next_node(),
-            span: Span::default(),
+            span,
             name: "lambda".into(),
         },
         generics: Vec::new(),
@@ -205,18 +205,12 @@ pub(super) fn partial_app_block(
 
 pub(super) fn partial_app_hole(
     assigner: &mut Assigner,
-    locals: &mut IndexMap<NodeId, (Ident, Ty)>,
+    locals: &mut IndexMap<NodeId, Ty>,
     ty: Ty,
     span: Span,
 ) -> (Expr, PartialApp) {
     let local_id = assigner.next_node();
-    let ident = Ident {
-        id: local_id,
-        span,
-        name: "hole".into(),
-    };
-
-    locals.insert(local_id, (ident.clone(), ty.clone()));
+    locals.insert(local_id, ty.clone());
 
     let app = PartialApp {
         bindings: Vec::new(),
@@ -224,7 +218,11 @@ pub(super) fn partial_app_hole(
             id: assigner.next_node(),
             span,
             ty: ty.clone(),
-            kind: PatKind::Bind(ident),
+            kind: PatKind::Bind(Ident {
+                id: local_id,
+                span,
+                name: "hole".into(),
+            }),
         },
     };
 
@@ -240,30 +238,29 @@ pub(super) fn partial_app_hole(
 
 pub(super) fn partial_app_given(
     assigner: &mut Assigner,
-    locals: &mut IndexMap<NodeId, (Ident, Ty)>,
+    locals: &mut IndexMap<NodeId, Ty>,
     arg: Expr,
 ) -> (Expr, PartialApp) {
     let local_id = assigner.next_node();
+    locals.insert(local_id, arg.ty.clone());
+
     let span = arg.span;
-    let ident = Ident {
-        id: local_id,
-        span,
-        name: "arg".into(),
-    };
-
-    locals.insert(local_id, (ident.clone(), arg.ty.clone()));
-
     let var = Expr {
         id: assigner.next_node(),
         span,
         ty: arg.ty.clone(),
         kind: ExprKind::Var(Res::Local(local_id), Vec::new()),
     };
+
     let binding_pat = Pat {
         id: assigner.next_node(),
         span,
         ty: arg.ty.clone(),
-        kind: PatKind::Bind(ident),
+        kind: PatKind::Bind(Ident {
+            id: local_id,
+            span: arg.span,
+            name: "arg".into(),
+        }),
     };
     let binding_stmt = Stmt {
         id: assigner.next_node(),
@@ -319,21 +316,17 @@ pub(super) fn partial_app_tuple(
     (expr, PartialApp { bindings, input })
 }
 
-fn closure_input(
-    vars: impl IntoIterator<Item = (NodeId, (Ident, Ty))>,
-    input: Pat,
-    span: Span,
-) -> Pat {
+fn closure_input(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
     let bindings: Vec<_> = vars
         .into_iter()
-        .map(|(id, (ident, ty))| Pat {
+        .map(|(id, ty)| Pat {
             id: NodeId::default(),
-            span: ident.span,
+            span,
             ty,
             kind: PatKind::Bind(Ident {
                 id,
-                span: ident.span,
-                name: ident.name,
+                span,
+                name: "closed".into(),
             }),
         })
         .collect();
