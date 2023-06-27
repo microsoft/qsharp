@@ -30,7 +30,6 @@ export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
 const logLevelUri = new URLSearchParams(window.location.search).get("logLevel");
 if (logLevelUri) log.setLogLevel(logLevelUri as LogLevel);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
