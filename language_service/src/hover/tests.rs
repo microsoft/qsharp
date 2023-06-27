@@ -4,6 +4,7 @@
 use super::get_hover;
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 use expect_test::{expect, Expect};
+use indoc::indoc;
 
 /// Asserts that the hover text at the given cursor position matches the expected hover text.
 /// The cursor position is indicated by a `↘` marker in the source text.
@@ -18,19 +19,19 @@ fn check(source_with_markers: &str, expect: &Expect) {
 #[test]
 fn hover_callable_unit_types() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             /// Doc comment!
             operation ◉F↘oo◉() : Unit {}
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\noperation Foo Unit => Unit\n```\n",
+                    contents: "```qsharp\nDoc comment!\noperation Foo Unit => Unit\n```\n",
                     span: Span {
-                        start: 77,
-                        end: 80,
+                        start: 52,
+                        end: 55,
                     },
                 },
             )
@@ -41,19 +42,19 @@ fn hover_callable_unit_types() {
 #[test]
 fn hover_callable_with_callable_types() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             /// Doc comment!
             operation ◉F↘oo◉(x : (Int => Int)) : (Int => Int) {x}
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\noperation Foo (Int => Int) => (Int => Int)\n```\n",
+                    contents: "```qsharp\nDoc comment!\noperation Foo (Int => Int) => (Int => Int)\n```\n",
                     span: Span {
-                        start: 77,
-                        end: 80,
+                        start: 52,
+                        end: 55,
                     },
                 },
             )
@@ -64,20 +65,20 @@ fn hover_callable_with_callable_types() {
 #[test]
 fn hover_call() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit { ◉B↘ar◉(); }
 
             operation Bar() : Unit {}
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\noperation Bar Unit => Unit\n```\n",
                     span: Span {
-                        start: 63,
-                        end: 66,
+                        start: 46,
+                        end: 49,
                     },
                 },
             )
@@ -88,20 +89,20 @@ fn hover_call() {
 #[test]
 fn hover_identifier() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let ◉↘x◉ = 3;
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nx: Int\n```\n",
                     span: Span {
-                        start: 83,
-                        end: 84,
+                        start: 58,
+                        end: 59,
                     },
                 },
             )
@@ -112,21 +113,21 @@ fn hover_identifier() {
 #[test]
 fn hover_identifier_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let x = 3;
                 let y = ◉↘x◉;
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nx: Int\n```\n",
                     span: Span {
-                        start: 114,
-                        end: 115,
+                        start: 81,
+                        end: 82,
                     },
                 },
             )
@@ -137,20 +138,20 @@ fn hover_identifier_ref() {
 #[test]
 fn hover_identifier_tuple() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let (x, ◉↘y◉) = (3, 1.4);
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\ny: Double\n```\n",
                     span: Span {
-                        start: 87,
-                        end: 88,
+                        start: 62,
+                        end: 63,
                     },
                 },
             )
@@ -161,21 +162,21 @@ fn hover_identifier_tuple() {
 #[test]
 fn hover_identifier_tuple_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let (x, y) = (3, 1.4);
                 let z = ◉↘y◉;
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\ny: Double\n```\n",
                     span: Span {
-                        start: 126,
-                        end: 127,
+                        start: 93,
+                        end: 94,
                     },
                 },
             )
@@ -186,7 +187,7 @@ fn hover_identifier_tuple_ref() {
 #[test]
 fn hover_identifier_for_loop() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 for ◉↘i◉ in 0..10 {
@@ -194,14 +195,14 @@ fn hover_identifier_for_loop() {
                 }
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\ni: Int\n```\n",
                     span: Span {
-                        start: 83,
-                        end: 84,
+                        start: 58,
+                        end: 59,
                     },
                 },
             )
@@ -212,7 +213,7 @@ fn hover_identifier_for_loop() {
 #[test]
 fn hover_identifier_for_loop_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 for i in 0..10 {
@@ -220,14 +221,14 @@ fn hover_identifier_for_loop_ref() {
                 }
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\ni: Int\n```\n",
                     span: Span {
-                        start: 124,
-                        end: 125,
+                        start: 91,
+                        end: 92,
                     },
                 },
             )
@@ -238,7 +239,7 @@ fn hover_identifier_for_loop_ref() {
 #[test]
 fn hover_identifier_nested_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let x = 3;
@@ -247,14 +248,14 @@ fn hover_identifier_nested_ref() {
                 }
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nx: Int\n```\n",
                     span: Span {
-                        start: 144,
-                        end: 145,
+                        start: 103,
+                        end: 104,
                     },
                 },
             )
@@ -265,7 +266,7 @@ fn hover_identifier_nested_ref() {
 #[test]
 fn hover_lambda() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let a = 3;
@@ -273,14 +274,14 @@ fn hover_lambda() {
                 let b = lambda(1.2, "yes");
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nlambda: ((Double, String) => Int)\n```\n",
                     span: Span {
-                        start: 110,
-                        end: 116,
+                        start: 77,
+                        end: 83,
                     },
                 },
             )
@@ -291,7 +292,7 @@ fn hover_lambda() {
 #[test]
 fn hover_lambda_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let a = 3;
@@ -299,14 +300,14 @@ fn hover_lambda_ref() {
                 let b = ◉la↘mbda◉(1.2, "yes");
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nlambda: ((Double, String) => Int)\n```\n",
                     span: Span {
-                        start: 156,
-                        end: 162,
+                        start: 115,
+                        end: 121,
                     },
                 },
             )
@@ -317,7 +318,7 @@ fn hover_lambda_ref() {
 #[test]
 fn hover_lambda_param() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let a = 3;
@@ -325,14 +326,14 @@ fn hover_lambda_param() {
                 let b = lambda(1.2, "yes");
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\ny: String\n```\n",
                     span: Span {
-                        start: 123,
-                        end: 124,
+                        start: 90,
+                        end: 91,
                     },
                 },
             )
@@ -343,21 +344,21 @@ fn hover_lambda_param() {
 #[test]
 fn hover_lambda_param_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let lambda = (x, y) => ◉↘y◉;
                 let a = lambda(1.2, "yes");
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\ny: String\n```\n",
                     span: Span {
-                        start: 102,
-                        end: 103,
+                        start: 77,
+                        end: 78,
                     },
                 },
             )
@@ -368,7 +369,7 @@ fn hover_lambda_param_ref() {
 #[test]
 fn hover_lambda_closure_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
                 let a = 3;
@@ -376,14 +377,14 @@ fn hover_lambda_closure_ref() {
                 let b = lambda(1.2, "yes");
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\na: Int\n```\n",
                     span: Span {
-                        start: 129,
-                        end: 130,
+                        start: 96,
+                        end: 97,
                     },
                 },
             )
@@ -394,7 +395,7 @@ fn hover_lambda_closure_ref() {
 #[test]
 fn hover_identifier_udt() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype Pair = (fst : Int, snd : Int);
             operation Foo() : Unit {
@@ -402,14 +403,14 @@ fn hover_identifier_udt() {
                 let b = ◉↘a◉;
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\na: Pair\n```\n",
                     span: Span {
-                        start: 174,
-                        end: 175,
+                        start: 133,
+                        end: 134,
                     },
                 },
             )
@@ -420,18 +421,18 @@ fn hover_identifier_udt() {
 #[test]
 fn hover_udt() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype ◉P↘air◉ = (Int, snd : Int);
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nPair\n```\n",
                     span: Span {
-                        start: 46,
-                        end: 50,
+                        start: 29,
+                        end: 33,
                     },
                 },
             )
@@ -442,21 +443,46 @@ fn hover_udt() {
 #[test]
 fn hover_udt_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype Pair = (Int, snd : Int);
             operation Foo() : ◉P↘air◉ {
                 Pair(3, 4)
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nPair\n```\n",
                     span: Span {
-                        start: 101,
-                        end: 105,
+                        start: 76,
+                        end: 80,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_udt_anno_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Pair = (Int, snd : Int);
+            operation Foo() : Unit {
+                let a : ◉P↘air◉ = Pair(3, 4);
+            }
+        }
+    "#},
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nPair\n```\n",
+                    span: Span {
+                        start: 99,
+                        end: 103,
                     },
                 },
             )
@@ -467,21 +493,21 @@ fn hover_udt_ref() {
 #[test]
 fn hover_udt_constructor() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype Pair = (Int, snd : Int);
             operation Foo() : Unit {
                 let a = ◉P↘air◉(3, 4);
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nPair\n```\n",
                     span: Span {
-                        start: 132,
-                        end: 136,
+                        start: 99,
+                        end: 103,
                     },
                 },
             )
@@ -492,18 +518,18 @@ fn hover_udt_constructor() {
 #[test]
 fn hover_udt_field() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype Pair = (Int, ◉s↘nd◉ : Int);
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nsnd: Int\n```\n",
                     span: Span {
-                        start: 59,
-                        end: 62,
+                        start: 42,
+                        end: 45,
                     },
                 },
             )
@@ -514,7 +540,7 @@ fn hover_udt_field() {
 #[test]
 fn hover_udt_field_ref() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype Pair = (Int, snd : Int);
             operation Foo() : Unit {
@@ -522,14 +548,14 @@ fn hover_udt_field_ref() {
                 let b = a::◉s↘nd◉;
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\nsnd: Int\n```\n",
                     span: Span {
-                        start: 171,
-                        end: 174,
+                        start: 130,
+                        end: 133,
                     },
                 },
             )
@@ -540,7 +566,7 @@ fn hover_udt_field_ref() {
 #[test]
 fn hover_primitive_type() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             newtype Pair = (◉I↘nt◉, snd : Int);
             operation Foo() : Unit {
@@ -548,7 +574,7 @@ fn hover_primitive_type() {
                 let b = a::snd;
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             None
         "#]],
@@ -558,21 +584,21 @@ fn hover_primitive_type() {
 #[test]
 fn hover_foreign_call() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             open FakeStdLib;
             operation Foo() : Unit {
                 ◉F↘ake◉();
             }
         }
-    "#,
+    "#},
         &expect![[r#"
             Some(
                 Hover {
                     contents: "```qsharp\noperation Fake Unit => Unit\n```\n",
                     span: Span {
-                        start: 108,
-                        end: 112,
+                        start: 75,
+                        end: 79,
                     },
                 },
             )
