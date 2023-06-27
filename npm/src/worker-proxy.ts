@@ -216,7 +216,6 @@ export function createProxy<
         success: msg.result.success,
         data: msg.result.success ? msg.result.result : msg.result.error,
       };
-      if (!result) return;
       if (result.success) {
         curr.resolve(result.data);
         curr = undefined;

@@ -18,6 +18,13 @@ import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
 
+/**
+ *
+ * @param {string} code
+ * @param {string} expr
+ * @param {boolean} useWorker
+ * @returns {Promise<import("../dist/common.js").ShotResult>}
+ */
 export function runSingleShot(code, expr, useWorker) {
   return new Promise((resolve, reject) => {
     const resultsHandler = new QscEventTarget(true);
@@ -337,7 +344,9 @@ test("cancel worker", () => {
 
 test("language service diagnostics", async () => {
   const languageService = getLanguageService();
+  let gotDiagnostics = false;
   languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
     assert.equal(event.type, "diagnostics");
     assert.equal(event.detail.diagnostics.length, 1);
     assert.equal(
@@ -357,12 +366,14 @@ test("language service diagnostics", async () => {
     }
 }`
   );
+  assert(gotDiagnostics);
 });
 
 test("language service diagnostics - web worker", async () => {
   const languageService = getLanguageServiceWorker();
+  let gotDiagnostics = false;
   languageService.addEventListener("diagnostics", (event) => {
-    log.info("did receive diagnostics event");
+    gotDiagnostics = true;
     assert.equal(event.type, "diagnostics");
     assert.equal(event.detail.diagnostics.length, 1);
     assert.equal(
@@ -383,6 +394,7 @@ test("language service diagnostics - web worker", async () => {
 }`
   );
   languageService.terminate();
+  assert(gotDiagnostics);
 });
 async function testCompilerError(useWorker) {
   const compiler = useWorker ? getCompilerWorker() : getCompiler();
