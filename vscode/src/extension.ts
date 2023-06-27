@@ -10,35 +10,7 @@ import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
 
 export async function activate(context: vscode.ExtensionContext) {
-  const output = vscode.window.createOutputChannel("Q#");
-  output.appendLine("Q# extension activated.");
-
-  // Override the global logger with functions that write to the output channel
-  global.qscLog.error = (...args: unknown[]) => {
-    output.appendLine(
-      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
-    );
-  };
-  global.qscLog.warn = (...args: unknown[]) => {
-    output.appendLine(
-      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
-    );
-  };
-  global.qscLog.info = (...args: unknown[]) => {
-    output.appendLine(
-      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
-    );
-  };
-  global.qscLog.debug = (...args: unknown[]) => {
-    output.appendLine(
-      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
-    );
-  };
-  global.qscLog.trace = (...args: unknown[]) => {
-    output.appendLine(
-      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
-    );
-  };
+  initializeLogger();
 
   const languageService = await loadLanguageService(context.extensionUri);
 
@@ -74,6 +46,19 @@ export async function activate(context: vscode.ExtensionContext) {
       createDefinitionProvider(languageService)
     )
   );
+}
+
+function initializeLogger() {
+  const output = vscode.window.createOutputChannel("Q#", { log: true });
+
+  // Override the global logger with functions that write to the output channel
+  global.qscLog.error = output.error;
+  global.qscLog.warn = output.warn;
+  global.qscLog.info = output.info;
+  global.qscLog.debug = output.debug;
+  global.qscLog.trace = output.trace;
+
+  global.qscLog.debug("Q# extension activated.");
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
