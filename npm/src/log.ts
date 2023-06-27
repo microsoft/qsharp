@@ -50,7 +50,6 @@ export const log = {
   getLogLevel(): number {
     return globalThis.qscLogLevel || 0;
   },
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   error(...args: any) {
     if (qscLogLevel >= 1) console.error(...args);
   },

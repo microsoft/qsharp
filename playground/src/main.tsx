@@ -24,7 +24,6 @@ import { compressedBase64ToCode } from "./utils.js";
 
 export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
