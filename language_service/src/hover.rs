@@ -7,7 +7,7 @@ mod tests;
 use std::fmt::Display;
 
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
-use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::ast::{self, CallableDecl, CallableKind, Expr, ExprKind, NodeId, Pat, PatKind, Path};
 use qsc::{hir, resolve};
 
