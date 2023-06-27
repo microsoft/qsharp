@@ -651,11 +651,15 @@ fn resolve(
             let mut candidates = candidates
                 .into_iter()
                 .map(|candidate| candidate.namespace.to_string());
-            let candidate_a = candidates.next().unwrap();
-            let candidate_b = candidates.next().unwrap();
+            let candidate_a = candidates
+                .next()
+                .expect("infallible as per length check above");
+            let candidate_b = candidates
+                .next()
+                .expect("infallible as per length check above");
             return Err(Error::AmbiguousPrelude {
                 span: name.span,
-                name: name.to_string(),
+                name: name.name.to_string(),
                 candidate_a,
                 candidate_b,
             });
@@ -750,11 +754,10 @@ fn resolve_implicit_opens<'a, 'b>(
 ) -> HashSet<ImplicitOpenResolution<'a>> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
-        let namespace = namespace.as_ref();
         if let Some(&res) = globals.get(kind, namespace, name) {
             candidates.insert(ImplicitOpenResolution {
                 namespace,
-                result: res.clone(),
+                result: res,
             });
         }
     }
