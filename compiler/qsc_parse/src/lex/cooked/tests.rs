@@ -13,7 +13,7 @@ fn check(input: &str, expect: &Expect) {
 
 fn op_string(kind: TokenKind) -> Option<String> {
     match kind {
-        TokenKind::Apos => Some("'".to_string()),
+        TokenKind::AposIdent => Some("'".to_string()),
         TokenKind::At => Some("@".to_string()),
         TokenKind::Bang => Some("!".to_string()),
         TokenKind::Bar => Some("|".to_string()),
@@ -1669,13 +1669,14 @@ fn unfinished_generic() {
         "'  T",
         &expect![[r#"
             [
-                Err(
-                    UnfinishedGeneric(
-                        Span {
+                Ok(
+                    Token {
+                        kind: AposIdent,
+                        span: Span {
                             lo: 0,
-                            hi: 0,
+                            hi: 1,
                         },
-                    ),
+                    },
                 ),
                 Ok(
                     Token {
@@ -1697,13 +1698,14 @@ fn unfinished_generic_2() {
          T",
         &expect![[r#"
             [
-                Err(
-                    UnfinishedGeneric(
-                        Span {
+                Ok(
+                    Token {
+                        kind: AposIdent,
+                        span: Span {
                             lo: 0,
-                            hi: 0,
+                            hi: 1,
                         },
-                    ),
+                    },
                 ),
                 Ok(
                     Token {
@@ -1725,13 +1727,14 @@ fn unfinished_generic_3() {
         "'    T",
         &expect![[r#"
             [
-                Err(
-                    UnfinishedGeneric(
-                        Span {
+                Ok(
+                    Token {
+                        kind: AposIdent,
+                        span: Span {
                             lo: 0,
-                            hi: 0,
+                            hi: 1,
                         },
-                    ),
+                    },
                 ),
                 Ok(
                     Token {
@@ -1754,18 +1757,9 @@ fn correct_generic() {
             [
                 Ok(
                     Token {
-                        kind: Apos,
+                        kind: AposIdent,
                         span: Span {
                             lo: 0,
-                            hi: 1,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 1,
                             hi: 2,
                         },
                     },

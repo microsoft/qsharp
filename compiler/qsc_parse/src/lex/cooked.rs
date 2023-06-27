@@ -51,10 +51,6 @@ pub(crate) enum Error {
     #[error("unrecognized character `{0}`")]
     #[diagnostic(code("Qsc.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
-
-    #[error("unfinished generic")]
-    #[diagnostic(code("Qsc.Lex.UnfinishedGeneric"))]
-    UnfinishedGeneric(#[label] Span),
 }
 
 impl Error {
@@ -68,7 +64,6 @@ impl Error {
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
-            Self::UnfinishedGeneric(span) => Self::UnfinishedGeneric(span + offset),
         }
     }
 }
@@ -76,8 +71,9 @@ impl Error {
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum TokenKind {
-    /// `'`
-    Apos,
+    /// `'T`
+    /// used for generic parameters -- an apostrophe followed by an ident.
+    AposIdent,
     /// `@`
     At,
     /// `!`
@@ -155,7 +151,7 @@ pub(crate) enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            TokenKind::Apos => f.write_str("`'`"),
+            TokenKind::AposIdent => f.write_str("`'`"),
             TokenKind::At => f.write_str("`@`"),
             TokenKind::Bang => f.write_str("`!`"),
             TokenKind::Bar => f.write_str("`|`"),
@@ -325,15 +321,7 @@ impl<'a> Lexer<'a> {
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
-            raw::TokenKind::Single(single) => self
-                .single(
-                    single,
-                    Span {
-                        hi: token.offset,
-                        lo: token.offset,
-                    },
-                )
-                .map(Some),
+            raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
                 Ok(Some(TokenKind::String(StringToken::Normal)))
             }
@@ -370,7 +358,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn single(&mut self, single: Single, span: Span) -> Result<TokenKind, Error> {
+    fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
         match single {
             Single::Amp => {
                 let op = ClosedBinOp::AmpAmpAmp;
@@ -379,16 +367,9 @@ impl<'a> Lexer<'a> {
                 Ok(self.closed_bin_op(op))
             }
             Single::Apos => {
-                // disallow whitespace and comments after apostrophes
-                // see https://github.com/microsoft/qsharp/issues/407 for context
-                if matches!(
-                    self.tokens.peek().map(|tok| tok.kind),
-                    Some(raw::TokenKind::Whitespace | raw::TokenKind::Comment(_))
-                ) {
-                    Err(Error::UnfinishedGeneric(span))
-                } else {
-                    Ok(TokenKind::Apos)
-                }
+                self.tokens
+                    .next_if(|t| matches!(t.kind, raw::TokenKind::Ident));
+                Ok(TokenKind::AposIdent)
             }
             Single::At => Ok(TokenKind::At),
             Single::Bang => {

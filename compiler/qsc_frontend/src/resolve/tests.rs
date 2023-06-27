@@ -1735,13 +1735,13 @@ fn use_unbound_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'param0>(local9: 'U) : 'U {
+                function item1<param0>(local9: 'U) : 'U {
                     local9
                 }
             }
 
-            // NotFound("U", Span { lo: 37, hi: 38 })
-            // NotFound("U", Span { lo: 43, hi: 44 })
+            // NotFound("'U", Span { lo: 36, hi: 38 })
+            // NotFound("'U", Span { lo: 42, hi: 44 })
         "#]],
     );
 }
@@ -1757,7 +1757,7 @@ fn resolve_local_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'param0>(local9: 'param0) : 'param0 {
+                function item1<param0>(local9: param0) : param0 {
                     local9
                 }
             }

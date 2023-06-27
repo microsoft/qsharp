@@ -1599,7 +1599,7 @@ fn nested_params() {
                         generics:
                             0: type
                             1: functor (empty set)
-                        input: Pat 2 [34-45] [Type ('0 => Unit is 1)]: Bind: Ident 3 [34-35] "f"
+                        input: Pat 2 [34-45] [Type (0 => Unit is 1)]: Bind: Ident 3 [34-35] "f"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [17-55]: Impl:
