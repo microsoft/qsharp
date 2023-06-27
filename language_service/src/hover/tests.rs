@@ -554,3 +554,28 @@ fn hover_primitive_type() {
         "#]],
     );
 }
+
+#[test]
+fn hover_foreign_call() {
+    check(
+        r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                ◉F↘ake◉();
+            }
+        }
+    "#,
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation Fake Unit => Unit\n```\n",
+                    span: Span {
+                        start: 108,
+                        end: 112,
+                    },
+                },
+            )
+        "#]],
+    );
+}

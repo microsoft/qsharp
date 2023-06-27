@@ -34,7 +34,10 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     let std_source_map = SourceMap::new(
         [(
             "<std>".into(),
-            "namespace FakeStdLib { operation Fake() : Unit {} }".into(),
+            "namespace FakeStdLib {
+                operation Fake() : Unit {}
+            }"
+            .into(),
         )],
         None,
     );
