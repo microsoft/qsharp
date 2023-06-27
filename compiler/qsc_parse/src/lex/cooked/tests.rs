@@ -13,7 +13,7 @@ fn check(input: &str, expect: &Expect) {
 
 fn op_string(kind: TokenKind) -> Option<String> {
     match kind {
-        TokenKind::AposIdent => Some("'".to_string()),
+        TokenKind::AposIdent => Some("'T".to_string()),
         TokenKind::At => Some("@".to_string()),
         TokenKind::Bang => Some("!".to_string()),
         TokenKind::Bar => Some("|".to_string()),
@@ -1669,14 +1669,13 @@ fn unfinished_generic() {
         "'  T",
         &expect![[r#"
             [
-                Ok(
-                    Token {
-                        kind: AposIdent,
-                        span: Span {
+                Err(
+                    UnfinishedGeneric(
+                        Span {
                             lo: 0,
-                            hi: 1,
+                            hi: 0,
                         },
-                    },
+                    ),
                 ),
                 Ok(
                     Token {
@@ -1698,14 +1697,13 @@ fn unfinished_generic_2() {
          T",
         &expect![[r#"
             [
-                Ok(
-                    Token {
-                        kind: AposIdent,
-                        span: Span {
+                Err(
+                    UnfinishedGeneric(
+                        Span {
                             lo: 0,
-                            hi: 1,
+                            hi: 0,
                         },
-                    },
+                    ),
                 ),
                 Ok(
                     Token {
@@ -1727,14 +1725,13 @@ fn unfinished_generic_3() {
         "'    T",
         &expect![[r#"
             [
-                Ok(
-                    Token {
-                        kind: AposIdent,
-                        span: Span {
+                Err(
+                    UnfinishedGeneric(
+                        Span {
                             lo: 0,
-                            hi: 1,
+                            hi: 0,
                         },
-                    },
+                    ),
                 ),
                 Ok(
                     Token {
@@ -1763,6 +1760,24 @@ fn correct_generic() {
                             hi: 2,
                         },
                     },
+                ),
+            ]
+        "#]],
+    );
+}
+#[test]
+fn generic_missing_ident() {
+    check(
+        "'",
+        &expect![[r#"
+            [
+                Err(
+                    UnfinishedGeneric(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
                 ),
             ]
         "#]],

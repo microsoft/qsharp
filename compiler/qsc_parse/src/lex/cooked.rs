@@ -51,6 +51,10 @@ pub(crate) enum Error {
     #[error("unrecognized character `{0}`")]
     #[diagnostic(code("Qsc.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
+
+    #[error("unfinished generic")]
+    #[diagnostic(code("Qsc.Lex.UnfinishedGeneric"))]
+    UnfinishedGeneric(#[label] Span),
 }
 
 impl Error {
@@ -64,6 +68,7 @@ impl Error {
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
+            Self::UnfinishedGeneric(span) => Self::UnfinishedGeneric(span + offset),
         }
     }
 }
@@ -151,7 +156,7 @@ pub(crate) enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            TokenKind::AposIdent => f.write_str("`'`"),
+            TokenKind::AposIdent => f.write_str("apostrophe identifier"),
             TokenKind::At => f.write_str("`@`"),
             TokenKind::Bang => f.write_str("`!`"),
             TokenKind::Bar => f.write_str("`|`"),
@@ -321,7 +326,15 @@ impl<'a> Lexer<'a> {
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
-            raw::TokenKind::Single(single) => self.single(single).map(Some),
+            raw::TokenKind::Single(single) => self
+                .single(
+                    single,
+                    Span {
+                        lo: token.offset,
+                        hi: token.offset,
+                    },
+                )
+                .map(Some),
             raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
                 Ok(Some(TokenKind::String(StringToken::Normal)))
             }
@@ -358,7 +371,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
+    fn single(&mut self, single: Single, span: Span) -> Result<TokenKind, Error> {
         match single {
             Single::Amp => {
                 let op = ClosedBinOp::AmpAmpAmp;
@@ -367,9 +380,19 @@ impl<'a> Lexer<'a> {
                 Ok(self.closed_bin_op(op))
             }
             Single::Apos => {
-                self.tokens
-                    .next_if(|t| matches!(t.kind, raw::TokenKind::Ident));
-                Ok(TokenKind::AposIdent)
+                if matches!(
+                    self.tokens.peek(),
+                    Some(raw::Token {
+                        kind: raw::TokenKind::Ident,
+                        ..
+                    })
+                ) {
+                    self.tokens
+                        .next_if(|t| matches!(t.kind, raw::TokenKind::Ident));
+                    Ok(TokenKind::AposIdent)
+                } else {
+                    Err(Error::UnfinishedGeneric(span))
+                }
             }
             Single::At => Ok(TokenKind::At),
             Single::Bang => {
