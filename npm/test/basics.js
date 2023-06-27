@@ -18,6 +18,13 @@ import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
 
+/**
+ *
+ * @param {string} code
+ * @param {string} expr
+ * @param {boolean} useWorker
+ * @returns {Promise<import("../dist/common.js").ShotResult>}
+ */
 export function runSingleShot(code, expr, useWorker) {
   return new Promise((resolve, reject) => {
     const resultsHandler = new QscEventTarget(true);
