@@ -255,6 +255,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         None
     };
     let body = parse_callable_body(s)?;
+    check_input_parens(&input)?;
 
     Ok(Box::new(CallableDecl {
         id: NodeId::default(),
@@ -342,5 +343,16 @@ fn parse_spec_gen(s: &mut Scanner) -> Result<SpecGen> {
             s.peek().kind,
             s.peek().span,
         )))
+    }
+}
+/// Checks that the inputs of the callable are surrounded by parens
+pub(super) fn check_input_parens(inputs: &qsc_ast::ast::Pat) -> Result<()> {
+    if !matches!(
+        *inputs.kind,
+        qsc_ast::ast::PatKind::Paren(_) | qsc_ast::ast::PatKind::Tuple(_)
+    ) {
+        Err(Error(ErrorKind::MissingParens(inputs.span)))
+    } else {
+        Ok(())
     }
 }

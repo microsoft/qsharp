@@ -1085,3 +1085,96 @@ fn recover_unclosed_namespace() {
             ]"#]],
     );
 }
+
+#[test]
+fn callable_missing_parens() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+        function Foo x : Int : Int { x }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-64] (Ident _id_ [10-11] "A"):
+                Item _id_ [22-64]:
+                    Err
+
+            [
+                Error(
+                    MissingParens(
+                        Span {
+                            lo: 35,
+                            hi: 42,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 64,
+                            hi: 64,
+                        },
+                    ),
+                ),
+            ]"#]],
+    )
+}
+#[test]
+fn callable_missing_close_parens() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+        function Foo (x : Int : Int { x }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-65] (Ident _id_ [10-11] "A"):
+                Item _id_ [22-55]:
+                    Err
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Paren,
+                        ),
+                        Colon,
+                        Span {
+                            lo: 44,
+                            hi: 45,
+                        },
+                    ),
+                ),
+            ]"#]],
+    )
+}
+#[test]
+fn callable_missing_open_parens() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+        function Foo x : Int) : Int { x }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-65] (Ident _id_ [10-11] "A"):
+                Item _id_ [22-55]:
+                    Err
+
+            [
+                Error(
+                    Token(
+                        Colon,
+                        Close(
+                            Paren,
+                        ),
+                        Span {
+                            lo: 42,
+                            hi: 43,
+                        },
+                    ),
+                ),
+            ]"#]],
+    )
+}
