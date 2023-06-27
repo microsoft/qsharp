@@ -22,7 +22,6 @@ invoked. When the response is received this is used to resolve the promise and
 complete the request.
 */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type RequestState = {
   type: string;
   args: any[];
@@ -31,7 +30,6 @@ type RequestState = {
   evtTarget?: IQscEventTarget;
   cancellationToken?: CancellationToken;
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * @param postMessage A function to post messages to the worker
@@ -56,7 +54,7 @@ export function createWorkerProxy(
 
   function queueRequest(
     type: string,
-    args: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
+    args: any[],
     evtTarget?: IQscEventTarget,
     cancellationToken?: CancellationToken
   ): Promise<RespResultTypes> {
@@ -274,57 +272,46 @@ export function handleMessageInWorker(
     postMessage(msg);
   };
 
-  try {
-    const msgType = data.type;
-    switch (msgType) {
-      case "checkCode":
-        compiler
-          .checkCode(data.code)
-          .then((result) =>
-            logIntercepter({ type: "checkCode-result", result })
-          );
-        break;
-      case "getHir":
-        compiler
-          .getHir(data.code)
-          .then((result) => logIntercepter({ type: "getHir-result", result }));
-        break;
-      case "getCompletions":
-        compiler
-          .getCompletions()
-          .then((result) =>
-            logIntercepter({ type: "getCompletions-result", result })
-          );
-        break;
-      case "run":
-        compiler
-          .run(data.code, data.expr, data.shots, evtTarget)
-          // 'run' can throw on compiler errors, which should be reported as events for
-          // each 'shot', so just resolve as run 'complete' regardless.
-          .finally(() =>
-            logIntercepter({ type: "run-result", result: undefined })
-          );
-        break;
-      case "runKata":
-        compiler
-          .runKata(data.user_code, data.verify_code, evtTarget)
-          .then((result) => logIntercepter({ type: "runKata-result", result }))
-          // It shouldn't throw, but just in case there's a runtime or compiler failure
-          .catch(() =>
-            logIntercepter({ type: "runKata-result", result: false })
-          );
-        break;
-      default:
-        log.never(msgType);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    // If this happens then the wasm code likely threw an exception/paniced rather than
+  const msgType = data.type;
+  let promise;
+  switch (msgType) {
+    case "checkCode":
+      promise = compiler
+        .checkCode(data.code)
+        .then((result) => logIntercepter({ type: "checkCode-result", result }));
+      break;
+    case "getHir":
+      promise = compiler
+        .getHir(data.code)
+        .then((result) => logIntercepter({ type: "getHir-result", result }));
+      break;
+    case "getCompletions":
+      promise = compiler
+        .getCompletions()
+        .then((result) =>
+          logIntercepter({ type: "getCompletions-result", result })
+        );
+      break;
+    case "run":
+      promise = compiler
+        .run(data.code, data.expr, data.shots, evtTarget)
+        .then(() => logIntercepter({ type: "run-result", result: undefined }));
+      break;
+    case "runKata":
+      promise = compiler
+        .runKata(data.user_code, data.verify_code, evtTarget)
+        .then((result) => logIntercepter({ type: "runKata-result", result }));
+      break;
+    default:
+      log.never(msgType);
+  }
+
+  promise?.catch((err) => {
+    // If this happens then the wasm code likely threw an exception/panicked rather than
     // completing gracefully and fullfilling the promise. Communicate to the client
     // that there was an error and it should reject the current request
-
     logIntercepter({ type: "error-result", result: err });
-  }
+  });
 }
 
 export type CompilerReqMsg =
@@ -340,7 +327,7 @@ type CompilerRespMsg =
   | { type: "getCompletions-result"; result: ICompletionList }
   | { type: "run-result"; result: void }
   | { type: "runKata-result"; result: boolean }
-  | { type: "error-result"; result: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { type: "error-result"; result: any };
 
 // Get the possible 'result' types from a compiler response
 type ExtractResult<T> = T extends { result: infer R } ? R : never;
@@ -350,6 +337,6 @@ type CompilerEventMsg =
   | { type: "message-event"; event: MessageMsg }
   | { type: "dumpMachine-event"; event: DumpMsg }
   | { type: "success-event"; event: string }
-  | { type: "failure-event"; event: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { type: "failure-event"; event: any };
 
 export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;

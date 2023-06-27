@@ -6,7 +6,6 @@ export interface CancellationToken {
   readonly isCancellationRequested: boolean;
 
   //  An event which fires when cancellation is requested.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onCancellationRequested: (listener: (e: any) => any) => void;
 }
 
@@ -18,7 +17,6 @@ class InternalToken implements CancellationToken {
     this.eventTarget = new EventTarget();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onCancellationRequested(listener: (e: any) => any) {
     this.eventTarget.addEventListener("cancelled", listener);
   }
