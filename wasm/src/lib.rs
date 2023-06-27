@@ -14,6 +14,7 @@ use qsc::{
     },
     PackageStore, SourceMap,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -193,6 +194,59 @@ pub fn run_kata_exercise(
     match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
+        Ok(v) => Ok(JsValue::from_bool(v)),
+        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
+        // should be reported with a Result event (also for success) and not an exception.
+        Err(e) => {
+            // TODO: Handle multiple errors.
+            let first_error = e
+                .first()
+                .expect("Running kata failed but no errors were reported");
+            Err(JsError::from(first_error).into())
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CodeDependency {
+    pub name: String,
+    pub contents: String,
+}
+
+fn run_kata_exercise_internal_new(
+    exercise_code: &str,
+    verification_code: &str,
+    code_dependencies: Vec<CodeDependency>,
+    event_cb: impl Fn(&str),
+) -> Result<bool, Vec<stateless::Error>> {
+    let mut sources = vec![
+        ("exercise".into(), exercise_code.into()),
+        ("verification".into(), verification_code.into()),
+    ];
+    for code_dependency in code_dependencies {
+        sources.push((code_dependency.name.into(), code_dependency.contents.into()));
+    }
+    verify_exercise(sources, &mut CallbackReceiver { event_cb })
+}
+
+#[wasm_bindgen]
+pub fn run_kata_exercise_new(
+    exercise_code: &str,
+    verification_code: &str,
+    code_dependencies_as_js_value: &JsValue,
+    event_cb: &js_sys::Function,
+) -> Result<JsValue, JsValue> {
+    let code_dependencies: Vec<CodeDependency> =
+        serde_wasm_bindgen::from_value(code_dependencies_as_js_value.clone())
+            .expect("Deserializing code dependencies should succeed");
+    match run_kata_exercise_internal_new(
+        verification_code,
+        exercise_code,
+        code_dependencies,
+        |msg: &str| {
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+        },
+    ) {
         Ok(v) => Ok(JsValue::from_bool(v)),
         // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
         // should be reported with a Result event (also for success) and not an exception.
