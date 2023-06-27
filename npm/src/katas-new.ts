@@ -16,8 +16,8 @@ export type ExerciseN = {
   verificationCode: string;
   placeholderCode: string;
   solutionCode: string;
-  soulutionDescriptionAsHtml: string;
-  soulutionDescriptionAsMarkdown: string;
+  solutionDescriptionAsHtml: string;
+  solutionDescriptionAsMarkdown: string;
 };
 
 export type Text = {

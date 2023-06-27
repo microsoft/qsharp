@@ -7,9 +7,7 @@ import {
   QscEventTarget,
   getCompilerWorker,
   loadWasmModule,
-  getAllKatas,
   getAllKatasN,
-  Kata,
   KataN,
   VSDiagnostic,
   log,
@@ -48,7 +46,7 @@ function createCompiler(onStateChange: (val: CompilerState) => void) {
   return compiler;
 }
 
-function App(props: { katas: Kata[]; katasNew: KataN[]; linkedCode?: string }) {
+function App(props: { katas: KataN[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState)
@@ -73,7 +71,6 @@ function App(props: { katas: Kata[]; katasNew: KataN[]; linkedCode?: string }) {
   };
 
   const kataTitles = props.katas.map((elem) => elem.title);
-  const kataNTitles = props.katasNew.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
 
   const sampleCode =
@@ -110,7 +107,6 @@ function App(props: { katas: Kata[]; katasNew: KataN[]; linkedCode?: string }) {
         selected={currentNavItem}
         navSelected={onNavItemSelected}
         katas={kataTitles}
-        katasNew={kataNTitles}
         samples={sampleTitles}
       ></Nav>
       {sampleCode ? (
@@ -154,8 +150,7 @@ function App(props: { katas: Kata[]; katasNew: KataN[]; linkedCode?: string }) {
 // Called once Monaco is ready
 async function loaded() {
   await wasmPromise; // Block until the wasm module is loaded
-  const katas = await getAllKatas();
-  const katasNew = await getAllKatasN();
+  const katas = await getAllKatasN();
 
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.
@@ -170,10 +165,7 @@ async function loaded() {
     }
   }
 
-  render(
-    <App katas={katas} katasNew={katasNew} linkedCode={linkedCode}></App>,
-    document.body
-  );
+  render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
 }
 
 // Monaco provides the 'require' global for loading modules.

@@ -5,7 +5,6 @@ export function Nav(props: {
   selected: string;
   navSelected: (name: string) => void;
   katas: string[];
-  katasNew: string[];
   samples: string[];
 }) {
   function onSelected(name: string) {
@@ -39,11 +38,6 @@ export function Nav(props: {
         >
           {name}
         </div>
-      ))}
-
-      <div class="nav-1">Tutorials New</div>
-      {props.katasNew.map((name) => (
-        <div>{name}</div>
       ))}
     </nav>
   );
