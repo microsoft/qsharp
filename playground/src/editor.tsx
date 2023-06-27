@@ -25,10 +25,23 @@ function VSDiagsToMarkers(
   srcModel: monaco.editor.ITextModel
 ): monaco.editor.IMarkerData[] {
   return errors.map((err) => {
+    let severity = monaco.MarkerSeverity.Error;
+    switch (err.severity) {
+      case "error":
+        severity = monaco.MarkerSeverity.Error;
+        break;
+      case "warning":
+        severity = monaco.MarkerSeverity.Warning;
+        break;
+      case "info":
+        severity = monaco.MarkerSeverity.Info;
+        break;
+    }
+
     const startPos = srcModel.getPositionAt(err.start_pos);
     const endPos = srcModel.getPositionAt(err.end_pos);
     const marker: monaco.editor.IMarkerData = {
-      severity: monaco.MarkerSeverity.Error, // TODO: map severity from the diagnostic
+      severity,
       message: err.message,
       startLineNumber: startPos.lineNumber,
       startColumn: startPos.column,
