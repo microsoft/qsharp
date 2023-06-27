@@ -87,6 +87,76 @@ fn hover_call() {
 }
 
 #[test]
+fn hover_callable_unit_types_functors() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// Doc comment!
+            operation ◉F↘oo◉() : Unit is Ctl {}
+        }
+    "#},
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nDoc comment!\noperation Foo Unit => Unit is Ctl\n```\n",
+                    span: Span {
+                        start: 52,
+                        end: 55,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_with_callable_types_functors() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// Doc comment!
+            operation ◉F↘oo◉(x : (Int => Int is Ctl + Adj)) : (Int => Int is Adj) is Adj {x}
+        }
+    "#},
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\nDoc comment!\noperation Foo (Int => Int is Adj + Ctl) => (Int => Int is Adj) is Adj\n```\n",
+                    span: Span {
+                        start: 52,
+                        end: 55,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_call_functors() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo() : Unit { ◉B↘ar◉(); }
+
+            operation Bar() : Unit is Adj {}
+        }
+    "#},
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation Bar Unit => Unit is Adj\n```\n",
+                    span: Span {
+                        start: 46,
+                        end: 49,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn hover_identifier() {
     check(
         indoc! {r#"
@@ -599,6 +669,31 @@ fn hover_foreign_call() {
                     span: Span {
                         start: 75,
                         end: 79,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn hover_foreign_call_functors() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                ◉F↘akeCtlAdj◉();
+            }
+        }
+    "#},
+        &expect![[r#"
+            Some(
+                Hover {
+                    contents: "```qsharp\noperation FakeCtlAdj Unit => Unit is Adj + Ctl\n```\n",
+                    span: Span {
+                        start: 75,
+                        end: 85,
                     },
                 },
             )

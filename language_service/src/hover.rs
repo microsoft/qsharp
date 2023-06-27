@@ -191,19 +191,17 @@ impl HoverVisitor<'_> {
             ast::CallableKind::Operation => ("operation", "=>"),
         };
 
-        // ToDo: Functors
-        // let functors = if let FunctorSetValue::Empty = decl.functors {
-        //     String::new()
-        // } else {
-        //     format!(" is {}", decl.functors)
-        // };
+        let functors = ast_callable_functors(decl);
+        let functors = if let hir::ty::FunctorSetValue::Empty = functors {
+            String::new()
+        } else {
+            format!(" is {functors}")
+        };
 
-        // Doc comments would be formatted as markdown into this
-        // string once we're able to parse them out.
         if doc.is_empty() {
             format!(
                 "```qsharp
-{} {} {} {} {}
+{} {} {} {} {}{}
 ```
 ",
                 kind,
@@ -211,12 +209,13 @@ impl HoverVisitor<'_> {
                 self.get_type_name(decl.input.id),
                 arrow,
                 get_type_name_from_ast_ty(&decl.output),
+                functors,
             )
         } else {
             format!(
                 "```qsharp
 {}
-{} {} {} {} {}
+{} {} {} {} {}{}
 ```
 ",
                 doc,
@@ -225,6 +224,7 @@ impl HoverVisitor<'_> {
                 self.get_type_name(decl.input.id),
                 arrow,
                 get_type_name_from_ast_ty(&decl.output),
+                functors,
             )
         }
     }
@@ -235,19 +235,16 @@ impl HoverVisitor<'_> {
             hir::CallableKind::Operation => ("operation", "=>"),
         };
 
-        // ToDo: Functors
-        // let functors = if let FunctorSetValue::Empty = decl.functors {
-        //     String::new()
-        // } else {
-        //     format!(" is {}", decl.functors)
-        // };
+        let functors = if let hir::ty::FunctorSetValue::Empty = decl.functors {
+            String::new()
+        } else {
+            format!(" is {}", decl.functors)
+        };
 
-        // Doc comments would be formatted as markdown into this
-        // string once we're able to parse them out.
         if doc.is_empty() {
             format!(
                 "```qsharp
-{} {} {} {} {}
+{} {} {} {} {}{}
 ```
 ",
                 kind,
@@ -255,12 +252,13 @@ impl HoverVisitor<'_> {
                 self.get_type_name_from_hir_ty(&decl.input.ty),
                 arrow,
                 self.get_type_name_from_hir_ty(&decl.output),
+                functors,
             )
         } else {
             format!(
                 "```qsharp
 {}
-{} {} {} {} {}
+{} {} {} {} {}{}
 ```
 ",
                 doc,
@@ -269,6 +267,7 @@ impl HoverVisitor<'_> {
                 self.get_type_name_from_hir_ty(&decl.input.ty),
                 arrow,
                 self.get_type_name_from_hir_ty(&decl.output),
+                functors,
             )
         }
     }
@@ -290,15 +289,20 @@ impl HoverVisitor<'_> {
         match ty {
             hir::ty::Ty::Array(item) => format!("{}[]", self.get_type_name_from_hir_ty(item)),
             hir::ty::Ty::Arrow(arrow) => {
-                format!(
-                    "({} {} {})",
-                    self.get_type_name_from_hir_ty(&arrow.input),
-                    match arrow.kind {
-                        hir::CallableKind::Function => "->",
-                        hir::CallableKind::Operation => "=>",
-                    },
-                    self.get_type_name_from_hir_ty(&arrow.output)
-                )
+                let input = self.get_type_name_from_hir_ty(&arrow.input);
+                let output = self.get_type_name_from_hir_ty(&arrow.output);
+                let functors = if arrow.functors
+                    == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty)
+                {
+                    String::new()
+                } else {
+                    format!(" is {}", arrow.functors)
+                };
+                let arrow = match arrow.kind {
+                    hir::CallableKind::Function => "->",
+                    hir::CallableKind::Operation => "=>",
+                };
+                format!("({input} {arrow} {output}{functors})",)
             }
             hir::ty::Ty::Tuple(tys) => {
                 if tys.is_empty() {
@@ -360,14 +364,25 @@ fn header_from(display: &impl Display) -> String {
 fn get_type_name_from_ast_ty(ty: &ast::Ty) -> String {
     match &*ty.kind {
         qsc::ast::TyKind::Array(ty) => format!("{}[]", get_type_name_from_ast_ty(ty)),
-        qsc::ast::TyKind::Arrow(kind, input, output, _) => {
+        qsc::ast::TyKind::Arrow(kind, input, output, functors) => {
             let input = get_type_name_from_ast_ty(input);
             let output = get_type_name_from_ast_ty(output);
             let arrow = match kind {
                 ast::CallableKind::Function => "->",
                 ast::CallableKind::Operation => "=>",
             };
-            format!("({input} {arrow} {output})")
+            let functors = match functors {
+                Some(functors) => {
+                    let functors = eval_functor_expr(functors);
+                    if let hir::ty::FunctorSetValue::Empty = functors {
+                        String::new()
+                    } else {
+                        format!(" is {functors}")
+                    }
+                }
+                None => String::new(),
+            };
+            format!("({input} {arrow} {output}{functors})")
         }
         qsc::ast::TyKind::Hole => "_".to_owned(),
         qsc::ast::TyKind::Paren(ty) => get_type_name_from_ast_ty(ty),
@@ -392,5 +407,44 @@ fn print_path(path: &ast::Path) -> String {
     match &path.namespace {
         Some(ns) => format!("{ns}.{}", path.name.name),
         None => format!("{}", path.name.name),
+    }
+}
+
+fn ast_callable_functors(callable: &ast::CallableDecl) -> hir::ty::FunctorSetValue {
+    let mut functors = callable
+        .functors
+        .as_ref()
+        .map_or(hir::ty::FunctorSetValue::Empty, |f| {
+            eval_functor_expr(f.as_ref())
+        });
+
+    if let ast::CallableBody::Specs(specs) = callable.body.as_ref() {
+        for spec in specs.iter() {
+            let spec_functors = match spec.spec {
+                ast::Spec::Body => hir::ty::FunctorSetValue::Empty,
+                ast::Spec::Adj => hir::ty::FunctorSetValue::Adj,
+                ast::Spec::Ctl => hir::ty::FunctorSetValue::Ctl,
+                ast::Spec::CtlAdj => hir::ty::FunctorSetValue::CtlAdj,
+            };
+            functors = functors.union(&spec_functors);
+        }
+    }
+
+    functors
+}
+
+fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
+    match expr.kind.as_ref() {
+        ast::FunctorExprKind::BinOp(op, lhs, rhs) => {
+            let lhs_functors = eval_functor_expr(lhs);
+            let rhs_functors = eval_functor_expr(rhs);
+            match op {
+                ast::SetOp::Union => lhs_functors.union(&rhs_functors),
+                ast::SetOp::Intersect => lhs_functors.intersect(&rhs_functors),
+            }
+        }
+        ast::FunctorExprKind::Lit(ast::Functor::Adj) => hir::ty::FunctorSetValue::Adj,
+        ast::FunctorExprKind::Lit(ast::Functor::Ctl) => hir::ty::FunctorSetValue::Ctl,
+        ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }
