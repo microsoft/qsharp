@@ -648,6 +648,8 @@ fn resolve(
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name_str);
         if candidates.len() > 1 {
+            let mut candidates: Vec<_> = candidates.into_iter().collect();
+            candidates.sort_by_key(|x| x.namespace);
             let mut candidates = candidates
                 .into_iter()
                 .map(|candidate| candidate.namespace.to_string());
