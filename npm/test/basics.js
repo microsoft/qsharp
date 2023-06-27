@@ -76,9 +76,15 @@ test("error with newlines", async () => {
   const diags = await compiler.checkCode(
     "namespace input { operation Foo(a) : Unit {} }"
   );
-  assert.equal(diags.length, 1);
+  assert.equal(diags.length, 2);
   assert.equal(diags[0].start_pos, 32);
   assert.equal(diags[0].end_pos, 33);
+  assert.equal(diags[1].start_pos, 32);
+  assert.equal(diags[1].end_pos, 33);
+  assert.equal(
+    diags[1].message,
+    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation"
+  );
   assert.equal(
     diags[0].message,
     "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations"
