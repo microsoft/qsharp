@@ -212,8 +212,8 @@ impl HoverVisitor<'_> {
             )
         } else {
             format!(
-                "```qsharp
-{}
+                "{}
+```qsharp
 {} {} {} {} {}{}
 ```
 ",
@@ -255,8 +255,8 @@ impl HoverVisitor<'_> {
             )
         } else {
             format!(
-                "```qsharp
-{}
+                "{}
+```qsharp
 {} {} {} {} {}{}
 ```
 ",

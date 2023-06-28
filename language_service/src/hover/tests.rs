@@ -28,7 +28,7 @@ fn hover_callable_unit_types() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nDoc comment!\noperation Foo Unit => Unit\n```\n",
+                    contents: "Doc comment!\n```qsharp\noperation Foo Unit => Unit\n```\n",
                     span: Span {
                         start: 52,
                         end: 55,
@@ -51,7 +51,7 @@ fn hover_callable_with_callable_types() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nDoc comment!\noperation Foo (Int => Int) => (Int => Int)\n```\n",
+                    contents: "Doc comment!\n```qsharp\noperation Foo (Int => Int) => (Int => Int)\n```\n",
                     span: Span {
                         start: 52,
                         end: 55,
@@ -98,7 +98,7 @@ fn hover_callable_unit_types_functors() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nDoc comment!\noperation Foo Unit => Unit is Ctl\n```\n",
+                    contents: "Doc comment!\n```qsharp\noperation Foo Unit => Unit is Ctl\n```\n",
                     span: Span {
                         start: 52,
                         end: 55,
@@ -121,7 +121,7 @@ fn hover_callable_with_callable_types_functors() {
         &expect![[r#"
             Some(
                 Hover {
-                    contents: "```qsharp\nDoc comment!\noperation Foo (Int => Int is Adj + Ctl) => (Int => Int is Adj) is Adj\n```\n",
+                    contents: "Doc comment!\n```qsharp\noperation Foo (Int => Int is Adj + Ctl) => (Int => Int is Adj) is Adj\n```\n",
                     span: Span {
                         start: 52,
                         end: 55,
