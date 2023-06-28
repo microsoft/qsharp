@@ -58,7 +58,7 @@ function initializeLogger() {
   global.qscLog.debug = output.debug;
   global.qscLog.trace = output.trace;
 
-  global.qscLog.debug("Q# extension activated.");
+  global.qscLog.info("Q# extension activated.");
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
