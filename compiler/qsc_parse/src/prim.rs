@@ -60,6 +60,7 @@ pub(super) fn apos_ident(s: &mut Scanner) -> Result<Box<Ident>> {
         )))
     }
 }
+
 pub(super) fn ident(s: &mut Scanner) -> Result<Box<Ident>> {
     let peek = s.peek();
     if peek.kind == TokenKind::Ident {
