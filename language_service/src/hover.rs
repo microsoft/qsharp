@@ -4,12 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use std::fmt::Display;
-use std::rc::Rc;
-
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
+use std::fmt::Display;
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
@@ -65,7 +63,11 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_contains(decl.name.span, self.offset) {
-                        self.contents = Some(self.contents_from_ast_call_decl(decl, &item.doc));
+                        self.contents = Some(if item.doc.is_empty() {
+                            self.contents_from_ast_call_decl(decl)
+                        } else {
+                            format!("{}\n{}", item.doc, self.contents_from_ast_call_decl(decl))
+                        });
                         self.start = decl.name.span.lo;
                         self.end = decl.name.span.hi;
                     } else if span_contains(decl.span, self.offset) {
@@ -151,9 +153,15 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     resolve::Res::Item(item_id) => {
                         if let Some(item) = find_item(self.compilation, item_id) {
                             self.contents = match &item.kind {
-                                hir::ItemKind::Callable(decl) => {
-                                    Some(self.contents_from_hir_call_decl(decl, &item.doc))
-                                }
+                                hir::ItemKind::Callable(decl) => Some(if item.doc.is_empty() {
+                                    self.contents_from_hir_call_decl(decl)
+                                } else {
+                                    format!(
+                                        "{}\n{}",
+                                        item.doc,
+                                        self.contents_from_hir_call_decl(decl)
+                                    )
+                                }),
                                 hir::ItemKind::Namespace(_, _) => {
                                     panic!(
                                         "Reference node should not refer to a namespace: {}",
@@ -184,7 +192,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
 }
 
 impl HoverVisitor<'_> {
-    fn contents_from_ast_call_decl(&mut self, decl: &ast::CallableDecl, doc: &Rc<str>) -> String {
+    fn contents_from_ast_call_decl(&mut self, decl: &ast::CallableDecl) -> String {
         let (kind, arrow) = match decl.kind {
             ast::CallableKind::Function => ("function", "->"),
             ast::CallableKind::Operation => ("operation", "=>"),
@@ -197,38 +205,19 @@ impl HoverVisitor<'_> {
             format!(" is {functors}")
         };
 
-        if doc.is_empty() {
-            format!(
-                "```qsharp
-{} {} {} {} {}{}
-```
-",
-                kind,
-                decl.name.name,
-                self.get_type_name(decl.input.id),
-                arrow,
-                get_type_name_from_ast_ty(&decl.output),
-                functors,
-            )
-        } else {
-            format!(
-                "{}
-```qsharp
-{} {} {} {} {}{}
-```
-",
-                doc,
-                kind,
-                decl.name.name,
-                self.get_type_name(decl.input.id),
-                arrow,
-                get_type_name_from_ast_ty(&decl.output),
-                functors,
-            )
-        }
+        let inner = format!(
+            "{} {} {} {} {}{}",
+            kind,
+            decl.name.name,
+            self.get_type_name(decl.input.id),
+            arrow,
+            get_type_name_from_ast_ty(&decl.output),
+            functors,
+        );
+        markdown_wrapper(&inner)
     }
 
-    fn contents_from_hir_call_decl(&self, decl: &hir::CallableDecl, doc: &Rc<str>) -> String {
+    fn contents_from_hir_call_decl(&self, decl: &hir::CallableDecl) -> String {
         let (kind, arrow) = match decl.kind {
             hir::CallableKind::Function => ("function", "->"),
             hir::CallableKind::Operation => ("operation", "=>"),
@@ -240,35 +229,16 @@ impl HoverVisitor<'_> {
             format!(" is {}", decl.functors)
         };
 
-        if doc.is_empty() {
-            format!(
-                "```qsharp
-{} {} {} {} {}{}
-```
-",
-                kind,
-                decl.name.name,
-                self.get_type_name_from_hir_ty(&decl.input.ty),
-                arrow,
-                self.get_type_name_from_hir_ty(&decl.output),
-                functors,
-            )
-        } else {
-            format!(
-                "{}
-```qsharp
-{} {} {} {} {}{}
-```
-",
-                doc,
-                kind,
-                decl.name.name,
-                self.get_type_name_from_hir_ty(&decl.input.ty),
-                arrow,
-                self.get_type_name_from_hir_ty(&decl.output),
-                functors,
-            )
-        }
+        let inner = format!(
+            "{} {} {} {} {}{}",
+            kind,
+            decl.name.name,
+            self.get_type_name_from_hir_ty(&decl.input.ty),
+            arrow,
+            self.get_type_name_from_hir_ty(&decl.output),
+            functors,
+        );
+        markdown_wrapper(&inner)
     }
 
     fn get_type_name(&self, node_id: ast::NodeId) -> String {
@@ -331,25 +301,14 @@ impl HoverVisitor<'_> {
 
 fn contents_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
     let name = &name.name;
-
-    format!(
-        "```qsharp
-{name}
-```
-"
-    )
+    markdown_wrapper(name)
 }
 
 fn contents_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
     let name = &name.name;
     let def = ty_def_to_string(def);
-
-    format!(
-        "```qsharp
-{name}: {def}
-```
-"
-    )
+    let inner = format!("{name}: {def}");
+    markdown_wrapper(&inner)
 }
 
 fn ty_def_to_string(def: &ast::TyDef) -> String {
@@ -378,9 +337,13 @@ fn ty_def_to_string(def: &ast::TyDef) -> String {
 }
 
 fn contents_from_name(name: &impl Display, ty_name: &String) -> String {
+    markdown_wrapper(&format!("{name}: {ty_name}"))
+}
+
+fn markdown_wrapper(contents: &impl Display) -> String {
     format!(
         "```qsharp
-{name}: {ty_name}
+{contents}
 ```
 "
     )
@@ -428,13 +391,6 @@ fn get_type_name_from_ast_ty(ty: &ast::Ty) -> String {
     }
 }
 
-fn print_path(path: &ast::Path) -> String {
-    match &path.namespace {
-        Some(ns) => format!("{ns}.{}", path.name.name),
-        None => format!("{}", path.name.name),
-    }
-}
-
 fn ast_callable_functors(callable: &ast::CallableDecl) -> hir::ty::FunctorSetValue {
     let mut functors = callable
         .functors
@@ -471,5 +427,12 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
         ast::FunctorExprKind::Lit(ast::Functor::Adj) => hir::ty::FunctorSetValue::Adj,
         ast::FunctorExprKind::Lit(ast::Functor::Ctl) => hir::ty::FunctorSetValue::Ctl,
         ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
+    }
+}
+
+fn print_path(path: &ast::Path) -> String {
+    match &path.namespace {
+        Some(ns) => format!("{ns}.{}", path.name.name),
+        None => format!("{}", path.name.name),
     }
 }
