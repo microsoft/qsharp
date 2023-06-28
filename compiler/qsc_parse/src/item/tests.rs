@@ -1095,7 +1095,7 @@ fn callable_missing_parens() {
         }",
         &expect![[r#"
             Namespace _id_ [0-64] (Ident _id_ [10-11] "A"):
-                Item _id_ [22-64]:
+                Item _id_ [22-54]:
                     Err
 
             [
@@ -1104,18 +1104,6 @@ fn callable_missing_parens() {
                         Span {
                             lo: 35,
                             hi: 42,
-                        },
-                    ),
-                ),
-                Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
-                        Eof,
-                        Span {
-                            lo: 64,
-                            hi: 64,
                         },
                     ),
                 ),
@@ -1164,14 +1152,10 @@ fn callable_missing_open_parens() {
 
             [
                 Error(
-                    Token(
-                        Colon,
-                        Close(
-                            Paren,
-                        ),
+                    MissingParens(
                         Span {
-                            lo: 42,
-                            hi: 43,
+                            lo: 35,
+                            hi: 42,
                         },
                     ),
                 ),

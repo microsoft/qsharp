@@ -247,6 +247,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     };
 
     let input = pat(s)?;
+    check_input_parens(&input)?;
     token(s, TokenKind::Colon)?;
     let output = ty(s)?;
     let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
@@ -255,7 +256,6 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         None
     };
     let body = parse_callable_body(s)?;
-    check_input_parens(&input)?;
 
     Ok(Box::new(CallableDecl {
         id: NodeId::default(),
