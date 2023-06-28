@@ -56,10 +56,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   );
   const [evtTarget] = useState(() => new QscEventTarget(true));
 
-  const [languageService] = useState(() =>
-    getLanguageServiceWorker(languageServiceWorkerPath)
-  );
-  registerMonacoLanguageServiceProviders(languageService);
+  const [languageService] = useState(() => {
+    const languageService = getLanguageServiceWorker(languageServiceWorkerPath);
+    registerMonacoLanguageServiceProviders(languageService);
+    return languageService;
+  });
 
   const [currentNavItem, setCurrentNavItem] = useState(
     props.linkedCode ? "linked" : "Minimal"
