@@ -63,14 +63,6 @@ export { log, type LogLevel };
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
 export { type CompilerState } from "./compiler.js";
 export {
-  getAllKatas,
-  getKata,
-  type Kata,
-  type KataItem,
-  type Example,
-  type Exercise,
-} from "./katas.js";
-export {
   getAllKatasN,
   getExerciseDependencies,
   getKataN,
@@ -78,6 +70,6 @@ export {
   type KataSection,
   type ExampleN,
   type ExerciseN,
-} from "./katas-new.js";
+} from "./katas.js";
 export { default as samples } from "./samples.generated.js";
 export { QscEventTarget } from "./events.js";

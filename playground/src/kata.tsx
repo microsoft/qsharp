@@ -2,13 +2,7 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef } from "preact/hooks";
-import {
-  CompilerState,
-  ICompilerWorker,
-  Kata,
-  KataN,
-  QscEventTarget,
-} from "qsharp";
+import { CompilerState, ICompilerWorker, KataN, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 

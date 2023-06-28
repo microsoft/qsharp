@@ -1,54 +1,58 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { katas } from "./katas-content.generated.js";
+import { katasContent } from "./katas-content.generated.js";
 
-export type Example = {
+export type ExampleN = {
   type: "example";
   id: string;
-  title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-  source: string;
+  code: string;
 };
 
-export type Exercise = {
+export type ExerciseN = {
   type: "exercise";
   id: string;
-  title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-  verificationImplementation: string;
-  referenceImplementation: string;
-  placeholderImplementation: string;
+  codeDependencies: string[];
+  verificationCode: string;
+  placeholderCode: string;
+  solutionCode: string;
+  solutionDescriptionAsHtml: string;
+  solutionDescriptionAsMarkdown: string;
 };
 
-export type Reading = {
-  type: "reading";
+export type Text = {
+  type: "text";
+  contentAsHtml: string;
+  contentAsMarkdown: string;
+};
+
+export type KataSection = ExampleN | ExerciseN | Text;
+
+export type KataN = {
   id: string;
   title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
+  sections: KataSection[];
 };
 
-export type KataItem = Example | Exercise | Reading;
-
-export type Kata = {
-  id: string;
-  title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-  items: KataItem[];
-};
-
-export async function getAllKatas(): Promise<Kata[]> {
-  return katas as Kata[];
+export async function getAllKatasN(): Promise<KataN[]> {
+  return katasContent.katas as KataN[];
 }
 
-export async function getKata(id: string): Promise<Kata> {
-  const katas = await getAllKatas();
+export async function getKataN(id: string): Promise<KataN> {
+  const katas = await getAllKatasN();
   return (
     katas.find((k) => k.id === id) ||
     Promise.reject(`Failed to get kata with id: ${id}`)
   );
+}
+
+export async function getExerciseDependencies(
+  exercise: ExerciseN
+): Promise<string[]> {
+  const allDependencies = katasContent.codeDependencies;
+  return allDependencies
+    .filter(
+      (dependency) => exercise.codeDependencies.indexOf(dependency.name) > -1
+    )
+    .map((item) => item.contents);
 }

@@ -255,9 +255,6 @@ pub fn run_kata_exercise_new(
             .expect("Contents should be string");
         code_dependencies.push((index.to_string().into(), contents.into()));
     }
-    //for (index, code_dependency) in code_dependencies.into_iter().enumerate() {
-    //    code_dependencies.push((index.to_string().into(), code_dependency.into()));
-    //}
     match run_kata_exercise_internal_new(
         verification_code,
         exercise_code,

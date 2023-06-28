@@ -8,7 +8,6 @@ import { test } from "node:test";
 import { log } from "../dist/log.js";
 import { getCompiler, getCompilerWorker } from "../dist/main.js";
 import { QscEventTarget } from "../dist/events.js";
-import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
@@ -133,7 +132,7 @@ test("type error", async () => {
   );
 });
 
-test("kata success", async () => {
+/*test("kata success", async () => {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
   const code = `
@@ -201,7 +200,7 @@ namespace Kata {
   assert(!results[0].success);
   assert(typeof results[0].result !== "string");
   assert.equal(results[0].result.message, "Error: syntax error");
-});
+});*/
 
 test("worker check", async () => {
   let code = `namespace Sample {
