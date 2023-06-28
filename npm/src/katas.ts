@@ -49,10 +49,7 @@ export async function getKata(id: string): Promise<Kata> {
 export async function getExerciseDependencies(
   exercise: Exercise
 ): Promise<string[]> {
-  const allDependencies = katasContent.codeDependencies;
-  return allDependencies
-    .filter(
-      (dependency) => exercise.codeDependencies.indexOf(dependency.name) > -1
-    )
-    .map((item) => item.contents);
+  return katasContent.globalCodeSources
+    .filter((source) => exercise.codeDependencies.indexOf(source.name) > -1)
+    .map((source) => source.contents);
 }

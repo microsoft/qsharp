@@ -51,8 +51,6 @@ function getTitleFromMarkdown(markdown) {
 
 function tryParseJSON(json, errorPrefix) {
   let parsed;
-  console.log("Try parse JSON");
-  console.log(json);
   try {
     parsed = JSON.parse(json);
   } catch (e) {
@@ -193,8 +191,6 @@ function generateMacroSection(kataPath, match, globalCodeSources) {
 
 function generateTextSection(markdown) {
   const html = marked.parse(markdown);
-  console.log(`HTML size: ${html.length}`);
-  console.log(html.includes("more characters"));
   return {
     type: "text",
     contentAsMarkdown: markdown,
@@ -204,7 +200,7 @@ function generateTextSection(markdown) {
 
 function generateSections(kataPath, markdown, globalCodeSources) {
   const sections = [];
-  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{[^@]+\})\)\s+/g;
+  const macroRegex = /@\[(?<type>\w+)\]\(\s*(?<json>\{[^@]+\})\s*\)\s+/g;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);
@@ -242,6 +238,7 @@ function generateSections(kataPath, markdown, globalCodeSources) {
 
 function generateKataContent(path, globalCodeSources) {
   const kataId = basename(path);
+  console.log(`- ${kataId}`);
   const markdownPath = join(path, contentFileNames.kataMarkdown);
   const markdown = tryReadFile(
     markdownPath,
@@ -267,27 +264,27 @@ function generateKatasContent(katasPath, outputPath) {
     indexJson,
     `Invalid katas index at ${indexPath}`
   );
-  const globalCodeSources = {
+  const globalCodeSourcesContainer = {
     basePath: katasPath,
     sources: {},
   };
   var katas = [];
   for (const kataDir of katasDirs) {
     const kataPath = join(katasPath, kataDir);
-    const kata = generateKataContent(kataPath, globalCodeSources);
+    const kata = generateKataContent(kataPath, globalCodeSourcesContainer);
     katas.push(kata);
   }
 
-  const codeDependencies = [];
-  for (let name in globalCodeSources.sources) {
-    codeDependencies.push({
+  const globalCodeSources = [];
+  for (let name in globalCodeSourcesContainer.sources) {
+    globalCodeSources.push({
       name: name,
-      contents: globalCodeSources.sources[name],
+      contents: globalCodeSourcesContainer.sources[name],
     });
   }
   const katasContent = {
     katas: katas,
-    codeDependencies: codeDependencies,
+    globalCodeSources: globalCodeSources,
   };
 
   // Save the JS object to a file.
