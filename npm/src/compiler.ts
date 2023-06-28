@@ -3,7 +3,12 @@
 
 import type { IDiagnostic, ICompletionList } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
-import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
+import {
+  eventStringToMsg,
+  mapDiagnostics,
+  CodeSource,
+  VSDiagnostic,
+} from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
@@ -23,6 +28,12 @@ export interface ICompiler {
     shots: number,
     eventHandler: IQscEventTarget
   ): Promise<void>;
+  runKataExercise(
+    user_code: string,
+    verify_code: string,
+    code_dependencies: CodeSource[],
+    eventHandler: IQscEventTarget
+  ): Promise<boolean>;
   runKata(
     user_code: string,
     verify_code: string,
@@ -52,11 +63,6 @@ function errToDiagnostic(err: any): VSDiagnostic {
     };
   }
 }
-
-export type CodeDependency = {
-  name: string;
-  contents: string;
-};
 
 export class Compiler implements ICompiler {
   private wasm: Wasm;
@@ -119,20 +125,23 @@ export class Compiler implements ICompiler {
   async runKataExercise(
     user_code: string,
     verify_code: string,
-    code_dependencies: CodeDependency[],
+    code_dependencies: CodeSource[],
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
     let success = false;
     let err: any = null;
     try {
       if (this.onstatechange) this.onstatechange("busy");
+      console.log("runKataExercise");
       success = this.wasm.run_kata_exercise_new(
         verify_code,
         user_code,
-        code_dependencies,
+        [],
         (msg: string) => onCompilerEvent(msg, eventHandler)
       );
     } catch (e) {
+      console.log("runKataExercise error");
+      console.log(e);
       err = e;
     }
     if (this.onstatechange) this.onstatechange("idle");

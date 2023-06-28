@@ -90,9 +90,7 @@ export function Kata(props: {
                     ? section.placeholderCode
                     : section.code
                 }
-                kataVerify={
-                  section.type === "exercise" ? section.verificationCode : ""
-                }
+                kataExercise={section.type === "exercise" ? section : undefined}
                 key={section.id}
                 setHir={() => ({})}
                 activeTab="results-tab"

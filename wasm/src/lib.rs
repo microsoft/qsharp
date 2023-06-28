@@ -208,7 +208,7 @@ pub fn run_kata_exercise(
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CodeDependency {
+pub struct CodeSource {
     pub name: String,
     pub contents: String,
 }
@@ -216,7 +216,7 @@ pub struct CodeDependency {
 fn run_kata_exercise_internal_new(
     exercise_code: &str,
     verification_code: &str,
-    code_dependencies: Vec<CodeDependency>,
+    code_dependencies: Vec<CodeSource>,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
     let mut sources = vec![
@@ -230,15 +230,35 @@ fn run_kata_exercise_internal_new(
 }
 
 #[wasm_bindgen]
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    // The `console.log` is quite polymorphic, so we can bind it with multiple
+    // signatures. Note that we need to use `js_name` to ensure we always call
+    // `log` in JS.
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_u32(a: u32);
+
+    // Multiple arguments too!
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_many(a: &str, b: &str);
+}
+
+#[wasm_bindgen]
 pub fn run_kata_exercise_new(
     exercise_code: &str,
     verification_code: &str,
-    code_dependencies_as_js_value: &JsValue,
+    code_dependencies_as_js_value: JsValue,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    let code_dependencies: Vec<CodeDependency> =
-        serde_wasm_bindgen::from_value(code_dependencies_as_js_value.clone())
+    log("there");
+    let code_dependencies: Vec<CodeSource> =
+        serde_wasm_bindgen::from_value(code_dependencies_as_js_value)
             .expect("Deserializing code dependencies should succeed");
+    log("here");
     match run_kata_exercise_internal_new(
         verification_code,
         exercise_code,

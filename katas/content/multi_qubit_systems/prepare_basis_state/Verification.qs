@@ -3,6 +3,7 @@ namespace Kata {
 
     @EntryPoint()
     operation VerifyExercise() : Bool {
+        Message("Verify");
         true
     }
 }

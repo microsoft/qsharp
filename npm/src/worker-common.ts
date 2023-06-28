@@ -3,7 +3,7 @@
 
 import { log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
-import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
+import { DumpMsg, MessageMsg, CodeSource, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
@@ -114,6 +114,15 @@ export function createWorkerProxy(
           verify_code: curr.args[1],
         };
         break;
+      case "runKataExercise":
+        setState("busy");
+        msg = {
+          type: "runKataExercise",
+          user_code: curr.args[0],
+          verify_code: curr.args[1],
+          code_dependencies: curr.args[2],
+        };
+        break;
       default:
         log.error("message type is invalid");
         return;
@@ -201,6 +210,13 @@ export function createWorkerProxy(
     },
     runKata(user_code, verify_code, evtHandler) {
       return queueRequest("runKata", [user_code, verify_code], evtHandler);
+    },
+    runKataExercise(user_code, verify_code, code_dependencies, evtHandler) {
+      return queueRequest(
+        "runKataExercise",
+        [user_code, verify_code, code_dependencies],
+        evtHandler
+      );
     },
     onstatechange: null,
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
@@ -302,6 +318,16 @@ export function handleMessageInWorker(
         .runKata(data.user_code, data.verify_code, evtTarget)
         .then((result) => logIntercepter({ type: "runKata-result", result }));
       break;
+    case "runKataExercise":
+      promise = compiler
+        .runKataExercise(
+          data.user_code,
+          data.verify_code,
+          data.code_dependencies,
+          evtTarget
+        )
+        .then((result) => logIntercepter({ type: "runKata-result", result }));
+      break;
     default:
       log.never(msgType);
   }
@@ -319,7 +345,13 @@ export type CompilerReqMsg =
   | { type: "getHir"; code: string }
   | { type: "getCompletions" }
   | { type: "run"; code: string; expr: string; shots: number }
-  | { type: "runKata"; user_code: string; verify_code: string };
+  | { type: "runKata"; user_code: string; verify_code: string }
+  | {
+      type: "runKataExercise";
+      user_code: string;
+      verify_code: string;
+      code_dependencies: CodeSource[];
+    };
 
 type CompilerRespMsg =
   | { type: "checkCode-result"; result: VSDiagnostic[] }

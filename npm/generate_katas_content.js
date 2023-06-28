@@ -459,9 +459,16 @@ function generateKatasContent(katasPath, outputPath) {
     katas.push(kata);
   }
 
+  const codeDependencies = [];
+  for (let name in globalCodeSources.sources) {
+    codeDependencies.push({
+      name: name,
+      contents: globalCodeSources.sources[name],
+    });
+  }
   const katasContent = {
     katas: katas,
-    codeDependencies: globalCodeSources.sources,
+    codeDependencies: codeDependencies,
   };
 
   // Save the JS object to a file.
