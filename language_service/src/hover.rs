@@ -93,7 +93,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(contents_from_name(&ident.name, &format_ast_ty(ty)));
+                        self.contents = Some(format_name(&ident.name, &format_ast_ty(ty)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -113,10 +113,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(contents_from_name(
-                            &ident.name,
-                            &self.find_type_name(pat.id),
-                        ));
+                        self.contents =
+                            Some(format_name(&ident.name, &self.find_type_name(pat.id)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -132,10 +130,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
-                    self.contents = Some(contents_from_name(
-                        &field.name,
-                        &self.find_type_name(expr.id),
-                    ));
+                    self.contents = Some(format_name(&field.name, &self.find_type_name(expr.id)));
                     self.start = field.span.lo;
                     self.end = field.span.hi;
                 }
@@ -176,8 +171,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
                         }
                     }
                     resolve::Res::Local(node_id) => {
-                        self.contents = Some(contents_from_name(
-                            &print_path(path),
+                        self.contents = Some(format_name(
+                            &format_path(path),
                             &self.find_type_name(*node_id),
                         ));
                         self.start = path.span.lo;
@@ -191,7 +186,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
 }
 
 impl HoverVisitor<'_> {
-    fn contents_from_ast_call_decl(&mut self, decl: &ast::CallableDecl) -> String {
+    fn contents_from_ast_call_decl(&self, decl: &ast::CallableDecl) -> String {
         let (kind, arrow) = match decl.kind {
             ast::CallableKind::Function => ("function", "->"),
             ast::CallableKind::Operation => ("operation", "=>"),
@@ -335,7 +330,7 @@ fn ty_def_to_string(def: &ast::TyDef) -> String {
     }
 }
 
-fn contents_from_name(name: &impl Display, ty_name: &String) -> String {
+fn format_name(name: &impl Display, ty_name: &String) -> String {
     markdown_wrapper(&format!("{name}: {ty_name}"))
 }
 
@@ -373,7 +368,7 @@ fn format_ast_ty(ty: &ast::Ty) -> String {
         }
         qsc::ast::TyKind::Hole => "_".to_owned(),
         qsc::ast::TyKind::Paren(ty) => format_ast_ty(ty),
-        qsc::ast::TyKind::Path(path) => print_path(path),
+        qsc::ast::TyKind::Path(path) => format_path(path),
         qsc::ast::TyKind::Param(id) => id.name.to_string(),
         qsc::ast::TyKind::Tuple(tys) => {
             if tys.is_empty() {
@@ -425,7 +420,7 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
     }
 }
 
-fn print_path(path: &ast::Path) -> String {
+fn format_path(path: &ast::Path) -> String {
     match &path.namespace {
         Some(ns) => format!("{ns}.{}", path.name.name),
         None => format!("{}", path.name.name),
