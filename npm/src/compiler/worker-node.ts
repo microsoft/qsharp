@@ -9,15 +9,10 @@
 //     });
 
 import { isMainThread, parentPort, workerData } from "node:worker_threads";
-
-import * as wasm from "../lib/node/qsc_wasm.cjs";
-import { log } from "./log.js";
+import * as wasm from "../../lib/node/qsc_wasm.cjs";
+import { log } from "../log.js";
 import { Compiler } from "./compiler.js";
-import {
-  CompilerReqMsg,
-  getWorkerEventHandlers,
-  handleMessageInWorker,
-} from "./worker-common.js";
+import { createCompilerDispatcher } from "./worker-proxy.js";
 
 if (isMainThread)
   throw "Worker script should be loaded in a Worker thread only";
@@ -26,18 +21,19 @@ if (workerData && typeof workerData.qscLogLevel === "number") {
 }
 
 const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+
 const postMessage = port.postMessage.bind(port);
 
-const evtTarget = getWorkerEventHandlers(postMessage);
 const compiler = new Compiler(wasm);
+const invokeCompiler = createCompilerDispatcher(postMessage, compiler);
 
-function messageHandler(data: CompilerReqMsg) {
+function messageHandler(data: any) {
   if (!data.type || typeof data.type !== "string") {
     log.error(`Unrecognized msg: %O"`, data);
     return;
   }
 
-  handleMessageInWorker(data, compiler, postMessage, evtTarget);
+  invokeCompiler(data);
 }
 
 port.addListener("message", messageHandler);
