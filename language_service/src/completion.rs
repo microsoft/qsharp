@@ -41,68 +41,67 @@ pub(crate) fn get_completions(
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    todo!();
-    // // Map the file offset into a SourceMap offset
-    // let offset = map_offset(&compilation.source_map, source_name, offset);
-    // let package = &compilation.package;
-    // let std_package = &compilation
-    //     .package_store
-    //     .get(compilation.std_package_id)
-    //     .expect("expected to find std package")
-    //     .package;
+    // Map the file offset into a SourceMap offset
+    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let package = &compilation.unit.package;
+    let std_package = &compilation
+        .package_store
+        .get(compilation.std_package_id)
+        .expect("expected to find std package")
+        .package;
 
-    // // Collect namespaces
-    // let mut namespace_collector = NamespaceCollector {
-    //     namespaces: HashSet::new(),
-    // };
-    // namespace_collector.visit_package(package);
-    // namespace_collector.visit_package(std_package);
+    // Collect namespaces
+    let mut namespace_collector = NamespaceCollector {
+        namespaces: HashSet::new(),
+    };
+    namespace_collector.visit_package(package);
+    namespace_collector.visit_package(std_package);
 
-    // // All namespaces
-    // let mut namespaces = namespace_collector
-    //     .namespaces
-    //     .drain()
-    //     .map(|ns| CompletionItem {
-    //         label: ns,
-    //         kind: CompletionItemKind::Module,
-    //     })
-    //     .collect::<Vec<_>>();
+    // All namespaces
+    let mut namespaces = namespace_collector
+        .namespaces
+        .drain()
+        .map(|ns| CompletionItem {
+            label: ns,
+            kind: CompletionItemKind::Module,
+        })
+        .collect::<Vec<_>>();
 
-    // // Determine context for the offset
-    // let mut context_builder = ContextFinder {
-    //     offset,
-    //     context: if compilation.package.items.values().next().is_none() {
-    //         Context::NoCompilation
-    //     } else {
-    //         Context::TopLevel
-    //     },
-    // };
-    // context_builder.visit_package(package);
-    // let context = context_builder.context;
+    // Determine context for the offset
+    let mut context_builder = ContextFinder {
+        offset,
+        context: if compilation.unit.package.items.values().next().is_none() {
+            Context::NoCompilation
+        } else {
+            Context::TopLevel
+        },
+    };
+    context_builder.visit_package(package);
+    let context = context_builder.context;
 
-    // let mut items = Vec::new();
-    // match context {
-    //     Context::Namespace => {
-    //         items.push(CompletionItem {
-    //             label: "open".to_string(),
-    //             kind: CompletionItemKind::Keyword,
-    //         });
-    //         items.append(&mut namespaces);
-    //     }
-    //     Context::Block | Context::NoCompilation => {
-    //         // Add everything we know of.
-    //         // All callables from std package
-    //         items.append(&mut callable_names_from_package(std_package));
-    //         // Callables from the current document
-    //         items.append(&mut callable_names_from_package(package));
-    //         items.append(&mut namespaces);
-    //     }
-    //     Context::TopLevel | Context::NotSignificant => items.push(CompletionItem {
-    //         label: "namespace".to_string(),
-    //         kind: CompletionItemKind::Keyword,
-    //     }),
-    // }
-    // CompletionList { items }
+    let mut items = Vec::new();
+    match context {
+        Context::Namespace => {
+            items.push(CompletionItem {
+                label: "open".to_string(),
+                kind: CompletionItemKind::Keyword,
+            });
+            items.append(&mut namespaces);
+        }
+        Context::Block | Context::NoCompilation => {
+            // Add everything we know of.
+            // All callables from std package
+            items.append(&mut callable_names_from_package(std_package));
+            // Callables from the current document
+            items.append(&mut callable_names_from_package(package));
+            items.append(&mut namespaces);
+        }
+        Context::TopLevel | Context::NotSignificant => items.push(CompletionItem {
+            label: "namespace".to_string(),
+            kind: CompletionItemKind::Keyword,
+        }),
+    }
+    CompletionList { items }
 }
 
 struct NamespaceCollector {
