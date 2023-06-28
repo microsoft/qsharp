@@ -15,7 +15,6 @@ pub(super) struct NoBarrierError;
 /// its lack of a [Clone] implementation and limited peek functionality.
 /// This struct should never be clonable, and it should never be able to
 /// peek more than one token ahead, to maintain LL(1) enforcement.
-/// The following code should not build.
 pub(super) struct Scanner<'a> {
     input: &'a str,
     tokens: Lexer<'a>,
@@ -26,7 +25,7 @@ pub(super) struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(input: &'a str) -> Self {
+    pub(super) fn new(input: &'a str) -> Self {
         let mut tokens = Lexer::new(input);
         let (peek, errors) = next_ok(&mut tokens);
         Self {

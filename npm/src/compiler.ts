@@ -34,7 +34,6 @@ export interface ICompiler {
 // WebWorker also support being explicitly terminated to tear down the worker thread
 export type ICompilerWorker = ICompiler & { terminate: () => void };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function errToDiagnostic(err: any): VSDiagnostic {
   if (
     err &&
@@ -118,7 +117,7 @@ export class Compiler implements ICompiler {
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
     let success = false;
-    let err: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let err: any = null;
     try {
       if (this.onstatechange) this.onstatechange("busy");
       success = this.wasm.run_kata_exercise(
