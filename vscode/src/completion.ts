@@ -1,4 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import { ILanguageService } from "qsharp";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
@@ -15,7 +17,9 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
   async provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     context: vscode.CompletionContext
   ) {
     const completions = await this.languageService.getCompletions(

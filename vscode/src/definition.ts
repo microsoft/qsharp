@@ -1,4 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import { ILanguageService } from "qsharp";
 import * as vscode from "vscode";
 
@@ -12,6 +14,7 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
   async provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken
   ) {
     const definition = await this.languageService.getDefinition(
