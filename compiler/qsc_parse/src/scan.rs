@@ -26,7 +26,7 @@ pub(super) struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(input: &'a str) -> Self {
+    pub(super) fn new(input: &'a str) -> Self {
         let mut tokens = Lexer::new(input);
         let (peek, errors) = next_ok(&mut tokens);
         Self {
