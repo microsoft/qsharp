@@ -122,3 +122,5 @@ export { default as samples } from "./samples.generated.js";
 export { type VSDiagnostic } from "./vsdiagnostic.js";
 export { log, type LogLevel };
 export type { ICompilerWorker };
+export type { ILanguageServiceWorker, ILanguageService };
+export { type LanguageServiceEvent } from "./language-service/language-service.js";
