@@ -29,11 +29,6 @@ export interface ICompiler {
     code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
-  runKata(
-    user_code: string,
-    verify_code: string,
-    eventHandler: IQscEventTarget
-  ): Promise<boolean>;
   onstatechange: ((state: CompilerState) => void) | null;
 }
 
@@ -137,39 +132,6 @@ export class Compiler implements ICompiler {
     } catch (e) {
       console.log("runKataExercise error");
       console.log(e);
-      err = e;
-    }
-    if (this.onstatechange) this.onstatechange("idle");
-    // Currently the kata wasm doesn't emit the success/failure events, so do those here.
-    if (!err) {
-      const evt = makeEvent("Result", {
-        success: true,
-        value: success.toString(),
-      });
-      eventHandler.dispatchEvent(evt);
-    } else {
-      const diag = errToDiagnostic(err);
-      const evt = makeEvent("Result", { success: false, value: diag });
-      eventHandler.dispatchEvent(evt);
-    }
-    return success;
-  }
-
-  async runKata(
-    user_code: string,
-    verify_code: string,
-    eventHandler: IQscEventTarget
-  ): Promise<boolean> {
-    let success = false;
-    let err: any = null;
-    try {
-      if (this.onstatechange) this.onstatechange("busy");
-      success = this.wasm.run_kata_exercise(
-        verify_code,
-        user_code,
-        (msg: string) => onCompilerEvent(msg, eventHandler)
-      );
-    } catch (e) {
       err = e;
     }
     if (this.onstatechange) this.onstatechange("idle");

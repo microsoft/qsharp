@@ -97,21 +97,13 @@ export function createWorkerProxy(
         msg = { type: "getCompletions" };
         break;
       case "run":
-        // run and runKata can take a long time, so set state to busy
+        // run and runKataExercise can take a long time, so set state to busy
         setState("busy");
         msg = {
           type: "run",
           code: curr.args[0],
           expr: curr.args[1],
           shots: curr.args[2],
-        };
-        break;
-      case "runKata":
-        setState("busy");
-        msg = {
-          type: "runKata",
-          user_code: curr.args[0],
-          verify_code: curr.args[1],
         };
         break;
       case "runKataExercise":
@@ -207,9 +199,6 @@ export function createWorkerProxy(
     },
     run(code, expr, shots, evtHandler) {
       return queueRequest("run", [code, expr, shots], evtHandler);
-    },
-    runKata(user_code, verify_code, evtHandler) {
-      return queueRequest("runKata", [user_code, verify_code], evtHandler);
     },
     runKataExercise(user_code, verify_code, code_dependencies, evtHandler) {
       return queueRequest(
@@ -313,11 +302,6 @@ export function handleMessageInWorker(
         .run(data.code, data.expr, data.shots, evtTarget)
         .then(() => logIntercepter({ type: "run-result", result: undefined }));
       break;
-    case "runKata":
-      promise = compiler
-        .runKata(data.user_code, data.verify_code, evtTarget)
-        .then((result) => logIntercepter({ type: "runKata-result", result }));
-      break;
     case "runKataExercise":
       promise = compiler
         .runKataExercise(
@@ -345,7 +329,6 @@ export type CompilerReqMsg =
   | { type: "getHir"; code: string }
   | { type: "getCompletions" }
   | { type: "run"; code: string; expr: string; shots: number }
-  | { type: "runKata"; user_code: string; verify_code: string }
   | {
       type: "runKataExercise";
       user_code: string;
