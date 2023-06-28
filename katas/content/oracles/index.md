@@ -47,7 +47,8 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 ],
 "verificationSourcePath": "./classical_oracles/verification.qs",
 "placeholderSourcePath": "./classical_oracles/placeholder.qs",
-"solutionSourcePath": "./classical_oracles/solution.qs"
+"solutionSourcePath": "./classical_oracles/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 ## Quantum Oracles
@@ -133,7 +134,8 @@ Don't allocate extra qubits to perform this operation.
 ],
 "verificationSourcePath": "./phase_oracle_seven/verification.qs",
 "placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
-"solutionSourcePath": "./phase_oracle_seven/solution.qs"
+"solutionSourcePath": "./phase_oracle_seven/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 <details>
@@ -220,7 +222,8 @@ state $|111\rangle$, and leave the state $|y\rangle$ unchanged otherwise.
 ],
 "verificationSourcePath": "./marking_oracle_seven/verification.qs",
 "placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
-"solutionSourcePath": "./marking_oracle_seven/solution.qs"
+"solutionSourcePath": "./marking_oracle_seven/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 <details>
@@ -358,7 +361,8 @@ Flip the phase of each basis state $|x\rangle$ for which $f(x) = 1$. You can onl
 ],
 "verificationSourcePath": "./marking_oracle_as_phase/verification.qs",
 "placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
-"solutionSourcePath": "./marking_oracle_as_phase/solution.qs"
+"solutionSourcePath": "./marking_oracle_as_phase/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 
@@ -418,7 +422,8 @@ except for $|00...0\rangle$ (the all zero state).
 ],
 "verificationSourcePath": "./or_oracle/verification.qs",
 "placeholderSourcePath": "./or_oracle/placeholder.qs",
-"solutionSourcePath": "./or_oracle/solution.qs"
+"solutionSourcePath": "./or_oracle/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 
@@ -456,7 +461,8 @@ Flip the sign of the input state $|x\rangle$ if the $k$-th bit of $x$ is $1$.
 ],
 "verificationSourcePath": "./kth_bit_oracle/verification.qs",
 "placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
-"solutionSourcePath": "./kth_bit_oracle/solution.qs"
+"solutionSourcePath": "./kth_bit_oracle/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 > Notice how the oracles - both phase and marking - can take extra "classical" parameters.
@@ -503,7 +509,8 @@ Feel free to explore implementing this operation with or without auxiliary qubit
 ],
 "verificationSourcePath": "./or_but_kth_oracle/verification.qs",
 "placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
-"solutionSourcePath": "./or_but_kth_oracle/solution.qs"
+"solutionSourcePath": "./or_but_kth_oracle/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 # Part IV: More Oracles!  Implementation and Testing:
@@ -546,7 +553,8 @@ represented by `pattern`.
 ],
 "verificationSourcePath": "./bit_pattern_oracle/verification.qs",
 "placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
-"solutionSourcePath": "./bit_pattern_oracle/solution.qs"
+"solutionSourcePath": "./bit_pattern_oracle/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 ### <span style="color:blue">Task 4.2</span>: Implement the arbitrary bit pattern oracle (challenge version)
@@ -587,7 +595,8 @@ represented by `pattern`.
 ],
 "verificationSourcePath": "./bit_pattern_challenge/verification.qs",
 "placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
-"solutionSourcePath": "./bit_pattern_challenge/solution.qs"
+"solutionSourcePath": "./bit_pattern_challenge/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 ### <span style="color:blue">Task 4.3</span>: Implement the meeting oracle
@@ -627,7 +636,8 @@ Flip the state of $|y\rangle$ if you and Jasmine are both free on the same day f
 ],
 "verificationSourcePath": "./meeting_oracle/verification.qs",
 "placeholderSourcePath": "./meeting_oracle/placeholder.qs",
-"solutionSourcePath": "./meeting_oracle/solution.qs"
+"solutionSourcePath": "./meeting_oracle/solution.qs",
+"solutionDescriptionPath": "./solution.md"
 })
 
 ### <span style="color:blue">Demo 4.1</span>: Testing an oracle implementation
