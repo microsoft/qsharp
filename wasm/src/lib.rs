@@ -172,12 +172,14 @@ pub fn run(
 
 fn run_kata_exercise_internal(
     exercise_code: &str,
+    solution_code: &str,
     verification_code: &str,
     code_dependencies: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
     let mut sources = vec![
         ("exercise".into(), exercise_code.into()),
+        ("solution".into(), solution_code.into()),
         ("verification".into(), verification_code.into()),
     ];
     for code_dependency in code_dependencies {
@@ -186,10 +188,10 @@ fn run_kata_exercise_internal(
     verify_exercise(sources, &mut CallbackReceiver { event_cb })
 }
 
-// TODO: Should maybe receive solution.
 #[wasm_bindgen]
 pub fn run_kata_exercise(
     exercise_code: &str,
+    solution_code: &str,
     verification_code: &str,
     code_dependencies_js_array: js_sys::Array,
     event_cb: &js_sys::Function,
@@ -203,8 +205,9 @@ pub fn run_kata_exercise(
         code_dependencies.push((index.to_string().into(), contents.into()));
     }
     match run_kata_exercise_internal(
-        verification_code,
         exercise_code,
+        solution_code,
+        verification_code,
         code_dependencies,
         |msg: &str| {
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));

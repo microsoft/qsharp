@@ -25,7 +25,8 @@ export interface ICompiler {
   ): Promise<void>;
   runKataExercise(
     user_code: string,
-    verify_code: string,
+    solution_code: string,
+    verification_code: string,
     code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
@@ -114,7 +115,8 @@ export class Compiler implements ICompiler {
 
   async runKataExercise(
     user_code: string,
-    verify_code: string,
+    solution_code: string,
+    verification_code: string,
     code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
@@ -125,7 +127,8 @@ export class Compiler implements ICompiler {
       console.log("runKataExercise");
       success = this.wasm.run_kata_exercise(
         user_code,
-        verify_code,
+        solution_code,
+        verification_code,
         code_dependencies,
         (msg: string) => onCompilerEvent(msg, eventHandler)
       );

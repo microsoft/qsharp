@@ -114,6 +114,7 @@ export function Editor(props: {
         console.log(dependencies);
         await props.compiler.runKataExercise(
           code,
+          props.kataExercise.solutionCode,
           props.kataExercise.verificationCode,
           [],
           props.evtTarget

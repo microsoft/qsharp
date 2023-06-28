@@ -111,8 +111,9 @@ export function createWorkerProxy(
         msg = {
           type: "runKataExercise",
           user_code: curr.args[0],
-          verify_code: curr.args[1],
-          code_dependencies: curr.args[2],
+          solution_code: curr.args[1],
+          verification_code: curr.args[2],
+          code_dependencies: curr.args[3],
         };
         break;
       default:
@@ -200,10 +201,16 @@ export function createWorkerProxy(
     run(code, expr, shots, evtHandler) {
       return queueRequest("run", [code, expr, shots], evtHandler);
     },
-    runKataExercise(user_code, verify_code, code_dependencies, evtHandler) {
+    runKataExercise(
+      user_code,
+      solution_code,
+      verification_code,
+      code_dependencies,
+      evtHandler
+    ) {
       return queueRequest(
         "runKataExercise",
-        [user_code, verify_code, code_dependencies],
+        [user_code, solution_code, verification_code, code_dependencies],
         evtHandler
       );
     },
@@ -306,7 +313,8 @@ export function handleMessageInWorker(
       promise = compiler
         .runKataExercise(
           data.user_code,
-          data.verify_code,
+          data.solution_code,
+          data.verification_code,
           data.code_dependencies,
           evtTarget
         )
@@ -332,7 +340,8 @@ export type CompilerReqMsg =
   | {
       type: "runKataExercise";
       user_code: string;
-      verify_code: string;
+      solution_code: string;
+      verification_code: string;
       code_dependencies: string[];
     };
 
