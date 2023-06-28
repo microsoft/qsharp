@@ -13,7 +13,7 @@ import {
   getLanguageServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
-import { getKata } from "../dist/katas.js";
+//import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
