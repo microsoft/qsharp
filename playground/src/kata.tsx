@@ -43,7 +43,11 @@ export function Kata(props: {
         div.innerHTML = section.contentAsHtml;
       } else if (section.type === "exercise") {
         console.log(section.id);
-        div.innerHTML = section.solutionDescriptionAsHtml;
+        div.innerHTML =
+          section.solutionDescriptionAsHtml +
+          "<pre><code>" +
+          section.solutionCode +
+          "</code></pre>";
       } else {
         console.log(section.id);
         div.innerHTML = "";
