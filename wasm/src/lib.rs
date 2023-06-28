@@ -240,6 +240,7 @@ extern "C" {
     fn log_many(a: &str, b: &str);
 }
 
+// TODO: Should maybe receive solution.
 #[wasm_bindgen]
 pub fn run_kata_exercise_new(
     exercise_code: &str,

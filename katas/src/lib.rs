@@ -26,12 +26,7 @@ pub fn verify_exercise(
     exercise_sources: Vec<(SourceName, SourceContents)>,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
-    let mut all_sources = vec![(
-        "kataslib.qs".into(),
-        include_str!("../library/katas.qs").into(),
-    )];
-    all_sources.extend(exercise_sources);
-    let source_map = SourceMap::new(all_sources, Some(EXERCISE_ENTRY.into()));
+    let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
     let context = stateless::Context::new(true, source_map)?;
     context.eval(receiver).map(|value| {
         if let Value::Bool(success) = value {
