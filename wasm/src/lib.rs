@@ -12,9 +12,8 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, SourceMap,
+    PackageStore, SourceContents, SourceMap, SourceName,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -207,16 +206,10 @@ pub fn run_kata_exercise(
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct CodeSource {
-    pub name: String,
-    pub contents: String,
-}
-
 fn run_kata_exercise_internal_new(
     exercise_code: &str,
     verification_code: &str,
-    code_dependencies: Vec<CodeSource>,
+    code_dependencies: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
     let mut sources = vec![
@@ -224,7 +217,7 @@ fn run_kata_exercise_internal_new(
         ("verification".into(), verification_code.into()),
     ];
     for code_dependency in code_dependencies {
-        sources.push((code_dependency.name.into(), code_dependency.contents.into()));
+        sources.push(code_dependency);
     }
     verify_exercise(sources, &mut CallbackReceiver { event_cb })
 }
@@ -251,14 +244,20 @@ extern "C" {
 pub fn run_kata_exercise_new(
     exercise_code: &str,
     verification_code: &str,
-    code_dependencies_as_js_value: JsValue,
+    code_dependencies_js_array: js_sys::Array,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    log("there");
-    let code_dependencies: Vec<CodeSource> =
-        serde_wasm_bindgen::from_value(code_dependencies_as_js_value)
-            .expect("Deserializing code dependencies should succeed");
-    log("here");
+    let mut code_dependencies: Vec<(SourceName, SourceContents)> = vec![];
+    for (index, item) in code_dependencies_js_array.entries().into_iter().enumerate() {
+        let contents = item
+            .expect("Contents should be accesible")
+            .as_string()
+            .expect("Contents should be string");
+        code_dependencies.push((index.to_string().into(), contents.into()));
+    }
+    //for (index, code_dependency) in code_dependencies.into_iter().enumerate() {
+    //    code_dependencies.push((index.to_string().into(), code_dependency.into()));
+    //}
     match run_kata_exercise_internal_new(
         verification_code,
         exercise_code,

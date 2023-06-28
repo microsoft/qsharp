@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { CodeSource } from "./common.js";
 import { katasContent } from "./katas-content.new.generated.js";
 
 export type ExampleN = {
@@ -49,9 +48,11 @@ export async function getKataN(id: string): Promise<KataN> {
 
 export async function getExerciseDependencies(
   exercise: ExerciseN
-): Promise<CodeSource[]> {
-  const allDependencies = katasContent.codeDependencies as CodeSource[];
-  return allDependencies.filter(
-    (dependency) => exercise.codeDependencies.indexOf(dependency.name) > -1
-  );
+): Promise<string[]> {
+  const allDependencies = katasContent.codeDependencies;
+  return allDependencies
+    .filter(
+      (dependency) => exercise.codeDependencies.indexOf(dependency.name) > -1
+    )
+    .map((item) => item.contents);
 }

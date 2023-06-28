@@ -3,12 +3,7 @@
 
 import type { IDiagnostic, ICompletionList } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
-import {
-  eventStringToMsg,
-  mapDiagnostics,
-  CodeSource,
-  VSDiagnostic,
-} from "./common.js";
+import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
@@ -31,7 +26,7 @@ export interface ICompiler {
   runKataExercise(
     user_code: string,
     verify_code: string,
-    code_dependencies: CodeSource[],
+    code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
   runKata(
@@ -125,7 +120,7 @@ export class Compiler implements ICompiler {
   async runKataExercise(
     user_code: string,
     verify_code: string,
-    code_dependencies: CodeSource[],
+    code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
     let success = false;
@@ -136,7 +131,7 @@ export class Compiler implements ICompiler {
       success = this.wasm.run_kata_exercise_new(
         verify_code,
         user_code,
-        [],
+        code_dependencies,
         (msg: string) => onCompilerEvent(msg, eventHandler)
       );
     } catch (e) {

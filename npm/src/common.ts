@@ -39,11 +39,6 @@ export interface ResultMsg {
 
 export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
 
-export interface CodeSource {
-  name: string;
-  contents: string;
-}
-
 export function outputAsResult(msg: string): ResultMsg | null {
   try {
     const obj = JSON.parse(msg);

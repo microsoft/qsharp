@@ -3,7 +3,7 @@
 
 import { log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
-import { DumpMsg, MessageMsg, CodeSource, VSDiagnostic } from "./common.js";
+import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
@@ -350,7 +350,7 @@ export type CompilerReqMsg =
       type: "runKataExercise";
       user_code: string;
       verify_code: string;
-      code_dependencies: CodeSource[];
+      code_dependencies: string[];
     };
 
 type CompilerRespMsg =
