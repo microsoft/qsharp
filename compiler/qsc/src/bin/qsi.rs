@@ -122,19 +122,42 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut dyn Receiver) -> io::Resul
     while let Some(line) = lines.next() {
         let mut line = line?;
 
-        while line.ends_with('\\') {
-            print_prompt(true);
-            if let Some(continuation) = lines.next() {
-                line.pop(); // Remove backslash.
-                line.push_str(&continuation?);
-            } else {
-                println!();
-                return Ok(());
-            }
-        }
+        if line.trim() == ".editor" {
+            println!("... Entering editor mode (type END on a new line to finish) ...");
+            let mut block = String::new();
 
-        if !line.trim().is_empty() {
-            print_interpret_result(&line, interpreter.interpret_line(receiver, &line));
+            while !line.trim().ends_with("END") {
+                if let Some(next_line) = lines.next() {
+                    line = next_line?;
+                    if line.trim().ends_with("END") {
+                        break;
+                    }
+                    block.push_str(&line);
+                    block.push('\n');
+                } else {
+                    println!();
+                    return Ok(());
+                }
+            }
+
+            if !block.trim().is_empty() {
+                print_interpret_result(&block, interpreter.interpret_line(receiver, &block));
+            }
+        } else {
+            while line.ends_with('\\') {
+                print_prompt(true);
+                if let Some(continuation) = lines.next() {
+                    line.pop(); // Remove backslash.
+                    line.push_str(&continuation?);
+                } else {
+                    println!();
+                    return Ok(());
+                }
+            }
+
+            if !line.trim().is_empty() {
+                print_interpret_result(&line, interpreter.interpret_line(receiver, &line));
+            }
         }
 
         print_prompt(false);
