@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { IDiagnostic } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
-import { VSDiagnostic } from "../vsdiagnostic.js";
+import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
 import { eventStringToMsg } from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
@@ -14,6 +15,10 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
+  /**
+   * @deprecated use the language service for errors and other editor features.
+   */
+  checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
     code: string,
@@ -58,6 +63,20 @@ export class Compiler implements ICompiler {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
     globalThis.qscGitHash = this.wasm.git_hash();
+  }
+
+  /**
+   * @deprecated use the language service for errors and other editor features.
+   */
+  async checkCode(code: string): Promise<VSDiagnostic[]> {
+    let diags: IDiagnostic[] = [];
+    const languageService = new this.wasm.LanguageService(
+      (uri: string, version: number, errors: IDiagnostic[]) => {
+        diags = errors;
+      }
+    );
+    languageService.update_document("code", 1, code);
+    return mapDiagnostics(diags, code);
   }
 
   async getHir(code: string): Promise<string> {

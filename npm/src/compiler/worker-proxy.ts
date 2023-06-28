@@ -13,6 +13,7 @@ import { ICompiler } from "./compiler.js";
 import { QscEventData } from "./events.js";
 
 const requests: MethodMap<ICompiler> = {
+  checkCode: "request",
   getHir: "request",
   run: "requestWithProgress",
   runKata: "requestWithProgress",

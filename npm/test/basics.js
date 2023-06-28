@@ -267,6 +267,15 @@ test("cancel worker", () => {
   });
 });
 
+test("check code", async () => {
+  const compiler = getCompiler();
+
+  const diags = await compiler.checkCode("namespace Foo []");
+  assert.equal(diags.length, 1);
+  assert.equal(diags[0].start_pos, 14);
+  assert.equal(diags[0].end_pos, 15);
+});
+
 test("language service diagnostics", async () => {
   const languageService = getLanguageService();
   let gotDiagnostics = false;
