@@ -93,10 +93,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(contents_from_name(
-                            &ident.name,
-                            &get_type_name_from_ast_ty(ty),
-                        ));
+                        self.contents = Some(contents_from_name(&ident.name, &format_ast_ty(ty)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -116,8 +113,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents =
-                            Some(contents_from_name(&ident.name, &self.get_type_name(pat.id)));
+                        self.contents = Some(contents_from_name(
+                            &ident.name,
+                            &self.find_type_name(pat.id),
+                        ));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -135,7 +134,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
                     self.contents = Some(contents_from_name(
                         &field.name,
-                        &self.get_type_name(expr.id),
+                        &self.find_type_name(expr.id),
                     ));
                     self.start = field.span.lo;
                     self.end = field.span.hi;
@@ -179,7 +178,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     resolve::Res::Local(node_id) => {
                         self.contents = Some(contents_from_name(
                             &print_path(path),
-                            &self.get_type_name(*node_id),
+                            &self.find_type_name(*node_id),
                         ));
                         self.start = path.span.lo;
                         self.end = path.span.hi;
@@ -209,9 +208,9 @@ impl HoverVisitor<'_> {
             "{} {} {} {} {}{}",
             kind,
             decl.name.name,
-            self.get_type_name(decl.input.id),
+            self.find_type_name(decl.input.id),
             arrow,
-            get_type_name_from_ast_ty(&decl.output),
+            format_ast_ty(&decl.output),
             functors,
         );
         markdown_wrapper(&inner)
@@ -233,29 +232,29 @@ impl HoverVisitor<'_> {
             "{} {} {} {} {}{}",
             kind,
             decl.name.name,
-            self.get_type_name_from_hir_ty(&decl.input.ty),
+            self.format_hir_ty(&decl.input.ty),
             arrow,
-            self.get_type_name_from_hir_ty(&decl.output),
+            self.format_hir_ty(&decl.output),
             functors,
         );
         markdown_wrapper(&inner)
     }
 
-    fn get_type_name(&self, node_id: ast::NodeId) -> String {
+    fn find_type_name(&self, node_id: ast::NodeId) -> String {
         if let Some(ty) = self.compilation.unit.ast.tys.terms.get(node_id) {
-            self.get_type_name_from_hir_ty(ty)
+            self.format_hir_ty(ty)
         } else {
             "?".to_string()
         }
     }
 
     // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
-    fn get_type_name_from_hir_ty(&self, ty: &hir::ty::Ty) -> String {
+    fn format_hir_ty(&self, ty: &hir::ty::Ty) -> String {
         match ty {
-            hir::ty::Ty::Array(item) => format!("{}[]", self.get_type_name_from_hir_ty(item)),
+            hir::ty::Ty::Array(item) => format!("{}[]", self.format_hir_ty(item)),
             hir::ty::Ty::Arrow(arrow) => {
-                let input = self.get_type_name_from_hir_ty(&arrow.input);
-                let output = self.get_type_name_from_hir_ty(&arrow.output);
+                let input = self.format_hir_ty(&arrow.input);
+                let output = self.format_hir_ty(&arrow.output);
                 let functors = if arrow.functors
                     == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty)
                 {
@@ -275,7 +274,7 @@ impl HoverVisitor<'_> {
                 } else {
                     let elements = tys
                         .iter()
-                        .map(|e| self.get_type_name_from_hir_ty(e))
+                        .map(|e| self.format_hir_ty(e))
                         .collect::<Vec<_>>()
                         .join(", ");
                     format!("({elements})")
@@ -314,7 +313,7 @@ fn contents_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
 fn ty_def_to_string(def: &ast::TyDef) -> String {
     match &*def.kind {
         ast::TyDefKind::Field(name, ty) => {
-            let ty = get_type_name_from_ast_ty(ty);
+            let ty = format_ast_ty(ty);
             match name {
                 Some(name) => format!("{}: {ty}", name.name),
                 None => ty,
@@ -349,12 +348,12 @@ fn markdown_wrapper(contents: &impl Display) -> String {
     )
 }
 
-fn get_type_name_from_ast_ty(ty: &ast::Ty) -> String {
+fn format_ast_ty(ty: &ast::Ty) -> String {
     match &*ty.kind {
-        qsc::ast::TyKind::Array(ty) => format!("{}[]", get_type_name_from_ast_ty(ty)),
+        qsc::ast::TyKind::Array(ty) => format!("{}[]", format_ast_ty(ty)),
         qsc::ast::TyKind::Arrow(kind, input, output, functors) => {
-            let input = get_type_name_from_ast_ty(input);
-            let output = get_type_name_from_ast_ty(output);
+            let input = format_ast_ty(input);
+            let output = format_ast_ty(output);
             let arrow = match kind {
                 ast::CallableKind::Function => "->",
                 ast::CallableKind::Operation => "=>",
@@ -373,18 +372,14 @@ fn get_type_name_from_ast_ty(ty: &ast::Ty) -> String {
             format!("({input} {arrow} {output}{functors})")
         }
         qsc::ast::TyKind::Hole => "_".to_owned(),
-        qsc::ast::TyKind::Paren(ty) => get_type_name_from_ast_ty(ty),
+        qsc::ast::TyKind::Paren(ty) => format_ast_ty(ty),
         qsc::ast::TyKind::Path(path) => print_path(path),
         qsc::ast::TyKind::Param(id) => id.name.to_string(),
         qsc::ast::TyKind::Tuple(tys) => {
             if tys.is_empty() {
                 "Unit".to_owned()
             } else {
-                let elements = tys
-                    .iter()
-                    .map(get_type_name_from_ast_ty)
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let elements = tys.iter().map(format_ast_ty).collect::<Vec<_>>().join(", ");
                 format!("({elements})")
             }
         }
