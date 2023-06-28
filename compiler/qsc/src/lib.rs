@@ -10,7 +10,7 @@ pub mod interpret;
 pub use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, SourceMap, SourceName};
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{Names, Res};
+    pub use qsc_frontend::resolve::Res;
 }
 
 pub mod hir {
