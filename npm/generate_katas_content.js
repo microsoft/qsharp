@@ -20,7 +20,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { inspect } from "node:util";
 
 import { marked } from "marked";
 
@@ -52,6 +51,8 @@ function getTitleFromMarkdown(markdown) {
 
 function tryParseJSON(json, errorPrefix) {
   let parsed;
+  console.log("Try parse JSON");
+  console.log(json);
   try {
     parsed = JSON.parse(json);
   } catch (e) {
@@ -192,6 +193,8 @@ function generateMacroSection(kataPath, match, globalCodeSources) {
 
 function generateTextSection(markdown) {
   const html = marked.parse(markdown);
+  console.log(`HTML size: ${html.length}`);
+  console.log(html.includes("more characters"));
   return {
     type: "text",
     contentAsMarkdown: markdown,
@@ -201,7 +204,7 @@ function generateTextSection(markdown) {
 
 function generateSections(kataPath, markdown, globalCodeSources) {
   const sections = [];
-  const macroRegex = /@\[(?<type>\w+)\]\((?<json>[^@]+)\)\s+/g;
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{[^@]+\})\)\s+/g;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);
@@ -295,7 +298,7 @@ function generateKatasContent(katasPath, outputPath) {
   const contentJsPath = join(outputPath, "katas-content.generated.ts");
   writeFileSync(
     contentJsPath,
-    "export const katasContent = " + inspect(katasContent, { depth: null }),
+    `export default ${JSON.stringify(katasContent, undefined, 2)}`,
     "utf-8"
   );
 }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { katasContent } from "./katas-content.generated.js";
+import { default as katasContent } from "./katas-content.generated.js";
 
 export type Example = {
   type: "example";
