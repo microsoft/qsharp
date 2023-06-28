@@ -1783,3 +1783,23 @@ fn generic_missing_ident() {
         "#]],
     );
 }
+
+#[test]
+fn generic_underscore_name() {
+    check(
+        "'_",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: AposIdent,
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
