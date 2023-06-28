@@ -123,9 +123,9 @@ export class Compiler implements ICompiler {
     try {
       if (this.onstatechange) this.onstatechange("busy");
       console.log("runKataExercise");
-      success = this.wasm.run_kata_exercise_new(
-        verify_code,
+      success = this.wasm.run_kata_exercise(
         user_code,
+        verify_code,
         code_dependencies,
         (msg: string) => onCompilerEvent(msg, eventHandler)
       );

@@ -171,42 +171,6 @@ pub fn run(
 }
 
 fn run_kata_exercise_internal(
-    verification_source: &str,
-    exercise_implementation: &str,
-    event_cb: impl Fn(&str),
-) -> Result<bool, Vec<stateless::Error>> {
-    verify_exercise(
-        vec![
-            ("exercise".into(), exercise_implementation.into()),
-            ("verifier".into(), verification_source.into()),
-        ],
-        &mut CallbackReceiver { event_cb },
-    )
-}
-
-#[wasm_bindgen]
-pub fn run_kata_exercise(
-    verification_source: &str,
-    exercise_implementation: &str,
-    event_cb: &js_sys::Function,
-) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
-        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-    }) {
-        Ok(v) => Ok(JsValue::from_bool(v)),
-        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
-        // should be reported with a Result event (also for success) and not an exception.
-        Err(e) => {
-            // TODO: Handle multiple errors.
-            let first_error = e
-                .first()
-                .expect("Running kata failed but no errors were reported");
-            Err(JsError::from(first_error).into())
-        }
-    }
-}
-
-fn run_kata_exercise_internal_new(
     exercise_code: &str,
     verification_code: &str,
     code_dependencies: Vec<(SourceName, SourceContents)>,
@@ -222,27 +186,9 @@ fn run_kata_exercise_internal_new(
     verify_exercise(sources, &mut CallbackReceiver { event_cb })
 }
 
-#[wasm_bindgen]
-extern "C" {
-    // Use `js_namespace` here to bind `console.log(..)` instead of just
-    // `log(..)`
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-
-    // The `console.log` is quite polymorphic, so we can bind it with multiple
-    // signatures. Note that we need to use `js_name` to ensure we always call
-    // `log` in JS.
-    #[wasm_bindgen(js_namespace = console, js_name = log)]
-    fn log_u32(a: u32);
-
-    // Multiple arguments too!
-    #[wasm_bindgen(js_namespace = console, js_name = log)]
-    fn log_many(a: &str, b: &str);
-}
-
 // TODO: Should maybe receive solution.
 #[wasm_bindgen]
-pub fn run_kata_exercise_new(
+pub fn run_kata_exercise(
     exercise_code: &str,
     verification_code: &str,
     code_dependencies_js_array: js_sys::Array,
@@ -256,7 +202,7 @@ pub fn run_kata_exercise_new(
             .expect("Contents should be string");
         code_dependencies.push((index.to_string().into(), contents.into()));
     }
-    match run_kata_exercise_internal_new(
+    match run_kata_exercise_internal(
         verification_code,
         exercise_code,
         code_dependencies,
