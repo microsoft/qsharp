@@ -54,7 +54,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState)
   );
-  const [evtTarget] = useState(new QscEventTarget(true));
+  const [evtTarget] = useState(() => new QscEventTarget(true));
 
   const [languageService] = useState(() =>
     getLanguageServiceWorker(languageServiceWorkerPath)
