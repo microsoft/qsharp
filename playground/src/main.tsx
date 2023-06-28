@@ -56,7 +56,9 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   );
   const [evtTarget] = useState(new QscEventTarget(true));
 
-  const languageService = getLanguageServiceWorker(languageServiceWorkerPath);
+  const [languageService] = useState(() =>
+    getLanguageServiceWorker(languageServiceWorkerPath)
+  );
   registerMonacoLanguageServiceProviders(languageService);
 
   const [currentNavItem, setCurrentNavItem] = useState(

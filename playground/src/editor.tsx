@@ -151,6 +151,11 @@ export function Editor(props: {
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);
     srcModel.onDidChangeContent(() => hirRef.current());
+
+    // TODO: If the language service ever changes, this callback
+    // will be invalid as it captures the *original* props.languageService
+    // and not the updated one. Not a problem currently since the language
+    // service is never updated, but not correct either.
     srcModel.onDidChangeContent(async () => {
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
@@ -187,11 +192,6 @@ export function Editor(props: {
       props.languageService.removeEventListener("diagnostics", onDiagnostics);
     };
   }, [props.languageService]);
-
-  useEffect(() => {
-    // Whenever the active tab changes, run check again.
-    hirRef.current();
-  }, [props.activeTab]);
 
   useEffect(() => {
     const theEditor = editor.current;
