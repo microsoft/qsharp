@@ -3,13 +3,13 @@
 
 import { katasContent } from "./katas-content.generated.js";
 
-export type ExampleN = {
+export type Example = {
   type: "example";
   id: string;
   code: string;
 };
 
-export type ExerciseN = {
+export type Exercise = {
   type: "exercise";
   id: string;
   codeDependencies: string[];
@@ -26,20 +26,20 @@ export type Text = {
   contentAsMarkdown: string;
 };
 
-export type KataSection = ExampleN | ExerciseN | Text;
+export type KataSection = Example | Exercise | Text;
 
-export type KataN = {
+export type Kata = {
   id: string;
   title: string;
   sections: KataSection[];
 };
 
-export async function getAllKatasN(): Promise<KataN[]> {
-  return katasContent.katas as KataN[];
+export async function getAllKatas(): Promise<Kata[]> {
+  return katasContent.katas as Kata[];
 }
 
-export async function getKataN(id: string): Promise<KataN> {
-  const katas = await getAllKatasN();
+export async function getKata(id: string): Promise<Kata> {
+  const katas = await getAllKatas();
   return (
     katas.find((k) => k.id === id) ||
     Promise.reject(`Failed to get kata with id: ${id}`)
@@ -47,7 +47,7 @@ export async function getKataN(id: string): Promise<KataN> {
 }
 
 export async function getExerciseDependencies(
-  exercise: ExerciseN
+  exercise: Exercise
 ): Promise<string[]> {
   const allDependencies = katasContent.codeDependencies;
   return allDependencies

@@ -7,8 +7,8 @@ import {
   QscEventTarget,
   getCompilerWorker,
   loadWasmModule,
-  getAllKatasN,
-  KataN,
+  getAllKatas,
+  Kata,
   VSDiagnostic,
   log,
   LogLevel,
@@ -46,7 +46,7 @@ function createCompiler(onStateChange: (val: CompilerState) => void) {
   return compiler;
 }
 
-function App(props: { katas: KataN[]; linkedCode?: string }) {
+function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState)
@@ -150,7 +150,7 @@ function App(props: { katas: KataN[]; linkedCode?: string }) {
 // Called once Monaco is ready
 async function loaded() {
   await wasmPromise; // Block until the wasm module is loaded
-  const katas = await getAllKatasN();
+  const katas = await getAllKatas();
 
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.

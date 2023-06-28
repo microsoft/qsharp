@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
-  ExerciseN,
+  Exercise,
   getExerciseDependencies,
   ICompilerWorker,
   QscEventTarget,
@@ -47,7 +47,7 @@ export function Editor(props: {
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
-  kataExercise?: ExerciseN;
+  kataExercise?: Exercise;
   onRestartCompiler: () => void;
   shotError?: VSDiagnostic;
   showExpr: boolean;

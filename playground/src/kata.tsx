@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef } from "preact/hooks";
-import { CompilerState, ICompilerWorker, KataN, QscEventTarget } from "qsharp";
+import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 
 export function Kata(props: {
-  kata: KataN;
+  kata: Kata;
   compiler: ICompilerWorker;
   compilerState: CompilerState;
   onRestartCompiler: () => void;
@@ -16,7 +16,7 @@ export function Kata(props: {
   const itemContent = useRef<(HTMLDivElement | null)[]>([]);
 
   // Need to keep around QscEventTargets around on re-render unless the Kata changes.
-  const lastKata = useRef<KataN>();
+  const lastKata = useRef<Kata>();
   const handlerMap = useRef<QscEventTarget[]>();
   if (lastKata.current !== props.kata) {
     lastKata.current = props.kata;
