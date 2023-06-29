@@ -13,7 +13,7 @@ import {
   getLanguageServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
-import { getAllKatas } from "../dist/katas.js";
+import { getAllKatas, getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
@@ -85,109 +85,71 @@ test("dump and message output", async () => {
   assert(result.events[1].message == "hello, qsharp");
 });
 
-async function validateExercise(exercise) {
-  console.log(exercise.id);
+async function validateExercise(exercise, code) {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
   const success = await compiler.runKataExercise(
-    exercise.placeholderCode,
+    code,
     exercise.solutionCode,
     exercise.verificationCode,
     [],
     evtTarget
   );
 
-  console.log(`${exercise.id}: ${success}`);
-  assert(!success);
   const unsuccessful_events = evtTarget
     .getResults()
     .filter((evt) => !evt.success);
-  let dbgMsg = "";
+  let errorMsg = "";
   for (const event of unsuccessful_events) {
     const error = event.result;
-    dbgMsg += "Exercise error:\n";
+    errorMsg += "Exercise error:\n";
     if (typeof error === "string") {
-      dbgMsg += error + "\n";
+      errorMsg += error + "\n";
     } else {
-      dbgMsg += error.message + "\n";
+      errorMsg += error.message + "\n";
     }
   }
-  console.log(dbgMsg);
-  //assert(unsuccessful_events.length === 0);
+
+  return {
+    success: success,
+    errorCount: unsuccessful_events.length,
+    errorMsg: errorMsg,
+  };
 }
 
 async function validateKata(kata) {
-  log.info(`Validating ${kata.id} kata`);
   const exercises = kata.sections.filter(
     (section) => section.type === "exercise"
   );
   for (const exercise of exercises) {
-    await validateExercise(exercise);
+    const result = await validateExercise(exercise, exercise.placeholderCode);
+    assert(!result.success);
+    //assert(result.errorCount === 0);
   }
 }
 
-test("katas validation", async () => {
-  //const evtTarget = new QscEventTarget(true);
-  //const compiler = getCompiler();
+test("katas compile", async () => {
   const katas = await getAllKatas();
   for (const kata of katas) {
     await validateKata(kata);
   }
-  //assert(firstExercise.type === "exercise");
-  //const verifyCode = firstExercise.verificationImplementation;
-  //const passed = await compiler.runKata(code, verifyCode, evtTarget);
-  //const results = evtTarget.getResults();
-  //assert(results.length === 1);
-  //assert(results[0].events.length === 4);
-  //assert(passed);
 });
 
-/*test("kata incorrect", async () => {
-  const evtTarget = new QscEventTarget(true);
-  const compiler = getCompilerWorker();
+test("y_gate exercise", async () => {
   const code = `
-namespace Kata {
-  operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
-    Z(q);
-  }
-}`;
-  const theKata = await getKata("single_qubit_gates");
-  const firstExercise = theKata.items[0];
-  assert(firstExercise.type === "exercise");
-  const verifyCode = firstExercise.verificationImplementation;
-
-  const passed = await compiler.runKata(code, verifyCode, evtTarget);
-  const results = evtTarget.getResults();
-  compiler.terminate();
-
-  assert(results.length === 1);
-  assert(results[0].events.length === 6);
-  assert(!passed);
+    namespace Kata {
+      operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
+        Y(q);
+      }
+    }`;
+  const singleQubitGatesKata = await getKata("single_qubit_gates");
+  const yGateExercise = singleQubitGatesKata.sections.find(
+    (section) => section.type === "exercise" && section.id === "y_gate"
+  );
+  const result = await validateExercise(yGateExercise, code);
+  console.log(result);
+  //assert(result.success);
 });
-
-test("kata syntax error", async () => {
-  const evtTarget = new QscEventTarget(true);
-  const compiler = getCompiler();
-  const code = `
-namespace Kata {
-  operaion ApplyY(q : Qubit) : Unt is Adj + Ctl {
-    Z(q);
-  }
-}`;
-  const theKata = await getKata("single_qubit_gates");
-  const firstExercise = theKata.items[0];
-  assert(firstExercise.type === "exercise");
-  const verifyCode = firstExercise.verificationImplementation;
-
-  await compiler.runKata(code, verifyCode, evtTarget);
-  const results = evtTarget.getResults();
-
-  assert.equal(results.length, 1);
-  assert.equal(results[0].events.length, 0);
-  assert(!results[0].success);
-  assert(typeof results[0].result !== "string");
-  assert.equal(results[0].result.message, "Error: syntax error");
-});*/
 
 test("worker 100 shots", async () => {
   let code = `namespace Test {
