@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.Convert {
     /// # Output
     /// A `Result` representing the `input`.
     function BoolAsResult(input : Bool) : Result {
-        return input ? One | Zero;
+        if input {One} else {Zero}
     }
 
     /// # Summary
