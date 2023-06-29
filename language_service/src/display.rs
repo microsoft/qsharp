@@ -302,7 +302,6 @@ struct FunctorSet<'a> {
 }
 
 impl<'a> Display for FunctorSet<'a> {
-    /// extracted from `contents_from_ast_call_decl`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if *self.functor_set == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty) {
             Ok(())
@@ -317,7 +316,6 @@ struct FunctorSetValue {
 }
 
 impl Display for FunctorSetValue {
-    /// extracted from a few different places
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let hir::ty::FunctorSetValue::Empty = self.functors {
             Ok(())
@@ -474,7 +472,6 @@ struct FunctorExpr<'a> {
 }
 
 impl<'a> Display for FunctorExpr<'a> {
-    /// extracted from `get_type_name_from_ast_ty`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.functors {
             Some(functors) => {
