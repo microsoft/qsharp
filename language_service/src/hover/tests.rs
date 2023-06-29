@@ -45,7 +45,7 @@ fn hover_callable_unit_types() {
         }
     "#},
         &expect![[r#"
-            "Doc comment!\n```qsharp\noperation Bar Unit => Unit\n```\n"
+            "Doc comment!\n\n```qsharp\noperation Bar Unit => Unit\n```\n"
         "#]],
     );
 }
@@ -60,7 +60,7 @@ fn hover_callable_with_callable_types() {
         }
     "#},
         &expect![[r#"
-            "Doc comment!\n```qsharp\noperation Foo (Int => Int) => (Int => Int)\n```\n"
+            "Doc comment!\n\n```qsharp\noperation Foo (Int => Int) => (Int => Int)\n```\n"
         "#]],
     );
 }
@@ -91,7 +91,7 @@ fn hover_callable_unit_types_functors() {
         }
     "#},
         &expect![[r#"
-            "Doc comment!\n```qsharp\noperation Foo Unit => Unit is Ctl\n```\n"
+            "Doc comment!\n\n```qsharp\noperation Foo Unit => Unit is Ctl\n```\n"
         "#]],
     );
 }
@@ -106,7 +106,7 @@ fn hover_callable_with_callable_types_functors() {
         }
     "#},
         &expect![[r#"
-            "Doc comment!\n```qsharp\noperation Foo (Int => Int is Adj + Ctl) => (Int => Int is Adj) is Adj\n```\n"
+            "Doc comment!\n\n```qsharp\noperation Foo (Int => Int is Adj + Ctl) => (Int => Int is Adj) is Adj\n```\n"
         "#]],
     );
 }
