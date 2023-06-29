@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type { IDiagnostic, ICompletionList } from "../../lib/node/qsc_wasm.cjs";
+import { IDiagnostic } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
-import { eventStringToMsg } from "./common.js";
-import { mapDiagnostics, VSDiagnostic } from "../vsdiagnostic.js";
-import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
+import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
+import { eventStringToMsg } from "./common.js";
+import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -15,9 +15,11 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
+  /**
+   * @deprecated use the language service for errors and other editor features.
+   */
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
-  getCompletions(): Promise<ICompletionList>;
   run(
     code: string,
     expr: string,
@@ -63,9 +65,10 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
+  /**
+   * @deprecated use the language service for errors and other editor features.
+   */
   async checkCode(code: string): Promise<VSDiagnostic[]> {
-    // Temporary implementation until we have the language
-    // service notifications properly wired up to the editor.
     let diags: IDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
       (uri: string, version: number, errors: IDiagnostic[]) => {
@@ -78,15 +81,6 @@ export class Compiler implements ICompiler {
 
   async getHir(code: string): Promise<string> {
     return this.wasm.get_hir(code);
-  }
-
-  async getCompletions(): Promise<ICompletionList> {
-    // Temporary implementation until we have the language
-    // service properly wired up to the editor.
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    const languageService = new this.wasm.LanguageService(() => {});
-    languageService.update_document("code", 1, "");
-    return languageService.get_completions("code", 1);
   }
 
   async run(
