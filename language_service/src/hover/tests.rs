@@ -387,6 +387,24 @@ fn hover_udt_ref() {
 }
 
 #[test]
+fn hover_udt_ref_nested_udt() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Pair = (fst: Int, snd: Int);
+            newtype Bar = (fst: Int, (snd : Int, Double, fourth: Pair), Double, sixth: Int);
+            operation Foo() : ◉B↘ar◉ {
+                Bar(3, (4, 2.1, Pair(14, 15)), 4.7, 2)
+            }
+        }
+    "#},
+        &expect![[r#"
+            "```qsharp\nBar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)\n```\n"
+        "#]],
+    );
+}
+
+#[test]
 fn hover_udt_anno_ref() {
     check(
         indoc! {r#"
