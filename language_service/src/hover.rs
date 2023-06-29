@@ -8,6 +8,7 @@ use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 use std::fmt::Display;
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
@@ -293,16 +294,80 @@ impl HoverVisitor<'_> {
     }
 }
 
-fn contents_from_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
+struct UdtDef<'a> {
+    name: Option<Rc<str>>,
+    kind: UdtDefKind<'a>,
+}
+
+enum UdtDefKind<'a> {
+    SingleTy(&'a hir::ty::Ty),
+    TupleTy(Vec<UdtDef<'a>>),
+}
+
+fn convert_hir_ty_to_udt(ty: &hir::ty::Ty) -> UdtDef {
+    match ty {
+        hir::ty::Ty::Tuple(tys) => UdtDef {
+            name: None,
+            kind: UdtDefKind::TupleTy(tys.iter().map(|t| convert_hir_ty_to_udt(t)).collect()),
+        },
+        _ => UdtDef {
+            name: None,
+            kind: UdtDefKind::SingleTy(ty),
+        },
+    }
+}
+
+fn update_udt_def(mut udt_def: &mut UdtDef, name: &Rc<str>, path: &Vec<usize>) {
+    for i in path {
+        if let UdtDefKind::TupleTy(defs) = &mut udt_def.kind {
+            udt_def = defs
+                .get_mut(*i)
+                .expect("UDT base type structure does not match field structure.");
+        } else {
+            panic!("UDT base type structure does not match field structure.");
+        }
+    }
+    udt_def.name = Some(name.clone());
+}
+
+fn format_udt_def(udt_def: &UdtDef) -> String {
+    match (&udt_def.name, &udt_def.kind) {
+        (None, UdtDefKind::SingleTy(ty)) => ty.to_string(), // ToDo: ty should use the special printing function
+        (None, UdtDefKind::TupleTy(defs)) => {
+            let elements = defs
+                .iter()
+                .map(|def| format_udt_def(def))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("({elements})")
+        }
+        (Some(name), UdtDefKind::SingleTy(ty)) => format!("{name}: {ty}"), // ToDo: ty should use the special printing function
+        (Some(name), UdtDefKind::TupleTy(defs)) => {
+            let elements = defs
+                .iter()
+                .map(|def| format_udt_def(def))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{name}: ({elements})")
+        }
+    }
+}
+
+fn contents_from_hir_udt(name: &hir::Ident, def: &hir::ty::Udt) -> String {
     let name = &name.name;
-    markdown_wrapper(name)
+    let udt_def = &mut convert_hir_ty_to_udt(&def.base);
+    for field in &def.fields {
+        update_udt_def(udt_def, &field.name, &field.path.indices);
+    }
+    let def = format_udt_def(udt_def);
+
+    markdown_wrapper(&format!("{name} = {def}"))
 }
 
 fn contents_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
     let name = &name.name;
     let def = ty_def_to_string(def);
-    let inner = format!("{name}: {def}");
-    markdown_wrapper(&inner)
+    markdown_wrapper(&format!("{name} = {def}"))
 }
 
 fn ty_def_to_string(def: &ast::TyDef) -> String {

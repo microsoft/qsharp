@@ -364,7 +364,7 @@ fn hover_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair: (Int, snd: Int)\n```\n"
+            "```qsharp\nPair = (Int, snd: Int)\n```\n"
         "#]],
     );
 }
@@ -374,14 +374,14 @@ fn hover_udt_ref() {
     check(
         indoc! {r#"
         namespace Test {
-            newtype Pair = (Int, snd : Int);
-            operation Foo() : ◉P↘air◉ {
-                Pair(3, 4)
+            newtype Bar = (fst: Int, (snd : Int, Double, fourth: String), Double, sixth: Int);
+            operation Foo() : ◉B↘ar◉ {
+                Bar(3, (4, 2.1, "Yes"), 4.7, 2)
             }
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair\n```\n"
+            "```qsharp\nBar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)\n```\n"
         "#]],
     );
 }
@@ -398,7 +398,7 @@ fn hover_udt_anno_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair\n```\n"
+            "```qsharp\nPair = (Int, snd: Int)\n```\n"
         "#]],
     );
 }
@@ -415,7 +415,7 @@ fn hover_udt_constructor() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair\n```\n"
+            "```qsharp\nPair = (Int, snd: Int)\n```\n"
         "#]],
     );
 }
