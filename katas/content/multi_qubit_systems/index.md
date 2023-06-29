@@ -1,0 +1,397 @@
+﻿# Multi-Qubit Systems
+
+This tutorial introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
+
+If you are not familiar with the [single-qubit systems](../Qubit/Qubit.ipynb), we recommend that you complete that tutorial first.
+
+**This tutorial covers the following topics:**
+
+* Vector representation of multi-qubit systems
+* Entangled and separable states
+* Dirac notation
+
+**What you should know for this workbook**
+
+1. Basic single-qubit gates.
+2. The concept of tensor product.
+
+# Multi-Qubit Systems
+
+In the previous tutorial we discussed the concept of a qubit - the basic building block of a quantum computer. 
+A multi-qubit system is a collection of multiple qubits, treated as a single system.
+
+Let's start by examining a system of two classical bits. Each bit can be in two states: $0$ and $1$. Therefore, a system of two bits can be in four different states: $00$, $01$, $10$, and $11$. Generally, a system of $N$ classical bits can be in any of the $2^N$ states.
+
+A system of $N$ qubits can also be in any of the $2^N$ classical states, but, unlike the classical bits, it can also be in a **superposition** of all these states.
+
+Similarly to single-qubit systems, a state of an $N$-qubit system can be represented as a complex vector of size $2^N$:
+$$\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_{2^N-1}\end{bmatrix}$$
+
+## Basis States
+
+Similarly to single-qubit systems, multi-qubit systems have their own sets of basis states. 
+The computational basis for an $N$-qubit system is a set of $2^N$ vectors, in each of which with one element equals $1$, and the other elements equal $0$. 
+
+For example, this is the **computational basis** for a two-qubit system:
+
+$$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}\text{, }
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix}\text{, }
+\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix}\text{, }
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+It is easy to see that these vectors form an orthonormal basis. Note that each of these basis states can be represented as a tensor product of some combination of single-qubit basis states:
+
+<table>
+    <col width=200>
+    <col width=200>
+    <col width=200>
+    <col width=200>
+    <tr>
+        <td style="text-align:center; background-color:white">$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
+        <td style="text-align:center; background-color:white">$\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
+        <td style="text-align:center; background-color:white">$\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 0 \\ 1 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
+        <td style="text-align:center; background-color:white">$\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} =
+\begin{bmatrix} 0 \\ 1 \end{bmatrix} \otimes \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
+    </tr>
+</table>
+
+Any two-qubit system can be expressed as some linear combination of those tensor products of single-qubit basis states.
+
+Similar logic applies to systems of more than two qubits. In general case,
+
+$$\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_{2^N-1} \end{bmatrix} = 
+x_0 \begin{bmatrix} 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix} + 
+x_1 \begin{bmatrix} 0 \\ 1 \\ \vdots \\ 0 \end{bmatrix} + \dotsb +
+x_{2^N-1} \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 1 \end{bmatrix}$$
+
+The coefficients of the basis vectors define how "close" is the system state to the corresponding basis vector.
+
+> Just like with single-qubit systems, there exist other orthonormal bases states for multi-qubit systems. An example for a two-qubit system is the **Bell basis**:
+>
+> $$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}\text{, }
+\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ -1 \end{bmatrix}\text{, }
+\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\ 1 \\ 1 \\ 0 \end{bmatrix}\text{, }
+\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\ 1 \\ -1 \\ 0 \end{bmatrix}$$
+>
+> You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors.  The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
+
+# Separable states
+
+Sometimes the state of a multi-qubit system can be separated into the states of individual qubits or smaller subsystems. 
+To do this, you would express the vector state of the system as a [tensor product](../LinearAlgebra/LinearAlgebra.ipynb#Tensor-Product) of the vectors representing each individual qubit/subsystem. 
+Here is an example for two qubits:
+
+$$\begin{bmatrix} \frac{1}{\sqrt{2}} \\ 0 \\ \frac{1}{\sqrt{2}} \\ 0 \end{bmatrix} =
+\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} \otimes
+\begin{bmatrix} 1 \\ 0 \end{bmatrix}$$
+
+The states that allow such representation are known as **separable states**. 
+
+### <span style="color:blue">Exercise 1</span>: Show that the state is separable
+
+$$\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
+\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}$$
+
+*Can't come up with a solution? See the explained solution in the [Multi-Qubit Systems Workbook](./Workbook_MultiQubitSystems.ipynb#Exercise-1:-Show-that-the-state-is-separable).*
+
+@[exercise]({
+
+"id": "separable_state",
+"solutionDescriptionPath": "./separable_state/solution.md"
+})
+
+<details>
+    <summary>Solution</summary>
+
+To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
+
+$$\begin{bmatrix} \alpha \color{red}\gamma \\ \alpha \color{red}\delta \\ \beta \color{red}\gamma \\ \beta \color{red}\delta \end{bmatrix} = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} \otimes \begin{bmatrix} \color{red}\gamma \\ \color{red}\delta \end{bmatrix}$$
+
+This brings us to a system of equations:
+
+$$\begin{cases}
+\alpha\gamma = \frac{1}{2} \\
+\alpha\delta = \frac{i}{2} \\
+\beta \gamma = \frac{-i}{2} \\
+\beta \delta = \frac{1}{2} \\
+\end{cases}$$
+
+Solving this system of equations gives us the answer:
+
+$$\alpha = \frac{1}{\sqrt2}, \beta = \frac{-i}{\sqrt2}, \gamma = \frac{1}{\sqrt2}, \delta = \frac{i}{\sqrt2}$$
+
+$$\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} = \frac{1}{\sqrt2}
+\begin{bmatrix} 1 \\ -i \end{bmatrix} \otimes \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ i \end{bmatrix}$$
+
+</details>
+
+> Note that finding such representation is not always possible, as you will see in the next exercise.
+
+### <span style="color:blue">Exercise 2</span>: Is this state separable?
+
+$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+*Can't come up with a solution? See the explained solution in the [Multi-Qubit Systems Workbook](./Workbook_MultiQubitSystems.ipynb#Exercise-2:-Is-this-state-separable?).*
+
+<details>
+    <summary>Solution</summary>
+
+### <span style="color:blue">Exercise 2</span>: Is this state separable?
+
+$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+### Solution
+
+Let's assume that this state is separable and write down the system of equations to determine the coefficients of individual qubit states in the tensor product, similar to what we did in the previous exercise:
+
+$$\begin{cases}
+\alpha\gamma = \frac{1}{\sqrt2} \\
+\alpha\delta = 0 \\
+\beta \gamma = 0 \\
+\beta \delta = \frac{1}{\sqrt2} \\
+\end{cases}$$
+
+Now let's multiply the first and the last equations, and the second and the third equations:
+
+$$\begin{cases}
+\alpha\beta\gamma\delta = \frac{1}{2} \\
+\alpha\beta\gamma\delta = 0
+\end{cases}$$
+
+We can see that this system of equations doesn't have a solution, which means that this state is **not separable**.
+
+</details>
+
+# Entanglement
+
+As we've just seen, some quantum states are impossible to factor into individual qubit states or even into states of larger subsystems. The states of these qubits are inseparable from one another and must always be considered as part of a larger system - they are **entangled**.
+
+> For example, every state in the Bell basis we saw earlier is an entangled state.
+
+Entanglement is a huge part of what makes quantum computing so powerful. 
+It allows us to link the qubits so that they stop behaving like individuals and start behaving like a large, more complex system.
+In entangled systems, measuring one of the qubits modifies the state of the other qubits, and tells us something about their state. 
+In the example above, when one of the qubits is measured, we know that the second qubit will end up in the same state. 
+This property is used extensively in many quantum algorithms.
+
+# Dirac Notation
+
+Just like with single qubits, [Dirac notation](../Qubit/Qubit.ipynb#Dirac-Notation) provides a useful shorthand for writing down states of multi-qubit systems.
+
+As we've seen earlier, multi-qubit systems have their own canonical bases, and the basis states can be represented as tensor products of single-qubit basis states. Any multi-qubit system can be represented as a linear combination of these basis states:
+
+$$\begin{bmatrix} x_0 \\ x_1 \\ x_2 \\ x_3 \end{bmatrix} =
+x_0\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} +
+x_1\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} +
+x_2\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} +
+x_3\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} =
+x_0|0\rangle \otimes |0\rangle +
+x_1|0\rangle \otimes |1\rangle +
+x_2|1\rangle \otimes |0\rangle +
+x_3|1\rangle \otimes |1\rangle$$
+
+To simplify this, tensor products of basis states have their own notation:
+
+$$|0\rangle \otimes |0\rangle = |00\rangle$$
+$$|0\rangle \otimes |1\rangle = |01\rangle$$
+$$|1\rangle \otimes |0\rangle = |10\rangle$$
+$$|1\rangle \otimes |1\rangle = |11\rangle$$
+
+$$|0\rangle \otimes |0\rangle \otimes |0\rangle = |000\rangle$$
+
+And so on.
+
+Or, more generally:
+
+$$|i_0\rangle \otimes |i_1\rangle \otimes \dotsb \otimes |i_n\rangle = |i_0i_1...i_n\rangle$$
+
+Using this notation simplifies our example:
+
+$$\begin{bmatrix} x_0 \\ x_1 \\ x_2 \\ x_3 \end{bmatrix} =
+x_0|00\rangle + x_1|01\rangle + x_2|10\rangle + x_3|11\rangle$$
+
+Just like with single qubits, we can put arbitrary symbols within the kets the same way variables are used in algebra. 
+Whether a ket represents a single qubit or an entire system depends on the context. 
+Some ket symbols have a commonly accepted usage, such as the symbols for the Bell basis:
+
+<table>
+    <col width=300>
+    <col width=300>
+    <tr>
+        <td style="text-align:center; background-color:white">$|\Phi^+\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle + |11\rangle\big) \\ |\Phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$</td>
+        <td style="text-align:center; background-color:white">$|\Psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big) \\ |\Psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$</td>
+    </tr>
+</table>
+
+>## Endianness
+>
+> In classical computing, endianness refers to the order of bits (or bytes) when representing numbers in binary. You're probably familiar with the typical way of writing numbers in binary: $0 = 0_2$, $1 = 1_2$, $2 = 10_2$, $3 = 11_2$, $4 = 100_2$, $5 = 101_2$, $6 = 110_2$, etc. This is known as **big-endian format**. In big-endian format, the *most significant* bits come first. For example: $110_2 = 1 \cdot 4 + 1 \cdot 2 + 0 \cdot 1 = 4 + 2 = 6$.
+>
+> There is an alternate way of writing binary numbers - **little-endian format**. In little-endian format, the *least significant* bits come first. For example, $2$ would be written as $01$, $4$ as $001$, and $6$ as $011$. To put it another way, in little endian format, the number is written backwards compared to the big-endian format.
+>
+> In Dirac notation for multi-qubit systems, it's common to see integer numbers within the kets instead of bit sequences. What those numbers mean depends on the context - whether the notation used is big-endian or little-endian.
+>
+> Examples with a 3 qubit system:
+>
+> <table>
+>    <tr>
+>        <th style="text-align:center; border:1px solid">Integer Ket</th>
+>        <td style="text-align:center; border:1px solid">$|0\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|1\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|2\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|3\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|4\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|5\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|6\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|7\rangle$</td>
+>    </tr>
+>    <tr>
+>        <th style="text-align:center; border:1px solid">Big-endian</th>
+>        <td style="text-align:center; border:1px solid">$|000\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|001\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|010\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|011\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|100\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|101\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|110\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|111\rangle$</td>
+>    </tr>
+>    <tr>
+>        <th style="text-align:center; border:1px solid">Little-endian</th>
+>        <td style="text-align:center; border:1px solid">$|000\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|100\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|010\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|110\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|001\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|101\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|011\rangle$</td>
+>        <td style="text-align:center; border:1px solid">$|111\rangle$</td>
+>    </tr>
+></table>
+>
+> Multi-qubit quantum systems that store superpositions of numbers are often referred to as **quantum registers**.
+
+### <span style="color:blue">Demo: Multi-qubit systems</span>
+
+This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please see the [corresponding tutorial](../SingleQubitGates/SingleQubitGates.ipynb).
+
+These demos use the function `DumpMachine` to print the state of the quantum simulator. 
+If you aren't familiar with the output of this function for single qubits, you should revisit the tutorial on [the concept of a qubit](../Qubit/Qubit.ipynb#Demo:-Examining-Qubit-States-in-Q#). 
+When printing the state of multi-qubit systems, this function outputs the same information for each multi-qubit basis state.
+[This tutorial](../VisualizationTools/VisualizationTools.ipynb#Demo:-DumpMachine-for-multi-qubit-systems) explains how `DumpMachine` works for multiple qubits in more detail. 
+
+@[example]({"id": "multiqubit_system", "codePath": "./multiqubit_system.qs"})
+
+> You might have noticed that we've been "resetting" the qubits at the end of our demos, i.e., returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block. 
+> The reason for this is entanglement. 
+>
+> Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program. 
+If they are not in zero state by that time, they can potentially be still entangled with the qubits which are not yet released, thus operations you perform on them can affect the state of other parts of the program, causing erroneous and hard to debug behavior.
+>
+> Resetting the qubits to zero state automatically when they go outside the scope of their using block is dangerous as well: if they were entangled with others, measuring them to reset them can affect the state of the unreleased qubits, and thus change the results of the program - without the developer noticing this.
+>
+> The requirement that the qubits should be in zero state before they can be released aims to remind the developer to double-check that all necessary information has been properly extracted from the qubits, and that they are not entangled with unreleased qubits any more.
+>
+> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in [this tutorial](../SingleQubitSystemMeasurements/SingleQubitSystemMeasurements.ipynb).)
+
+In the following exercises you will learn to prepare separable quantum states by manipulating individual qubits. 
+You will only need [single-qubit gates](../SingleQubitGates/SingleQubitGates.ipynb) for that.
+
+> In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`. 
+Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
+
+### <span style="color:blue">Exercise 3</span>: Prepare a basis state
+
+**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
+
+**Goal:** Transform the system into the basis state $|11\rangle = \begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}$.
+
+@[exercise]({
+"id": "prepare_basis_state",
+"codeDependenciesPaths": [
+"../KatasLibrary.qs",
+"./Common.qs"
+],
+"verificationSourcePath": "./prepare_basis_state/verification.qs",
+"placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
+"solutionSourcePath": "./prepare_basis_state/solution.qs",
+"solutionDescriptionPath": "./prepare_basis_state/solution.md"
+})
+
+### <span style="color:blue">Exercise 4</span>: Prepare a superposition of two basis states
+
+**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
+
+**Goal:** Transform the system into the state $\frac{1}{\sqrt2}\big(|00\rangle - |01\rangle\big) = \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \\ 0 \\ 0 \end{bmatrix}$.
+
+<details>
+    <summary><b>Need a hint? Click here</b></summary>
+    Represent the target state as a tensor product $|0\rangle \otimes \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big) = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \end{bmatrix}$.
+</details>
+
+@[exercise]({
+"id": "prepare_superposition",
+"codeDependenciesPaths": [
+"../KatasLibrary.qs",
+"./Common.qs"
+],
+"verificationSourcePath": "./prepare_superposition/verification.qs",
+"placeholderSourcePath": "./prepare_superposition/placeholder.qs",
+"solutionSourcePath": "./prepare_superposition/solution.qs",
+"solutionDescriptionPath": "./prepare_superposition/solution.md"
+})
+
+### <span style="color:blue">Exercise 5</span>: Prepare a superposition with real amplitudes
+
+**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
+
+**Goal:** Transform the system into the state $\frac{1}{2}\big(|00\rangle - |01\rangle + |10\rangle - |11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\ -1 \\ 1 \\ -1 \end{bmatrix}$.
+
+<details>
+    <summary><b>Need a hint? Click here</b></summary>
+    Represent the target state as a tensor product $\frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big) = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \end{bmatrix}$.
+</details>
+
+@[exercise]({
+"id": "prepare_with_real",
+"codeDependenciesPaths": [
+"../KatasLibrary.qs",
+"./Common.qs"
+],
+"verificationSourcePath": "./prepare_with_real/verification.qs",
+"placeholderSourcePath": "./prepare_with_real/placeholder.qs",
+"solutionSourcePath": "./prepare_with_real/solution.qs",
+"solutionDescriptionPath": "./prepare_with_real/solution.md"
+})
+
+### <span style="color:blue">Exercise 6</span>: Prepare a superposition with complex amplitudes
+
+**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
+
+**Goal:** Transform the system into the state $\frac{1}{2}\big(|00\rangle + e^{i\pi/4}|01\rangle + e^{i\pi/2}|10\rangle + e^{3i\pi/4}|11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\ e^{i\pi/4} \\ e^{i\pi/2} \\ e^{3i\pi/4} \end{bmatrix}$.
+
+<details>
+    <summary><b>Need a hint? Click here</b></summary>
+    Represent the target state as a tensor product $\frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/2}|1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/4}|1\rangle\big) = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ e^{i\pi/2} \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ e^{i\pi/4} \end{bmatrix}$.
+</details>
+
+@[exercise]({
+"id": "prepare_with_complex",
+"codeDependenciesPaths": [
+"../KatasLibrary.qs",
+"./Common.qs"
+],
+"verificationSourcePath": "./prepare_with_complex/verification.qs",
+"placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
+"solutionSourcePath": "./prepare_with_complex/solution.qs",
+"solutionDescriptionPath": "./prepare_with_complex/solution.md"
+})
+
+## Conclusion
+
+As you've seen in the exercises, you can prepare separable multi-qubit states using only single-qubit gates. 
+However, to prepare and manipulate entangled states you'll need more powerful tools. 
+In the [next tutorial](../MultiQubitGates/MultiQubitGates.ipynb) you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.
