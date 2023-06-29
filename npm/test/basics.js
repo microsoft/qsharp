@@ -13,7 +13,11 @@ import {
   getLanguageServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
-import { getAllKatas, getKata } from "../dist/katas.js";
+import {
+  getAllKatas,
+  getExerciseDependencies,
+  getKata,
+} from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
@@ -88,11 +92,12 @@ test("dump and message output", async () => {
 async function validateExercise(exercise, code) {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
+  const dependencies = await getExerciseDependencies(exercise);
   const success = await compiler.runKataExercise(
     code,
     exercise.solutionCode,
     exercise.verificationCode,
-    [],
+    dependencies,
     evtTarget
   );
 
@@ -102,11 +107,10 @@ async function validateExercise(exercise, code) {
   let errorMsg = "";
   for (const event of unsuccessful_events) {
     const error = event.result;
-    errorMsg += "Exercise error:\n";
     if (typeof error === "string") {
-      errorMsg += error + "\n";
+      errorMsg += "Result = " + error + "\n";
     } else {
-      errorMsg += error.message + "\n";
+      errorMsg += "Message = " + error.message + "\n";
     }
   }
 
@@ -123,8 +127,13 @@ async function validateKata(kata) {
   );
   for (const exercise of exercises) {
     const result = await validateExercise(exercise, exercise.placeholderCode);
+    if (result.success || result.errorCount > 0) {
+      console.log(
+        `Exercise error (${exercise.id}): \n| ${result.success} \n| ${result.errorMsg}`
+      );
+    }
     assert(!result.success);
-    //assert(result.errorCount === 0);
+    assert(result.errorCount === 0);
   }
 }
 
@@ -147,8 +156,7 @@ test("y_gate exercise", async () => {
     (section) => section.type === "exercise" && section.id === "y_gate"
   );
   const result = await validateExercise(yGateExercise, code);
-  console.log(result);
-  //assert(result.success);
+  assert(result.success);
 });
 
 test("worker 100 shots", async () => {

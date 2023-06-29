@@ -8,7 +8,7 @@ namespace Kata {
         // Output different feedback to the user depending on whether the exercise was correct.
         use target = Qubit[1];
         let op = register => GlobalPhaseI(register[0]);
-        let reference = register => GlobalPhaseIReference(register[0]);
+        let reference = register => Kata.Solution.GlobalPhaseI(register[0]);
         if isCorrect {
             ShowEffectOnQuantumState(target, op);
         } else {

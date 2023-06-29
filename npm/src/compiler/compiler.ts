@@ -39,24 +39,24 @@ export interface ICompiler {
 export type ICompilerWorker = ICompiler & IServiceProxy;
 export type CompilerState = ServiceState;
 
-function errToDiagnostic(err: any): VSDiagnostic {
-  if (
-    err &&
-    typeof err.severity === "string" &&
-    typeof err.message === "string"
-  ) {
-    err.start_pos = err.start_pos || 0;
-    err.end_pos = err.end_pos || 0;
-    return err;
-  } else {
-    return {
-      severity: "error",
-      message: err.toString(),
-      start_pos: 0,
-      end_pos: 0,
-    };
-  }
-}
+//function errToDiagnostic(err: any): VSDiagnostic {
+//  if (
+//    err &&
+//    typeof err.severity === "string" &&
+//    typeof err.message === "string"
+//  ) {
+//    err.start_pos = err.start_pos || 0;
+//    err.end_pos = err.end_pos || 0;
+//    return err;
+//  } else {
+//    return {
+//      severity: "error",
+//      message: err.toString(),
+//      start_pos: 0,
+//      end_pos: 0,
+//    };
+//  }
+//}
 
 export class Compiler implements ICompiler {
   private wasm: Wasm;
@@ -109,34 +109,14 @@ export class Compiler implements ICompiler {
     code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
-    let success = false;
-    let err: any = null;
-    try {
-      console.log("runKataExercise");
-      success = this.wasm.run_kata_exercise(
-        user_code,
-        solution_code,
-        verification_code,
-        code_dependencies,
-        (msg: string) => onCompilerEvent(msg, eventHandler)
-      );
-    } catch (e) {
-      console.log("runKataExercise error");
-      console.log(e);
-      err = e;
-    }
-    // Currently the kata wasm doesn't emit the success/failure events, so do those here.
-    if (!err) {
-      const evt = makeEvent("Result", {
-        success: true,
-        value: success.toString(),
-      });
-      eventHandler.dispatchEvent(evt);
-    } else {
-      const diag = errToDiagnostic(err);
-      const evt = makeEvent("Result", { success: false, value: diag });
-      eventHandler.dispatchEvent(evt);
-    }
+    const success = this.wasm.run_kata_exercise(
+      user_code,
+      solution_code,
+      verification_code,
+      code_dependencies,
+      (msg: string) => onCompilerEvent(msg, eventHandler)
+    );
+
     return success;
   }
 }
@@ -144,6 +124,7 @@ export class Compiler implements ICompiler {
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
   const qscMsg = eventStringToMsg(msg);
   if (!qscMsg) {
+    console.log(`Unknown event message: ${msg}`);
     log.error("Unknown event message: %s", msg);
     return;
   }

@@ -187,17 +187,20 @@ fn run_kata_exercise_internal(
     }
     let mut out = CallbackReceiver { event_cb };
     let result = verify_exercise(sources, &mut out);
-    let (success, msg) = match result {
+    let mut runtime_success = true;
+    let (exercise_success, msg) = match result {
         Ok(value) => (value, serde_json::Value::String(value.to_string())),
         Err(errors) => {
             // TODO: handle multiple errors
             // https://github.com/microsoft/qsharp/issues/149
+            runtime_success = false;
             (false, VSDiagnostic::from(&errors[0]).json())
         }
     };
-    let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
+    let msg_string =
+        json!({"type": "Result", "success": runtime_success, "result": msg}).to_string();
     (out.event_cb)(&msg_string);
-    success
+    exercise_success
 }
 
 #[wasm_bindgen]
@@ -205,16 +208,14 @@ pub fn run_kata_exercise(
     exercise_code: &str,
     solution_code: &str,
     verification_code: &str,
-    code_dependencies_js_array: js_sys::Array,
+    code_dependencies_js: JsValue,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
+    let code_dependencies_strs: Vec<String> = serde_wasm_bindgen::from_value(code_dependencies_js)
+        .expect("Deserializing code dependencies should succeed");
     let mut code_dependencies: Vec<(SourceName, SourceContents)> = vec![];
-    for (index, item) in code_dependencies_js_array.entries().into_iter().enumerate() {
-        let contents = item
-            .expect("Contents should be accesible")
-            .as_string()
-            .expect("Contents should be string");
-        code_dependencies.push((index.to_string().into(), contents.into()));
+    for (index, code) in code_dependencies_strs.into_iter().enumerate() {
+        code_dependencies.push((index.to_string().into(), code.into()));
     }
     let success = run_kata_exercise_internal(
         exercise_code,

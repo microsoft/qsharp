@@ -9,9 +9,9 @@ namespace Kata {
         // Output different feedback to the user depending on whether the exercise was correct.
         use target = Qubit[2];
         if isCorrect {
-            ShowEffectOnQuantumState(target, op);
+            ShowEffectOnQuantumState(target, BellState);
         } else {
-            ShowQuantumStateComparison(target, op, reference);
+            ShowQuantumStateComparison(target, BellState, Kata.Solution.BellState);
         }
 
         isCorrect

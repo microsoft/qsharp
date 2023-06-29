@@ -110,8 +110,8 @@ function generateCodeDependencies(paths, globalCodeSources) {
     if (!(id in globalCodeSources.sources)) {
       const code = tryReadFile(path, "Could not read code dependency");
       globalCodeSources.sources[id] = code;
-      codeDependencies.push(id);
     }
+    codeDependencies.push(id);
   }
   return codeDependencies;
 }
