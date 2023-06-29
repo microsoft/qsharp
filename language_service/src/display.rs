@@ -56,7 +56,11 @@ impl<'a> CodeDisplay<'a> {
     }
 
     pub(crate) fn hir_ident_udt(&self, ident: &'a hir::Ident, udt: &'a hir::ty::Udt) -> HirUdt {
-        HirUdt { ident, udt }
+        HirUdt {
+            compilation: self.compilation,
+            ident,
+            udt,
+        }
     }
 
     // The rest of the display implementations are not made public b/c they're not used,
@@ -199,6 +203,7 @@ impl<'a> Display for IdentTyDef<'a> {
 }
 
 pub(crate) struct HirUdt<'a> {
+    compilation: &'a Compilation,
     ident: &'a hir::Ident,
     udt: &'a hir::ty::Udt,
 }
@@ -206,12 +211,13 @@ pub(crate) struct HirUdt<'a> {
 impl<'a> Display for HirUdt<'a> {
     /// formerly `contents_from_hir_udt`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let udt_def = UdtDef::new(self.udt);
+        let udt_def = UdtDef::new(self.compilation, self.udt);
         write!(f, "{} = {}", self.ident.name, udt_def)
     }
 }
 
 struct UdtDef<'a> {
+    compilation: &'a Compilation,
     name: Option<Rc<str>>,
     kind: UdtDefKind<'a>,
 }
@@ -222,21 +228,27 @@ enum UdtDefKind<'a> {
 }
 
 impl<'a> UdtDef<'a> {
-    pub fn new(def: &'a hir::ty::Udt) -> Self {
-        let mut udt_def = UdtDef::convert_hir_ty_to_udt(&def.base);
+    pub fn new(compilation: &'a Compilation, def: &'a hir::ty::Udt) -> Self {
+        let mut udt_def = UdtDef::convert_hir_ty_to_udt(compilation, &def.base);
         for field in &def.fields {
             UdtDef::update_udt_def(&mut udt_def, &field.name, &field.path.indices);
         }
         udt_def
     }
 
-    fn convert_hir_ty_to_udt(ty: &hir::ty::Ty) -> UdtDef {
+    fn convert_hir_ty_to_udt(compilation: &'a Compilation, ty: &'a hir::ty::Ty) -> UdtDef<'a> {
         match ty {
             hir::ty::Ty::Tuple(tys) => UdtDef {
+                compilation,
                 name: None,
-                kind: UdtDefKind::TupleTy(tys.iter().map(UdtDef::convert_hir_ty_to_udt).collect()),
+                kind: UdtDefKind::TupleTy(
+                    tys.iter()
+                        .map(|ty| UdtDef::convert_hir_ty_to_udt(compilation, ty))
+                        .collect(),
+                ),
             },
             _ => UdtDef {
+                compilation,
                 name: None,
                 kind: UdtDefKind::SingleTy(ty),
             },
@@ -265,7 +277,14 @@ impl Display for UdtDef<'_> {
 
         match &self.kind {
             UdtDefKind::SingleTy(ty) => {
-                write!(f, "{}", ty); // ToDo: ty should use the special printing function
+                write!(
+                    f,
+                    "{}",
+                    HirTy {
+                        ty,
+                        compilation: self.compilation
+                    }
+                )?;
             }
             UdtDefKind::TupleTy(defs) => {
                 let mut elements = defs.iter();
