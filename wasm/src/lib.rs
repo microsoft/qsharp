@@ -169,7 +169,7 @@ pub fn run(
         Err(e) => Err(JsError::from(e).into()),
     }
 }
-
+/*
 fn run_kata_exercise_internal(
     exercise_code: &str,
     solution_code: &str,
@@ -186,6 +186,38 @@ fn run_kata_exercise_internal(
         sources.push(code_dependency);
     }
     verify_exercise(sources, &mut CallbackReceiver { event_cb })
+}
+*/
+fn run_kata_exercise_internal_new(
+    exercise_code: &str,
+    solution_code: &str,
+    verification_code: &str,
+    code_dependencies: Vec<(SourceName, SourceContents)>,
+    event_cb: impl Fn(&str),
+) -> bool {
+    let mut sources = vec![
+        ("exercise".into(), exercise_code.into()),
+        ("solution".into(), solution_code.into()),
+        ("verification".into(), verification_code.into()),
+    ];
+    for code_dependency in code_dependencies {
+        sources.push(code_dependency);
+    }
+    let mut out = CallbackReceiver { event_cb };
+    let result = verify_exercise(sources, &mut out);
+    let mut success = true;
+    let msg: serde_json::Value = match result {
+        Ok(value) => serde_json::Value::String(value.to_string()),
+        Err(errors) => {
+            // TODO: handle multiple errors
+            // https://github.com/microsoft/qsharp/issues/149
+            success = false;
+            VSDiagnostic::from(&errors[0]).json()
+        }
+    };
+    let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
+    (out.event_cb)(&msg_string);
+    success
 }
 
 #[wasm_bindgen]
@@ -204,7 +236,7 @@ pub fn run_kata_exercise(
             .expect("Contents should be string");
         code_dependencies.push((index.to_string().into(), contents.into()));
     }
-    match run_kata_exercise_internal(
+    let success = run_kata_exercise_internal_new(
         exercise_code,
         solution_code,
         verification_code,
@@ -212,30 +244,41 @@ pub fn run_kata_exercise(
         |msg: &str| {
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
         },
-    ) {
-        Ok(v) => Ok(JsValue::from_bool(v)),
-        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
-        // should be reported with a Result event (also for success) and not an exception.
-        Err(e) => {
-            // TODO: Handle multiple errors.
-            let first_error = e
-                .first()
-                .expect("Running kata failed but no errors were reported");
-            let vs_diagnostic = VSDiagnostic::from(first_error).json().to_string();
-            let mut s = "ERROR\n".to_owned();
-            let error = first_error.to_string();
-            s.push_str(&error);
-            s.push('\n');
-            //let stack = first_error
-            //    .stack_trace()
-            //    .as_ref()
-            //    .expect("stack should be accesible");
-            //s.push_str(stack);
-            s.push_str(&vs_diagnostic);
-            Ok(JsValue::from_str(s.as_str()))
-            //Err(JsError::from(first_error).into())
-        }
-    }
+    );
+
+    Ok(JsValue::from_bool(success))
+    //match run_kata_exercise_internal(
+    //    exercise_code,
+    //    solution_code,
+    //    verification_code,
+    //    code_dependencies,
+    //    |msg: &str| {
+    //        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+    //    },
+    //) {
+    //    Ok(v) => Ok(JsValue::from_bool(v)),
+    //    // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
+    //    // should be reported with a Result event (also for success) and not an exception.
+    //    Err(e) => {
+    //        // TODO: Handle multiple errors.
+    //        let first_error = e
+    //            .first()
+    //            .expect("Running kata failed but no errors were reported");
+    //        let vs_diagnostic = VSDiagnostic::from(first_error).json().to_string();
+    //        let mut s = "ERROR\n".to_owned();
+    //        let error = first_error.to_string();
+    //        s.push_str(&error);
+    //        s.push('\n');
+    //        //let stack = first_error
+    //        //    .stack_trace()
+    //        //    .as_ref()
+    //        //    .expect("stack should be accesible");
+    //        //s.push_str(stack);
+    //        s.push_str(&vs_diagnostic);
+    //        Ok(JsValue::from_str(s.as_str()))
+    //        //Err(JsError::from(first_error).into())
+    //    }
+    //}
 }
 
 #[cfg(test)]

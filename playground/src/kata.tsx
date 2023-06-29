@@ -41,26 +41,20 @@ export function Kata(props: {
     if (!kataContent.current) return;
 
     props.kata.sections.forEach((section, idx) => {
-      console.log(section.type);
       const parentDiv = itemContent.current[idx];
       const div = parentDiv?.querySelector(".kata-item-content");
       if (!div) return;
       if (section.type === "text") {
-        console.log("text");
         div.innerHTML = section.contentAsHtml;
       } else if (section.type === "exercise") {
-        console.log(section.id);
         div.innerHTML =
           section.solutionDescriptionAsHtml +
           "<pre><code>" +
           section.solutionCode +
           "</code></pre>";
       } else {
-        console.log(section.id);
         div.innerHTML = "";
       }
-
-      console.log(div.innerHTML.length);
     });
     // In case we're now rendering less items than before, be sure to truncate
     itemContent.current.length = props.kata.sections.length;

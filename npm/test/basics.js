@@ -89,33 +89,49 @@ async function validateExercise(exercise) {
   console.log(exercise.id);
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
-  const result = await compiler.runKataExercise(
+  const success = await compiler.runKataExercise(
     exercise.placeholderCode,
     exercise.solutionCode,
     exercise.verificationCode,
     [],
     evtTarget
   );
-  console.log("RESULT");
-  console.log(result);
+
+  console.log(`${exercise.id}: ${success}`);
+  assert(!success);
+  const unsuccessful_events = evtTarget
+    .getResults()
+    .filter((evt) => !evt.success);
+  let dbgMsg = "";
+  for (const event of unsuccessful_events) {
+    const error = event.result;
+    dbgMsg += "Exercise error:\n";
+    if (typeof error === "string") {
+      dbgMsg += error + "\n";
+    } else {
+      dbgMsg += error.message + "\n";
+    }
+  }
+  console.log(dbgMsg);
+  //assert(unsuccessful_events.length === 0);
 }
 
-function validateKata(kata) {
-  console.log(`Validating ${kata.id} kata`);
+async function validateKata(kata) {
+  log.info(`Validating ${kata.id} kata`);
   const exercises = kata.sections.filter(
     (section) => section.type === "exercise"
   );
   for (const exercise of exercises) {
-    validateExercise(exercise);
+    await validateExercise(exercise);
   }
 }
 
-test("kata success", async () => {
+test("katas validation", async () => {
   //const evtTarget = new QscEventTarget(true);
   //const compiler = getCompiler();
   const katas = await getAllKatas();
   for (const kata of katas) {
-    validateKata(kata);
+    await validateKata(kata);
   }
   //assert(firstExercise.type === "exercise");
   //const verifyCode = firstExercise.verificationImplementation;
