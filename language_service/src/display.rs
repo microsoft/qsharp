@@ -75,7 +75,6 @@ pub(crate) struct IdentTy<'a> {
 }
 
 impl<'a> Display for IdentTy<'a> {
-    /// formerly `contents_from_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{}: {}", self.ident.name, Ty { ty: self.ty },)
     }
@@ -88,7 +87,6 @@ pub(crate) struct IdentTyId<'a> {
 }
 
 impl<'a> Display for IdentTyId<'a> {
-    /// formerly `contents_from_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
@@ -128,7 +126,6 @@ pub(crate) struct HirCallableDecl<'a, 'b> {
 }
 
 impl Display for HirCallableDecl<'_, '_> {
-    /// formerly `contents_from_hir_call_decl`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let (kind, arrow) = match self.decl.kind {
             hir::CallableKind::Function => ("function", "->"),
@@ -162,7 +159,6 @@ pub(crate) struct AstCallableDecl<'a> {
 }
 
 impl<'a> Display for AstCallableDecl<'a> {
-    /// formerly `contents_from_ast_call_decl`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let (kind, arrow) = match self.decl.kind {
             ast::CallableKind::Function => ("function", "->"),
@@ -196,7 +192,6 @@ pub(crate) struct IdentTyDef<'a> {
 }
 
 impl<'a> Display for IdentTyDef<'a> {
-    /// formerly `contents_from_ast_udt`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{} = {}", self.ident.name, TyDef { def: self.def })
     }
@@ -209,7 +204,6 @@ pub(crate) struct HirUdt<'a> {
 }
 
 impl<'a> Display for HirUdt<'a> {
-    /// formerly `contents_from_hir_udt`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let udt_def = UdtDef::new(self.compilation, self.udt);
         write!(f, "{} = {}", self.ident.name, udt_def)
@@ -339,7 +333,6 @@ struct HirTy<'a> {
 }
 
 impl<'a> Display for HirTy<'a> {
-    /// formerly `get_type_name_from_hir_ty`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
         match self.ty {
@@ -416,7 +409,6 @@ struct TyId<'a> {
 }
 
 impl<'a> Display for TyId<'a> {
-    /// formerly `get_type_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(ty) = self.compilation.unit.ast.tys.terms.get(self.ty_id) {
             write!(
@@ -438,7 +430,6 @@ struct Ty<'a> {
 }
 
 impl<'a> Display for Ty<'a> {
-    /// formerly `get_type_name_from_ast_ty`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.ty.kind.as_ref() {
             ast::TyKind::Array(ty) => write!(f, "{}[]", Ty { ty }),
@@ -500,7 +491,6 @@ struct Path<'a> {
 }
 
 impl<'a> Display for Path<'a> {
-    /// formerly `print_path`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.path.namespace.as_ref() {
             Some(ns) => write!(f, "{ns}.{}", self.path.name.name),
@@ -514,7 +504,6 @@ struct TyDef<'a> {
 }
 
 impl<'a> Display for TyDef<'a> {
-    /// formerly `ty_def_to_string`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
