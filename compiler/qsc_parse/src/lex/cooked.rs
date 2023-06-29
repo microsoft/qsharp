@@ -52,9 +52,13 @@ pub(crate) enum Error {
     #[diagnostic(code("Qsc.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
 
-    #[error("unfinished generic")]
-    #[diagnostic(code("Qsc.Lex.UnfinishedGeneric"))]
-    UnfinishedGeneric(#[label] Span),
+    #[error("expected identifier to complete apostrophe identifier, found {0}")]
+    #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifier"))]
+    IncompleteApostropheIdentifier(raw::TokenKind, #[label] Span),
+
+    #[error("expected identifier to complete apostrophe identifier, found EOF")]
+    #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifierEof"))]
+    IncompleteApostropheIdentifierEof(#[label] Span),
 }
 
 impl Error {
@@ -68,7 +72,12 @@ impl Error {
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
-            Self::UnfinishedGeneric(span) => Self::UnfinishedGeneric(span + offset),
+            Self::IncompleteApostropheIdentifier(tok, span) => {
+                Self::IncompleteApostropheIdentifier(tok, span + offset)
+            }
+            Self::IncompleteApostropheIdentifierEof(span) => {
+                Self::IncompleteApostropheIdentifierEof(span + offset)
+            }
         }
     }
 }
@@ -380,18 +389,14 @@ impl<'a> Lexer<'a> {
                 Ok(self.closed_bin_op(op))
             }
             Single::Apos => {
-                if matches!(
-                    self.tokens.peek(),
+                let tok = self.tokens.next();
+                match tok {
                     Some(raw::Token {
                         kind: raw::TokenKind::Ident,
                         ..
-                    })
-                ) {
-                    self.tokens
-                        .next_if(|t| matches!(t.kind, raw::TokenKind::Ident));
-                    Ok(TokenKind::AposIdent)
-                } else {
-                    Err(Error::UnfinishedGeneric(span))
+                    }) => Ok(TokenKind::AposIdent),
+                    Some(tok) => Err(Error::IncompleteApostropheIdentifier(tok.kind, span)),
+                    None => Err(Error::IncompleteApostropheIdentifierEof(span)),
                 }
             }
             Single::At => Ok(TokenKind::At),
