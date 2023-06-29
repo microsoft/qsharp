@@ -124,7 +124,6 @@ export class Compiler implements ICompiler {
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
   const qscMsg = eventStringToMsg(msg);
   if (!qscMsg) {
-    console.log(`Unknown event message: ${msg}`);
     log.error("Unknown event message: %s", msg);
     return;
   }
