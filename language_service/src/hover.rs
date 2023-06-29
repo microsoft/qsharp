@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::display::CodeDisplay;
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
@@ -37,6 +38,7 @@ pub(crate) fn get_hover(
         contents: None,
         start: 0,
         end: 0,
+        display: CodeDisplay { compilation },
     };
 
     hover_visitor.visit_package(package);
@@ -56,6 +58,7 @@ struct HoverVisitor<'a> {
     contents: Option<String>,
     start: u32,
     end: u32,
+    display: CodeDisplay<'a>,
 }
 
 impl Visitor<'_> for HoverVisitor<'_> {
@@ -64,11 +67,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_contains(decl.name.span, self.offset) {
-                        self.contents = Some(if item.doc.is_empty() {
-                            self.contents_from_ast_call_decl(decl)
-                        } else {
-                            format!("{}\n{}", item.doc, self.contents_from_ast_call_decl(decl))
-                        });
+                        self.contents = Some(markdown_with_doc(
+                            &item.doc,
+                            self.display.ast_callable_decl(decl),
+                        ));
                         self.start = decl.name.span.lo;
                         self.end = decl.name.span.hi;
                     } else if span_contains(decl.span, self.offset) {
@@ -77,7 +79,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(contents_from_ast_udt(ident, def));
+                        self.contents =
+                            Some(markdown_fenced_block(self.display.ident_ty_def(ident, def)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -94,7 +97,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(format_name(&ident.name, &format_ast_ty(ty)));
+                        self.contents =
+                            Some(markdown_fenced_block(self.display.ident_ty(ident, ty)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -114,8 +118,9 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents =
-                            Some(format_name(&ident.name, &self.find_type_name(pat.id)));
+                        self.contents = Some(markdown_fenced_block(
+                            self.display.ident_ty_id(ident, pat.id),
+                        ));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -131,7 +136,9 @@ impl Visitor<'_> for HoverVisitor<'_> {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
-                    self.contents = Some(format_name(&field.name, &self.find_type_name(expr.id)));
+                    self.contents = Some(markdown_fenced_block(
+                        self.display.ident_ty_id(field, expr.id),
+                    ));
                     self.start = field.span.lo;
                     self.end = field.span.hi;
                 }
@@ -148,33 +155,27 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     resolve::Res::Item(item_id) => {
                         if let Some(item) = find_item(self.compilation, item_id) {
                             self.contents = match &item.kind {
-                                hir::ItemKind::Callable(decl) => Some(if item.doc.is_empty() {
-                                    self.contents_from_hir_call_decl(decl)
-                                } else {
-                                    format!(
-                                        "{}\n{}",
-                                        item.doc,
-                                        self.contents_from_hir_call_decl(decl)
-                                    )
-                                }),
+                                hir::ItemKind::Callable(decl) => Some(markdown_with_doc(
+                                    &item.doc,
+                                    self.display.hir_callable_decl(decl),
+                                )),
                                 hir::ItemKind::Namespace(_, _) => {
                                     panic!(
                                         "Reference node should not refer to a namespace: {}",
                                         path.id
                                     )
                                 }
-                                hir::ItemKind::Ty(ident, udt) => {
-                                    Some(contents_from_hir_udt(ident, udt))
-                                }
+                                hir::ItemKind::Ty(ident, udt) => Some(markdown_fenced_block(
+                                    self.display.hir_ident_udt(ident, udt),
+                                )),
                             };
                             self.start = path.span.lo;
                             self.end = path.span.hi;
                         }
                     }
                     resolve::Res::Local(node_id) => {
-                        self.contents = Some(format_name(
-                            &format_path(path),
-                            &self.find_type_name(*node_id),
+                        self.contents = Some(markdown_fenced_block(
+                            self.display.path_ty_id(path, *node_id),
                         ));
                         self.start = path.span.lo;
                         self.end = path.span.hi;
@@ -186,308 +187,24 @@ impl Visitor<'_> for HoverVisitor<'_> {
     }
 }
 
-impl HoverVisitor<'_> {
-    fn contents_from_ast_call_decl(&self, decl: &ast::CallableDecl) -> String {
-        let (kind, arrow) = match decl.kind {
-            ast::CallableKind::Function => ("function", "->"),
-            ast::CallableKind::Operation => ("operation", "=>"),
-        };
-
-        let functors = ast_callable_functors(decl);
-        let functors = if let hir::ty::FunctorSetValue::Empty = functors {
-            String::new()
-        } else {
-            format!(" is {functors}")
-        };
-
-        let inner = format!(
-            "{} {} {} {} {}{}",
-            kind,
-            decl.name.name,
-            self.find_type_name(decl.input.id),
-            arrow,
-            format_ast_ty(&decl.output),
-            functors,
-        );
-        markdown_wrapper(&inner)
-    }
-
-    fn contents_from_hir_call_decl(&self, decl: &hir::CallableDecl) -> String {
-        let (kind, arrow) = match decl.kind {
-            hir::CallableKind::Function => ("function", "->"),
-            hir::CallableKind::Operation => ("operation", "=>"),
-        };
-
-        let functors = if let hir::ty::FunctorSetValue::Empty = decl.functors {
-            String::new()
-        } else {
-            format!(" is {}", decl.functors)
-        };
-
-        let inner = format!(
-            "{} {} {} {} {}{}",
-            kind,
-            decl.name.name,
-            self.format_hir_ty(&decl.input.ty),
-            arrow,
-            self.format_hir_ty(&decl.output),
-            functors,
-        );
-        markdown_wrapper(&inner)
-    }
-
-    fn find_type_name(&self, node_id: ast::NodeId) -> String {
-        if let Some(ty) = self.compilation.unit.ast.tys.terms.get(node_id) {
-            self.format_hir_ty(ty)
-        } else {
-            "?".to_string()
-        }
-    }
-
-    // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
-    fn format_hir_ty(&self, ty: &hir::ty::Ty) -> String {
-        match ty {
-            hir::ty::Ty::Array(item) => format!("{}[]", self.format_hir_ty(item)),
-            hir::ty::Ty::Arrow(arrow) => {
-                let input = self.format_hir_ty(&arrow.input);
-                let output = self.format_hir_ty(&arrow.output);
-                let functors = if arrow.functors
-                    == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty)
-                {
-                    String::new()
-                } else {
-                    format!(" is {}", arrow.functors)
-                };
-                let arrow = match arrow.kind {
-                    hir::CallableKind::Function => "->",
-                    hir::CallableKind::Operation => "=>",
-                };
-                format!("({input} {arrow} {output}{functors})",)
-            }
-            hir::ty::Ty::Tuple(tys) => {
-                if tys.is_empty() {
-                    "Unit".to_owned()
-                } else {
-                    let elements = tys
-                        .iter()
-                        .map(|e| self.format_hir_ty(e))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    format!("({elements})")
-                }
-            }
-            hir::ty::Ty::Udt(res) => match res {
-                hir::Res::Item(item_id) => {
-                    if let Some(item) = find_item(self.compilation, item_id) {
-                        match &item.kind {
-                            hir::ItemKind::Ty(ident, _) => ident.name.to_string(),
-                            _ => panic!("UDT has invalid resolution."),
-                        }
-                    } else {
-                        "?".to_string()
-                    }
-                }
-                _ => panic!("UDT has invalid resolution."),
-            },
-            _ => ty.to_string(),
-        }
+fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
+    if doc.is_empty() {
+        markdown_fenced_block(code)
+    } else {
+        format!(
+            "{}
+{}",
+            doc,
+            markdown_fenced_block(code)
+        )
     }
 }
 
-struct UdtDef<'a> {
-    name: Option<Rc<str>>,
-    kind: UdtDefKind<'a>,
-}
-
-enum UdtDefKind<'a> {
-    SingleTy(&'a hir::ty::Ty),
-    TupleTy(Vec<UdtDef<'a>>),
-}
-
-fn convert_hir_ty_to_udt(ty: &hir::ty::Ty) -> UdtDef {
-    match ty {
-        hir::ty::Ty::Tuple(tys) => UdtDef {
-            name: None,
-            kind: UdtDefKind::TupleTy(tys.iter().map(|t| convert_hir_ty_to_udt(t)).collect()),
-        },
-        _ => UdtDef {
-            name: None,
-            kind: UdtDefKind::SingleTy(ty),
-        },
-    }
-}
-
-fn update_udt_def(mut udt_def: &mut UdtDef, name: &Rc<str>, path: &Vec<usize>) {
-    for i in path {
-        if let UdtDefKind::TupleTy(defs) = &mut udt_def.kind {
-            udt_def = defs
-                .get_mut(*i)
-                .expect("UDT base type structure does not match field structure.");
-        } else {
-            panic!("UDT base type structure does not match field structure.");
-        }
-    }
-    udt_def.name = Some(name.clone());
-}
-
-fn format_udt_def(udt_def: &UdtDef) -> String {
-    match (&udt_def.name, &udt_def.kind) {
-        (None, UdtDefKind::SingleTy(ty)) => ty.to_string(), // ToDo: ty should use the special printing function
-        (None, UdtDefKind::TupleTy(defs)) => {
-            let elements = defs
-                .iter()
-                .map(|def| format_udt_def(def))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("({elements})")
-        }
-        (Some(name), UdtDefKind::SingleTy(ty)) => format!("{name}: {ty}"), // ToDo: ty should use the special printing function
-        (Some(name), UdtDefKind::TupleTy(defs)) => {
-            let elements = defs
-                .iter()
-                .map(|def| format_udt_def(def))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("{name}: ({elements})")
-        }
-    }
-}
-
-fn contents_from_hir_udt(name: &hir::Ident, def: &hir::ty::Udt) -> String {
-    let name = &name.name;
-    let udt_def = &mut convert_hir_ty_to_udt(&def.base);
-    for field in &def.fields {
-        update_udt_def(udt_def, &field.name, &field.path.indices);
-    }
-    let def = format_udt_def(udt_def);
-
-    markdown_wrapper(&format!("{name} = {def}"))
-}
-
-fn contents_from_ast_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
-    let name = &name.name;
-    let def = ty_def_to_string(def);
-    markdown_wrapper(&format!("{name} = {def}"))
-}
-
-fn ty_def_to_string(def: &ast::TyDef) -> String {
-    match &*def.kind {
-        ast::TyDefKind::Field(name, ty) => {
-            let ty = format_ast_ty(ty);
-            match name {
-                Some(name) => format!("{}: {ty}", name.name),
-                None => ty,
-            }
-        }
-        ast::TyDefKind::Paren(def) => ty_def_to_string(def),
-        ast::TyDefKind::Tuple(tys) => {
-            if tys.is_empty() {
-                "Unit".to_owned()
-            } else {
-                let elements = tys
-                    .iter()
-                    .map(|def| ty_def_to_string(def))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("({elements})")
-            }
-        }
-    }
-}
-
-fn format_name(name: &impl Display, ty_name: &String) -> String {
-    markdown_wrapper(&format!("{name}: {ty_name}"))
-}
-
-fn markdown_wrapper(contents: &impl Display) -> String {
+fn markdown_fenced_block(code: impl Display) -> String {
     format!(
         "```qsharp
-{contents}
+{code}
 ```
 "
     )
-}
-
-fn format_ast_ty(ty: &ast::Ty) -> String {
-    match &*ty.kind {
-        qsc::ast::TyKind::Array(ty) => format!("{}[]", format_ast_ty(ty)),
-        qsc::ast::TyKind::Arrow(kind, input, output, functors) => {
-            let input = format_ast_ty(input);
-            let output = format_ast_ty(output);
-            let arrow = match kind {
-                ast::CallableKind::Function => "->",
-                ast::CallableKind::Operation => "=>",
-            };
-            let functors = match functors {
-                Some(functors) => {
-                    let functors = eval_functor_expr(functors);
-                    if let hir::ty::FunctorSetValue::Empty = functors {
-                        String::new()
-                    } else {
-                        format!(" is {functors}")
-                    }
-                }
-                None => String::new(),
-            };
-            format!("({input} {arrow} {output}{functors})")
-        }
-        qsc::ast::TyKind::Hole => "_".to_owned(),
-        qsc::ast::TyKind::Paren(ty) => format_ast_ty(ty),
-        qsc::ast::TyKind::Path(path) => format_path(path),
-        qsc::ast::TyKind::Param(id) => id.name.to_string(),
-        qsc::ast::TyKind::Tuple(tys) => {
-            if tys.is_empty() {
-                "Unit".to_owned()
-            } else {
-                let elements = tys.iter().map(format_ast_ty).collect::<Vec<_>>().join(", ");
-                format!("({elements})")
-            }
-        }
-    }
-}
-
-fn ast_callable_functors(callable: &ast::CallableDecl) -> hir::ty::FunctorSetValue {
-    let mut functors = callable
-        .functors
-        .as_ref()
-        .map_or(hir::ty::FunctorSetValue::Empty, |f| {
-            eval_functor_expr(f.as_ref())
-        });
-
-    if let ast::CallableBody::Specs(specs) = callable.body.as_ref() {
-        for spec in specs.iter() {
-            let spec_functors = match spec.spec {
-                ast::Spec::Body => hir::ty::FunctorSetValue::Empty,
-                ast::Spec::Adj => hir::ty::FunctorSetValue::Adj,
-                ast::Spec::Ctl => hir::ty::FunctorSetValue::Ctl,
-                ast::Spec::CtlAdj => hir::ty::FunctorSetValue::CtlAdj,
-            };
-            functors = functors.union(&spec_functors);
-        }
-    }
-
-    functors
-}
-
-fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
-    match expr.kind.as_ref() {
-        ast::FunctorExprKind::BinOp(op, lhs, rhs) => {
-            let lhs_functors = eval_functor_expr(lhs);
-            let rhs_functors = eval_functor_expr(rhs);
-            match op {
-                ast::SetOp::Union => lhs_functors.union(&rhs_functors),
-                ast::SetOp::Intersect => lhs_functors.intersect(&rhs_functors),
-            }
-        }
-        ast::FunctorExprKind::Lit(ast::Functor::Adj) => hir::ty::FunctorSetValue::Adj,
-        ast::FunctorExprKind::Lit(ast::Functor::Ctl) => hir::ty::FunctorSetValue::Ctl,
-        ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
-    }
-}
-
-fn format_path(path: &ast::Path) -> String {
-    match &path.namespace {
-        Some(ns) => format!("{ns}.{}", path.name.name),
-        None => format!("{}", path.name.name),
-    }
 }
