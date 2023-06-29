@@ -2,213 +2,383 @@
 // Licensed under the MIT License.
 
 use crate::qsc_utils::{find_item, Compilation};
-use qsc::{ast, hir};
-use std::fmt::Display;
+use qsc::{
+    ast,
+    hir::{self},
+};
+use std::fmt::{Display, Formatter, Result};
 
-pub(crate) struct Formatter<'a> {
-    pub compilation: &'a Compilation,
+pub(crate) struct Formatted<'a> {
+    pub(crate) compilation: &'a Compilation,
 }
 
-impl<'a> Formatter<'a> {
+impl<'a> Formatted<'a> {}
+
+pub(crate) struct FormattedNameWithTy<'a> {
+    pub(crate) name: &'a dyn Display,
+    pub(crate) ty: &'a ast::Ty,
+}
+
+impl<'a> Display for FormattedNameWithTy<'a> {
+    /// formerly `contents_from_name`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}: {}", self.name, FormattedTy { ty: self.ty },)
+    }
+}
+
+pub(crate) struct FormattedNameWithTyId<'a> {
+    pub(crate) compilation: &'a Compilation,
+    pub(crate) name: &'a dyn Display,
+    pub(crate) ty_id: ast::NodeId,
+}
+
+impl<'a> Display for FormattedNameWithTyId<'a> {
+    /// formerly `contents_from_name`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(
+            f,
+            "{}: {}",
+            self.name,
+            FormattedTyId {
+                ty_id: self.ty_id,
+                compilation: self.compilation
+            },
+        )
+    }
+}
+
+pub(crate) struct FormattedHirCallableDecl<'a> {
+    pub(crate) compilation: &'a Compilation,
+    pub(crate) decl: &'a hir::CallableDecl,
+}
+
+impl<'a> Display for FormattedHirCallableDecl<'a> {
+    /// formerly `contents_from_hir_call_decl`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let (kind, arrow) = match self.decl.kind {
+            hir::CallableKind::Function => ("function", "->"),
+            hir::CallableKind::Operation => ("operation", "=>"),
+        };
+
+        write!(
+            f,
+            "{} {} {} {} {}{}",
+            kind,
+            self.decl.name.name,
+            FormattedHirTy {
+                ty: &self.decl.input.ty,
+                compilation: self.compilation
+            },
+            arrow,
+            FormattedHirTy {
+                ty: &self.decl.output,
+                compilation: self.compilation
+            },
+            FormattedFunctorSetValue {
+                functors: self.decl.functors,
+            },
+        )
+    }
+}
+
+pub(crate) struct FormattedAstCallableDecl<'a> {
+    pub(crate) compilation: &'a Compilation,
+    pub(crate) decl: &'a ast::CallableDecl,
+}
+
+impl<'a> Display for FormattedAstCallableDecl<'a> {
+    /// formerly `contents_from_ast_call_decl`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let (kind, arrow) = match self.decl.kind {
+            ast::CallableKind::Function => ("function", "->"),
+            ast::CallableKind::Operation => ("operation", "=>"),
+        };
+
+        let functors = ast_callable_functors(self.decl);
+        let functors = FormattedFunctorSetValue { functors };
+
+        write!(
+            f,
+            "{} {} {} {} {}{}",
+            kind,
+            self.decl.name.name,
+            FormattedTyId {
+                ty_id: self.decl.input.id,
+                compilation: self.compilation
+            },
+            arrow,
+            FormattedTy {
+                ty: &self.decl.output
+            },
+            functors,
+        )
+    }
+}
+
+pub(crate) struct FormattedFunctorSet<'a> {
+    pub(crate) functor_set: &'a hir::ty::FunctorSet,
+}
+
+impl<'a> Display for FormattedFunctorSet<'a> {
+    /// extracted from `contents_from_ast_call_decl`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if *self.functor_set == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty) {
+            Ok(())
+        } else {
+            write!(f, " is {}", self.functor_set)
+        }
+    }
+}
+
+pub(crate) struct FormattedFunctorSetValue {
+    pub(crate) functors: hir::ty::FunctorSetValue,
+}
+
+impl Display for FormattedFunctorSetValue {
+    /// extracted from a few different places
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if let hir::ty::FunctorSetValue::Empty = self.functors {
+            Ok(())
+        } else {
+            write!(f, " is {}", self.functors)
+        }
+    }
+}
+
+pub(crate) struct FormattedHirTy<'a> {
+    pub(crate) ty: &'a hir::ty::Ty,
+    pub(crate) compilation: &'a Compilation,
+}
+
+impl<'a> Display for FormattedHirTy<'a> {
     /// formerly `get_type_name_from_hir_ty`
-    pub fn format_hir_ty(&self, ty: &hir::ty::Ty) -> String {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
-        match ty {
+        match self.ty {
             hir::ty::Ty::Array(item) => {
-                format!("{}[]", self.format_hir_ty(item))
+                write!(
+                    f,
+                    "{}[]",
+                    FormattedHirTy {
+                        compilation: self.compilation,
+                        ty: item,
+                    }
+                )
             }
             hir::ty::Ty::Arrow(arrow) => {
-                let input = self.format_hir_ty(&arrow.input);
-                let output = self.format_hir_ty(&arrow.output);
-                let functors = if arrow.functors
-                    == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty)
-                {
-                    String::new()
-                } else {
-                    format!(" is {}", arrow.functors)
+                let input = FormattedHirTy {
+                    compilation: self.compilation,
+                    ty: &arrow.input,
+                };
+                let output = FormattedHirTy {
+                    compilation: self.compilation,
+                    ty: &arrow.output,
+                };
+                let functors = FormattedFunctorSet {
+                    functor_set: &arrow.functors,
                 };
                 let arrow = match arrow.kind {
                     hir::CallableKind::Function => "->",
                     hir::CallableKind::Operation => "=>",
                 };
-                format!("({input} {arrow} {output}{functors})",)
+                write!(f, "({input} {arrow} {output}{functors})",)
             }
             hir::ty::Ty::Tuple(tys) => {
                 if tys.is_empty() {
-                    "Unit".to_owned()
+                    write!(f, "Unit")
                 } else {
-                    let elements = tys
-                        .iter()
-                        .map(|e| self.format_hir_ty(e))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    format!("({elements})")
+                    write!(f, "(")?;
+                    for (count, ty) in tys.iter().enumerate() {
+                        if count != 0 {
+                            write!(f, ", ")?;
+                        }
+                        write!(
+                            f,
+                            "{}",
+                            FormattedHirTy {
+                                compilation: self.compilation,
+                                ty
+                            }
+                        )?;
+                    }
+                    write!(f, ")")
                 }
             }
             hir::ty::Ty::Udt(res) => match res {
                 hir::Res::Item(item_id) => {
                     if let Some(item) = find_item(self.compilation, item_id) {
                         match &item.kind {
-                            hir::ItemKind::Ty(ident, _) => ident.name.to_string(),
+                            hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                             _ => panic!("UDT has invalid resolution."),
                         }
                     } else {
-                        "?".to_string()
+                        write!(f, "?")
                     }
                 }
                 _ => panic!("UDT has invalid resolution."),
             },
-            _ => ty.to_string(),
+            _ => write!(f, "{}", self.ty),
         }
     }
+}
 
-    /// formerly `contents_from_hir_call_decl`
-    pub fn format_hir_callable_decl(&self, decl: &hir::CallableDecl) -> String {
-        let (kind, arrow) = match decl.kind {
-            hir::CallableKind::Function => ("function", "->"),
-            hir::CallableKind::Operation => ("operation", "=>"),
-        };
+pub(crate) struct FormattedTyId<'a> {
+    pub(crate) ty_id: ast::NodeId,
+    pub(crate) compilation: &'a Compilation,
+}
 
-        let functors = if let hir::ty::FunctorSetValue::Empty = decl.functors {
-            String::new()
-        } else {
-            format!(" is {}", decl.functors)
-        };
-
-        format!(
-            "{} {} {} {} {}{}",
-            kind,
-            decl.name.name,
-            self.format_hir_ty(&decl.input.ty),
-            arrow,
-            self.format_hir_ty(&decl.output),
-            functors,
-        )
-    }
-
+impl<'a> Display for FormattedTyId<'a> {
     /// formerly `get_type_name`
-    pub fn format_ast_ty(&self, node_id: ast::NodeId) -> String {
-        if let Some(ty) = self.compilation.unit.ast.tys.terms.get(node_id) {
-            self.format_hir_ty(ty)
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if let Some(ty) = self.compilation.unit.ast.tys.terms.get(self.ty_id) {
+            write!(
+                f,
+                "{}",
+                FormattedHirTy {
+                    compilation: self.compilation,
+                    ty
+                }
+            )
         } else {
-            "?".to_string()
+            write!(f, "?")
         }
     }
+}
 
-    /// formerly `contents_from_ast_call_decl`
-    pub fn format_ast_callable_decl(&self, decl: &ast::CallableDecl) -> String {
-        let (kind, arrow) = match decl.kind {
-            ast::CallableKind::Function => ("function", "->"),
-            ast::CallableKind::Operation => ("operation", "=>"),
-        };
+pub(crate) struct FormattedHirUdt<'a> {
+    pub(crate) ident: &'a hir::Ident,
+    pub(crate) _udt: &'a hir::ty::Udt,
+}
 
-        let functors = ast_callable_functors(decl);
-        let functors = if let hir::ty::FunctorSetValue::Empty = functors {
-            String::new()
-        } else {
-            format!(" is {functors}")
-        };
+impl<'a> Display for FormattedHirUdt<'a> {
+    /// formerly `contents_from_hir_udt`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.ident.name)
+    }
+}
 
-        format!(
-            "{} {} {} {} {}{}",
-            kind,
-            decl.name.name,
-            self.format_ast_ty(decl.input.id),
-            arrow,
-            format_ty(&decl.output),
-            functors,
+pub(crate) struct FormattedTy<'a> {
+    pub(crate) ty: &'a ast::Ty,
+}
+
+impl<'a> Display for FormattedTy<'a> {
+    /// formerly `get_type_name_from_ast_ty`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self.ty.kind.as_ref() {
+            ast::TyKind::Array(ty) => write!(f, "{}[]", FormattedTy { ty }),
+            ast::TyKind::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    ast::CallableKind::Function => "->",
+                    ast::CallableKind::Operation => "=>",
+                };
+                write!(
+                    f,
+                    "({} {} {}{})",
+                    FormattedTy { ty: input },
+                    arrow,
+                    FormattedTy { ty: output },
+                    FormattedFunctorExpr { functors }
+                )
+            }
+            ast::TyKind::Hole => write!(f, "_"),
+            ast::TyKind::Paren(ty) => write!(f, "{}", FormattedTy { ty }),
+            ast::TyKind::Path(path) => write!(f, "{}", FormattedPath { path }),
+            ast::TyKind::Param(id) => write!(f, "{}", id.name),
+            ast::TyKind::Tuple(tys) => {
+                if tys.is_empty() {
+                    write!(f, "Unit")
+                } else {
+                    write!(f, "(")?;
+                    for (count, def) in tys.iter().enumerate() {
+                        if count != 0 {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{}", FormattedTy { ty: def })?;
+                    }
+                    write!(f, ")")
+                }
+            }
+        }
+    }
+}
+
+struct FormattedFunctorExpr<'a> {
+    functors: &'a Option<Box<ast::FunctorExpr>>,
+}
+
+impl<'a> Display for FormattedFunctorExpr<'a> {
+    /// extracted from `get_type_name_from_ast_ty`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self.functors {
+            Some(functors) => {
+                let functors = eval_functor_expr(functors);
+                write!(f, "{}", FormattedFunctorSetValue { functors })
+            }
+            None => Ok(()),
+        }
+    }
+}
+
+pub(crate) struct FormattedPath<'a> {
+    pub(crate) path: &'a ast::Path,
+}
+
+impl<'a> Display for FormattedPath<'a> {
+    /// formerly `print_path`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self.path.namespace.as_ref() {
+            Some(ns) => write!(f, "{ns}.{}", self.path.name.name),
+            None => write!(f, "{}", self.path.name.name),
+        }
+    }
+}
+
+pub(crate) struct FormattedIdentTyDef<'a> {
+    pub(crate) ident: &'a ast::Ident,
+    pub(crate) def: &'a ast::TyDef,
+}
+
+impl<'a> Display for FormattedIdentTyDef<'a> {
+    /// formerly `contents_from_ast_udt`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(
+            f,
+            "{}: {}",
+            self.ident.name,
+            FormattedTyDef { def: self.def }
         )
     }
 }
 
-/// formerly `get_type_name_from_ast_ty`
-pub fn format_ty(ty: &ast::Ty) -> String {
-    match &*ty.kind {
-        qsc::ast::TyKind::Array(ty) => format!("{}[]", format_ty(ty)),
-        qsc::ast::TyKind::Arrow(kind, input, output, functors) => {
-            let input = format_ty(input);
-            let output = format_ty(output);
-            let arrow = match kind {
-                ast::CallableKind::Function => "->",
-                ast::CallableKind::Operation => "=>",
-            };
-            let functors = match functors {
-                Some(functors) => {
-                    let functors = eval_functor_expr(functors);
-                    if let hir::ty::FunctorSetValue::Empty = functors {
-                        String::new()
-                    } else {
-                        format!(" is {functors}")
+struct FormattedTyDef<'a> {
+    def: &'a ast::TyDef,
+}
+
+impl<'a> Display for FormattedTyDef<'a> {
+    /// formerly `ty_def_to_string`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self.def.kind.as_ref() {
+            ast::TyDefKind::Field(name, ty) => match name {
+                Some(name) => write!(f, "{}: {}", name.name, FormattedTy { ty }),
+                None => write!(f, "{}", FormattedTy { ty }),
+            },
+            ast::TyDefKind::Paren(def) => write!(f, "{}", FormattedTyDef { def }),
+            ast::TyDefKind::Tuple(tys) => {
+                if tys.is_empty() {
+                    write!(f, "Unit")
+                } else {
+                    write!(f, "(")?;
+                    for (count, def) in tys.iter().enumerate() {
+                        if count != 0 {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{}", FormattedTyDef { def })?;
                     }
+                    write!(f, ")")
                 }
-                None => String::new(),
-            };
-            format!("({input} {arrow} {output}{functors})")
-        }
-        qsc::ast::TyKind::Hole => "_".to_owned(),
-        qsc::ast::TyKind::Paren(ty) => format_ty(ty),
-        qsc::ast::TyKind::Path(path) => format_path(path),
-        qsc::ast::TyKind::Param(id) => id.name.to_string(),
-        qsc::ast::TyKind::Tuple(tys) => {
-            if tys.is_empty() {
-                "Unit".to_owned()
-            } else {
-                let elements = tys.iter().map(format_ty).collect::<Vec<_>>().join(", ");
-                format!("({elements})")
             }
         }
     }
-}
-
-/// formerly `print_path`
-pub fn format_path(path: &ast::Path) -> String {
-    match &path.namespace {
-        Some(ns) => format!("{ns}.{}", path.name.name),
-        None => format!("{}", path.name.name),
-    }
-}
-
-/// formerly `contents_from_hir_udt`
-pub fn format_hir_udt(name: &hir::Ident, _: &hir::ty::Udt) -> String {
-    name.name.to_string()
-}
-
-/// formerly `contents_from_ast_udt`
-pub fn format_udt(name: &ast::Ident, def: &ast::TyDef) -> String {
-    let name = &name.name;
-    let def = format_ty_def(def);
-    format!("{name}: {def}")
-}
-
-/// formerly `ty_def_to_string`
-fn format_ty_def(def: &ast::TyDef) -> String {
-    match &*def.kind {
-        ast::TyDefKind::Field(name, ty) => {
-            let ty = format_ty(ty);
-            match name {
-                Some(name) => format!("{}: {ty}", name.name),
-                None => ty,
-            }
-        }
-        ast::TyDefKind::Paren(def) => format_ty_def(def),
-        ast::TyDefKind::Tuple(tys) => {
-            if tys.is_empty() {
-                "Unit".to_owned()
-            } else {
-                let elements = tys
-                    .iter()
-                    .map(|def| format_ty_def(def))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("({elements})")
-            }
-        }
-    }
-}
-
-/// formerly `contents_from_name`
-pub fn format_name(name: &impl Display, ty_name: &String) -> String {
-    format!("{name}: {ty_name}")
 }
 
 //

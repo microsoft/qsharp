@@ -7,7 +7,10 @@ mod tests;
 use std::fmt::Display;
 use std::rc::Rc;
 
-use crate::display::{format_hir_udt, format_name, format_path, format_ty, format_udt, Formatter};
+use crate::display::{
+    Formatted, FormattedAstCallableDecl, FormattedHirCallableDecl, FormattedHirUdt,
+    FormattedIdentTyDef, FormattedNameWithTy, FormattedNameWithTyId, FormattedPath,
+};
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
@@ -39,7 +42,7 @@ pub(crate) fn get_hover(
         contents: None,
         start: 0,
         end: 0,
-        formatter: Formatter { compilation },
+        formatter: Formatted { compilation },
     };
 
     hover_visitor.visit_package(package);
@@ -59,7 +62,7 @@ struct HoverVisitor<'a> {
     contents: Option<String>,
     start: u32,
     end: u32,
-    formatter: Formatter<'a>,
+    formatter: Formatted<'a>,
 }
 
 impl Visitor<'_> for HoverVisitor<'_> {
@@ -70,7 +73,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     if span_contains(decl.name.span, self.offset) {
                         self.contents = Some(markdown_with_doc(
                             &item.doc,
-                            self.formatter.format_ast_callable_decl(decl),
+                            FormattedAstCallableDecl {
+                                compilation: self.compilation,
+                                decl,
+                            },
                         ));
                         self.start = decl.name.span.lo;
                         self.end = decl.name.span.hi;
@@ -80,7 +86,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(markdown_fenced_block(format_udt(ident, def)));
+                        self.contents =
+                            Some(markdown_fenced_block(FormattedIdentTyDef { ident, def }));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -97,10 +104,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(markdown_fenced_block(format_name(
-                            &ident.name,
-                            &format_ty(ty),
-                        )));
+                        self.contents = Some(markdown_fenced_block(FormattedNameWithTy {
+                            name: &ident.name,
+                            ty,
+                        }));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -120,10 +127,11 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(markdown_fenced_block(format_name(
-                            &ident.name,
-                            &self.formatter.format_ast_ty(pat.id),
-                        )));
+                        self.contents = Some(markdown_fenced_block(FormattedNameWithTyId {
+                            compilation: self.compilation,
+                            name: &ident.name,
+                            ty_id: pat.id,
+                        }));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -139,10 +147,11 @@ impl Visitor<'_> for HoverVisitor<'_> {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
-                    self.contents = Some(markdown_fenced_block(format_name(
-                        &field.name,
-                        &self.formatter.format_ast_ty(expr.id),
-                    )));
+                    self.contents = Some(markdown_fenced_block(FormattedNameWithTyId {
+                        compilation: self.compilation,
+                        name: &field.name,
+                        ty_id: expr.id,
+                    }));
                     self.start = field.span.lo;
                     self.end = field.span.hi;
                 }
@@ -161,7 +170,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
                             self.contents = match &item.kind {
                                 hir::ItemKind::Callable(decl) => Some(markdown_with_doc(
                                     &item.doc,
-                                    self.formatter.format_hir_callable_decl(decl),
+                                    FormattedHirCallableDecl {
+                                        compilation: self.compilation,
+                                        decl,
+                                    },
                                 )),
                                 hir::ItemKind::Namespace(_, _) => {
                                     panic!(
@@ -170,7 +182,10 @@ impl Visitor<'_> for HoverVisitor<'_> {
                                     )
                                 }
                                 hir::ItemKind::Ty(ident, udt) => {
-                                    Some(markdown_fenced_block(format_hir_udt(ident, udt)))
+                                    Some(markdown_fenced_block(FormattedHirUdt {
+                                        ident,
+                                        _udt: udt,
+                                    }))
                                 }
                             };
                             self.start = path.span.lo;
@@ -178,10 +193,11 @@ impl Visitor<'_> for HoverVisitor<'_> {
                         }
                     }
                     resolve::Res::Local(node_id) => {
-                        self.contents = Some(markdown_fenced_block(format_name(
-                            &format_path(path),
-                            &self.formatter.format_ast_ty(*node_id),
-                        )));
+                        self.contents = Some(markdown_fenced_block(FormattedNameWithTyId {
+                            compilation: self.compilation,
+                            name: &FormattedPath { path },
+                            ty_id: *node_id,
+                        }));
                         self.start = path.span.lo;
                         self.end = path.span.hi;
                     }
