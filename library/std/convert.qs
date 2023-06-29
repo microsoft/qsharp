@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.Convert {
     function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
         mutable output = [];
         for r in input {
-            set output += [ResultAsBool(r)];
+            set output += [r == One];
         }
 
         output
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.Convert {
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];
         for b in input {
-            set output += [BoolAsResult(b)];
+            set output += [if b {One} else {Zero}];
         }
 
         output
