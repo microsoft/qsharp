@@ -98,9 +98,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.contents = Some(markdown_fenced_block(
-                            self.display.name_with_ty(&ident.name, ty),
-                        ));
+                        self.contents =
+                            Some(markdown_fenced_block(self.display.ident_ty(&ident, ty)));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else {
@@ -121,7 +120,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
                         self.contents = Some(markdown_fenced_block(
-                            self.display.name_with_ty_id(&ident.name, pat.id),
+                            self.display.ident_ty_id(&ident, pat.id),
                         ));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
@@ -139,7 +138,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
             match &*expr.kind {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
                     self.contents = Some(markdown_fenced_block(
-                        self.display.name_with_ty_id(&field.name, expr.id),
+                        self.display.ident_ty_id(&field, expr.id),
                     ));
                     self.start = field.span.lo;
                     self.end = field.span.hi;
@@ -167,9 +166,9 @@ impl Visitor<'_> for HoverVisitor<'_> {
                                         path.id
                                     )
                                 }
-                                hir::ItemKind::Ty(ident, udt) => {
-                                    Some(markdown_fenced_block(self.display.hir_udt(ident, udt)))
-                                }
+                                hir::ItemKind::Ty(ident, udt) => Some(markdown_fenced_block(
+                                    self.display.hir_ident_udt(ident, udt),
+                                )),
                             };
                             self.start = path.span.lo;
                             self.end = path.span.hi;
@@ -177,7 +176,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     }
                     resolve::Res::Local(node_id) => {
                         self.contents = Some(markdown_fenced_block(
-                            self.display.path_with_ty_id(path, *node_id),
+                            self.display.path_ty_id(path, *node_id),
                         ));
                         self.start = path.span.lo;
                         self.end = path.span.hi;

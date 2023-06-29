@@ -28,35 +28,31 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
-    pub(crate) fn name_with_ty_id(
-        &self,
-        name: &'a dyn Display,
-        ty_id: ast::NodeId,
-    ) -> NameWithTyId {
-        NameWithTyId {
+    pub(crate) fn ident_ty_id(&self, ident: &'a ast::Ident, ty_id: ast::NodeId) -> IdentTyId {
+        IdentTyId {
             compilation: self.compilation,
-            name,
+            ident,
             ty_id,
         }
     }
 
-    pub(crate) fn path_with_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> PathWithTyId {
-        PathWithTyId {
+    pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> PathTyId {
+        PathTyId {
             compilation: self.compilation,
             path,
             ty_id,
         }
     }
 
-    pub(crate) fn name_with_ty(&self, name: &'a dyn Display, ty: &'a ast::Ty) -> NameWithTy {
-        NameWithTy { name, ty }
+    pub(crate) fn ident_ty(&self, ident: &'a ast::Ident, ty: &'a ast::Ty) -> IdentTy {
+        IdentTy { ident, ty }
     }
 
     pub(crate) fn ident_ty_def(&self, ident: &'a ast::Ident, def: &'a ast::TyDef) -> IdentTyDef {
         IdentTyDef { ident, def }
     }
 
-    pub(crate) fn hir_udt(&self, ident: &'a hir::Ident, udt: &'a hir::ty::Udt) -> HirUdt {
+    pub(crate) fn hir_ident_udt(&self, ident: &'a hir::Ident, udt: &'a hir::ty::Udt) -> HirUdt {
         HirUdt { ident, _udt: udt }
     }
 
@@ -66,31 +62,31 @@ impl<'a> CodeDisplay<'a> {
 
 // Display impls for each syntax/hir element we may encounter
 
-pub(crate) struct NameWithTy<'a> {
-    name: &'a dyn Display,
+pub(crate) struct IdentTy<'a> {
+    ident: &'a ast::Ident,
     ty: &'a ast::Ty,
 }
 
-impl<'a> Display for NameWithTy<'a> {
+impl<'a> Display for IdentTy<'a> {
     /// formerly `contents_from_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}: {}", self.name, Ty { ty: self.ty },)
+        write!(f, "{}: {}", self.ident.name, Ty { ty: self.ty },)
     }
 }
 
-pub(crate) struct NameWithTyId<'a> {
+pub(crate) struct IdentTyId<'a> {
     compilation: &'a Compilation,
-    name: &'a dyn Display,
+    ident: &'a ast::Ident,
     ty_id: ast::NodeId,
 }
 
-impl<'a> Display for NameWithTyId<'a> {
+impl<'a> Display for IdentTyId<'a> {
     /// formerly `contents_from_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
             "{}: {}",
-            self.name,
+            self.ident.name,
             TyId {
                 ty_id: self.ty_id,
                 compilation: self.compilation
@@ -99,22 +95,22 @@ impl<'a> Display for NameWithTyId<'a> {
     }
 }
 
-pub(crate) struct PathWithTyId<'a> {
+pub(crate) struct PathTyId<'a> {
     compilation: &'a Compilation,
     path: &'a ast::Path,
     ty_id: ast::NodeId,
 }
 
-impl<'a> Display for PathWithTyId<'a> {
+impl<'a> Display for PathTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}",
-            NameWithTyId {
-                compilation: self.compilation,
-                name: &Path { path: self.path },
-                ty_id: self.ty_id
-            }
+            "{}: {}",
+            &Path { path: self.path },
+            TyId {
+                ty_id: self.ty_id,
+                compilation: self.compilation
+            },
         )
     }
 }
