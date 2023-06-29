@@ -177,6 +177,14 @@ impl Class {
 }
 
 /// Meta-level descriptions about the source of a type.
+/// The compiler uses the notion of "unresolved types" to
+/// represent both divergent types (return expressions, similar to
+/// the `never` type), and types with insufficient information to
+/// be inferred.
+/// We want to generate compiler errors in the latter case,
+/// so we need to track where types came from. This `TySource`
+/// struct allows us to know if a type originates from a divergent
+/// source, and if it doesn't, we generate an ambiguous type error.
 pub(super) enum TySource {
     Divergent,
     NotDivergent { span: Span },
@@ -404,6 +412,7 @@ impl Inferrer {
                 if solver.solution.tys.get(id).is_none() {
                     match meta {
                         TySource::Divergent => {
+                            // here, we are resolving all divergent types to the unit type.
                             solver.solution.tys.insert(id, Ty::UNIT);
                             None
                         }
