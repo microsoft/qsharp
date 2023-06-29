@@ -8,38 +8,90 @@ use qsc::{
 };
 use std::fmt::{Display, Formatter, Result};
 
-pub(crate) struct Formatted<'a> {
+pub(crate) struct CodeDisplay<'a> {
     pub(crate) compilation: &'a Compilation,
 }
 
-impl<'a> Formatted<'a> {}
+#[allow(clippy::unused_self)]
+impl<'a> CodeDisplay<'a> {
+    pub(crate) fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> HirCallableDecl {
+        HirCallableDecl {
+            compilation: self.compilation,
+            decl,
+        }
+    }
 
-pub(crate) struct FormattedNameWithTy<'a> {
-    pub(crate) name: &'a dyn Display,
-    pub(crate) ty: &'a ast::Ty,
+    pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> AstCallableDecl {
+        AstCallableDecl {
+            compilation: self.compilation,
+            decl,
+        }
+    }
+
+    pub(crate) fn name_with_ty_id(
+        &self,
+        name: &'a dyn Display,
+        ty_id: ast::NodeId,
+    ) -> NameWithTyId {
+        NameWithTyId {
+            compilation: self.compilation,
+            name,
+            ty_id,
+        }
+    }
+
+    pub(crate) fn path_with_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> PathWithTyId {
+        PathWithTyId {
+            compilation: self.compilation,
+            path,
+            ty_id,
+        }
+    }
+
+    pub(crate) fn name_with_ty(&self, name: &'a dyn Display, ty: &'a ast::Ty) -> NameWithTy {
+        NameWithTy { name, ty }
+    }
+
+    pub(crate) fn ident_ty_def(&self, ident: &'a ast::Ident, def: &'a ast::TyDef) -> IdentTyDef {
+        IdentTyDef { ident, def }
+    }
+
+    pub(crate) fn hir_udt(&self, ident: &'a hir::Ident, udt: &'a hir::ty::Udt) -> HirUdt {
+        HirUdt { ident, _udt: udt }
+    }
+
+    // The rest of the display implementations are not made public b/c they're not used,
+    // but there's no reason they couldn't be
 }
 
-impl<'a> Display for FormattedNameWithTy<'a> {
+// Display impls for each syntax/hir element we may encounter
+
+pub(crate) struct NameWithTy<'a> {
+    name: &'a dyn Display,
+    ty: &'a ast::Ty,
+}
+
+impl<'a> Display for NameWithTy<'a> {
     /// formerly `contents_from_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}: {}", self.name, FormattedTy { ty: self.ty },)
+        write!(f, "{}: {}", self.name, Ty { ty: self.ty },)
     }
 }
 
-pub(crate) struct FormattedNameWithTyId<'a> {
-    pub(crate) compilation: &'a Compilation,
-    pub(crate) name: &'a dyn Display,
-    pub(crate) ty_id: ast::NodeId,
+pub(crate) struct NameWithTyId<'a> {
+    compilation: &'a Compilation,
+    name: &'a dyn Display,
+    ty_id: ast::NodeId,
 }
 
-impl<'a> Display for FormattedNameWithTyId<'a> {
+impl<'a> Display for NameWithTyId<'a> {
     /// formerly `contents_from_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
             "{}: {}",
             self.name,
-            FormattedTyId {
+            TyId {
                 ty_id: self.ty_id,
                 compilation: self.compilation
             },
@@ -47,12 +99,32 @@ impl<'a> Display for FormattedNameWithTyId<'a> {
     }
 }
 
-pub(crate) struct FormattedHirCallableDecl<'a> {
-    pub(crate) compilation: &'a Compilation,
-    pub(crate) decl: &'a hir::CallableDecl,
+pub(crate) struct PathWithTyId<'a> {
+    compilation: &'a Compilation,
+    path: &'a ast::Path,
+    ty_id: ast::NodeId,
 }
 
-impl<'a> Display for FormattedHirCallableDecl<'a> {
+impl<'a> Display for PathWithTyId<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(
+            f,
+            "{}",
+            NameWithTyId {
+                compilation: self.compilation,
+                name: &Path { path: self.path },
+                ty_id: self.ty_id
+            }
+        )
+    }
+}
+
+pub(crate) struct HirCallableDecl<'a, 'b> {
+    compilation: &'a Compilation,
+    decl: &'b hir::CallableDecl,
+}
+
+impl Display for HirCallableDecl<'_, '_> {
     /// formerly `contents_from_hir_call_decl`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let (kind, arrow) = match self.decl.kind {
@@ -65,28 +137,28 @@ impl<'a> Display for FormattedHirCallableDecl<'a> {
             "{} {} {} {} {}{}",
             kind,
             self.decl.name.name,
-            FormattedHirTy {
+            HirTy {
                 ty: &self.decl.input.ty,
                 compilation: self.compilation
             },
             arrow,
-            FormattedHirTy {
+            HirTy {
                 ty: &self.decl.output,
                 compilation: self.compilation
             },
-            FormattedFunctorSetValue {
+            FunctorSetValue {
                 functors: self.decl.functors,
             },
         )
     }
 }
 
-pub(crate) struct FormattedAstCallableDecl<'a> {
-    pub(crate) compilation: &'a Compilation,
-    pub(crate) decl: &'a ast::CallableDecl,
+pub(crate) struct AstCallableDecl<'a> {
+    compilation: &'a Compilation,
+    decl: &'a ast::CallableDecl,
 }
 
-impl<'a> Display for FormattedAstCallableDecl<'a> {
+impl<'a> Display for AstCallableDecl<'a> {
     /// formerly `contents_from_ast_call_decl`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let (kind, arrow) = match self.decl.kind {
@@ -95,19 +167,19 @@ impl<'a> Display for FormattedAstCallableDecl<'a> {
         };
 
         let functors = ast_callable_functors(self.decl);
-        let functors = FormattedFunctorSetValue { functors };
+        let functors = FunctorSetValue { functors };
 
         write!(
             f,
             "{} {} {} {} {}{}",
             kind,
             self.decl.name.name,
-            FormattedTyId {
+            TyId {
                 ty_id: self.decl.input.id,
                 compilation: self.compilation
             },
             arrow,
-            FormattedTy {
+            Ty {
                 ty: &self.decl.output
             },
             functors,
@@ -115,11 +187,35 @@ impl<'a> Display for FormattedAstCallableDecl<'a> {
     }
 }
 
-pub(crate) struct FormattedFunctorSet<'a> {
-    pub(crate) functor_set: &'a hir::ty::FunctorSet,
+pub(crate) struct IdentTyDef<'a> {
+    ident: &'a ast::Ident,
+    def: &'a ast::TyDef,
 }
 
-impl<'a> Display for FormattedFunctorSet<'a> {
+impl<'a> Display for IdentTyDef<'a> {
+    /// formerly `contents_from_ast_udt`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}: {}", self.ident.name, TyDef { def: self.def })
+    }
+}
+
+pub(crate) struct HirUdt<'a> {
+    ident: &'a hir::Ident,
+    _udt: &'a hir::ty::Udt,
+}
+
+impl<'a> Display for HirUdt<'a> {
+    /// formerly `contents_from_hir_udt`
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.ident.name)
+    }
+}
+
+struct FunctorSet<'a> {
+    functor_set: &'a hir::ty::FunctorSet,
+}
+
+impl<'a> Display for FunctorSet<'a> {
     /// extracted from `contents_from_ast_call_decl`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if *self.functor_set == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty) {
@@ -130,11 +226,11 @@ impl<'a> Display for FormattedFunctorSet<'a> {
     }
 }
 
-pub(crate) struct FormattedFunctorSetValue {
-    pub(crate) functors: hir::ty::FunctorSetValue,
+struct FunctorSetValue {
+    functors: hir::ty::FunctorSetValue,
 }
 
-impl Display for FormattedFunctorSetValue {
+impl Display for FunctorSetValue {
     /// extracted from a few different places
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let hir::ty::FunctorSetValue::Empty = self.functors {
@@ -145,12 +241,12 @@ impl Display for FormattedFunctorSetValue {
     }
 }
 
-pub(crate) struct FormattedHirTy<'a> {
-    pub(crate) ty: &'a hir::ty::Ty,
-    pub(crate) compilation: &'a Compilation,
+struct HirTy<'a> {
+    ty: &'a hir::ty::Ty,
+    compilation: &'a Compilation,
 }
 
-impl<'a> Display for FormattedHirTy<'a> {
+impl<'a> Display for HirTy<'a> {
     /// formerly `get_type_name_from_hir_ty`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         // This is very similar to the Display impl for Ty, except that UDTs are resolved to their names.
@@ -159,22 +255,22 @@ impl<'a> Display for FormattedHirTy<'a> {
                 write!(
                     f,
                     "{}[]",
-                    FormattedHirTy {
+                    HirTy {
                         compilation: self.compilation,
                         ty: item,
                     }
                 )
             }
             hir::ty::Ty::Arrow(arrow) => {
-                let input = FormattedHirTy {
+                let input = HirTy {
                     compilation: self.compilation,
                     ty: &arrow.input,
                 };
-                let output = FormattedHirTy {
+                let output = HirTy {
                     compilation: self.compilation,
                     ty: &arrow.output,
                 };
-                let functors = FormattedFunctorSet {
+                let functors = FunctorSet {
                     functor_set: &arrow.functors,
                 };
                 let arrow = match arrow.kind {
@@ -195,7 +291,7 @@ impl<'a> Display for FormattedHirTy<'a> {
                         write!(
                             f,
                             "{}",
-                            FormattedHirTy {
+                            HirTy {
                                 compilation: self.compilation,
                                 ty
                             }
@@ -222,19 +318,19 @@ impl<'a> Display for FormattedHirTy<'a> {
     }
 }
 
-pub(crate) struct FormattedTyId<'a> {
-    pub(crate) ty_id: ast::NodeId,
-    pub(crate) compilation: &'a Compilation,
+struct TyId<'a> {
+    ty_id: ast::NodeId,
+    compilation: &'a Compilation,
 }
 
-impl<'a> Display for FormattedTyId<'a> {
+impl<'a> Display for TyId<'a> {
     /// formerly `get_type_name`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(ty) = self.compilation.unit.ast.tys.terms.get(self.ty_id) {
             write!(
                 f,
                 "{}",
-                FormattedHirTy {
+                HirTy {
                     compilation: self.compilation,
                     ty
                 }
@@ -245,27 +341,15 @@ impl<'a> Display for FormattedTyId<'a> {
     }
 }
 
-pub(crate) struct FormattedHirUdt<'a> {
-    pub(crate) ident: &'a hir::Ident,
-    pub(crate) _udt: &'a hir::ty::Udt,
+struct Ty<'a> {
+    ty: &'a ast::Ty,
 }
 
-impl<'a> Display for FormattedHirUdt<'a> {
-    /// formerly `contents_from_hir_udt`
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.ident.name)
-    }
-}
-
-pub(crate) struct FormattedTy<'a> {
-    pub(crate) ty: &'a ast::Ty,
-}
-
-impl<'a> Display for FormattedTy<'a> {
+impl<'a> Display for Ty<'a> {
     /// formerly `get_type_name_from_ast_ty`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.ty.kind.as_ref() {
-            ast::TyKind::Array(ty) => write!(f, "{}[]", FormattedTy { ty }),
+            ast::TyKind::Array(ty) => write!(f, "{}[]", Ty { ty }),
             ast::TyKind::Arrow(kind, input, output, functors) => {
                 let arrow = match kind {
                     ast::CallableKind::Function => "->",
@@ -274,15 +358,15 @@ impl<'a> Display for FormattedTy<'a> {
                 write!(
                     f,
                     "({} {} {}{})",
-                    FormattedTy { ty: input },
+                    Ty { ty: input },
                     arrow,
-                    FormattedTy { ty: output },
-                    FormattedFunctorExpr { functors }
+                    Ty { ty: output },
+                    FunctorExpr { functors }
                 )
             }
             ast::TyKind::Hole => write!(f, "_"),
-            ast::TyKind::Paren(ty) => write!(f, "{}", FormattedTy { ty }),
-            ast::TyKind::Path(path) => write!(f, "{}", FormattedPath { path }),
+            ast::TyKind::Paren(ty) => write!(f, "{}", Ty { ty }),
+            ast::TyKind::Path(path) => write!(f, "{}", Path { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => {
                 if tys.is_empty() {
@@ -293,7 +377,7 @@ impl<'a> Display for FormattedTy<'a> {
                         if count != 0 {
                             write!(f, ", ")?;
                         }
-                        write!(f, "{}", FormattedTy { ty: def })?;
+                        write!(f, "{}", Ty { ty: def })?;
                     }
                     write!(f, ")")
                 }
@@ -302,28 +386,28 @@ impl<'a> Display for FormattedTy<'a> {
     }
 }
 
-struct FormattedFunctorExpr<'a> {
+struct FunctorExpr<'a> {
     functors: &'a Option<Box<ast::FunctorExpr>>,
 }
 
-impl<'a> Display for FormattedFunctorExpr<'a> {
+impl<'a> Display for FunctorExpr<'a> {
     /// extracted from `get_type_name_from_ast_ty`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.functors {
             Some(functors) => {
                 let functors = eval_functor_expr(functors);
-                write!(f, "{}", FormattedFunctorSetValue { functors })
+                write!(f, "{}", FunctorSetValue { functors })
             }
             None => Ok(()),
         }
     }
 }
 
-pub(crate) struct FormattedPath<'a> {
-    pub(crate) path: &'a ast::Path,
+struct Path<'a> {
+    path: &'a ast::Path,
 }
 
-impl<'a> Display for FormattedPath<'a> {
+impl<'a> Display for Path<'a> {
     /// formerly `print_path`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.path.namespace.as_ref() {
@@ -333,36 +417,19 @@ impl<'a> Display for FormattedPath<'a> {
     }
 }
 
-pub(crate) struct FormattedIdentTyDef<'a> {
-    pub(crate) ident: &'a ast::Ident,
-    pub(crate) def: &'a ast::TyDef,
-}
-
-impl<'a> Display for FormattedIdentTyDef<'a> {
-    /// formerly `contents_from_ast_udt`
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}: {}",
-            self.ident.name,
-            FormattedTyDef { def: self.def }
-        )
-    }
-}
-
-struct FormattedTyDef<'a> {
+struct TyDef<'a> {
     def: &'a ast::TyDef,
 }
 
-impl<'a> Display for FormattedTyDef<'a> {
+impl<'a> Display for TyDef<'a> {
     /// formerly `ty_def_to_string`
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
-                Some(name) => write!(f, "{}: {}", name.name, FormattedTy { ty }),
-                None => write!(f, "{}", FormattedTy { ty }),
+                Some(name) => write!(f, "{}: {}", name.name, Ty { ty }),
+                None => write!(f, "{}", Ty { ty }),
             },
-            ast::TyDefKind::Paren(def) => write!(f, "{}", FormattedTyDef { def }),
+            ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),
             ast::TyDefKind::Tuple(tys) => {
                 if tys.is_empty() {
                     write!(f, "Unit")
@@ -372,7 +439,7 @@ impl<'a> Display for FormattedTyDef<'a> {
                         if count != 0 {
                             write!(f, ", ")?;
                         }
-                        write!(f, "{}", FormattedTyDef { def })?;
+                        write!(f, "{}", TyDef { def })?;
                     }
                     write!(f, ")")
                 }
