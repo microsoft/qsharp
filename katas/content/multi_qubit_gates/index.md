@@ -15,12 +15,12 @@ This tutorial covers the following topics:
 **Goal:** Transform the system into the Bell state $\\Phi^+ = \\frac{1}{\\sqrt{2}}\\big(|00\\rangle + |11\\rangle\\big)$.
 
 @[exercise]({
-"id": "preparing_bell_state",
-"codeDependenciesPaths": [
-"../KatasLibrary.qs"
-],
-"verificationSourcePath": "./preparing_bell_state/Verification.qs",
-"placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",
-"solutionSourcePath": "./preparing_bell_state/Solution.qs",
-"solutionDescriptionPath": "./preparing_bell_state/solution.md"
+    "id": "preparing_bell_state",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./preparing_bell_state/Verification.qs",
+    "placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",
+    "solutionSourcePath": "./preparing_bell_state/Solution.qs",
+    "solutionDescriptionPath": "./preparing_bell_state/solution.md"
 })

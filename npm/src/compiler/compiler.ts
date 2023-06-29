@@ -39,25 +39,6 @@ export interface ICompiler {
 export type ICompilerWorker = ICompiler & IServiceProxy;
 export type CompilerState = ServiceState;
 
-//function errToDiagnostic(err: any): VSDiagnostic {
-//  if (
-//    err &&
-//    typeof err.severity === "string" &&
-//    typeof err.message === "string"
-//  ) {
-//    err.start_pos = err.start_pos || 0;
-//    err.end_pos = err.end_pos || 0;
-//    return err;
-//  } else {
-//    return {
-//      severity: "error",
-//      message: err.toString(),
-//      start_pos: 0,
-//      end_pos: 0,
-//    };
-//  }
-//}
-
 export class Compiler implements ICompiler {
   private wasm: Wasm;
 
