@@ -2,12 +2,8 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
-    operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
-        Y(q);
-    }
-
     operation VerifyExercise() : Bool {
-        let isCorrect = VerifySingleQubitOperation(ApplyY, ApplyYReference);
+        let isCorrect = VerifySingleQubitOperation(ApplyY, Kata.Solution.ApplyY);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         use target = Qubit[1];

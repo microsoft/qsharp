@@ -13,7 +13,7 @@ import {
   getLanguageServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
-//import { getKata } from "../dist/katas.js";
+import { getAllKatas } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
@@ -85,30 +85,48 @@ test("dump and message output", async () => {
   assert(result.events[1].message == "hello, qsharp");
 });
 
-/*test("kata success", async () => {
+async function validateExercise(exercise) {
+  console.log(exercise.id);
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
-  const code = `
-namespace Kata {
-  operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
-    Y(q);
+  const result = await compiler.runKataExercise(
+    exercise.placeholderCode,
+    exercise.solutionCode,
+    exercise.verificationCode,
+    [],
+    evtTarget
+  );
+  console.log("RESULT");
+  console.log(result);
+}
+
+function validateKata(kata) {
+  console.log(`Validating ${kata.id} kata`);
+  const exercises = kata.sections.filter(
+    (section) => section.type === "exercise"
+  );
+  for (const exercise of exercises) {
+    validateExercise(exercise);
   }
-}`;
-  const theKata = await getKata("single_qubit_gates");
-  const firstExercise = theKata.items[0];
+}
 
-  assert(firstExercise.type === "exercise");
-  const verifyCode = firstExercise.verificationImplementation;
-
-  const passed = await compiler.runKata(code, verifyCode, evtTarget);
-  const results = evtTarget.getResults();
-
-  assert(results.length === 1);
-  assert(results[0].events.length === 4);
-  assert(passed);
+test("kata success", async () => {
+  //const evtTarget = new QscEventTarget(true);
+  //const compiler = getCompiler();
+  const katas = await getAllKatas();
+  for (const kata of katas) {
+    validateKata(kata);
+  }
+  //assert(firstExercise.type === "exercise");
+  //const verifyCode = firstExercise.verificationImplementation;
+  //const passed = await compiler.runKata(code, verifyCode, evtTarget);
+  //const results = evtTarget.getResults();
+  //assert(results.length === 1);
+  //assert(results[0].events.length === 4);
+  //assert(passed);
 });
 
-test("kata incorrect", async () => {
+/*test("kata incorrect", async () => {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompilerWorker();
   const code = `

@@ -221,7 +221,19 @@ pub fn run_kata_exercise(
             let first_error = e
                 .first()
                 .expect("Running kata failed but no errors were reported");
-            Err(JsError::from(first_error).into())
+            let vs_diagnostic = VSDiagnostic::from(first_error).json().to_string();
+            let mut s = "ERROR\n".to_owned();
+            let error = first_error.to_string();
+            s.push_str(&error);
+            s.push('\n');
+            //let stack = first_error
+            //    .stack_trace()
+            //    .as_ref()
+            //    .expect("stack should be accesible");
+            //s.push_str(stack);
+            s.push_str(&vs_diagnostic);
+            Ok(JsValue::from_str(s.as_str()))
+            //Err(JsError::from(first_error).into())
         }
     }
 }

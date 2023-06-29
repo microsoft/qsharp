@@ -2,14 +2,8 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
-    operation GlobalPhaseIReference(q : Qubit) : Unit is Adj + Ctl {
-        X(q);
-        Z(q);
-        Y(q);
-    }
-
     operation VerifyExercise() : Bool {
-        let isCorrect = VerifySingleQubitOperation(GlobalPhaseI, GlobalPhaseIReference);
+        let isCorrect = VerifySingleQubitOperation(GlobalPhaseI, Kata.Solution.GlobalPhaseI);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         use target = Qubit[1];
