@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.Convert {
     /// # Output
     /// A `Bool` representing the `input`.
     function ResultAsBool(input : Result) : Bool {
-        return input == One;
+        input == One
     }
 
     /// # Summary
