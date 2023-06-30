@@ -17,21 +17,25 @@ pub(crate) struct CodeDisplay<'a> {
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
-    pub(crate) fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> HirCallableDecl {
+    pub(crate) fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> impl Display + 'a {
         HirCallableDecl {
             compilation: self.compilation,
             decl,
         }
     }
 
-    pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> AstCallableDecl {
+    pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + 'a {
         AstCallableDecl {
             compilation: self.compilation,
             decl,
         }
     }
 
-    pub(crate) fn ident_ty_id(&self, ident: &'a ast::Ident, ty_id: ast::NodeId) -> IdentTyId {
+    pub(crate) fn ident_ty_id(
+        &self,
+        ident: &'a ast::Ident,
+        ty_id: ast::NodeId,
+    ) -> impl Display + 'a {
         IdentTyId {
             compilation: self.compilation,
             ident,
@@ -39,7 +43,7 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
-    pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> PathTyId {
+    pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> impl Display + 'a {
         PathTyId {
             compilation: self.compilation,
             path,
@@ -47,15 +51,23 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
-    pub(crate) fn ident_ty(&self, ident: &'a ast::Ident, ty: &'a ast::Ty) -> IdentTy {
+    pub(crate) fn ident_ty(&self, ident: &'a ast::Ident, ty: &'a ast::Ty) -> impl Display + 'a {
         IdentTy { ident, ty }
     }
 
-    pub(crate) fn ident_ty_def(&self, ident: &'a ast::Ident, def: &'a ast::TyDef) -> IdentTyDef {
+    pub(crate) fn ident_ty_def(
+        &self,
+        ident: &'a ast::Ident,
+        def: &'a ast::TyDef,
+    ) -> impl Display + 'a {
         IdentTyDef { ident, def }
     }
 
-    pub(crate) fn hir_ident_udt(&self, ident: &'a hir::Ident, udt: &'a hir::ty::Udt) -> HirUdt {
+    pub(crate) fn hir_ident_udt(
+        &self,
+        ident: &'a hir::Ident,
+        udt: &'a hir::ty::Udt,
+    ) -> impl Display + 'a {
         HirUdt {
             compilation: self.compilation,
             ident,
@@ -69,7 +81,7 @@ impl<'a> CodeDisplay<'a> {
 
 // Display impls for each syntax/hir element we may encounter
 
-pub(crate) struct IdentTy<'a> {
+pub struct IdentTy<'a> {
     ident: &'a ast::Ident,
     ty: &'a ast::Ty,
 }
@@ -80,7 +92,7 @@ impl<'a> Display for IdentTy<'a> {
     }
 }
 
-pub(crate) struct IdentTyId<'a> {
+pub struct IdentTyId<'a> {
     compilation: &'a Compilation,
     ident: &'a ast::Ident,
     ty_id: ast::NodeId,
@@ -100,7 +112,7 @@ impl<'a> Display for IdentTyId<'a> {
     }
 }
 
-pub(crate) struct PathTyId<'a> {
+pub struct PathTyId<'a> {
     compilation: &'a Compilation,
     path: &'a ast::Path,
     ty_id: ast::NodeId,
@@ -120,7 +132,7 @@ impl<'a> Display for PathTyId<'a> {
     }
 }
 
-pub(crate) struct HirCallableDecl<'a, 'b> {
+pub struct HirCallableDecl<'a, 'b> {
     compilation: &'a Compilation,
     decl: &'b hir::CallableDecl,
 }
@@ -153,7 +165,7 @@ impl Display for HirCallableDecl<'_, '_> {
     }
 }
 
-pub(crate) struct AstCallableDecl<'a> {
+pub struct AstCallableDecl<'a> {
     compilation: &'a Compilation,
     decl: &'a ast::CallableDecl,
 }
@@ -186,7 +198,7 @@ impl<'a> Display for AstCallableDecl<'a> {
     }
 }
 
-pub(crate) struct IdentTyDef<'a> {
+pub struct IdentTyDef<'a> {
     ident: &'a ast::Ident,
     def: &'a ast::TyDef,
 }
@@ -197,7 +209,7 @@ impl<'a> Display for IdentTyDef<'a> {
     }
 }
 
-pub(crate) struct HirUdt<'a> {
+pub struct HirUdt<'a> {
     compilation: &'a Compilation,
     ident: &'a hir::Ident,
     udt: &'a hir::ty::Udt,
