@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{get_completions, CompletionItem, CompletionItemKind};
+use super::{get_completions, CompletionItemKind};
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 
 #[test]

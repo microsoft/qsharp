@@ -109,6 +109,7 @@ pub struct CompletionList {
 }
 
 #[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)] // These types propagate to JS which expects camelCase
 pub struct CompletionItem {
     pub label: String,
     pub sortText: Option<String>,
