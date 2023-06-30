@@ -2,49 +2,31 @@
 // Licensed under the MIT License.
 
 import { ShotResult, Dump, Result } from "./common.js";
-import { log } from "./log.js";
+import { log } from "../log.js";
+import { IServiceEventTarget } from "../worker-proxy.js";
 
 // Create strongly typed compiler events
-type QscEvent<T> = Event & { detail: T };
-interface QscEventMap {
-  Message: QscEvent<string>;
-  DumpMachine: QscEvent<Dump>;
-  Result: QscEvent<Result>;
-  uiResultsRefresh: QscEvent<void>;
-}
+export type QscEventData =
+  | { type: "Message"; detail: string }
+  | { type: "DumpMachine"; detail: Dump }
+  | { type: "Result"; detail: Result };
 
-// Union of valid message names
-type QscMessageNames = keyof QscEventMap;
+export type QscEvents = Event & QscEventData;
 
-// Given the message name, return the type of the 'details' property
-type QscEventDetail<K extends QscMessageNames> = QscEventMap[K]["detail"];
-
-// Union of all possible events types that may be dispatched
-export type QscEvents = QscEventMap[keyof QscEventMap];
-
-type QscEventHandler<T extends Event> = (event: T) => void;
+export type QscEvent<T extends QscEvents["type"]> = Extract<
+  QscEvents,
+  { type: T }
+>;
 
 // Strongly typed event target for compiler operations.
-export interface IQscEventTarget {
-  addEventListener<K extends keyof QscEventMap>(
-    type: K,
-    listener: QscEventHandler<QscEventMap[K]>
-  ): void;
-
-  removeEventListener<K extends keyof QscEventMap>(
-    type: K,
-    listener: QscEventHandler<QscEventMap[K]>
-  ): void;
-
-  dispatchEvent(event: QscEvents): boolean;
-}
+export type IQscEventTarget = IServiceEventTarget<QscEventData>;
 
 // Convenience method that also provides type safety
-export function makeEvent<K extends QscMessageNames>(
-  type: K,
-  detail: QscEventDetail<K>
-): QscEventMap[K] {
-  const event = new Event(type) as QscEventMap[K];
+export function makeEvent<E extends QscEvents>(
+  type: E["type"],
+  detail: E["detail"]
+): E {
+  const event = new Event(type) as E;
   event.detail = detail;
   return event;
 }
@@ -53,37 +35,47 @@ function makeResultObj(): ShotResult {
   return { success: false, result: "", events: [] };
 }
 
-export class QscEventTarget extends EventTarget implements IQscEventTarget {
+// The actual event target implementation adds one more event type
+// to notify the UI that the results should be refreshed.
+// This event does not come from the compiler service itself
+// so it's not exposed as part of QscEvents or IQscEventTarget.
+// Direct consumers of QscEventTarget can attach a listener for
+// this event.
+type QscUiEvents =
+  | QscEvents
+  | (Event & { type: "uiResultsRefresh"; detail: undefined });
+
+export class QscEventTarget implements IQscEventTarget {
+  private eventTarget = new EventTarget();
   private results: ShotResult[] = [];
   private shotActive = false;
   private animationFrameId = 0;
   private supportsUiRefresh = false;
 
   // Overrides for the base EventTarget methods to limit to expected event types
-  addEventListener<K extends keyof QscEventMap>(
-    type: K,
-    listener: QscEventHandler<QscEventMap[K]>
+  addEventListener<T extends QscUiEvents["type"]>(
+    type: T,
+    listener: (event: Extract<QscEvents, { type: T }>) => void
   ): void {
-    super.addEventListener(type, listener as EventListener);
+    this.eventTarget.addEventListener(type, listener as EventListener);
   }
 
-  removeEventListener<K extends keyof QscEventMap>(
-    type: K,
-    listener: QscEventHandler<QscEventMap[K]>
+  removeEventListener<T extends QscUiEvents["type"]>(
+    type: T,
+    listener: (event: Extract<QscEvents, { type: T }>) => void
   ): void {
-    super.removeEventListener(type, listener as EventListener);
+    this.eventTarget.removeEventListener(type, listener as EventListener);
   }
 
-  dispatchEvent(event: QscEvents): boolean {
+  dispatchEvent(event: QscUiEvents): boolean {
     if (log.getLogLevel() >= 4) log.debug("Dispatching event: %o", event);
-    return super.dispatchEvent(event);
+    return this.eventTarget.dispatchEvent(event);
   }
 
   /**
    * @param captureEvents Set to true if this instance should record events internally
    */
   constructor(captureEvents: boolean) {
-    super();
     this.supportsUiRefresh =
       typeof globalThis.requestAnimationFrame === "function";
 
@@ -143,7 +135,7 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
 
   private onUiRefresh() {
     this.animationFrameId = 0;
-    const uiRefreshEvent = makeEvent("uiResultsRefresh", undefined);
+    const uiRefreshEvent = new Event("uiResultsRefresh") as QscUiEvents;
     this.dispatchEvent(uiRefreshEvent);
   }
 

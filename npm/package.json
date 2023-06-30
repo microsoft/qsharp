@@ -17,7 +17,8 @@
       "node": "./dist/main.js",
       "default": "./dist/browser.js"
     },
-    "./worker": "./dist/worker-browser.js"
+    "./compiler-worker": "./dist/compiler/worker-browser.js",
+    "./language-service-worker": "./dist/language-service/worker-browser.js"
   },
   "scripts": {
     "build": "npm run generate && npm run build:tsc",
