@@ -31,7 +31,7 @@ pub struct CompletionList {
 pub struct CompletionItem {
     pub label: String,
     pub kind: CompletionItemKind,
-    pub sortText: Option<String>,
+    pub sort_text: Option<String>,
 }
 
 pub(crate) fn get_completions(
@@ -109,7 +109,7 @@ struct CompletionListBuilder {
 impl CompletionListBuilder {
     fn new() -> Self {
         CompletionListBuilder {
-            current_sort_group: 0,
+            current_sort_group: 1,
             items: Vec::new(),
         }
     }
@@ -119,7 +119,7 @@ impl CompletionListBuilder {
     }
 
     fn push_item_decl_keywords(&mut self) {
-        static ITEM_KEYWORDS: [&str; 4] = ["function", "newtype", "open", "operation"];
+        static ITEM_KEYWORDS: [&str; 5] = ["operation", "open", "internal", "function", "newtype"];
 
         self.push_completions(ITEM_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
     }
@@ -130,8 +130,8 @@ impl CompletionListBuilder {
 
     fn push_types(&mut self) {
         static PRIMITIVE_TYPES: [&str; 10] = [
-            "BigInt", "Bool", "Double", "Int", "Pauli", "Qubit", "Range", "Result", "String",
-            "Unit",
+            "Qubit", "Int", "Unit", "Result", "Bool", "BigInt", "Double", "Pauli", "Range",
+            "String",
         ];
         static FUNCTOR_KEYWORDS: [&str; 3] = ["Adj", "Ctl", "is"];
 
@@ -161,14 +161,14 @@ impl CompletionListBuilder {
     }
 
     fn push_stmt_keywords(&mut self) {
-        static STMT_KEYWORDS: [&str; 5] = ["let", "mutable", "use", "borrow", "return"];
+        static STMT_KEYWORDS: [&str; 5] = ["let", "return", "use", "mutable", "borrow"];
 
         self.push_completions(STMT_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
     }
 
     fn push_expr_keywords(&mut self) {
         static EXPR_KEYWORDS: [&str; 11] = [
-            "for", "in", "if", "repeat", "until", "fixup", "set", "while", "within", "apply",
+            "if", "for", "in", "within", "apply", "repeat", "until", "fixup", "set", "while",
             "fail",
         ];
 
@@ -178,15 +178,23 @@ impl CompletionListBuilder {
     /// Each invocation of this function increments the sort group so that
     /// in the eventual completion list, the groups of items show up in the
     /// order they were added.
-    /// The items are then sorted alphabetically according to their names.
+    /// The items are then sorted according to the input list order (not alphabetical)
     fn push_completions<'a, I>(&mut self, iter: I, kind: CompletionItemKind)
     where
         I: Iterator<Item = &'a str>,
     {
+        let mut current_sort_prefix = 0;
+
         self.items.extend(iter.map(|name| CompletionItem {
             label: name.to_string(),
             kind,
-            sortText: Some(format!("{:02} {}", self.current_sort_group, name)),
+            sort_text: {
+                current_sort_prefix += 1;
+                Some(format!(
+                    "{:02}{:02}{}",
+                    self.current_sort_group, current_sort_prefix, name
+                ))
+            },
         }));
 
         self.current_sort_group += 1;
@@ -201,8 +209,8 @@ impl CompletionListBuilder {
             .extend(iter.map(|(name, item_sort_group)| CompletionItem {
                 label: name.to_string(),
                 kind,
-                sortText: Some(format!(
-                    "{:02} {:02} {}",
+                sort_text: Some(format!(
+                    "{:02}{:02}{}",
                     self.current_sort_group, item_sort_group, name
                 )),
             }));

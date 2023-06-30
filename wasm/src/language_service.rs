@@ -55,7 +55,7 @@ impl LanguageService {
                         qsls::completion::CompletionItemKind::Module => "module",
                     })
                     .to_string(),
-                    sortText: i.sortText,
+                    sort_text: i.sort_text,
                 })
                 .collect(),
         })?)
@@ -98,7 +98,7 @@ export interface ICompletionList {
     items: Array<{
         label: string;
         kind: "function" | "interface" | "keyword" | "module";
-        sortText?: string;
+        sort_text?: string;
     }>
 }
 "#;
@@ -111,7 +111,7 @@ pub struct CompletionList {
 #[derive(Serialize, Deserialize)]
 pub struct CompletionItem {
     pub label: String,
-    pub sortText: Option<String>,
+    pub sort_text: Option<String>,
     pub kind: String,
 }
 
