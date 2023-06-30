@@ -50,9 +50,9 @@ impl LanguageService {
                     label: i.label,
                     kind: (match i.kind {
                         qsls::completion::CompletionItemKind::Function => "function",
-                        qsls::completion::CompletionItemKind::Module => "module",
+                        qsls::completion::CompletionItemKind::Interface => "interface",
                         qsls::completion::CompletionItemKind::Keyword => "keyword",
-                        qsls::completion::CompletionItemKind::Issue => "issue",
+                        qsls::completion::CompletionItemKind::Module => "module",
                     })
                     .to_string(),
                 })
@@ -96,7 +96,7 @@ const ICompletionList: &'static str = r#"
 export interface ICompletionList {
     items: Array<{
         label: string;
-        kind: "function" | "module" | "keyword" | "issue";
+        kind: "function" | "interface" | "keyword" | "module";
     }>
 }
 "#;
