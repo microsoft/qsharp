@@ -39,6 +39,22 @@ fn check_result_array_as_int() {
 }
 
 #[test]
+fn check_result_zero_as_bool() {
+    test_expression(
+        "Microsoft.Quantum.Convert.ResultAsBool(Zero)",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
+fn check_result_one_as_bool() {
+    test_expression(
+        "Microsoft.Quantum.Convert.ResultAsBool(One)",
+        &Value::Bool(true),
+    );
+}
+
+#[test]
 fn check_result_array_as_bool_array() {
     test_expression(
         "Microsoft.Quantum.Convert.ResultArrayAsBoolArray([One, Zero, One, Zero])",
@@ -51,6 +67,22 @@ fn check_result_array_as_bool_array() {
             ]
             .into(),
         ),
+    );
+}
+
+#[test]
+fn check_bool_true_as_result() {
+    test_expression(
+        "Microsoft.Quantum.Convert.BoolAsResult(true)",
+        &Value::Result(true),
+    );
+}
+
+#[test]
+fn check_bool_false_as_result() {
+    test_expression(
+        "Microsoft.Quantum.Convert.BoolAsResult(false)",
+        &Value::Result(false),
     );
 }
 
