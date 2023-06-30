@@ -81,7 +81,7 @@ impl<'a> CodeDisplay<'a> {
 
 // Display impls for each syntax/hir element we may encounter
 
-pub struct IdentTy<'a> {
+struct IdentTy<'a> {
     ident: &'a ast::Ident,
     ty: &'a ast::Ty,
 }
@@ -92,7 +92,7 @@ impl<'a> Display for IdentTy<'a> {
     }
 }
 
-pub struct IdentTyId<'a> {
+struct IdentTyId<'a> {
     compilation: &'a Compilation,
     ident: &'a ast::Ident,
     ty_id: ast::NodeId,
@@ -112,7 +112,7 @@ impl<'a> Display for IdentTyId<'a> {
     }
 }
 
-pub struct PathTyId<'a> {
+struct PathTyId<'a> {
     compilation: &'a Compilation,
     path: &'a ast::Path,
     ty_id: ast::NodeId,
@@ -132,7 +132,7 @@ impl<'a> Display for PathTyId<'a> {
     }
 }
 
-pub struct HirCallableDecl<'a, 'b> {
+struct HirCallableDecl<'a, 'b> {
     compilation: &'a Compilation,
     decl: &'b hir::CallableDecl,
 }
@@ -165,7 +165,7 @@ impl Display for HirCallableDecl<'_, '_> {
     }
 }
 
-pub struct AstCallableDecl<'a> {
+struct AstCallableDecl<'a> {
     compilation: &'a Compilation,
     decl: &'a ast::CallableDecl,
 }
@@ -198,7 +198,7 @@ impl<'a> Display for AstCallableDecl<'a> {
     }
 }
 
-pub struct IdentTyDef<'a> {
+struct IdentTyDef<'a> {
     ident: &'a ast::Ident,
     def: &'a ast::TyDef,
 }
@@ -209,7 +209,7 @@ impl<'a> Display for IdentTyDef<'a> {
     }
 }
 
-pub struct HirUdt<'a> {
+struct HirUdt<'a> {
     compilation: &'a Compilation,
     ident: &'a hir::Ident,
     udt: &'a hir::ty::Udt,
