@@ -22,7 +22,7 @@ pub const EXERCISE_ENTRY: &str = "Kata.VerifyExercise()";
 /// # Panics
 ///
 /// Will panic if evaluation does not return a boolean as result.
-pub fn verify_exercise(
+pub fn check_solution(
     exercise_sources: Vec<(SourceName, SourceContents)>,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {

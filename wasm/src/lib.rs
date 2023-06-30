@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::language_service::VSDiagnostic;
-use katas::verify_exercise;
+use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -170,7 +170,7 @@ pub fn run(
     }
 }
 
-fn run_kata_exercise_internal(
+fn check_exercise_solution_internal(
     exercise_code: &str,
     solution_code: &str,
     verification_code: &str,
@@ -186,7 +186,7 @@ fn run_kata_exercise_internal(
         sources.push(code_dependency);
     }
     let mut out = CallbackReceiver { event_cb };
-    let result = verify_exercise(sources, &mut out);
+    let result = check_solution(sources, &mut out);
     let mut runtime_success = true;
     let (exercise_success, msg) = match result {
         Ok(value) => (value, serde_json::Value::String(value.to_string())),
@@ -204,7 +204,7 @@ fn run_kata_exercise_internal(
 }
 
 #[wasm_bindgen]
-pub fn run_kata_exercise(
+pub fn check_exercise_solution(
     exercise_code: &str,
     solution_code: &str,
     verification_code: &str,
@@ -217,7 +217,7 @@ pub fn run_kata_exercise(
     for (index, code) in code_dependencies_strs.into_iter().enumerate() {
         code_dependencies.push((index.to_string().into(), code.into()));
     }
-    let success = run_kata_exercise_internal(
+    let success = check_exercise_solution_internal(
         exercise_code,
         solution_code,
         verification_code,

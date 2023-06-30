@@ -21,7 +21,7 @@ fn run_exercise_verification(
 ) -> Result<bool, Vec<stateless::Error>> {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    let result = crate::verify_exercise(
+    let result = crate::check_solution(
         vec![
             ("exercise_implementation".into(), exercise.into()),
             ("solution".into(), solution.into()),

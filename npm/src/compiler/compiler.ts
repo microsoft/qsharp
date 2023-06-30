@@ -90,7 +90,7 @@ export class Compiler implements ICompiler {
     code_dependencies: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
-    const success = this.wasm.run_kata_exercise(
+    const success = this.wasm.check_exercise_solution(
       user_code,
       solution_code,
       verification_code,
