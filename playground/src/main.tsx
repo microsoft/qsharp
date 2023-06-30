@@ -214,6 +214,7 @@ function registerMonacoLanguageServiceProviders(
             label: i.label,
             kind: kind,
             insertText: i.label,
+            sortText: i.sortText,
             range: undefined,
           };
         }),

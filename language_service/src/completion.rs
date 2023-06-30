@@ -31,6 +31,7 @@ pub struct CompletionList {
 pub struct CompletionItem {
     pub label: String,
     pub kind: CompletionItemKind,
+    pub sortText: Option<String>,
 }
 
 pub(crate) fn get_completions(
@@ -65,20 +66,30 @@ pub(crate) fn get_completions(
     let mut builder = CompletionListBuilder::new();
     match context_finder.context {
         Context::Namespace => {
-            // We're in a namespace block, so include open, operation, etc
+            // Include "open", "operation", etc
             builder.push_item_decl_keywords();
 
-            // Typing the signature to a callable decl sometimes breaks the
+            // Typing into a callable decl sometimes breaks the
             // parser and the context appears to be a namespace block,
-            // so just include types which would be relevant in that context too
+            // so just include everything that may be relevant
+            builder.push_stmt_keywords();
+            builder.push_expr_keywords();
             builder.push_types();
+            builder.push_globals(compilation);
         }
+
         Context::CallableSignature => {
             builder.push_types();
         }
         Context::Block => {
-            // Anything goes in a block
-            builder.push_all(compilation);
+            // Pretty much anything goes in a block
+            builder.push_stmt_keywords();
+            builder.push_expr_keywords();
+            builder.push_types();
+            builder.push_globals(compilation);
+
+            // Item decl keywords last, unlike in a namespace
+            builder.push_item_decl_keywords();
         }
         Context::NoCompilation | Context::TopLevel => {
             builder.push_namespace_keyword();
@@ -91,12 +102,16 @@ pub(crate) fn get_completions(
 }
 
 struct CompletionListBuilder {
+    current_sort_group: u32,
     items: Vec<CompletionItem>,
 }
 
 impl CompletionListBuilder {
     fn new() -> Self {
-        CompletionListBuilder { items: Vec::new() }
+        CompletionListBuilder {
+            current_sort_group: 0,
+            items: Vec::new(),
+        }
     }
 
     fn into_items(self) -> Vec<CompletionItem> {
@@ -137,27 +152,33 @@ impl CompletionListBuilder {
             .expect("expected to find core package")
             .package;
 
-        self.push_completions(Self::get_callables(current), CompletionItemKind::Function);
-        self.push_completions(Self::get_callables(std), CompletionItemKind::Function);
-        self.push_completions(Self::get_callables(core), CompletionItemKind::Function);
+        self.push_sorted_completions(Self::get_callables(current), CompletionItemKind::Function);
+        self.push_sorted_completions(Self::get_callables(std), CompletionItemKind::Function);
+        self.push_sorted_completions(Self::get_callables(core), CompletionItemKind::Function);
         self.push_completions(Self::get_namespaces(current), CompletionItemKind::Module);
         self.push_completions(Self::get_namespaces(std), CompletionItemKind::Module);
         self.push_completions(Self::get_namespaces(core), CompletionItemKind::Module);
     }
 
-    fn push_all(&mut self, compilation: &Compilation) {
+    fn push_stmt_keywords(&mut self) {
         static STMT_KEYWORDS: [&str; 5] = ["let", "mutable", "use", "borrow", "return"];
+
+        self.push_completions(STMT_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
+    }
+
+    fn push_expr_keywords(&mut self) {
         static EXPR_KEYWORDS: [&str; 11] = [
             "for", "in", "if", "repeat", "until", "fixup", "set", "while", "within", "apply",
             "fail",
         ];
-        self.push_types();
-        self.push_completions(STMT_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
+
         self.push_completions(EXPR_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
-        self.push_globals(compilation);
-        self.push_item_decl_keywords();
     }
 
+    /// Each invocation of this function increments the sort group so that
+    /// in the eventual completion list, the groups of items show up in the
+    /// order they were added.
+    /// The items are then sorted alphabetically according to their names.
     fn push_completions<'a, I>(&mut self, iter: I, kind: CompletionItemKind)
     where
         I: Iterator<Item = &'a str>,
@@ -165,12 +186,38 @@ impl CompletionListBuilder {
         self.items.extend(iter.map(|name| CompletionItem {
             label: name.to_string(),
             kind,
+            sortText: Some(format!("{:02} {}", self.current_sort_group, name)),
         }));
+
+        self.current_sort_group += 1;
     }
 
-    fn get_callables(package: &Package) -> impl Iterator<Item = &str> {
+    /// Push a group of completions that are themselves sorted into subgroups
+    fn push_sorted_completions<'a, I>(&mut self, iter: I, kind: CompletionItemKind)
+    where
+        I: Iterator<Item = (&'a str, u32)>,
+    {
+        self.items
+            .extend(iter.map(|(name, item_sort_group)| CompletionItem {
+                label: name.to_string(),
+                kind,
+                sortText: Some(format!(
+                    "{:02} {:02} {}",
+                    self.current_sort_group, item_sort_group, name
+                )),
+            }));
+
+        self.current_sort_group += 1;
+    }
+
+    fn get_callables(package: &Package) -> impl Iterator<Item = (&str, u32)> {
         package.items.values().filter_map(|i| match &i.kind {
-            ItemKind::Callable(callable_decl) => Some(callable_decl.name.name.as_ref()),
+            ItemKind::Callable(callable_decl) => Some({
+                let name = callable_decl.name.name.as_ref();
+                // Everything that starts with a __ goes last in the list
+                let sort_group = u32::from(name.starts_with("__"));
+                (name, sort_group)
+            }),
             _ => None,
         })
     }
