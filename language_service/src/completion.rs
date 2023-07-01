@@ -56,8 +56,8 @@ pub(crate) fn get_completions(
     context_finder.visit_package(&compilation.unit.ast.package);
 
     // We don't attempt to be comprehensive or accurate when determining completions,
-    // since that's not really possible without access to the AST, more sophisticated
-    // error recovery in the parser, and the ability for the resolver to gather all
+    // since that's not really possible without more sophisticated error recovery
+    // in the parser or the ability for the resolver to gather all
     // appropriate names for a scope. These are not done at the moment.
 
     // So the following is an attempt to get "good enough" completions, tuned
