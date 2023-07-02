@@ -26,7 +26,7 @@ export interface ICompiler {
     shots: number,
     eventHandler: IQscEventTarget
   ): Promise<void>;
-  runKataExercise(
+  checkExerciseSolution(
     user_code: string,
     verification_code: string,
     code_dependencies: string[],
@@ -82,7 +82,7 @@ export class Compiler implements ICompiler {
     );
   }
 
-  async runKataExercise(
+  async checkExerciseSolution(
     user_code: string,
     verification_code: string,
     code_dependencies: string[],

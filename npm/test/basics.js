@@ -93,7 +93,7 @@ async function validateExercise(exercise, code) {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
   const dependencies = await getExerciseDependencies(exercise);
-  const success = await compiler.runKataExercise(
+  const success = await compiler.checkExerciseSolution(
     code,
     exercise.verificationCode,
     dependencies,

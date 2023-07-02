@@ -129,7 +129,7 @@ export function Editor(props: {
       if (props.kataExercise) {
         // This is for a kata exercise. Provide the verification code.
         const dependencies = await getExerciseDependencies(props.kataExercise);
-        await props.compiler.runKataExercise(
+        await props.compiler.checkExerciseSolution(
           code,
           props.kataExercise.verificationCode,
           dependencies,
