@@ -13,7 +13,7 @@ use qsc::{
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
 
-pub const EXERCISE_ENTRY: &str = "Kata.VerifyExercise()";
+pub const EXERCISE_ENTRY: &str = "Kata.Verification.CheckSolution()";
 
 /// # Errors
 ///

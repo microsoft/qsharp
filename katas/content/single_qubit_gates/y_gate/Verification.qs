@@ -1,9 +1,14 @@
-namespace Kata {
+namespace Kata.Verification {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
-    operation VerifyExercise() : Bool {
-        let isCorrect = VerifySingleQubitOperation(ApplyY, Kata.Solution.ApplyY);
+    operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
+        // Apply the Pauli Y operation.
+        Y(q);
+    }
+
+    operation CheckSolution() : Bool {
+        let isCorrect = VerifySingleQubitOperation(Kata.ApplyY, ApplyY);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         use target = Qubit[1];

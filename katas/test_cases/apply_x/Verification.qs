@@ -1,12 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Kata {
+namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
 
-    operation VerifyExercise() : Bool {
-        VerifySingleQubitOperation(ApplyX, Kata.Solution.ApplyX)
+    operation CheckSolution() : Bool {
+        VerifySingleQubitOperation(Kata.ApplyX, ApplyX)
+    }
+
+    operation ApplyX(q : Qubit) : Unit is Adj + Ctl {
+        X(q);
     }
 
     operation VerifySingleQubitOperation(

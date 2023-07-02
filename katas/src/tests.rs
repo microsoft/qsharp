@@ -14,16 +14,11 @@ fn test_cases_dir() -> PathBuf {
         .join("test_cases")
 }
 
-fn run_exercise_verification(
-    exercise: &str,
-    solution: &str,
-    verification: &str,
-) -> Result<bool, Vec<stateless::Error>> {
+fn run_check_solution(solution: &str, verification: &str) -> Result<bool, Vec<stateless::Error>> {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     let result = crate::check_solution(
         vec![
-            ("exercise_implementation".into(), exercise.into()),
             ("solution".into(), solution.into()),
             ("verification".into(), verification.into()),
         ],
@@ -33,18 +28,16 @@ fn run_exercise_verification(
     result
 }
 
-fn validate_exercise_implementation(
-    exercise_source: impl AsRef<Path>,
+fn test_check_solution(
     solution_source: impl AsRef<Path>,
     verification_source: impl AsRef<Path>,
     expected_result: bool,
 ) {
-    let exercise = fs::read_to_string(exercise_source).expect("exercise file should be readable");
     let solution = fs::read_to_string(solution_source).expect("solution file should be readable");
     let verification =
         fs::read_to_string(verification_source).expect("verification file should be readable");
-    let result = run_exercise_verification(&exercise, &solution, &verification)
-        .expect("exercise should run successfully");
+    let result =
+        run_check_solution(&solution, &verification).expect("exercise should run successfully");
     assert!(
         result == expected_result,
         "exercise result is different than expected"
@@ -52,17 +45,15 @@ fn validate_exercise_implementation(
 }
 
 #[test]
-fn validate_exercise_is_correct() {
-    let exercise_source = test_cases_dir().join("apply_x").join("Correct.qs");
-    let solution_source = test_cases_dir().join("apply_x").join("Solution.qs");
+fn test_check_solution_is_correct() {
+    let solution_source = test_cases_dir().join("apply_x").join("Correct.qs");
     let verification_source = test_cases_dir().join("apply_x").join("Verification.qs");
-    validate_exercise_implementation(exercise_source, solution_source, verification_source, true);
+    test_check_solution(solution_source, verification_source, true);
 }
 
 #[test]
-fn validate_exercise_is_incorrect() {
-    let exercise_source = test_cases_dir().join("apply_x").join("Incorrect.qs");
-    let solution_source = test_cases_dir().join("apply_x").join("Solution.qs");
+fn test_check_solution_is_incorrect() {
+    let solution_source = test_cases_dir().join("apply_x").join("Incorrect.qs");
     let verification_source = test_cases_dir().join("apply_x").join("Verification.qs");
-    validate_exercise_implementation(exercise_source, solution_source, verification_source, false);
+    test_check_solution(solution_source, verification_source, false);
 }

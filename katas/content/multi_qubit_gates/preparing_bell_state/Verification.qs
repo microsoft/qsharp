@@ -1,17 +1,22 @@
-namespace Kata {
+namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
-    operation VerifyExercise() : Bool {
-        let isCorrect = VerifyMultiQubitOperation(BellState, Kata.Solution.BellState);
+    operation BellState (qs : Qubit[]) : Unit is Adj + Ctl {
+        H(qs[0]);
+        CNOT(qs[0], qs[1]);
+    }
+
+    operation CheckSolution() : Bool {
+        let isCorrect = VerifyMultiQubitOperation(Kata.BellState, BellState);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         use target = Qubit[2];
         if isCorrect {
-            ShowEffectOnQuantumState(target, BellState);
+            ShowEffectOnQuantumState(target, Kata.BellState);
         } else {
-            ShowQuantumStateComparison(target, BellState, Kata.Solution.BellState);
+            ShowQuantumStateComparison(target, Kata.BellState, BellState);
         }
 
         isCorrect
