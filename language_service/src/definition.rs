@@ -20,12 +20,12 @@ pub(crate) fn get_definition(
     offset: u32,
 ) -> Option<Definition> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.source_map, source_name, offset);
-    let package = &compilation.package;
+    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let package = &compilation.unit.package;
 
     let mut definition_finder = DefinitionFinder {
         package,
-        source_map: &compilation.source_map,
+        source_map: &compilation.unit.sources,
         offset,
         definition: None,
     };
