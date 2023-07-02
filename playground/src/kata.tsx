@@ -47,11 +47,7 @@ export function Kata(props: {
       if (section.type === "text") {
         div.innerHTML = section.contentAsHtml;
       } else if (section.type === "exercise") {
-        div.innerHTML =
-          section.solutionDescriptionAsHtml +
-          "<pre><code>" +
-          section.solutionCode +
-          "</code></pre>";
+        div.innerHTML = section.solutionAsHtml;
       } else {
         div.innerHTML = "";
       }

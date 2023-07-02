@@ -15,9 +15,8 @@ export type Exercise = {
   codeDependencies: string[];
   verificationCode: string;
   placeholderCode: string;
-  solutionCode: string;
-  solutionDescriptionAsHtml: string;
-  solutionDescriptionAsMarkdown: string;
+  solutionAsHtml: string;
+  solutionAsMarkdown: string;
 };
 
 export type Text = {

@@ -152,24 +152,19 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
     join(kataPath, properties.placeholderSourcePath),
     `Could not read placeholder code for exercise ${properties.id}`
   );
-  const solutionCode = tryReadFile(
-    join(kataPath, properties.solutionSourcePath),
-    `Could not read solution code for exercise ${properties.id}`
-  );
-  const solutionDescriptionAsMarkdown = tryReadFile(
+  const solutionAsMarkdown = tryReadFile(
     join(kataPath, properties.solutionDescriptionPath),
     `Could not read solution description for exercise ${properties.id}`
   );
-  const solutionDescriptionAsHtml = marked.parse(solutionDescriptionAsMarkdown);
+  const solutionAsHtml = marked.parse(solutionAsMarkdown);
   return {
     type: "exercise",
     id: properties.id,
     codeDependencies: codeDependencies,
     verificationCode: verificationCode,
     placeholderCode: placeholderCode,
-    solutionCode: solutionCode,
-    solutionDescriptionAsMarkdown: solutionDescriptionAsMarkdown,
-    solutionDescriptionAsHtml: solutionDescriptionAsHtml,
+    solutionAsMarkdown: solutionAsMarkdown,
+    solutionAsHtml: solutionAsHtml,
   };
 }
 
