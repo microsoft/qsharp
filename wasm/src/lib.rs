@@ -171,14 +171,12 @@ pub fn run(
 }
 
 fn check_exercise_solution_internal(
-    exercise_code: &str,
     solution_code: &str,
     verification_code: &str,
     code_dependencies: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
 ) -> bool {
     let mut sources = vec![
-        ("exercise".into(), exercise_code.into()),
         ("solution".into(), solution_code.into()),
         ("verification".into(), verification_code.into()),
     ];
@@ -205,7 +203,6 @@ fn check_exercise_solution_internal(
 
 #[wasm_bindgen]
 pub fn check_exercise_solution(
-    exercise_code: &str,
     solution_code: &str,
     verification_code: &str,
     code_dependencies_js: JsValue,
@@ -218,7 +215,6 @@ pub fn check_exercise_solution(
         code_dependencies.push((index.to_string().into(), code.into()));
     }
     let success = check_exercise_solution_internal(
-        exercise_code,
         solution_code,
         verification_code,
         code_dependencies,

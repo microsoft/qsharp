@@ -95,7 +95,6 @@ async function validateExercise(exercise, code) {
   const dependencies = await getExerciseDependencies(exercise);
   const success = await compiler.runKataExercise(
     code,
-    exercise.solutionCode,
     exercise.verificationCode,
     dependencies,
     evtTarget
