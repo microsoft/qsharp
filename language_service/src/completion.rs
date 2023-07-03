@@ -42,8 +42,8 @@ pub(crate) fn get_completions(
     offset: u32,
 ) -> CompletionList {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.source_map, source_name, offset);
-    let package = &compilation.package;
+    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let package = &compilation.unit.package;
     let std_package = &compilation
         .package_store
         .get(compilation.std_package_id)
@@ -70,7 +70,7 @@ pub(crate) fn get_completions(
     // Determine context for the offset
     let mut context_builder = ContextFinder {
         offset,
-        context: if compilation.package.items.values().next().is_none() {
+        context: if compilation.unit.package.items.values().next().is_none() {
             Context::NoCompilation
         } else {
             Context::TopLevel
