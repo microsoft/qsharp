@@ -9,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dev-dependencies]
+expect-test = { workspace = true }
 indoc = { workspace = true }
 
 [dependencies]
