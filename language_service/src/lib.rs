@@ -5,6 +5,7 @@
 
 pub mod completion;
 pub mod definition;
+mod display;
 pub mod hover;
 mod qsc_utils;
 #[cfg(test)]
