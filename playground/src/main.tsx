@@ -211,20 +211,21 @@ function registerMonacoLanguageServiceProviders(
             case "function":
               kind = monaco.languages.CompletionItemKind.Function;
               break;
-            case "module":
-              kind = monaco.languages.CompletionItemKind.Module;
+            case "interface":
+              kind = monaco.languages.CompletionItemKind.Interface;
               break;
             case "keyword":
               kind = monaco.languages.CompletionItemKind.Keyword;
               break;
-            case "issue":
-              kind = monaco.languages.CompletionItemKind.Issue;
+            case "module":
+              kind = monaco.languages.CompletionItemKind.Module;
               break;
           }
           return {
             label: i.label,
             kind: kind,
             insertText: i.label,
+            sortText: i.sortText,
             range: undefined,
           };
         }),

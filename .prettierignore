@@ -9,6 +9,7 @@ __pycache__/
 /jupyterlab/.pytest_cache/
 /jupyterlab/lib/
 /jupyterlab/qsharp_jupyterlab/labextension/
+/katas/**/*.md
 /library/
 /npm/dist/
 /npm/lib/

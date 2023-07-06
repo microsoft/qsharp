@@ -848,6 +848,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "qsc_ast",
  "qsc_codegen",
  "qsc_data_structures",
  "qsc_eval",
@@ -990,6 +991,7 @@ name = "qsls"
 version = "0.0.0"
 dependencies = [
  "enum-iterator",
+ "expect-test",
  "indoc 2.0.0",
  "log",
  "miette",
