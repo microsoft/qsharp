@@ -50,11 +50,12 @@ impl LanguageService {
                     label: i.label,
                     kind: (match i.kind {
                         qsls::completion::CompletionItemKind::Function => "function",
-                        qsls::completion::CompletionItemKind::Module => "module",
+                        qsls::completion::CompletionItemKind::Interface => "interface",
                         qsls::completion::CompletionItemKind::Keyword => "keyword",
-                        qsls::completion::CompletionItemKind::Issue => "issue",
+                        qsls::completion::CompletionItemKind::Module => "module",
                     })
                     .to_string(),
+                    sortText: i.sort_text,
                 })
                 .collect(),
         })?)
@@ -96,7 +97,8 @@ const ICompletionList: &'static str = r#"
 export interface ICompletionList {
     items: Array<{
         label: string;
-        kind: "function" | "module" | "keyword" | "issue";
+        kind: "function" | "interface" | "keyword" | "module";
+        sortText?: string;
     }>
 }
 "#;
@@ -107,8 +109,10 @@ pub struct CompletionList {
 }
 
 #[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)] // These types propagate to JS which expects camelCase
 pub struct CompletionItem {
     pub label: String,
+    pub sortText: Option<String>,
     pub kind: String,
 }
 
