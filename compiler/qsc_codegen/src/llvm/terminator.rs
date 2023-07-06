@@ -2,8 +2,6 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 use super::debugloc::{DebugLoc, HasDebugLoc};
-use super::function::Attribute;
-use super::instruction::HasResult;
 use super::{ConstantRef, Name, Operand};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
@@ -64,16 +62,6 @@ macro_rules! impl_term {
         impl HasDebugLoc for $term {
             fn get_debug_loc(&self) -> &Option<DebugLoc> {
                 &self.debugloc
-            }
-        }
-    };
-}
-
-macro_rules! impl_hasresult {
-    ($term:ty) => {
-        impl HasResult for $term {
-            fn get_result(&self) -> &Name {
-                &self.result
             }
         }
     };
