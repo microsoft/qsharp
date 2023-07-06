@@ -44,3 +44,12 @@ impl Display for Operand {
         }
     }
 }
+
+impl Operand {
+    pub fn fmt_without_type(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Operand::LocalOperand { name, .. } => write!(f, "{name}"),
+            Operand::ConstantOperand(cref) => cref.fmt_without_type(f),
+        }
+    }
+}

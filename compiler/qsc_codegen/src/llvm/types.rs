@@ -2,7 +2,6 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::module::AddrSpace;
 use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -20,10 +19,7 @@ pub enum Type {
     /// See [LLVM 14 docs on Integer Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#integer-type)
     Integer { bits: u32 },
     /// See [LLVM 14 docs on Pointer Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#pointer-type)
-    Pointer {
-        pointee_type: TypeRef,
-        addr_space: AddrSpace,
-    },
+    Pointer { pointee_type: TypeRef },
     /// See [LLVM 14 docs on Floating-Point Types](https://releases.llvm.org/14.0.0/docs/LangRef.html#floating-point-types)
     Fp(FPType),
     /// See [LLVM 14 docs on Function Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#function-type)
@@ -219,8 +215,8 @@ pub struct Builder {
     void_type: TypeRef,
     /// Map of integer size to `Type::IntegerType` of that size
     int_types: TypeCache<u32>,
-    /// Map of (pointee type, address space) to the corresponding `Type::PointerType`
-    pointer_types: TypeCache<(TypeRef, AddrSpace)>,
+    /// Map of pointee type to the corresponding `Type::PointerType`
+    pointer_types: TypeCache<TypeRef>,
     /// Map of `FPType` to the corresponding `Type::FPType`
     fp_types: TypeCache<FPType>,
     /// Map of `(result_type, param_types, is_var_arg)` to the corresponding `Type::FunctionType`
@@ -331,20 +327,8 @@ impl Builder {
 
     /// Get a pointer type in the default address space (`0`)
     pub fn pointer_to(&mut self, pointee_type: TypeRef) -> TypeRef {
-        self.pointer_in_addr_space(pointee_type, 0) // default to address space 0
-    }
-
-    /// Get a pointer in the specified address space
-    pub fn pointer_in_addr_space(
-        &mut self,
-        pointee_type: TypeRef,
-        addr_space: AddrSpace,
-    ) -> TypeRef {
         self.pointer_types
-            .lookup_or_insert((pointee_type.clone(), addr_space), || Type::Pointer {
-                pointee_type,
-                addr_space,
-            })
+            .lookup_or_insert(pointee_type.clone(), || Type::Pointer { pointee_type })
     }
 
     /// Get a floating-point type

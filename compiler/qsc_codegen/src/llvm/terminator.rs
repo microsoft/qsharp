@@ -2,7 +2,7 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 use super::debugloc::{DebugLoc, HasDebugLoc};
-use super::function::{Attribute, ParameterAttribute};
+use super::function::Attribute;
 use super::instruction::HasResult;
 use super::{ConstantRef, Name, Operand};
 use std::convert::TryFrom;
@@ -272,8 +272,7 @@ impl Display for IndirectBr {
 #[derive(PartialEq, Clone, Debug)]
 pub struct Invoke {
     pub function: Operand,
-    pub arguments: Vec<(Operand, Vec<ParameterAttribute>)>,
-    pub return_attributes: Vec<ParameterAttribute>,
+    pub arguments: Vec<Operand>,
     pub result: Name, // The name of the variable that will get the result of the call (if the callee returns with 'ret')
     pub return_label: Name, // Should be the name of a basic block. If the callee returns normally (i.e., with 'ret'), control flow resumes here.
     pub exception_label: Name, // Should be the name of a basic block. If the callee returns with 'resume' or another exception-handling mechanism, control flow resumes here.
@@ -289,7 +288,7 @@ impl Display for Invoke {
         // Like with `Call`, we choose not to include all the detailed
         // information available in the `Invoke` struct in this `Display` impl
         write!(f, "{} = invoke {}(", &self.result, &self.function)?;
-        for (i, (arg, _)) in self.arguments.iter().enumerate() {
+        for (i, arg) in self.arguments.iter().enumerate() {
             if i == self.arguments.len() - 1 {
                 write!(f, "{arg}")?;
             } else {
@@ -447,8 +446,7 @@ impl Display for CatchSwitch {
 #[derive(PartialEq, Clone, Debug)]
 pub struct CallBr {
     pub function: Operand,
-    pub arguments: Vec<(Operand, Vec<ParameterAttribute>)>,
-    pub return_attributes: Vec<ParameterAttribute>,
+    pub arguments: Vec<Operand>,
     pub result: Name, // The name of the variable that will get the result of the call (if the callee returns with 'ret')
     pub return_label: Name, // Should be the name of a basic block. If the callee returns normally (i.e., with 'ret'), control flow resumes here.
     /// `other_labels` should be `Vec<Name>`, but it appears there is no way to get this information with the LLVM C API (as opposed to the C++ API)
@@ -464,7 +462,7 @@ impl Display for CallBr {
         // detailed information available in the `CallBr` struct in this
         // `Display` impl
         write!(f, "{} = callbr {}(", &self.result, &self.function)?;
-        for (i, (arg, _)) in self.arguments.iter().enumerate() {
+        for (i, arg) in self.arguments.iter().enumerate() {
             if i == self.arguments.len() - 1 {
                 write!(f, "{arg}")?;
             } else {

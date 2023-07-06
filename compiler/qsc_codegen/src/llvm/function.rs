@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 
 use super::debugloc::{DebugLoc, HasDebugLoc};
-use super::module::{Linkage, Visibility};
+use super::module::Linkage;
 use super::types::TypeRef;
 use super::{BasicBlock, Name};
 use std::fmt::{Display, Formatter, Result};
@@ -17,9 +17,7 @@ pub struct Function {
     pub return_type: TypeRef,
     pub basic_blocks: Vec<BasicBlock>,
     pub function_attributes: Vec<Attribute>,
-    pub return_attributes: Vec<ParameterAttribute>,
     pub linkage: Linkage,
-    pub visibility: Visibility,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -67,9 +65,7 @@ pub struct Declaration {
     pub parameters: Vec<Parameter>,
     pub is_var_arg: bool,
     pub return_type: TypeRef,
-    pub return_attributes: Vec<ParameterAttribute>,
     pub linkage: Linkage,
-    pub visibility: Visibility,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -91,7 +87,6 @@ impl Display for Declaration {
 pub struct Parameter {
     pub name: Option<Name>,
     pub ty: TypeRef,
-    pub attributes: Vec<ParameterAttribute>,
 }
 
 impl Display for Parameter {
@@ -107,92 +102,7 @@ impl Display for Parameter {
 /// See [LLVM 14 docs on Function Attributes](https://releases.llvm.org/14.0.0/docs/LangRef.html#fnattrs)
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Attribute {
-    AlignStack(u64),
-    AllocSize {
-        elt_size: u32,
-        num_elts: Option<u32>,
-    },
-    AlwaysInline,
-    Builtin,
-    Cold,
-    Convergent,
-    InaccessibleMemOnly,
-    InaccessibleMemOrArgMemOnly,
-    InlineHint,
-    JumpTable,
-    MinimizeSize,
-    Naked,
-    NoBuiltin,
-    NoCFCheck,
-    NoDuplicate,
-    NoFree,
-    NoImplicitFloat,
-    NoInline,
-    NoMerge,
-    NonLazyBind,
-    NoRedZone,
-    NoReturn,
-    NoRecurse,
-    WillReturn,
-    ReturnsTwice,
-    NoSync,
-    NoUnwind,
-    NullPointerIsValid,
-    OptForFuzzing,
-    OptNone,
-    OptSize,
-    ReadNone,
-    ReadOnly,
-    WriteOnly,
-    ArgMemOnly,
-    SafeStack,
-    SanitizeAddress,
-    SanitizeMemory,
-    SanitizeThread,
-    SanitizeHWAddress,
-    SanitizeMemTag,
-    ShadowCallStack,
-    SpeculativeLoadHardening,
-    Speculatable,
-    StackProtect,
-    StackProtectReq,
-    StackProtectStrong,
-    StrictFP,
-    UWTable,
-    StringAttribute {
-        kind: String,
-        value: String,
-    },
-    UnknownAttribute,
-}
-
-/// `ParameterAttribute`s can apply to function parameters as well as function return types.
-/// See [LLVM 14 docs on Parameter Attributes](https://releases.llvm.org/14.0.0/docs/LangRef.html#paramattrs)
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub enum ParameterAttribute {
-    ZeroExt,
-    SignExt,
-    InReg,
-    ByVal(TypeRef),
-    Preallocated(TypeRef),
-    InAlloca(TypeRef),
-    SRet(TypeRef),
-    Alignment(u64),
-    NoAlias,
-    NoCapture,
-    NoFree,
-    Nest,
-    Returned,
-    NonNull,
-    Dereferenceable(u64),
-    DereferenceableOrNull(u64),
-    SwiftSelf,
-    SwiftError,
-    ImmArg,
-    NoUndef,
     StringAttribute { kind: String, value: String },
-    UnknownAttribute,
-    UnknownTypeAttribute(TypeRef),
 }
 
 pub type GroupID = usize;

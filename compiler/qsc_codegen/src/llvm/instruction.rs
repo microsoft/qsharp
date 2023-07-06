@@ -2,9 +2,8 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::constant::ConstantRef;
 use super::debugloc::{DebugLoc, HasDebugLoc};
-use super::function::{Attribute, ParameterAttribute};
+use super::function::Attribute;
 use super::name::Name;
 use super::operand::Operand;
 use super::types::TypeRef;
@@ -46,7 +45,6 @@ pub enum Instruction {
     // Vector ops
     ExtractElement(ExtractElement),
     InsertElement(InsertElement),
-    ShuffleVector(ShuffleVector),
 
     // Aggregate ops
     ExtractValue(ExtractValue),
@@ -56,8 +54,6 @@ pub enum Instruction {
     Alloca(Alloca),
     Load(Load),
     Store(Store),
-    CmpXchg(CmpXchg),
-    AtomicRMW(AtomicRMW),
     GetElementPtr(GetElementPtr),
 
     // Conversion ops
@@ -73,14 +69,12 @@ pub enum Instruction {
     PtrToInt(PtrToInt),
     IntToPtr(IntToPtr),
     BitCast(BitCast),
-    AddrSpaceCast(AddrSpaceCast),
 
     // LLVM's "other operations" category
     ICmp(ICmp),
     FCmp(FCmp),
     Phi(Phi),
     Select(Select),
-    Freeze(Freeze),
     Call(Call),
     VAArg(VAArg),
 }
@@ -109,14 +103,11 @@ impl HasDebugLoc for Instruction {
             Instruction::FNeg(i) => i.get_debug_loc(),
             Instruction::ExtractElement(i) => i.get_debug_loc(),
             Instruction::InsertElement(i) => i.get_debug_loc(),
-            Instruction::ShuffleVector(i) => i.get_debug_loc(),
             Instruction::ExtractValue(i) => i.get_debug_loc(),
             Instruction::InsertValue(i) => i.get_debug_loc(),
             Instruction::Alloca(i) => i.get_debug_loc(),
             Instruction::Load(i) => i.get_debug_loc(),
             Instruction::Store(i) => i.get_debug_loc(),
-            Instruction::CmpXchg(i) => i.get_debug_loc(),
-            Instruction::AtomicRMW(i) => i.get_debug_loc(),
             Instruction::GetElementPtr(i) => i.get_debug_loc(),
             Instruction::Trunc(i) => i.get_debug_loc(),
             Instruction::ZExt(i) => i.get_debug_loc(),
@@ -130,12 +121,10 @@ impl HasDebugLoc for Instruction {
             Instruction::PtrToInt(i) => i.get_debug_loc(),
             Instruction::IntToPtr(i) => i.get_debug_loc(),
             Instruction::BitCast(i) => i.get_debug_loc(),
-            Instruction::AddrSpaceCast(i) => i.get_debug_loc(),
             Instruction::ICmp(i) => i.get_debug_loc(),
             Instruction::FCmp(i) => i.get_debug_loc(),
             Instruction::Phi(i) => i.get_debug_loc(),
             Instruction::Select(i) => i.get_debug_loc(),
-            Instruction::Freeze(i) => i.get_debug_loc(),
             Instruction::Call(i) => i.get_debug_loc(),
             Instruction::VAArg(i) => i.get_debug_loc(),
         }
@@ -169,14 +158,11 @@ impl Instruction {
             Instruction::FNeg(i) => Some(&i.dest),
             Instruction::ExtractElement(i) => Some(&i.dest),
             Instruction::InsertElement(i) => Some(&i.dest),
-            Instruction::ShuffleVector(i) => Some(&i.dest),
             Instruction::ExtractValue(i) => Some(&i.dest),
             Instruction::InsertValue(i) => Some(&i.dest),
             Instruction::Alloca(i) => Some(&i.dest),
             Instruction::Load(i) => Some(&i.dest),
             Instruction::Store(_) => None,
-            Instruction::CmpXchg(i) => Some(&i.dest),
-            Instruction::AtomicRMW(i) => Some(&i.dest),
             Instruction::GetElementPtr(i) => Some(&i.dest),
             Instruction::Trunc(i) => Some(&i.dest),
             Instruction::ZExt(i) => Some(&i.dest),
@@ -190,12 +176,10 @@ impl Instruction {
             Instruction::PtrToInt(i) => Some(&i.dest),
             Instruction::IntToPtr(i) => Some(&i.dest),
             Instruction::BitCast(i) => Some(&i.dest),
-            Instruction::AddrSpaceCast(i) => Some(&i.dest),
             Instruction::ICmp(i) => Some(&i.dest),
             Instruction::FCmp(i) => Some(&i.dest),
             Instruction::Phi(i) => Some(&i.dest),
             Instruction::Select(i) => Some(&i.dest),
-            Instruction::Freeze(i) => Some(&i.dest),
             Instruction::Call(i) => i.dest.as_ref(),
             Instruction::VAArg(i) => Some(&i.dest),
         }
@@ -239,14 +223,11 @@ impl Display for Instruction {
             Instruction::FNeg(i) => write!(f, "{i}"),
             Instruction::ExtractElement(i) => write!(f, "{i}"),
             Instruction::InsertElement(i) => write!(f, "{i}"),
-            Instruction::ShuffleVector(i) => write!(f, "{i}"),
             Instruction::ExtractValue(i) => write!(f, "{i}"),
             Instruction::InsertValue(i) => write!(f, "{i}"),
             Instruction::Alloca(i) => write!(f, "{i}"),
             Instruction::Load(i) => write!(f, "{i}"),
             Instruction::Store(i) => write!(f, "{i}"),
-            Instruction::CmpXchg(i) => write!(f, "{i}"),
-            Instruction::AtomicRMW(i) => write!(f, "{i}"),
             Instruction::GetElementPtr(i) => write!(f, "{i}"),
             Instruction::Trunc(i) => write!(f, "{i}"),
             Instruction::ZExt(i) => write!(f, "{i}"),
@@ -260,12 +241,10 @@ impl Display for Instruction {
             Instruction::PtrToInt(i) => write!(f, "{i}"),
             Instruction::IntToPtr(i) => write!(f, "{i}"),
             Instruction::BitCast(i) => write!(f, "{i}"),
-            Instruction::AddrSpaceCast(i) => write!(f, "{i}"),
             Instruction::ICmp(i) => write!(f, "{i}"),
             Instruction::FCmp(i) => write!(f, "{i}"),
             Instruction::Phi(i) => write!(f, "{i}"),
             Instruction::Select(i) => write!(f, "{i}"),
-            Instruction::Freeze(i) => write!(f, "{i}"),
             Instruction::Call(i) => write!(f, "{i}"),
             Instruction::VAArg(i) => write!(f, "{i}"),
         }
@@ -339,14 +318,11 @@ macro_rules! impl_binop {
 
         impl Display for $inst {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(
-                    f,
-                    "{} = {} {}, {}",
-                    &self.dest, $dispname, &self.operand0, &self.operand1,
-                )?;
-                if self.debugloc.is_some() {
-                    write!(f, " (with debugloc)")?;
-                }
+                write!(f, "{} = {} {}, ", &self.dest, $dispname, &self.operand0,)?;
+                self.operand1.fmt_without_type(f)?;
+                // if self.debugloc.is_some() {
+                // write!(f, " (with debugloc)")?;
+                // }
                 Ok(())
             }
         }
@@ -361,9 +337,9 @@ macro_rules! unop_same_type {
         impl Display for $inst {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{} = {} {}", &self.dest, $dispname, &self.operand)?;
-                if self.debugloc.is_some() {
-                    write!(f, " (with debugloc)")?;
-                }
+                // if self.debugloc.is_some() {
+                // write!(f, " (with debugloc)")?;
+                // }
                 Ok(())
             }
         }
@@ -382,9 +358,9 @@ macro_rules! unop_explicitly_typed {
                     "{} = {} {} to {}",
                     &self.dest, $dispname, &self.operand, &self.to_type,
                 )?;
-                if self.debugloc.is_some() {
-                    write!(f, " (with debugloc)")?;
-                }
+                // if self.debugloc.is_some() {
+                // write!(f, " (with debugloc)")?;
+                // }
                 Ok(())
             }
         }
@@ -657,9 +633,9 @@ impl Display for ExtractElement {
             "{} = extractelement {}, {}",
             &self.dest, &self.vector, &self.index,
         )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -685,37 +661,9 @@ impl Display for InsertElement {
             "{} = insertelement {}, {}, {}",
             &self.dest, &self.vector, &self.element, &self.index,
         )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
-        Ok(())
-    }
-}
-
-/// Permute elements from two input vectors into a single output vector.
-/// See [LLVM 14 docs on the 'shufflevector' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#shufflevector-instruction)
-#[derive(PartialEq, Clone, Debug)]
-pub struct ShuffleVector {
-    pub operand0: Operand,
-    pub operand1: Operand,
-    pub dest: Name,
-    pub mask: ConstantRef,
-    pub debugloc: Option<DebugLoc>,
-}
-
-impl_inst!(ShuffleVector, ShuffleVector);
-impl_hasresult!(ShuffleVector);
-
-impl Display for ShuffleVector {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{} = shufflevector {}, {}, {}",
-            &self.dest, &self.operand0, &self.operand1, &self.mask,
-        )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -745,9 +693,9 @@ impl Display for ExtractValue {
         for idx in &self.indices[1..] {
             write!(f, ", {idx}")?;
         }
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -779,9 +727,9 @@ impl Display for InsertValue {
         for idx in &self.indices[1..] {
             write!(f, ", {idx}")?;
         }
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -809,9 +757,9 @@ impl Display for Alloca {
             write!(f, ", {}", &self.num_elements)?;
         }
         write!(f, ", align {}", &self.alignment)?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -822,6 +770,7 @@ impl Display for Alloca {
 pub struct Load {
     pub address: Operand,
     pub dest: Name,
+    pub ty: TypeRef,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -830,14 +779,10 @@ impl_hasresult!(Load);
 
 impl Display for Load {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // we differ from the LLVM IR text syntax here because we don't include
-        // the destination type (that's a little hard to get for us here, and
-        // it's completely redundant with the address type anyway)
-        write!(f, "{} = load ", &self.dest)?;
-        write!(f, "{}", &self.address)?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        write!(f, "{} = load {}, {}", &self.dest, &self.ty, &self.address)?;
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -855,79 +800,10 @@ impl_inst!(Store, Store);
 
 impl Display for Store {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "store ")?;
-        write!(f, "{}, {}", &self.value, &self.address)?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
-        Ok(())
-    }
-}
-
-/// Atomic compare and exchange.
-/// See [LLVM 14 docs on the 'cmpxchg' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#cmpxchg-instruction)
-#[derive(PartialEq, Clone, Debug)]
-pub struct CmpXchg {
-    pub address: Operand,
-    pub expected: Operand,
-    pub replacement: Operand,
-    pub dest: Name,
-    pub volatile: bool,
-    pub weak: bool,
-    pub debugloc: Option<DebugLoc>,
-}
-
-impl_inst!(CmpXchg, CmpXchg);
-impl_hasresult!(CmpXchg);
-
-impl Display for CmpXchg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} = cmpxchg ", &self.dest)?;
-        if self.weak {
-            write!(f, "weak ")?;
-        }
-        if self.volatile {
-            write!(f, "volatile ")?;
-        }
-        write!(
-            f,
-            "{}, {}, {}",
-            &self.address, &self.expected, &self.replacement,
-        )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
-        Ok(())
-    }
-}
-
-/// Atomic read-modify-write.
-/// See [LLVM 14 docs on the 'atomicrmw' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#atomicrmw-instruction)
-#[derive(PartialEq, Clone, Debug)]
-pub struct AtomicRMW {
-    // the binop-getter was added to the LLVM C API in LLVM 10
-    pub operation: RMWBinOp,
-    pub address: Operand,
-    pub value: Operand,
-    pub dest: Name,
-    pub volatile: bool,
-    pub debugloc: Option<DebugLoc>,
-}
-
-impl_inst!(AtomicRMW, AtomicRMW);
-impl_hasresult!(AtomicRMW);
-
-impl Display for AtomicRMW {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} = atomicrmw ", &self.dest)?;
-        if self.volatile {
-            write!(f, "volatile ")?;
-        }
-        write!(f, "{} ", &self.operation)?;
-        write!(f, "{}, {}", &self.address, &self.value)?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        write!(f, "store {}, {}", &self.value, &self.address)?;
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -940,6 +816,7 @@ pub struct GetElementPtr {
     pub address: Operand,
     pub indices: Vec<Operand>,
     pub dest: Name,
+    pub ty: TypeRef,
     pub in_bounds: bool,
     pub debugloc: Option<DebugLoc>,
 }
@@ -949,21 +826,17 @@ impl_hasresult!(GetElementPtr);
 
 impl Display for GetElementPtr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Like for `Load` (see notes there), we differ from the LLVM IR text
-        // syntax here because we don't include the destination type (that's a
-        // little hard to get for us here, and it's derivable from the other
-        // information anyway)
         write!(f, "{} = getelementptr ", &self.dest)?;
         if self.in_bounds {
             write!(f, "inbounds ")?;
         }
-        write!(f, "{}", &self.address)?;
+        write!(f, "{}, {}", &self.ty, &self.address)?;
         for idx in &self.indices {
             write!(f, ", {idx}")?;
         }
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -1124,19 +997,6 @@ pub struct BitCast {
 impl_inst!(BitCast, BitCast);
 unop_explicitly_typed!(BitCast, "bitcast");
 
-/// Convert a pointer to a different address space.
-/// See [LLVM 14 docs on the 'addrspacecast' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#addrspacecast-to-instruction)
-#[derive(PartialEq, Clone, Debug)]
-pub struct AddrSpaceCast {
-    pub operand: Operand,
-    pub to_type: TypeRef,
-    pub dest: Name,
-    pub debugloc: Option<DebugLoc>,
-}
-
-impl_inst!(AddrSpaceCast, AddrSpaceCast);
-unop_explicitly_typed!(AddrSpaceCast, "addrspacecast");
-
 /// Compare integers, pointers, or vectors of integers or pointers.
 /// See [LLVM 14 docs on the 'icmp' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#icmp-instruction)
 #[derive(PartialEq, Clone, Debug)]
@@ -1158,9 +1018,9 @@ impl Display for ICmp {
             "{} = icmp {} {}, {}",
             &self.dest, &self.predicate, &self.operand0, &self.operand1,
         )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -1186,9 +1046,9 @@ impl Display for FCmp {
             "{} = fcmp {} {}, {}",
             &self.dest, &self.predicate, &self.operand0, &self.operand1,
         )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -1219,9 +1079,9 @@ impl Display for Phi {
         for (val, label) in &self.incoming_values[1..] {
             write!(f, ", [ {val}, {label} ]")?;
         }
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -1247,31 +1107,19 @@ impl Display for Select {
             "{} = select {}, {}, {}",
             &self.dest, &self.condition, &self.true_value, &self.false_value,
         )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
-
-/// Stop the propagation of `undef` or `poison` values.
-/// See [LLVM 14 docs on the 'freeze' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#freeze-instruction)
-#[derive(PartialEq, Clone, Debug)]
-pub struct Freeze {
-    pub operand: Operand,
-    pub dest: Name,
-    pub debugloc: Option<DebugLoc>,
-}
-impl_inst!(Freeze, Freeze);
-unop_same_type!(Freeze, "freeze");
 
 /// Function call.
 /// See [LLVM 14 docs on the 'call' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#call-instruction)
 #[derive(PartialEq, Clone, Debug)]
 pub struct Call {
     pub function: Operand,
-    pub arguments: Vec<(Operand, Vec<ParameterAttribute>)>,
-    pub return_attributes: Vec<ParameterAttribute>,
+    pub arguments: Vec<Operand>,
     pub dest: Option<Name>, // will be None if the `function` returns void
     pub function_attributes: Vec<Attribute>,
     pub is_tail_call: bool,
@@ -1291,7 +1139,7 @@ impl Display for Call {
             write!(f, "tail ")?;
         }
         write!(f, "call {}(", self.function,)?;
-        for (i, (arg, _)) in self.arguments.iter().enumerate() {
+        for (i, arg) in self.arguments.iter().enumerate() {
             if i == self.arguments.len() - 1 {
                 write!(f, "{arg}")?;
             } else {
@@ -1299,9 +1147,9 @@ impl Display for Call {
             }
         }
         write!(f, ")")?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
     }
 }
@@ -1326,47 +1174,9 @@ impl Display for VAArg {
             "{} = va_arg {}, {}",
             &self.dest, &self.arg_list, &self.cur_type,
         )?;
-        if self.debugloc.is_some() {
-            write!(f, " (with debugloc)")?;
-        }
+        // if self.debugloc.is_some() {
+        // write!(f, " (with debugloc)")?;
+        // }
         Ok(())
-    }
-}
-
-/// See [LLVM 14 docs on the 'atomicrmw' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#i-atomicrmw)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum RMWBinOp {
-    Xchg,
-    Add,
-    Sub,
-    And,
-    Nand,
-    Or,
-    Xor,
-    Max,
-    Min,
-    UMax,
-    UMin,
-    FAdd,
-    FSub,
-}
-
-impl Display for RMWBinOp {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Xchg => write!(f, "xchg"),
-            Self::Add => write!(f, "add"),
-            Self::Sub => write!(f, "sub"),
-            Self::And => write!(f, "and"),
-            Self::Nand => write!(f, "nand"),
-            Self::Or => write!(f, "or"),
-            Self::Xor => write!(f, "xor"),
-            Self::Max => write!(f, "max"),
-            Self::Min => write!(f, "min"),
-            Self::UMax => write!(f, "umax"),
-            Self::UMin => write!(f, "umin"),
-            Self::FAdd => write!(f, "fadd"),
-            Self::FSub => write!(f, "fsub"),
-        }
     }
 }

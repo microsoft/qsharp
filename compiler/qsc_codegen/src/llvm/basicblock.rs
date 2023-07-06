@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter, Result};
 
 use super::instruction::Instruction;
 use super::name::Name;
-use super::terminator::Terminator;
+use super::terminator::{Terminator, Unreachable};
 
 /// A `BasicBlock` is a sequence of zero or more non-terminator instructions
 /// followed by a single terminator instruction which ends the block.
@@ -22,7 +22,6 @@ impl BasicBlock {
     /// A `BasicBlock` instance with no instructions and an `Unreachable` terminator
     #[must_use]
     pub fn new(name: Name) -> Self {
-        use super::terminator::Unreachable;
         Self {
             name,
             instrs: vec![],

@@ -23,8 +23,6 @@ pub struct Module {
     pub func_declarations: Vec<Declaration>,
     /// See [LLVM 14 docs on Global Variables](https://releases.llvm.org/14.0.0/docs/LangRef.html#global-variables)
     pub global_vars: Vec<GlobalVariable>,
-    /// See [LLVM 14 docs on Global Aliases](https://releases.llvm.org/14.0.0/docs/LangRef.html#aliases)
-    pub global_aliases: Vec<GlobalAlias>,
     /// Holds a reference to all of the `Type`s used in the `Module`, and
     /// facilitates lookups so you can get a `TypeRef` to the `Type` you want.
     pub ty_builder: Builder,
@@ -37,9 +35,6 @@ impl fmt::Display for Module {
         writeln!(f, "{}", self.ty_builder)?;
         for global_var in &self.global_vars {
             writeln!(f, "{global_var}")?;
-        }
-        for global_alias in &self.global_aliases {
-            writeln!(f, "{global_alias}")?;
         }
         for func_decl in &self.func_declarations {
             writeln!(f, "{func_decl}")?;
@@ -78,15 +73,6 @@ impl Module {
     pub fn get_global_var_by_name(&self, name: &str) -> Option<&GlobalVariable> {
         self.global_vars.iter().find(|global| global.name == name)
     }
-
-    /// Get the `GlobalAlias` having the given `name` (if any).
-    /// Note that `GlobalAlias`es are named with `String`s and not `Name`s.
-    #[must_use]
-    pub fn get_global_alias_by_name(&self, name: &str) -> Option<&GlobalAlias> {
-        self.global_aliases
-            .iter()
-            .find(|global| global.name == name)
-    }
 }
 
 /// See [LLVM 14 docs on Global Variables](https://releases.llvm.org/14.0.0/docs/LangRef.html#global-variables)
@@ -95,11 +81,8 @@ pub struct GlobalVariable {
     /// Globals' names must be strings
     pub name: String,
     pub linkage: Linkage,
-    pub visibility: Visibility,
     pub is_constant: bool,
     pub ty: TypeRef,
-    pub addr_space: AddrSpace,
-    pub unnamed_addr: Option<UnnamedAddr>,
     pub initializer: Option<ConstantRef>,
     pub debugloc: Option<DebugLoc>,
 }
@@ -112,50 +95,23 @@ impl HasDebugLoc for GlobalVariable {
 
 impl fmt::Display for GlobalVariable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        /*
-        @<GlobalVarName> = [Linkage] [PreemptionSpecifier] [Visibility]
-                   [DLLStorageClass] [ThreadLocal]
-                   [(unnamed_addr|local_unnamed_addr)] [AddrSpace]
-                   [ExternallyInitialized]
-                   <global | constant> <Type> [<InitializerConstant>]
-                   [, section "name"] [, partition "name"]
-                   [, comdat [($name)]] [, align <Alignment>]
-                   (, !name !N)*
-        */
-        write!(f, "@{} = {} {}", self.name, self.linkage, self.visibility)?;
+        write!(
+            f,
+            "@{} = {} {} {}",
+            self.name,
+            self.linkage,
+            if self.is_constant {
+                "constant"
+            } else {
+                "global"
+            },
+            self.ty,
+        )?;
+        if let Some(init) = &self.initializer {
+            write!(f, " {init}")?;
+        }
         writeln!(f)
     }
-}
-
-/// See [LLVM 14 docs on Global Aliases](https://releases.llvm.org/14.0.0/docs/LangRef.html#aliases)
-#[derive(PartialEq, Clone, Debug)]
-pub struct GlobalAlias {
-    /// Globals' names must be strings, so this is `String` not `Name`
-    pub name: String,
-    pub aliasee: ConstantRef,
-    pub linkage: Linkage,
-    pub visibility: Visibility,
-    pub ty: TypeRef,
-    pub addr_space: AddrSpace,
-    pub unnamed_addr: Option<UnnamedAddr>,
-}
-
-impl fmt::Display for GlobalAlias {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO
-        // @<Name> = [Linkage] [PreemptionSpecifier] [Visibility] [DLLStorageClass] [ThreadLocal] [(unnamed_addr|local_unnamed_addr)] alias <AliaseeTy>, <AliaseeTy>* @<Aliasee> [, partition "name"]
-        writeln!(
-            f,
-            "@{} = [Linkage] [PreemptionSpecifier] [Visibility] [DLLStorageClass] [ThreadLocal] [(unnamed_addr|local_unnamed_addr)] alias <AliaseeTy>, <AliaseeTy>* @<Aliasee> [, partition \"name\"]",
-            self.name
-        )
-    }
-}
-
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum UnnamedAddr {
-    Local,
-    Global,
 }
 
 /// See [LLVM 14 docs on Linkage Types](https://releases.llvm.org/14.0.0/docs/LangRef.html#linkage)
@@ -203,27 +159,6 @@ impl fmt::Display for Linkage {
         }
     }
 }
-
-/// See [LLVM 14 docs on Visibility Styles](https://releases.llvm.org/14.0.0/docs/LangRef.html#visibility-styles)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum Visibility {
-    Default,
-    Hidden,
-    Protected,
-}
-
-impl fmt::Display for Visibility {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Visibility::Default => write!(f, "default"),
-            Visibility::Hidden => write!(f, "hidden"),
-            Visibility::Protected => write!(f, "protected"),
-        }
-    }
-}
-
-/// For discussion of address spaces, see [LLVM 14 docs on Pointer Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#pointer-type)
-pub type AddrSpace = u32;
 
 /// See [LLVM 14 docs on Attribute Groups](https://releases.llvm.org/14.0.0/docs/LangRef.html#attribute-groups)
 #[derive(PartialEq, Eq, Clone, Debug)]
