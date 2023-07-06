@@ -25,3 +25,6 @@ pub mod terminator;
 pub use terminator::Terminator;
 pub mod types;
 pub use types::{Type, TypeRef};
+
+#[cfg(test)]
+mod tests;

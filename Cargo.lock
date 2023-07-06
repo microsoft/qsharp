@@ -829,6 +829,9 @@ dependencies = [
 [[package]]
 name = "qsc_codegen"
 version = "0.0.0"
+dependencies = [
+ "expect-test",
+]
 
 [[package]]
 name = "qsc_data_structures"
