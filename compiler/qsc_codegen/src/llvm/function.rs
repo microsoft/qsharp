@@ -51,7 +51,7 @@ impl Display for Function {
         }
         writeln!(f, ") {{")?;
         for bb in &self.basic_blocks {
-            writeln!(f, "{bb}")?;
+            write!(f, "{bb}")?;
         }
 
         writeln!(f, "}}")
