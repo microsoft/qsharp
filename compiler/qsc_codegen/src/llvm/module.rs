@@ -23,6 +23,8 @@ pub struct Module {
     pub func_declarations: Vec<Declaration>,
     /// See [LLVM 14 docs on Global Variables](https://releases.llvm.org/14.0.0/docs/LangRef.html#global-variables)
     pub global_vars: Vec<GlobalVariable>,
+    /// See [LLVM 14 docs on Attribute Groups](https://releases.llvm.org/14.0.0/docs/LangRef.html#attribute-groups)
+    pub function_attribute_groups: Vec<FunctionAttributeGroup>,
     /// Holds a reference to all of the `Type`s used in the `Module`, and
     /// facilitates lookups so you can get a `TypeRef` to the `Type` you want.
     pub ty_builder: Builder,

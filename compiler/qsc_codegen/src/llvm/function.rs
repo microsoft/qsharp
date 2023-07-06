@@ -102,6 +102,7 @@ impl Display for Parameter {
 /// See [LLVM 14 docs on Function Attributes](https://releases.llvm.org/14.0.0/docs/LangRef.html#fnattrs)
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Attribute {
+    GroupIDAttribute(GroupID),
     StringAttribute { kind: String, value: String },
 }
 
