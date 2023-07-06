@@ -6,6 +6,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
+  Exercise,
+  getExerciseDependencies,
   ICompilerWorker,
   ILanguageServiceWorker,
   LanguageServiceEvent,
@@ -60,7 +62,7 @@ export function Editor(props: {
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
-  kataVerify?: string;
+  kataExercise?: Exercise;
   onRestartCompiler: () => void;
   shotError?: VSDiagnostic;
   showExpr: boolean;
@@ -124,9 +126,15 @@ export function Editor(props: {
     props.evtTarget.clearResults();
 
     try {
-      if (props.kataVerify) {
-        // This is for a kata. Provide the verification code.
-        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+      if (props.kataExercise) {
+        // This is for a kata exercise. Provide the verification code.
+        const dependencies = await getExerciseDependencies(props.kataExercise);
+        await props.compiler.checkExerciseSolution(
+          code,
+          props.kataExercise.verificationCode,
+          dependencies,
+          props.evtTarget
+        );
       } else {
         await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
       }
