@@ -123,7 +123,7 @@ impl Display for Constant {
                     }
                     _ => {
                         // non-function types: typical style with the type and name
-                        write!(f, "{ty}* @{name}")
+                        write!(f, "{ty} @{name}")
                     }
                 }
             }
