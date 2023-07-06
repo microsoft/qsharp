@@ -5,7 +5,7 @@ use expect_test::expect;
 
 use super::{
     function::Parameter,
-    instruction::{Add, Call},
+    instruction::{Add, Call, Mul},
     module::{Linkage, Module},
     operand::Operand,
     terminator::Ret,
@@ -42,21 +42,35 @@ fn test_module() {
         return_type: module.ty_builder.i64(),
         basic_blocks: vec![BasicBlock {
             name: "entry".into(),
-            instrs: vec![Instruction::Add(Add {
-                operand0: Operand::LocalOperand {
-                    name: "x".into(),
-                    ty: module.ty_builder.i64(),
-                },
-                operand1: Operand::LocalOperand {
-                    name: "y".into(),
-                    ty: module.ty_builder.i64(),
-                },
-                dest: 0.into(),
-                debugloc: None,
-            })],
+            instrs: vec![
+                Instruction::Add(Add {
+                    operand0: Operand::LocalOperand {
+                        name: "x".into(),
+                        ty: module.ty_builder.i64(),
+                    },
+                    operand1: Operand::LocalOperand {
+                        name: "y".into(),
+                        ty: module.ty_builder.i64(),
+                    },
+                    dest: 0.into(),
+                    debugloc: None,
+                }),
+                Instruction::Mul(Mul {
+                    operand0: Operand::LocalOperand {
+                        name: 0.into(),
+                        ty: module.ty_builder.i64(),
+                    },
+                    operand1: Operand::ConstantOperand(ConstantRef::new(Constant::Int {
+                        bits: 64,
+                        value: 2,
+                    })),
+                    dest: 1.into(),
+                    debugloc: None,
+                }),
+            ],
             term: Terminator::Ret(Ret {
                 return_operand: Some(Operand::LocalOperand {
-                    name: 0.into(),
+                    name: 1.into(),
                     ty: module.ty_builder.i64(),
                 }),
                 debugloc: None,
@@ -119,7 +133,8 @@ fn test_module() {
         define internal i64 @foo(i64 %x, i64 %y) {
         entry:
           %0 = add i64 %x, %y
-          ret i64 %0
+          %1 = mul i64 %0, 2
+          ret i64 %1
         }
 
         define external i64 @main() {
