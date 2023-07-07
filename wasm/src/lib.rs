@@ -12,7 +12,7 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    telemetry, PackageStore, SourceContents, SourceMap, SourceName,
+    PackageStore, SourceContents, SourceMap, SourceName,
 };
 use serde_json::json;
 use std::fmt::Write;
@@ -24,7 +24,6 @@ mod logging;
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
     let git_hash = env!("QSHARP_GIT_HASH");
-    telemetry::log(&telemetry::Event::Loaded { git_hash });
     JsValue::from_str(git_hash)
 }
 
@@ -158,11 +157,6 @@ pub fn run(
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
-
-    telemetry::log(&telemetry::Event::Run {
-        shots,
-        size: code.len() as u64,
-    });
 
     match run_internal(
         code,

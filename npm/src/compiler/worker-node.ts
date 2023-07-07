@@ -36,7 +36,6 @@ function telemetryHandler(telemetry: TelemetryEvent) {
 log.onLevelChanged = (level) => wasm.setLogLevel(level);
 log.setTelemetryCollector(telemetryHandler);
 wasm.initLogging(log.logWithLevel, log.getLogLevel());
-wasm.initTelemetry(log.logTelemetry);
 
 const compiler = new Compiler(wasm);
 const invokeCompiler = createCompilerDispatcher(postMessage, compiler);

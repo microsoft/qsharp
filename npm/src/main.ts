@@ -31,9 +31,6 @@ export function getCompiler(): ICompiler {
     // Set up logging and telemetry as soon as possible after instantiating
     wasm.initLogging(log.logWithLevel, log.getLogLevel());
     log.onLevelChanged = (level) => wasm?.setLogLevel(level);
-    if (log.isTelemetryEnabled()) {
-      wasm.initTelemetry(log.logTelemetry);
-    }
   }
   return new Compiler(wasm);
 }

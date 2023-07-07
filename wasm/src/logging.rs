@@ -7,52 +7,6 @@ use wasm_bindgen::prelude::*;
 
 use js_sys::Function;
 use log::LevelFilter;
-use qsc::telemetry;
-
-/************ TELEMETRY ************/
-
-// Holds a reference to the JavaScript function to call (which must be thread specific)
-thread_local! {
-    static TELEM_FN: OnceCell<Function> = OnceCell::new();
-}
-
-// The global logger that delegates to the thread local JS function (if present and enabled)
-struct WasmTelemetryLogger;
-impl telemetry::Log for WasmTelemetryLogger {
-    fn log(&self, event: &telemetry::Event) {
-        if telemetry::is_telemetry_enabled() {
-            TELEM_FN.with(|f| {
-                if let Some(jsfn) = f.get() {
-                    let js_event = serde_wasm_bindgen::to_value(event)
-                        .expect("Failed to convert telemetry event to JSON");
-                    // Ignore any failures calling to the JavaScript handler
-                    let _ = jsfn.call1(&JsValue::NULL, &js_event);
-                }
-            });
-        }
-    }
-}
-static WASM_TELEMETRY_LOGGER: WasmTelemetryLogger = WasmTelemetryLogger;
-
-#[wasm_bindgen(js_name=initTelemetry)]
-pub fn init_telemetry(callback: JsValue) -> Result<(), JsError> {
-    // Ensure a function was passed, and set it in the thread local storage
-    if !callback.is_function() {
-        return Err(JsError::new("Invalid telemetry callback provided"));
-    }
-
-    let thefn: Function = callback.dyn_into().unwrap();
-    TELEM_FN.with(|f| f.set(thefn)).map_err(|_| {
-        JsError::new("attempted to assign the telemetry handler after it was already assigned")
-    })?;
-
-    // Ensure that the global logger is set (at most once).
-    telemetry::set_telemetry_logger(&WASM_TELEMETRY_LOGGER).map_err(JsError::new)?;
-
-    Ok(())
-}
-
-/************ LOGGING ************/
 
 #[wasm_bindgen]
 extern "C" {
@@ -116,10 +70,8 @@ pub fn hook(info: &std::panic::PanicInfo) {
     msg.push_str(&stack);
     msg.push_str("\n\n");
 
-    // Log message to both the logger and to telemetry
     let err_text = format!("Wasm panic occurred: {}", msg);
     log::error!(target: "wasm", "{}", &err_text);
-    telemetry::log(&telemetry::Event::Panic { details: &err_text });
 }
 
 #[wasm_bindgen(js_name=initLogging)]

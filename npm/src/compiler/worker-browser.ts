@@ -34,7 +34,6 @@ export function messageHandler(e: MessageEvent) {
 
         // Set up logging and telemetry as soon as possible after instantiating
         wasm.initLogging(log.logWithLevel, log.getLogLevel());
-        wasm.initTelemetry(log.logTelemetry);
         log.onLevelChanged = (level) => wasm.setLogLevel(level);
 
         const compiler = new Compiler(wasm);

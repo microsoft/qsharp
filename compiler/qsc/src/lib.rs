@@ -22,4 +22,3 @@ pub mod ast {
 }
 
 pub use qsc_data_structures::span::Span;
-pub use qsc_data_structures::telemetry;
