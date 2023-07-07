@@ -112,13 +112,16 @@ export { type CompilerState } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
 export {
   getAllKatas,
+  getExerciseDependencies,
   getKata,
+  type Kata,
+  type KataSection,
   type Example,
   type Exercise,
-  type Kata,
-  type KataItem,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
 export { type VSDiagnostic } from "./vsdiagnostic.js";
 export { log, type LogLevel };
 export type { ICompilerWorker };
+export type { ILanguageServiceWorker, ILanguageService };
+export { type LanguageServiceEvent } from "./language-service/language-service.js";

@@ -10,6 +10,7 @@ use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes};
 
 use crate::{
+    backend::SparseSim,
     eval_expr,
     output::{GenericReceiver, Receiver},
     tests::get_global,
@@ -42,6 +43,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
         &|id| get_global(&store, id),
         id,
         &mut Env::default(),
+        &mut SparseSim::new(),
         out,
     )
     .map_err(|e| e.0)

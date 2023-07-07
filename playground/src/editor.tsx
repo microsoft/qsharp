@@ -6,7 +6,11 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
+  Exercise,
+  getExerciseDependencies,
   ICompilerWorker,
+  ILanguageServiceWorker,
+  LanguageServiceEvent,
   QscEventTarget,
   VSDiagnostic,
   log,
@@ -24,10 +28,23 @@ function VSDiagsToMarkers(
   srcModel: monaco.editor.ITextModel
 ): monaco.editor.IMarkerData[] {
   return errors.map((err) => {
+    let severity = monaco.MarkerSeverity.Error;
+    switch (err.severity) {
+      case "error":
+        severity = monaco.MarkerSeverity.Error;
+        break;
+      case "warning":
+        severity = monaco.MarkerSeverity.Warning;
+        break;
+      case "info":
+        severity = monaco.MarkerSeverity.Info;
+        break;
+    }
+
     const startPos = srcModel.getPositionAt(err.start_pos);
     const endPos = srcModel.getPositionAt(err.end_pos);
     const marker: monaco.editor.IMarkerData = {
-      severity: monaco.MarkerSeverity.Error,
+      severity,
       message: err.message,
       startLineNumber: startPos.lineNumber,
       startColumn: startPos.column,
@@ -45,20 +62,21 @@ export function Editor(props: {
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
-  kataVerify?: string;
+  kataExercise?: Exercise;
   onRestartCompiler: () => void;
   shotError?: VSDiagnostic;
   showExpr: boolean;
   showShots: boolean;
   setHir: (hir: string) => void;
   activeTab: ActiveTab;
+  languageService: ILanguageServiceWorker;
 }) {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
   const editorDiv = useRef<HTMLDivElement>(null);
 
-  // Maintain a ref to the latest check function, as it closes over a bunch of stuff
-  const checkRef = useRef(async () => {
+  // Maintain a ref to the latest getHir function, as it closes over a bunch of stuff
+  const hirRef = useRef(async () => {
     return;
   });
 
@@ -69,9 +87,14 @@ export function Editor(props: {
   );
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
-  function markErrors() {
+  function markErrors(version?: number) {
     const model = editor.current?.getModel();
     if (!model) return;
+
+    if (version != null && version !== model.getVersionId()) {
+      // Diagnostics event received for an outdated model
+      return;
+    }
 
     const errs = [
       ...errMarks.current.checkDiags,
@@ -88,16 +111,13 @@ export function Editor(props: {
     setErrors(errList);
   }
 
-  checkRef.current = async function onCheck() {
+  hirRef.current = async function updateHir() {
     const code = editor.current?.getValue();
     if (code == null) return;
-    const diags = await props.compiler.checkCode(code);
+
     if (props.activeTab === "hir-tab") {
       props.setHir(await props.compiler.getHir(code));
     }
-    errMarks.current.checkDiags = diags;
-    markErrors();
-    setHasCheckErrors(diags.length > 0);
   };
 
   async function onRun() {
@@ -106,9 +126,15 @@ export function Editor(props: {
     props.evtTarget.clearResults();
 
     try {
-      if (props.kataVerify) {
-        // This is for a kata. Provide the verification code.
-        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+      if (props.kataExercise) {
+        // This is for a kata exercise. Provide the verification code.
+        const dependencies = await getExerciseDependencies(props.kataExercise);
+        await props.compiler.checkExerciseSolution(
+          code,
+          props.kataExercise.verificationCode,
+          dependencies,
+          props.evtTarget
+        );
       } else {
         await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
       }
@@ -132,7 +158,19 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);
-    srcModel.onDidChangeContent(() => checkRef.current());
+    srcModel.onDidChangeContent(() => hirRef.current());
+
+    // TODO: If the language service ever changes, this callback
+    // will be invalid as it captures the *original* props.languageService
+    // and not the updated one. Not a problem currently since the language
+    // service is never updated, but not correct either.
+    srcModel.onDidChangeContent(async () => {
+      await props.languageService.updateDocument(
+        srcModel.uri.toString(),
+        srcModel.getVersionId(),
+        srcModel.getValue()
+      );
+    });
 
     function onResize() {
       newEditor.layout();
@@ -146,6 +184,22 @@ export function Editor(props: {
       newEditor.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    function onDiagnostics(evt: LanguageServiceEvent) {
+      const diagnostics = evt.detail.diagnostics;
+      errMarks.current.checkDiags = diagnostics;
+      markErrors(evt.detail.version);
+      setHasCheckErrors(diagnostics.length > 0);
+    }
+
+    props.languageService.addEventListener("diagnostics", onDiagnostics);
+
+    return () => {
+      log.info("Removing diagnostics listener");
+      props.languageService.removeEventListener("diagnostics", onDiagnostics);
+    };
+  }, [props.languageService]);
 
   useEffect(() => {
     const theEditor = editor.current;
@@ -164,7 +218,7 @@ export function Editor(props: {
 
   useEffect(() => {
     // Whenever the active tab changes, run check again.
-    checkRef.current();
+    hirRef.current();
   }, [props.activeTab]);
 
   // On reset, reload the initial code
