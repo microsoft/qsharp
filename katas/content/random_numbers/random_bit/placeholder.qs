@@ -1,7 +1,7 @@
-﻿namespace Quantum.Kata {
+namespace Kata {
 
     // Exercise 1.
-    operation RandomBit () : Int {
+    operation RandomBit(): Int {
         use q = Qubit();
         // ...
         return -1;

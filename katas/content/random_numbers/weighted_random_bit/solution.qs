@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Quantum.Kata.Reference {
 
     open Microsoft.Quantum.Math;
 
@@ -13,8 +13,16 @@
         // Set qubit in superposition state which aligns with given probabilities
         Ry(theta, q);
 
-        // Measuring state of qubit and return integer value of result
-        return M(q) == Zero ? 0 | 1;
+
+        // Measuring state of qubit
+        let result = M(q);
+        
+        // Reset qubit and return integer value of result
+        if result == One {
+            X(q);
+            return 1;
+        }
+        return 0;
     }
 
 }

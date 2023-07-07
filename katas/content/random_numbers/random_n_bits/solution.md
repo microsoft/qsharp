@@ -1,4 +1,4 @@
-﻿### Solution
+### Solution
 
 Let's reuse `RandomBit` operation from [Exercise 1](#Exercise-1:-Generate-a-single-random-bit) again.
 We'll generate N random bits by calling `RandomBit` operation N times, and treat the result as a binary notation to convert it into an integer.

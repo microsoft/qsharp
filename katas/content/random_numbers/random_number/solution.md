@@ -1,4 +1,4 @@
-﻿### Solution
+### Solution
 
 We can reuse `RandomNBits` operation from [Exercise 3](#Exercise-3:-Generate-a-number-of-arbitrary-size).
 

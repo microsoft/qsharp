@@ -1,18 +1,25 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
+    open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Convert;
+
 
     // ------------------------------------------------------
     // Exercise 4.
     @EntryPoint()
-    operation T4_WeightedRandomBit () : Unit {
-        ResetOracleCallsCount();
+    operation CheckSolution(): Bool {
         for x in [0.0, 0.25, 0.5, 0.75, 1.0] {
             Message($"Testing generating zero with {x*100.0}% probability...");
-            let solution = Delay(WeightedRandomBit, x, _);
-            let testingHarness = Delay(CheckXPercentZero, (solution, x), _);
-            RetryTestOperation(testingHarness);
+
+            if not RetryTestOperation(() =>
+                CheckXPercentZero(() =>
+                    Kata.WeightedRandomBit(x), x)) {
+                return false;
+            }
+
             Message($"Test passed for generating zero with {x*100.0}% probability");
         }
-        CheckRandomCalls();
+        Message("All tests passed.");
+        return true;
     }
 
     // ------------------------------------------------------
@@ -26,7 +33,6 @@
     operation CheckXPercentZero (op : (Unit => Int), x : Double) : Bool {
         mutable oneCount = 0;
         let nRuns = 1000;
-        ResetOracleCallsCount();
         for N in 1..nRuns {
             let val = op();
             if (val < 0 or val > 1) {
@@ -35,7 +41,6 @@
             }
             set oneCount += val;
         }
-        CheckRandomCalls();
 
         let zeroCount = nRuns - oneCount;
         let goalZeroCount = (x == 0.0) ? 0 | (x == 1.0) ? nRuns | Floor(x * IntAsDouble(nRuns));

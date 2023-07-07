@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata {
+namespace Kata {
     
     // Exercise 4.
     operation WeightedRandomBit (x : Double) : Int {

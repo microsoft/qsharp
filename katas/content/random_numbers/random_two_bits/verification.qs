@@ -1,15 +1,17 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     // ------------------------------------------------------
     // Exercise 2.
     @EntryPoint()
-    operation T2_RandomTwoBits () : Unit {
+    operation CheckSolution(): Bool {
         Message("Testing two random bits generation...");
-        let solution = RandomTwoBits;
-        // Delay() converts CheckUniformDistribution to a parameterless operation
-        let testingHarness = Delay(CheckUniformDistribution, (solution, 0, 3, 1000), _);
-        RetryTestOperation(testingHarness);
-        Message("Test passed");
+
+        if not RetryTestOperation(() =>
+            CheckUniformDistribution(Kata.RandomTwoBits, 0, 3, 1000)) {
+            return false;
+        }
+        Message("All tests passed.");
+        return true;
     }
 
 }

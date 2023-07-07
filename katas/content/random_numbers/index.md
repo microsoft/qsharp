@@ -1,4 +1,4 @@
-﻿# Quantum Random Number Generation Tutorial
+# Quantum Random Number Generation Tutorial
 
 True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawning seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generations are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. 
 (You can read more about it [here]( https://en.wikipedia.org/wiki/Random_number_generation).) 

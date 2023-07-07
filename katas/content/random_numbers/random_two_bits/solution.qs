@@ -1,8 +1,8 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Reference {
 
     // Exercise 2. 
     operation RandomTwoBits_Reference () : Int {
-        return 2 * RandomBit_Reference() + RandomBit_Reference();
+        return 2 * RandomBit() + RandomBit();
     }
 
 }
