@@ -4,7 +4,6 @@
 use num_bigint::BigInt;
 use qsc_hir::hir::{LocalItemId, PackageId, Pauli};
 use std::{
-    ffi::c_void,
     fmt::{self, Display, Formatter},
     iter,
     rc::Rc,
@@ -42,7 +41,7 @@ impl Display for GlobalId {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Qubit(pub *mut c_void);
+pub struct Qubit(pub usize);
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
@@ -92,7 +91,7 @@ impl Display for Value {
                 Pauli::Z => write!(f, "PauliZ"),
                 Pauli::Y => write!(f, "PauliY"),
             },
-            Value::Qubit(v) => write!(f, "Qubit{}", (v.0 as usize)),
+            Value::Qubit(v) => write!(f, "Qubit{}", (v.0)),
             &Value::Range(start, step, end) => match (start, step, end) {
                 (Some(start), DEFAULT_RANGE_STEP, Some(end)) => write!(f, "{start}..{end}"),
                 (Some(start), DEFAULT_RANGE_STEP, None) => write!(f, "{start}..."),
