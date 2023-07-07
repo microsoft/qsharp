@@ -56,7 +56,7 @@ This is sufficient to implement a simple random number generator!
 "id": "random_bit",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs"
 ],
 "verificationSourcePath": "./random_bit/verification.qs",
 "placeholderSourcePath": "./random_bit/placeholder.qs",
@@ -83,7 +83,7 @@ Now that you can generate a single random bit, you can use that logic to create 
 "id": "random_two_bits",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs"
 ],
 "verificationSourcePath": "./random_two_bits/verification.qs",
 "placeholderSourcePath": "./random_two_bits/placeholder.qs",
@@ -110,7 +110,7 @@ Let's take it a step further and generate an $N$-bit number.
 "id": "random_n_bits",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs"
 ],
 "verificationSourcePath": "./random_n_bits/verification.qs",
 "placeholderSourcePath": "./random_n_bits/placeholder.qs",
@@ -138,7 +138,7 @@ A floating-point number $x$, $0 \le x \le 1$.
 "id": "weighted_random_bit",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs"
 ],
 "verificationSourcePath": "./weighted_random_bit/verification.qs",
 "placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
@@ -162,7 +162,7 @@ Two integers $min$ and $max$ ($0 \leq min \leq max \leq 2^{10}-1$).
 "id": "random_number",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs"
 ],
 "verificationSourcePath": "./random_number/verification.qs",
 "placeholderSourcePath": "./random_number/placeholder.qs",
