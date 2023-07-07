@@ -2,14 +2,15 @@
 // Licensed under the MIT License.
 
 import { ShotResult, Dump, Result } from "./common.js";
-import { log } from "../log.js";
+import { TelemetryEvent, log } from "../log.js";
 import { IServiceEventTarget } from "../worker-proxy.js";
 
 // Create strongly typed compiler events
 export type QscEventData =
   | { type: "Message"; detail: string }
   | { type: "DumpMachine"; detail: Dump }
-  | { type: "Result"; detail: Result };
+  | { type: "Result"; detail: Result }
+  | { type: "telemetry-event"; detail: TelemetryEvent };
 
 export type QscEvents = Event & QscEventData;
 

@@ -20,14 +20,17 @@ import {
 } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
+/** @type {import("../dist/log.js").TelemetryEvent[]} */
+const telemetryEvents = [];
 log.setLogLevel("warn");
+log.setTelemetryCollector((event) => telemetryEvents.push(event));
 
 /**
  *
  * @param {string} code
  * @param {string} expr
  * @param {boolean} useWorker
- * @returns {Promise<import("../dist/common.js").ShotResult>}
+ * @returns {Promise<import("../dist/compiler/common.js").ShotResult>}
  */
 export function runSingleShot(code, expr, useWorker) {
   return new Promise((resolve, reject) => {
