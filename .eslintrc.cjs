@@ -5,16 +5,20 @@ module.exports = {
   plugins: ["@typescript-eslint"],
   root: true,
   ignorePatterns: [
-    "target/",
-    "playground/public/",
-    "npm/dist/",
-    "npm/lib/",
-    "jupyterlab/lib",
-    "jupyterlab/qsharp_jupyterlab/labextension",
-    "vscode/out/",
+    "/target/",
+    "/playground/public/",
+    "/npm/dist/",
+    "/npm/lib/",
+    "/npm/src/*.generated.ts",
+    "/jupyterlab/lib",
+    "/jupyterlab/qsharp_jupyterlab/labextension",
+    "/vscode/out/",
   ],
   env: {
     browser: true,
     node: true,
+  },
+  rules: {
+    "@typescript-eslint/no-explicit-any": "off",
   },
 };
