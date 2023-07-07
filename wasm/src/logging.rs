@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::RefCell;
 
 use wasm_bindgen::prelude::*;
 
