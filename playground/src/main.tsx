@@ -38,7 +38,7 @@ declare global {
 
 function telemetryHandler({ id, data }: { id: string; data?: any }) {
   // NOTE: This is for demo purposes. Wire up to the real telemetry library.
-  console.log(`Received telemetry event "${id}" with data: %o`, id, data);
+  console.log(`Received telemetry event: "%s" with payload: %o`, id, data);
 }
 
 function createCompiler(onStateChange: (val: CompilerState) => void) {
@@ -159,8 +159,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
 // Called once Monaco is ready
 async function loaded() {
-  await loadWasmModule(modulePath);
-
   // Configure any logging as early as possible
   const logLevelUri = new URLSearchParams(window.location.search).get(
     "logLevel"
@@ -171,6 +169,8 @@ async function loaded() {
     log.setLogLevel("error");
   }
   log.setTelemetryCollector(telemetryHandler);
+
+  await loadWasmModule(modulePath);
 
   const katas = await getAllKatas();
 

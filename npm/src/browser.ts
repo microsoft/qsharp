@@ -24,10 +24,22 @@ let wasmInstancePromise: Promise<wasm.InitOutput> | null = null;
 
 async function wasmLoader(uriOrBuffer: string | ArrayBuffer) {
   if (typeof uriOrBuffer === "string") {
+    log.info("Fetching wasm module from %s", uriOrBuffer);
+    performance.mark("fetch-wasm-start");
     const wasmRequst = await fetch(uriOrBuffer);
     const wasmBuffer = await wasmRequst.arrayBuffer();
+    const fetchTiming = performance.measure("fetch-wasm", "fetch-wasm-start");
+    log.logTelemetry({
+      id: "fetch-wasm",
+      data: {
+        duration: fetchTiming.duration,
+        uri: uriOrBuffer,
+      },
+    });
+
     wasmModule = await WebAssembly.compile(wasmBuffer);
   } else {
+    log.info("Compiling wasm module from provided buffer");
     wasmModule = await WebAssembly.compile(uriOrBuffer);
   }
 }
