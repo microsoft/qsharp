@@ -3,6 +3,7 @@
 
 import {
   ILanguageService,
+  getCompiler,
   getLanguageService,
   loadWasmModule,
   log,
@@ -53,7 +54,8 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  registerDebugger(context);
+  const compiler = await getCompiler();
+  registerDebugger(context, compiler);
 }
 
 function initializeLogger() {
