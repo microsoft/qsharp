@@ -38,6 +38,23 @@
         "scopeName": "source.qsharp",
         "path": "./syntaxes/qsharp.tmLanguage.json"
       }
+    ],
+    "commands": [
+      {
+        "command": "extension.qsharp-debug.runEditorContents",
+        "title": "Run qsharp file",
+        "category": "Launch",
+        "enablement": "editorLangId === qsharp && !inDebugMode"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "qsharp",
+        "languages": [
+          "qsharp"
+        ],
+        "label": "qsharp debugger"
+      }
     ]
   },
   "scripts": {

@@ -9,6 +9,7 @@ import {
 } from "qsharp";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
+import { registerDebugger } from "./debugger.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
@@ -51,6 +52,8 @@ export async function activate(context: vscode.ExtensionContext) {
       createDefinitionProvider(languageService)
     )
   );
+
+  registerDebugger(context);
 }
 
 function initializeLogger() {
