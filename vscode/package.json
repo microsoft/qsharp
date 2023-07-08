@@ -13,7 +13,6 @@
     "Notebooks"
   ],
   "browser": "./out/extension.js",
-  "main": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
     "onNotebook:jupyter"
@@ -55,7 +54,22 @@
         ],
         "label": "qsharp debugger"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Q#",
+      "properties": {
+        "qsharp.combineOpenFiles": {
+          "description": "Combine all open Q# files into one project",
+          "type": "boolean",
+          "default": false
+        },
+        "qsharp.excludeStdLib": {
+          "description": "Exclude the Q# standard library from projects",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
   },
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",

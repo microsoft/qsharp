@@ -19,6 +19,13 @@ import { registerQSharpNotebookHandlers } from "./notebook.js";
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
 
+  const settings = vscode.workspace.getConfiguration("qsharp");
+  const combineOpenFiles = settings.get("combineOpenFiles");
+  const excludeStdLib = settings.get("excludeStdLib");
+  log.info(
+    `Settings: combineOpenFiles: ${combineOpenFiles}, excludeStdLib: ${excludeStdLib}`
+  );
+
   const languageService = await loadLanguageService(context.extensionUri);
 
   context.subscriptions.push(
@@ -54,8 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const compiler = await getCompiler();
-  registerDebugger(context, compiler);
+  registerDebugger(context);
 }
 
 function initializeLogger() {

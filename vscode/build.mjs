@@ -12,8 +12,11 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-  entryPoints: [join(thisDir, "src", "extension.ts")],
-  outfile: join(thisDir, "out", "extension.js"),
+  entryPoints: [
+    join(thisDir, "src", "extension.ts"),
+    join(thisDir, "src", "simulatorWorker.ts"),
+  ],
+  outdir: join(thisDir, "out"),
   bundle: true,
   external: ["vscode"],
   format: "cjs",

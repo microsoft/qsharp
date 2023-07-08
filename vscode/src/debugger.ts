@@ -1,11 +1,13 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
+
 import * as vscode from "vscode";
 import {
   log,
-  getCompiler,
   ICompilerWorker,
   getCompilerWorker,
-  ICompiler,
   QscEventTarget,
 } from "qsharp";
 
@@ -18,7 +20,7 @@ import {
 import { DebugProtocol } from "@vscode/debugprotocol";
 
 // Don't seem to be able to create a new Worker. Just use a singleton compile for now.
-let simulator: ICompiler;
+let simulator: ICompilerWorker;
 
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
@@ -59,18 +61,17 @@ class QscDebugConfigProvider implements vscode.DebugConfigurationProvider {
   }
 }
 
-export async function registerDebugger(
-  context: vscode.ExtensionContext,
-  compiler: ICompiler
-) {
+export async function registerDebugger(context: vscode.ExtensionContext) {
   log.info("Registering the qsharp debugger");
-  simulator = compiler;
   const provider = new QscDebugConfigProvider();
 
-  //   workerScriptPath = vscode.Uri.joinPath(
-  //     context.extensionUri,
-  //     "./out/simulatorWorker.js"
-  //   );
+  const workerScriptPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "./out/simulatorWorker.js"
+  );
+  log.debug("Creating the simulator worker");
+  simulator = getCompilerWorker(workerScriptPath.toString());
+  log.debug("Simulator worker created");
 
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
@@ -115,7 +116,6 @@ export class QscDebugSession extends DebugSession {
     super();
   }
 
-  // TODO
   protected initializeRequest(
     response: DebugProtocol.InitializeResponse,
     _args: DebugProtocol.InitializeRequestArguments
@@ -130,8 +130,6 @@ export class QscDebugSession extends DebugSession {
     response.body.supportsFunctionBreakpoints = false;
     response.body.supportsStepBack = false;
     response.body.supportsBreakpointLocationsRequest = false;
-
-    //const worker = new Worker(workerScriptPath.toString());
 
     this.sendResponse(response);
     this.sendEvent(new InitializedEvent());
@@ -154,10 +152,9 @@ export class QscDebugSession extends DebugSession {
 
     const source = document.getText();
     const eventTarget = new QscEventTarget(false);
-    const debugConsole = vscode.debug.activeDebugConsole;
 
     eventTarget.addEventListener("Message", (evt) => {
-      debugConsole.appendLine(`Message: ${evt.detail}`);
+      vscode.debug.activeDebugConsole.appendLine(`Message: ${evt.detail}`);
     });
 
     eventTarget.addEventListener("DumpMachine", (evt) => {
@@ -177,11 +174,11 @@ export class QscDebugSession extends DebugSession {
       }
 
       const dump = evt.detail;
-      debugConsole.appendLine("\nDumpMachine:\n");
-      debugConsole.appendLine(
+      vscode.debug.activeDebugConsole.appendLine("\nDumpMachine:\n");
+      vscode.debug.activeDebugConsole.appendLine(
         "  Basis | Amplitude     | Probability   | Phase"
       );
-      debugConsole.appendLine(
+      vscode.debug.activeDebugConsole.appendLine(
         "  ---------------------------------------------"
       );
       Object.keys(dump).map((basis) => {
@@ -190,27 +187,34 @@ export class QscDebugSession extends DebugSession {
         const probabilityPercent = probability(real, imag) * 100;
         const phase = Math.atan2(imag, real);
 
-        debugConsole.appendLine(
+        vscode.debug.activeDebugConsole.appendLine(
           `  ${basis}  | ${complex} | ${probabilityPercent.toFixed(
             4
           )}%     | ${phase.toFixed(4)}`
         );
       });
-      debugConsole.appendLine("\n");
+      vscode.debug.activeDebugConsole.appendLine("\n");
     });
 
     eventTarget.addEventListener("Result", (evt) => {
       const resultJson = JSON.stringify(evt.detail.value, null, 2);
-      debugConsole.appendLine(`Result: ${resultJson}`);
+      vscode.debug.activeDebugConsole.appendLine(`Result: ${resultJson}`);
     });
 
-    debugConsole.appendLine("Q# program running in simulator...\n");
+    // This seems to help with the Debug Console capturing all output
+    setTimeout(() => {
+      vscode.debug.activeDebugConsole.appendLine(
+        "Q# program running in simulator...\n"
+      );
 
-    simulator.run(source, "", 1, eventTarget);
-
-    debugConsole.appendLine("\nQ# simulation completed.");
-    this.sendEvent(new TerminatedEvent());
-    this.sendEvent(new ExitedEvent(0));
+      simulator.run(source, "", 1, eventTarget).then(() => {
+        vscode.debug.activeDebugConsole.appendLine(
+          "\nQ# simulation completed."
+        );
+        this.sendEvent(new TerminatedEvent());
+        this.sendEvent(new ExitedEvent(0));
+      });
+    }, 16);
   }
 
   protected threadsRequest(
