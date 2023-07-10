@@ -32,17 +32,19 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         case "function":
           kind = vscode.CompletionItemKind.Function;
           break;
-        case "module":
-          kind = vscode.CompletionItemKind.Module;
+        case "interface":
+          kind = vscode.CompletionItemKind.Interface;
           break;
         case "keyword":
           kind = vscode.CompletionItemKind.Keyword;
           break;
-        case "issue":
-          kind = vscode.CompletionItemKind.Issue;
+        case "module":
+          kind = vscode.CompletionItemKind.Module;
           break;
       }
-      return new CompletionItem(c.label, kind);
+      const item = new CompletionItem(c.label, kind);
+      item.sortText = c.sortText;
+      return item;
     });
   }
 }

@@ -16,7 +16,7 @@ const requests: MethodMap<ICompiler> = {
   checkCode: "request",
   getHir: "request",
   run: "requestWithProgress",
-  runKata: "requestWithProgress",
+  checkExerciseSolution: "requestWithProgress",
 };
 
 const events: QscEventData["type"][] = ["DumpMachine", "Message", "Result"];
