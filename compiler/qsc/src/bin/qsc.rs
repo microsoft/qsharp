@@ -4,6 +4,7 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
+use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
@@ -51,6 +52,7 @@ enum Emit {
 }
 
 fn main() -> miette::Result<ExitCode> {
+    env_logger::init();
     let cli = Cli::parse();
     let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
@@ -111,6 +113,10 @@ fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceCont
 
 fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     let path = dir.as_ref().join("hir.txt");
+    info!(
+        "Writing hir output file to: {}",
+        path.to_str().unwrap_or_default()
+    );
     fs::write(path, package.to_string())
         .into_diagnostic()
         .context("could not emit HIR")

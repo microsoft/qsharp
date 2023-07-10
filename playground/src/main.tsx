@@ -26,10 +26,6 @@ import { compressedBase64ToCode } from "./utils.js";
 
 export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
 
-// Configure any logging as early as possible
-const logLevelUri = new URLSearchParams(window.location.search).get("logLevel");
-if (logLevelUri) log.setLogLevel(logLevelUri as LogLevel);
-
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
@@ -40,7 +36,10 @@ declare global {
   const MathJax: { typeset: () => void };
 }
 
-const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
+function telemetryHandler({ id, data }: { id: string; data?: any }) {
+  // NOTE: This is for demo purposes. Wire up to the real telemetry library.
+  console.log(`Received telemetry event: "%s" with payload: %o`, id, data);
+}
 
 function createCompiler(onStateChange: (val: CompilerState) => void) {
   log.info("In createCompiler");
@@ -160,7 +159,19 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
 // Called once Monaco is ready
 async function loaded() {
-  await wasmPromise; // Block until the wasm module is loaded
+  // Configure any logging as early as possible
+  const logLevelUri = new URLSearchParams(window.location.search).get(
+    "logLevel"
+  );
+  if (logLevelUri) {
+    log.setLogLevel(logLevelUri as LogLevel);
+  } else {
+    log.setLogLevel("error");
+  }
+  log.setTelemetryCollector(telemetryHandler);
+
+  await loadWasmModule(modulePath);
+
   const katas = await getAllKatas();
 
   // If URL is a sharing link, populate the editor with the code from the link.
@@ -200,20 +211,21 @@ function registerMonacoLanguageServiceProviders(
             case "function":
               kind = monaco.languages.CompletionItemKind.Function;
               break;
-            case "module":
-              kind = monaco.languages.CompletionItemKind.Module;
+            case "interface":
+              kind = monaco.languages.CompletionItemKind.Interface;
               break;
             case "keyword":
               kind = monaco.languages.CompletionItemKind.Keyword;
               break;
-            case "issue":
-              kind = monaco.languages.CompletionItemKind.Issue;
+            case "module":
+              kind = monaco.languages.CompletionItemKind.Module;
               break;
           }
           return {
             label: i.label,
             kind: kind,
             insertText: i.label,
+            sortText: i.sortText,
             range: undefined,
           };
         }),
