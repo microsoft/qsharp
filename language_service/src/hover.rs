@@ -206,7 +206,7 @@ fn parse_doc(doc: &str) -> &str {
     let summary_re =
         Regex::new(r"(^|(\r?\n))\s*#\s*((S|s)ummary+)[\s\r\n]*").expect("Invalid regex");
     let header_re = Regex::new(r"\r?\n\s*#\s*(\w+)[\s\n\r]*").expect("Invalid regex");
-    let temp = match summary_re.find(doc) {
+    match summary_re.find(doc) {
         Some(summary_header) => {
             let start = summary_header.end();
             match header_re.find(&doc[start..]) {
@@ -215,8 +215,7 @@ fn parse_doc(doc: &str) -> &str {
             }
         }
         None => doc,
-    };
-    temp
+    }
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
