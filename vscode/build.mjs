@@ -6,9 +6,10 @@
 import { copyFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build } from "esbuild";
+import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
@@ -18,10 +19,13 @@ const buildOptions = {
   ],
   outdir: join(thisDir, "out"),
   bundle: true,
+  mainFields: ["browser", "module", "main"],
   external: ["vscode"],
   format: "cjs",
   platform: "browser",
   target: ["es2020"],
+  sourcemap: "linked",
+  //logLevel: "debug",
   define: { "import.meta.url": "undefined" },
 };
 
@@ -43,5 +47,15 @@ function buildBundle() {
   );
 }
 
-copyWasm();
-buildBundle();
+async function buildWatch() {
+  console.log("Building vscode extension in watch mode");
+  let ctx = await context(buildOptions);
+  ctx.watch();
+}
+
+if (isWatch) {
+  buildWatch();
+} else {
+  copyWasm();
+  buildBundle();
+}

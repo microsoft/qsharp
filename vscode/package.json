@@ -44,6 +44,10 @@
         "title": "Run qsharp file",
         "category": "Launch",
         "enablement": "editorLangId === qsharp && !inDebugMode"
+      },
+      {
+        "command": "extension.qsharp.listWorkspaces",
+        "title": "List qsharp workspaces"
       }
     ],
     "debuggers": [
@@ -73,7 +77,8 @@
   },
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "build": "npm run tsc:check && node build.mjs"
+    "build": "npm run tsc:check && node build.mjs",
+    "build:watch": "node build.mjs --watch"
   },
   "repository": {
     "type": "git",

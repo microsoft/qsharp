@@ -15,6 +15,7 @@ import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
+import { setupWorkspaces } from "./workspace.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -62,6 +63,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   registerDebugger(context);
+  setupWorkspaces(context);
 }
 
 function initializeLogger() {
