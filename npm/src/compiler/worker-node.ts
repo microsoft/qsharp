@@ -10,7 +10,7 @@
 
 import { isMainThread, parentPort, workerData } from "node:worker_threads";
 import * as wasm from "../../lib/node/qsc_wasm.cjs";
-import { log } from "../log.js";
+import { TelemetryEvent, log } from "../log.js";
 import { Compiler } from "./compiler.js";
 import { createCompilerDispatcher } from "./worker-proxy.js";
 
@@ -23,6 +23,19 @@ if (workerData && typeof workerData.qscLogLevel === "number") {
 const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 
 const postMessage = port.postMessage.bind(port);
+
+function telemetryHandler(telemetry: TelemetryEvent) {
+  postMessage({
+    messageType: "event",
+    type: "telemetry-event",
+    detail: telemetry,
+  });
+}
+
+// Set up logging and telemetry as soon as possible after instantiating
+log.onLevelChanged = (level) => wasm.setLogLevel(level);
+log.setTelemetryCollector(telemetryHandler);
+wasm.initLogging(log.logWithLevel, log.getLogLevel());
 
 const compiler = new Compiler(wasm);
 const invokeCompiler = createCompilerDispatcher(postMessage, compiler);

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
+use crate::{backend::SparseSim, eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
@@ -36,6 +36,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         &|id| get_global(&store, id),
         id,
         &mut Env::default(),
+        &mut SparseSim::new(),
         &mut GenericReceiver::new(&mut out),
     ) {
         Ok(value) => expect.assert_eq(&value.to_string()),

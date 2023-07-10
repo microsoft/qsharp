@@ -61,6 +61,13 @@ your own corresponding `.vscode/*.local.json` settings. If you don't install thi
 use these as a reference for editing your own `.vscode/*.json` settings files. (See the extension
 home page for more details).
 
+## Debugging
+
+Besides the usual debugging tools for Rust code and web sites, there is some logging in the code
+that may be enabled to help troubleshoot. The `qsc` command-line compiler makes use of the Rust
+crate [env_logger](https://docs.rs/env_logger/latest/env_logger/), which enables logging via
+environment variables, for example `RUST_LOG=debug ./target/release/qsc ./samples/Grover.qs`.
+
 ## Feedback
 
 If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!

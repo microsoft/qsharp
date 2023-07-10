@@ -6,17 +6,18 @@
 #[cfg(test)]
 mod tests;
 
+pub mod backend;
 pub mod debug;
 mod intrinsic;
 pub mod output;
 pub mod val;
 
 use crate::val::{FunctorApp, Value};
+use backend::Backend;
 use debug::{CallStack, Frame};
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
-use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
@@ -29,7 +30,6 @@ use std::{
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
-    ptr::null_mut,
     rc::Rc,
 };
 use thiserror::Error;
@@ -133,9 +133,10 @@ pub fn eval_stmt<'a>(
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
     env: &'a mut Env,
+    sim: &'a mut dyn Backend,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, (Error, CallStack)> {
-    let mut state = State::new(globals, package, env, out);
+    let mut state = State::new(globals, package, env, sim, out);
     state.push_stmt(stmt);
     state.eval()
 }
@@ -148,15 +149,12 @@ pub fn eval_expr<'a>(
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
     env: &'a mut Env,
+    sim: &'a mut dyn Backend,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, (Error, CallStack)> {
-    let mut state = State::new(globals, package, env, out);
+    let mut state = State::new(globals, package, env, sim, out);
     state.push_expr(expr);
     state.eval()
-}
-
-pub fn init() {
-    __quantum__rt__initialize(null_mut());
 }
 
 trait AsIndex {
@@ -302,6 +300,7 @@ pub(crate) struct State<'a, G> {
     package: PackageId,
     globals: &'a G,
     env: &'a mut Env,
+    sim: &'a mut dyn Backend,
     out: &'a mut dyn Receiver,
     call_stack: CallStack,
 }
@@ -311,6 +310,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         globals: &'a G,
         package: PackageId,
         env: &'a mut Env,
+        sim: &'a mut dyn Backend,
         out: &'a mut dyn Receiver,
     ) -> Self {
         Self {
@@ -319,6 +319,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             package,
             globals,
             env,
+            sim,
             out,
             call_stack: CallStack::default(),
         }
@@ -821,7 +822,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             }
             SpecBody::Gen(SpecGen::Intrinsic) => {
                 let name = &callee.name.name;
-                let val = intrinsic::call(name, callee_span, arg, arg_span, self.out)?;
+                let val = intrinsic::call(name, callee_span, arg, arg_span, self.sim, self.out)?;
                 self.push_val(val);
                 Ok(())
             }

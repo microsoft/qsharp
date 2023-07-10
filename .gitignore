@@ -3,6 +3,7 @@ node_modules/
 __pycache__/
 .DS_Store
 .vscode/*
+.vscode-test-web/
 !.vscode/*.shared.json
 !.vscode/extensions.json
 /fuzz/target
