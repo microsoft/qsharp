@@ -4,7 +4,7 @@
   "description": "Q# Language Support",
   "version": "0.0.0",
   "publisher": "quantum",
-  "type": "module",
+  "type": "commonjs",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -12,8 +12,8 @@
     "Programming Languages",
     "Notebooks"
   ],
-  "browser": "./out/extension.cjs",
-  "main": "./out/extension.cjs",
+  "browser": "./out/extension.js",
+  "main": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
     "onNotebook:jupyter"
@@ -42,7 +42,7 @@
   },
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "build": "npm run tsc:check && node build.js"
+    "build": "npm run tsc:check && node build.mjs"
   },
   "repository": {
     "type": "git",

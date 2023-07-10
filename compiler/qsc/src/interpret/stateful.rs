@@ -11,6 +11,7 @@ use crate::{
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
+    backend::SparseSim,
     debug::CallStack,
     output::Receiver,
     val::{GlobalId, Value},
@@ -67,6 +68,7 @@ pub struct Interpreter {
     udts: HashSet<LocalItemId>,
     callables: IndexMap<LocalItemId, CallableDecl>,
     env: Env,
+    sim: SparseSim,
 }
 
 impl Interpreter {
@@ -74,8 +76,6 @@ impl Interpreter {
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
     pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<CompileError>> {
-        qsc_eval::init();
-
         let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
         if std {
@@ -100,6 +100,7 @@ impl Interpreter {
             udts: HashSet::new(),
             callables: IndexMap::new(),
             env: Env::with_empty_scope(),
+            sim: SparseSim::new(),
         })
     }
 
@@ -178,6 +179,7 @@ impl Interpreter {
             &|id| get_global(&self.store, &self.udts, &self.callables, self.package, id),
             self.package,
             &mut self.env,
+            &mut self.sim,
             receiver,
         )
     }

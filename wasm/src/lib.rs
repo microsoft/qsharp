@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::language_service::VSDiagnostic;
-use katas::verify_exercise;
+use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -12,17 +12,19 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, SourceMap,
+    PackageStore, SourceContents, SourceMap, SourceName,
 };
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 mod language_service;
+mod logging;
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
-    JsValue::from_str(env!("QSHARP_GIT_HASH"))
+    let git_hash = env!("QSHARP_GIT_HASH");
+    JsValue::from_str(git_hash)
 }
 
 impl VSDiagnostic {
@@ -170,40 +172,60 @@ pub fn run(
     }
 }
 
-fn run_kata_exercise_internal(
-    verification_source: &str,
-    exercise_implementation: &str,
+fn check_exercise_solution_internal(
+    solution_code: &str,
+    verification_code: &str,
+    code_dependencies: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
-) -> Result<bool, Vec<stateless::Error>> {
-    verify_exercise(
-        vec![
-            ("exercise".into(), exercise_implementation.into()),
-            ("verifier".into(), verification_source.into()),
-        ],
-        &mut CallbackReceiver { event_cb },
-    )
+) -> bool {
+    let mut sources = vec![
+        ("solution".into(), solution_code.into()),
+        ("verification".into(), verification_code.into()),
+    ];
+    for code_dependency in code_dependencies {
+        sources.push(code_dependency);
+    }
+    let mut out = CallbackReceiver { event_cb };
+    let result = check_solution(sources, &mut out);
+    let mut runtime_success = true;
+    let (exercise_success, msg) = match result {
+        Ok(value) => (value, serde_json::Value::String(value.to_string())),
+        Err(errors) => {
+            // TODO: handle multiple errors
+            // https://github.com/microsoft/qsharp/issues/149
+            runtime_success = false;
+            (false, VSDiagnostic::from(&errors[0]).json())
+        }
+    };
+    let msg_string =
+        json!({"type": "Result", "success": runtime_success, "result": msg}).to_string();
+    (out.event_cb)(&msg_string);
+    exercise_success
 }
 
 #[wasm_bindgen]
-pub fn run_kata_exercise(
-    verification_source: &str,
-    exercise_implementation: &str,
+pub fn check_exercise_solution(
+    solution_code: &str,
+    verification_code: &str,
+    code_dependencies_js: JsValue,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
-        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-    }) {
-        Ok(v) => Ok(JsValue::from_bool(v)),
-        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
-        // should be reported with a Result event (also for success) and not an exception.
-        Err(e) => {
-            // TODO: Handle multiple errors.
-            let first_error = e
-                .first()
-                .expect("Running kata failed but no errors were reported");
-            Err(JsError::from(first_error).into())
-        }
+    let code_dependencies_strs: Vec<String> = serde_wasm_bindgen::from_value(code_dependencies_js)
+        .expect("Deserializing code dependencies should succeed");
+    let mut code_dependencies: Vec<(SourceName, SourceContents)> = vec![];
+    for (index, code) in code_dependencies_strs.into_iter().enumerate() {
+        code_dependencies.push((index.to_string().into(), code.into()));
     }
+    let success = check_exercise_solution_internal(
+        solution_code,
+        verification_code,
+        code_dependencies,
+        |msg: &str| {
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+        },
+    );
+
+    Ok(JsValue::from_bool(success))
 }
 
 #[cfg(test)]

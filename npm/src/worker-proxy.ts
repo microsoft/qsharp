@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "./log.js";
+import { TelemetryEvent, log } from "./log.js";
 import { CancellationToken } from "./cancellation.js";
 
 /**
@@ -198,6 +198,12 @@ export function createProxy<
       log.debug("Proxy: Received message from worker: %s", JSON.stringify(msg));
 
     if (msg.messageType === "event") {
+      // For telemetry events, just log and exit. There is nothing else waiting to consume them.
+      if (msg.type === "telemetry-event") {
+        const detail = msg.detail as TelemetryEvent;
+        log.logTelemetry(detail);
+        return;
+      }
       const event = new Event(msg.type) as Event & TServiceEventMsg;
       event.detail = msg.detail;
 

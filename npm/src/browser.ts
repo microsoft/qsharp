@@ -17,25 +17,67 @@ import { LogLevel, log } from "./log.js";
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
+let wasmModulePromise: Promise<void> | null = null;
 
 // Used to track if an instance is already instantiated
-let wasmPromise: Promise<wasm.InitOutput>;
+let wasmInstancePromise: Promise<wasm.InitOutput> | null = null;
 
-export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
+async function wasmLoader(uriOrBuffer: string | ArrayBuffer) {
   if (typeof uriOrBuffer === "string") {
+    log.info("Fetching wasm module from %s", uriOrBuffer);
+    performance.mark("fetch-wasm-start");
     const wasmRequst = await fetch(uriOrBuffer);
     const wasmBuffer = await wasmRequst.arrayBuffer();
+    const fetchTiming = performance.measure("fetch-wasm", "fetch-wasm-start");
+    log.logTelemetry({
+      id: "fetch-wasm",
+      data: {
+        duration: fetchTiming.duration,
+        uri: uriOrBuffer,
+      },
+    });
+
     wasmModule = await WebAssembly.compile(wasmBuffer);
   } else {
+    log.info("Compiling wasm module from provided buffer");
     wasmModule = await WebAssembly.compile(uriOrBuffer);
   }
 }
 
-export async function getCompiler(): Promise<ICompiler> {
-  if (!wasmModule) throw "Wasm module must be loaded first";
-  if (!wasmPromise) wasmPromise = initWasm(wasmModule);
-  await wasmPromise;
+export function loadWasmModule(
+  uriOrBuffer: string | ArrayBuffer
+): Promise<void> {
+  // Only initiate if not already in flight, to avoid race conditions
+  if (!wasmModulePromise) {
+    wasmModulePromise = wasmLoader(uriOrBuffer);
+  }
+  return wasmModulePromise;
+}
 
+async function instantiateWasm() {
+  // Ensure loading the module has been initiated, and wait for it.
+  if (!wasmModulePromise) throw "Wasm module must be loaded first";
+  await wasmModulePromise;
+  if (!wasmModule) throw "Wasm module failed to load";
+
+  if (wasmInstancePromise) {
+    // Either in flight or already complete. The prior request will do the init,
+    // so just wait on that.
+    await wasmInstancePromise;
+    return;
+  }
+
+  // Set the promise to signal this is in flight, then wait on the result.
+  wasmInstancePromise = initWasm(wasmModule);
+  await wasmInstancePromise;
+
+  // Once ready, set up logging and telemetry as soon as possible after instantiating
+  wasm.initLogging(log.logWithLevel, log.getLogLevel());
+  log.onLevelChanged = (level) => wasm.setLogLevel(level);
+}
+
+export async function getCompiler(): Promise<ICompiler> {
+  await instantiateWasm();
   return new Compiler(wasm);
 }
 
@@ -70,8 +112,8 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 
 export async function getLanguageService(): Promise<ILanguageService> {
   if (!wasmModule) throw "Wasm module must be loaded first";
-  if (!wasmPromise) wasmPromise = initWasm(wasmModule);
-  await wasmPromise;
+  if (!wasmInstancePromise) wasmInstancePromise = initWasm(wasmModule);
+  await wasmInstancePromise;
 
   return new QSharpLanguageService(wasm);
 }
@@ -112,11 +154,12 @@ export { type CompilerState } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
 export {
   getAllKatas,
+  getExerciseDependencies,
   getKata,
+  type Kata,
+  type KataSection,
   type Example,
   type Exercise,
-  type Kata,
-  type KataItem,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
 export { type VSDiagnostic } from "./vsdiagnostic.js";

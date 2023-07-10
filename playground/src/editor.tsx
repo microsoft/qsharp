@@ -6,6 +6,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
+  Exercise,
+  getExerciseDependencies,
   ICompilerWorker,
   ILanguageServiceWorker,
   LanguageServiceEvent,
@@ -60,7 +62,7 @@ export function Editor(props: {
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
-  kataVerify?: string;
+  kataExercise?: Exercise;
   onRestartCompiler: () => void;
   shotError?: VSDiagnostic;
   showExpr: boolean;
@@ -124,11 +126,30 @@ export function Editor(props: {
     props.evtTarget.clearResults();
 
     try {
-      if (props.kataVerify) {
-        // This is for a kata. Provide the verification code.
-        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+      if (props.kataExercise) {
+        // This is for a kata exercise. Provide the verification code.
+        const dependencies = await getExerciseDependencies(props.kataExercise);
+        await props.compiler.checkExerciseSolution(
+          code,
+          props.kataExercise.verificationCode,
+          dependencies,
+          props.evtTarget
+        );
       } else {
+        performance.mark("compiler-run-start");
         await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
+        const runTimer = performance.measure(
+          "compiler-run",
+          "compiler-run-start"
+        );
+        log.logTelemetry({
+          id: "compiler-run",
+          data: {
+            duration: runTimer.duration,
+            codeSize: code.length,
+            shotCount,
+          },
+        });
       }
     } catch (err) {
       // This could fail for several reasons, e.g. the run being cancelled.
@@ -157,11 +178,17 @@ export function Editor(props: {
     // and not the updated one. Not a problem currently since the language
     // service is never updated, but not correct either.
     srcModel.onDidChangeContent(async () => {
+      performance.mark("update-document-start");
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
         srcModel.getValue()
       );
+      const measure = performance.measure(
+        "update-document",
+        "update-document-start"
+      );
+      log.info(`updateDocument took ${measure.duration}ms`);
     });
 
     function onResize() {

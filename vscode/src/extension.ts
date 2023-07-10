@@ -1,7 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, getLanguageService, loadWasmModule } from "qsharp";
+import {
+  ILanguageService,
+  getLanguageService,
+  loadWasmModule,
+  log,
+} from "qsharp";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
@@ -52,13 +57,13 @@ function initializeLogger() {
   const output = vscode.window.createOutputChannel("Q#", { log: true });
 
   // Override the global logger with functions that write to the output channel
-  global.qscLog.error = output.error;
-  global.qscLog.warn = output.warn;
-  global.qscLog.info = output.info;
-  global.qscLog.debug = output.debug;
-  global.qscLog.trace = output.trace;
+  log.error = output.error;
+  log.warn = output.warn;
+  log.info = output.info;
+  log.debug = output.debug;
+  log.trace = output.trace;
 
-  global.qscLog.info("Q# extension activated.");
+  log.info("Q# extension activated.");
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
