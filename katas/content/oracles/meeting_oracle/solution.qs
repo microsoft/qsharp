@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     // Task 4.3.
     operation Meeting_Oracle_Reference (x : Qubit[], jasmine : Qubit[], z : Qubit) : Unit is Adj + Ctl {

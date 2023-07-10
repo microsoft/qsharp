@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     // Task 1.3.
     operation IsSeven_MarkingOracle_Reference (x : Qubit[], y : Qubit) : Unit is Adj + Ctl {

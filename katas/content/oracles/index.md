@@ -1,4 +1,4 @@
-﻿# Oracles Tutorial
+# Oracles Tutorial
 
 Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.  This tutorial dives deeper into the definition of different types of quantum oracles, their properties, and the basic ways to implement the oracles.
 

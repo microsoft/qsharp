@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     function Oracle_Converter (markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) {
         return ApplyMarkingOracleAsPhaseOracle(markingOracle, _);

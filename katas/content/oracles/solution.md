@@ -1,1 +1,1 @@
-﻿### Solution
+### Solution

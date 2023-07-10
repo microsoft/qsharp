@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata {
 
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
@@ -17,6 +17,7 @@
         return false;
     }
 
+    @EntryPoint()
     operation Test_Meeting_Oracle () : Unit {
         // There are 2^5 ways to arrange each of the schedules - let's try all of them
         for k in 0..((2^5)-1) { 

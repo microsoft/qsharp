@@ -1,4 +1,6 @@
-﻿    // ------------------------------------------------------
+namespace Kata.Verification {
+
+    // ------------------------------------------------------
     // Helper functions
     operation ApplyOracle (qs : Qubit[], oracle : ((Qubit[], Qubit) => Unit is Adj + Ctl)) : Unit is Adj + Ctl {
         let N = Length(qs);
@@ -15,3 +17,5 @@
             AssertOperationsEqualReferenced(i + 1, sol, refSol);
         }
     }
+
+}

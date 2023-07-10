@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata {
 
     open Microsoft.Quantum.Diagnostics;
 

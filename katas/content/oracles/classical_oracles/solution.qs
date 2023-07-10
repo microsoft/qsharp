@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     // Task 1.1.
     function IsSeven(x : Bool[]) : Bool {

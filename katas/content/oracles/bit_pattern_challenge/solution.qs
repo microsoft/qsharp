@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     // Task 4.2.
     operation ArbitraryBitPattern_Oracle_Challenge_Reference (x : Qubit[], pattern : Bool[]) : Unit is Adj + Ctl {

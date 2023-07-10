@@ -1,4 +1,4 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata.Verification {
 
     // Task 3.3.
     operation OrOfBitsExceptKth_Oracle_Reference (x : Qubit[], k : Int) : Unit is Adj + Ctl {

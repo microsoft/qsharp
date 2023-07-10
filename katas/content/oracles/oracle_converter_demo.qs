@@ -1,7 +1,8 @@
-﻿namespace Quantum.Kata.Reference {
+namespace Kata {
 
     open Microsoft.Quantum.Diagnostics;
 
+    @EntryPoint()
     operation OracleConverterDemo () : Unit {
         // Allocate the qubits in the state |000⟩
         use register = Qubit[3];
