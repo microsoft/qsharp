@@ -8,6 +8,7 @@ use crate::display::CodeDisplay;
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
+use regex::Regex;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -188,16 +189,34 @@ impl Visitor<'_> for HoverVisitor<'_> {
 }
 
 fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
-    if doc.is_empty() {
+    let parsed_doc = parse_doc(doc);
+    if parsed_doc.is_empty() {
         markdown_fenced_block(code)
     } else {
         format!(
             "{}
 {}",
-            doc,
+            parsed_doc,
             markdown_fenced_block(code)
         )
     }
+}
+
+fn parse_doc(doc: &str) -> &str {
+    let summary_re =
+        Regex::new(r"(^|(\r?\n))\s*#\s*((S|s)ummary+)[\s\r\n]*").expect("Invalid regex");
+    let header_re = Regex::new(r"\r?\n\s*#\s*(\w+)[\s\n\r]*").expect("Invalid regex");
+    let temp = match summary_re.find(doc) {
+        Some(summary_header) => {
+            let start = summary_header.end();
+            match header_re.find(&doc[start..]) {
+                Some(next_header) => &doc[start..(start + next_header.start())],
+                None => &doc[start..],
+            }
+        }
+        None => doc,
+    };
+    temp
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
