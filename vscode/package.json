@@ -48,6 +48,26 @@
       {
         "command": "extension.qsharp.listWorkspaces",
         "title": "List qsharp workspaces"
+      },
+      {
+        "command": "quantum-workspaces-refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "quantum-target-submit",
+        "title": "Submit job"
+      },
+      {
+        "command": "quantum-result-download",
+        "title": "Download",
+        "icon": {
+          "light": "resources/light/download.svg",
+          "dark": "resources/dark/download.svg"
+        }
       }
     ],
     "debuggers": [
@@ -73,6 +93,35 @@
           "default": false
         }
       }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "quantum-workspaces",
+          "name": "Quantum Workspaces"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "quantum-workspaces-refresh",
+          "when": "view == quantum-workspaces",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "quantum-target-submit",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == target"
+        },
+        {
+          "command": "quantum-result-download",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result"
+        }
+      ]
     }
   },
   "scripts": {

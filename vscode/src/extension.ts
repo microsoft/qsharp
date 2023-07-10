@@ -3,7 +3,6 @@
 
 import {
   ILanguageService,
-  getCompiler,
   getLanguageService,
   loadWasmModule,
   log,
