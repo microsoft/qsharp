@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     /// # Summary
     /// Performs a measurement of a single qubit in the
-    /// Pauli $Z$ basis.
+    /// Pauli Z basis.
     ///
     /// # Description
     /// The output result is given by
@@ -328,7 +328,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies a rotation about the $\ket{1}$ state by a given angle.
+    /// Applies a rotation about the `|1>` state by a given angle.
     ///
     /// # Description
     /// \begin{align}
@@ -373,7 +373,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies a rotation about the $\ket{1}$ state by an angle specified
+    /// Applies a rotation about the `|1>` state by an angle specified
     /// as a dyadic fraction.
     ///
     /// # Description
@@ -473,7 +473,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies a rotation about the $x$-axis by a given angle.
+    /// Applies a rotation about the `x`-axis by a given angle.
     ///
     /// # Description
     /// \begin{align}
@@ -519,7 +519,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the two qubit Ising $XX$ rotation gate.
+    /// Applies the two qubit Ising `XX` rotation gate.
     ///
     /// # Description
     /// \begin{align}
@@ -567,7 +567,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies a rotation about the $y$-axis by a given angle.
+    /// Applies a rotation about the `y`-axis by a given angle.
     ///
     /// # Description
     /// \begin{align}
@@ -613,7 +613,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the two qubit Ising $YY$ rotation gate.
+    /// Applies the two qubit Ising `YY` rotation gate.
     ///
     /// # Description
     /// \begin{align}
@@ -661,7 +661,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies a rotation about the $z$-axis by a given angle.
+    /// Applies a rotation about the `z`-axis by a given angle.
     ///
     /// # Description
     /// \begin{align}
@@ -712,7 +712,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the two qubit Ising $ZZ$ rotation gate.
+    /// Applies the two qubit Ising ZZ rotation gate.
     ///
     /// # Description
     /// \begin{align}
@@ -943,7 +943,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the Pauli $X$ gate.
+    /// Applies the Pauli X gate.
     ///
     /// # Description
     /// \begin{align}
@@ -990,7 +990,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the Pauli $Y$ gate.
+    /// Applies the Pauli Y gate.
     ///
     /// # Description
     /// \begin{align}
@@ -1037,7 +1037,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the Pauli $Z$ gate.
+    /// Applies the Pauli Z gate.
     ///
     /// # Description
     /// \begin{align}
