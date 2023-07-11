@@ -24,6 +24,23 @@ pub struct Span {
     pub end: u32,
 }
 
+#[allow(dead_code)]
+struct ParamDescription {
+    name: String,
+    description: String,
+}
+
+#[allow(dead_code)]
+struct Documentation {
+    summary: String,
+    description: String,
+    type_parameters: Vec<ParamDescription>,
+    input: Vec<ParamDescription>,
+    output: String,
+    remarks: String,
+    example: String,
+}
+
 pub(crate) fn get_hover(
     compilation: &Compilation,
     source_name: &str,
@@ -190,23 +207,23 @@ impl Visitor<'_> for HoverVisitor<'_> {
 
 fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
     let parsed_doc = parse_doc(doc);
-    if parsed_doc.is_empty() {
+    if parsed_doc.summary.is_empty() {
         markdown_fenced_block(code)
     } else {
         format!(
             "{}
 {}",
-            parsed_doc,
+            parsed_doc.summary,
             markdown_fenced_block(code)
         )
     }
 }
 
-fn parse_doc(doc: &str) -> &str {
+fn parse_doc(doc: &str) -> Documentation {
     let summary_re =
         Regex::new(r"(^|(\r?\n))\s*#\s*((S|s)ummary+)[\s\r\n]*").expect("Invalid regex");
     let header_re = Regex::new(r"\r?\n\s*#\s*(\w+)[\s\n\r]*").expect("Invalid regex");
-    match summary_re.find(doc) {
+    let summary = match summary_re.find(doc) {
         Some(summary_header) => {
             let start = summary_header.end();
             match header_re.find(&doc[start..]) {
@@ -215,6 +232,18 @@ fn parse_doc(doc: &str) -> &str {
             }
         }
         None => doc,
+    }
+    .to_string();
+
+    // ToDo: Parse the other fields. Currently only summary is parsed.
+    Documentation {
+        summary,
+        description: String::new(),
+        type_parameters: vec![],
+        input: vec![],
+        output: String::new(),
+        remarks: String::new(),
+        example: String::new(),
     }
 }
 
