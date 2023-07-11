@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the natural (base `e`) logarithm of a specified number.
+    /// Returns the natural (base _e_) logarithm of a specified number.
     function Log(input : Double) : Double {
         body intrinsic;
     }
