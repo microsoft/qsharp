@@ -1,4 +1,4 @@
-﻿namespace Kata.Reference {
+namespace Kata.Reference {
 
     // ------------------------------------------------------
     // Exercise 7. Measure state in {|A❭, |B❭} basis

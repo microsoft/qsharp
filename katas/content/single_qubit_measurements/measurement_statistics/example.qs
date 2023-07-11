@@ -1,4 +1,4 @@
-﻿namespace Kata {
+namespace Kata {
 
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
