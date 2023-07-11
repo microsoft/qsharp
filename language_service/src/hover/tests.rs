@@ -650,3 +650,21 @@ fn hover_callable_summary_only_header_matches() {
         "#]],
     );
 }
+
+#[test]
+fn hover_callable_summary_successive_headers() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}

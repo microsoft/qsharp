@@ -24,21 +24,8 @@ pub struct Span {
     pub end: u32,
 }
 
-#[allow(dead_code)]
-struct ParamDescription {
-    name: String,
-    description: String,
-}
-
-#[allow(dead_code)]
 struct Documentation {
     summary: String,
-    description: String,
-    type_parameters: Vec<ParamDescription>,
-    input: Vec<ParamDescription>,
-    output: String,
-    remarks: String,
-    example: String,
 }
 
 pub(crate) fn get_hover(
@@ -235,16 +222,7 @@ fn parse_doc(doc: &str) -> Documentation {
     }
     .to_string();
 
-    // ToDo: Parse the other fields. Currently only summary is parsed.
-    Documentation {
-        summary,
-        description: String::new(),
-        type_parameters: vec![],
-        input: vec![],
-        output: String::new(),
-        remarks: String::new(),
-        example: String::new(),
-    }
+    Documentation { summary }
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
