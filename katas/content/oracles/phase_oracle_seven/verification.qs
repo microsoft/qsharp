@@ -2,13 +2,15 @@ namespace Kata.Verification {
 
     // ------------------------------------------------------
     @EntryPoint()
-    operation T12_IsSeven_PhaseOracle () : Unit {
+    operation CheckSolution(): Bool {
         let N = 3;
-        within {
-            AllowAtMostNQubits(2*N, "You are not allowed to allocate extra qubits"); // This could be no-op
-        } apply {
-            AssertOperationsEqualReferenced(N, IsSeven_PhaseOracle, IsSeven_PhaseOracle_Reference);
+        let isCorrect = CheckOperationsEqualReferenced(N, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle);
+        if isCorrect {
+            Message("All tests passed.");
+        } else {
+            Message("Test failed: Operation is not the same as the reference operation.");
         }
+        isCorrect
     }
 
 }

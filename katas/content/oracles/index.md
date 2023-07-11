@@ -43,7 +43,8 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 "id": "classical_oracles",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./classical_oracles/solution.qs"
 ],
 "verificationSourcePath": "./classical_oracles/verification.qs",
 "placeholderSourcePath": "./classical_oracles/placeholder.qs",
@@ -130,7 +131,8 @@ Don't allocate extra qubits to perform this operation.
 "id": "phase_oracle_seven",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./phase_oracle_seven/solution.qs"
 ],
 "verificationSourcePath": "./phase_oracle_seven/verification.qs",
 "placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
@@ -184,7 +186,7 @@ Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=
 
 The marking oracle that implements this function will take an array of 3 qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $|101\rangle$ or $|010\rangle$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
+@[example]({"id": "marking_oracle_alt_bit", "codePath": "./marking_oracle_alt_bit.qs"})
 
 > Let's compare the initial state to the final state from the above demo. 
 In the initial state we had a tensor product of an equal superposition of all 3-qubit basis states and the state $|0\rangle$.  In the final state, this is no longer the case. 
@@ -218,7 +220,8 @@ state $|111\rangle$, and leave the state $|y\rangle$ unchanged otherwise.
 "id": "marking_oracle_seven",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./marking_oracle_seven/solution.qs"
 ],
 "verificationSourcePath": "./marking_oracle_seven/verification.qs",
 "placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
@@ -357,7 +360,8 @@ Flip the phase of each basis state $|x\rangle$ for which $f(x) = 1$. You can onl
 "id": "marking_oracle_as_phase",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./marking_oracle_as_phase/solution.qs"
 ],
 "verificationSourcePath": "./marking_oracle_as_phase/verification.qs",
 "placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
@@ -418,7 +422,8 @@ except for $|00...0\rangle$ (the all zero state).
 "id": "or_oracle",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./or_oracle/solution.qs"
 ],
 "verificationSourcePath": "./or_oracle/verification.qs",
 "placeholderSourcePath": "./or_oracle/placeholder.qs",
@@ -457,7 +462,8 @@ Flip the sign of the input state $|x\rangle$ if the $k$-th bit of $x$ is $1$.
 "id": "kth_bit_oracle",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./kth_bit_oracle/solution.qs"
 ],
 "verificationSourcePath": "./kth_bit_oracle/verification.qs",
 "placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
@@ -505,7 +511,8 @@ Feel free to explore implementing this operation with or without auxiliary qubit
 "id": "or_but_kth_oracle",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./or_but_kth_oracle/solution.qs"
 ],
 "verificationSourcePath": "./or_but_kth_oracle/verification.qs",
 "placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
@@ -549,7 +556,8 @@ represented by `pattern`.
 "id": "bit_pattern_oracle",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./bit_pattern_oracle/solution.qs"
 ],
 "verificationSourcePath": "./bit_pattern_oracle/verification.qs",
 "placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
@@ -591,7 +599,8 @@ represented by `pattern`.
 "id": "bit_pattern_challenge",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./bit_pattern_challenge/solution.qs"
 ],
 "verificationSourcePath": "./bit_pattern_challenge/verification.qs",
 "placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
@@ -632,7 +641,8 @@ Flip the state of $|y\rangle$ if you and Jasmine are both free on the same day f
 "id": "meeting_oracle",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
+"./common.qs",
+"./meeting_oracle/solution.qs"
 ],
 "verificationSourcePath": "./meeting_oracle/verification.qs",
 "placeholderSourcePath": "./meeting_oracle/placeholder.qs",
@@ -650,7 +660,7 @@ A good way to test a quantum oracle of interest is to write a classical oracle t
 
 Here we will test your implementation from task 4.3 by comparing it to the classical code implementing the same function. 
 
-@[example]({"id": "phase_oracle_alt_bit", "codePath": "./test_meeting_oracle.qs"})
+@[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
 
 # Part V: What's next?
 

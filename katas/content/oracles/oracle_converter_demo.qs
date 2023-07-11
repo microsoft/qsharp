@@ -1,6 +1,31 @@
 namespace Kata {
 
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Arrays;
+
+    // TODO: Consider moving to hidden code
+    operation IsSeven_PhaseOracle(x : Qubit[]) : Unit is Adj + Ctl {
+        Controlled Z(Most(x), Tail(x));
+    }
+
+    // TODO: Consider moving to hidden code
+    operation IsSeven_MarkingOracle(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+        Controlled X(x, y);
+    }
+
+    // TODO: Consider moving to hidden code
+    operation ApplyMarkingOracleAsPhaseOracle(
+        markingOracle: ((Qubit[], Qubit) => Unit is Adj + Ctl),
+        qubits: Qubit[]) : Unit is Adj + Ctl {
+            
+        use minus = Qubit();
+        within {
+            X(minus);
+            H(minus);
+        } apply {
+            markingOracle(qubits, minus);
+        }
+    }    
 
     @EntryPoint()
     operation OracleConverterDemo () : Unit {

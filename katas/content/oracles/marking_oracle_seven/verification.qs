@@ -2,8 +2,14 @@ namespace Kata.Verification {
 
     // ------------------------------------------------------
     @EntryPoint()
-    operation T13_IsSeven_MarkingOracle () : Unit {
-        AssertTwoOraclesAreEqual(3..3, IsSeven_MarkingOracle, IsSeven_MarkingOracle_Reference);
+    operation CheckSolution () : Bool {
+        let isCorrect = CheckTwoOraclesAreEqual(3..3, Kata.IsSeven_MarkingOracle, IsSeven_MarkingOracle);
+        if isCorrect {
+            Message("All tests passed.");
+        } else {
+            Message("Test failed: Operation is not the same as the reference operation.");
+        }
+        isCorrect
     }
 
 }

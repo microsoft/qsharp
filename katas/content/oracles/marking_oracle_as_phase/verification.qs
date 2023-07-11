@@ -1,22 +1,29 @@
 namespace Kata.Verification {
-
-    function Oracle_Converter (markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl)) : (Qubit[] => Unit is Adj + Ctl) {
-        return ApplyMarkingOracleAsPhaseOracle(markingOracle, _);
-    }
-
+    open Microsoft.Quantum.Convert;
 
     // ------------------------------------------------------
     @EntryPoint()
-    operation T21_ApplyMarkingOracleAsPhaseOracle () : Unit {
+    operation CheckSolution(): Bool {
         for N in 1..5 {
             for k in 0..(2^N-1) {
                 let pattern = IntAsBoolArray(k, N);
 
-                AssertOperationsEqualReferenced(N,
-                                                Oracle_Converter(ArbitraryBitPattern_Oracle_Reference(_, _, pattern)),
-                                                Oracle_Converter_Reference(ArbitraryBitPattern_Oracle_Reference(_, _, pattern)));
+                let isCorrect = CheckOperationsEqualReferenced(
+                    N,
+                    qubits => Kata.ApplyMarkingOracleAsPhaseOracle(
+                        ApplyControlledOnBitString(pattern, X, _, _),
+                        qubits),
+                    qubits => ApplyMarkingOracleAsPhaseOracle(
+                        ApplyControlledOnBitString(pattern, X, _, _),
+                        qubits));
+                if not isCorrect {
+                    Message($"Failed on test pattern {pattern} for a bit pattern oracle.");
+                    return false;
+                }
             }
         }
+        Message("All tests passed.");
+        true
     }
 
 }

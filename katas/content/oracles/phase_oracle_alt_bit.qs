@@ -1,15 +1,14 @@
 namespace Kata {
 
     open Microsoft.Quantum.Diagnostics;
+    open Kata.Verification; // TODO: Remove this when ApplyControlledOnBitString is in the library!
 
     // This operation implements the oracle; we will learn how to implement oracles later in the tutorial
     operation AlternatingBitPattern_PhaseOracle (x: Qubit[]) : Unit is Adj + Ctl {
-        let PatternOne = ControlledOnBitString([false, true, false], Z);
-        let PatternTwo = ControlledOnBitString([true, false, true], Z);
         use q = Qubit();
         X(q);
-        PatternOne(x, q);
-        PatternTwo(x, q);
+        ApplyControlledOnBitString([false, true, false], Z, x, q);
+        ApplyControlledOnBitString([true, false, true], Z, x, q);
         X(q);
     }
 

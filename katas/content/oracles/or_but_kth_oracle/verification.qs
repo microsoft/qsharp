@@ -2,14 +2,21 @@ namespace Kata.Verification {
 
     // ------------------------------------------------------
     @EntryPoint()
-    operation T33_OrOfBitsExceptKth_Oracle () : Unit {
+    operation CheckSolution(): Bool {
         for N in 1..5 {
             for k in 0..(N-1) {
-                AssertOperationsEqualReferenced(N,
-                                                OrOfBitsExceptKth_Oracle(_, k),
-                                                OrOfBitsExceptKth_Oracle_Reference(_, k));
+                let isCorrect = CheckOperationsEqualReferenced(
+                    N,
+                    Kata.OrOfBitsExceptKth_Oracle(_, k),
+                    OrOfBitsExceptKth_Oracle(_, k));
+                if not isCorrect {
+                    Message($"Failed on test case for NumberOfQubits = {N}, k = {k}.");
+                    return false;
+                }
             }
         }
+        Message("All tests passed.");
+        true
     }
 
 }

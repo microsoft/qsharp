@@ -1,17 +1,24 @@
 namespace Kata.Verification {
 
+    open Microsoft.Quantum.Convert;
+
     // ------------------------------------------------------
     @EntryPoint()
-    function T11_IsSeven_ClassicalOracle () : Unit {
+    function CheckSolution(): Bool {
         let N = 3;
         for k in 0..((2^N)-1) {
             let x = IntAsBoolArray(k, N);
 
-            let actual = IsSeven(x);
-            let expected = IsSeven_Reference(x);
+            let actual = Kata.IsSeven(x);
+            let expected = IsSeven(x);
 
-            Fact(actual == expected, $"    Failed on test case x = {x}: got {actual}, expected {expected}");
+            if actual != expected {
+                Message($"Failed on test case x = {x}: got {actual}, expected {expected}");
+                return false;
+            }
         }
+        Message("All tests passed.");
+        true
     }
 
 }

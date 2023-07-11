@@ -1,9 +1,16 @@
 namespace Kata.Verification {
 
+
     // ------------------------------------------------------
     @EntryPoint()
-    operation T31_Or_Oracle () : Unit {
-        AssertTwoOraclesAreEqual(1..10, Or_Oracle, Or_Oracle_Reference);
+    operation CheckSolution() : Bool {
+        let isCorrect = CheckTwoOraclesAreEqual(1..7, Kata.Or_Oracle, Or_Oracle);
+        if (isCorrect) {
+            Message("All tests passed.");
+        } else {
+            Message("Test failed: Operation is not the same as the reference operation.");
+        }
+        isCorrect
     }
 
 }
