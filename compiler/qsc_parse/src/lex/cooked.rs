@@ -52,7 +52,7 @@ pub(crate) enum Error {
     #[diagnostic(code("Qsc.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
 
-    #[error("expected identifier to complete apostrophe identifier, found {0}")]
+    #[error("expected identifier after apostrophe, found {0}")]
     #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifier"))]
     IncompleteApostropheIdentifier(raw::TokenKind, #[label] Span),
 
