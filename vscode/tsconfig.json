@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "moduleResolution": "nodenext",
+    "moduleResolution": "Bundler",
     "customConditions": ["browser"],
     "isolatedModules": true,
     "esModuleInterop": true,

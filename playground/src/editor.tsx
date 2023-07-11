@@ -136,7 +136,20 @@ export function Editor(props: {
           props.evtTarget
         );
       } else {
+        performance.mark("compiler-run-start");
         await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
+        const runTimer = performance.measure(
+          "compiler-run",
+          "compiler-run-start"
+        );
+        log.logTelemetry({
+          id: "compiler-run",
+          data: {
+            duration: runTimer.duration,
+            codeSize: code.length,
+            shotCount,
+          },
+        });
       }
     } catch (err) {
       // This could fail for several reasons, e.g. the run being cancelled.
@@ -165,11 +178,17 @@ export function Editor(props: {
     // and not the updated one. Not a problem currently since the language
     // service is never updated, but not correct either.
     srcModel.onDidChangeContent(async () => {
+      performance.mark("update-document-start");
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
         srcModel.getValue()
       );
+      const measure = performance.measure(
+        "update-document",
+        "update-document-start"
+      );
+      log.info(`updateDocument took ${measure.duration}ms`);
     });
 
     function onResize() {
