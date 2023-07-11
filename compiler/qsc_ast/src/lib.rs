@@ -6,4 +6,5 @@
 pub mod assigner;
 pub mod ast;
 pub mod mut_visit;
+pub mod validate;
 pub mod visit;
