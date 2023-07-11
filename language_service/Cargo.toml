@@ -17,4 +17,3 @@ log = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 enum-iterator = { workspace = true }
-regex = "1.9.1"
