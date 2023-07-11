@@ -266,6 +266,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_logger"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
+dependencies = [
+ "humantime",
+ "is-terminal",
+ "log",
+ "regex",
+ "termcolor",
+]
+
+[[package]]
 name = "errno"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -358,6 +371,12 @@ name = "hermit-abi"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
+
+[[package]]
+name = "humantime"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "indenter"
@@ -781,7 +800,9 @@ version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
  "criterion",
+ "env_logger",
  "indoc 2.0.0",
+ "log",
  "miette",
  "num-bigint",
  "num-complex",
@@ -898,6 +919,7 @@ dependencies = [
  "getrandom",
  "js-sys",
  "katas",
+ "log",
  "miette",
  "num-bigint",
  "num-complex",

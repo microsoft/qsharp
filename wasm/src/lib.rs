@@ -19,10 +19,12 @@ use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 mod language_service;
+mod logging;
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
-    JsValue::from_str(env!("QSHARP_GIT_HASH"))
+    let git_hash = env!("QSHARP_GIT_HASH");
+    JsValue::from_str(git_hash)
 }
 
 impl VSDiagnostic {
