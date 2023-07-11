@@ -54,11 +54,11 @@ pub(crate) enum Error {
 
     #[error("expected identifier after apostrophe, found {0}")]
     #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifier"))]
-    IncompleteApostropheIdentifier(raw::TokenKind, #[label] Span),
+    IncompleteAposIdent(raw::TokenKind, #[label] Span),
 
     #[error("expected identifier after apostrophe, found EOF")]
     #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifierEof"))]
-    IncompleteApostropheIdentifierEof(#[label] Span),
+    IncompleteAposIdentEof(#[label] Span),
 }
 
 impl Error {
@@ -72,12 +72,8 @@ impl Error {
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
-            Self::IncompleteApostropheIdentifier(tok, span) => {
-                Self::IncompleteApostropheIdentifier(tok, span + offset)
-            }
-            Self::IncompleteApostropheIdentifierEof(span) => {
-                Self::IncompleteApostropheIdentifierEof(span + offset)
-            }
+            Self::IncompleteAposIdent(tok, span) => Self::IncompleteAposIdent(tok, span + offset),
+            Self::IncompleteAposIdentEof(span) => Self::IncompleteAposIdentEof(span + offset),
         }
     }
 }
@@ -335,15 +331,7 @@ impl<'a> Lexer<'a> {
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
-            raw::TokenKind::Single(single) => self
-                .single(
-                    single,
-                    Span {
-                        lo: token.offset,
-                        hi: token.offset,
-                    },
-                )
-                .map(Some),
+            raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
                 Ok(Some(TokenKind::String(StringToken::Normal)))
             }
@@ -380,7 +368,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn single(&mut self, single: Single, span: Span) -> Result<TokenKind, Error> {
+    fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
         match single {
             Single::Amp => {
                 let op = ClosedBinOp::AmpAmpAmp;
@@ -395,8 +383,17 @@ impl<'a> Lexer<'a> {
                         kind: raw::TokenKind::Ident,
                         ..
                     }) => Ok(TokenKind::AposIdent),
-                    Some(tok) => Err(Error::IncompleteApostropheIdentifier(tok.kind, span)),
-                    None => Err(Error::IncompleteApostropheIdentifierEof(span)),
+                    Some(tok) => Err(Error::IncompleteAposIdent(
+                        tok.kind,
+                        Span {
+                            lo: self.offset(),
+                            hi: self.offset(),
+                        },
+                    )),
+                    None => Err(Error::IncompleteAposIdentEof(Span {
+                        lo: self.offset(),
+                        hi: self.offset(),
+                    })),
                 }
             }
             Single::At => Ok(TokenKind::At),
