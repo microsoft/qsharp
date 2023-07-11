@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     /// # Summary
     /// Performs a measurement of a single qubit in the
-    /// Pauli Z basis.
+    /// Pauli _Z_ basis.
     ///
     /// # Description
     /// The output result is given by
