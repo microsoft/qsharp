@@ -221,8 +221,8 @@ fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
 
 fn parse_doc(doc: &str) -> Documentation {
     let summary_re =
-        Regex::new(r"(^|(\r?\n))\s*#\s*((S|s)ummary+)[\s\r\n]*").expect("Invalid regex");
-    let header_re = Regex::new(r"\r?\n\s*#\s*(\w+)[\s\n\r]*").expect("Invalid regex");
+        Regex::new(r"(^|(\r?\n))\s*#\s*((S|s)ummary)[\s\r\n]*").expect("Invalid regex");
+    let header_re = Regex::new(r"\r?\n\s*#\s*(\w+)[\s\r\n]*").expect("Invalid regex");
     let summary = match summary_re.find(doc) {
         Some(summary_header) => {
             let start = summary_header.end();
