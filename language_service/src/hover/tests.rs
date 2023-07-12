@@ -668,3 +668,20 @@ fn hover_callable_summary_successive_headers() {
         "#]],
     );
 }
+
+#[test]
+fn hover_callable_empty_summary() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// # Summary
+            /// # Also Not The Summary
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r##"
+            "```qsharp\noperation Foo Unit => Unit\n```\n"
+        "##]],
+    );
+}
