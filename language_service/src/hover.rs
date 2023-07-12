@@ -207,7 +207,7 @@ fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
 }
 
 fn parse_doc(doc: &str) -> Documentation {
-    let re = Regex::new(r"(?m)(?:^#\s*Summary\s*$\s*)([\s\S]*?)(?:\s*(^#.*)|\z)")
+    let re = Regex::new(r"(?mi)(?:^#\s+Summary\s*$\s*)([\s\S]*?)(?:\s*(^# .*)|\z)")
         .expect("Invalid regex");
     let summary = match re.captures(doc) {
         Some(captures) => {
