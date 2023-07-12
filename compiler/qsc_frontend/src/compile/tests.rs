@@ -536,10 +536,13 @@ fn introduce_prelude_ambiguity() {
 
     let unit = compile(&store, &[std], sources);
     let errors: Vec<Error> = unit.errors;
-    assert!(errors.iter().any(|x| matches!(
-        x,
-        Error(super::ErrorKind::Resolve(
-            super::resolve::Error::AmbiguousPrelude { .. }
-        ))
-    )));
+    assert!(
+        errors.len() == 1
+            && matches!(
+                errors[0],
+                Error(super::ErrorKind::Resolve(
+                    super::resolve::Error::AmbiguousPrelude { .. }
+                ))
+            )
+    );
 }
