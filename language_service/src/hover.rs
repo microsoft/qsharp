@@ -214,7 +214,7 @@ fn parse_doc(doc: &str) -> Documentation {
             let capture = captures
                 .get(1)
                 .expect("Didn't find the capture for the given regex");
-            &doc[capture.start()..capture.end()]
+            capture.as_str()
         }
         None => doc,
     }
