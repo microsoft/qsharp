@@ -517,7 +517,7 @@ fn std_dependency() {
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 #[test]
-fn introduce_namespace_ambiguity() {
+fn introduce_prelude_ambiguity() {
     let mut store = PackageStore::new(super::core());
     let std = store.insert(super::std(&store));
     let sources = SourceMap::new(

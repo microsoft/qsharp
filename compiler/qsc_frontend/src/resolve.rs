@@ -64,15 +64,7 @@ pub(super) enum Error {
         second_open_span: Span,
     },
 
-    #[error("duplicate declaration of `{0}` in namespace `{1}`")]
-    #[diagnostic(code("Qsc.Resolve.Duplicate"))]
-    Duplicate(String, String, #[label] Span),
-
-    #[error("`{0}` not found")]
-    #[diagnostic(code("Qsc.Resolve.NotFound"))]
-    NotFound(String, #[label] Span),
-
-    #[error("`{name}` could refer to the item in {candidate_a} or an item in {candidate_b}")]
+    #[error("`{name}` could refer to the item in `{candidate_a}` or an item in `{candidate_b}`")]
     #[diagnostic(help(
         "a namespace should not be declared with the same name as a namespace in the prelude"
     ))]
@@ -84,6 +76,14 @@ pub(super) enum Error {
         #[label]
         span: Span,
     },
+
+    #[error("duplicate declaration of `{0}` in namespace `{1}`")]
+    #[diagnostic(code("Qsc.Resolve.Duplicate"))]
+    Duplicate(String, String, #[label] Span),
+
+    #[error("`{0}` not found")]
+    #[diagnostic(code("Qsc.Resolve.NotFound"))]
+    NotFound(String, #[label] Span),
 }
 
 struct Scope {
@@ -650,10 +650,10 @@ fn resolve(
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name_str);
         if candidates.len() > 1 {
             let mut candidates: Vec<_> = candidates.into_iter().collect();
-            candidates.sort_by_key(|x| x.namespace);
+            candidates.sort_by_key(|x| x.1);
             let mut candidates = candidates
                 .into_iter()
-                .map(|candidate| candidate.namespace.to_string());
+                .map(|candidate| candidate.1.to_string());
             let candidate_a = candidates
                 .next()
                 .expect("infallible as per length check above");
@@ -667,8 +667,8 @@ fn resolve(
                 candidate_b,
             });
         }
-        if let Some(res) = single(candidates) {
-            return Ok(res.result);
+        if let Some((res, _)) = single(candidates) {
+            return Ok(res);
         }
     }
 
@@ -738,30 +738,19 @@ fn resolve_scope_locals(
 
     None
 }
-#[derive(PartialEq, Hash, Eq, Debug)]
-/// Represents the resolution of implicit opens, but also
+/// The return type represents the resolution of implicit opens, but also
 /// retains the namespace that the resolution comes from.
 /// This retained namespace string is used for error reporting.
-struct ImplicitOpenResolution<'a> {
-    /// the namespace that the `result` comes from.
-    namespace: &'a str,
-    /// the resolution that results from looking for a specific name in `namespace`.
-    result: Res,
-}
-
 fn resolve_implicit_opens<'a, 'b>(
     kind: NameKind,
     globals: &'b GlobalScope,
     namespaces: impl IntoIterator<Item = &'a &'a str>,
     name: &'b str,
-) -> HashSet<ImplicitOpenResolution<'a>> {
-    let mut candidates = HashSet::new();
+) -> HashMap<Res, &'a str> {
+    let mut candidates = HashMap::new();
     for namespace in namespaces {
         if let Some(&res) = globals.get(kind, namespace, name) {
-            candidates.insert(ImplicitOpenResolution {
-                namespace,
-                result: res,
-            });
+            candidates.insert(res, *namespace);
         }
     }
     candidates
