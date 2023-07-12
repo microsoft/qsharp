@@ -21,8 +21,8 @@ use crate::{
 };
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind, TyKind,
-    Visibility, VisibilityKind,
+    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind,
+    TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -346,11 +346,8 @@ fn parse_spec_gen(s: &mut Scanner) -> Result<SpecGen> {
     }
 }
 /// Checks that the inputs of the callable are surrounded by parens
-pub(super) fn check_input_parens(inputs: &qsc_ast::ast::Pat) -> Result<()> {
-    if !matches!(
-        *inputs.kind,
-        qsc_ast::ast::PatKind::Paren(_) | qsc_ast::ast::PatKind::Tuple(_)
-    ) {
+pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
+    if !matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
         Err(Error(ErrorKind::MissingParens(inputs.span)))
     } else {
         Ok(())
