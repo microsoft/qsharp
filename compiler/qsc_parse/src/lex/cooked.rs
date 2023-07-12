@@ -44,14 +44,6 @@ pub(crate) enum Error {
     #[diagnostic(code("Qsc.Lex.IncompleteEof"))]
     IncompleteEof(raw::Single, TokenKind, #[label] Span),
 
-    #[error("unterminated string literal")]
-    #[diagnostic(code("Qsc.Lex.UnterminatedString"))]
-    UnterminatedString(#[label] Span),
-
-    #[error("unrecognized character `{0}`")]
-    #[diagnostic(code("Qsc.Lex.UnknownChar"))]
-    Unknown(char, #[label] Span),
-
     #[error("expected identifier after apostrophe, found {0}")]
     #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifier"))]
     IncompleteAposIdent(raw::TokenKind, #[label] Span),
@@ -59,6 +51,14 @@ pub(crate) enum Error {
     #[error("expected identifier after apostrophe, found EOF")]
     #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifierEof"))]
     IncompleteAposIdentEof(#[label] Span),
+
+    #[error("unterminated string literal")]
+    #[diagnostic(code("Qsc.Lex.UnterminatedString"))]
+    UnterminatedString(#[label] Span),
+
+    #[error("unrecognized character `{0}`")]
+    #[diagnostic(code("Qsc.Lex.UnknownChar"))]
+    Unknown(char, #[label] Span),
 }
 
 impl Error {
@@ -383,17 +383,17 @@ impl<'a> Lexer<'a> {
                         kind: raw::TokenKind::Ident,
                         ..
                     }) => Ok(TokenKind::AposIdent),
-                    Some(tok) => Err(Error::IncompleteAposIdent(
-                        tok.kind,
-                        Span {
-                            lo: self.offset(),
-                            hi: self.offset(),
-                        },
-                    )),
-                    None => Err(Error::IncompleteAposIdentEof(Span {
-                        lo: self.offset(),
-                        hi: self.offset(),
-                    })),
+                    Some(raw::Token { offset, kind }) => {
+                        let mut tokens = self.tokens.clone();
+                        let hi = tokens.nth(1).map_or_else(|| self.len, |t| t.offset);
+                        let span = Span { lo: offset, hi };
+                        Err(Error::IncompleteAposIdent(kind, span))
+                    }
+                    None => {
+                        let lo = self.len;
+                        let span = Span { lo, hi: lo };
+                        Err(Error::IncompleteAposIdentEof(span))
+                    }
                 }
             }
             Single::At => Ok(TokenKind::At),

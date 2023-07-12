@@ -1670,11 +1670,11 @@ fn unfinished_generic() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteApostropheIdentifier(
+                    IncompleteAposIdent(
                         Whitespace,
                         Span {
-                            lo: 0,
-                            hi: 0,
+                            lo: 1,
+                            hi: 4,
                         },
                     ),
                 ),
@@ -1699,13 +1699,13 @@ fn unfinished_generic_2() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteApostropheIdentifier(
+                    IncompleteAposIdent(
                         Comment(
                             Normal,
                         ),
                         Span {
-                            lo: 0,
-                            hi: 0,
+                            lo: 1,
+                            hi: 18,
                         },
                     ),
                 ),
@@ -1730,11 +1730,11 @@ fn unfinished_generic_3() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteApostropheIdentifier(
+                    IncompleteAposIdent(
                         Whitespace,
                         Span {
-                            lo: 0,
-                            hi: 0,
+                            lo: 1,
+                            hi: 6,
                         },
                     ),
                 ),
@@ -1777,10 +1777,10 @@ fn generic_missing_ident() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteApostropheIdentifierEof(
+                    IncompleteAposIdentEof(
                         Span {
-                            lo: 0,
-                            hi: 0,
+                            lo: 1,
+                            hi: 1,
                         },
                     ),
                 ),
