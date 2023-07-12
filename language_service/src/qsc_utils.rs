@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::hir::visit::Visitor;
-use qsc::hir::{Item, ItemId, LocalItemId, PackageId};
+use qsc::hir::{Item, ItemId, PackageId};
 use qsc::{
     compile::{self, Error},
     PackageStore, SourceMap,
