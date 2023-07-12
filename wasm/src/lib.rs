@@ -116,8 +116,8 @@ where
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
-    let context = stateless::Context::new(true, sources);
-    if let Err(err) = context {
+    let interpreter = stateless::Interpreter::new(true, sources);
+    if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
@@ -127,9 +127,9 @@ where
         (out.event_cb)(&msg.to_string());
         return Err(e);
     }
-    let context = context.expect("context should be valid");
+    let mut interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {
-        let result = context.eval(&mut out);
+        let result = interpreter.eval(&mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),

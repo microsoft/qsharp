@@ -78,7 +78,7 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     if cli.exec {
-        let context = match stateless::Context::new(
+        let mut context = match stateless::Interpreter::new(
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
         ) {

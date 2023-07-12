@@ -10,13 +10,28 @@ use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes};
 
 use crate::{
-    backend::SparseSim,
     eval_expr,
     output::{GenericReceiver, Receiver},
     tests::get_global,
-    val::Value,
-    Env, Error,
+    val::{GlobalId, Value},
+    Error, GlobalLookup,
 };
+
+struct Lookup<'this> {
+    store: &'this PackageStore,
+}
+
+impl<'this> Lookup<'this> {
+    pub fn new(store: &'this PackageStore) -> Self {
+        Self { store }
+    }
+}
+
+impl<'a> GlobalLookup<'a> for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<crate::Global<'a>> {
+        get_global(self.store, id)
+    }
+}
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
     let mut core = compile::core();
@@ -37,16 +52,8 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
         .get(id)
         .and_then(|unit| unit.package.entry.as_ref())
         .expect("package should have entry");
-
-    eval_expr(
-        entry,
-        &|id| get_global(&store, id),
-        id,
-        &mut Env::default(),
-        &mut SparseSim::new(),
-        out,
-    )
-    .map_err(|e| e.0)
+    let lookup = Lookup::new(&store);
+    eval_expr(entry, &lookup, id, out).map_err(|e| e.0)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {

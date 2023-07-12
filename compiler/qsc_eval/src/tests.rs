@@ -1,12 +1,28 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{backend::SparseSim, eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Global, GlobalLookup};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::hir::ItemKind;
 use qsc_passes::{run_core_passes, run_default_passes};
+
+struct Lookup<'a> {
+    store: &'a PackageStore,
+}
+
+impl<'a> Lookup<'a> {
+    pub fn new(store: &'a PackageStore) -> Self {
+        Self { store }
+    }
+}
+
+impl<'a> GlobalLookup<'a> for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<crate::Global<'a>> {
+        get_global(self.store, id)
+    }
+}
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut core = compile::core();
@@ -31,14 +47,8 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         .expect("package should have entry");
 
     let mut out = Vec::new();
-    match eval_expr(
-        entry,
-        &|id| get_global(&store, id),
-        id,
-        &mut Env::default(),
-        &mut SparseSim::new(),
-        &mut GenericReceiver::new(&mut out),
-    ) {
+    let lookup = Lookup::new(&store);
+    match eval_expr(entry, &lookup, id, &mut GenericReceiver::new(&mut out)) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
     }

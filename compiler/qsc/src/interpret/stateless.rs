@@ -6,16 +6,16 @@ use crate::{
     error::WithSource,
 };
 use miette::Diagnostic;
+use ouroboros::self_referencing;
 use qsc_eval::{
     backend::SparseSim,
     debug::CallStack,
-    eval_expr,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global,
+    Env, Global, GlobalLookup, State,
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
-use qsc_hir::hir::{Expr, ItemKind, PackageId};
+use qsc_hir::hir::{Block, Expr, ItemKind, PackageId};
 use qsc_passes::entry_point::extract_entry;
 use thiserror::Error;
 
@@ -44,12 +44,35 @@ enum ErrorKind {
     Eval(#[from] qsc_eval::Error),
 }
 
-pub struct Context {
-    store: PackageStore,
-    package: PackageId,
+pub struct Interpreter {
+    context: Context,
 }
 
-impl Context {
+#[self_referencing]
+pub struct Context {
+    store: PackageStore,
+    env: Env,
+    sim: SparseSim,
+    #[borrows(store)]
+    #[covariant()]
+    lookup: Lookup<'this>,
+    package: PackageId,
+    #[borrows(package)]
+    #[not_covariant()]
+    state: State<'this>,
+}
+
+struct Lookup<'this> {
+    store: &'this PackageStore,
+}
+
+impl<'a> GlobalLookup<'a> for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
+        get_global(self.store, id)
+    }
+}
+
+impl Interpreter {
     /// # Errors
     ///
     /// Returns a vector of errors if compiling the given sources fails.
@@ -63,7 +86,16 @@ impl Context {
         let (unit, errors) = compile(&store, &dependencies, sources);
         if errors.is_empty() {
             let package = store.insert(unit);
-            Ok(Self { store, package })
+            let builder = ContextBuilder {
+                package,
+                store,
+                env: Env::with_empty_scope(),
+                sim: SparseSim::new(),
+                lookup_builder: |store| Lookup { store },
+                state_builder: |package| State::new(*package),
+            };
+            let context = builder.build();
+            Ok(Self { context })
         } else {
             Err(errors
                 .into_iter()
@@ -75,55 +107,71 @@ impl Context {
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval(&self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
-        eval_expr(
-            &get_entry_expr(&self.store, self.package)?,
-            &|id| get_global(&self.store, id),
-            self.package,
-            &mut Env::with_empty_scope(),
-            &mut SparseSim::new(),
-            receiver,
-        )
-        .map_err(|(error, call_stack)| {
-            let package = self
-                .store
-                .get(self.package)
-                .expect("package should be in store");
+    pub fn eval(&mut self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
+        self.context.with_mut(|fields| {
+            let state = fields.state;
+            let store = fields.store;
+            let package = *fields.package;
 
-            let stack_trace = if call_stack.is_empty() {
-                None
+            state.reset();
+            *fields.env = Env::with_empty_scope();
+            *fields.sim = SparseSim::new();
+
+            if let Some(expr) = get_entry_expr(store, package) {
+                state.push_expr(expr);
             } else {
-                Some(render_call_stack(&self.store, &call_stack, &error))
-            };
+                let block = find_entry_block(store, package)?;
+                state.push_block(fields.env, block);
+            }
 
-            vec![Error(WithSource::from_map(
-                &package.sources,
-                error.into(),
-                stack_trace,
-            ))]
+            state
+                .eval(fields.lookup, fields.env, fields.sim, receiver)
+                .map_err(|(error, call_stack)| {
+                    let package = store.get(package).expect("package should be in store");
+
+                    let stack_trace = if call_stack.is_empty() {
+                        None
+                    } else {
+                        Some(render_call_stack(
+                            store,
+                            &Lookup { store },
+                            &call_stack,
+                            &error,
+                        ))
+                    };
+
+                    vec![Error(WithSource::from_map(
+                        &package.sources,
+                        error.into(),
+                        stack_trace,
+                    ))]
+                })
         })
     }
 }
 
-fn render_call_stack(
+fn render_call_stack<'a>(
     store: &PackageStore,
+    globals: &impl GlobalLookup<'a>,
     call_stack: &CallStack,
     error: &dyn std::error::Error,
 ) -> String {
-    format_call_stack(store, &|id| get_global(store, id), call_stack, error)
+    format_call_stack(store, globals, call_stack, error)
 }
 
-fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<Expr, Vec<Error>> {
+fn get_entry_expr(store: &PackageStore, package: PackageId) -> Option<&Expr> {
     let unit = store.get(package).expect("store should have package");
-    match &unit.package.entry {
-        Some(entry) => Ok(entry.clone()),
-        None => extract_entry(&unit.package).map_err(|errors| {
-            errors
-                .into_iter()
-                .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
-                .collect()
-        }),
-    }
+    unit.package.entry.as_ref()
+}
+
+fn find_entry_block(store: &PackageStore, package: PackageId) -> Result<&Block, Vec<Error>> {
+    let unit = store.get(package).expect("store should have package");
+    extract_entry(&unit.package).map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
+            .collect()
+    })
 }
 
 pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {

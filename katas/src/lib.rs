@@ -27,7 +27,7 @@ pub fn check_solution(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
-    let context = stateless::Context::new(true, source_map)?;
+    let mut context = stateless::Interpreter::new(true, source_map)?;
     context.eval(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success

@@ -8,7 +8,7 @@ use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{Attr, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
+    hir::{Attr, Block, CallableDecl, Item, ItemKind, Package, PatKind},
     visit::Visitor,
 };
 use thiserror::Error;
@@ -37,7 +37,7 @@ pub enum Error {
 /// Extracts a single entry point callable declaration, if found.
 /// # Errors
 /// Returns an error if a single entry point with no parameters cannot be found.
-pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
+pub fn extract_entry(package: &Package) -> Result<&Block, Vec<super::Error>> {
     let mut finder = EntryPointFinder {
         callables: Vec::new(),
     };
@@ -59,12 +59,7 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
                     qsc_hir::hir::SpecBody::Gen(_) => {
                         Err(vec![PassErr::EntryPoint(Error::BodyMissing(ep.span))])
                     }
-                    qsc_hir::hir::SpecBody::Impl(_, block) => Ok(Expr {
-                        id: NodeId::default(),
-                        span: Span::default(),
-                        ty: ep.output.clone(),
-                        kind: ExprKind::Block(block.clone()),
-                    }),
+                    qsc_hir::hir::SpecBody::Impl(_, block) => Ok(block),
                 }
             }
         } else {
