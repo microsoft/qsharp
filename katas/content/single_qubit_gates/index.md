@@ -41,3 +41,22 @@ This tutorial covers the following topics:
     "solutionSourcePath": "./global_phase_i/Solution.qs",
     "solutionDescriptionPath": "./global_phase_i/solution.md"
 })
+
+## Applying a $-1$ phase to $|0\rangle$ state
+
+**Input:** A qubit in an arbitrary state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$.
+
+**Goal:** Use several Pauli gates to change the qubit state to $- \alpha|0\rangle + \beta|1\rangle$, i.e., apply the transformation represented by the following matrix::
+
+$$\begin{bmatrix} -1 & 0 \\ 0 & 1 \end{bmatrix}$$
+
+@[exercise]({
+    "id": "sign_flip_on_zero",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./sign_flip_on_zero/Verification.qs",
+    "placeholderSourcePath": "./sign_flip_on_zero/Placeholder.qs",
+    "solutionSourcePath": "./sign_flip_on_zero/Solution.qs",
+    "solutionDescriptionPath": "./sign_flip_on_zero/solution.md"
+})
