@@ -6,7 +6,6 @@ use crate::{
     error::WithSource,
 };
 use miette::Diagnostic;
-use ouroboros::self_referencing;
 use qsc_eval::{
     backend::SparseSim,
     debug::CallStack,
@@ -48,18 +47,17 @@ pub struct Interpreter {
     context: Context,
 }
 
-#[self_referencing]
 pub struct Context {
     store: PackageStore,
+    package: PackageId,
+}
+
+pub struct EvalContext<'a> {
+    context: &'a Context,
     env: Env,
     sim: SparseSim,
-    #[borrows(store)]
-    #[covariant()]
-    lookup: Lookup<'this>,
-    package: PackageId,
-    #[borrows(package)]
-    #[not_covariant()]
-    state: State<'this>,
+    lookup: Lookup<'a>,
+    state: State<'a>,
 }
 
 struct Lookup<'this> {
@@ -86,15 +84,7 @@ impl Interpreter {
         let (unit, errors) = compile(&store, &dependencies, sources);
         if errors.is_empty() {
             let package = store.insert(unit);
-            let builder = ContextBuilder {
-                package,
-                store,
-                env: Env::with_empty_scope(),
-                sim: SparseSim::new(),
-                lookup_builder: |store| Lookup { store },
-                state_builder: |package| State::new(*package),
-            };
-            let context = builder.build();
+            let context = Context { store, package };
             Ok(Self { context })
         } else {
             Err(errors
@@ -104,49 +94,60 @@ impl Interpreter {
         }
     }
 
+    #[must_use]
+    pub fn eval_context(&self) -> EvalContext {
+        EvalContext {
+            context: &self.context,
+            env: Env::with_empty_scope(),
+            sim: SparseSim::new(),
+            lookup: Lookup {
+                store: &self.context.store,
+            },
+            state: State::new(self.context.package),
+        }
+    }
+}
+
+impl<'a> EvalContext<'a> {
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval(&mut self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
-        self.context.with_mut(|fields| {
-            let state = fields.state;
-            let store = fields.store;
-            let package = *fields.package;
+        if let Some(expr) = get_entry_expr(&self.context.store, self.context.package) {
+            self.state.push_expr(expr);
+        } else {
+            let block = find_entry_block(&self.context.store, self.context.package)?;
+            self.state.push_block(&mut self.env, block);
+        }
 
-            state.reset();
-            *fields.env = Env::with_empty_scope();
-            *fields.sim = SparseSim::new();
+        self.state
+            .eval(&self.lookup, &mut self.env, &mut self.sim, receiver)
+            .map_err(|(error, call_stack)| {
+                let package = self
+                    .context
+                    .store
+                    .get(self.context.package)
+                    .expect("package should be in store");
 
-            if let Some(expr) = get_entry_expr(store, package) {
-                state.push_expr(expr);
-            } else {
-                let block = find_entry_block(store, package)?;
-                state.push_block(fields.env, block);
-            }
+                let stack_trace = if call_stack.is_empty() {
+                    None
+                } else {
+                    Some(render_call_stack(
+                        &self.context.store,
+                        &Lookup {
+                            store: &self.context.store,
+                        },
+                        &call_stack,
+                        &error,
+                    ))
+                };
 
-            state
-                .eval(fields.lookup, fields.env, fields.sim, receiver)
-                .map_err(|(error, call_stack)| {
-                    let package = store.get(package).expect("package should be in store");
-
-                    let stack_trace = if call_stack.is_empty() {
-                        None
-                    } else {
-                        Some(render_call_stack(
-                            store,
-                            &Lookup { store },
-                            &call_stack,
-                            &error,
-                        ))
-                    };
-
-                    vec![Error(WithSource::from_map(
-                        &package.sources,
-                        error.into(),
-                        stack_trace,
-                    ))]
-                })
-        })
+                vec![Error(WithSource::from_map(
+                    &package.sources,
+                    error.into(),
+                    stack_trace,
+                ))]
+            })
     }
 }
 
