@@ -9,6 +9,7 @@ use miette::Diagnostic;
 use qsc_eval::{
     backend::SparseSim,
     debug::CallStack,
+    eval_expr_in_ctx,
     output::Receiver,
     val::{GlobalId, Value},
     Env, Global, GlobalLookup, State,
@@ -114,36 +115,40 @@ impl<'a> EvalContext<'a> {
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval(&mut self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
         let expr = get_entry_expr(&self.context.store, self.context.package)?;
-        self.state.push_expr(expr);
+        eval_expr_in_ctx(
+            &mut self.state,
+            expr,
+            &self.lookup,
+            &mut self.env,
+            &mut self.sim,
+            receiver,
+        )
+        .map_err(|(error, call_stack)| {
+            let package = self
+                .context
+                .store
+                .get(self.context.package)
+                .expect("package should be in store");
 
-        self.state
-            .eval(&self.lookup, &mut self.env, &mut self.sim, receiver)
-            .map_err(|(error, call_stack)| {
-                let package = self
-                    .context
-                    .store
-                    .get(self.context.package)
-                    .expect("package should be in store");
+            let stack_trace = if call_stack.is_empty() {
+                None
+            } else {
+                Some(render_call_stack(
+                    &self.context.store,
+                    &Lookup {
+                        store: &self.context.store,
+                    },
+                    &call_stack,
+                    &error,
+                ))
+            };
 
-                let stack_trace = if call_stack.is_empty() {
-                    None
-                } else {
-                    Some(render_call_stack(
-                        &self.context.store,
-                        &Lookup {
-                            store: &self.context.store,
-                        },
-                        &call_stack,
-                        &error,
-                    ))
-                };
-
-                vec![Error(WithSource::from_map(
-                    &package.sources,
-                    error.into(),
-                    stack_trace,
-                ))]
-            })
+            vec![Error(WithSource::from_map(
+                &package.sources,
+                error.into(),
+                stack_trace,
+            ))]
+        })
     }
 }
 

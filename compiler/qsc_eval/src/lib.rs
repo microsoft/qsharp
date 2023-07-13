@@ -160,6 +160,22 @@ pub fn eval_stmt_in_ctx<'a>(
     state.eval(globals, env, sim, receiver)
 }
 
+/// Evaluates the given expr with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn eval_expr_in_ctx<'a, 'receiver>(
+    state: &mut State<'a>,
+    expr: &'a Expr,
+    globals: &impl GlobalLookup<'a>,
+    env: &mut Env,
+    sim: &mut dyn Backend,
+
+    out: &'receiver mut dyn Receiver,
+) -> Result<Value, (Error, CallStack)> {
+    state.push_expr(expr);
+    state.eval(globals, env, sim, out)
+}
+
 trait AsIndex {
     type Output;
 
@@ -328,7 +344,7 @@ impl<'a> State<'a> {
         self.stack.push(Cont::Action(action));
     }
 
-    pub fn push_expr(&mut self, expr: &'a Expr) {
+    fn push_expr(&mut self, expr: &'a Expr) {
         self.stack.push(Cont::Expr(expr));
     }
 
