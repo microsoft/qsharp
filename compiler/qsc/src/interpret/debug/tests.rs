@@ -24,9 +24,7 @@ fn line(
     )
 }
 
-fn eval(
-    interpreter: &mut stateless::Interpreter,
-) -> (Result<Value, Vec<stateless::Error>>, String) {
+fn eval(interpreter: &stateless::Interpreter) -> (Result<Value, Vec<stateless::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     let mut eval_ctx = interpreter.eval_context();
@@ -140,10 +138,10 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         ],
         Some("Adjoint Test2.A(0);".into()),
     );
-    let mut interpreter =
+    let interpreter =
         stateless::Interpreter::new(true, source_map).expect("Failed to compile base environment.");
 
-    let (result, _) = eval(&mut interpreter);
+    let (result, _) = eval(&interpreter);
 
     match result {
         Ok(_) => panic!("Expected error"),
