@@ -66,8 +66,10 @@ namespace Microsoft.Quantum.Katas {
             H(control);
         }
         apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
+            // these lines cause an interpreter panic:
+            // thread 'main' panicked at 'value should be Array, got Int', compiler/qsc_eval/src/val.rs:139:13
+            Controlled op([control], [target]);
+            Adjoint Controlled reference([control], [target]);
         }
         let isCorrect = CheckAllZero([control, target]);
         ResetAll([control, target]);

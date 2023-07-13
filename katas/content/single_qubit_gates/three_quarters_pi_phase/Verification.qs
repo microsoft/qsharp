@@ -3,9 +3,8 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
     operation ThreeQuartersPiPhase(q : Qubit) : Unit is Adj + Ctl {
-        X(q);
-        Z(q);
-        Y(q);
+        S(q);
+        T(q);
     }
 
     operation CheckSolution() : Bool {
