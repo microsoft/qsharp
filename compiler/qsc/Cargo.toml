@@ -23,7 +23,6 @@ qsc_frontend = { path = "../qsc_frontend" }
 qsc_ast = { path = "../qsc_ast" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
-ouroboros = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

@@ -26,8 +26,9 @@ pub fn test_expression(expr: &str, expected: &Value) {
 
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
 
-    let mut interpreter = stateless::Interpreter::new(true, sources).expect("test should compile");
-    let result = interpreter
+    let interpreter = stateless::Interpreter::new(true, sources).expect("test should compile");
+    let mut eval_ctx = interpreter.eval_context();
+    let result = eval_ctx
         .eval(&mut out)
         .expect("test should run successfully");
 

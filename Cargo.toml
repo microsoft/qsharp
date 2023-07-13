@@ -48,7 +48,6 @@ wasm-bindgen = "0.2.84"
 rand = "0.8.5"
 serde_json = { version = "1.0.96" }
 pyo3 = { version = "0.18", features = ["abi3-py37", "extension-module"] }
-ouroboros = "0.17.0"
 
 [profile.release]
 debug = 1

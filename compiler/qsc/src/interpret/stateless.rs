@@ -44,16 +44,16 @@ enum ErrorKind {
 }
 
 pub struct Interpreter {
-    context: Context,
+    context: CompilationContext,
 }
 
-pub struct Context {
+pub struct CompilationContext {
     store: PackageStore,
     package: PackageId,
 }
 
 pub struct EvalContext<'a> {
-    context: &'a Context,
+    context: &'a CompilationContext,
     env: Env,
     sim: SparseSim,
     lookup: Lookup<'a>,
@@ -84,7 +84,7 @@ impl Interpreter {
         let (unit, errors) = compile(&store, &dependencies, sources);
         if errors.is_empty() {
             let package = store.insert(unit);
-            let context = Context { store, package };
+            let context = CompilationContext { store, package };
             Ok(Self { context })
         } else {
             Err(errors

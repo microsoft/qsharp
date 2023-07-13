@@ -13,12 +13,12 @@ const LARGE: &str = include_str!("./large.qs");
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
         let sources = SourceMap::new([("Teleportation.qs".into(), TELEPORT.into())], None);
-        let mut evaluator =
-            stateless::Interpreter::new(true, sources).expect("code should compile");
+        let evaluator = stateless::Interpreter::new(true, sources).expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            assert!(evaluator.eval(&mut rec).is_ok());
+            let mut eval_ctx = evaluator.eval_context();
+            assert!(eval_ctx.eval(&mut rec).is_ok());
         })
     });
 }
@@ -26,12 +26,12 @@ pub fn teleport(c: &mut Criterion) {
 pub fn deutsch_jozsa(c: &mut Criterion) {
     c.bench_function("Deutsch-Jozsa evaluation", |b| {
         let sources = SourceMap::new([("DeutschJozsa.qs".into(), DEUTSCHJOZSA.into())], None);
-        let mut evaluator =
-            stateless::Interpreter::new(true, sources).expect("code should compile");
+        let evaluator = stateless::Interpreter::new(true, sources).expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            assert!(evaluator.eval(&mut rec).is_ok());
+            let mut eval_ctx = evaluator.eval_context();
+            assert!(eval_ctx.eval(&mut rec).is_ok());
         })
     });
 }
@@ -39,12 +39,12 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
 pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large file parity evaluation", |b| {
         let sources = SourceMap::new([("large.qs".into(), LARGE.into())], None);
-        let mut evaluator =
-            stateless::Interpreter::new(true, sources).expect("code should compile");
+        let evaluator = stateless::Interpreter::new(true, sources).expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            assert!(evaluator.eval(&mut rec).is_ok());
+            let mut eval_ctx = evaluator.eval_context();
+            assert!(eval_ctx.eval(&mut rec).is_ok());
         })
     });
 }

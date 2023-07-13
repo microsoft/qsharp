@@ -7,7 +7,11 @@
 mod tests;
 
 use qsc::{
-    interpret::{output::Receiver, stateless, Value},
+    interpret::{
+        output::Receiver,
+        stateless::{self, Interpreter},
+        Value,
+    },
     SourceContents, SourceMap, SourceName,
 };
 
@@ -27,8 +31,9 @@ pub fn check_solution(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
-    let mut context = stateless::Interpreter::new(true, source_map)?;
-    context.eval(receiver).map(|value| {
+    let interpreter: Interpreter = Interpreter::new(true, source_map)?;
+    let mut eval_ctx = interpreter.eval_context();
+    eval_ctx.eval(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success
         } else {

@@ -78,11 +78,11 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     if cli.exec {
-        let mut context = match stateless::Interpreter::new(
+        let interpreter = match stateless::Interpreter::new(
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
         ) {
-            Ok(context) => context,
+            Ok(interpreter) => interpreter,
             Err(errors) => {
                 for error in errors {
                     eprintln!("error: {:?}", Report::new(error));
@@ -90,7 +90,7 @@ fn main() -> miette::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
         };
-        let mut eval_ctx = context.eval_context();
+        let mut eval_ctx = interpreter.eval_context();
         return Ok(print_exec_result(eval_ctx.eval(&mut TerminalReceiver)));
     }
 
