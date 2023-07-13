@@ -49,7 +49,7 @@ pub(crate) enum Error {
     IncompleteAposIdent(raw::TokenKind, #[label] Span),
 
     #[error("expected identifier after apostrophe, found EOF")]
-    #[diagnostic(code("Qsc.Lex.IncompleteApostropheIdentifierEof"))]
+    #[diagnostic(code("Qsc.Lex.IncompleteAposIdentEof"))]
     IncompleteAposIdentEof(#[label] Span),
 
     #[error("unterminated string literal")]
