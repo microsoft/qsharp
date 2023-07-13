@@ -14,7 +14,7 @@ use qsc_eval::{
     Env, Global, GlobalLookup, State,
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
-use qsc_hir::hir::{Block, Expr, ItemKind, PackageId};
+use qsc_hir::hir::{Expr, ItemKind, PackageId};
 use qsc_passes::entry_point::extract_entry;
 use thiserror::Error;
 
@@ -113,12 +113,8 @@ impl<'a> EvalContext<'a> {
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval(&mut self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
-        if let Some(expr) = get_entry_expr(&self.context.store, self.context.package) {
-            self.state.push_expr(expr);
-        } else {
-            let block = find_entry_block(&self.context.store, self.context.package)?;
-            self.state.push_block(&mut self.env, block);
-        }
+        let expr = get_entry_expr(&self.context.store, self.context.package)?;
+        self.state.push_expr(expr);
 
         self.state
             .eval(&self.lookup, &mut self.env, &mut self.sim, receiver)
@@ -160,19 +156,19 @@ fn render_call_stack<'a>(
     format_call_stack(store, globals, call_stack, error)
 }
 
-fn get_entry_expr(store: &PackageStore, package: PackageId) -> Option<&Expr> {
+fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<&Expr, Vec<Error>> {
     let unit = store.get(package).expect("store should have package");
-    unit.package.entry.as_ref()
-}
+    if let Some(entry) = unit.package.entry.as_ref() {
+        return Ok(entry);
+    };
 
-fn find_entry_block(store: &PackageStore, package: PackageId) -> Result<&Block, Vec<Error>> {
-    let unit = store.get(package).expect("store should have package");
-    extract_entry(&unit.package).map_err(|errors| {
-        errors
+    match extract_entry(&unit.package) {
+        Ok(_) => panic!("extract_entry should have failed"),
+        Err(errors) => Err(errors
             .into_iter()
             .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
-            .collect()
-    })
+            .collect()),
+    }
 }
 
 pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {

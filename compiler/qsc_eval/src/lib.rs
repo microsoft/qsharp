@@ -144,7 +144,7 @@ pub fn eval_expr<'a, 'receiver>(
     state.eval(globals, &mut env, &mut sim, out)
 }
 
-/// Evaluates the given expression with the given context.
+/// Evaluates the given stmt with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
 pub fn eval_stmt_in_ctx<'a>(
@@ -363,7 +363,7 @@ impl<'a> State<'a> {
         self.stack.push(Cont::Stmt(stmt));
     }
 
-    pub fn push_block(&mut self, env: &mut Env, block: &'a Block) {
+    fn push_block(&mut self, env: &mut Env, block: &'a Block) {
         self.push_scope(env);
         for stmt in block.stmts.iter().rev() {
             self.push_stmt(stmt);

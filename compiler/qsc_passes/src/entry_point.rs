@@ -7,8 +7,9 @@ mod tests;
 use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
+use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
-    hir::{Attr, Block, CallableDecl, Item, ItemKind, Package, PatKind},
+    hir::{Attr, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
     visit::Visitor,
 };
 use thiserror::Error;
@@ -34,15 +35,32 @@ pub enum Error {
     NotFound,
 }
 
+// If no entry expression is provided, generate one from the entry point callable.
+// Only one callable should be annotated with the entry point attribute.
+// If more than one callable is annotated, or none are annotated, we skip this pass.
+pub fn generate_entry_expr_from_entrypoint(unit: &mut CompileUnit) -> Vec<super::Error> {
+    if unit.package.entry.is_some() {
+        return vec![];
+    }
+    let entry_points = get_entry_callables(&unit.package);
+    if entry_points.len() != 1 {
+        return vec![];
+    }
+
+    match extract_entry(&unit.package) {
+        Ok(expr) => {
+            unit.package.entry = Some(expr);
+            vec![]
+        }
+        Err(errs) => errs,
+    }
+}
+
 /// Extracts a single entry point callable declaration, if found.
 /// # Errors
 /// Returns an error if a single entry point with no parameters cannot be found.
-pub fn extract_entry(package: &Package) -> Result<&Block, Vec<super::Error>> {
-    let mut finder = EntryPointFinder {
-        callables: Vec::new(),
-    };
-    finder.visit_package(package);
-    let entry_points = finder.callables;
+pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
+    let entry_points = get_entry_callables(package);
 
     if entry_points.len() == 1 {
         let ep = entry_points[0];
@@ -59,7 +77,12 @@ pub fn extract_entry(package: &Package) -> Result<&Block, Vec<super::Error>> {
                     qsc_hir::hir::SpecBody::Gen(_) => {
                         Err(vec![PassErr::EntryPoint(Error::BodyMissing(ep.span))])
                     }
-                    qsc_hir::hir::SpecBody::Impl(_, block) => Ok(block),
+                    qsc_hir::hir::SpecBody::Impl(_, block) => Ok(Expr {
+                        id: NodeId::default(),
+                        span: Span::default(),
+                        ty: ep.output.clone(),
+                        kind: ExprKind::Block(block.clone()),
+                    }),
                 }
             }
         } else {
@@ -73,6 +96,14 @@ pub fn extract_entry(package: &Package) -> Result<&Block, Vec<super::Error>> {
             .map(|ep| PassErr::EntryPoint(Error::Duplicate(ep.name.name.to_string(), ep.name.span)))
             .collect())
     }
+}
+
+fn get_entry_callables(package: &Package) -> Vec<&CallableDecl> {
+    let mut finder = EntryPointFinder {
+        callables: Vec::new(),
+    };
+    finder.visit_package(package);
+    finder.callables
 }
 
 struct EntryPointFinder<'a> {
