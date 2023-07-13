@@ -127,7 +127,8 @@
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build": "npm run tsc:check && node build.mjs",
-    "build:watch": "node build.mjs --watch"
+    "build:watch": "node build.mjs --watch",
+    "run:web": "npx @vscode/test-web --extensionDevelopmentPath . ../samples"
   },
   "repository": {
     "type": "git",
