@@ -144,6 +144,22 @@ pub fn eval_expr<'a, 'receiver>(
     state.eval(globals, &mut env, &mut sim, out)
 }
 
+/// Evaluates the given expression with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn eval_stmt_in_ctx<'a>(
+    stmt: &'a Stmt,
+    globals: &impl GlobalLookup<'a>,
+    env: &mut Env,
+    sim: &mut dyn Backend,
+    package: PackageId,
+    receiver: &mut dyn Receiver,
+) -> Result<Value, (Error, CallStack)> {
+    let mut state = State::new(package);
+    state.push_stmt(stmt);
+    state.eval(globals, env, sim, receiver)
+}
+
 trait AsIndex {
     type Output;
 
@@ -162,7 +178,7 @@ impl AsIndex for i64 {
 }
 
 #[derive(Debug)]
-pub struct Variable {
+struct Variable {
     value: Value,
     mutability: Mutability,
 }
@@ -173,7 +189,7 @@ impl Variable {
     }
 }
 
-pub struct Range {
+struct Range {
     step: i64,
     end: i64,
     curr: i64,
@@ -217,14 +233,14 @@ pub struct Env(Vec<Scope>);
 
 impl Env {
     #[must_use]
-    pub fn get(&self, id: NodeId) -> Option<&Variable> {
+    fn get(&self, id: NodeId) -> Option<&Variable> {
         self.0
             .iter()
             .rev()
             .find_map(|scope| scope.bindings.get(&id))
     }
 
-    pub fn get_mut(&mut self, id: NodeId) -> Option<&mut Variable> {
+    fn get_mut(&mut self, id: NodeId) -> Option<&mut Variable> {
         self.0
             .iter_mut()
             .rev()
@@ -243,7 +259,7 @@ impl Env {
 }
 
 #[derive(Default)]
-pub struct Scope {
+struct Scope {
     bindings: HashMap<NodeId, Variable>,
 }
 
@@ -254,7 +270,7 @@ impl Env {
     }
 }
 
-pub enum Cont<'a> {
+enum Cont<'a> {
     Action(Action<'a>),
     Expr(&'a Expr),
     Frame(usize),
@@ -263,7 +279,7 @@ pub enum Cont<'a> {
 }
 
 #[derive(Copy, Clone)]
-pub enum Action<'a> {
+enum Action<'a> {
     Array(usize),
     ArrayRepeat(Span),
     Assign(&'a Expr),
@@ -343,7 +359,7 @@ impl<'a> State<'a> {
         self.stack.push(Cont::Scope);
     }
 
-    pub fn push_stmt(&mut self, stmt: &'a Stmt) {
+    fn push_stmt(&mut self, stmt: &'a Stmt) {
         self.stack.push(Cont::Stmt(stmt));
     }
 
@@ -360,22 +376,16 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn pop_val(&mut self) -> Value {
+    fn pop_val(&mut self) -> Value {
         self.vals.pop().expect("value should be present")
     }
 
-    pub fn pop_vals(&mut self, len: usize) -> Vec<Value> {
+    fn pop_vals(&mut self, len: usize) -> Vec<Value> {
         self.vals.drain(self.vals.len() - len..).collect()
     }
 
     fn push_val(&mut self, val: Value) {
         self.vals.push(val);
-    }
-
-    pub fn reset(&mut self) {
-        self.stack.clear();
-        self.vals.clear();
-        self.call_stack = CallStack::default();
     }
 
     /// # Errors

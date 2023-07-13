@@ -13,9 +13,10 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::SparseSim,
     debug::CallStack,
+    eval_stmt_in_ctx,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global, GlobalLookup, State,
+    Env, Global, GlobalLookup,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
@@ -194,9 +195,14 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        let mut state = State::new(self.package);
-        state.push_stmt(stmt);
-        state.eval(&globals, &mut self.env, &mut self.sim, receiver)
+        eval_stmt_in_ctx(
+            stmt,
+            &globals,
+            &mut self.env,
+            &mut self.sim,
+            self.package,
+            receiver,
+        )
     }
 
     fn render_call_stack(&self, call_stack: &CallStack, error: &dyn std::error::Error) -> String {
