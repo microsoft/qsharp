@@ -77,3 +77,22 @@ $$\begin{bmatrix} -1 & 0 \\ 0 & 1 \end{bmatrix}$$
     "solutionSourcePath": "./prepare_minus/Solution.qs",
     "solutionDescriptionPath": "./prepare_minus/solution.md"
 })
+
+## Three-fourths phase
+
+**Input:** A qubit in an arbitrary state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$.
+
+**Goal:** Use several phase shift gates to apply the transformation represented by the following matrix to the given qubit:
+
+$$\begin{bmatrix} 1 & 0 \\ 0 & e^{3i\pi/4} \end{bmatrix}$$
+
+@[exercise]({
+    "id": "three_quarters_pi_phase",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./three_quarters_pi_phase/Verification.qs",
+    "placeholderSourcePath": "./three_quarters_pi_phase/Placeholder.qs",
+    "solutionSourcePath": "./three_quarters_pi_phase/Solution.qs",
+    "solutionDescriptionPath": "./three_quarters_pi_phase/solution.md"
+})
