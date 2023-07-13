@@ -60,3 +60,20 @@ $$\begin{bmatrix} -1 & 0 \\ 0 & 1 \end{bmatrix}$$
     "solutionSourcePath": "./sign_flip_on_zero/Solution.qs",
     "solutionDescriptionPath": "./sign_flip_on_zero/solution.md"
 })
+
+## Preparing a $|-\rangle$ state
+
+**Input:** A qubit in state $|0\rangle$.
+
+**Goal:** Transform the qubit into state $|-\rangle$.
+
+@[exercise]({
+    "id": "prepare_minus",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./prepare_minus/Verification.qs",
+    "placeholderSourcePath": "./prepare_minus/Placeholder.qs",
+    "solutionSourcePath": "./prepare_minus/Solution.qs",
+    "solutionDescriptionPath": "./prepare_minus/solution.md"
+})
