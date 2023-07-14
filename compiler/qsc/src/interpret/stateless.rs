@@ -9,7 +9,7 @@ use miette::Diagnostic;
 use qsc_eval::{
     backend::SparseSim,
     debug::CallStack,
-    eval_expr_in_ctx,
+    eval_expr,
     output::Receiver,
     val::{GlobalId, Value},
     Env, Global, GlobalLookup, State,
@@ -44,8 +44,8 @@ enum ErrorKind {
     #[diagnostic(transparent)]
     Eval(#[from] qsc_eval::Error),
     #[error("entry point not found")]
-    #[diagnostic(code("Qsc.Interpret.EntryPointNotFound"))]
-    EntryPointNotFound,
+    #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
+    NoEntryPoint,
 }
 
 pub struct Interpreter {
@@ -54,7 +54,7 @@ pub struct Interpreter {
 }
 
 pub struct EvalContext<'a> {
-    context: &'a Interpreter,
+    interpreter: &'a Interpreter,
     env: Env,
     sim: SparseSim,
     lookup: Lookup<'a>,
@@ -97,7 +97,7 @@ impl Interpreter {
     #[must_use]
     pub fn new_eval_context(&self) -> EvalContext {
         EvalContext {
-            context: self,
+            interpreter: self,
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
             lookup: Lookup { store: &self.store },
@@ -111,8 +111,8 @@ impl<'a> EvalContext<'a> {
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
-        let expr = get_entry_expr(&self.context.store, self.context.package)?;
-        eval_expr_in_ctx(
+        let expr = get_entry_expr(&self.interpreter.store, self.interpreter.package)?;
+        eval_expr(
             &mut self.state,
             expr,
             &self.lookup,
@@ -122,18 +122,18 @@ impl<'a> EvalContext<'a> {
         )
         .map_err(|(error, call_stack)| {
             let package = self
-                .context
+                .interpreter
                 .store
-                .get(self.context.package)
+                .get(self.interpreter.package)
                 .expect("package should be in store");
 
             let stack_trace = if call_stack.is_empty() {
                 None
             } else {
                 Some(render_call_stack(
-                    &self.context.store,
+                    &self.interpreter.store,
                     &Lookup {
-                        store: &self.context.store,
+                        store: &self.interpreter.store,
                     },
                     &call_stack,
                     &error,
@@ -165,7 +165,7 @@ fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<&Expr, Vec
     };
     Err(vec![Error(WithSource::from_map(
         &unit.sources,
-        ErrorKind::EntryPointNotFound,
+        ErrorKind::NoEntryPoint,
         None,
     ))])
 }

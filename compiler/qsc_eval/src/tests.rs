@@ -21,7 +21,7 @@ use qsc_passes::{run_core_passes, run_default_passes};
 /// # Errors
 /// Returns the first error encountered during execution.
 #[cfg(test)]
-pub fn eval_expr<'a>(
+pub(super) fn eval_expr<'a>(
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
     package: PackageId,

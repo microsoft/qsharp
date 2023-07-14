@@ -60,14 +60,6 @@ pub(super) fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
     }
 }
 
-/// Extracts a single entry point callable declaration, if found.
-/// # Errors
-/// Returns an error if a single entry point with no parameters cannot be found.
-pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
-    let callables = get_callables(package);
-    create_entry_from_callables(callables)
-}
-
 fn create_entry_from_callables(
     callables: Vec<(&CallableDecl, LocalItemId)>,
 ) -> Result<Expr, Vec<super::Error>> {

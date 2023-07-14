@@ -144,7 +144,7 @@ pub fn eval_stmt<'a>(
 /// Evaluates the given expr with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr_in_ctx<'a, 'receiver>(
+pub fn eval_expr<'a, 'receiver>(
     state: &mut State<'a>,
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
