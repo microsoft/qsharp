@@ -40,12 +40,13 @@ fn hover_callable_unit_types() {
     check(
         indoc! {r#"
         namespace Test {
-            /// Doc comment!
+            /// Doc comment
+            /// with multiple lines!
             operation ◉B↘ar◉() : Unit {}
         }
     "#},
         &expect![[r#"
-            "Doc comment!\n```qsharp\noperation Bar Unit => Unit\n```\n"
+            "Doc comment\nwith multiple lines!\n```qsharp\noperation Bar Unit => Unit\n```\n"
         "#]],
     );
 }
@@ -514,5 +515,173 @@ fn hover_foreign_call_functors() {
         &expect![[r#"
             "```qsharp\noperation FakeCtlAdj Unit => Unit is Adj + Ctl\n```\n"
         "#]],
+    );
+}
+
+#[test]
+fn hover_callable_summary() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_summary_stuff_before() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// not the summary
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_summary_other_header_before() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// This stuff is not the summary.
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_summary_other_header_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            /// # Not The Summary
+            /// This stuff is not the summary.
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_summary_other_headers() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// This stuff is not the summary.
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            /// # Also Not The Summary
+            /// This stuff is also not the summary.
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_headers_but_no_summary() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// This stuff is not the summary.
+            /// # Also Not The Summary
+            /// This stuff is also not the summary.
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r##"
+            "# Not The Summary\nThis stuff is not the summary.\n# Also Not The Summary\nThis stuff is also not the summary.\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "##]],
+    );
+}
+
+#[test]
+fn hover_callable_summary_only_header_matches() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// This stuff is not the # Summary.
+            /// # Summary
+            /// This is a
+            /// multi-line # Summary!
+            /// # Also Not The Summary
+            /// This stuff is also not the # Summary.
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line # Summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_summary_successive_headers() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// # Summary
+            /// This is a
+            /// multi-line summary!
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            "This is a\nmulti-line summary!\n```qsharp\noperation Foo Unit => Unit\n```\n"
+        "#]],
+    );
+}
+
+#[test]
+fn hover_callable_empty_summary() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Not The Summary
+            /// # Summary
+            /// # Also Not The Summary
+            operation ◉F↘oo◉() : Unit {}
+        }
+    "#},
+        &expect![[r##"
+            "```qsharp\noperation Foo Unit => Unit\n```\n"
+        "##]],
     );
 }
