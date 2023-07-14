@@ -28,10 +28,9 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [0-0] [Type Int]: Expr Block: Block 4 [62-72] [Type Int]:
-                Stmt 5 [64-70]: Expr: Expr 6 [64-70] [Type Int]: BinOp (Add):
-                    Expr 7 [64-66] [Type Int]: Lit: Int(41)
-                    Expr 8 [69-70] [Type Int]: Lit: Int(1)"#]],
+            Expr _id_ [39-72] [Type Int]: Call:
+                Expr _id_ [39-72] [Type Int]: Var: Item 1
+                Expr _id_ [39-72] [Type Unit]: Unit"#]],
     );
 }
 
