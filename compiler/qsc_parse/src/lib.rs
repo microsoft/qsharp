@@ -60,6 +60,9 @@ enum ErrorKind {
     #[error("expected statement to end with a semicolon")]
     #[diagnostic(code("Qsc.Parse.MissingSemi"))]
     MissingSemi(#[label] Span),
+    #[error("expected callable inputs to be parenthesized")]
+    #[diagnostic(code("Qsc.Parse.MissingParens"))]
+    MissingParens(#[label] Span),
 }
 
 impl ErrorKind {
@@ -72,6 +75,7 @@ impl ErrorKind {
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
+            Self::MissingParens(span) => Self::MissingParens(span + offset),
         }
     }
 }
