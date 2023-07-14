@@ -122,6 +122,8 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Reversible, in-place ripple-carry addition of two integers.
+    ///
+    /// # Description
     /// Given two $n$-bit integers encoded in LittleEndian registers `xs` and `ys`,
     /// and a qubit carry, the operation computes the sum of the two integers
     /// where the $n$ least significant bits of the result are held in `ys` and
@@ -274,7 +276,7 @@ namespace Microsoft.Quantum.Arithmetic {
             Fact(Length(xs) > 0, "Array should not be empty.");
 
 
-            let nQubits = Length(xs); 
+            let nQubits = Length(xs);
             for idx in 0..nQubits - 2 {
                 CCNOT(xs[idx], ys[idx], xs[idx+1]);
             }

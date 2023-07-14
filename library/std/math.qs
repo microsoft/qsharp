@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.Math {
         elif (a > 0) { +1 }
         else         { 0 }
     }
-    
+
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignD (a : Double) : Int {
@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.Math {
     function AbsI (a : Int) : Int {
         a < 0 ? -a | a
     }
-    
+
     /// # Summary
     /// Returns the absolute value of a double-precision floating-point number.
     function AbsD (a : Double) : Double {
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Math {
     function AbsL (a : BigInt) : BigInt {
         a < 0L ? -a | a
     }
-    
+
     /// # Summary
     /// Returns the larger of two specified numbers.
     function MaxI(a : Int, b : Int) : Int {
@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the natural (base $e$) logarithm of a specified number.
+    /// Returns the natural (base _e_) logarithm of a specified number.
     function Log(input : Double) : Double {
         body intrinsic;
     }
@@ -361,8 +361,11 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the multiplicative inverse of a modular integer:
-    /// $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
+    /// Returns the multiplicative inverse of a modular integer.
+    ///
+    /// # Description
+    /// This will calculate the multiplicative inverse of a
+    /// modular integer $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
     function InverseModI(a : Int, modulus : Int) : Int {
         let (u, v) = ExtendedGreatestCommonDivisorI(a, modulus);
         let gcd = u * a + v * modulus;
@@ -371,8 +374,11 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the multiplicative inverse of a modular integer:
-    /// $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
+    /// Returns the multiplicative inverse of a modular integer.
+    ///
+    /// # Description
+    /// This will calculate the multiplicative inverse of a
+    /// modular integer $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
     function InverseModL(a : BigInt, modulus : BigInt) : BigInt {
         let (u, v) = ExtendedGreatestCommonDivisorL(a, modulus);
         let gcd = u * a + v * modulus;
