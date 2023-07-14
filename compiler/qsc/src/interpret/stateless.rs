@@ -44,7 +44,7 @@ enum ErrorKind {
     #[diagnostic(transparent)]
     Eval(#[from] qsc_eval::Error),
     #[error("entry point not found")]
-    #[diagnostic(code("Qsc.Interpreter.EntryPointNotFound"))]
+    #[diagnostic(code("Qsc.Interpret.EntryPointNotFound"))]
     EntryPointNotFound,
 }
 
