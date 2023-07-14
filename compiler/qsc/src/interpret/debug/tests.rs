@@ -27,8 +27,8 @@ fn line(
 fn eval(interpreter: &stateless::Interpreter) -> (Result<Value, Vec<stateless::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    let mut eval_ctx = interpreter.eval_context();
-    (eval_ctx.eval(&mut receiver), receiver.dump())
+    let mut eval_ctx = interpreter.new_eval_context();
+    (eval_ctx.eval_entry(&mut receiver), receiver.dump())
 }
 
 #[test]

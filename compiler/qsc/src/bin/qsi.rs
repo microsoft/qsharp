@@ -90,8 +90,10 @@ fn main() -> miette::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
         };
-        let mut eval_ctx = interpreter.eval_context();
-        return Ok(print_exec_result(eval_ctx.eval(&mut TerminalReceiver)));
+        let mut eval_ctx = interpreter.new_eval_context();
+        return Ok(print_exec_result(
+            eval_ctx.eval_entry(&mut TerminalReceiver),
+        ));
     }
 
     let mut interpreter = match Interpreter::new(!cli.nostdlib, SourceMap::new(sources, None)) {
@@ -116,7 +118,7 @@ fn main() -> miette::Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
-fn repl(interpreter: &mut Interpreter, receiver: &mut dyn Receiver) -> io::Result<()> {
+fn repl(interpreter: &mut Interpreter, receiver: &mut impl Receiver) -> io::Result<()> {
     print_prompt(false);
 
     let mut lines = io::BufReader::new(io::stdin()).lines();

@@ -124,7 +124,7 @@ impl Interpreter {
     /// If there is a runtime error when interpreting the line, an error is returned.
     pub fn interpret_line(
         &mut self,
-        receiver: &mut dyn Receiver,
+        receiver: &mut impl Receiver,
         line: &str,
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
@@ -185,7 +185,7 @@ impl Interpreter {
 
     fn eval_stmt(
         &mut self,
-        receiver: &mut dyn Receiver,
+        receiver: &mut impl Receiver,
         stmt: &Stmt,
     ) -> Result<Value, (qsc_eval::Error, CallStack)> {
         let globals = Lookup {

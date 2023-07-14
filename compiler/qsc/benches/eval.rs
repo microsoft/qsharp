@@ -17,8 +17,8 @@ pub fn teleport(c: &mut Criterion) {
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.eval_context();
-            assert!(eval_ctx.eval(&mut rec).is_ok());
+            let mut eval_ctx = evaluator.new_eval_context();
+            assert!(eval_ctx.eval_entry(&mut rec).is_ok());
         })
     });
 }
@@ -30,8 +30,8 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.eval_context();
-            assert!(eval_ctx.eval(&mut rec).is_ok());
+            let mut eval_ctx = evaluator.new_eval_context();
+            assert!(eval_ctx.eval_entry(&mut rec).is_ok());
         })
     });
 }
@@ -43,8 +43,8 @@ pub fn large_file(c: &mut Criterion) {
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.eval_context();
-            assert!(eval_ctx.eval(&mut rec).is_ok());
+            let mut eval_ctx = evaluator.new_eval_context();
+            assert!(eval_ctx.eval_entry(&mut rec).is_ok());
         })
     });
 }

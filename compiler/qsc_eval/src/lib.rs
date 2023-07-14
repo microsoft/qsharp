@@ -135,7 +135,7 @@ pub fn eval_expr<'a>(
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
     package: PackageId,
-    out: &mut dyn Receiver,
+    out: &mut impl Receiver,
 ) -> Result<Value, (Error, CallStack)> {
     let mut state = State::new(package);
     state.push_expr(expr);
@@ -151,9 +151,9 @@ pub fn eval_stmt_in_ctx<'a>(
     stmt: &'a Stmt,
     globals: &impl GlobalLookup<'a>,
     env: &mut Env,
-    sim: &mut dyn Backend,
+    sim: &mut impl Backend,
     package: PackageId,
-    receiver: &mut dyn Receiver,
+    receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, CallStack)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
@@ -168,9 +168,9 @@ pub fn eval_expr_in_ctx<'a, 'receiver>(
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
     env: &mut Env,
-    sim: &mut dyn Backend,
+    sim: &mut impl Backend,
 
-    out: &'receiver mut dyn Receiver,
+    out: &'receiver mut impl Receiver,
 ) -> Result<Value, (Error, CallStack)> {
     state.push_expr(expr);
     state.eval(globals, env, sim, out)
@@ -410,8 +410,8 @@ impl<'a> State<'a> {
         &mut self,
         globals: &impl GlobalLookup<'a>,
         env: &mut Env,
-        sim: &mut dyn Backend,
-        out: &mut dyn Receiver,
+        sim: &mut impl Backend,
+        out: &mut impl Receiver,
     ) -> Result<Value, (Error, CallStack)> {
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
@@ -672,10 +672,10 @@ impl<'a> State<'a> {
     fn cont_action(
         &mut self,
         env: &mut Env,
-        sim: &mut dyn Backend,
+        sim: &mut impl Backend,
         globals: &impl GlobalLookup<'a>,
         action: Action<'a>,
-        out: &mut dyn Receiver,
+        out: &mut impl Receiver,
     ) -> Result<(), Error> {
         match action {
             Action::Array(len) => self.eval_arr(len),
@@ -804,11 +804,11 @@ impl<'a> State<'a> {
     fn eval_call(
         &mut self,
         env: &mut Env,
-        sim: &mut dyn Backend,
+        sim: &mut impl Backend,
         globals: &impl GlobalLookup<'a>,
         callee_span: Span,
         arg_span: Span,
-        out: &mut dyn Receiver,
+        out: &mut impl Receiver,
     ) -> Result<(), Error> {
         let arg = self.pop_val();
         let (callee_id, functor, fixed_args) = match self.pop_val() {

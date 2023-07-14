@@ -16,7 +16,6 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
 use qsc_hir::hir::{Expr, ItemKind, PackageId};
-use qsc_passes::entry_point::extract_entry;
 use thiserror::Error;
 
 use super::debug::format_call_stack;
@@ -34,27 +33,28 @@ impl Error {
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
 enum ErrorKind {
     #[error(transparent)]
+    #[diagnostic(transparent)]
     Compile(#[from] compile::Error),
     #[error(transparent)]
+    #[diagnostic(transparent)]
     Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
+    #[diagnostic(transparent)]
     Eval(#[from] qsc_eval::Error),
+    #[error("entry point not found")]
+    #[diagnostic(code("Qsc.Interpreter.EntryPointNotFound"))]
+    EntryPointNotFound,
 }
 
 pub struct Interpreter {
-    context: CompilationContext,
-}
-
-pub struct CompilationContext {
     store: PackageStore,
     package: PackageId,
 }
 
 pub struct EvalContext<'a> {
-    context: &'a CompilationContext,
+    context: &'a Interpreter,
     env: Env,
     sim: SparseSim,
     lookup: Lookup<'a>,
@@ -85,8 +85,7 @@ impl Interpreter {
         let (unit, errors) = compile(&store, &dependencies, sources);
         if errors.is_empty() {
             let package = store.insert(unit);
-            let context = CompilationContext { store, package };
-            Ok(Self { context })
+            Ok(Self { store, package })
         } else {
             Err(errors
                 .into_iter()
@@ -96,15 +95,13 @@ impl Interpreter {
     }
 
     #[must_use]
-    pub fn eval_context(&self) -> EvalContext {
+    pub fn new_eval_context(&self) -> EvalContext {
         EvalContext {
-            context: &self.context,
+            context: self,
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
-            lookup: Lookup {
-                store: &self.context.store,
-            },
-            state: State::new(self.context.package),
+            lookup: Lookup { store: &self.store },
+            state: State::new(self.package),
         }
     }
 }
@@ -113,7 +110,7 @@ impl<'a> EvalContext<'a> {
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval(&mut self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
+    pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = get_entry_expr(&self.context.store, self.context.package)?;
         eval_expr_in_ctx(
             &mut self.state,
@@ -166,14 +163,11 @@ fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<&Expr, Vec
     if let Some(entry) = unit.package.entry.as_ref() {
         return Ok(entry);
     };
-
-    match extract_entry(&unit.package) {
-        Ok(_) => panic!("extract_entry should have failed"),
-        Err(errors) => Err(errors
-            .into_iter()
-            .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
-            .collect()),
-    }
+    Err(vec![Error(WithSource::from_map(
+        &unit.sources,
+        ErrorKind::EntryPointNotFound,
+        None,
+    ))])
 }
 
 pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {

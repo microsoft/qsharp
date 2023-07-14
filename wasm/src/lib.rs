@@ -129,8 +129,8 @@ where
     }
     let interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {
-        let mut eval_ctx = interpreter.eval_context();
-        let result = eval_ctx.eval(&mut out);
+        let mut eval_ctx = interpreter.new_eval_context();
+        let result = eval_ctx.eval_entry(&mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),

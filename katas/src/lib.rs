@@ -32,8 +32,8 @@ pub fn check_solution(
 ) -> Result<bool, Vec<stateless::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
     let interpreter: Interpreter = Interpreter::new(true, source_map)?;
-    let mut eval_ctx = interpreter.eval_context();
-    eval_ctx.eval(receiver).map(|value| {
+    let mut eval_ctx = interpreter.new_eval_context();
+    eval_ctx.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success
         } else {

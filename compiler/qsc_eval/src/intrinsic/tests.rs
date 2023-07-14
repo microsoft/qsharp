@@ -33,7 +33,7 @@ impl<'a> GlobalLookup<'a> for Lookup<'a> {
     }
 }
 
-fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
+fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
     let mut core = compile::core();
     run_core_passes(&mut core);
     let mut store = PackageStore::new(core);
