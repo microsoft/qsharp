@@ -13,7 +13,7 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::SparseSim,
     debug::CallStack,
-    eval_stmt_in_ctx,
+    eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
     Env, Global, GlobalLookup,
@@ -195,7 +195,7 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        eval_stmt_in_ctx(
+        eval_stmt(
             stmt,
             &globals,
             &mut self.env,

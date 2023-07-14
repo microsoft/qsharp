@@ -15,7 +15,7 @@ mod replace_qubit_allocation;
 mod spec_gen;
 
 use callable_limits::CallableLimits;
-use entry_point::generate_entry_expr_from_entrypoint;
+use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
 use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
@@ -54,7 +54,7 @@ pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
 
     let conjugate_errors = conjugate_invert::invert_conjugate_exprs(core, unit);
 
-    let entry_point_errors = generate_entry_expr_from_entrypoint(unit);
+    let entry_point_errors = generate_entry_expr(unit);
 
     LoopUni {
         core,

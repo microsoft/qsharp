@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::similar_names)]
 
 #[cfg(test)]
 mod tests;
@@ -126,28 +125,10 @@ impl Display for Spec {
     }
 }
 
-/// Evaluates the given expression with the given context.
-/// Creates a new environment and simulator.
-/// # Errors
-/// Returns the first error encountered during execution.
-#[cfg(test)]
-pub fn eval_expr<'a>(
-    expr: &'a Expr,
-    globals: &impl GlobalLookup<'a>,
-    package: PackageId,
-    out: &mut impl Receiver,
-) -> Result<Value, (Error, CallStack)> {
-    let mut state = State::new(package);
-    state.push_expr(expr);
-    let mut env = Env::with_empty_scope();
-    let mut sim = backend::SparseSim::new();
-    state.eval(globals, &mut env, &mut sim, out)
-}
-
 /// Evaluates the given stmt with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_stmt_in_ctx<'a>(
+pub fn eval_stmt<'a>(
     stmt: &'a Stmt,
     globals: &impl GlobalLookup<'a>,
     env: &mut Env,
@@ -438,6 +419,7 @@ impl<'a> State<'a> {
         Ok(self.pop_val())
     }
 
+    #[allow(clippy::similar_names)]
     fn cont_expr(&mut self, env: &mut Env, expr: &'a Expr) -> Result<(), Error> {
         match &expr.kind {
             ExprKind::Array(arr) => self.cont_arr(arr),

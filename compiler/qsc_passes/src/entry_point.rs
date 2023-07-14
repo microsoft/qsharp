@@ -38,16 +38,16 @@ pub enum Error {
 // If no entry expression is provided, generate one from the entry point callable.
 // Only one callable should be annotated with the entry point attribute.
 // If more than one callable is annotated, or none are annotated, we skip this pass.
-pub fn generate_entry_expr_from_entry_point(unit: &mut CompileUnit) -> Vec<super::Error> {
+pub fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
     if unit.package.entry.is_some() {
         return vec![];
     }
-    let entry_points = get_entry_callables(&unit.package);
-    if entry_points.len() != 1 {
+    let callables = get_entry_callables(&unit.package);
+    if callables.len() != 1 {
         return vec![];
     }
 
-    match extract_entry(&unit.package) {
+    match extract_entry_from_callables(callables) {
         Ok(expr) => {
             unit.package.entry = Some(expr);
             vec![]
@@ -61,9 +61,12 @@ pub fn generate_entry_expr_from_entry_point(unit: &mut CompileUnit) -> Vec<super
 /// Returns an error if a single entry point with no parameters cannot be found.
 pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
     let entry_points = get_entry_callables(package);
+    extract_entry_from_callables(entry_points)
+}
 
-    if entry_points.len() == 1 {
-        let ep = entry_points[0];
+fn extract_entry_from_callables(callables: Vec<&CallableDecl>) -> Result<Expr, Vec<super::Error>> {
+    if callables.len() == 1 {
+        let ep = callables[0];
         let arg_count = if let PatKind::Tuple(args) = &ep.input.kind {
             args.len()
         } else {
@@ -88,10 +91,10 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
         } else {
             Err(vec![PassErr::EntryPoint(Error::Args(ep.input.span))])
         }
-    } else if entry_points.is_empty() {
+    } else if callables.is_empty() {
         Err(vec![PassErr::EntryPoint(Error::NotFound)])
     } else {
-        Err(entry_points
+        Err(callables
             .into_iter()
             .map(|ep| PassErr::EntryPoint(Error::Duplicate(ep.name.name.to_string(), ep.name.span)))
             .collect())
