@@ -61,8 +61,8 @@ pub struct EvalContext<'a> {
     state: State<'a>,
 }
 
-struct Lookup<'this> {
-    store: &'this PackageStore,
+struct Lookup<'a> {
+    store: &'a PackageStore,
 }
 
 impl<'a> GlobalLookup<'a> for Lookup<'a> {
