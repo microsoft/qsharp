@@ -14,10 +14,9 @@ namespace Kata.Verification {
 
     operation CheckSolution() : Bool {
         for i in 0 .. 10 {
-            let op = register => Kata.PrepareRotatedState(Cos(IntAsDouble(i)), Sin(IntAsDouble(i)), register);
-            let reference = register => PrepareRotatedState(Cos(IntAsDouble(i)), Sin(IntAsDouble(i)), register);
+            let i = IntAsDouble(i);
 
-            if not VerifySingleQubitOperation(op, reference) {
+            if not VerifyDoubleDoubleSingleQubitOperation(Cos(i), Sin(i),  Kata.PrepareRotatedState, PrepareRotatedState) {
                 return false;
             }
         }

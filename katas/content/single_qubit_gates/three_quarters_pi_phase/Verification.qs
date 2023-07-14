@@ -20,6 +20,6 @@ namespace Kata.Verification {
             ShowQuantumStateComparison(target, op, reference);
         }
 
-        isCorrect
+        return false;
     }
 }

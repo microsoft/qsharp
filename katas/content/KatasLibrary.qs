@@ -55,6 +55,31 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
+
+    /// # Summary
+    /// Verifies that an operation is equivalent to a reference operation.
+    // see https://github.com/microsoft/qsharp/issues/459 for context as to why
+    // we can't just use `VerifySingleQubitOperation` directly
+    operation VerifyDoubleDoubleSingleQubitOperation(
+        a: Double,
+        b: Double,
+        op : ((Double, Double, Qubit) => Unit is Adj + Ctl),
+        reference : ((Double, Double, Qubit) => Unit is Adj + Ctl))
+    : Bool {
+        use (control, target) = (Qubit(), Qubit());
+        within {
+            H(control);
+        }
+        apply {
+            Controlled op([control], (a, b, target));
+            Adjoint Controlled reference([control], (a, b, target));
+        }
+        let isCorrect = CheckAllZero([control, target]);
+        ResetAll([control, target]);
+
+        isCorrect
+    }
+
     /// # Summary
     /// Verifies that an operation is equivalent to a reference operation.
     operation VerifySingleQubitOperation(
@@ -66,8 +91,6 @@ namespace Microsoft.Quantum.Katas {
             H(control);
         }
         apply {
-            // these lines cause an interpreter panic:
-            // thread 'main' panicked at 'value should be Array, got Int', compiler/qsc_eval/src/val.rs:139:13
             Controlled op([control], target);
             Adjoint Controlled reference([control], target);
         }
