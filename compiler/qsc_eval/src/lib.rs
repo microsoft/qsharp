@@ -406,12 +406,12 @@ impl<'a> State<'a> {
 
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn eval<'this, 'receiver, 'lookup>(
-        &'this mut self,
-        globals: &'lookup impl GlobalLookup<'a>,
+    pub fn eval(
+        &mut self,
+        globals: &impl GlobalLookup<'a>,
         env: &mut Env,
         sim: &mut dyn Backend,
-        out: &'receiver mut dyn Receiver,
+        out: &mut dyn Receiver,
     ) -> Result<Value, (Error, CallStack)> {
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
