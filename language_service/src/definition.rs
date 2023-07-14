@@ -63,7 +63,6 @@ impl DefinitionFinder<'_> {
 }
 
 impl<'a> Visitor<'a> for DefinitionFinder<'a> {
-
     // Handles callable and UDT definitions
     fn visit_item(&mut self, item: &'a ast::Item) {
         if span_contains(item.span, self.offset) {
