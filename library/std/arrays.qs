@@ -861,7 +861,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// A tuple of all but one and the last element of the array.
     function MostAndTail<'A>(array : 'A[]) : ('A[], 'A) {
-        return (Most(array), Tail(array));
+        (Most(array), Tail(array))
     }
 
     /// # Summary
