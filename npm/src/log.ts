@@ -18,57 +18,96 @@ declare global {
   // 5 = trace
   // Note this also aligns with the Rust log crate macros/levels
   // See https://docs.rs/log/latest/log/
-  var qscLogLevel: number; // eslint-disable-line no-var
   var qscLog: typeof log; // eslint-disable-line no-var
   var qscGitHash: string; // eslint-disable-line no-var
 }
 
 export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
+export type TelemetryEvent = { id: string; data?: any };
+export type TelemetryCollector = (event: TelemetryEvent) => void;
+
+let telemetryCollector: TelemetryCollector | null = null;
+const levels = ["off", "error", "warn", "info", "debug", "trace"];
+let logLevel = 0;
 
 export const log = {
   setLogLevel(level: LogLevel | number) {
     if (typeof level === "string") {
       // Convert to number
       const lowerLevel = level.toLowerCase();
-      const levels = ["off", "error", "warn", "info", "debug", "trace"];
       let newLevel = 0;
       levels.forEach((name, idx) => {
         if (name === lowerLevel) newLevel = idx;
       });
-      globalThis.qscLogLevel = newLevel;
+      logLevel = newLevel;
     } else {
-      globalThis.qscLogLevel = level;
+      logLevel = level;
     }
+    this.onLevelChanged?.(logLevel);
   },
+  onLevelChanged: null as ((level: number) => void) | null,
   getLogLevel(): number {
-    return globalThis.qscLogLevel || 0;
+    return logLevel;
   },
   error(...args: any) {
-    if (qscLogLevel >= 1) console.error(...args);
+    if (logLevel >= 1) console.error(...args);
   },
   warn(...args: any) {
-    if (qscLogLevel >= 2) console.warn(...args);
+    if (logLevel >= 2) console.warn(...args);
   },
   info(...args: any) {
-    if (qscLogLevel >= 3) console.info(...args);
+    if (logLevel >= 3) console.info(...args);
   },
   debug(...args: any) {
-    if (qscLogLevel >= 4) console.debug(...args);
+    if (logLevel >= 4) console.debug(...args);
   },
   trace(...args: any) {
     // console.trace in JavaScript just writes a stack trace at info level, so use 'debug'
-    if (qscLogLevel >= 5) console.debug(...args);
+    if (logLevel >= 5) console.debug(...args);
   },
   never(val: never) {
     // Utility function to ensure exhaustive type checking. See https://stackoverflow.com/a/39419171
     log.error("Exhaustive type checking didn't account for: %o", val);
   },
+  /**
+   * @param level - A number indicating severity: 1 = Error, 2 = Warn, 3 = Info, 4 = Debug, 5 = Trace
+   * @param target - The area or component sending the messsage, e.g. "parser" (useful for filtering)
+   * @param args - The format string and args to log, e.g. ["Index of %s is %i", str, index]
+   */
+  logWithLevel(level: number, target: string, ...args: any) {
+    // Convert to a format string containing the target (if present)
+    const [, ...trailingArgs] = args; // All but first element of args
+    const outArgs = [`[%s] ${args[0]}`, target || "", ...trailingArgs];
+    switch (level) {
+      case 1:
+        log.error(...outArgs);
+        break;
+      case 2:
+        log.warn(...outArgs);
+        break;
+      case 3:
+        log.info(...outArgs);
+        break;
+      case 4:
+        log.debug(...outArgs);
+        break;
+      case 5:
+        log.trace(...outArgs);
+        break;
+      default:
+        log.error("Invalid logLevel: ", level);
+    }
+  },
+  setTelemetryCollector(handler: TelemetryCollector) {
+    telemetryCollector = handler;
+  },
+  logTelemetry(event: { id: string; data?: any }) {
+    telemetryCollector?.(event);
+  },
+  isTelemetryEnabled() {
+    return !!telemetryCollector;
+  },
 };
-
-// Default to the 'error' level for logging
-if (typeof globalThis.qscLogLevel === "undefined") {
-  log.setLogLevel("error");
-}
 
 // Enable globally for easy interaction and debugging in live environments
 globalThis.qscLog = log;

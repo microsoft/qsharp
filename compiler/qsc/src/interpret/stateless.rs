@@ -7,6 +7,7 @@ use crate::{
 };
 use miette::Diagnostic;
 use qsc_eval::{
+    backend::SparseSim,
     debug::CallStack,
     eval_expr,
     output::Receiver,
@@ -75,13 +76,12 @@ impl Context {
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval(&self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
-        qsc_eval::init();
-
         eval_expr(
             &get_entry_expr(&self.store, self.package)?,
             &|id| get_global(&self.store, id),
             self.package,
             &mut Env::with_empty_scope(),
+            &mut SparseSim::new(),
             receiver,
         )
         .map_err(|(error, call_stack)| {
