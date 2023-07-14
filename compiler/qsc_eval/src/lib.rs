@@ -131,11 +131,11 @@ impl Display for Spec {
 /// # Errors
 /// Returns the first error encountered during execution.
 #[cfg(test)]
-pub fn eval_expr<'a, 'receiver>(
+pub fn eval_expr<'a>(
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
     package: PackageId,
-    out: &'receiver mut dyn Receiver,
+    out: &mut dyn Receiver,
 ) -> Result<Value, (Error, CallStack)> {
     let mut state = State::new(package);
     state.push_expr(expr);
