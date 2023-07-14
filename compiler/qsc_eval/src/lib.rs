@@ -801,14 +801,14 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn eval_call<'receiver>(
+    fn eval_call(
         &mut self,
         env: &mut Env,
         sim: &mut dyn Backend,
         globals: &impl GlobalLookup<'a>,
         callee_span: Span,
         arg_span: Span,
-        out: &'receiver mut dyn Receiver,
+        out: &mut dyn Receiver,
     ) -> Result<(), Error> {
         let arg = self.pop_val();
         let (callee_id, functor, fixed_args) = match self.pop_val() {
