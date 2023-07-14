@@ -500,7 +500,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// A tuple of first and all remaining elements of the array.
     function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[]) {
-        return (Head(array), Rest(array));
+        (Head(array), Rest(array))
     }
 
     /// # Summary
