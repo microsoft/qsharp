@@ -17,12 +17,12 @@ use crate::{
     Error, GlobalLookup,
 };
 
-struct Lookup<'this> {
-    store: &'this PackageStore,
+struct Lookup<'a> {
+    store: &'a PackageStore,
 }
 
-impl<'this> Lookup<'this> {
-    pub fn new(store: &'this PackageStore) -> Self {
+impl<'a> Lookup<'a> {
+    pub fn new(store: &'a PackageStore) -> Self {
         Self { store }
     }
 }
