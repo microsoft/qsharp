@@ -327,6 +327,20 @@ fn check_head() {
 }
 
 #[test]
+fn check_head_and_rest() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.HeadAndRest([5,6,7,8])",
+        &Value::Tuple(
+            vec![
+                Value::Int(5),
+                Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_index_of() {
     test_expression(
         "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 != 0, [10, 8, 6, 5, 4])",
@@ -524,6 +538,20 @@ fn check_most() {
     test_expression(
         "Microsoft.Quantum.Arrays.Most([5, 6, 7, 8])",
         &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+    );
+}
+
+#[test]
+fn check_most_and_tail() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.MostAndTail([5, 6, 7, 8])",
+        &Value::Tuple(
+            vec![
+                Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+                Value::Int(8),
+            ]
+            .into(),
+        ),
     );
 }
 
