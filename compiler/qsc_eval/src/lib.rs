@@ -669,13 +669,13 @@ impl<'a> State<'a> {
         }
     }
 
-    fn cont_action<'receiver>(
+    fn cont_action(
         &mut self,
         env: &mut Env,
         sim: &mut dyn Backend,
         globals: &impl GlobalLookup<'a>,
         action: Action<'a>,
-        out: &'receiver mut dyn Receiver,
+        out: &mut dyn Receiver,
     ) -> Result<(), Error> {
         match action {
             Action::Array(len) => self.eval_arr(len),
