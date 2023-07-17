@@ -20,7 +20,6 @@ use qsc_passes::{run_core_passes, run_default_passes};
 /// Creates a new environment and simulator.
 /// # Errors
 /// Returns the first error encountered during execution.
-#[cfg(test)]
 pub(super) fn eval_expr<'a>(
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
