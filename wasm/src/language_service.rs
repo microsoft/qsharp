@@ -56,6 +56,7 @@ impl LanguageService {
                     })
                     .to_string(),
                     sortText: i.sort_text,
+                    detail: i.detail,
                 })
                 .collect(),
         })?)
@@ -99,6 +100,7 @@ export interface ICompletionList {
         label: string;
         kind: "function" | "interface" | "keyword" | "module";
         sortText?: string;
+        detail?: string;
     }>
 }
 "#;
@@ -114,6 +116,7 @@ pub struct CompletionItem {
     pub label: String,
     pub sortText: Option<String>,
     pub kind: String,
+    pub detail: Option<String>,
 }
 
 #[wasm_bindgen(typescript_custom_section)]

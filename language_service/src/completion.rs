@@ -32,6 +32,7 @@ pub struct CompletionItem {
     pub label: String,
     pub kind: CompletionItemKind,
     pub sort_text: Option<String>,
+    pub detail: Option<String>,
 }
 
 pub(crate) fn get_completions(
@@ -195,6 +196,7 @@ impl CompletionListBuilder {
                     self.current_sort_group, current_sort_prefix, name
                 ))
             },
+            detail: Some("fake detail at server level".to_owned()),
         }));
 
         self.current_sort_group += 1;
@@ -213,6 +215,7 @@ impl CompletionListBuilder {
                     "{:02}{:02}{}",
                     self.current_sort_group, item_sort_group, name
                 )),
+                detail: Some("fake detail at server level".to_owned()),
             }));
 
         self.current_sort_group += 1;
