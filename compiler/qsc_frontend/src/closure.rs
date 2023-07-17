@@ -333,8 +333,7 @@ fn closure_input(
             ty,
             kind: PatKind::Bind(Ident {
                 id,
-                span: ident.span,
-                name: ident.name,
+                ..ident
             }),
         })
         .collect();
