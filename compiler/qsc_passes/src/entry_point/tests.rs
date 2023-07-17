@@ -4,8 +4,15 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_hir::hir::{Expr, Package};
 
-use crate::entry_point::extract_entry;
+/// Extracts a single entry point callable declaration, if found.
+/// # Errors
+/// Returns an error if a single entry point with no parameters cannot be found.
+fn extract_entry(package: &Package) -> Result<Expr, Vec<crate::Error>> {
+    let callables = super::get_callables(package);
+    super::create_entry_from_callables(callables)
+}
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -28,10 +35,9 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [0-0] [Type Int]: Expr Block: Block 4 [62-72] [Type Int]:
-                Stmt 5 [64-70]: Expr: Expr 6 [64-70] [Type Int]: BinOp (Add):
-                    Expr 7 [64-66] [Type Int]: Lit: Int(41)
-                    Expr 8 [69-70] [Type Int]: Lit: Int(1)"#]],
+            Expr _id_ [39-72] [Type Int]: Call:
+                Expr _id_ [39-72] [Type Int]: Var: Item 1
+                Expr _id_ [39-72] [Type Unit]: Unit"#]],
     );
 }
 
