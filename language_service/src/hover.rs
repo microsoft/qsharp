@@ -8,6 +8,7 @@ use crate::display::CodeDisplay;
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
+use regex_lite::Regex;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -21,6 +22,10 @@ pub struct Hover {
 pub struct Span {
     pub start: u32,
     pub end: u32,
+}
+
+struct Documentation {
+    summary: String,
 }
 
 pub(crate) fn get_hover(
@@ -188,16 +193,34 @@ impl Visitor<'_> for HoverVisitor<'_> {
 }
 
 fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
-    if doc.is_empty() {
+    let parsed_doc = parse_doc(doc);
+    if parsed_doc.summary.is_empty() {
         markdown_fenced_block(code)
     } else {
         format!(
             "{}
 {}",
-            doc,
+            parsed_doc.summary,
             markdown_fenced_block(code)
         )
     }
+}
+
+fn parse_doc(doc: &str) -> Documentation {
+    let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
+    let summary = match re.captures(doc) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => doc,
+    }
+    .trim()
+    .to_string();
+
+    Documentation { summary }
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
