@@ -373,33 +373,8 @@ impl<'a> Lexer<'a> {
                 Ok(self.closed_bin_op(op))
             }
             Single::Apos => {
-                let tok = self.tokens.next();
-                match tok {
-                    Some(raw::Token {
-                        kind: raw::TokenKind::Ident,
-                        ..
-                    }) => Ok(TokenKind::AposIdent),
-                    Some(raw::Token { offset, kind }) => {
-                        let mut tokens = self.tokens.clone();
-                        let hi = tokens.nth(1).map_or_else(|| self.len, |t| t.offset);
-                        let span = Span { lo: offset, hi };
-                        Err(Error::Incomplete(
-                            raw::TokenKind::Ident,
-                            TokenKind::AposIdent,
-                            kind,
-                            span,
-                        ))
-                    }
-                    None => {
-                        let lo = self.len;
-                        let span = Span { lo, hi: lo };
-                        Err(Error::IncompleteEof(
-                            raw::TokenKind::Ident,
-                            TokenKind::AposIdent,
-                            span,
-                        ))
-                    }
-                }
+                self.expect(raw::TokenKind::Ident, TokenKind::AposIdent)?;
+                Ok(TokenKind::AposIdent)
             }
             Single::At => Ok(TokenKind::At),
             Single::Bang => {
