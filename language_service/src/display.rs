@@ -327,7 +327,12 @@ struct IdentTyDef<'a> {
 
 impl<'a> Display for IdentTyDef<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{} = {}", self.ident.name, TyDef { def: self.def })
+        write!(
+            f,
+            "newtype {} = {}",
+            self.ident.name,
+            TyDef { def: self.def }
+        )
     }
 }
 
@@ -340,7 +345,7 @@ struct HirUdt<'a> {
 impl<'a> Display for HirUdt<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let udt_def = UdtDef::new(self.compilation, self.udt);
-        write!(f, "{} = {}", self.ident.name, udt_def)
+        write!(f, "newtype {} = {}", self.ident.name, udt_def)
     }
 }
 

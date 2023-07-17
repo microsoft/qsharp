@@ -365,7 +365,7 @@ fn hover_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair = (Int, snd: Int)\n```\n"
+            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
         "#]],
     );
 }
@@ -382,7 +382,7 @@ fn hover_udt_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nBar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)\n```\n"
+            "```qsharp\nnewtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)\n```\n"
         "#]],
     );
 }
@@ -400,7 +400,7 @@ fn hover_udt_ref_nested_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nBar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)\n```\n"
+            "```qsharp\nnewtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)\n```\n"
         "#]],
     );
 }
@@ -417,7 +417,7 @@ fn hover_udt_anno_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair = (Int, snd: Int)\n```\n"
+            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
         "#]],
     );
 }
@@ -434,7 +434,7 @@ fn hover_udt_constructor() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nPair = (Int, snd: Int)\n```\n"
+            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
         "#]],
     );
 }
