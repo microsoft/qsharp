@@ -142,19 +142,21 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if let Some(item) = find_item(self.compilation, item_id) {
-                            let lo = match &item.kind {
-                                hir::ItemKind::Callable(decl) => decl.name.span.lo,
-                                hir::ItemKind::Namespace(_, _) => {
-                                    panic!(
-                                        "Reference node should not refer to a namespace: {}",
-                                        path.id
-                                    )
-                                }
-                                hir::ItemKind::Ty(ident, _) => ident.span.lo,
+                        if item_id.package.is_none() {
+                            if let Some(item) = find_item(self.compilation, item_id) {
+                                let lo = match &item.kind {
+                                    hir::ItemKind::Callable(decl) => decl.name.span.lo,
+                                    hir::ItemKind::Namespace(_, _) => {
+                                        panic!(
+                                            "Reference node should not refer to a namespace: {}",
+                                            path.id
+                                        )
+                                    }
+                                    hir::ItemKind::Ty(ident, _) => ident.span.lo,
+                                };
+                                self.set_definition_from_position(lo);
                             };
-                            self.set_definition_from_position(lo);
-                        };
+                        }
                     }
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {

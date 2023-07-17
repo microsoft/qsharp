@@ -227,3 +227,17 @@ fn definition_lambda_closure_ref() {
     "#,
     );
 }
+
+#[test]
+fn definition_std_call() {
+    assert_definition(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            F↘ake();
+        }
+    }
+    "#,
+    );
+}
