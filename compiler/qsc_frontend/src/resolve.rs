@@ -65,15 +65,13 @@ pub(super) enum Error {
     },
 
     #[error("`{name}` could refer to the item in `{candidate_a}` or an item in `{candidate_b}`")]
-    #[diagnostic(help(
-        "a namespace should not be declared with the same name as a namespace in the prelude"
-    ))]
+    #[diagnostic(help("both namespaces are implicitly opened by the prelude"))]
     #[diagnostic(code("Qsc.Resolve.AmbiguousPrelude"))]
     AmbiguousPrelude {
         name: String,
         candidate_a: String,
         candidate_b: String,
-        #[label]
+        #[label("ambiguous name")]
         span: Span,
     },
 
