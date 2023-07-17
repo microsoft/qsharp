@@ -38,19 +38,11 @@ pub(crate) struct Token {
 pub(crate) enum Error {
     #[error("expected `{0}` to complete {1}, found {2}")]
     #[diagnostic(code("Qsc.Lex.Incomplete"))]
-    Incomplete(raw::Single, TokenKind, raw::TokenKind, #[label] Span),
+    Incomplete(raw::TokenKind, TokenKind, raw::TokenKind, #[label] Span),
 
     #[error("expected `{0}` to complete {1}, found EOF")]
     #[diagnostic(code("Qsc.Lex.IncompleteEof"))]
-    IncompleteEof(raw::Single, TokenKind, #[label] Span),
-
-    #[error("expected identifier after apostrophe, found {0}")]
-    #[diagnostic(code("Qsc.Lex.IncompleteAposIdent"))]
-    IncompleteAposIdent(raw::TokenKind, #[label] Span),
-
-    #[error("expected identifier after apostrophe, found EOF")]
-    #[diagnostic(code("Qsc.Lex.IncompleteAposIdentEof"))]
-    IncompleteAposIdentEof(#[label] Span),
+    IncompleteEof(raw::TokenKind, TokenKind, #[label] Span),
 
     #[error("unterminated string literal")]
     #[diagnostic(code("Qsc.Lex.UnterminatedString"))]
@@ -72,8 +64,6 @@ impl Error {
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
-            Self::IncompleteAposIdent(tok, span) => Self::IncompleteAposIdent(tok, span + offset),
-            Self::IncompleteAposIdentEof(span) => Self::IncompleteAposIdentEof(span + offset),
         }
     }
 }
@@ -299,24 +289,30 @@ impl<'a> Lexer<'a> {
         self.tokens.peek().map_or_else(|| self.len, |t| t.offset)
     }
 
-    fn next_if_eq(&mut self, single: Single) -> bool {
-        self.tokens
-            .next_if(|t| t.kind == raw::TokenKind::Single(single))
-            .is_some()
+    fn next_if_eq_single(&mut self, single: Single) -> bool {
+        self.next_if_eq(raw::TokenKind::Single(single))
     }
 
-    fn expect(&mut self, single: Single, complete: TokenKind) -> Result<(), Error> {
-        if self.next_if_eq(single) {
+    fn next_if_eq(&mut self, tok: raw::TokenKind) -> bool {
+        self.tokens.next_if(|t| t.kind == tok).is_some()
+    }
+
+    fn expect_single(&mut self, single: Single, complete: TokenKind) -> Result<(), Error> {
+        self.expect(raw::TokenKind::Single(single), complete)
+    }
+
+    fn expect(&mut self, tok: raw::TokenKind, complete: TokenKind) -> Result<(), Error> {
+        if self.next_if_eq(tok) {
             Ok(())
         } else if let Some(&raw::Token { kind, offset }) = self.tokens.peek() {
             let mut tokens = self.tokens.clone();
             let hi = tokens.nth(1).map_or_else(|| self.len, |t| t.offset);
             let span = Span { lo: offset, hi };
-            Err(Error::Incomplete(single, complete, kind, span))
+            Err(Error::Incomplete(tok, complete, kind, span))
         } else {
             let lo = self.len;
             let span = Span { lo, hi: lo };
-            Err(Error::IncompleteEof(single, complete, span))
+            Err(Error::IncompleteEof(tok, complete, span))
         }
     }
 
@@ -372,8 +368,8 @@ impl<'a> Lexer<'a> {
         match single {
             Single::Amp => {
                 let op = ClosedBinOp::AmpAmpAmp;
-                self.expect(Single::Amp, TokenKind::ClosedBinOp(op))?;
-                self.expect(Single::Amp, TokenKind::ClosedBinOp(op))?;
+                self.expect_single(Single::Amp, TokenKind::ClosedBinOp(op))?;
+                self.expect_single(Single::Amp, TokenKind::ClosedBinOp(op))?;
                 Ok(self.closed_bin_op(op))
             }
             Single::Apos => {
@@ -387,36 +383,45 @@ impl<'a> Lexer<'a> {
                         let mut tokens = self.tokens.clone();
                         let hi = tokens.nth(1).map_or_else(|| self.len, |t| t.offset);
                         let span = Span { lo: offset, hi };
-                        Err(Error::IncompleteAposIdent(kind, span))
+                        Err(Error::Incomplete(
+                            raw::TokenKind::Ident,
+                            TokenKind::AposIdent,
+                            kind,
+                            span,
+                        ))
                     }
                     None => {
                         let lo = self.len;
                         let span = Span { lo, hi: lo };
-                        Err(Error::IncompleteAposIdentEof(span))
+                        Err(Error::IncompleteEof(
+                            raw::TokenKind::Ident,
+                            TokenKind::AposIdent,
+                            span,
+                        ))
                     }
                 }
             }
             Single::At => Ok(TokenKind::At),
             Single::Bang => {
-                if self.next_if_eq(Single::Eq) {
+                if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::Ne)
                 } else {
                     Ok(TokenKind::Bang)
                 }
             }
             Single::Bar => {
-                if self.next_if_eq(Single::Bar) {
+                if self.next_if_eq_single(Single::Bar) {
                     let op = ClosedBinOp::BarBarBar;
-                    self.expect(Single::Bar, TokenKind::ClosedBinOp(op))?;
+                    self.expect_single(Single::Bar, TokenKind::ClosedBinOp(op))?;
                     Ok(self.closed_bin_op(op))
                 } else {
                     Ok(TokenKind::Bar)
                 }
             }
             Single::Caret => {
-                if self.next_if_eq(Single::Caret) {
+                if self.next_if_eq_single(Single::Caret) {
                     let op = ClosedBinOp::CaretCaretCaret;
-                    self.expect(Single::Caret, TokenKind::ClosedBinOp(op))?;
+                    self.expect_single(Single::Caret, TokenKind::ClosedBinOp(op))?;
                     Ok(self.closed_bin_op(op))
                 } else {
                     Ok(self.closed_bin_op(ClosedBinOp::Caret))
@@ -424,7 +429,7 @@ impl<'a> Lexer<'a> {
             }
             Single::Close(delim) => Ok(TokenKind::Close(delim)),
             Single::Colon => {
-                if self.next_if_eq(Single::Colon) {
+                if self.next_if_eq_single(Single::Colon) {
                     Ok(TokenKind::ColonColon)
                 } else {
                     Ok(TokenKind::Colon)
@@ -432,8 +437,8 @@ impl<'a> Lexer<'a> {
             }
             Single::Comma => Ok(TokenKind::Comma),
             Single::Dot => {
-                if self.next_if_eq(Single::Dot) {
-                    if self.next_if_eq(Single::Dot) {
+                if self.next_if_eq_single(Single::Dot) {
+                    if self.next_if_eq_single(Single::Dot) {
                         Ok(TokenKind::DotDotDot)
                     } else {
                         Ok(TokenKind::DotDot)
@@ -443,40 +448,40 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::Eq => {
-                if self.next_if_eq(Single::Eq) {
+                if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::EqEq)
-                } else if self.next_if_eq(Single::Gt) {
+                } else if self.next_if_eq_single(Single::Gt) {
                     Ok(TokenKind::FatArrow)
                 } else {
                     Ok(TokenKind::Eq)
                 }
             }
             Single::Gt => {
-                if self.next_if_eq(Single::Eq) {
+                if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::Gte)
-                } else if self.next_if_eq(Single::Gt) {
+                } else if self.next_if_eq_single(Single::Gt) {
                     let op = ClosedBinOp::GtGtGt;
-                    self.expect(Single::Gt, TokenKind::ClosedBinOp(op))?;
+                    self.expect_single(Single::Gt, TokenKind::ClosedBinOp(op))?;
                     Ok(self.closed_bin_op(op))
                 } else {
                     Ok(TokenKind::Gt)
                 }
             }
             Single::Lt => {
-                if self.next_if_eq(Single::Eq) {
+                if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::Lte)
-                } else if self.next_if_eq(Single::Minus) {
+                } else if self.next_if_eq_single(Single::Minus) {
                     Ok(TokenKind::LArrow)
-                } else if self.next_if_eq(Single::Lt) {
+                } else if self.next_if_eq_single(Single::Lt) {
                     let op = ClosedBinOp::LtLtLt;
-                    self.expect(Single::Lt, TokenKind::ClosedBinOp(op))?;
+                    self.expect_single(Single::Lt, TokenKind::ClosedBinOp(op))?;
                     Ok(self.closed_bin_op(op))
                 } else {
                     Ok(TokenKind::Lt)
                 }
             }
             Single::Minus => {
-                if self.next_if_eq(Single::Gt) {
+                if self.next_if_eq_single(Single::Gt) {
                     Ok(TokenKind::RArrow)
                 } else {
                     Ok(self.closed_bin_op(ClosedBinOp::Minus))
@@ -491,15 +496,15 @@ impl<'a> Lexer<'a> {
             Single::Star => Ok(self.closed_bin_op(ClosedBinOp::Star)),
             Single::Tilde => {
                 let complete = TokenKind::TildeTildeTilde;
-                self.expect(Single::Tilde, complete)?;
-                self.expect(Single::Tilde, complete)?;
+                self.expect_single(Single::Tilde, complete)?;
+                self.expect_single(Single::Tilde, complete)?;
                 Ok(complete)
             }
         }
     }
 
     fn closed_bin_op(&mut self, op: ClosedBinOp) -> TokenKind {
-        if self.next_if_eq(Single::Eq) {
+        if self.next_if_eq_single(Single::Eq) {
             TokenKind::BinOpEq(op)
         } else {
             TokenKind::ClosedBinOp(op)
@@ -510,8 +515,8 @@ impl<'a> Lexer<'a> {
         match ident {
             "and" => self.closed_bin_op(ClosedBinOp::And),
             "or" => self.closed_bin_op(ClosedBinOp::Or),
-            "w" if self.next_if_eq(Single::Slash) => {
-                if self.next_if_eq(Single::Eq) {
+            "w" if self.next_if_eq_single(Single::Slash) => {
+                if self.next_if_eq_single(Single::Eq) {
                     TokenKind::WSlashEq
                 } else {
                     TokenKind::WSlash

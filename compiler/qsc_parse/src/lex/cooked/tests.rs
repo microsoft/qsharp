@@ -94,7 +94,9 @@ fn amp() {
             [
                 Err(
                     IncompleteEof(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -117,7 +119,9 @@ fn amp_amp() {
             [
                 Err(
                     IncompleteEof(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -140,7 +144,9 @@ fn amp_plus() {
             [
                 Err(
                     Incomplete(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -177,7 +183,9 @@ fn amp_multibyte() {
             [
                 Err(
                     Incomplete(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -243,7 +251,9 @@ fn caret_caret() {
             [
                 Err(
                     IncompleteEof(
-                        Caret,
+                        Single(
+                            Caret,
+                        ),
                         ClosedBinOp(
                             CaretCaretCaret,
                         ),
@@ -1670,7 +1680,9 @@ fn unfinished_generic() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteAposIdent(
+                    Incomplete(
+                        Ident,
+                        AposIdent,
                         Whitespace,
                         Span {
                             lo: 1,
@@ -1699,7 +1711,9 @@ fn unfinished_generic_2() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteAposIdent(
+                    Incomplete(
+                        Ident,
+                        AposIdent,
                         Comment(
                             Normal,
                         ),
@@ -1730,7 +1744,9 @@ fn unfinished_generic_3() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteAposIdent(
+                    Incomplete(
+                        Ident,
+                        AposIdent,
                         Whitespace,
                         Span {
                             lo: 1,
@@ -1777,7 +1793,9 @@ fn generic_missing_ident() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteAposIdentEof(
+                    IncompleteEof(
+                        Ident,
+                        AposIdent,
                         Span {
                             lo: 1,
                             hi: 1,
