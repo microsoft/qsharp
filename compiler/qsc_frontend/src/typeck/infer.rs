@@ -389,10 +389,6 @@ impl Inferrer {
 
     /// Solves for all variables given the accumulated constraints.
     pub(super) fn solve(mut self, udts: &HashMap<ItemId, Udt>) -> (Solution, Vec<Error>) {
-        // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
-        // However, if an unsolved variable is the result of a divergent expression, it may be OK to
-        // leave it or substitute it with a concrete uninhabited type.
-        // https://github.com/microsoft/qsharp/issues/152
         let mut solver = Solver::new(udts, self.next_functor);
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in solver.constrain(constraint).into_iter().rev() {
