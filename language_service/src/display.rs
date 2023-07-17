@@ -88,7 +88,7 @@ struct IdentTy<'a> {
 
 impl<'a> Display for IdentTy<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}: {}", self.ident.name, Ty { ty: self.ty },)
+        write!(f, "{}: {}", self.ident.name, AstTy { ty: self.ty },)
     }
 }
 
@@ -144,15 +144,19 @@ impl Display for HirCallableDecl<'_, '_> {
             hir::CallableKind::Operation => ("operation", "=>"),
         };
 
+        write!(f, "{} {}", kind, self.decl.name.name)?;
+        let input = HirPat {
+            pat: &self.decl.input,
+            compilation: self.compilation,
+        };
+        if matches!(self.decl.input.kind, hir::PatKind::Tuple(_)) {
+            write!(f, "{input}")?;
+        } else {
+            write!(f, "({input})")?;
+        }
         write!(
             f,
-            "{} {} {} {} {}{}",
-            kind,
-            self.decl.name.name,
-            HirTy {
-                ty: &self.decl.input.ty,
-                compilation: self.compilation
-            },
+            " {} {}{}",
             arrow,
             HirTy {
                 ty: &self.decl.output,
@@ -180,21 +184,139 @@ impl<'a> Display for AstCallableDecl<'a> {
         let functors = ast_callable_functors(self.decl);
         let functors = FunctorSetValue { functors };
 
+        write!(f, "{} {}", kind, self.decl.name.name)?;
+        let input = AstPat {
+            pat: &self.decl.input,
+            compilation: self.compilation,
+        };
+        if matches!(*self.decl.input.kind, ast::PatKind::Tuple(_)) {
+            write!(f, "{input}")?;
+        } else {
+            write!(f, "({input})")?;
+        }
         write!(
             f,
-            "{} {} {} {} {}{}",
-            kind,
-            self.decl.name.name,
-            TyId {
-                ty_id: self.decl.input.id,
-                compilation: self.compilation
-            },
+            " {} {}{}",
             arrow,
-            Ty {
+            AstTy {
                 ty: &self.decl.output
             },
             functors,
         )
+    }
+}
+
+struct HirPat<'a> {
+    pat: &'a hir::Pat,
+    compilation: &'a Compilation,
+}
+
+impl<'a> Display for HirPat<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let ty = HirTy {
+            ty: &self.pat.ty,
+            compilation: self.compilation,
+        };
+        match &self.pat.kind {
+            hir::PatKind::Bind(name) => write!(f, "{}: {ty}", name.name),
+            hir::PatKind::Discard => write!(f, "_: {ty}"),
+            hir::PatKind::Tuple(items) => {
+                let mut elements = items.iter();
+                if let Some(elem) = elements.next() {
+                    write!(
+                        f,
+                        "({}",
+                        HirPat {
+                            pat: elem,
+                            compilation: self.compilation
+                        }
+                    )?;
+                    for elem in elements {
+                        write!(
+                            f,
+                            ", {}",
+                            HirPat {
+                                pat: elem,
+                                compilation: self.compilation
+                            }
+                        )?;
+                    }
+                    write!(f, ")")
+                } else {
+                    write!(f, "()")
+                }
+            }
+        }
+    }
+}
+
+struct AstPat<'a> {
+    pat: &'a ast::Pat,
+    compilation: &'a Compilation,
+}
+
+impl<'a> Display for AstPat<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match &*self.pat.kind {
+            ast::PatKind::Bind(ident, anno) => match anno {
+                Some(ty) => write!(f, "{}", IdentTy { ident, ty }),
+                None => write!(
+                    f,
+                    "{}",
+                    IdentTyId {
+                        compilation: self.compilation,
+                        ident,
+                        ty_id: self.pat.id
+                    }
+                ),
+            },
+            ast::PatKind::Discard(anno) => match anno {
+                Some(ty) => write!(f, "{}", AstTy { ty }),
+                None => write!(
+                    f,
+                    "_: {}",
+                    TyId {
+                        ty_id: self.pat.id,
+                        compilation: self.compilation
+                    }
+                ),
+            },
+            ast::PatKind::Elided => write!(f, "..."),
+            ast::PatKind::Paren(item) => write!(
+                f,
+                "{}",
+                AstPat {
+                    pat: item,
+                    compilation: self.compilation
+                }
+            ),
+            ast::PatKind::Tuple(items) => {
+                let mut elements = items.iter();
+                if let Some(elem) = elements.next() {
+                    write!(
+                        f,
+                        "({}",
+                        AstPat {
+                            pat: elem,
+                            compilation: self.compilation
+                        }
+                    )?;
+                    for elem in elements {
+                        write!(
+                            f,
+                            ", {}",
+                            AstPat {
+                                pat: elem,
+                                compilation: self.compilation
+                            }
+                        )?;
+                    }
+                    write!(f, ")")
+                } else {
+                    write!(f, "()")
+                }
+            }
+        }
     }
 }
 
@@ -435,14 +557,14 @@ impl<'a> Display for TyId<'a> {
     }
 }
 
-struct Ty<'a> {
+struct AstTy<'a> {
     ty: &'a ast::Ty,
 }
 
-impl<'a> Display for Ty<'a> {
+impl<'a> Display for AstTy<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.ty.kind.as_ref() {
-            ast::TyKind::Array(ty) => write!(f, "{}[]", Ty { ty }),
+            ast::TyKind::Array(ty) => write!(f, "{}[]", AstTy { ty }),
             ast::TyKind::Arrow(kind, input, output, functors) => {
                 let arrow = match kind {
                     ast::CallableKind::Function => "->",
@@ -451,14 +573,14 @@ impl<'a> Display for Ty<'a> {
                 write!(
                     f,
                     "({} {} {}{})",
-                    Ty { ty: input },
+                    AstTy { ty: input },
                     arrow,
-                    Ty { ty: output },
+                    AstTy { ty: output },
                     FunctorExpr { functors }
                 )
             }
             ast::TyKind::Hole => write!(f, "_"),
-            ast::TyKind::Paren(ty) => write!(f, "{}", Ty { ty }),
+            ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
             ast::TyKind::Path(path) => write!(f, "{}", Path { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => {
@@ -470,7 +592,7 @@ impl<'a> Display for Ty<'a> {
                         if count != 0 {
                             write!(f, ", ")?;
                         }
-                        write!(f, "{}", Ty { ty: def })?;
+                        write!(f, "{}", AstTy { ty: def })?;
                     }
                     write!(f, ")")
                 }
@@ -516,8 +638,8 @@ impl<'a> Display for TyDef<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
-                Some(name) => write!(f, "{}: {}", name.name, Ty { ty }),
-                None => write!(f, "{}", Ty { ty }),
+                Some(name) => write!(f, "{}: {}", name.name, AstTy { ty }),
+                None => write!(f, "{}", AstTy { ty }),
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),
             ast::TyDefKind::Tuple(tys) => {
