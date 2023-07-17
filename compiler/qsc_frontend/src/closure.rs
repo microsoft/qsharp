@@ -331,10 +331,7 @@ fn closure_input(
             id: NodeId::default(),
             span: ident.span,
             ty,
-            kind: PatKind::Bind(Ident {
-                id,
-                ..ident
-            }),
+            kind: PatKind::Bind(Ident { id, ..ident }),
         })
         .collect();
 
