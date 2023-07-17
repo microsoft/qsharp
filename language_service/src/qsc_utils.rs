@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::hir::visit::Visitor;
-use qsc::hir::{Item, ItemId, LocalItemId, PackageId};
+use qsc::hir::{Item, ItemId, PackageId};
 use qsc::{
     compile::{self, Error},
     PackageStore, SourceMap,
@@ -46,32 +45,15 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
 }
 
 pub(crate) fn find_item<'a>(compilation: &'a Compilation, id: &ItemId) -> Option<&'a Item> {
-    let mut finder_pass = FindItem {
-        id: &id.item,
-        item: None,
-    };
     let package = if let Some(package_id) = id.package {
-        &compilation
-            .package_store
-            .get(package_id)
-            .unwrap_or_else(|| panic!("bad package id: {package_id}"))
-            .package
+        match &compilation.package_store.get(package_id) {
+            Some(compilation) => &compilation.package,
+            None => {
+                return None;
+            }
+        }
     } else {
         &compilation.unit.package
     };
-    finder_pass.visit_package(package);
-    finder_pass.item
-}
-
-struct FindItem<'a, 'b> {
-    pub id: &'a LocalItemId,
-    pub item: Option<&'b Item>,
-}
-
-impl<'a, 'b> Visitor<'b> for FindItem<'a, 'b> {
-    fn visit_item(&mut self, item: &'b Item) {
-        if item.id == *self.id {
-            self.item = Some(item);
-        }
-    }
+    package.items.get(id.item)
 }
