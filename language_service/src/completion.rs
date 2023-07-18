@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::display::CodeDisplay;
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
@@ -153,9 +154,20 @@ impl CompletionListBuilder {
             .expect("expected to find core package")
             .package;
 
-        self.push_sorted_completions(Self::get_callables(current), CompletionItemKind::Function);
-        self.push_sorted_completions(Self::get_callables(std), CompletionItemKind::Function);
-        self.push_sorted_completions(Self::get_callables(core), CompletionItemKind::Function);
+        let display = CodeDisplay { compilation };
+
+        self.push_sorted_completions(
+            Self::get_callables(current, &display),
+            CompletionItemKind::Function,
+        );
+        self.push_sorted_completions(
+            Self::get_callables(std, &display),
+            CompletionItemKind::Function,
+        );
+        self.push_sorted_completions(
+            Self::get_callables(core, &display),
+            CompletionItemKind::Function,
+        );
         self.push_completions(Self::get_namespaces(current), CompletionItemKind::Module);
         self.push_completions(Self::get_namespaces(std), CompletionItemKind::Module);
         self.push_completions(Self::get_namespaces(core), CompletionItemKind::Module);
@@ -197,7 +209,7 @@ impl CompletionListBuilder {
                     self.current_sort_group, current_sort_prefix, name
                 ))
             },
-            detail: Some("fake detail at server level".to_owned()),
+            detail: None,
         }));
 
         self.current_sort_group += 1;
@@ -206,30 +218,38 @@ impl CompletionListBuilder {
     /// Push a group of completions that are themselves sorted into subgroups
     fn push_sorted_completions<'a>(
         &mut self,
-        iter: impl Iterator<Item = (&'a str, u32)>,
+        iter: impl Iterator<Item = (&'a str, String, u32)>,
         kind: CompletionItemKind,
     ) {
         self.items
-            .extend(iter.map(|(name, item_sort_group)| CompletionItem {
+            .extend(iter.map(|(name, detail, item_sort_group)| CompletionItem {
                 label: name.to_string(),
                 kind,
                 sort_text: Some(format!(
                     "{:02}{:02}{}",
                     self.current_sort_group, item_sort_group, name
                 )),
-                detail: Some("fake detail at server level".to_owned()),
+                detail: if detail.is_empty() {
+                    None
+                } else {
+                    Some(detail)
+                },
             }));
 
         self.current_sort_group += 1;
     }
 
-    fn get_callables(package: &Package) -> impl Iterator<Item = (&str, u32)> {
+    fn get_callables<'a>(
+        package: &'a Package,
+        display: &'a CodeDisplay,
+    ) -> impl Iterator<Item = (&'a str, String, u32)> {
         package.items.values().filter_map(|i| match &i.kind {
             ItemKind::Callable(callable_decl) => Some({
                 let name = callable_decl.name.name.as_ref();
+                let detail = display.hir_callable_decl(callable_decl).to_string();
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
-                (name, sort_group)
+                (name, detail, sort_group)
             }),
             _ => None,
         })
