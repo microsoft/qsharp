@@ -29,3 +29,9 @@ $$
 Now, both 0 and 1 measurement outcomes occur with equal probablity of $|\frac{1}{\sqrt{2}}|^2 = \frac{1}{2}$.
 
 > Note: Since probablity is the square of the absolute value of amplitude, we will get the same randomness by applying Hadamard gate on base state $|1\rangle$. Try it out as an exercise!
+
+@[solution]({
+"id": "random_bit_solution",
+"exerciseId": "random_bit",
+"codePath": "solution.qs"
+})

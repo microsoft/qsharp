@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata {
 
     // Exercise 1.
     operation RandomBit(): Int {

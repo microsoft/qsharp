@@ -29,3 +29,9 @@ Since $\theta$ is angle between state vector and the $Z$-axis, we need to apply 
 Ry operation applies a given rotation about $Y$-axis (i.e., in the $ZX$-plane), hence $\phi$ (longitude angle with respect to $X$-axis) is always equal to $0^{\circ}$, which means that the relative phase $e^{i\phi}$ doesn't have any impact on resulting qubit state.
 
 > We can also calculate ${\theta}$ by comparing the amplitudes of the state $|1 \rangle$ on both equations, which is $2 \arcsin\sqrt{1.0 - x}$
+
+@[solution]({
+"id": "weighted_random_bit_solution",
+"exerciseId": "weighted_random_bit",
+"codePath": "solution.qs"
+})

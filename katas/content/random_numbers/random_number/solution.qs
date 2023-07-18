@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata {
     open Microsoft.Quantum.Math;
 
     // Exercise 1.

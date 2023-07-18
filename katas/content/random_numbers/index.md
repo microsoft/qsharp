@@ -34,140 +34,64 @@ This is sufficient to implement a simple random number generator!
 
 > Remember that you can refer to the [Single Qubit Gates tutorial](../SingleQubitGates/SingleQubitGates.ipynb) if you need a refresher on the various quantum gates and their usage in Q#.
 
-## <span style="color:blue">Exercise 1</span>: Generate a single random bit
-
-**Input:** None.
-
-**Goal:** Generate a $0$ or $1$ with equal probability.
-
-<details>
-    <summary><strong>Need a hint? Click here</strong></summary>
-    Use the allocated qubit, apply a quantum gate to it, measure it and use the result to return a $0$ or $1$.
-</details>
-
-**Stretch goal:** Can you find a different way to implement this operation?
-
-<details>
-    <summary><strong>Need a hint? Click here</strong></summary>
-    What are the different quantum states that produce $0$ and $1$ measurement results with the same probability? How would measuring the qubit in a different basis change the result? 
-</details>
-
 @[exercise]({
 "id": "random_bit",
+"descriptionPath": "./random_bit/index.md",
+"placeholderSourcePath": "./random_bit/placeholder.qs",
+"verificationSourcePath": "./random_bit/verification.qs",
+"solutionPath": "./random_bit/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs"
-],
-"verificationSourcePath": "./random_bit/verification.qs",
-"placeholderSourcePath": "./random_bit/placeholder.qs",
-"solutionSourcePath": "./random_bit/solution.qs",
-"solutionDescriptionPath": "./random_bit/solution.md"
+]
 })
-
-## <span style="color:blue">Exercise 2</span>: Generate a random two-bit number
-
-Now that you can generate a single random bit, you can use that logic to create random multi-bit numbers. Let's try first to make a two-bit number by combining two randomly generated bits.
-
-**Input:** None.
-
-**Goal:** Generate a random number in the range $[0, 3]$ with an equal probability of getting each of the four numbers.
-
-**Stretch goal:** Can you do this without allocating qubits in this operation?
-
-<details>
-    <summary><strong>Need a hint? Click here</strong></summary>
-    Remember that you can use the previously defined operations.
-</details>
 
 @[exercise]({
 "id": "random_two_bits",
+"descriptionPath": "./random_two_bits/index.md",
+"placeholderSourcePath": "./random_two_bits/placeholder.qs",
+"verificationSourcePath": "./random_two_bits/verification.qs",
+"solutionPath": "./random_two_bits/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs"
-],
-"verificationSourcePath": "./random_two_bits/verification.qs",
-"placeholderSourcePath": "./random_two_bits/placeholder.qs",
-"solutionSourcePath": "./random_two_bits/solution.qs",
-"solutionDescriptionPath": "./random_two_bits/solution.md"
+]
 })
-
-## <span style="color:blue">Exercise 3</span>: Generate a number of arbitrary size
-
-Let's take it a step further and generate an $N$-bit number. 
-
-> Remember that you can use previously defined operations in your solution.
-
-**Input:** An integer $N$ ($1 \le N \le 10$).
-
-**Goal:** Generate a random number in the range $[0, 2^N - 1]$ with an equal probability of getting each of the numbers in this range.
-
-> Useful Q# documentation: 
-> * [`for` loops](https://docs.microsoft.com/azure/quantum/user-guide/language/statements/iterations), 
-> * [mutable variables](https://docs.microsoft.com/azure/quantum/user-guide/language/typesystem/immutability), 
-> * [exponents](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.powi).
 
 @[exercise]({
 "id": "random_n_bits",
+"descriptionPath": "./random_n_bits/index.md",
+"placeholderSourcePath": "./random_n_bits/placeholder.qs",
+"verificationSourcePath": "./random_n_bits/verification.qs",
+"solutionSourcePath": "./random_n_bits/solution.qs",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs"
-],
-"verificationSourcePath": "./random_n_bits/verification.qs",
-"placeholderSourcePath": "./random_n_bits/placeholder.qs",
-"solutionSourcePath": "./random_n_bits/solution.qs",
-"solutionDescriptionPath": "./random_n_bits/solution.md"
+]
 })
-
-## <span style="color:blue">Exercise 4</span>: Generate a weighted bit!
-
-In each of the above exercises, all generated numbers were equally likely. Now let's create an operation that will return a random bit with different probabilities of outcomes. 
-
-> Remember that by setting amplitudes of basis states $\alpha$ and $\beta$, we can control the probability of getting measurement outcomes $0$ and $1$ when the qubit is measured.
-
-**Input:** 
-A floating-point number $x$, $0 \le x \le 1$. 
-
-**Goal:** Generate $0$ or $1$ with probability of $0$ equal to $x$ and probability of $1$ equal to $1 - x$.
-
-> Useful Q# documentation: 
-> * [`Math` namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math)
-> * [`ArcCos` function](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.arccos)
-> * [`Sqrt` function](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.sqrt)
 
 @[exercise]({
 "id": "weighted_random_bit",
+"descriptionPath": "./weighted_random_bit/index.md",
+"placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
+"verificationSourcePath": "./weighted_random_bit/verification.qs",
+"solutionSourcePath": "./weighted_random_bit/solution.qs",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs"
-],
-"verificationSourcePath": "./weighted_random_bit/verification.qs",
-"placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
-"solutionSourcePath": "./weighted_random_bit/solution.qs",
-"solutionDescriptionPath": "./weighted_random_bit/solution.md"
+]
 })
-
-## <span style="color:blue">Exercise 5</span>: Generate a random number between min and max
-
-In exercise 3, we generated numbers in the range $[0, 2^N-1]$ $(1 \leq N \leq 10)$. Now let's create an operation that will return a random number in the range $[min, max]$. 
-
-**Input:** 
-Two integers $min$ and $max$ ($0 \leq min \leq max \leq 2^{10}-1$).
-
-**Goal:** Generate a random number in the range $[min, max]$ with an equal probability of getting each of the numbers in this range.
-
-> Useful Q# documentation: 
-> * [`BitSizeI` function](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei)
 
 @[exercise]({
 "id": "random_number",
+"descriptionPath": "./random_number/index.md",
+"placeholderSourcePath": "./random_number/placeholder.qs",
+"verificationSourcePath": "./random_number/verification.qs",
+"solutionSourcePath": "./random_number/solution.qs",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs"
-],
-"verificationSourcePath": "./random_number/verification.qs",
-"placeholderSourcePath": "./random_number/placeholder.qs",
-"solutionSourcePath": "./random_number/solution.qs",
-"solutionDescriptionPath": "./random_number/solution.md"
+]
 })
 
 ## What's Next?

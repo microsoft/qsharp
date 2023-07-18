@@ -1,7 +1,7 @@
-namespace Kata.Reference {
+namespace Kata {
 
     // Exercise 2. 
-    operation RandomTwoBits_Reference () : Int {
+    operation RandomTwoBits(): Int {
         return 2 * RandomBit() + RandomBit();
     }
 
