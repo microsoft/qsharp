@@ -36,7 +36,7 @@ pub(crate) struct Token {
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub(crate) enum Error {
-    #[error("expected `{0}` to complete {1}, found {2}")]
+    #[error("expected {0} to complete {1}, found {2}")]
     #[diagnostic(code("Qsc.Lex.Incomplete"))]
     Incomplete(raw::TokenKind, TokenKind, raw::TokenKind, #[label] Span),
 
