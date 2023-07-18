@@ -55,16 +55,14 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             };
             (ty, Vec::new())
         }
-        TyKind::Param(name) => {
-            if let Some(resolve::Res::Param(id)) = names.get(name.id) {
-                (Ty::Param(*id), Vec::new())
-            } else {
-                unreachable!(
-                    "A parameter should never resolve to a non-parameter type, as there \
+        TyKind::Param(name) => match names.get(name.id) {
+            Some(resolve::Res::Param(id)) => (Ty::Param(*id), Vec::new()),
+            Some(_) => unreachable!(
+                "A parameter should never resolve to a non-parameter type, as there \
                     is syntactic differentiation"
-                )
-            }
-        }
+            ),
+            None => (Ty::Err, Vec::new()),
+        },
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
