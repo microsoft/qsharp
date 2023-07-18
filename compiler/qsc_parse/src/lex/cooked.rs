@@ -40,7 +40,7 @@ pub(crate) enum Error {
     #[diagnostic(code("Qsc.Lex.Incomplete"))]
     Incomplete(raw::TokenKind, TokenKind, raw::TokenKind, #[label] Span),
 
-    #[error("expected `{0}` to complete {1}, found EOF")]
+    #[error("expected {0} to complete {1}, found EOF")]
     #[diagnostic(code("Qsc.Lex.IncompleteEof"))]
     IncompleteEof(raw::TokenKind, TokenKind, #[label] Span),
 
