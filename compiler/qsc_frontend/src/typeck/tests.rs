@@ -3205,3 +3205,16 @@ fn invalid_ident() {
         "##]],
     );
 }
+#[test]
+fn undeclared_generic_param() {
+    check(
+        r#"namespace c{operation y(g: 'U): Unit {} }"#,
+        "",
+        &expect![[r##"
+            #6 23-30 "(g: 'U)" : ?
+            #7 24-29 "g: 'U" : ?
+            #14 37-39 "{}" : Unit
+            Error(Resolve(NotFound("U", Span { lo: 28, hi: 29 })))
+        "##]],
+    );
+}
