@@ -1686,7 +1686,7 @@ fn unfinished_generic() {
                         Whitespace,
                         Span {
                             lo: 1,
-                            hi: 4,
+                            hi: 3,
                         },
                     ),
                 ),
@@ -1719,7 +1719,7 @@ fn unfinished_generic_2() {
                         ),
                         Span {
                             lo: 1,
-                            hi: 18,
+                            hi: 8,
                         },
                     ),
                 ),
@@ -1750,7 +1750,7 @@ fn unfinished_generic_3() {
                         Whitespace,
                         Span {
                             lo: 1,
-                            hi: 6,
+                            hi: 5,
                         },
                     ),
                 ),
