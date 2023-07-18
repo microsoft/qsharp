@@ -8,6 +8,7 @@ mod callable_limits;
 mod common;
 mod conjugate_invert;
 pub mod entry_point;
+mod id_update;
 mod invert_block;
 mod logic_sep;
 mod loop_unification;
