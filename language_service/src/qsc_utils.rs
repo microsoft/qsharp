@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc::compile::CheckEntry;
 use qsc::hir::{Item, ItemId, PackageId};
 use qsc::{
     compile::{self, Error},
@@ -23,7 +24,12 @@ pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Comp
 
     // Source map only contains the current document.
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (unit, errors) = compile::compile(&package_store, &[std_package_id], source_map);
+    let (unit, errors) = compile::compile(
+        &package_store,
+        &[std_package_id],
+        source_map,
+        CheckEntry::Required,
+    );
     Compilation {
         package_store,
         std_package_id,

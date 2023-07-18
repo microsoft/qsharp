@@ -6,7 +6,7 @@ use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
-    compile,
+    compile::{self, CheckEntry},
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
@@ -44,7 +44,7 @@ fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
 
     STORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (unit, errors) = compile::compile(store, &[*std], sources);
+        let (unit, errors) = compile::compile(store, &[*std], sources, CheckEntry::Required);
         (
             unit.package,
             errors.into_iter().map(|error| (&error).into()).collect(),
@@ -405,6 +405,6 @@ mod test {
             },
             1,
         );
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 }

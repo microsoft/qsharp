@@ -6,7 +6,7 @@
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
-use qsc::compile::compile;
+use qsc::compile::{compile, CheckEntry};
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::Package;
 use std::{
@@ -68,7 +68,7 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources);
+    let (unit, errors) = compile(&store, &dependencies, sources, CheckEntry::Optional);
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {

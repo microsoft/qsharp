@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compile::{self, compile},
+    compile::{self, compile, CheckEntry},
     error::WithSource,
 };
 use miette::Diagnostic;
@@ -82,7 +82,7 @@ impl Interpreter {
             dependencies.push(store.insert(compile::std(&store)));
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources);
+        let (unit, errors) = compile(&store, &dependencies, sources, CheckEntry::Required);
         if errors.is_empty() {
             let package = store.insert(unit);
             Ok(Self { store, package })

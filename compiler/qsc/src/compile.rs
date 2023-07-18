@@ -5,7 +5,7 @@ use crate::error::WithSource;
 use miette::{Diagnostic, Report};
 use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
-use qsc_passes::{run_core_passes, run_default_passes};
+use qsc_passes::{entry_point::generate_entry_expr, run_core_passes, run_default_passes};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -16,11 +16,18 @@ pub enum Error {
     Pass(#[from] qsc_passes::Error),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CheckEntry {
+    Required,
+    Optional,
+}
+
 #[must_use]
 pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
+    entry: CheckEntry,
 ) -> (CompileUnit, Vec<Error>) {
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources);
     let mut errors = Vec::new();
@@ -31,6 +38,11 @@ pub fn compile(
     if errors.is_empty() {
         for error in run_default_passes(store.core(), &mut unit) {
             errors.push(error.into());
+        }
+        if entry == CheckEntry::Required {
+            for error in generate_entry_expr(&mut unit) {
+                errors.push(error.into());
+            }
         }
     }
 
