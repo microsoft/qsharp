@@ -180,10 +180,11 @@ impl CompletionListBuilder {
     /// in the eventual completion list, the groups of items show up in the
     /// order they were added.
     /// The items are then sorted according to the input list order (not alphabetical)
-    fn push_completions<'a, I>(&mut self, iter: I, kind: CompletionItemKind)
-    where
-        I: Iterator<Item = &'a str>,
-    {
+    fn push_completions<'a>(
+        &mut self,
+        iter: impl Iterator<Item = &'a str>,
+        kind: CompletionItemKind,
+    ) {
         let mut current_sort_prefix = 0;
 
         self.items.extend(iter.map(|name| CompletionItem {
@@ -203,10 +204,11 @@ impl CompletionListBuilder {
     }
 
     /// Push a group of completions that are themselves sorted into subgroups
-    fn push_sorted_completions<'a, I>(&mut self, iter: I, kind: CompletionItemKind)
-    where
-        I: Iterator<Item = (&'a str, u32)>,
-    {
+    fn push_sorted_completions<'a>(
+        &mut self,
+        iter: impl Iterator<Item = (&'a str, u32)>,
+        kind: CompletionItemKind,
+    ) {
         self.items
             .extend(iter.map(|(name, item_sort_group)| CompletionItem {
                 label: name.to_string(),
