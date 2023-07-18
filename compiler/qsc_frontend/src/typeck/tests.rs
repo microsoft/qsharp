@@ -3214,7 +3214,7 @@ fn undeclared_generic_param() {
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
-            Error(Resolve(NotFound("U", Span { lo: 28, hi: 29 })))
+            Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
         "##]],
     );
 }
