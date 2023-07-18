@@ -254,10 +254,10 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r##"
-            #7 39-47 "(x : 'T)" : '0
-            #8 40-46 "x : 'T" : '0
-            #14 53-58 "{ x }" : '0
-            #16 55-56 "x" : '0
+            #7 39-47 "(x : 'T)" : 0
+            #8 40-46 "x : 'T" : 0
+            #14 53-58 "{ x }" : 0
+            #16 55-56 "x" : 0
             #22 75-77 "()" : Unit
             #26 84-99 "{ Identity(4) }" : Int
             #28 86-97 "Identity(4)" : Int
@@ -3212,10 +3212,10 @@ fn ambiguous_generic() {
         }",
         "",
         &expect![[r##"
-            #7 46-53 "(x: 'T)" : '0
-            #8 47-52 "x: 'T" : '0
-            #14 59-64 "{ x }" : '0
-            #16 61-62 "x" : '0
+            #7 46-53 "(x: 'T)" : 0
+            #8 47-52 "x: 'T" : 0
+            #14 59-64 "{ x }" : 0
+            #16 61-62 "x" : 0
             #22 89-91 "()" : Unit
             #24 97-117 "{ let x = Foo([]); }" : Unit
             #26 103-104 "x" : (?2)[]
@@ -3242,7 +3242,20 @@ fn invalid_ident() {
             #8 39-76 "{\n        let x : 'invalid = 0;\n    }" : Unit
             #10 53-65 "x : 'invalid" : ?
             #14 68-69 "0" : Int
-            Error(Resolve(NotFound("invalid", Span { lo: 58, hi: 65 })))
+            Error(Resolve(NotFound("'invalid", Span { lo: 57, hi: 65 })))
+        "##]],
+    );
+}
+#[test]
+fn undeclared_generic_param() {
+    check(
+        r#"namespace c{operation y(g: 'U): Unit {} }"#,
+        "",
+        &expect![[r##"
+            #6 23-30 "(g: 'U)" : ?
+            #7 24-29 "g: 'U" : ?
+            #14 37-39 "{}" : Unit
+            Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
         "##]],
     );
 }
