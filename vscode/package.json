@@ -13,12 +13,59 @@
     "Notebooks"
   ],
   "browser": "./out/extension.js",
-  "main": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
-    "onNotebook:jupyter"
+    "onNotebook:jupyter",
+    "onDebug",
+    "onDebugResolve:qsharp",
+    "onDebugDynamicConfigurations:qsharp"
   ],
   "contributes": {
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "qsharp-vscode.runEditorContents",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@1"
+        },
+        {
+          "command": "qsharp-vscode.debugEditorContents",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "qsharp-vscode.debugEditorContents",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.runEditorContents",
+          "when": "resourceLangId == qsharp"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "qsharp-vscode.debugEditorContents",
+        "title": "Debug Q# file",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "qsharp-vscode.runEditorContents",
+        "title": "Run Q# File",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(play)"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "qsharp"
+      }
+    ],
     "languages": [
       {
         "id": "qsharp",
@@ -38,11 +85,55 @@
         "scopeName": "source.qsharp",
         "path": "./syntaxes/qsharp.tmLanguage.json"
       }
+    ],
+    "debuggers": [
+      {
+        "type": "qsharp",
+        "languages": [
+          "qsharp"
+        ],
+        "label": "Q# Debug",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Absolute path to a text file.",
+                "default": "${file}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": true
+              },
+              "entry": {
+                "type": "string",
+                "description": "Entry expression.",
+                "default": ""
+              },
+              "shots": {
+                "type": "number",
+                "description": "Number of shots to execute.",
+                "default": 10
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": true
+              }
+            }
+          }
+        }
+      }
     ]
   },
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "build": "npm run tsc:check && node build.mjs"
+    "build": "npm run tsc:check && node build.mjs",
+    "run:web": "npx @vscode/test-web --extensionDevelopmentPath . ../samples"
   },
   "repository": {
     "type": "git",
