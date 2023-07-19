@@ -799,12 +799,6 @@ impl<'a> State<'a> {
             _ => panic!("value is not callable"),
         };
 
-        let arg = if let Some(fixed_args) = fixed_args {
-            Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
-        } else {
-            arg
-        };
-
         let callee = match globals.get(callee_id) {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
@@ -827,7 +821,14 @@ impl<'a> State<'a> {
         .body;
         match block_body {
             SpecBody::Impl(input, body_block) => {
-                bind_args_for_spec(env, &callee.input, input, arg, functor.controlled);
+                bind_args_for_spec(
+                    env,
+                    &callee.input,
+                    input,
+                    arg,
+                    functor.controlled,
+                    fixed_args,
+                );
                 self.push_block(env, body_block);
                 Ok(())
             }
@@ -1009,6 +1010,14 @@ impl<'a> State<'a> {
     }
 }
 
+fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
+    if let Some(fixed_args) = fixed_args {
+        Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
+    } else {
+        arg
+    }
+}
+
 fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
     match &pat.kind {
         PatKind::Bind(variable) => {
@@ -1072,6 +1081,7 @@ fn bind_args_for_spec(
     spec_pat: &Option<Pat>,
     args_val: Value,
     ctl_count: u8,
+    fixed_args: Option<Rc<[Value]>>,
 ) {
     match spec_pat {
         Some(spec_pat) => {
@@ -1096,9 +1106,19 @@ fn bind_args_for_spec(
                 Value::Array(ctls.into()),
                 Mutability::Immutable,
             );
-            bind_value(env, decl_pat, tup, Mutability::Immutable);
+            bind_value(
+                env,
+                decl_pat,
+                merge_fixed_args(fixed_args, tup),
+                Mutability::Immutable,
+            );
         }
-        None => bind_value(env, decl_pat, args_val, Mutability::Immutable),
+        None => bind_value(
+            env,
+            decl_pat,
+            merge_fixed_args(fixed_args, args_val),
+            Mutability::Immutable,
+        ),
     }
 }
 
