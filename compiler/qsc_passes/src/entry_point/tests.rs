@@ -4,22 +4,25 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::hir::{Expr, Package};
+use qsc_hir::{
+    assigner::Assigner,
+    hir::{Expr, Package},
+};
 
 /// Extracts a single entry point callable declaration, if found.
 /// # Errors
 /// Returns an error if a single entry point with no parameters cannot be found.
-fn extract_entry(package: &Package) -> Result<Expr, Vec<crate::Error>> {
+fn extract_entry(assigner: &mut Assigner, package: &Package) -> Result<Expr, Vec<crate::Error>> {
     let callables = super::get_callables(package);
-    super::create_entry_from_callables(callables)
+    super::create_entry_from_callables(assigner, callables)
 }
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let mut unit = compile(&PackageStore::new(compile::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    match extract_entry(&unit.package) {
+    match extract_entry(&mut unit.assigner, &unit.package) {
         Ok(entry) => expect.assert_eq(&entry.to_string()),
         Err(errors) => expect.assert_debug_eq(&errors),
     }
@@ -35,9 +38,9 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [39-72] [Type Int]: Call:
-                Expr _id_ [39-72] [Type Int]: Var: Item 1
-                Expr _id_ [39-72] [Type Unit]: Unit"#]],
+            Expr 12 [39-72] [Type Int]: Call:
+                Expr 11 [39-72] [Type Int]: Var: Item 1
+                Expr 10 [39-72] [Type Unit]: Unit"#]],
     );
 }
 

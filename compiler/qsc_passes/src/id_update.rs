@@ -75,16 +75,12 @@ impl MutVisitor for NodeIdRefresher<'_> {
 
         match &mut expr.kind {
             ExprKind::Closure(captures, _) => {
-                *captures = captures.iter_mut().map(|id| self.freshen_id(*id)).collect();
+                *captures = captures.iter_mut().map(|id| self.replace_id(*id)).collect();
             }
             ExprKind::Var(Res::Local(id), _) => {
                 *id = self.replace_id(*id);
             }
             _ => {}
-        }
-
-        if let ExprKind::Closure(captures, _) = &mut expr.kind {
-            *captures = captures.iter_mut().map(|id| self.freshen_id(*id)).collect();
         }
 
         walk_expr(self, expr);

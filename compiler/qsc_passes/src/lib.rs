@@ -25,6 +25,7 @@ use qsc_hir::{
     global::{self, Table},
     hir::{Item, ItemKind},
     mut_visit::MutVisitor,
+    validate::Validator,
     visit::Visitor,
 };
 use replace_qubit_allocation::ReplaceQubitAllocation;
@@ -52,17 +53,23 @@ pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     let borrow_errors = borrow_check.errors;
 
     let spec_errors = spec_gen::generate_specs(core, unit);
+    Validator::default().visit_package(&unit.package);
 
     let conjugate_errors = conjugate_invert::invert_conjugate_exprs(core, unit);
+    Validator::default().visit_package(&unit.package);
 
     let entry_point_errors = generate_entry_expr(unit);
+    Validator::default().visit_package(&unit.package);
 
     LoopUni {
         core,
         assigner: &mut unit.assigner,
     }
     .visit_package(&mut unit.package);
+    Validator::default().visit_package(&unit.package);
+
     ReplaceQubitAllocation::new(core, &mut unit.assigner).visit_package(&mut unit.package);
+    Validator::default().visit_package(&unit.package);
 
     callable_errors
         .into_iter()
@@ -85,7 +92,10 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
         assigner: &mut core.assigner,
     }
     .visit_package(&mut core.package);
+    Validator::default().visit_package(&core.package);
+
     ReplaceQubitAllocation::new(&table, &mut core.assigner).visit_package(&mut core.package);
+    Validator::default().visit_package(&core.package);
 
     borrow_errors.into_iter().map(Error::BorrowCk).collect()
 }

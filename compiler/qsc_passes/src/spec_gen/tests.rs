@@ -96,10 +96,10 @@ fn generate_ctl() {
                             Block 25 [161-182] [Type Unit]:
                                 Stmt 26 [171-176]: Semi: Expr 27 [171-175] [Type Unit]: Call:
                                     Expr 28 [171-172] [Type (((Qubit)[], Qubit) => Unit is Ctl)]: UnOp (Functor Ctl):
-                                        Expr 28 [171-172] [Type (Qubit => Unit is Ctl)]: Var: Item 1
-                                    Expr 29 [173-174] [Type ((Qubit)[], Qubit)]: Tuple:
-                                        Expr 30 [173-174] [Type (Qubit)[]]: Var: Local 24
-                                        Expr 29 [173-174] [Type Qubit]: Var: Local 13
+                                        Expr 29 [171-172] [Type (Qubit => Unit is Ctl)]: Var: Item 1
+                                    Expr 30 [173-174] [Type ((Qubit)[], Qubit)]: Tuple:
+                                        Expr 31 [173-174] [Type (Qubit)[]]: Var: Local 24
+                                        Expr 32 [173-174] [Type Qubit]: Var: Local 13
                         ctl-adj: <none>"#]],
     );
 }
@@ -157,10 +157,10 @@ fn generate_ctl_auto() {
                             Block 26 [180-209] [Type Unit]:
                                 Stmt 27 [194-199]: Semi: Expr 28 [194-198] [Type Unit]: Call:
                                     Expr 29 [194-195] [Type (((Qubit)[], Qubit) => Unit is Ctl)]: UnOp (Functor Ctl):
-                                        Expr 29 [194-195] [Type (Qubit => Unit is Ctl)]: Var: Item 1
-                                    Expr 30 [196-197] [Type ((Qubit)[], Qubit)]: Tuple:
-                                        Expr 31 [196-197] [Type (Qubit)[]]: Var: Local 25
-                                        Expr 30 [196-197] [Type Qubit]: Var: Local 13
+                                        Expr 30 [194-195] [Type (Qubit => Unit is Ctl)]: Var: Item 1
+                                    Expr 31 [196-197] [Type ((Qubit)[], Qubit)]: Tuple:
+                                        Expr 32 [196-197] [Type (Qubit)[]]: Var: Local 25
+                                        Expr 33 [196-197] [Type Qubit]: Var: Local 13
                         ctl-adj: <none>"#]],
     );
 }
@@ -229,20 +229,20 @@ fn generate_ctladj_distrib() {
                             Block 39 [215-244] [Type Unit]:
                                 Stmt 40 [229-234]: Semi: Expr 41 [229-233] [Type Unit]: Call:
                                     Expr 42 [229-230] [Type (((Qubit)[], Qubit) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 42 [229-230] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 43 [231-232] [Type ((Qubit)[], Qubit)]: Tuple:
-                                        Expr 44 [231-232] [Type (Qubit)[]]: Var: Local 38
-                                        Expr 43 [231-232] [Type Qubit]: Var: Local 15
-                        ctl-adj: SpecDecl 46 [153-308]: Impl:
-                            Pat 47 [153-308] [Type (Qubit)[]]: Bind: Ident 48 [153-308] "ctls"
-                            Block 49 [265-302] [Type Unit]:
-                                Stmt 50 [279-292]: Semi: Expr 51 [279-291] [Type Unit]: Call:
-                                    Expr 52 [279-288] [Type (((Qubit)[], Qubit) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 52 [279-288] [Type (Qubit => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 53 [287-288] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 54 [289-290] [Type ((Qubit)[], Qubit)]: Tuple:
-                                        Expr 55 [289-290] [Type (Qubit)[]]: Var: Local 48
-                                        Expr 54 [289-290] [Type Qubit]: Var: Local 15"#]],
+                                        Expr 43 [229-230] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 44 [231-232] [Type ((Qubit)[], Qubit)]: Tuple:
+                                        Expr 45 [231-232] [Type (Qubit)[]]: Var: Local 38
+                                        Expr 46 [231-232] [Type Qubit]: Var: Local 15
+                        ctl-adj: SpecDecl 48 [153-308]: Impl:
+                            Pat 49 [153-308] [Type (Qubit)[]]: Bind: Ident 50 [153-308] "ctls"
+                            Block 51 [265-302] [Type Unit]:
+                                Stmt 52 [279-292]: Semi: Expr 53 [279-291] [Type Unit]: Call:
+                                    Expr 54 [279-288] [Type (((Qubit)[], Qubit) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 55 [279-288] [Type (Qubit => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                            Expr 56 [287-288] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 57 [289-290] [Type ((Qubit)[], Qubit)]: Tuple:
+                                        Expr 58 [289-290] [Type (Qubit)[]]: Var: Local 50
+                                        Expr 59 [289-290] [Type Qubit]: Var: Local 15"#]],
     );
 }
 
@@ -313,10 +313,10 @@ fn generate_ctl_skip_conjugate_apply_block() {
                                     Block 41 [222-251] [Type Unit]:
                                         Stmt 42 [236-241]: Semi: Expr 43 [236-240] [Type Unit]: Call:
                                             Expr 44 [236-237] [Type (((Qubit)[], Qubit) => Unit is Ctl)]: UnOp (Functor Ctl):
-                                                Expr 44 [236-237] [Type (Qubit => Unit is Ctl)]: Var: Item 1
-                                            Expr 45 [238-239] [Type ((Qubit)[], Qubit)]: Tuple:
-                                                Expr 46 [238-239] [Type (Qubit)[]]: Var: Local 32
-                                                Expr 45 [238-239] [Type Qubit]: Var: Local 13
+                                                Expr 45 [236-237] [Type (Qubit => Unit is Ctl)]: Var: Item 1
+                                            Expr 46 [238-239] [Type ((Qubit)[], Qubit)]: Tuple:
+                                                Expr 47 [238-239] [Type (Qubit)[]]: Var: Local 32
+                                                Expr 48 [238-239] [Type Qubit]: Var: Local 13
                         ctl-adj: <none>"#]],
     );
 }
@@ -415,10 +415,10 @@ fn generate_ctl_with_function_calls() {
                                     Expr 37 [126-128] [Type Unit]: Unit
                                 Stmt 38 [138-142]: Semi: Expr 39 [138-141] [Type Unit]: Call:
                                     Expr 40 [138-139] [Type (((Qubit)[], Unit) => Unit is Ctl)]: UnOp (Functor Ctl):
-                                        Expr 40 [138-139] [Type (Unit => Unit is Ctl)]: Var: Item 2
-                                    Expr 41 [139-141] [Type ((Qubit)[], Unit)]: Tuple:
-                                        Expr 42 [139-141] [Type (Qubit)[]]: Var: Local 32
-                                        Expr 41 [139-141] [Type Unit]: Unit
+                                        Expr 41 [138-139] [Type (Unit => Unit is Ctl)]: Var: Item 2
+                                    Expr 42 [139-141] [Type ((Qubit)[], Unit)]: Tuple:
+                                        Expr 43 [139-141] [Type (Qubit)[]]: Var: Local 32
+                                        Expr 44 [139-141] [Type Unit]: Unit
                         ctl-adj: <none>"#]],
     );
 }
@@ -528,44 +528,44 @@ fn generate_ctladj_self() {
                                 Stmt 16 [143-148]: Semi: Expr 17 [143-147] [Type Unit]: Call:
                                     Expr 18 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
                                     Expr 19 [145-146] [Type Int]: Lit: Int(2)
-                        adj: SpecDecl 49 [159-172]: Impl:
-                            Block 50 [135-150] [Type Unit]:
-                                Stmt 51 [137-142]: Semi: Expr 52 [137-141] [Type Unit]: Call:
-                                    Expr 53 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 54 [139-140] [Type Int]: Lit: Int(1)
-                                Stmt 55 [143-148]: Semi: Expr 56 [143-147] [Type Unit]: Call:
-                                    Expr 57 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 58 [145-146] [Type Int]: Lit: Int(2)
+                        adj: SpecDecl 53 [159-172]: Impl:
+                            Block 54 [135-150] [Type Unit]:
+                                Stmt 55 [137-142]: Semi: Expr 56 [137-141] [Type Unit]: Call:
+                                    Expr 57 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 58 [139-140] [Type Int]: Lit: Int(1)
+                                Stmt 59 [143-148]: Semi: Expr 60 [143-147] [Type Unit]: Call:
+                                    Expr 61 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 62 [145-146] [Type Int]: Lit: Int(2)
                         ctl: SpecDecl 35 [73-178]: Impl:
                             Pat 36 [73-178] [Type (Qubit)[]]: Bind: Ident 37 [73-178] "ctls"
                             Block 38 [135-150] [Type Unit]:
                                 Stmt 39 [137-142]: Semi: Expr 40 [137-141] [Type Unit]: Call:
                                     Expr 41 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 41 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 42 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 43 [139-140] [Type (Qubit)[]]: Var: Local 37
-                                        Expr 42 [139-140] [Type Int]: Lit: Int(1)
-                                Stmt 44 [143-148]: Semi: Expr 45 [143-147] [Type Unit]: Call:
-                                    Expr 46 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 46 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 47 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 48 [145-146] [Type (Qubit)[]]: Var: Local 37
-                                        Expr 47 [145-146] [Type Int]: Lit: Int(2)
-                        ctl-adj: SpecDecl 59 [73-178]: Impl:
-                            Pat 60 [73-178] [Type (Qubit)[]]: Bind: Ident 61 [73-178] "ctls"
-                            Block 62 [135-150] [Type Unit]:
-                                Stmt 63 [137-142]: Semi: Expr 64 [137-141] [Type Unit]: Call:
-                                    Expr 65 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 65 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 66 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 67 [139-140] [Type (Qubit)[]]: Var: Local 61
-                                        Expr 66 [139-140] [Type Int]: Lit: Int(1)
-                                Stmt 68 [143-148]: Semi: Expr 69 [143-147] [Type Unit]: Call:
-                                    Expr 70 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 70 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 71 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 72 [145-146] [Type (Qubit)[]]: Var: Local 61
-                                        Expr 71 [145-146] [Type Int]: Lit: Int(2)"#]],
+                                        Expr 42 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 43 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 44 [139-140] [Type (Qubit)[]]: Var: Local 37
+                                        Expr 45 [139-140] [Type Int]: Lit: Int(1)
+                                Stmt 46 [143-148]: Semi: Expr 47 [143-147] [Type Unit]: Call:
+                                    Expr 48 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 49 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 50 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 51 [145-146] [Type (Qubit)[]]: Var: Local 37
+                                        Expr 52 [145-146] [Type Int]: Lit: Int(2)
+                        ctl-adj: SpecDecl 63 [73-178]: Impl:
+                            Pat 64 [73-178] [Type (Qubit)[]]: Bind: Ident 65 [73-178] "ctls"
+                            Block 66 [135-150] [Type Unit]:
+                                Stmt 67 [137-142]: Semi: Expr 68 [137-141] [Type Unit]: Call:
+                                    Expr 69 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 70 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 71 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 72 [139-140] [Type (Qubit)[]]: Var: Local 65
+                                        Expr 73 [139-140] [Type Int]: Lit: Int(1)
+                                Stmt 74 [143-148]: Semi: Expr 75 [143-147] [Type Unit]: Call:
+                                    Expr 76 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 77 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 78 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 79 [145-146] [Type (Qubit)[]]: Var: Local 65
+                                        Expr 80 [145-146] [Type Int]: Lit: Int(2)"#]],
     );
 }
 
@@ -1298,48 +1298,48 @@ fn generate_ctladj_distribute() {
                                 Stmt 16 [143-148]: Semi: Expr 17 [143-147] [Type Unit]: Call:
                                     Expr 18 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
                                     Expr 19 [145-146] [Type Int]: Lit: Int(2)
-                        adj: SpecDecl 48 [73-156]: Impl:
-                            Block 49 [135-150] [Type Unit]:
-                                Stmt 50 [143-148]: Semi: Expr 51 [143-147] [Type Unit]: Call:
-                                    Expr 52 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 53 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 54 [145-146] [Type Int]: Lit: Int(2)
-                                Stmt 55 [137-142]: Semi: Expr 56 [137-141] [Type Unit]: Call:
-                                    Expr 57 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 58 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 59 [139-140] [Type Int]: Lit: Int(1)
+                        adj: SpecDecl 52 [73-156]: Impl:
+                            Block 53 [135-150] [Type Unit]:
+                                Stmt 54 [143-148]: Semi: Expr 55 [143-147] [Type Unit]: Call:
+                                    Expr 56 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 57 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 58 [145-146] [Type Int]: Lit: Int(2)
+                                Stmt 59 [137-142]: Semi: Expr 60 [137-141] [Type Unit]: Call:
+                                    Expr 61 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 62 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 63 [139-140] [Type Int]: Lit: Int(1)
                         ctl: SpecDecl 34 [73-156]: Impl:
                             Pat 35 [73-156] [Type (Qubit)[]]: Bind: Ident 36 [73-156] "ctls"
                             Block 37 [135-150] [Type Unit]:
                                 Stmt 38 [137-142]: Semi: Expr 39 [137-141] [Type Unit]: Call:
                                     Expr 40 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 40 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 41 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 42 [139-140] [Type (Qubit)[]]: Var: Local 36
-                                        Expr 41 [139-140] [Type Int]: Lit: Int(1)
-                                Stmt 43 [143-148]: Semi: Expr 44 [143-147] [Type Unit]: Call:
-                                    Expr 45 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 45 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 46 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 47 [145-146] [Type (Qubit)[]]: Var: Local 36
-                                        Expr 46 [145-146] [Type Int]: Lit: Int(2)
-                        ctl-adj: SpecDecl 61 [73-156]: Impl:
-                            Pat 62 [73-156] [Type (Qubit)[]]: Bind: Ident 63 [73-156] "ctls"
-                            Block 64 [135-150] [Type Unit]:
-                                Stmt 65 [143-148]: Semi: Expr 66 [143-147] [Type Unit]: Call:
-                                    Expr 67 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 67 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 68 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 69 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 70 [145-146] [Type (Qubit)[]]: Var: Local 63
-                                        Expr 69 [145-146] [Type Int]: Lit: Int(2)
-                                Stmt 71 [137-142]: Semi: Expr 72 [137-141] [Type Unit]: Call:
-                                    Expr 73 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 73 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 74 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 75 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 76 [139-140] [Type (Qubit)[]]: Var: Local 63
-                                        Expr 75 [139-140] [Type Int]: Lit: Int(1)"#]],
+                                        Expr 41 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 42 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 43 [139-140] [Type (Qubit)[]]: Var: Local 36
+                                        Expr 44 [139-140] [Type Int]: Lit: Int(1)
+                                Stmt 45 [143-148]: Semi: Expr 46 [143-147] [Type Unit]: Call:
+                                    Expr 47 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 48 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 49 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 50 [145-146] [Type (Qubit)[]]: Var: Local 36
+                                        Expr 51 [145-146] [Type Int]: Lit: Int(2)
+                        ctl-adj: SpecDecl 65 [73-156]: Impl:
+                            Pat 66 [73-156] [Type (Qubit)[]]: Bind: Ident 67 [73-156] "ctls"
+                            Block 68 [135-150] [Type Unit]:
+                                Stmt 69 [143-148]: Semi: Expr 70 [143-147] [Type Unit]: Call:
+                                    Expr 71 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 72 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                            Expr 73 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 74 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 75 [145-146] [Type (Qubit)[]]: Var: Local 67
+                                        Expr 76 [145-146] [Type Int]: Lit: Int(2)
+                                Stmt 77 [137-142]: Semi: Expr 78 [137-141] [Type Unit]: Call:
+                                    Expr 79 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 80 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                            Expr 81 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 82 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 83 [139-140] [Type (Qubit)[]]: Var: Local 67
+                                        Expr 84 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }
 
@@ -1391,48 +1391,48 @@ fn generate_ctladj_auto_to_distribute() {
                                 Stmt 16 [143-148]: Semi: Expr 17 [143-147] [Type Unit]: Call:
                                     Expr 18 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
                                     Expr 19 [145-146] [Type Int]: Lit: Int(2)
-                        adj: SpecDecl 49 [73-189]: Impl:
-                            Block 50 [135-150] [Type Unit]:
-                                Stmt 51 [143-148]: Semi: Expr 52 [143-147] [Type Unit]: Call:
-                                    Expr 53 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 54 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 55 [145-146] [Type Int]: Lit: Int(2)
-                                Stmt 56 [137-142]: Semi: Expr 57 [137-141] [Type Unit]: Call:
-                                    Expr 58 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 59 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 60 [139-140] [Type Int]: Lit: Int(1)
+                        adj: SpecDecl 53 [73-189]: Impl:
+                            Block 54 [135-150] [Type Unit]:
+                                Stmt 55 [143-148]: Semi: Expr 56 [143-147] [Type Unit]: Call:
+                                    Expr 57 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 58 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 59 [145-146] [Type Int]: Lit: Int(2)
+                                Stmt 60 [137-142]: Semi: Expr 61 [137-141] [Type Unit]: Call:
+                                    Expr 62 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 63 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 64 [139-140] [Type Int]: Lit: Int(1)
                         ctl: SpecDecl 35 [73-189]: Impl:
                             Pat 36 [73-189] [Type (Qubit)[]]: Bind: Ident 37 [73-189] "ctls"
                             Block 38 [135-150] [Type Unit]:
                                 Stmt 39 [137-142]: Semi: Expr 40 [137-141] [Type Unit]: Call:
                                     Expr 41 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 41 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 42 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 43 [139-140] [Type (Qubit)[]]: Var: Local 37
-                                        Expr 42 [139-140] [Type Int]: Lit: Int(1)
-                                Stmt 44 [143-148]: Semi: Expr 45 [143-147] [Type Unit]: Call:
-                                    Expr 46 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 46 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 47 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 48 [145-146] [Type (Qubit)[]]: Var: Local 37
-                                        Expr 47 [145-146] [Type Int]: Lit: Int(2)
-                        ctl-adj: SpecDecl 62 [73-189]: Impl:
-                            Pat 63 [73-189] [Type (Qubit)[]]: Bind: Ident 64 [73-189] "ctls"
-                            Block 65 [135-150] [Type Unit]:
-                                Stmt 66 [143-148]: Semi: Expr 67 [143-147] [Type Unit]: Call:
-                                    Expr 68 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 68 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 69 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 70 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 71 [145-146] [Type (Qubit)[]]: Var: Local 64
-                                        Expr 70 [145-146] [Type Int]: Lit: Int(2)
-                                Stmt 72 [137-142]: Semi: Expr 73 [137-141] [Type Unit]: Call:
-                                    Expr 74 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 74 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 75 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 76 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 77 [139-140] [Type (Qubit)[]]: Var: Local 64
-                                        Expr 76 [139-140] [Type Int]: Lit: Int(1)"#]],
+                                        Expr 42 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 43 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 44 [139-140] [Type (Qubit)[]]: Var: Local 37
+                                        Expr 45 [139-140] [Type Int]: Lit: Int(1)
+                                Stmt 46 [143-148]: Semi: Expr 47 [143-147] [Type Unit]: Call:
+                                    Expr 48 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 49 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 50 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 51 [145-146] [Type (Qubit)[]]: Var: Local 37
+                                        Expr 52 [145-146] [Type Int]: Lit: Int(2)
+                        ctl-adj: SpecDecl 66 [73-189]: Impl:
+                            Pat 67 [73-189] [Type (Qubit)[]]: Bind: Ident 68 [73-189] "ctls"
+                            Block 69 [135-150] [Type Unit]:
+                                Stmt 70 [143-148]: Semi: Expr 71 [143-147] [Type Unit]: Call:
+                                    Expr 72 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 73 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                            Expr 74 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 75 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 76 [145-146] [Type (Qubit)[]]: Var: Local 68
+                                        Expr 77 [145-146] [Type Int]: Lit: Int(2)
+                                Stmt 78 [137-142]: Semi: Expr 79 [137-141] [Type Unit]: Call:
+                                    Expr 80 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 81 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                            Expr 82 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 83 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 84 [139-140] [Type (Qubit)[]]: Var: Local 68
+                                        Expr 85 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }
 
@@ -1578,48 +1578,48 @@ fn generate_ctladj_invert() {
                                 Stmt 16 [143-148]: Semi: Expr 17 [143-147] [Type Unit]: Call:
                                     Expr 18 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
                                     Expr 19 [145-146] [Type Int]: Lit: Int(2)
-                        adj: SpecDecl 49 [73-191]: Impl:
-                            Block 50 [135-150] [Type Unit]:
-                                Stmt 51 [143-148]: Semi: Expr 52 [143-147] [Type Unit]: Call:
-                                    Expr 53 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 54 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 55 [145-146] [Type Int]: Lit: Int(2)
-                                Stmt 56 [137-142]: Semi: Expr 57 [137-141] [Type Unit]: Call:
-                                    Expr 58 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 59 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 60 [139-140] [Type Int]: Lit: Int(1)
+                        adj: SpecDecl 53 [73-191]: Impl:
+                            Block 54 [135-150] [Type Unit]:
+                                Stmt 55 [143-148]: Semi: Expr 56 [143-147] [Type Unit]: Call:
+                                    Expr 57 [143-144] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 58 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 59 [145-146] [Type Int]: Lit: Int(2)
+                                Stmt 60 [137-142]: Semi: Expr 61 [137-141] [Type Unit]: Call:
+                                    Expr 62 [137-138] [Type (Int => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 63 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 64 [139-140] [Type Int]: Lit: Int(1)
                         ctl: SpecDecl 35 [73-191]: Impl:
                             Pat 36 [73-191] [Type (Qubit)[]]: Bind: Ident 37 [73-191] "ctls"
                             Block 38 [135-150] [Type Unit]:
                                 Stmt 39 [137-142]: Semi: Expr 40 [137-141] [Type Unit]: Call:
                                     Expr 41 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 41 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 42 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 43 [139-140] [Type (Qubit)[]]: Var: Local 37
-                                        Expr 42 [139-140] [Type Int]: Lit: Int(1)
-                                Stmt 44 [143-148]: Semi: Expr 45 [143-147] [Type Unit]: Call:
-                                    Expr 46 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                        Expr 46 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 47 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 48 [145-146] [Type (Qubit)[]]: Var: Local 37
-                                        Expr 47 [145-146] [Type Int]: Lit: Int(2)
-                        ctl-adj: SpecDecl 61 [159-185]: Impl:
-                            Pat 62 [73-191] [Type (Qubit)[]]: Bind: Ident 63 [73-191] "ctls"
-                            Block 64 [135-150] [Type Unit]:
-                                Stmt 65 [143-148]: Semi: Expr 66 [143-147] [Type Unit]: Call:
-                                    Expr 67 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 68 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 68 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 69 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 70 [145-146] [Type (Qubit)[]]: Var: Local 63
-                                        Expr 69 [145-146] [Type Int]: Lit: Int(2)
-                                Stmt 71 [137-142]: Semi: Expr 72 [137-141] [Type Unit]: Call:
-                                    Expr 73 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Adj):
-                                        Expr 74 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 74 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
-                                    Expr 75 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                        Expr 76 [139-140] [Type (Qubit)[]]: Var: Local 63
-                                        Expr 75 [139-140] [Type Int]: Lit: Int(1)"#]],
+                                        Expr 42 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 43 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 44 [139-140] [Type (Qubit)[]]: Var: Local 37
+                                        Expr 45 [139-140] [Type Int]: Lit: Int(1)
+                                Stmt 46 [143-148]: Semi: Expr 47 [143-147] [Type Unit]: Call:
+                                    Expr 48 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                        Expr 49 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 50 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 51 [145-146] [Type (Qubit)[]]: Var: Local 37
+                                        Expr 52 [145-146] [Type Int]: Lit: Int(2)
+                        ctl-adj: SpecDecl 65 [159-185]: Impl:
+                            Pat 66 [73-191] [Type (Qubit)[]]: Bind: Ident 67 [73-191] "ctls"
+                            Block 68 [135-150] [Type Unit]:
+                                Stmt 69 [143-148]: Semi: Expr 70 [143-147] [Type Unit]: Call:
+                                    Expr 71 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 72 [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                            Expr 73 [143-144] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 74 [145-146] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 75 [145-146] [Type (Qubit)[]]: Var: Local 67
+                                        Expr 76 [145-146] [Type Int]: Lit: Int(2)
+                                Stmt 77 [137-142]: Semi: Expr 78 [137-141] [Type Unit]: Call:
+                                    Expr 79 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Adj):
+                                        Expr 80 [137-138] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
+                                            Expr 81 [137-138] [Type (Int => Unit is Adj + Ctl)]: Var: Item 1
+                                    Expr 82 [139-140] [Type ((Qubit)[], Int)]: Tuple:
+                                        Expr 83 [139-140] [Type (Qubit)[]]: Var: Local 67
+                                        Expr 84 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }
 
