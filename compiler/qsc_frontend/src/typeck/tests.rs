@@ -254,10 +254,10 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r##"
-            #7 39-47 "(x : 'T)" : '0
-            #8 40-46 "x : 'T" : '0
-            #14 53-58 "{ x }" : '0
-            #16 55-56 "x" : '0
+            #7 39-47 "(x : 'T)" : 0
+            #8 40-46 "x : 'T" : 0
+            #14 53-58 "{ x }" : 0
+            #16 55-56 "x" : 0
             #22 75-77 "()" : Unit
             #26 84-99 "{ Identity(4) }" : Int
             #28 86-97 "Identity(4)" : Int
@@ -3201,7 +3201,7 @@ fn invalid_ident() {
             #8 39-76 "{\n        let x : 'invalid = 0;\n    }" : Unit
             #10 53-65 "x : 'invalid" : ?
             #14 68-69 "0" : Int
-            Error(Resolve(NotFound("invalid", Span { lo: 58, hi: 65 })))
+            Error(Resolve(NotFound("'invalid", Span { lo: 57, hi: 65 })))
         "##]],
     );
 }
@@ -3214,7 +3214,7 @@ fn undeclared_generic_param() {
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
-            Error(Resolve(NotFound("U", Span { lo: 28, hi: 29 })))
+            Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
         "##]],
     );
 }
