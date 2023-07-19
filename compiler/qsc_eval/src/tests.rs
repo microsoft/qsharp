@@ -2708,6 +2708,63 @@ fn lambda_operation_closure() {
 }
 
 #[test]
+fn lambda_operation_controlled() {
+    check_expr(
+        "
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : Qubit => Unit is Adj + Ctl, q : Qubit) : Unit is Adj + Ctl { op(q) }
+                operation Bar() : Result[] {
+                    mutable output = [];
+                    use (ctls, q) = (Qubit[1], Qubit());
+                    let op = q => X(q);
+                    Foo(op, q);
+                    set output += [MResetZ(q)];
+                    Controlled Foo(ctls, (op, q));
+                    set output += [MResetZ(q)];
+                    X(ctls[0]);
+                    Controlled Foo(ctls, (op, q));
+                    set output += [MResetZ(q)];
+                    ResetAll(ctls);
+                    output
+                }
+            }
+        ",
+        "A.Bar()",
+        &expect!["[One, Zero, One]"],
+    );
+}
+
+#[test]
+fn lambda_operation_controlled_controlled() {
+    check_expr(
+        "
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : Qubit => Unit is Adj + Ctl, q : Qubit) : Unit is Adj + Ctl { op(q) }
+                operation Bar() : Result[] {
+                    mutable output = [];
+                    use (ctls1, ctls2, q) = (Qubit[1], Qubit[1], Qubit());
+                    let op = q => X(q);
+                    Foo(op, q);
+                    set output += [MResetZ(q)];
+                    Controlled Controlled Foo(ctls1, (ctls2, (op, q)));
+                    set output += [MResetZ(q)];
+                    X(ctls1[0]);
+                    X(ctls2[0]);
+                    Controlled Controlled Foo(ctls1, (ctls2, (op, q)));
+                    set output += [MResetZ(q)];
+                    ResetAll(ctls1 + ctls2);
+                    output
+                }
+            }
+        ",
+        "A.Bar()",
+        &expect!["[One, Zero, One]"],
+    );
+}
+
+#[test]
 fn partial_app_all_holes() {
     check_expr(
         "",
