@@ -7,7 +7,7 @@ mod ctl_gen;
 #[cfg(test)]
 mod tests;
 
-use crate::invert_block::adj_invert_block;
+use crate::{id_update::NodeIdRefresher, invert_block::adj_invert_block};
 
 use self::{adj_gen::AdjDistrib, ctl_gen::CtlDistrib};
 use miette::Diagnostic;
@@ -44,11 +44,6 @@ pub enum Error {
 /// Generates specializations for the given compile unit, updating it in-place.
 pub(super) fn generate_specs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     generate_placeholders(unit);
-
-    // TODO: Generating specialization violates the invariant of node ids being unique because of how
-    // it depends on cloning parts of the tree. We should update this when HIR supports the notion of
-    // generating new, properly mapped node ids such the uniqueness invariant is preserved without the burden
-    // of keeping out-of-band type and symbol resolution context updated.
     generate_spec_impls(core, unit)
 }
 
@@ -234,16 +229,19 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 || ctl.body == SpecBody::Gen(SpecGen::Auto)
             {
                 self.ctl_distrib(ctl, body_block);
+                NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl);
             }
         };
 
         if let Some(adj) = adj.as_mut() {
             if adj.body == SpecBody::Gen(SpecGen::Slf) {
                 adj.body = body.body.clone();
+                NodeIdRefresher::new(self.assigner).visit_spec_decl(adj);
             } else if adj.body == SpecBody::Gen(SpecGen::Invert)
                 || adj.body == SpecBody::Gen(SpecGen::Auto)
             {
                 self.adj_invert(adj, body_block, None);
+                NodeIdRefresher::new(self.assigner).visit_spec_decl(adj);
             }
         }
 
@@ -252,12 +250,17 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
                     if let SpecBody::Impl(_, adj_block) = &adj.body {
                         self.ctl_distrib(ctl_adj, adj_block);
+                        NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl_adj);
                     }
                 }
-                SpecBody::Gen(SpecGen::Slf) => ctl_adj.body = ctl.body.clone(),
+                SpecBody::Gen(SpecGen::Slf) => {
+                    ctl_adj.body = ctl.body.clone();
+                    NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl_adj);
+                }
                 SpecBody::Gen(SpecGen::Invert) => {
                     if let SpecBody::Impl(pat, ctl_block) = &ctl.body {
                         self.adj_invert(ctl_adj, ctl_block, pat.clone());
+                        NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl_adj);
                     }
                 }
                 _ => {}
