@@ -9,9 +9,26 @@ namespace Kata.Verification {
     }
 
     operation CheckSolution() : Bool {
-        let TODO: Int = 3.0;
-        let isCorrect = VerifyDoubleDoubleDoubleSingleQubitOperation(TODO, TODO, TODO, Kata.PrepareArbitraryState, PrepareArbitraryState);
+         for i in 0 .. 10 {
+            let i = IntAsDouble(i);
+            let alpha = Cos(i);
+            let beta = Sin(i);
+            let op = (qubit) => Kata.PrepareArbitraryState(alpha, beta, qubit);
+            let reference = (qubit) => PrepareArbitraryState(alpha, beta, qubit);
+            let isCorrect = VerifySingleQubitOperation(op, reference);
+            if not isCorrect {
+                Message("Incorrect.");
+                Message("The solution was incorrect for at least one test case.");
+                use target = Qubit[1];
+                let opOnRegister = register => op(register[0]);
+                let referenceOnRegister = register => reference(register[0]);
+                ShowQuantumStateComparison(target, opOnRegister, referenceOnRegister);
+                return false;
+            }
+        }
 
-        isCorrect
+        Message("Correct!");
+        Message("The solution was correct for all test cases.");
+        true
     }
 }

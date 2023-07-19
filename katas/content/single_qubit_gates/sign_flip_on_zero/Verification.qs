@@ -15,9 +15,13 @@ namespace Kata.Verification {
         use target = Qubit[1];
         let op = register => Kata.SignFlipOnZero(register[0]);
         let reference = register => SignFlipOnZero(register[0]);
-        if isCorrect {
+        isCorrect {
+            Message("Correct!");
+            Message("The solution was correct for all test cases.");
             ShowEffectOnQuantumState(target, op);
         } else {
+            Message("Incorrect.");
+            Message("The solution was incorrect for at least one test case.");
             ShowQuantumStateComparison(target, op, reference);
         }
 
