@@ -12,7 +12,7 @@ namespace Kata.Verification {
 
 
 
-    operation CheckSolution() : Bool {
+    operation IsCorrect() : Bool {
         for i in 0 .. 10 {
             let i = IntAsDouble(i);
 
@@ -20,6 +20,18 @@ namespace Kata.Verification {
                 return false;
             }
         }
-        return true;
+        true
+    }
+    operation CheckSolution() : Bool {
+        let isCorrect = IsCorrect();
+
+        /*
+        if isCorrect {
+            ShowEffectOnQuantumState(target, op);
+        } else {
+            ShowQuantumStateComparison(target, op, reference);
+        }
+        */
+        isCorrect
     }
 }

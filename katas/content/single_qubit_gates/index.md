@@ -347,6 +347,52 @@ $$\begin{bmatrix} -1 & 0 \\ 0 & 1 \end{bmatrix}$$
     "solutionDescriptionPath": "./prepare_minus/solution.md"
 })
 
+## Phase Shift Gates
+
+The next two gates are known as phase shift gates. They apply a phase to the $|1\rangle$ state, and leave the $|0\rangle$ state unchanged.
+
+<table style="border:1px solid">
+    <col width=50>
+    <col width=50>
+    <col width=150>
+    <col width=200>
+    <col width=150>
+    <col width=50>
+    <tr>
+        <th style="text-align:center; border:1px solid">Gate</th>
+        <th style="text-align:center; border:1px solid">Matrix</th>
+        <th style="text-align:center; border:1px solid">Ket-Bra</th>
+        <th style="text-align:center; border:1px solid">Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
+        <th style="text-align:center; border:1px solid">Applying to basis states</th>
+        <th style="text-align:center; border:1px solid">Q# Documentation</th>
+    </tr>
+    <tr>
+        <td style="text-align:center; border:1px solid">$S$</td>
+        <td style="text-align:center; border:1px solid">$\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$</td>
+        <td style="text-align:center; border:1px solid">$|0\rangle\langle0| + i|1\rangle\langle1|$</td>
+        <td style="text-align:center; border:1px solid">$S|\psi\rangle = \alpha|0\rangle + i\beta|1\rangle$</td>
+        <td style="text-align:center; border:1px solid">$S|0\rangle = |0\rangle \\
+S|1\rangle = i|1\rangle \\
+S|+\rangle = |i\rangle \\
+S|-\rangle = |-i\rangle \\
+S|i\rangle = |-\rangle \\
+S|-i\rangle = |+\rangle$</td>
+        <td style="text-align:center; border:1px solid"><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.s">S</a></td>
+    </tr>
+    <tr>
+        <td style="text-align:center; border:1px solid">$T$</td>
+        <td style="text-align:center; border:1px solid">$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix}$</td>
+        <td style="text-align:center; border:1px solid">$|0\rangle\langle0| + e^{i\pi/4}|1\rangle$$\langle1|$</td>
+        <td style="text-align:center; border:1px solid">$T|\psi\rangle = \alpha|0\rangle + e^{i\pi/4} \beta |1\rangle$</td>
+        <td style="text-align:center; border:1px solid">$T|0\rangle = |0\rangle \\
+T|1\rangle = e^{i\pi/4}|1\rangle$</td>
+        <td style="text-align:center; border:1px solid"><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.t">T</a></td>
+    </tr>
+</table>
+
+> Notice that applying the $T$ gate twice is equivalent to applying the $S$ gate, and applying the $S$ gate twice is equivalent to applying the $Z$ gate: 
+$$T^2 = S, S^2 = Z$$
+
 ### Three-fourths phase
 
 **Input:** A qubit in an arbitrary state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$.
@@ -366,6 +412,75 @@ $$\begin{bmatrix} 1 & 0 \\ 0 & e^{3i\pi/4} \end{bmatrix}$$
     "solutionDescriptionPath": "./three_quarters_pi_phase/solution.md"
 })
 
+## Rotation Gates
+
+The next few gates are parametrized: their exact behavior depends on a numeric parameter - an angle $\theta$, given in radians. 
+These gates are the $X$ rotation gate $R_x(\theta)$, $Y$ rotation gate $R_y(\theta)$, $Z$ rotation gate $R_z(\theta)$, and the arbitrary phase gate $R_1(\theta)$. 
+Note that for the first three gates the parameter $\theta$ is multiplied by $\frac{1}{2}$ within the gate's matrix.
+
+> These gates are known as rotation gates, because they represent rotations around various axes on the Bloch sphere. The Bloch sphere is a way of representing the qubit states visually, mapping them onto the surface of a sphere. 
+> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this tutorial series. 
+> If you are curious about it, you can learn more in [this slide deck](http://www.vcpc.univie.ac.at/~ian/hotlist/qc/talks/bloch-sphere.pdf) or in [Wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere).
+
+<table style="border:1px solid">
+    <col width=50>
+    <col width=100>
+    <col width=400>
+    <col width=250>
+    <col width=50>
+    <tr>
+        <th style="text-align:center; border:1px solid">Gate</th>
+        <th style="text-align:center; border:1px solid">Matrix</th>
+        <th style="text-align:center; border:1px solid">Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
+        <th style="text-align:center; border:1px solid">Applying to basis states</th>
+        <th style="text-align:center; border:1px solid">Q# Documentation</th>
+    </tr>
+    <tr>
+        <td style="text-align:center; border:1px solid">$R_x(\theta)$</td>
+        <td style="text-align:center; border:1px solid">$\begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
+        <td style="text-align:center; border:1px solid">$R_x(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})|1\rangle$</td>
+        <td style="text-align:center; border:1px solid">$R_x(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle - i\sin\frac{\theta}{2}|1\rangle \\
+R_x(\theta)|1\rangle = \cos\frac{\theta}{2}|1\rangle - i\sin\frac{\theta}{2}|0\rangle$</td>
+        <td style="text-align:center; border:1px solid"><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx">Rx</a></td>
+    </tr>
+    <tr>
+        <td style="text-align:center; border:1px solid">$R_y(\theta)$</td>
+        <td style="text-align:center; border:1px solid">$\begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
+        <td style="text-align:center; border:1px solid">$R_y(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - \beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} + \alpha\sin\frac{\theta}{2})|1\rangle$</td>
+        <td style="text-align:center; border:1px solid">$R_y(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle + \sin\frac{\theta}{2}|1\rangle \\
+R_y(\theta)|1\rangle = \cos\frac{\theta}{2}|1\rangle - \sin\frac{\theta}{2}|0\rangle$</td>
+        <td style="text-align:center; border:1px solid"><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.ry">Ry</a></td>
+    </tr>
+    <tr>
+        <td style="text-align:center; border:1px solid">$R_z(\theta)$</td>
+        <td style="text-align:center; border:1px solid">$\begin{bmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{bmatrix}$</td>
+        <td style="text-align:center; border:1px solid">$R_z(\theta)|\psi\rangle = \alpha e^{-i\theta/2}|0\rangle + \beta e^{i\theta/2}|1\rangle$</td>
+        <td style="text-align:center; border:1px solid">$R_z(\theta)|0\rangle = e^{-i\theta/2}|0\rangle \\
+R_z(\theta)|1\rangle = e^{i\theta/2}|1\rangle$</td>
+        <td style="text-align:center; border:1px solid"><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rz">Rz</a></td>
+    </tr>
+    <tr>
+        <td style="text-align:center; border:1px solid">$R_1(\theta)$</td>
+        <td style="text-align:center; border:1px solid">$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\theta} \end{bmatrix}$</td>
+        <td style="text-align:center; border:1px solid">$R_1(\theta)|\psi\rangle = \alpha|0\rangle + \beta e^{i\theta}|1\rangle$</td>
+        <td style="text-align:center; border:1px solid">$R_1(\theta)|0\rangle = |0\rangle \\
+R_1(\theta)|1\rangle = e^{i\theta}|1\rangle$</td>
+        <td style="text-align:center; border:1px solid"><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1">R1</a></td>
+    </tr>
+</table>
+
+You have already encountered some special cases of the $R_1$ gate: 
+
+$$T = R_1(\frac{\pi}{4}), S = R_1(\frac{\pi}{2}), Z = R_1(\pi)$$
+
+In addition, this gate is closely related to the $R_z$ gate: applying $R_1$ gate is equivalent to applying the $R_z$ gate, and then applying a global phase: 
+
+$$R_1(\theta) = e^{i\theta/2}R_z(\theta)$$
+
+In addition, the rotation gates are very closely related to their respective Pauli gates: 
+
+$$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
+
 ### Preparing a rotated state
 
 **Inputs:**
@@ -378,6 +493,30 @@ $$\begin{bmatrix} 1 & 0 \\ 0 & e^{3i\pi/4} \end{bmatrix}$$
 > You will probably need functions from the [Math](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math) namespace, specifically [ArcTan2](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.arctan2).
 >
 > You can assign variables in Q# by using the `let` keyword: `let num = 3;` or `let result = Function(input);`
+
+@[exercise]({
+    "id": "prepare_rotated_state",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./prepare_rotated_state/Verification.qs",
+    "placeholderSourcePath": "./prepare_rotated_state/Placeholder.qs",
+    "solutionSourcePath": "./prepare_rotated_state/Solution.qs",
+    "solutionDescriptionPath": "./prepare_rotated_state/solution.md"
+})
+
+### Preparing an arbitrary state
+
+**Inputs:**
+
+1. A non-negative real number $\alpha$.
+2. A non-negative real number $\beta = \sqrt{1 - \alpha^2}$.
+3. A real number $\theta$.
+4. A qubit in state $|0\rangle$.
+
+**Goal:** Transform the qubit into state $\alpha|0\rangle + e^{i\theta}\beta|1\rangle$.
+
+> Since only the relative amplitudes and relative phase have any physical meaning, this allows us to prepare any single-qubit quantum state we want to.
 
 @[exercise]({
     "id": "prepare_rotated_state",
