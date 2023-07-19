@@ -139,26 +139,24 @@ async function validateKata(kata) {
   }
 }
 
-test("katas compile", async () => {
+test("all katas work", async () => {
   const katas = await getAllKatas();
-  for (const kata of katas) {
-    await validateKata(kata);
-  }
+  assert.equal(katas.length, 3);
 });
 
-test("y_gate exercise", async () => {
-  const code = `
-    namespace Kata {
-      operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
-        Y(q);
-      }
-    }`;
-  const singleQubitGatesKata = await getKata("single_qubit_gates");
-  const yGateExercise = singleQubitGatesKata.sections.find(
-    (section) => section.type === "exercise" && section.id === "y_gate"
-  );
-  const result = await validateExercise(yGateExercise, code);
-  assert(result.success);
+test("qubit kata is valid", async () => {
+  const kata = await getKata("qubit");
+  await validateKata(kata);
+});
+
+test("single_qubit_gates kata is valid", async () => {
+  const kata = await getKata("single_qubit_gates");
+  await validateKata(kata);
+});
+
+test("multi_qubit_gates kata is valid", async () => {
+  const kata = await getKata("multi_qubit_gates");
+  await validateKata(kata);
 });
 
 test("worker 100 shots", async () => {

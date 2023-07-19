@@ -195,7 +195,7 @@ function generateTextSection(markdown) {
 
 function generateSections(kataPath, markdown, globalCodeSources) {
   const sections = [];
-  const macroRegex = /@\[(?<type>\w+)\]\(\s*(?<json>\{[^@]+\})\s*\)\s+/g;
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\n/gs;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);
