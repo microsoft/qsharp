@@ -254,10 +254,10 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r##"
-            #7 39-47 "(x : 'T)" : '0
-            #8 40-46 "x : 'T" : '0
-            #14 53-58 "{ x }" : '0
-            #16 55-56 "x" : '0
+            #7 39-47 "(x : 'T)" : 0
+            #8 40-46 "x : 'T" : 0
+            #14 53-58 "{ x }" : 0
+            #16 55-56 "x" : 0
             #22 75-77 "()" : Unit
             #26 84-99 "{ Identity(4) }" : Int
             #28 86-97 "Identity(4)" : Int
@@ -353,6 +353,7 @@ fn length_type_error() {
             #24 109-110 "2" : Int
             #25 112-113 "3" : Int
             Error(Type(Error(TyMismatch(Array(Infer(InferTyId(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 98, hi: 115 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
         "##]],
     );
 }
@@ -400,6 +401,7 @@ fn array_index_error() {
             #5 7-8 "3" : Int
             #6 10-15 "false" : Bool
             Error(Type(Error(MissingClassHasIndex(Array(Prim(Int)), Prim(Bool), Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -708,6 +710,7 @@ fn let_tuple_arity_error() {
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
             Error(Type(Error(TyMismatch(Tuple([Infer(InferTyId(0)), Infer(InferTyId(1)), Infer(InferTyId(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 13, hi: 14 }))))
         "##]],
     );
 }
@@ -797,6 +800,7 @@ fn for_loop_not_iterable() {
             #7 19-22 "One" : Result
             #8 24-26 "{}" : Unit
             Error(Type(Error(MissingClassIterable(Tuple([Prim(Int), Prim(Bool), Prim(Result)]), Span { lo: 9, hi: 23 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 4, hi: 5 }))))
         "##]],
     );
 }
@@ -841,7 +845,7 @@ fn if_else_fail() {
             #3 9-11 "{}" : Unit
             #4 12-34 "else { fail \"error\"; }" : Unit
             #5 17-34 "{ fail \"error\"; }" : Unit
-            #7 19-31 "fail \"error\"" : ?0
+            #7 19-31 "fail \"error\"" : Unit
             #8 24-31 "\"error\"" : String
         "##]],
     );
@@ -1556,13 +1560,13 @@ fn return_diverges_stmt_after() {
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #17 61-62 "x" : ?3
-            #19 65-115 "{\n            return 1;\n            true\n        }" : ?3
-            #20 65-115 "{\n            return 1;\n            true\n        }" : ?3
-            #22 79-87 "return 1" : ?1
+            #17 61-62 "x" : Unit
+            #19 65-115 "{\n            return 1;\n            true\n        }" : Unit
+            #20 65-115 "{\n            return 1;\n            true\n        }" : Unit
+            #22 79-87 "return 1" : Unit
             #23 86-87 "1" : Int
             #25 101-105 "true" : Bool
-            #27 125-126 "x" : ?3
+            #27 125-126 "x" : Unit
         "##]],
     );
 }
@@ -1582,7 +1586,7 @@ fn return_mismatch() {
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-75 "{\n        return true;\n    }" : Int
-            #17 57-68 "return true" : ?0
+            #17 57-68 "return true" : Unit
             #18 64-68 "true" : Bool
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
         "##]],
@@ -1649,6 +1653,7 @@ fn range_to_field_start() {
             #4 4-5 "2" : Int
             #5 7-8 "8" : Int
             Error(Type(Error(MissingClassHasField(Prim(RangeTo), "Start", Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -1725,6 +1730,7 @@ fn range_from_field_end() {
             #4 1-2 "0" : Int
             #5 4-5 "2" : Int
             Error(Type(Error(MissingClassHasField(Prim(RangeFrom), "End", Span { lo: 0, hi: 14 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 14 }))))
         "##]],
     );
 }
@@ -1738,6 +1744,7 @@ fn range_full_field_start() {
             #1 0-10 "...::Start" : ?0
             #2 0-3 "..." : RangeFull
             Error(Type(Error(MissingClassHasField(Prim(RangeFull), "Start", Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -1777,6 +1784,7 @@ fn range_full_field_end() {
             #1 0-8 "...::End" : ?0
             #2 0-3 "..." : RangeFull
             Error(Type(Error(MissingClassHasField(Prim(RangeFull), "End", Span { lo: 0, hi: 8 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 8 }))))
         "##]],
     );
 }
@@ -2087,6 +2095,7 @@ fn newtype_field_invalid() {
             #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Nope", Span { lo: 92, hi: 99 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 92, hi: 99 }))))
         "##]],
     );
 }
@@ -2125,6 +2134,7 @@ fn unknown_name_has_any_class() {
             #14 15-16 "1" : Int
             Error(Resolve(NotFound("foo", Span { lo: 2, hi: 5 })))
             Error(Resolve(NotFound("foo", Span { lo: 9, hi: 12 })))
+            Error(Type(Error(AmbiguousTy(Span { lo: 2, hi: 7 }))))
         "##]],
     );
 }
@@ -2300,6 +2310,7 @@ fn infinite() {
             #23 87-88 "x" : ?0
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
             Error(Type(Error(TyMismatch(Infer(InferTyId(0)), Array(Infer(InferTyId(0))), Span { lo: 86, hi: 89 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 52, hi: 53 }))))
         "##]],
     );
 }
@@ -2668,6 +2679,8 @@ fn partial_app_too_many_args() {
             #30 59-60 "_" : ?1
             #31 62-63 "_" : ?2
             Error(Type(Error(TyMismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTyId(1)), Infer(InferTyId(2))]), Span { lo: 52, hi: 64 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 59, hi: 60 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
         "##]],
     );
 }
@@ -2696,6 +2709,8 @@ fn typed_hole_error_ambiguous_type() {
             #2 0-1 "_" : ?0
             #3 1-4 "(3)" : Int
             #4 2-3 "3" : Int
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 1 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 4 }))))
             Error(Type(Error(TyHole(Infer(InferTyId(0)), Span { lo: 0, hi: 1 }))))
         "##]],
     );
@@ -3183,6 +3198,32 @@ fn instantiate_duplicate_ty_param_names() {
             #10 45-61 "{ let f = Foo; }" : Unit
             #12 51-52 "f" : (Unit -> Unit)
             #14 55-58 "Foo" : (Unit -> Unit)
+            Error(Type(Error(AmbiguousTy(Span { lo: 55, hi: 58 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 55, hi: 58 }))))
+        "##]],
+    );
+}
+#[test]
+fn ambiguous_generic() {
+    check(
+        "namespace Test { 
+            function Foo<'T>(x: 'T) : 'T { x }
+            function Bar() : () { let x = Foo([]); } 
+        }",
+        "",
+        &expect![[r##"
+            #7 46-53 "(x: 'T)" : 0
+            #8 47-52 "x: 'T" : 0
+            #14 59-64 "{ x }" : 0
+            #16 61-62 "x" : 0
+            #22 89-91 "()" : Unit
+            #24 97-117 "{ let x = Foo([]); }" : Unit
+            #26 103-104 "x" : (?2)[]
+            #28 107-114 "Foo([])" : (?2)[]
+            #29 107-110 "Foo" : ((?2)[] -> (?2)[])
+            #32 110-114 "([])" : (?2)[]
+            #33 111-113 "[]" : (?2)[]
+            Error(Type(Error(AmbiguousTy(Span { lo: 111, hi: 113 }))))
         "##]],
     );
 }
@@ -3201,7 +3242,20 @@ fn invalid_ident() {
             #8 39-76 "{\n        let x : 'invalid = 0;\n    }" : Unit
             #10 53-65 "x : 'invalid" : ?
             #14 68-69 "0" : Int
-            Error(Resolve(NotFound("invalid", Span { lo: 58, hi: 65 })))
+            Error(Resolve(NotFound("'invalid", Span { lo: 57, hi: 65 })))
+        "##]],
+    );
+}
+#[test]
+fn undeclared_generic_param() {
+    check(
+        r#"namespace c{operation y(g: 'U): Unit {} }"#,
+        "",
+        &expect![[r##"
+            #6 23-30 "(g: 'U)" : ?
+            #7 24-29 "g: 'U" : ?
+            #14 37-39 "{}" : Unit
+            Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
         "##]],
     );
 }

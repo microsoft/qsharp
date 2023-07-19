@@ -15,9 +15,57 @@
   "browser": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
-    "onNotebook:jupyter"
+    "onNotebook:jupyter",
+    "onDebug",
+    "onDebugResolve:qsharp",
+    "onDebugDynamicConfigurations:qsharp"
   ],
   "contributes": {
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "qsharp-vscode.runEditorContents",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@1"
+        },
+        {
+          "command": "qsharp-vscode.debugEditorContents",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "qsharp-vscode.debugEditorContents",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.runEditorContents",
+          "when": "resourceLangId == qsharp"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "qsharp-vscode.debugEditorContents",
+        "title": "Debug Q# file",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "qsharp-vscode.runEditorContents",
+        "title": "Run Q# File",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(play)"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "qsharp"
+      }
+    ],
     "languages": [
       {
         "id": "qsharp",
@@ -38,96 +86,53 @@
         "path": "./syntaxes/qsharp.tmLanguage.json"
       }
     ],
-    "commands": [
-      {
-        "command": "extension.qsharp-debug.runEditorContents",
-        "title": "Run qsharp file",
-        "category": "Launch",
-        "enablement": "editorLangId === qsharp && !inDebugMode"
-      },
-      {
-        "command": "extension.qsharp.listWorkspaces",
-        "title": "List qsharp workspaces"
-      },
-      {
-        "command": "quantum-workspaces-refresh",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "quantum-target-submit",
-        "title": "Submit job"
-      },
-      {
-        "command": "quantum-result-download",
-        "title": "Download",
-        "icon": {
-          "light": "resources/light/download.svg",
-          "dark": "resources/dark/download.svg"
-        }
-      }
-    ],
     "debuggers": [
       {
         "type": "qsharp",
         "languages": [
           "qsharp"
         ],
-        "label": "qsharp debugger"
-      }
-    ],
-    "configuration": {
-      "title": "Q#",
-      "properties": {
-        "qsharp.combineOpenFiles": {
-          "description": "Combine all open Q# files into one project",
-          "type": "boolean",
-          "default": false
-        },
-        "qsharp.excludeStdLib": {
-          "description": "Exclude the Q# standard library from projects",
-          "type": "boolean",
-          "default": false
+        "label": "Q# Debug",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Absolute path to a text file.",
+                "default": "${file}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": true
+              },
+              "entry": {
+                "type": "string",
+                "description": "Entry expression.",
+                "default": ""
+              },
+              "shots": {
+                "type": "number",
+                "description": "Number of shots to execute.",
+                "default": 10
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": true
+              }
+            }
+          }
         }
       }
-    },
-    "views": {
-      "explorer": [
-        {
-          "id": "quantum-workspaces",
-          "name": "Quantum Workspaces"
-        }
-      ]
-    },
-    "menus": {
-      "view/title": [
-        {
-          "command": "quantum-workspaces-refresh",
-          "when": "view == quantum-workspaces",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "quantum-target-submit",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == target"
-        },
-        {
-          "command": "quantum-result-download",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == result"
-        }
-      ]
-    }
+    ]
   },
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build": "npm run tsc:check && node build.mjs",
-    "build:watch": "node build.mjs --watch",
     "run:web": "npx @vscode/test-web --extensionDevelopmentPath . ../samples"
   },
   "repository": {

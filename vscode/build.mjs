@@ -15,7 +15,7 @@ const isWatch = process.argv.includes("--watch");
 const buildOptions = {
   entryPoints: [
     join(thisDir, "src", "extension.ts"),
-    join(thisDir, "src", "simulatorWorker.ts"),
+    join(thisDir, "src", "compilerWorker.ts"),
   ],
   outdir: join(thisDir, "out"),
   bundle: true,

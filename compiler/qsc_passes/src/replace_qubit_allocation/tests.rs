@@ -558,7 +558,7 @@ fn test_early_returns() {
                                             Expr _id_ [106-107] [Type Qubit]: Call:
                                                 Expr _id_ [106-107] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                                 Expr _id_ [106-107] [Type Unit]: Unit
-                                        Stmt 18 [131-141]: Semi: Expr _id_ [131-140] [Type ?2]: Expr Block: Block _id_ [131-140] [Type ?2]:
+                                        Stmt 18 [131-141]: Semi: Expr _id_ [131-140] [Type Unit]: Expr Block: Block _id_ [131-140] [Type Unit]:
                                             Stmt _id_ [138-140]: Local (Immutable):
                                                 Pat _id_ [138-140] [Type Unit]: Bind: Ident 34 [138-140] "generated_ident_34"
                                                 Expr 20 [138-140] [Type Unit]: Unit
@@ -568,7 +568,7 @@ fn test_early_returns() {
                                             Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                                 Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                                 Expr _id_ [59-60] [Type Qubit]: Var: Local 7
-                                            Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type ?2]: Return: Expr _id_ [138-140] [Type Unit]: Var: Local 34
+                                            Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type Unit]: Return: Expr _id_ [138-140] [Type Unit]: Var: Local 34
                                         Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type Unit]: Call:
                                             Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                             Expr _id_ [106-107] [Type Qubit]: Var: Local 16
@@ -582,7 +582,7 @@ fn test_early_returns() {
                                                 Expr _id_ [188-189] [Type Qubit]: Call:
                                                     Expr _id_ [188-189] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                                     Expr _id_ [188-189] [Type Unit]: Unit
-                                            Stmt 30 [213-223]: Semi: Expr _id_ [213-222] [Type ?5]: Expr Block: Block _id_ [213-222] [Type ?5]:
+                                            Stmt 30 [213-223]: Semi: Expr _id_ [213-222] [Type Unit]: Expr Block: Block _id_ [213-222] [Type Unit]:
                                                 Stmt _id_ [220-222]: Local (Immutable):
                                                     Pat _id_ [220-222] [Type Unit]: Bind: Ident 35 [220-222] "generated_ident_35"
                                                     Expr 32 [220-222] [Type Unit]: Unit
@@ -592,7 +592,7 @@ fn test_early_returns() {
                                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 7
-                                                Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type ?5]: Return: Expr _id_ [220-222] [Type Unit]: Var: Local 35
+                                                Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type Unit]: Return: Expr _id_ [220-222] [Type Unit]: Var: Local 35
                                             Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type Unit]: Call:
                                                 Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                                 Expr _id_ [188-189] [Type Qubit]: Var: Local 28
@@ -749,7 +749,7 @@ fn test_rtrn_expr() {
                                     Expr _id_ [58-59] [Type Qubit]: Call:
                                         Expr _id_ [58-59] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                         Expr _id_ [58-59] [Type Unit]: Unit
-                                Stmt 9 [79-141]: Semi: Expr _id_ [79-140] [Type ?2]: Expr Block: Block _id_ [79-140] [Type ?2]:
+                                Stmt 9 [79-141]: Semi: Expr _id_ [79-140] [Type Unit]: Expr Block: Block _id_ [79-140] [Type Unit]:
                                     Stmt _id_ [86-140]: Local (Immutable):
                                         Pat _id_ [86-140] [Type Int]: Bind: Ident 20 [86-140] "generated_ident_20"
                                         Expr 11 [86-140] [Type Int]: Expr Block: Block 12 [86-140] [Type Int]:
@@ -768,7 +768,7 @@ fn test_rtrn_expr() {
                                     Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type Unit]: Call:
                                         Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                         Expr _id_ [58-59] [Type Qubit]: Var: Local 7
-                                    Stmt _id_ [79-140]: Semi: Expr _id_ [79-140] [Type ?2]: Return: Expr _id_ [86-140] [Type Int]: Var: Local 20
+                                    Stmt _id_ [79-140]: Semi: Expr _id_ [79-140] [Type Unit]: Return: Expr _id_ [86-140] [Type Int]: Var: Local 20
                                 Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type Unit]: Call:
                                     Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [58-59] [Type Qubit]: Var: Local 7
@@ -809,7 +809,7 @@ fn test_unrelated_unaffected() {
                                 Stmt 5 [54-95]: Expr: Expr 6 [54-95] [Type Unit]: If:
                                     Expr 7 [57-61] [Type Bool]: Lit: Bool(true)
                                     Expr 8 [62-95] [Type Unit]: Expr Block: Block 9 [62-95] [Type Unit]:
-                                        Stmt 10 [76-85]: Semi: Expr 11 [76-84] [Type ?0]: Return: Expr 12 [83-84] [Type Int]: Lit: Int(3)
+                                        Stmt 10 [76-85]: Semi: Expr 11 [76-84] [Type Unit]: Return: Expr 12 [83-84] [Type Int]: Lit: Int(3)
                                 Stmt 13 [105-153]: Expr: Expr 14 [105-153] [Type Int]: Expr Block: Block 15 [105-153] [Type Int]:
                                     Stmt 16 [119-129]: Local (Immutable):
                                         Pat 17 [123-124] [Type Int]: Bind: Ident 18 [123-124] "x"

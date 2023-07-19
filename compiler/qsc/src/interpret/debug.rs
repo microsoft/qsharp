@@ -12,7 +12,7 @@ use qsc_hir::hir::{Item, ItemKind};
 #[must_use]
 pub(crate) fn format_call_stack<'a>(
     store: &PackageStore,
-    globals: &'a impl GlobalLookup<'a>,
+    globals: &impl GlobalLookup<'a>,
     call_stack: &CallStack,
     error: &dyn std::error::Error,
 ) -> String {
