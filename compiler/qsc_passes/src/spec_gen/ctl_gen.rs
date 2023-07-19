@@ -35,6 +35,7 @@ impl MutVisitor for CtlDistrib {
 
                         if functors.contains(&Functor::Ctl) {
                             op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
+                            op.id = NodeId::default();
                             op.ty = Ty::Arrow(Box::new(Arrow {
                                 kind: CallableKind::Operation,
                                 input: Box::new(Ty::Tuple(vec![
@@ -58,6 +59,7 @@ impl MutVisitor for CtlDistrib {
                                 Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                                 Ty::clone(&args.ty),
                             ]);
+                            args.id = NodeId::default();
                         } else {
                             self.errors.push(Error::MissingCtlFunctor(op.span));
                         }

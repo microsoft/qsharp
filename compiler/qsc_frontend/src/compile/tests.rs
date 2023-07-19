@@ -198,7 +198,13 @@ fn two_files_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(vec![("test2", Span { lo: 50, hi: 51 })], errors);
+    assert_eq!(
+        vec![
+            ("test2", Span { lo: 50, hi: 51 }),
+            ("test2", Span { lo: 50, hi: 53 }),
+        ],
+        errors
+    );
 }
 
 #[test]
