@@ -41,7 +41,7 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "({item})[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Param(name) => write!(f, "{name}"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
