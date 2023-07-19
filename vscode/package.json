@@ -43,6 +43,33 @@
           "command": "qsharp-vscode.runEditorContents",
           "when": "resourceLangId == qsharp"
         }
+      ],
+      "view/title": [
+        {
+          "command": "quantum-workspaces-refresh",
+          "when": "view == quantum-workspaces",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "quantum-target-submit",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == target"
+        },
+        {
+          "command": "quantum-result-download",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "quantum-workspaces",
+          "name": "Quantum Workspaces"
+        }
       ]
     },
     "commands": [
@@ -59,6 +86,30 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "extension.qsharp.listWorkspaces",
+        "title": "List qsharp workspaces"
+      },
+      {
+        "command": "quantum-workspaces-refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "quantum-target-submit",
+        "title": "Submit job"
+      },
+      {
+        "command": "quantum-result-download",
+        "title": "Download",
+        "icon": {
+          "light": "resources/light/download.svg",
+          "dark": "resources/dark/download.svg"
+        }
       }
     ],
     "breakpoints": [
@@ -133,6 +184,7 @@
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build": "npm run tsc:check && node build.mjs",
+    "build:watch": "node build.mjs --watch",
     "run:web": "npx @vscode/test-web --extensionDevelopmentPath . ../samples"
   },
   "repository": {
