@@ -17,6 +17,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@microsoft/vscode-azext-azureauth": "^1.0.0",
     "@types/node": "^18.15.3",
     "@types/vscode": "^1.77.0",
     "@vscode/debugadapter": "^1.61.0",
