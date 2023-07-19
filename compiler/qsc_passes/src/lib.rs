@@ -3,6 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+pub mod baseprofck;
 mod borrowck;
 mod callable_limits;
 mod common;
@@ -35,6 +36,7 @@ use thiserror::Error;
 #[diagnostic(transparent)]
 #[error(transparent)]
 pub enum Error {
+    BaseProfCk(baseprofck::Error),
     BorrowCk(borrowck::Error),
     CallableLimits(callable_limits::Error),
     ConjInvert(conjugate_invert::Error),

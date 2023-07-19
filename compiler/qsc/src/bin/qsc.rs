@@ -9,6 +9,7 @@ use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::Package;
+use qsc_passes::baseprofck;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -49,6 +50,7 @@ struct Cli {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
     Hir,
+    Qir,
 }
 
 fn main() -> miette::Result<ExitCode> {
@@ -68,12 +70,21 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources);
+    let (unit, mut errors) = compile(&store, &dependencies, sources);
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
+            Emit::Qir => {
+                if errors.is_empty() {
+                    errors.extend(
+                        baseprofck::check_base_profile_compliance(&store, &unit.package)
+                            .into_iter()
+                            .map(|e| qsc::compile::Error::Pass(qsc_passes::Error::BaseProfCk(e))),
+                    );
+                }
+            }
         }
     }
 
