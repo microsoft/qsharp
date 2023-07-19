@@ -187,14 +187,4 @@ export class QscDebugSession extends LoggingDebugSession {
         this.sendEvent(new ExitedEvent(0));
       });
   }
-
-  protected disconnectRequest(
-    response: DebugProtocol.DisconnectResponse,
-    args: DebugProtocol.DisconnectArguments,
-    _request?: DebugProtocol.Request
-  ): void {
-    log.trace(
-      `disconnectRequest suspend: ${args.suspendDebuggee}, terminate: ${args.terminateDebuggee}`
-    );
-  }
 }
