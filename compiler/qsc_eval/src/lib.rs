@@ -132,7 +132,7 @@ pub fn eval_stmt<'a>(
     stmt: &'a Stmt,
     globals: &impl GlobalLookup<'a>,
     env: &mut Env,
-    sim: &mut impl Backend,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     package: PackageId,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, CallStack)> {
@@ -149,7 +149,7 @@ pub fn eval_expr<'a, 'receiver>(
     expr: &'a Expr,
     globals: &impl GlobalLookup<'a>,
     env: &mut Env,
-    sim: &mut impl Backend,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
 
     out: &'receiver mut impl Receiver,
 ) -> Result<Value, (Error, CallStack)> {
@@ -391,7 +391,7 @@ impl<'a> State<'a> {
         &mut self,
         globals: &impl GlobalLookup<'a>,
         env: &mut Env,
-        sim: &mut impl Backend,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
     ) -> Result<Value, (Error, CallStack)> {
         while let Some(cont) = self.pop_cont() {
@@ -654,7 +654,7 @@ impl<'a> State<'a> {
     fn cont_action(
         &mut self,
         env: &mut Env,
-        sim: &mut impl Backend,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl GlobalLookup<'a>,
         action: Action<'a>,
         out: &mut impl Receiver,
@@ -786,7 +786,7 @@ impl<'a> State<'a> {
     fn eval_call(
         &mut self,
         env: &mut Env,
-        sim: &mut impl Backend,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl GlobalLookup<'a>,
         callee_span: Span,
         arg_span: Span,
@@ -1157,8 +1157,8 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Double(v) => Value::Double(*v),
         Lit::Int(v) => Value::Int(*v),
         Lit::Pauli(v) => Value::Pauli(*v),
-        Lit::Result(hir::Result::Zero) => Value::Result(false),
-        Lit::Result(hir::Result::One) => Value::Result(true),
+        Lit::Result(hir::Result::Zero) => val::RESULT_ZERO,
+        Lit::Result(hir::Result::One) => val::RESULT_ONE,
     }
 }
 

@@ -3,7 +3,7 @@
 
 use crate::test_expression;
 use indoc::indoc;
-use qsc::interpret::Value;
+use qsc::interpret::{Value, RESULT_ONE, RESULT_ZERO};
 
 // Tests for Microsoft.Quantum.Measurement namespace
 
@@ -16,7 +16,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::Result(false),
+        &RESULT_ZERO,
     );
     test_expression(
         indoc! {r#"{
@@ -26,7 +26,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::Result(false),
+        &RESULT_ZERO,
     );
     test_expression(
         indoc! {r#"{
@@ -36,7 +36,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::Result(true),
+        &RESULT_ONE,
     );
     test_expression(
         indoc! {r#"{
@@ -46,7 +46,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::Result(true),
+        &RESULT_ONE,
     );
 }
 
@@ -61,14 +61,7 @@ fn check_measure_each_z() {
             ResetAll(register);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(false),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ZERO, RESULT_ONE].into()),
     );
 }
 
@@ -85,22 +78,8 @@ fn check_mreset_each_z() {
         }"#},
         &Value::Tuple(
             vec![
-                Value::Array(
-                    vec![
-                        Value::Result(true),
-                        Value::Result(false),
-                        Value::Result(true),
-                    ]
-                    .into(),
-                ),
-                Value::Array(
-                    vec![
-                        Value::Result(false),
-                        Value::Result(false),
-                        Value::Result(false),
-                    ]
-                    .into(),
-                ),
+                Value::Array(vec![RESULT_ONE, RESULT_ZERO, RESULT_ONE].into()),
+                Value::Array(vec![RESULT_ZERO, RESULT_ZERO, RESULT_ZERO].into()),
             ]
             .into(),
         ),
@@ -118,7 +97,7 @@ fn check_mreset_x() {
             let r1 = Microsoft.Quantum.Measurement.MResetX(register[1]);
             [r0, r1]
         }"#},
-        &Value::Array(vec![Value::Result(false), Value::Result(true)].into()),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ONE].into()),
     );
 }
 
@@ -134,7 +113,7 @@ fn check_mreset_y() {
             let r1 = Microsoft.Quantum.Measurement.MResetY(register[1]);
             [r0, r1]
         }"#},
-        &Value::Array(vec![Value::Result(false), Value::Result(true)].into()),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ONE].into()),
     );
 }
 
@@ -148,6 +127,6 @@ fn check_mreset_z() {
             let r1 = Microsoft.Quantum.Measurement.MResetZ(register[1]);
             [r0, r1]
         }"#},
-        &Value::Array(vec![Value::Result(false), Value::Result(true)].into()),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ONE].into()),
     );
 }

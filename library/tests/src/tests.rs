@@ -4,7 +4,7 @@
 use crate::test_expression;
 use indoc::indoc;
 use num_bigint::BigInt;
-use qsc::interpret::Value;
+use qsc::interpret::{Value, RESULT_ONE, RESULT_ZERO};
 
 //
 // Canon namespace
@@ -20,14 +20,7 @@ fn check_apply_to_each() {
             ResetAll(register);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 
@@ -41,14 +34,7 @@ fn check_apply_to_each_a() {
             let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(false),
-                Value::Result(false),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ZERO, RESULT_ZERO].into()),
     );
 }
 
@@ -63,14 +49,7 @@ fn check_apply_to_each_c_applied() {
             Reset(control);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(false),
-                Value::Result(false),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ZERO, RESULT_ZERO].into()),
     );
 }
 
@@ -86,14 +65,7 @@ fn check_apply_to_each_c_not_applied() {
             Reset(control);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 
@@ -109,14 +81,7 @@ fn check_apply_to_each_ca_applied() {
             Reset(control);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 
@@ -133,14 +98,7 @@ fn check_apply_to_each_ca_not_applied() {
             Reset(control);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::Result(false),
-                Value::Result(false),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ZERO, RESULT_ZERO].into()),
     );
 }
 
@@ -481,10 +439,7 @@ fn check_bitsize_i() {
 #[test]
 fn check_repeated() {
     test_expression("Repeated(Zero, 0)", &Value::Array(vec![].into()));
-    test_expression(
-        "Repeated(One, 1)",
-        &Value::Array(vec![Value::Result(true)].into()),
-    );
+    test_expression("Repeated(One, 1)", &Value::Array(vec![RESULT_ONE].into()));
     test_expression(
         "Repeated(1, 2)",
         &Value::Array(vec![Value::Int(1), Value::Int(1)].into()),
@@ -511,14 +466,7 @@ fn check_apply_xor_in_place() {
             return result;
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -557,7 +505,7 @@ fn check_apply_cnot_chain_2() {
             return result;
         }"
         },
-        &Value::Array(vec![Value::Result(true), Value::Result(false)].into()),
+        &Value::Array(vec![RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -578,14 +526,7 @@ fn check_apply_cnot_chain_3() {
             return result;
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 
@@ -602,14 +543,7 @@ fn check_apply_p() {
             return [MResetZ(q[0]),MResetX(q[1]),MResetY(q[2])];
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 
@@ -626,14 +560,7 @@ fn check_apply_pauli() {
             return [MResetZ(q[0]),MResetX(q[1]),MResetY(q[2])];
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 
@@ -648,14 +575,7 @@ fn check_apply_pauli_from_bit_string() {
             return MResetEachZ(q);
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(false),
-                Value::Result(true),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -670,14 +590,7 @@ fn check_apply_pauli_from_int() {
             return MResetEachZ(q);
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(false),
-                Value::Result(true),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ZERO, RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -700,7 +613,7 @@ fn check_apply_controlled_on_int() {
             return [MResetZ(t1), M(t2)];
         }"
         },
-        &Value::Array(vec![Value::Result(true), Value::Result(false)].into()),
+        &Value::Array(vec![RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -723,7 +636,7 @@ fn check_apply_controlled_on_bitstring() {
             return [MResetZ(t1), M(t2)];
         }"
         },
-        &Value::Array(vec![Value::Result(true), Value::Result(false)].into()),
+        &Value::Array(vec![RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -745,14 +658,7 @@ fn check_apply_cnot_chain_3a() {
             return result;
         }"
         },
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(false),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ZERO].into()),
     );
 }
 
@@ -774,10 +680,10 @@ fn check_add_i_nc() {
         },
         &Value::Array(
             vec![
-                Value::Result(false),
-                Value::Result(false),
-                Value::Result(false),
-                Value::Result(true), // 3+5=8
+                RESULT_ZERO,
+                RESULT_ZERO,
+                RESULT_ZERO,
+                RESULT_ONE, // 3+5=8
             ]
             .into(),
         ),
@@ -802,11 +708,11 @@ fn check_add_i_c() {
         },
         &Value::Array(
             vec![
-                Value::Result(false),
-                Value::Result(true), // 2
-                Value::Result(false),
-                Value::Result(false),
-                Value::Result(true), // 16
+                RESULT_ZERO,
+                RESULT_ONE, // 2
+                RESULT_ZERO,
+                RESULT_ZERO,
+                RESULT_ONE, // 16
             ]
             .into(),
         ), // 10010b = 18
@@ -828,7 +734,7 @@ fn check_add_i_1_1() {
                 return result;
         }"
         },
-        &Value::Result(true),
+        &RESULT_ONE,
     );
 }
 
@@ -850,8 +756,8 @@ fn check_add_i_1_2() {
         },
         &Value::Array(
             vec![
-                Value::Result(false),
-                Value::Result(true), // 2
+                RESULT_ZERO,
+                RESULT_ONE, // 2
             ]
             .into(),
         ),

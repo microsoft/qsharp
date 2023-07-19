@@ -5,16 +5,20 @@ use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
 
+use crate::val;
+
 /// The trait that must be implemented by a quantum backend, whose functions will be invoked when
 /// quantum intrinsics are called.
 pub trait Backend {
+    type ResultType;
+
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize);
     fn cx(&mut self, ctl: usize, q: usize);
     fn cy(&mut self, ctl: usize, q: usize);
     fn cz(&mut self, ctl: usize, q: usize);
     fn h(&mut self, q: usize);
-    fn m(&mut self, q: usize) -> bool;
-    fn mresetz(&mut self, q: usize) -> bool;
+    fn m(&mut self, q: usize) -> Self::ResultType;
+    fn mresetz(&mut self, q: usize) -> Self::ResultType;
     fn reset(&mut self, q: usize);
     fn rx(&mut self, theta: f64, q: usize);
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize);
@@ -56,7 +60,24 @@ impl SparseSim {
     }
 }
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct SparseSimResult(bool);
+
+impl From<val::Result> for SparseSimResult {
+    fn from(r: val::Result) -> Self {
+        Self(r.into())
+    }
+}
+
+impl From<SparseSimResult> for val::Result {
+    fn from(r: SparseSimResult) -> Self {
+        r.0.into()
+    }
+}
+
 impl Backend for SparseSim {
+    type ResultType = SparseSimResult;
+
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.mcx(&[ctl0, ctl1], q);
     }
@@ -77,16 +98,16 @@ impl Backend for SparseSim {
         self.sim.h(q);
     }
 
-    fn m(&mut self, q: usize) -> bool {
-        self.sim.measure(q)
+    fn m(&mut self, q: usize) -> Self::ResultType {
+        SparseSimResult(self.sim.measure(q))
     }
 
-    fn mresetz(&mut self, q: usize) -> bool {
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
         let res = self.sim.measure(q);
         if res {
             self.sim.x(q);
         }
-        res
+        SparseSimResult(res)
     }
 
     fn reset(&mut self, q: usize) {

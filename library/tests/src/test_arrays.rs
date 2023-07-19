@@ -3,7 +3,7 @@
 
 use crate::test_expression;
 use num_bigint::BigInt;
-use qsc::interpret::Value;
+use qsc::interpret::{Value, RESULT_ONE, RESULT_ZERO};
 
 // Tests for Microsoft.Quantum.Arrays namespace
 
@@ -119,14 +119,7 @@ fn check_column_at() {
     );
     test_expression(
         "Microsoft.Quantum.Arrays.ColumnAt(1, [[One, One], [Zero, Zero], [Zero, One]])",
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(false),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ZERO, RESULT_ONE].into()),
     );
 }
 
@@ -178,14 +171,7 @@ fn check_draw_many() {
             Reset(qubit);
             results
         }",
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(false),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ZERO, RESULT_ONE].into()),
     );
 }
 
@@ -310,14 +296,7 @@ fn check_for_each() {
                 (q => {X(q); Microsoft.Quantum.Measurement.MResetZ(q)},
                 register)
         }",
-        &Value::Array(
-            vec![
-                Value::Result(true),
-                Value::Result(true),
-                Value::Result(true),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![RESULT_ONE, RESULT_ONE, RESULT_ONE].into()),
     );
 }
 

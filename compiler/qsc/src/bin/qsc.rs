@@ -50,6 +50,7 @@ struct Cli {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
     Hir,
+    Qir,
 }
 
 fn main() -> miette::Result<ExitCode> {
@@ -69,12 +70,47 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Lib);
+    let package_type = if cli.emit.contains(&Emit::Qir) {
+        PackageType::Exe
+    } else {
+        PackageType::Lib
+    };
+    let (unit, errors) = compile(&store, &dependencies, sources, package_type);
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
+            Emit::Qir => {
+                if errors.is_empty() {
+                    let package_id = store.insert(unit);
+                    let result = qsc_codegen::qir_base::generate_qir(&store, package_id);
+                    let qir = match result {
+                        Ok(qir) => qir,
+                        Err((error, _)) => {
+                            let unit = store.get(package_id).expect("package should be in store");
+                            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
+                                eprintln!(
+                                    "{:?}",
+                                    Report::new(error).with_source_code(source.clone())
+                                );
+                            } else {
+                                eprintln!("{:?}", Report::new(error));
+                            }
+                            return Ok(ExitCode::FAILURE);
+                        }
+                    };
+                    let path = out_dir.join("qir.ll");
+                    info!(
+                        "Writing qir output file to: {}",
+                        path.to_str().unwrap_or_default()
+                    );
+                    fs::write(path, qir)
+                        .into_diagnostic()
+                        .context("could not emit QIR")?;
+                    return Ok(ExitCode::SUCCESS);
+                }
+            }
         }
     }
 

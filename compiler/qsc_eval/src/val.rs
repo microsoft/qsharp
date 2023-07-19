@@ -23,9 +23,57 @@ pub enum Value {
     Pauli(Pauli),
     Qubit(Qubit),
     Range(Option<i64>, i64, Option<i64>),
-    Result(bool),
+    Result(Result),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Result {
+    Val(bool),
+    Id(usize),
+}
+
+pub const RESULT_ZERO: Value = Value::Result(Result::Val(false));
+pub const RESULT_ONE: Value = Value::Result(Result::Val(true));
+
+impl From<Result> for bool {
+    fn from(val: Result) -> Self {
+        match val {
+            Result::Val(v) => v,
+            Result::Id(_) => panic!("cannot convert Result::Id to bool"),
+        }
+    }
+}
+
+impl From<&Result> for bool {
+    fn from(val: &Result) -> Self {
+        match val {
+            Result::Val(v) => *v,
+            Result::Id(_) => panic!("cannot convert Result::Id to bool"),
+        }
+    }
+}
+
+impl From<bool> for Result {
+    fn from(val: bool) -> Self {
+        Self::Val(val)
+    }
+}
+
+impl From<usize> for Result {
+    fn from(val: usize) -> Self {
+        Self::Id(val)
+    }
+}
+
+impl From<Result> for usize {
+    fn from(val: Result) -> Self {
+        match val {
+            Result::Val(..) => panic!("cannot convert Result::Val to usize"),
+            Result::Id(v) => v,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -103,7 +151,7 @@ impl Display for Value {
                 (None, step, None) => write!(f, "...{step}..."),
             },
             Value::Result(v) => {
-                if *v {
+                if v.into() {
                     write!(f, "One")
                 } else {
                     write!(f, "Zero")
@@ -235,7 +283,7 @@ impl Value {
         let Value::Result(v) = self else {
             panic!("value should be Result, got {}", self.type_name());
         };
-        v
+        v.into()
     }
 
     /// Convert the [Value] into a string

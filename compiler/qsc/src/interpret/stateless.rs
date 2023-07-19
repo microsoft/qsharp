@@ -7,11 +7,11 @@ use crate::{
 };
 use miette::Diagnostic;
 use qsc_eval::{
-    backend::SparseSim,
+    backend::{Backend, SparseSim},
     debug::CallStack,
     eval_expr,
     output::Receiver,
-    val::{GlobalId, Value},
+    val::{self, GlobalId, Value},
     Env, Global, GlobalLookup, State,
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
@@ -54,10 +54,10 @@ pub struct Interpreter {
     package: PackageId,
 }
 
-pub struct EvalContext<'a> {
+pub struct EvalContext<'a, Sim> {
     interpreter: &'a Interpreter,
     env: Env,
-    sim: SparseSim,
+    sim: Sim,
     lookup: Lookup<'a>,
     state: State<'a>,
 }
@@ -96,7 +96,7 @@ impl Interpreter {
     }
 
     #[must_use]
-    pub fn new_eval_context(&self) -> EvalContext {
+    pub fn new_eval_context(&self) -> EvalContext<SparseSim> {
         EvalContext {
             interpreter: self,
             env: Env::with_empty_scope(),
@@ -105,9 +105,27 @@ impl Interpreter {
             state: State::new(self.package),
         }
     }
+
+    #[must_use]
+    pub fn new_eval_context_from_sim(
+        &self,
+        sim: impl Backend<ResultType = impl Into<val::Result>>,
+    ) -> EvalContext<impl Backend<ResultType = impl Into<val::Result>>> {
+        EvalContext {
+            interpreter: self,
+            env: Env::with_empty_scope(),
+            sim,
+            lookup: Lookup { store: &self.store },
+            state: State::new(self.package),
+        }
+    }
 }
 
-impl<'a> EvalContext<'a> {
+impl<'a, Sim, ResultType> EvalContext<'a, Sim>
+where
+    Sim: Backend<ResultType = ResultType>,
+    ResultType: PartialEq + Into<val::Result>,
+{
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
