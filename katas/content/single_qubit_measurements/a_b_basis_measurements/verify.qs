@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
 
     // ------------------------------------------------------
     // Exercise 7. Measure state in {|A❭, |B❭} basis
@@ -19,18 +19,21 @@ namespace Kata.Reference {
     }
 
     // We can use the StatePrep_IsQubitA operation for the testing
-    operation T7_MeasureInABBasis () : Unit {
+    operation CheckSolution(): Unit {
         for i in 0 .. 10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
-            DistinguishTwoStates(StatePrep_IsQubitA(alpha, _, _), 
-                q => MeasureInABBasis(alpha, q) == Zero, // IsResultZero(MeasureInABBasis(alpha, _),_), 
-                [$"|B⟩=(-i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩)", $"|A⟩=(cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩)"], true);
+            let isCorrect = DistinguishTwoStates(
+                StatePrep_IsQubitA(alpha, _, _), 
+                q => Kata.MeasureInABBasis(alpha, q) == Zero, 
+                [$"|B⟩=(-i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩)", $"|A⟩=(cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩)"],
+                true);
+            if not isCorrect {
+                Message($"Test failes for alpha={alpha}");
+                return false;
+            }
         }
-    }
-
-    operation Verify() : Bool {
-        return true;
-        // TODO: Make sure correct result is returned.
+        Message("All tests passed.");
+        true
     }
 
 }

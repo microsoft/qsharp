@@ -1,8 +1,8 @@
-namespace Kata.Reference {
+namespace Kata {
     open Microsoft.Quantum.Math;
 
     // Exercise 5.
-    operation IsQubitPsiPlus (q : Qubit) : Bool { 
+    operation IsQubitPsiPlus(q: Qubit): Bool { 
         Ry(-2.0 * ArcTan2(0.8, 0.6), q);
         return M(q) == Zero;
     }

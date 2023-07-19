@@ -1,6 +1,6 @@
 namespace Kata {
 
-    operation MeasureInABBasis (alpha: Double, q : Qubit) : Result {
+    operation MeasureInABBasis(alpha: Double, q: Qubit): Result {
         // ...
     }
 

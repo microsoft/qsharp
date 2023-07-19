@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
 
@@ -12,13 +12,17 @@ namespace Kata.Reference {
         }
     }
 
-    operation T2_IsQubitZero () : Unit {
-        DistinguishTwoStates(StatePrep_IsQubitZero, IsQubitZero, ["|1⟩", "|0⟩"], false);
-    }
-
-    operation Verify() : Bool {
-        return true;
-        // TODO: Make sure correct result is returned.
+    @EntryPoint()
+    operation CheckSolution() : Bool {
+        let isCorrect = DistinguishTwoStates(
+            StatePrep_IsQubitZero,
+            Kata.IsQubitZero,
+            ["|1⟩", "|0⟩"],
+            false);
+        if isCorrect {
+            Message("All tests passed.");
+        }
+        isCorrect
     }
 
 }

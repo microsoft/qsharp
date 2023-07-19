@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
 
     // ------------------------------------------------------
     // Exercise 3. Distinguish |+❭ and |-❭ using Measure operation
@@ -14,13 +14,17 @@ namespace Kata.Reference {
         }
     }
 
-    operation T3_IsQubitMinus () : Unit {
-        DistinguishTwoStates(StatePrep_IsQubitMinus, IsQubitMinus, ["|+⟩", "|-⟩"], false);
-    }
-
-    operation Verify() : Bool {
-        return true;
-        // TODO: Make sure correct result is returned.
+    @EntryPoint()
+    operation CheckSolution(): Unit {
+        let isCorrect = DistinguishTwoStates(
+            StatePrep_IsQubitMinus,
+            Kata.IsQubitMinus,
+            ["|+⟩", "|-⟩"],
+            false);
+        if isCorrect {
+            Message("All tests passed.");
+        }
+        isCorrect
     }
 
 }

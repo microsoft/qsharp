@@ -1,6 +1,6 @@
 namespace Kata {
 
-    operation IsQubitMinus (q : Qubit) : Bool {
+    operation IsQubitMinus(q: Qubit): Bool {
         // ...
     }
 

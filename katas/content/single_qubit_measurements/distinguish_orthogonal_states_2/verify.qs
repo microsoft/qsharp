@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
 
     // ------------------------------------------------------
     // Exercise 6. Distinguish states |A❭ and |B❭
@@ -6,7 +6,7 @@ namespace Kata.Reference {
     
     // |A⟩ =   cos(alpha) * |0⟩ - i sin(alpha) * |1⟩,
     // |B⟩ = - i sin(alpha) * |0⟩ + cos(alpha) * |1⟩.
-    operation StatePrep_IsQubitA (alpha : Double, q : Qubit, state : Int) : Unit is Adj {
+    operation StatePrep_IsQubitA(alpha: Double, q: Qubit, state: Int): Unit is Adj {
         if state == 0 {
             // convert |0⟩ to |B⟩
             X(q);
@@ -17,17 +17,21 @@ namespace Kata.Reference {
         }
     }
 
-    operation T6_IsQubitA () : Unit {
+    @EntryPoint()
+    operation CheckSolution(): Bool {
         for i in 0 .. 10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
-            DistinguishTwoStates(StatePrep_IsQubitA(alpha, _, _), IsQubitA(alpha, _), 
-                [$"|B⟩ = -i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩", $"|A⟩ = cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩"], false);
+            let isCorrect = DistinguishTwoStates(
+                StatePrep_IsQubitA(alpha, _, _),
+                Kata.IsQubitA(alpha, _), 
+                [$"|B⟩ = -i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩", $"|A⟩ = cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩"],
+                false);
+            if not isCorrect {
+                return false;
+            }
         }
-    }
-
-    operation Verify() : Bool {
-        return true;
-        // TODO: Make sure correct result is returned.
+        Message("All tests passed.");
+        true
     }
 
 }

@@ -1,11 +1,11 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
     // ------------------------------------------------------
     // Exercise 5. Distinguish specific orthogonal states
     // ------------------------------------------------------
 
     // |ψ₊⟩ =   0.6 * |0⟩ + 0.8 * |1⟩,
     // |ψ₋⟩ =  -0.8 * |0⟩ + 0.6 * |1⟩.
-    operation StatePrep_IsQubitPsiPlus (q : Qubit, state : Int) : Unit is Adj {
+    operation StatePrep_IsQubitPsiPlus(q: Qubit, state: Int): Unit is Adj {
         if state == 0 {
             // convert |0⟩ to |ψ₋⟩
             X(q);
@@ -16,14 +16,16 @@ namespace Kata.Reference {
         }
     }
 
-    operation T5_IsQubitPsiPlus () : Unit {
-        DistinguishTwoStates(StatePrep_IsQubitPsiPlus, IsQubitPsiPlus, 
-            ["|ψ₋⟩", "|ψ₊⟩"], false);
-    }
-
-    operation Verify() : Bool {
-        return true;
-        // TODO: Make sure correct result is returned.
+    operation CheckSolution(): Bool {
+        let isCorrect = DistinguishTwoStates(
+            StatePrep_IsQubitPsiPlus,
+            Kata.IsQubitPsiPlus, 
+            ["|ψ₋⟩", "|ψ₊⟩"],
+            false);
+        if isCorrect {
+            Message("All tests passed.");
+        }
+        isCorrect
     }
 
 }

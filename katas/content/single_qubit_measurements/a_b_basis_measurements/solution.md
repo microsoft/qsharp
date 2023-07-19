@@ -10,3 +10,9 @@ If the `M` operation returned `Zero`, we get measurement outcome $A$, and if it 
 
 After the measurement, we apply the inverse of the $R_x(-\theta)$ gate, which is the $R_x(\theta)$ gate.
 The final rotation ensures that the state of the qubit is in the state corresponding to the measurement outcome.
+
+@[solution]({
+"id": "a_b_basis_measurements_solution",
+"exerciseId": "a_b_basis_measurements",
+"codePath": "solution.qs"
+})

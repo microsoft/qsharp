@@ -4,3 +4,9 @@ In Q# the operation [`Measure`](https://docs.microsoft.com/qsharp/api/qsharp/mic
 
 Since the states $\ket +$ and $\ket -$ correspond to the eigenvalues $+1$ and $-1$ of the Pauli X operator, we can return the result of equality comparison between the measurement result and `One`. 
 Note that since `Measure` operation generally works with multiple qubits to perform multi-qubit measurements, it takes array parameters. To do a single-qubit measurement, you need to pass two arrays of one element, `[PauliX]` and `[q]`, rather than individual values.
+
+@[solution]({
+"id": "distinguish_plus_and_minus_solution",
+"exerciseId": "distinguish_plus_and_minus",
+"codePath": "solution.qs"
+})

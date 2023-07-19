@@ -4,10 +4,15 @@ namespace Kata.Reference {
 
     // "Framework" operation for testing single-qubit tasks for distinguishing states of one qubit
     // with Bool return
-    operation DistinguishTwoStates (statePrep : ((Qubit, Int) => Unit is Adj), testImpl : (Qubit => Bool), stateName : String[], checkFinalState : Bool) : Unit {
+    operation DistinguishTwoStates(
+        statePrep: ((Qubit, Int) => Unit is Adj),
+        testImpl : (Qubit => Bool),
+        stateName : String[],
+        checkFinalState : Bool) : Bool {
+
         let nTotal = 100;
         let nStates = 2;
-        mutable misclassifications = [0, size = nStates];
+        mutable misclassifications = Repeated(0, nStates);
         
         use q = Qubit();
         for i in 1 .. nTotal {
@@ -42,8 +47,7 @@ namespace Kata.Reference {
             }
         }
         
-        // This check will tell the total number of failed classifications
-        Fact(totalMisclassifications == 0, $"{totalMisclassifications} test runs out of {nTotal} returned incorrect state (see output for details).");
+        return totalMisclassifications == 0;
     }
 
 }
