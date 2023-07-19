@@ -9,23 +9,16 @@ import {
 } from "qsharp";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
-import { registerDebugger } from "./debugger.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
+import { setupWorkspaces } from "./workspace.js";
 import { activateDebugger } from "./debugger/activate.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
-
-  const settings = vscode.workspace.getConfiguration("qsharp");
-  const combineOpenFiles = settings.get("combineOpenFiles");
-  const excludeStdLib = settings.get("excludeStdLib");
-  log.info(
-    `Settings: combineOpenFiles: ${combineOpenFiles}, excludeStdLib: ${excludeStdLib}`
-  );
 
   const languageService = await loadLanguageService(context.extensionUri);
 
@@ -62,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  setupWorkspaces(context);
   activateDebugger(context);
 
   log.info("Q# extension activated.");
