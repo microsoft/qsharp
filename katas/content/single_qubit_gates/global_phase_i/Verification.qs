@@ -15,7 +15,7 @@ namespace Kata.Verification {
         use target = Qubit[1];
         let op = register => Kata.GlobalPhaseI(register[0]);
         let reference = register => GlobalPhaseI(register[0]);
-        isCorrect {
+        if isCorrect {
             Message("Correct!");
             Message("The solution was correct for all test cases.");
             ShowEffectOnQuantumState(target, op);

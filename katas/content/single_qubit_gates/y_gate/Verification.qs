@@ -15,8 +15,12 @@ namespace Kata.Verification {
         let op = register => Kata.ApplyY(register[0]);
         let reference = register => ApplyY(register[0]);
         if isCorrect {
+            Message("Correct!");
+            Message("The solution was correct for all test cases.");
             ShowEffectOnQuantumState(target, op);
         } else {
+            Message("Incorrect.");
+            Message("The solution was incorrect for at least one test case.");
             ShowQuantumStateComparison(target, op, reference);
         }
 

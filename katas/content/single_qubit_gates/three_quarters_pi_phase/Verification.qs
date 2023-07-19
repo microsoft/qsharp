@@ -21,7 +21,6 @@ namespace Kata.Verification {
         } else {
             Message("Incorrect.");
             Message("The solution was incorrect for at least one test case.");
-
             ShowQuantumStateComparison(target, op, reference);
         }
 
