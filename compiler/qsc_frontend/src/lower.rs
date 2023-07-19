@@ -172,18 +172,18 @@ impl With<'_> {
                 self.lowerer.parent = grandparent;
                 (id, hir::ItemKind::Callable(callable))
             }
-            ast::ItemKind::Ty(name, _) => {
+            ast::ItemKind::Ty(name, ty_def) => {
                 let id = resolve_id(name.id);
-                let udt = self
-                    .tys
-                    .udts
-                    .get(&hir::ItemId {
-                        package: None,
-                        item: id,
-                    })
-                    .expect("type item should have lowered UDT");
+                // let udt = self
+                //     .tys
+                //     .udts
+                //     .get(&hir::ItemId {
+                //         package: None,
+                //         item: id,
+                //     })
+                //     .expect("type item should have lowered UDT");
 
-                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+                (id, hir::ItemKind::Ty(self.lower_udt(name, ty_def)))
             }
         };
 
@@ -198,6 +198,35 @@ impl With<'_> {
         });
 
         Some(id)
+    }
+
+    fn lower_udt(&mut self, name: &ast::Ident, ty_def: &ast::TyDef) -> hir::MyUdt {
+        hir::MyUdt {
+            id: todo!(),
+            span: todo!(),
+            name: self.lower_ident(name),
+            definition: todo!(),
+        }
+    }
+
+    fn lower_ty_def(&mut self, def: &ast::TyDef) -> hir::TyDef {
+        if let ast::TyDefKind::Paren(inner) = &*def.kind {
+            return self.lower_ty_def(inner);
+        }
+
+        hir::TyDef {
+            id: todo!(),
+            span: def.span,
+            kind: match &*def.kind {
+                ast::TyDefKind::Field(name, ty) => {
+                    hir::TyDefKind::Field(name.map(|n| self.lower_ident(&n)), todo!())
+                }
+                ast::TyDefKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
+                ast::TyDefKind::Tuple(tup) => {
+                    hir::TyDefKind::Tuple(tup.iter().map(|f| self.lower_ty_def(f)).collect())
+                }
+            },
+        }
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {

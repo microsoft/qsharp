@@ -66,12 +66,12 @@ impl<'a> CodeDisplay<'a> {
     pub(crate) fn hir_ident_udt(
         &self,
         ident: &'a hir::Ident,
-        udt: &'a hir::ty::Udt,
+        def: &'a hir::TyDef,
     ) -> impl Display + 'a {
         HirUdt {
             compilation: self.compilation,
             ident,
-            udt,
+            def,
         }
     }
 
@@ -212,12 +212,12 @@ impl<'a> Display for IdentTyDef<'a> {
 struct HirUdt<'a> {
     compilation: &'a Compilation,
     ident: &'a hir::Ident,
-    udt: &'a hir::ty::Udt,
+    def: &'a hir::TyDef,
 }
 
 impl<'a> Display for HirUdt<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let udt_def = UdtDef::new(self.compilation, self.udt);
+        let udt_def = UdtDef::new(self.compilation, self.def);
         write!(f, "{} = {}", self.ident.name, udt_def)
     }
 }
@@ -234,44 +234,21 @@ enum UdtDefKind<'a> {
 }
 
 impl<'a> UdtDef<'a> {
-    pub fn new(compilation: &'a Compilation, def: &'a hir::ty::Udt) -> Self {
-        let mut udt_def = UdtDef::convert_hir_ty_to_udt(compilation, &def.base);
-        for field in &def.fields {
-            UdtDef::update_udt_def(&mut udt_def, &field.name, &field.path.indices);
-        }
-        udt_def
-    }
-
-    fn convert_hir_ty_to_udt(compilation: &'a Compilation, ty: &'a hir::ty::Ty) -> UdtDef<'a> {
-        match ty {
-            hir::ty::Ty::Tuple(tys) => UdtDef {
+    pub fn new(compilation: &'a Compilation, def: &'a hir::TyDef) -> Self {
+        match &def.kind {
+            hir::TyDefKind::Field(name, ty) => UdtDef {
+                compilation,
+                name: name.as_ref().map(|n| n.name.clone()),
+                kind: UdtDefKind::SingleTy(ty),
+            },
+            hir::TyDefKind::Tuple(defs) => UdtDef {
                 compilation,
                 name: None,
                 kind: UdtDefKind::TupleTy(
-                    tys.iter()
-                        .map(|ty| UdtDef::convert_hir_ty_to_udt(compilation, ty))
-                        .collect(),
+                    defs.iter().map(|f| UdtDef::new(compilation, f)).collect(),
                 ),
             },
-            _ => UdtDef {
-                compilation,
-                name: None,
-                kind: UdtDefKind::SingleTy(ty),
-            },
         }
-    }
-
-    fn update_udt_def(mut udt_def: &mut UdtDef, name: &Rc<str>, path: &Vec<usize>) {
-        for i in path {
-            if let UdtDefKind::TupleTy(defs) = &mut udt_def.kind {
-                udt_def = defs
-                    .get_mut(*i)
-                    .expect("UDT base type structure does not match field structure.");
-            } else {
-                panic!("UDT base type structure does not match field structure.");
-            }
-        }
-        udt_def.name = Some(name.clone());
     }
 }
 
@@ -399,7 +376,7 @@ impl<'a> Display for HirTy<'a> {
                 hir::Res::Item(item_id) => {
                     if let Some(item) = find_item(self.compilation, item_id) {
                         match &item.kind {
-                            hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
+                            hir::ItemKind::Ty(udt) => write!(f, "{}", udt.name.name),
                             _ => panic!("UDT has invalid resolution."),
                         }
                     } else {

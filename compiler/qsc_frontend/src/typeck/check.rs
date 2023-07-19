@@ -45,8 +45,8 @@ impl GlobalTable {
             match &item.kind {
                 hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.scheme()),
                 hir::ItemKind::Namespace(..) => None,
-                hir::ItemKind::Ty(_, udt) => {
-                    self.udts.insert(item_id, udt.clone());
+                hir::ItemKind::Ty(udt) => {
+                    // ToDo: self.udts.insert(item_id, udt.clone());
                     self.terms.insert(item_id, udt.cons_scheme(item_id))
                 }
             };

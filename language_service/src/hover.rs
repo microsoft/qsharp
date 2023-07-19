@@ -170,8 +170,8 @@ impl Visitor<'_> for HoverVisitor<'_> {
                                         path.id
                                     )
                                 }
-                                hir::ItemKind::Ty(ident, udt) => Some(markdown_fenced_block(
-                                    self.display.hir_ident_udt(ident, udt),
+                                hir::ItemKind::Ty(udt) => Some(markdown_fenced_block(
+                                    self.display.hir_ident_udt(&udt.name, &udt.definition),
                                 )),
                             };
                             self.start = path.span.lo;
