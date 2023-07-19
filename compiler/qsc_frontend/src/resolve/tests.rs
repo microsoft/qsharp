@@ -38,6 +38,7 @@ impl<'a> Renamer<'a> {
                 Res::Local(node) => format!("local{node}"),
                 Res::PrimTy(prim) => format!("{prim:?}"),
                 Res::UnitTy => "Unit".to_string(),
+                Res::Param(id) => format!("param{id}"),
             };
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
         }
@@ -380,9 +381,9 @@ fn open_shadows_prelude() {
 }
 
 #[test]
-#[should_panic(expected = "ambiguity in prelude resolution")]
 fn ambiguous_prelude() {
-    resolve_names(indoc! {"
+    check(
+        indoc! {"
         namespace Microsoft.Quantum.Canon {
             function A() : Unit {}
         }
@@ -396,7 +397,25 @@ fn ambiguous_prelude() {
                 A();
             }
         }
-    "});
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+            }
+
+            namespace item2 {
+                function item3() : Unit {}
+            }
+
+            namespace item4 {
+                function item5() : Unit {
+                    A();
+                }
+            }
+
+            // AmbiguousPrelude { name: "A", candidate_a: "Microsoft.Quantum.Canon", candidate_b: "Microsoft.Quantum.Core", span: Span { lo: 181, hi: 182 } }
+        "#]],
+    );
 }
 
 #[test]
@@ -974,7 +993,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 189, hi: 196 }, first_open_span: Span { lo: 117, hi: 120 }, second_open_span: Span { lo: 140, hi: 143 } }
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 195, hi: 196 }, first_open_span: Span { lo: 117, hi: 120 }, second_open_span: Span { lo: 140, hi: 143 } }
         "#]],
     );
 }
@@ -1014,7 +1033,7 @@ fn merged_aliases_ambiguous_tys() {
                 function item5(local30 : Alias.A) : Unit {}
             }
 
-            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 164, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 170, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
         "#]],
     );
 }
@@ -1716,6 +1735,48 @@ fn bind_items_in_qubit_use_block() {
                     use local13 = Qubit() {
                         function item2() : Unit {}
                     }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn use_unbound_generic() {
+    check(
+        indoc! {"
+            namespace A {
+                function B<'T>(x: 'U) : 'U {
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1<param0>(local9: 'U) : 'U {
+                    local9
+                }
+            }
+
+            // NotFound("'U", Span { lo: 36, hi: 38 })
+            // NotFound("'U", Span { lo: 42, hi: 44 })
+        "#]],
+    );
+}
+#[test]
+fn resolve_local_generic() {
+    check(
+        indoc! {"
+            namespace A {
+                function B<'T>(x: 'T) : 'T {
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1<param0>(local9: param0) : param0 {
+                    local9
                 }
             }
         "#]],

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::verify_exercise;
-use miette::{Diagnostic, Severity};
+use crate::language_service::VSDiagnostic;
+use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -12,238 +12,24 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, SourceMap,
+    PackageStore, SourceContents, SourceMap, SourceName,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, iter};
+use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
-// These definitions match the values expected by VS Code and Monaco.
-enum CompletionKind {
-    Method = 1,
-    Keyword = 13,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CompletionItem {
-    pub label: String,
-    pub kind: i32,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CompletionList {
-    pub items: Vec<CompletionItem>,
-}
+mod language_service;
+mod logging;
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
-    JsValue::from_str(env!("QSHARP_GIT_HASH"))
-}
-
-// There is no easy way to serialize the result with serde_wasm_bindgen and get
-// good TypeScript typing. Here we manually specify the type that the follow
-// method will return. At the call-site in the TypeScript, the response should be
-// cast to this type. (e.g., var result = get_completions() as ICompletionList).
-// It does mean this type decl must be kept up to date with any structural changes.
-#[wasm_bindgen(typescript_custom_section)]
-const ICompletionList: &'static str = r#"
-export interface ICompletionList {
-    items: Array<{
-        label: string;
-        kind: number;
-    }>
-}
-"#;
-
-#[wasm_bindgen]
-pub fn get_completions() -> Result<JsValue, JsValue> {
-    let res = CompletionList {
-        items: vec![
-            CompletionItem {
-                label: "CCNOT".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "CNOT".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "CZ".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "X".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Y".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Z".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "H".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "S".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "T".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "M".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "CheckZero".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "DumpMachine".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Equal".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Qubit".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Reset".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "@EntryPoint".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Adjoint".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Controlled".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Int".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "if".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "else".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "namespace".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "open".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "operation".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "return".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "use".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Unit".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-        ],
-    };
-    Ok(serde_wasm_bindgen::to_value(&res)?)
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const IDiagnostic: &'static str = r#"
-export interface IDiagnostic {
-    start_pos: number;
-    end_pos: number;
-    message: string;
-    severity: "error" | "warning" | "info"
-    code?: {
-        value: string;
-        target: string;
-    }
-}
-"#;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VSDiagnosticCode {
-    value: String,
-    target: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VSDiagnostic {
-    pub start_pos: usize,
-    pub end_pos: usize,
-    pub message: String,
-    pub severity: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<VSDiagnosticCode>,
+    let git_hash = env!("QSHARP_GIT_HASH");
+    JsValue::from_str(git_hash)
 }
 
 impl VSDiagnostic {
     pub fn json(&self) -> serde_json::Value {
         serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
-    }
-}
-
-impl<T> From<&T> for VSDiagnostic
-where
-    T: Diagnostic,
-{
-    fn from(err: &T) -> Self {
-        let label = err.labels().and_then(|mut ls| ls.next());
-        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
-        let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let severity = (match err.severity().unwrap_or(Severity::Error) {
-            Severity::Error => "error",
-            Severity::Warning => "warning",
-            Severity::Advice => "info",
-        })
-        .to_string();
-
-        let mut message = err.to_string();
-        for source in iter::successors(err.source(), |e| e.source()) {
-            write!(message, ": {source}").expect("message should be writable");
-        }
-        if let Some(help) = err.help() {
-            write!(message, "\n\nhelp: {help}").expect("message should be writable");
-        }
-
-        let code = err.code().map(|code| VSDiagnosticCode {
-            value: code.to_string(),
-            target: "".to_string(),
-        });
-
-        VSDiagnostic {
-            start_pos: offset,
-            end_pos: offset + len,
-            severity,
-            message,
-            code,
-        }
     }
 }
 
@@ -264,12 +50,6 @@ fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
             errors.into_iter().map(|error| (&error).into()).collect(),
         )
     })
-}
-
-#[wasm_bindgen]
-pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
-    let (_, diags) = compile(code);
-    Ok(serde_wasm_bindgen::to_value(&diags)?)
 }
 
 #[wasm_bindgen]
@@ -336,8 +116,8 @@ where
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
-    let context = stateless::Context::new(true, sources);
-    if let Err(err) = context {
+    let interpreter = stateless::Interpreter::new(true, sources);
+    if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
@@ -347,9 +127,10 @@ where
         (out.event_cb)(&msg.to_string());
         return Err(e);
     }
-    let context = context.expect("context should be valid");
+    let interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {
-        let result = context.eval(&mut out);
+        let mut eval_ctx = interpreter.new_eval_context();
+        let result = eval_ctx.eval_entry(&mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),
@@ -392,40 +173,60 @@ pub fn run(
     }
 }
 
-fn run_kata_exercise_internal(
-    verification_source: &str,
-    exercise_implementation: &str,
+fn check_exercise_solution_internal(
+    solution_code: &str,
+    verification_code: &str,
+    code_dependencies: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
-) -> Result<bool, Vec<stateless::Error>> {
-    verify_exercise(
-        vec![
-            ("exercise".into(), exercise_implementation.into()),
-            ("verifier".into(), verification_source.into()),
-        ],
-        &mut CallbackReceiver { event_cb },
-    )
+) -> bool {
+    let mut sources = vec![
+        ("solution".into(), solution_code.into()),
+        ("verification".into(), verification_code.into()),
+    ];
+    for code_dependency in code_dependencies {
+        sources.push(code_dependency);
+    }
+    let mut out = CallbackReceiver { event_cb };
+    let result = check_solution(sources, &mut out);
+    let mut runtime_success = true;
+    let (exercise_success, msg) = match result {
+        Ok(value) => (value, serde_json::Value::String(value.to_string())),
+        Err(errors) => {
+            // TODO: handle multiple errors
+            // https://github.com/microsoft/qsharp/issues/149
+            runtime_success = false;
+            (false, VSDiagnostic::from(&errors[0]).json())
+        }
+    };
+    let msg_string =
+        json!({"type": "Result", "success": runtime_success, "result": msg}).to_string();
+    (out.event_cb)(&msg_string);
+    exercise_success
 }
 
 #[wasm_bindgen]
-pub fn run_kata_exercise(
-    verification_source: &str,
-    exercise_implementation: &str,
+pub fn check_exercise_solution(
+    solution_code: &str,
+    verification_code: &str,
+    code_dependencies_js: JsValue,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
-        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-    }) {
-        Ok(v) => Ok(JsValue::from_bool(v)),
-        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
-        // should be reported with a Result event (also for success) and not an exception.
-        Err(e) => {
-            // TODO: Handle multiple errors.
-            let first_error = e
-                .first()
-                .expect("Running kata failed but no errors were reported");
-            Err(JsError::from(first_error).into())
-        }
+    let code_dependencies_strs: Vec<String> = serde_wasm_bindgen::from_value(code_dependencies_js)
+        .expect("Deserializing code dependencies should succeed");
+    let mut code_dependencies: Vec<(SourceName, SourceContents)> = vec![];
+    for (index, code) in code_dependencies_strs.into_iter().enumerate() {
+        code_dependencies.push((index.to_string().into(), code.into()));
     }
+    let success = check_exercise_solution_internal(
+        solution_code,
+        verification_code,
+        code_dependencies,
+        |msg: &str| {
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+        },
+    );
+
+    Ok(JsValue::from_bool(success))
 }
 
 #[cfg(test)]

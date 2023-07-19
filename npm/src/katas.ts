@@ -1,48 +1,40 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { katas } from "./katas-content.generated.js";
+import { default as katasContent } from "./katas-content.generated.js";
 
 export type Example = {
   type: "example";
   id: string;
-  title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-  source: string;
+  code: string;
 };
 
 export type Exercise = {
   type: "exercise";
   id: string;
-  title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-  verificationImplementation: string;
-  referenceImplementation: string;
-  placeholderImplementation: string;
+  codeDependencies: string[];
+  verificationCode: string;
+  placeholderCode: string;
+  solutionAsHtml: string;
+  solutionAsMarkdown: string;
 };
 
-export type Reading = {
-  type: "reading";
-  id: string;
-  title: string;
+export type Text = {
+  type: "text";
   contentAsHtml: string;
   contentAsMarkdown: string;
 };
 
-export type KataItem = Example | Exercise | Reading;
+export type KataSection = Example | Exercise | Text;
 
 export type Kata = {
   id: string;
   title: string;
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-  items: KataItem[];
+  sections: KataSection[];
 };
 
 export async function getAllKatas(): Promise<Kata[]> {
-  return katas as Kata[];
+  return katasContent.katas as Kata[];
 }
 
 export async function getKata(id: string): Promise<Kata> {
@@ -51,4 +43,12 @@ export async function getKata(id: string): Promise<Kata> {
     katas.find((k) => k.id === id) ||
     Promise.reject(`Failed to get kata with id: ${id}`)
   );
+}
+
+export async function getExerciseDependencies(
+  exercise: Exercise
+): Promise<string[]> {
+  return katasContent.globalCodeSources
+    .filter((source) => exercise.codeDependencies.indexOf(source.name) > -1)
+    .map((source) => source.contents);
 }

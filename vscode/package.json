@@ -1,9 +1,10 @@
 {
   "name": "qsharp-vscode",
-  "displayName": "Q# (new)",
+  "displayName": "Q# (preview)",
   "description": "Q# Language Support",
-  "version": "0.0.1",
-  "type": "module",
+  "version": "0.0.0",
+  "publisher": "quantum",
+  "type": "commonjs",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -11,8 +12,8 @@
     "Programming Languages",
     "Notebooks"
   ],
-  "browser": "./out/extension.cjs",
-  "main": "./out/extension.cjs",
+  "browser": "./out/extension.js",
+  "main": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
     "onNotebook:jupyter"
@@ -41,6 +42,11 @@
   },
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "build": "npm run tsc:check && node build.js"
-  }
+    "build": "npm run tsc:check && node build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/qsharp.git"
+  },
+  "license": "SEE LICENSE IN LICENSE.txt"
 }
