@@ -17,7 +17,8 @@ This tutorial covers the following topics:
 @[exercise]({
     "id": "preparing_bell_state",
     "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./preparing_bell_state/Verification.qs"
     ],
     "verificationSourcePath": "./preparing_bell_state/Verification.qs",
     "placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",

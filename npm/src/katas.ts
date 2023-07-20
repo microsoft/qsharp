@@ -3,17 +3,16 @@
 
 import { default as katasContent } from "./katas-content.generated.js";
 
-// TODO: Remove.
-export type Example = {
-  type: "example";
-  id: string;
-  code: string;
-};
-
-export type QSharp = {
+export type QSharpSource = {
   type: "qsharp";
   sourceId: string;
   code: string;
+};
+
+export type Example = {
+  type: "example";
+  id: string;
+  code: string; // TODO: Should use QSharpSource.
 };
 
 export type Text = {
@@ -22,25 +21,39 @@ export type Text = {
   contentAsMarkdown: string;
 };
 
-export type LessonItem = QSharp | Text;
+export type LessonItem = Example | Text;
 
 export type Lesson = {
   type: "reading";
   id: string;
-  sections: LessonItem[];
+  items: LessonItem[];
+};
+
+export type Solution = {
+  type: "solution";
+  id: string;
+  code: QSharpSource;
+};
+
+export type ExplainedSolutionItem = Example | Solution | Text;
+
+export type ExplainedSolution = {
+  type: "explained-solution";
+  items: ExplainedSolutionItem[];
 };
 
 export type Exercise = {
   type: "exercise";
   id: string;
   // TODO: fields that represent Q# code should be of QSharp type.
-  codeDependencies: string[]; // Rename to just dependencies.
-  verificationCode: string; // Rename to just verification.
+  codeDependencies: string[]; // Rename to just sources.
+  verificationCode: string; // Remove.
   placeholderCode: string; // Rename to placeholder.
   solutionAsHtml: string;
   solutionAsMarkdown: string;
 };
 
+// TODO: Should be Exercise | Lesson | Question
 export type KataSection = Example | Exercise | Text;
 
 export type Kata = {

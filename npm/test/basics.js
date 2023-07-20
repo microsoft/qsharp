@@ -128,7 +128,6 @@ async function validateExercise(exercise, code) {
   const dependencies = await getExerciseDependencies(exercise);
   const success = await compiler.checkExerciseSolution(
     code,
-    exercise.verificationCode,
     dependencies,
     evtTarget
   );

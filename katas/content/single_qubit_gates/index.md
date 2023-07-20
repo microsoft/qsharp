@@ -17,7 +17,8 @@ This tutorial covers the following topics:
 @[exercise]({
     "id": "y_gate",
     "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./y_gate/Verification.qs"
     ],
     "verificationSourcePath": "./y_gate/Verification.qs",
     "placeholderSourcePath": "./y_gate/Placeholder.qs",
@@ -34,7 +35,8 @@ This tutorial covers the following topics:
 @[exercise]({
     "id": "global_phase_i",
     "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./global_phase_i/Verification.qs"
     ],
     "verificationSourcePath": "./global_phase_i/Verification.qs",
     "placeholderSourcePath": "./global_phase_i/Placeholder.qs",

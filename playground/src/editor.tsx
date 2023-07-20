@@ -131,7 +131,6 @@ export function Editor(props: {
         const dependencies = await getExerciseDependencies(props.kataExercise);
         await props.compiler.checkExerciseSolution(
           code,
-          props.kataExercise.verificationCode,
           dependencies,
           props.evtTarget
         );

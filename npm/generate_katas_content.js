@@ -202,6 +202,7 @@ function generateSections(kataPath, markdown, globalCodeSources) {
     if (match !== null) {
       // If there is something between the last processed index and the start of the match, create a text section for
       // it.
+      // TODO: Should error when there is text not associated to a macro.
       const delta = match.index - latestProcessedIndex;
       if (delta > 0) {
         const textSection = generateTextSection(
