@@ -8,9 +8,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
     global::Table,
-    hir::{
-        BinOp, Block, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PrimField, Stmt, StmtKind, UnOp,
-    },
+    hir::{BinOp, Block, Expr, ExprKind, Lit, Mutability, Pat, PrimField, Stmt, StmtKind, UnOp},
     mut_visit::{walk_expr, MutVisitor},
     ty::{GenericArg, Prim, Ty},
 };
@@ -39,24 +37,25 @@ impl LoopUni<'_> {
         let continue_cond_init = continue_cond_id.gen_id_init(
             Mutability::Mutable,
             Expr {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span: cond_span,
                 ty: Ty::Prim(Prim::Bool),
                 kind: ExprKind::Lit(Lit::Bool(true)),
             },
+            self.assigner,
         );
 
         let update = Stmt {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span: cond_span,
             kind: StmtKind::Semi(Expr {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span: cond_span,
                 ty: Ty::UNIT,
                 kind: ExprKind::Assign(
-                    Box::new(continue_cond_id.gen_local_ref()),
+                    Box::new(continue_cond_id.gen_local_ref(self.assigner)),
                     Box::new(Expr {
-                        id: NodeId::default(),
+                        id: self.assigner.next_node(),
                         span: cond_span,
                         ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::UnOp(UnOp::NotL, cond),
@@ -68,16 +67,16 @@ impl LoopUni<'_> {
 
         if let Some(fix_body) = fixup {
             let fix_if = Stmt {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span: fix_body.span,
                 kind: StmtKind::Expr(Expr {
-                    id: NodeId::default(),
+                    id: self.assigner.next_node(),
                     span: fix_body.span,
                     ty: Ty::UNIT,
                     kind: ExprKind::If(
-                        Box::new(continue_cond_id.gen_local_ref()),
+                        Box::new(continue_cond_id.gen_local_ref(self.assigner)),
                         Box::new(Expr {
-                            id: NodeId::default(),
+                            id: self.assigner.next_node(),
                             span: fix_body.span,
                             ty: Ty::UNIT,
                             kind: ExprKind::Block(fix_body),
@@ -90,26 +89,29 @@ impl LoopUni<'_> {
         }
 
         let new_block = Block {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             ty: Ty::UNIT,
             stmts: vec![
                 continue_cond_init,
                 Stmt {
-                    id: NodeId::default(),
+                    id: self.assigner.next_node(),
                     span,
                     kind: StmtKind::Expr(Expr {
-                        id: NodeId::default(),
+                        id: self.assigner.next_node(),
                         span,
                         ty: Ty::UNIT,
-                        kind: ExprKind::While(Box::new(continue_cond_id.gen_local_ref()), block),
+                        kind: ExprKind::While(
+                            Box::new(continue_cond_id.gen_local_ref(self.assigner)),
+                            block,
+                        ),
                     }),
                 },
             ],
         };
 
         Expr {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             ty: Ty::UNIT,
             kind: ExprKind::Block(new_block),
@@ -126,86 +128,90 @@ impl LoopUni<'_> {
         let iterable_span = iterable.span;
 
         let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
-        let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable);
+        let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable, self.assigner);
 
         let Ty::Array(item_ty) = &array_id.ty else { panic!("iterator should have array type"); };
-        let len_callee = create_gen_core_ref(
+        let mut len_callee = create_gen_core_ref(
             self.core,
             "Microsoft.Quantum.Core",
             "Length",
             vec![GenericArg::Ty((**item_ty).clone())],
             array_id.span,
         );
+        len_callee.id = self.assigner.next_node();
         let len_id = self.gen_ident("len_id", Ty::Prim(Prim::Int), iterable_span);
         let len_capture = len_id.gen_id_init(
             Mutability::Immutable,
             Expr {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span: array_id.span,
                 ty: array_id.ty.clone(),
-                kind: ExprKind::Call(Box::new(len_callee), Box::new(array_id.gen_local_ref())),
+                kind: ExprKind::Call(
+                    Box::new(len_callee),
+                    Box::new(array_id.gen_local_ref(self.assigner)),
+                ),
             },
+            self.assigner,
         );
 
         let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
         let index_init = index_id.gen_id_init(
             Mutability::Mutable,
             Expr {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span: iterable_span,
                 ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(0)),
             },
+            self.assigner,
         );
 
         let pat_ty = iter.ty.clone();
         let pat_init = Stmt {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             kind: StmtKind::Local(
                 Mutability::Immutable,
                 iter,
                 Expr {
-                    id: NodeId::default(),
+                    id: self.assigner.next_node(),
                     span: iterable_span,
                     ty: pat_ty,
                     kind: ExprKind::Index(
-                        Box::new(array_id.gen_local_ref()),
-                        Box::new(index_id.gen_local_ref()),
+                        Box::new(array_id.gen_local_ref(self.assigner)),
+                        Box::new(index_id.gen_local_ref(self.assigner)),
                     ),
                 },
             ),
         };
 
-        let update_index = gen_id_add_update(
-            &index_id,
-            Expr {
-                id: NodeId::default(),
-                span: iterable_span,
-                ty: Ty::Prim(Prim::Int),
-                kind: ExprKind::Lit(Lit::Int(1)),
-            },
-        );
+        let update_expr = Expr {
+            id: self.assigner.next_node(),
+            span: iterable_span,
+            ty: Ty::Prim(Prim::Int),
+            kind: ExprKind::Lit(Lit::Int(1)),
+        };
+        let update_index = gen_id_add_update(self.assigner, &index_id, update_expr);
 
         block.stmts.insert(0, pat_init);
         block.stmts.push(update_index);
 
         let cond = Expr {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span: iterable_span,
             ty: Ty::Prim(Prim::Bool),
             kind: ExprKind::BinOp(
                 BinOp::Lt,
-                Box::new(index_id.gen_local_ref()),
-                Box::new(len_id.gen_local_ref()),
+                Box::new(index_id.gen_local_ref(self.assigner)),
+                Box::new(len_id.gen_local_ref(self.assigner)),
             ),
         };
 
         let while_stmt = Stmt {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             kind: StmtKind::Expr(Expr {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span,
                 ty: Ty::UNIT,
                 kind: ExprKind::While(Box::new(cond), block),
@@ -213,11 +219,11 @@ impl LoopUni<'_> {
         };
 
         Expr {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             ty: Ty::UNIT,
             kind: ExprKind::Block(Block {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span,
                 ty: Ty::UNIT,
                 stmts: vec![array_capture, len_capture, index_init, while_stmt],
@@ -235,44 +241,52 @@ impl LoopUni<'_> {
         let iterable_span = iterable.span;
 
         let range_id = self.gen_ident("range_id", Ty::Prim(Prim::Range), iterable_span);
-        let range_capture = range_id.gen_id_init(Mutability::Immutable, *iterable);
+        let range_capture = range_id.gen_id_init(Mutability::Immutable, *iterable, self.assigner);
 
         let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
         let index_init = index_id.gen_id_init(
             Mutability::Mutable,
-            range_id.gen_field_access(PrimField::Start),
+            range_id.gen_field_access(PrimField::Start, self.assigner),
+            self.assigner,
         );
 
         let step_id = self.gen_ident("step_id", Ty::Prim(Prim::Int), iterable_span);
         let step_init = step_id.gen_id_init(
             Mutability::Immutable,
-            range_id.gen_field_access(PrimField::Step),
+            range_id.gen_field_access(PrimField::Step, self.assigner),
+            self.assigner,
         );
 
         let end_id = self.gen_ident("end_id", Ty::Prim(Prim::Int), iterable_span);
         let end_init = end_id.gen_id_init(
             Mutability::Immutable,
-            range_id.gen_field_access(PrimField::End),
+            range_id.gen_field_access(PrimField::End, self.assigner),
+            self.assigner,
         );
 
         let pat_init = Stmt {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
-            kind: StmtKind::Local(Mutability::Immutable, iter, index_id.gen_local_ref()),
+            kind: StmtKind::Local(
+                Mutability::Immutable,
+                iter,
+                index_id.gen_local_ref(self.assigner),
+            ),
         };
 
-        let update_index = gen_id_add_update(&index_id, step_id.gen_local_ref());
+        let update_expr = step_id.gen_local_ref(self.assigner);
+        let update_index = gen_id_add_update(self.assigner, &index_id, update_expr);
 
         block.stmts.insert(0, pat_init);
         block.stmts.push(update_index);
 
-        let cond = gen_range_cond(&index_id, &step_id, &end_id, iterable_span);
+        let cond = gen_range_cond(self.assigner, &index_id, &step_id, &end_id, iterable_span);
 
         let while_stmt = Stmt {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             kind: StmtKind::Expr(Expr {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span,
                 ty: Ty::UNIT,
                 kind: ExprKind::While(Box::new(cond), block),
@@ -280,11 +294,11 @@ impl LoopUni<'_> {
         };
 
         Expr {
-            id: NodeId::default(),
+            id: self.assigner.next_node(),
             span,
             ty: Ty::UNIT,
             kind: ExprKind::Block(Block {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span,
                 ty: Ty::UNIT,
                 stmts: vec![range_capture, index_init, step_init, end_init, while_stmt],
@@ -328,32 +342,33 @@ impl MutVisitor for LoopUni<'_> {
 }
 
 fn gen_range_cond(
+    assigner: &mut Assigner,
     index: &IdentTemplate,
     step: &IdentTemplate,
     end: &IdentTemplate,
     span: Span,
 ) -> Expr {
     Expr {
-        id: NodeId::default(),
+        id: assigner.next_node(),
         span,
         ty: Ty::Prim(Prim::Bool),
         kind: ExprKind::BinOp(
             BinOp::OrL,
             Box::new(Expr {
-                id: NodeId::default(),
+                id: assigner.next_node(),
                 span,
                 ty: Ty::Prim(Prim::Bool),
                 kind: ExprKind::BinOp(
                     BinOp::AndL,
                     Box::new(Expr {
-                        id: NodeId::default(),
+                        id: assigner.next_node(),
                         span,
                         ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Gt,
-                            Box::new(step.gen_local_ref()),
+                            Box::new(step.gen_local_ref(assigner)),
                             Box::new(Expr {
-                                id: NodeId::default(),
+                                id: assigner.next_node(),
                                 span,
                                 ty: Ty::Prim(Prim::Int),
                                 kind: ExprKind::Lit(Lit::Int(0)),
@@ -361,32 +376,32 @@ fn gen_range_cond(
                         ),
                     }),
                     Box::new(Expr {
-                        id: NodeId::default(),
+                        id: assigner.next_node(),
                         span,
                         ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Lte,
-                            Box::new(index.gen_local_ref()),
-                            Box::new(end.gen_local_ref()),
+                            Box::new(index.gen_local_ref(assigner)),
+                            Box::new(end.gen_local_ref(assigner)),
                         ),
                     }),
                 ),
             }),
             Box::new(Expr {
-                id: NodeId::default(),
+                id: assigner.next_node(),
                 span,
                 ty: Ty::Prim(Prim::Bool),
                 kind: ExprKind::BinOp(
                     BinOp::AndL,
                     Box::new(Expr {
-                        id: NodeId::default(),
+                        id: assigner.next_node(),
                         span,
                         ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Lt,
-                            Box::new(step.gen_local_ref()),
+                            Box::new(step.gen_local_ref(assigner)),
                             Box::new(Expr {
-                                id: NodeId::default(),
+                                id: assigner.next_node(),
                                 span,
                                 ty: Ty::Prim(Prim::Int),
                                 kind: ExprKind::Lit(Lit::Int(0)),
@@ -394,13 +409,13 @@ fn gen_range_cond(
                         ),
                     }),
                     Box::new(Expr {
-                        id: NodeId::default(),
+                        id: assigner.next_node(),
                         span,
                         ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Gte,
-                            Box::new(index.gen_local_ref()),
-                            Box::new(end.gen_local_ref()),
+                            Box::new(index.gen_local_ref(assigner)),
+                            Box::new(end.gen_local_ref(assigner)),
                         ),
                     }),
                 ),
@@ -409,15 +424,19 @@ fn gen_range_cond(
     }
 }
 
-fn gen_id_add_update(ident: &IdentTemplate, expr: Expr) -> Stmt {
+fn gen_id_add_update(assigner: &mut Assigner, ident: &IdentTemplate, expr: Expr) -> Stmt {
     Stmt {
-        id: NodeId::default(),
+        id: assigner.next_node(),
         span: ident.span,
         kind: StmtKind::Semi(Expr {
-            id: NodeId::default(),
+            id: assigner.next_node(),
             span: ident.span,
             ty: Ty::UNIT,
-            kind: ExprKind::AssignOp(BinOp::Add, Box::new(ident.gen_local_ref()), Box::new(expr)),
+            kind: ExprKind::AssignOp(
+                BinOp::Add,
+                Box::new(ident.gen_local_ref(assigner)),
+                Box::new(expr),
+            ),
         }),
     }
 }
