@@ -128,16 +128,43 @@ The qubits aren't an ordinary data type, so the variables of this type have to b
 
 Freshly allocated qubits start out in state $|0\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\rangle$ will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
 
-### Examining Qubit States in Q#
+## Visualizing Quantum State
 
-We will be using the function [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum computer.
+Before we continue, let's learn some techniques to visualize the Quantum state of our qubits.
+
+### Display the quantum state of a single-qubit program
+
+Let's start with a simple scenario: a program that acts on a single qubit. 
+The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
+
+$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+
+> If you need a refresher on single-qubit quantum systems and their states, please see the tutorial on [the concept of a qubit](../Qubit/Qubit.ipynb).
+
+If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation. 
+You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.
+
+However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state. 
+You can take advantage of this to do some non-physical things, such as peeking at the internals of the quantum system to observe its exact state without disturbing it!
+
+[DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from [Microsoft.Quantum.Diagnostics namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. This function is available in standalone Q# applications as well.
+
+### <span style="color:blue">Demo: DumpMachine for single-qubit systems</span>
+
+The following demo shows how to use [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to output the state of the system at any point in the program without affecting the state.
+
+> Note that the Q# code doesn't have access to the output of `DumpMachine`, so you cannot write any non-physical code in Q#!
+
+The output of `DumpMachine` is accurate up to a global phase: sometimes you'll see that all amplitudes are multiplied by some complex number compared to the state you're expecting.
+
+@[example]({"id": "single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
 
 The exact behavior of this function depends on the quantum simulator or processor you are using.
 
-On the simulator used in this demo, this function prints the information on each basis state that has a non-zero amplitude, one basis state per row.
+On the simulator used in these demos, this function prints the information on each basis state that has a non-zero amplitude, one basis state per row.
 This includes information about the amplitude of the state, the probability of measuring that state, and the phase of the state (more on that later)
 
-Each row has the following format:
+Note that each row has the following format:
 
 <table class="state-table"><thead><tr><th>Basis State<br>(|𝜓ₙ…𝜓₁⟩)</th><th>Amplitude</th><th>Measurement Probability</th><th colspan="2">Phase</th></tr></thead></table>
 
@@ -150,6 +177,175 @@ For example, the state $|0\rangle$ would be represented as follows:
 This demo shows how to allocate a qubit and examine its state in Q#. This demo uses quantum gates to manipulate the state of the qubit - we will explain how they work in the next tutorial, so do not worry about them for now. Run the next example to see the output:
 
 @[example]({"id": "qubit_data_type", "codePath": "./examples/QubitDataType.qs"})
+
+### <span style="color:blue">Exercise 1</span>: Learn the state of the qubit without measurements
+
+**Input:** A qubit in an unknown state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$. The amplitudes $\alpha$ and $\beta$ will be real and non-negative.
+
+**Output:** A tuple of two numbers $(\alpha', \beta')$ - your estimates of the amplitudes $\alpha$ and $\beta$.
+The absolute errors $|\alpha - \alpha'|$ and $|\beta - \beta'|$ should be less than or equal to 0.001.
+
+The test will call your code exactly once, with the fixed state parameter that will not change if you run the cell several times.
+
+@[exercise]({
+    "id": "learn_single_qubit_state",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./learn_single_qubit_state/Verification.qs",
+    "placeholderSourcePath": "./learn_single_qubit_state/Placeholder.qs",
+    "solutionSourcePath": "./learn_single_qubit_state/Solution.qs",
+    "solutionDescriptionPath": "./learn_single_qubit_state/solution.md"
+})
+
+### Display the quantum state of a multi-qubit program
+
+Now let's take a look at the general case: a program that acts on $N$ qubits. 
+The state of the quantum system used by this program can be represented as a complex vector of length $2^N$, or, using Dirac notation,
+
+$$\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_{2^N-1}\end{bmatrix} = \sum_{k = 0}^{2^N-1} x_k |k\rangle$$
+
+Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes $x_k$ for all basis states $|k\rangle$ directly.
+
+> Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
+By default, `DumpMachine` uses little-endian to convert bit strings to integers in the ket notation.
+For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQubitSystems/MultiQubitSystems.ipynb#Endianness).
+
+### <span style="color:blue">Demo: DumpMachine for multi-qubit systems</span>
+
+@[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
+
+### <span style="color:blue">Exercise 2</span>: Learn the amplitude of a basis state without measurements
+
+**Input:** 2 qubits in an unknown state $|\psi\rangle = \sum_{k = 0}^{3} x_k |k\rangle$. The amplitudes $x_k$ will be real and non-negative.
+
+**Output:** A tuple of two numbers $(x_1', x_2')$ - your estimates of the amplitudes of the state $|1\rangle$ and $|2\rangle$, respectively.
+The absolute errors $|x_1 - x_1'|$ and $|x_2 - x_2'|$ should be less than or equal to 0.001.
+
+The test will call your code exactly once, with the fixed state parameter that will not change if you run the cell several times.
+
+@[exercise]({
+    "id": "learn_basis_state_amplitudes",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./learn_basis_state_amplitudes/Verification.qs",
+    "placeholderSourcePath": "./learn_basis_state_amplitudes/Placeholder.qs",
+    "solutionSourcePath": "./learn_basis_state_amplitudes/Solution.qs",
+    "solutionDescriptionPath": "./learn_basis_state_amplitudes/solution.md"
+})
+
+## Configure DumpMachine output
+
+Sometimes you want to focus on certain properties of the quantum state, such as the relative phases of individual basis states, or on certain parts of the state, such as the basis states with larger amplitudes associated with them. 
+[%config](https://docs.microsoft.com/qsharp/api/iqsharp-magic/config) magic command allows you to tweak the format of `DumpMachine` output (available in Q# Jupyter Notebooks only). 
+Here are some useful options that help you extract the right information:
+
+* `dump.basisStateLabelingConvention` sets the way the basis states are labeled in the output. Here is how the basis state $|10\rangle$ will look like with different settings:
+
+  <table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
+    <col>
+    <col width=300>
+    <tr>
+        <th style="text-align:center; border:1px solid">dump.basisStateLabelingConvention value</th>
+        <th style="text-align:center; border:1px solid">DumpMachine output (first two columns)</th>
+    </tr>
+    <tr>
+        <td style="text-align:left; border:1px solid"><tt>"LittleEndian"</tt> (default)</td>
+        <td style="text-align:center; border:1px solid"><img src="./img/DumpMachine_LittleEndian.PNG"/></td>
+    </tr>
+    <tr>
+        <td style="text-align:left; border:1px solid"><tt>"BigEndian"</tt></td>
+        <td style="text-align:center; border:1px solid"><img src="./img/DumpMachine_BigEndian.PNG"/></td>
+    </tr>
+    <tr>
+        <td style="text-align:left; border:1px solid"><tt>"Bitstring"</tt></td>
+        <td style="text-align:center; border:1px solid"><img src="./img/DumpMachine_Bitstring.PNG"/></td>
+    </tr>
+  </table>
+  
+* `dump.truncateSmallAmplitudes`, when set to `true`, removes basis states with measurement probabilities less than a certain threshold from the output. 
+By default the measurement probability has to be less than $10^{-10}$ for the state to be truncated; you can change that threshold using the `dump.truncationThreshold` setting.
+* `dump.measurementDisplayStyle` and `dump.phaseDisplayStyle` set the style of display for "Measurement Probability" and "Phase" columns; you can choose between bar/arrow, number, both, or none for each of the columns. 
+If you choose to display the numeric value of measurement probability, you can configure its probability using `dump.measurementDisplayPrecision`.
+
+### <span style="color:blue">Exercise 3</span>: High-probability basis states
+
+**Input:** $N$ qubits in an unknown state $|\psi\rangle = \sum_{k = 0}^{2^N-1} x_k |k\rangle$. The amplitudes $x_k$ will be real and non-negative.
+
+**Output:** An array of integers which represent the basis states which have amplitudes bigger than 0.01 (in little endian encoding). The integers can be returned in any order.
+
+The test will call your code exactly once, with the fixed state parameter that will not change if you run the cell several times.
+
+@[exercise]({
+    "id": "high_probability_basis_states",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./high_probability_basis_states/Verification.qs",
+    "placeholderSourcePath": "./high_probability_basis_states/Placeholder.qs",
+    "solutionSourcePath": "./high_probability_basis_states/Solution.qs",
+    "solutionDescriptionPath": "./high_probability_basis_states/solution.md"
+})
+
+## Display the matrix implemented by the operation
+
+Let's consider a more complex scenario: you've written a Q# operation and want to check that it implements exactly the matrix you're looking for. 
+(An examples of such cases could be quantum oracle implementation, unitary gate synthesis, or more uncommon scenarios such as the [UnitaryPatterns kata](../../UnitaryPatterns/UnitaryPatterns.ipynb)).
+
+You could do this semi-manually, by applying the operation to each basis state in turn and checking the amplitudes of the resulting states. 
+However, [DumpOperation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpoperation) library operation offers you a shorter and more elegant way to do this.
+
+> `DumpOperation` is available both in standalone Q# applications as well, but the outputs it produces differs slightly: in plain text mode it is printed with the real and the imaginary components separated into two matrices.
+
+Similarly to `DumpMachine`, the output of `DumpOperation` is accurate up to a global phase.
+
+### <span style="color:blue">Demo: Using DumpOperation</span>
+
+`DumpOperation` requires an operation that acts on an array of qubits. 
+If your operation acts on a single qubit, such as most intrinsic gates, or on a mix of individual qubits and qubit arrays, you'll need to write a wrapper for it that takes a single array of qubits as an argument and applies the operation to the right qubits of that array.
+
+@[example]({"id": "dump_operation_demo", "codePath": "./examples/DumpOperationDemo.qs"})
+
+> Note that the matrix of the CNOT gate produced by `DumpOperation` in this demo might differ from the one you are used to seeing in quantum computing resources, such as the [multi-qubit gates tutorial](../MultiQubitGates/MultiQubitGates.ipynb#CNOT-Gate):
+> $$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$$
+>
+> Similarly to `DumpMachine`, the way `DumpOperation` evaluates the matrix depends on the conventions used by the simulator. 
+> Q# full state simulator tends to use little-endian encoding for converting basis states to integers, and `DumpOperation` uses the same convention for converting basis states to the indices of matrix elements.
+> Thus, the second column of the CNOT matrix corresponds to the input state $|1\rangle_{LE} = |10\rangle$, which the CNOT gate converts to $|11\rangle = |3\rangle_{LE}$, meaning that the last element is going to be $1$.
+>
+> A lot of resources on quantum computing use big-endian encoding, so in them the second column of the CNOT matrix corresponds to the input state $|1\rangle_{BE} = |01\rangle$, which should be left unchanged by the CNOT gate.
+
+### <span style="color:blue">Exercise 4</span>: Read the operation matrix
+
+In this task you will be interpreting the matrix of an operation `MysteryOperation1` that implements a unitary operation $U$, defined in the `Quantum.Kata.VisualizationTools` namespace. 
+This operation will not be passed as an input to your task; you can access it by creating a separate code cell with a new operation (or modifying `DumpOperationDemo`), and using `%simulate` for that operation.
+
+**Input:** None.
+
+**Output:** A single floating-point number: the amplitude of the $|10\rangle$ basis state in the state $U|01\rangle$ (i.e., the element of the matrix implemented by $U$ which describes the transformation $|01\rangle \rightarrow |10\rangle$). The result must be within 0.001 from the actual value.
+
+<br/>
+<details>
+  <summary><b>Need a hint? Click here</b></summary>
+  There are two ways to do this task. You can use DumpOperation directly, or (since you're looking for just one coefficient, not all of them) you can allocate 2 qubits, prepare them in the right basis state, apply the MysteryOperation1 and use DumpMachine to see the amplitudes of the resulting superposition state.
+</details>
+
+
+@[exercise]({
+    "id": "read_mystery_operation_matrix",
+    "codeDependenciesPaths": [
+        "../KatasLibrary.qs"
+    ],
+    "verificationSourcePath": "./read_mystery_operation_matrix/Verification.qs",
+    "placeholderSourcePath": "./read_mystery_operation_matrix/Placeholder.qs",
+    "solutionSourcePath": "./read_mystery_operation_matrix/Solution.qs",
+    "solutionDescriptionPath": "./read_mystery_operation_matrix/solution.md"
+})
+++++++++++++++++++++
+
+
+
 
 ## Relative and Global Phase
 
