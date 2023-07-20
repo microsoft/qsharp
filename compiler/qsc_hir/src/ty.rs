@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::hir::{CallableKind, Functor, Res};
+use crate::hir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
+    rc::Rc,
 };
 
 /// A type.
@@ -383,6 +384,89 @@ impl Display for FunctorSetValue {
             Self::CtlAdj => f.write_str("Adj + Ctl"),
         }
     }
+}
+
+/// A user-defined type.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Udt {
+    /// The basis type used as the definition of the user-defined type.
+    pub base: Ty,
+    /// The named fields of the user-defined type.
+    pub fields: Vec<UdtField>,
+}
+
+impl Udt {
+    /// The type scheme of the constructor for this type definition.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the constructed type.
+    #[must_use]
+    pub fn cons_scheme(&self, id: ItemId) -> Scheme {
+        Scheme {
+            params: Vec::new(),
+            ty: Box::new(Arrow {
+                kind: CallableKind::Function,
+                input: Box::new(self.base.clone()),
+                output: Box::new(Ty::Udt(Res::Item(id))),
+                functors: FunctorSet::Value(FunctorSetValue::Empty),
+            }),
+        }
+    }
+
+    /// The path to the field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn field_path(&self, name: &str) -> Option<&FieldPath> {
+        for field in &self.fields {
+            if field.name.as_ref() == name {
+                return Some(&field.path);
+            }
+        }
+
+        None
+    }
+
+    /// The type of the field at the given path. Returns [None] if the path is not valid for this
+    /// user-defined type.
+    #[must_use]
+    pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
+        let mut ty = &self.base;
+        for &index in &path.indices {
+            let Ty::Tuple(items) = ty else { return None; };
+            ty = &items[index];
+        }
+        Some(ty)
+    }
+
+    /// The type of the field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
+        let path = self.field_path(name)?;
+        self.field_ty(path)
+    }
+}
+
+impl Display for Udt {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str("Udt:")?;
+        write!(f, "\n    base: {}", self.base)?;
+        f.write_str("\n    fields:")?;
+        for field in &self.fields {
+            write!(f, "\n        {}: {:?}", field.name, field.path.indices)?;
+        }
+        Ok(())
+    }
+}
+
+/// A named field in a user-defined type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UdtField {
+    /// The field name.
+    pub name: Rc<str>,
+    /// The field path.
+    pub path: FieldPath,
 }
 
 /// A placeholder type variable used during type inference.

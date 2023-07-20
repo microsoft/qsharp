@@ -12,8 +12,8 @@ use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
-    hir::{CallableKind, ItemId, MyUdt},
-    ty::{FunctorSet, GenericArg, Ty},
+    hir::{CallableKind, ItemId},
+    ty::{FunctorSet, GenericArg, Ty, Udt},
 };
 use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
@@ -22,7 +22,7 @@ pub(super) use check::{Checker, GlobalTable};
 
 #[derive(Debug, Default)]
 pub struct Table {
-    pub udts: HashMap<ItemId, MyUdt>,
+    pub udts: HashMap<ItemId, Udt>,
 
     // AST nodes that get mapped to types are Expr, Block, Pat, and QubitInit nodes
     pub terms: IndexMap<NodeId, Ty>,

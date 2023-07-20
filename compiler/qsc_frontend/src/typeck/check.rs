@@ -15,13 +15,13 @@ use qsc_ast::{
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
-    hir::{self, ItemId, MyUdt, PackageId},
-    ty::{FunctorSetValue, Scheme, Ty},
+    hir::{self, ItemId, PackageId},
+    ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
 use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
-    udts: HashMap<ItemId, MyUdt>,
+    udts: HashMap<ItemId, Udt>,
     terms: HashMap<ItemId, Scheme>,
     errors: Vec<Error>,
 }
@@ -222,15 +222,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                 );
 
                 let fields = convert::ast_ty_def_fields(def);
-                self.checker.table.udts.insert(
-                    item,
-                    MyUdt {
-                        id: todo!(),
-                        span: todo!(),
-                        name: todo!(),
-                        definition: todo!(),
-                    },
-                );
+                self.checker.table.udts.insert(item, Udt { base, fields });
                 self.checker.globals.insert(item, cons);
             }
             _ => {}

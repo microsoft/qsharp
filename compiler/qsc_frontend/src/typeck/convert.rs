@@ -9,7 +9,7 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir,
-    ty::{Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty},
+    ty::{Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtField},
 };
 use std::rc::Rc;
 
@@ -110,28 +110,28 @@ pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyE
     }
 }
 
-// pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
-//     match &*def.kind {
-//         TyDefKind::Field(Some(name), _) => {
-//             vec![UdtField {
-//                 name: Rc::clone(&name.name),
-//                 path: hir::FieldPath::default(),
-//             }]
-//         }UdtField
-//         TyDefKind::Field(None, _) => Vec::new(),
-//         TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
-//         TyDefKind::Tuple(items) => {
-//             let mut fields = Vec::new();
-//             for (index, item) in items.iter().enumerate() {
-//                 for mut field in ast_ty_def_fields(item) {
-//                     field.path.indices.insert(0, index);
-//                     fields.push(field);
-//                 }
-//             }
-//             fields
-//         }
-//     }
-// }
+pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
+    match &*def.kind {
+        TyDefKind::Field(Some(name), _) => {
+            vec![UdtField {
+                name: Rc::clone(&name.name),
+                path: hir::FieldPath::default(),
+            }]
+        }
+        TyDefKind::Field(None, _) => Vec::new(),
+        TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
+        TyDefKind::Tuple(items) => {
+            let mut fields = Vec::new();
+            for (index, item) in items.iter().enumerate() {
+                for mut field in ast_ty_def_fields(item) {
+                    field.path.indices.insert(0, index);
+                    fields.push(field);
+                }
+            }
+            fields
+        }
+    }
+}
 
 pub(super) fn ast_callable_scheme(
     names: &Names,
