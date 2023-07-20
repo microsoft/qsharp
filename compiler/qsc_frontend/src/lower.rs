@@ -628,11 +628,7 @@ impl With<'_> {
 
     fn lower_field(&mut self, record_ty: &Ty, name: &str) -> hir::Field {
         if let Ty::Udt(hir::Res::Item(id)) = record_ty {
-            self.tys
-                .udts
-                .get(id)
-                .and_then(|udt| udt.field_path(name))
-                .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
+            self.tys.udts.get(id).map_or(hir::Field::Err, |f| todo!())
         } else if let Ok(prim) = name.parse() {
             hir::Field::Prim(prim)
         } else {

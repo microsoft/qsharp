@@ -4,10 +4,10 @@
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
-    hir::{ItemId, PrimField, Res},
+    hir::{ItemId, MyUdt, PrimField, Res},
     ty::{
         Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, InferFunctorId, InferTyId,
-        Prim, Scheme, Ty, Udt,
+        Prim, Scheme, Ty,
     },
 };
 use std::{
@@ -135,7 +135,7 @@ impl Class {
         }
     }
 
-    fn check(self, udts: &HashMap<ItemId, Udt>, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+    fn check(self, udts: &HashMap<ItemId, MyUdt>, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         match self {
             Class::Add(ty) if check_add(&ty) => (Vec::new(), Vec::new()),
             Class::Add(ty) => (
@@ -388,7 +388,7 @@ impl Inferrer {
     }
 
     /// Solves for all variables given the accumulated constraints.
-    pub(super) fn solve(mut self, udts: &HashMap<ItemId, Udt>) -> (Solution, Vec<Error>) {
+    pub(super) fn solve(mut self, udts: &HashMap<ItemId, MyUdt>) -> (Solution, Vec<Error>) {
         let mut solver = Solver::new(udts, self.next_functor);
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in solver.constrain(constraint).into_iter().rev() {
@@ -426,7 +426,7 @@ impl Inferrer {
 
 #[derive(Debug)]
 struct Solver<'a> {
-    udts: &'a HashMap<ItemId, Udt>,
+    udts: &'a HashMap<ItemId, MyUdt>,
     functor_end: InferFunctorId,
     solution: Solution,
     pending_tys: HashMap<InferTyId, Vec<Class>>,
@@ -435,7 +435,7 @@ struct Solver<'a> {
 }
 
 impl<'a> Solver<'a> {
-    fn new(udts: &'a HashMap<ItemId, Udt>, functor_end: InferFunctorId) -> Self {
+    fn new(udts: &'a HashMap<ItemId, MyUdt>, functor_end: InferFunctorId) -> Self {
         Self {
             udts,
             functor_end,
@@ -841,7 +841,7 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_has_field(
-    udts: &HashMap<ItemId, Udt>,
+    udts: &HashMap<ItemId, MyUdt>,
     record: Ty,
     name: String,
     item: Ty,
@@ -974,7 +974,7 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_unwrap(
-    udts: &HashMap<ItemId, Udt>,
+    udts: &HashMap<ItemId, MyUdt>,
     wrapper: Ty,
     base: Ty,
     span: Span,
@@ -984,7 +984,7 @@ fn check_unwrap(
             return (
                 vec![Constraint::Eq {
                     expected: base,
-                    actual: udt.base.clone(),
+                    actual: udt.get_pure_ty(),
                     span,
                 }],
                 Vec::new(),

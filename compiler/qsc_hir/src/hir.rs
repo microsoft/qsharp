@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 
-use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
+use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty};
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -340,6 +340,7 @@ impl Display for MyUdt {
 }
 
 impl MyUdt {
+    #[must_use]
     pub fn get_pure_ty(&self) -> Ty {
         fn get_pure_ty(def: &TyDef) -> Ty {
             match &def.kind {
@@ -366,6 +367,10 @@ impl MyUdt {
                 functors: FunctorSet::Value(FunctorSetValue::Empty),
             }),
         )
+    }
+
+    fn get_field_from_path(path: &FieldPath) -> &TyDef {
+        todo!()
     }
 }
 
