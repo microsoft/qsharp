@@ -47,7 +47,6 @@ export type Exercise = {
   id: string;
   // TODO: fields that represent Q# code should be of QSharp type.
   codeDependencies: string[]; // Rename to just sources.
-  verificationCode: string; // Remove.
   placeholderCode: string; // Rename to placeholder.
   solutionAsHtml: string;
   solutionAsMarkdown: string;

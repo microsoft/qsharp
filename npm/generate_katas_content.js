@@ -121,7 +121,6 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   const requiredProperties = [
     "id",
     "codeDependenciesPaths",
-    "verificationSourcePath",
     "placeholderSourcePath",
     "solutionSourcePath",
     "solutionDescriptionPath",
@@ -144,10 +143,6 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
     resolvedCodeDependenciesPaths,
     globalCodeSources
   );
-  const verificationCode = tryReadFile(
-    join(kataPath, properties.verificationSourcePath),
-    `Could not read verification code for exercise ${properties.id}`
-  );
   const placeholderCode = tryReadFile(
     join(kataPath, properties.placeholderSourcePath),
     `Could not read placeholder code for exercise ${properties.id}`
@@ -161,7 +156,6 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
     type: "exercise",
     id: properties.id,
     codeDependencies: codeDependencies,
-    verificationCode: verificationCode,
     placeholderCode: placeholderCode,
     solutionAsMarkdown: solutionAsMarkdown,
     solutionAsHtml: solutionAsHtml,

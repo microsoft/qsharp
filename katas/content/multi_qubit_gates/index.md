@@ -20,7 +20,6 @@ This tutorial covers the following topics:
         "../KatasLibrary.qs",
         "./preparing_bell_state/Verification.qs"
     ],
-    "verificationSourcePath": "./preparing_bell_state/Verification.qs",
     "placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",
     "solutionSourcePath": "./preparing_bell_state/Solution.qs",
     "solutionDescriptionPath": "./preparing_bell_state/solution.md"
