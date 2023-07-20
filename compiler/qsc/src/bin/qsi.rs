@@ -16,6 +16,7 @@ use qsc_eval::{
     val::Value,
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
+use qsc_passes::PackageType;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -96,7 +97,11 @@ fn main() -> miette::Result<ExitCode> {
         ));
     }
 
-    let mut interpreter = match Interpreter::new(!cli.nostdlib, SourceMap::new(sources, None)) {
+    let mut interpreter = match Interpreter::new_with_context(
+        !cli.nostdlib,
+        SourceMap::new(sources, None),
+        PackageType::Lib,
+    ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
             for error in errors {

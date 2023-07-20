@@ -95,6 +95,12 @@ impl From<NodeId> for u32 {
     }
 }
 
+impl From<u32> for NodeId {
+    fn from(value: u32) -> Self {
+        NodeId(value)
+    }
+}
+
 impl PartialEq for NodeId {
     fn eq(&self, other: &Self) -> bool {
         assert!(!self.is_default(), "default node ID should be replaced");
@@ -123,6 +129,89 @@ impl Hash for NodeId {
         self.0.hash(state);
     }
 }
+
+macro_rules! fir_id {
+    ($id:ident) => {
+        /// A unique identifier for an FIR node.
+        #[derive(Debug, Clone, Copy)]
+        pub struct $id(pub u32);
+
+        impl From<NodeId> for $id {
+            fn from(val: NodeId) -> Self {
+                $id(val.into())
+            }
+        }
+
+        impl From<$id> for NodeId {
+            fn from(val: $id) -> Self {
+                NodeId(val.into())
+            }
+        }
+
+        impl From<u32> for $id {
+            fn from(val: u32) -> Self {
+                $id(val)
+            }
+        }
+
+        impl From<$id> for u32 {
+            fn from(id: $id) -> Self {
+                id.0
+            }
+        }
+
+        impl From<$id> for usize {
+            fn from(value: $id) -> Self {
+                value.0 as usize
+            }
+        }
+
+        impl From<usize> for $id {
+            fn from(value: usize) -> Self {
+                $id(value
+                    .try_into()
+                    .expect(&format!("Type {} does not fit into u32", stringify!($id))))
+            }
+        }
+
+        impl PartialEq for $id {
+            fn eq(&self, other: &Self) -> bool {
+                self.0 == other.0
+            }
+        }
+
+        impl Eq for $id {}
+
+        impl PartialOrd for $id {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                self.0.partial_cmp(&other.0)
+            }
+        }
+
+        impl Ord for $id {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.0.cmp(&other.0)
+            }
+        }
+
+        impl std::hash::Hash for $id {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                self.0.hash(state);
+            }
+        }
+
+        impl Display for $id {
+            fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+                Display::fmt(&self.0, f)
+            }
+        }
+    };
+}
+
+fir_id!(BlockId);
+fir_id!(ExprId);
+fir_id!(PatId);
+fir_id!(StmtId);
 
 /// A unique identifier for a package within a package store.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -233,7 +322,15 @@ pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
     /// The entry expression for an executable package.
-    pub entry: Option<Expr>,
+    pub entry: Option<ExprId>,
+    /// The blocks in the package.
+    pub blocks: IndexMap<BlockId, Block>,
+    /// The expressions in the package.
+    pub exprs: IndexMap<ExprId, Expr>,
+    /// The patterns in the package.
+    pub pats: IndexMap<PatId, Pat>,
+    /// The statements in the package.
+    pub stmts: IndexMap<StmtId, Stmt>,
 }
 
 impl Display for Package {
@@ -347,7 +444,7 @@ pub struct CallableDecl {
     /// The generic parameters to the callable.
     pub generics: Vec<GenericParam>,
     /// The input to the callable.
-    pub input: Pat,
+    pub input: PatId,
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
@@ -365,12 +462,12 @@ pub struct CallableDecl {
 impl CallableDecl {
     /// The type scheme of the callable.
     #[must_use]
-    pub fn scheme(&self) -> Scheme {
+    pub fn scheme<'a>(&self, f: impl Fn(PatId) -> &'a Pat) -> Scheme {
         Scheme::new(
             self.generics.clone(),
             Box::new(Arrow {
                 kind: self.kind,
-                input: Box::new(self.input.ty.clone()),
+                input: Box::new(f(self.input).ty.clone()),
                 output: Box::new(self.output.clone()),
                 functors: FunctorSet::Value(self.functors),
             }),
@@ -439,7 +536,7 @@ pub enum SpecBody {
     /// The strategy to use to automatically generate the specialization.
     Gen(SpecGen),
     /// A manual implementation of the specialization.
-    Impl(Option<Pat>, Block),
+    Impl(Option<PatId>, BlockId),
 }
 
 impl Display for SpecBody {
@@ -470,7 +567,7 @@ pub struct Block {
     /// The block type.
     pub ty: Ty,
     /// The statements in the block.
-    pub stmts: Vec<Stmt>,
+    pub stmts: Vec<StmtId>,
 }
 
 impl Display for Block {
@@ -514,15 +611,15 @@ impl Display for Stmt {
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
     /// An expression without a trailing semicolon.
-    Expr(Expr),
+    Expr(ExprId),
     /// An item.
     Item(LocalItemId),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
-    Local(Mutability, Pat, Expr),
+    Local(Mutability, PatId, ExprId),
     /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.
-    Qubit(QubitSource, Pat, QubitInit, Option<Block>),
+    Qubit(QubitSource, PatId, QubitInit, Option<BlockId>),
     /// An expression with a trailing semicolon.
-    Semi(Expr),
+    Semi(ExprId),
 }
 
 impl Display for StmtKind {
@@ -553,7 +650,7 @@ impl Display for StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
@@ -576,71 +673,62 @@ impl Display for Expr {
 }
 
 /// An expression kind.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ExprKind {
     /// An array: `[a, b, c]`.
-    Array(Vec<Expr>),
+    Array(Vec<ExprId>),
     /// An array constructed by repeating a value: `[a, size = b]`.
-    ArrayRepeat(Box<Expr>, Box<Expr>),
+    ArrayRepeat(ExprId, ExprId),
     /// An assignment: `set a = b`.
-    Assign(Box<Expr>, Box<Expr>),
+    Assign(ExprId, ExprId),
     /// An assignment with a compound operator. For example: `set a += b`.
-    AssignOp(BinOp, Box<Expr>, Box<Expr>),
+    AssignOp(BinOp, ExprId, ExprId),
     /// An assignment with a compound field update operator: `set a w/= B <- c`.
-    AssignField(Box<Expr>, Field, Box<Expr>),
+    AssignField(ExprId, Field, ExprId),
     /// An assignment with a compound index update operator: `set a w/= b <- c`.
-    AssignIndex(Box<Expr>, Box<Expr>, Box<Expr>),
+    AssignIndex(ExprId, ExprId, ExprId),
     /// A binary operator.
-    BinOp(BinOp, Box<Expr>, Box<Expr>),
+    BinOp(BinOp, ExprId, ExprId),
     /// A block: `{ ... }`.
-    Block(Block),
+    Block(BlockId),
     /// A call: `a(b)`.
-    Call(Box<Expr>, Box<Expr>),
+    Call(ExprId, ExprId),
     /// A closure that fixes the vector of local variables as arguments to the callable item.
     Closure(Vec<NodeId>, LocalItemId),
-    /// A conjugation: `within { ... } apply { ... }`.
-    Conjugate(Block, Block),
     /// A failure: `fail "message"`.
-    Fail(Box<Expr>),
+    Fail(ExprId),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, Field),
-    /// A for loop: `for a in b { ... }`.
-    For(Pat, Box<Expr>, Block),
-    /// An unspecified expression, _, which may indicate partial application or a typed hole.
+    Field(ExprId, Field),
+    /// An unspecified expression, _, which may indicate partial application or discards
     Hole,
     /// An if expression with an optional else block: `if a { ... } else { ... }`.
     ///
     /// Note that, as a special case, `elif ...` is effectively parsed as `else if ...`, without a
     /// block wrapping the `if`. This distinguishes `elif ...` from `else { if ... }`, which does
     /// have a block.
-    If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
+    If(ExprId, ExprId, Option<ExprId>),
     /// An index accessor: `a[b]`.
-    Index(Box<Expr>, Box<Expr>),
+    Index(ExprId, ExprId),
     /// A literal.
     Lit(Lit),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
-    Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
-    /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
-    Repeat(Block, Box<Expr>, Option<Block>),
+    Range(Option<ExprId>, Option<ExprId>, Option<ExprId>),
     /// A return: `return a`.
-    Return(Box<Expr>),
+    Return(ExprId),
     /// A string.
     String(Vec<StringComponent>),
     /// Update array index: `a w/ b <- c`.
-    UpdateIndex(Box<Expr>, Box<Expr>, Box<Expr>),
+    UpdateIndex(ExprId, ExprId, ExprId),
     /// A tuple: `(a, b, c)`.
-    Tuple(Vec<Expr>),
+    Tuple(Vec<ExprId>),
     /// A unary operator.
-    UnOp(UnOp, Box<Expr>),
+    UnOp(UnOp, ExprId),
     /// A record field update: `a w/ B <- c`.
-    UpdateField(Box<Expr>, Field, Box<Expr>),
+    UpdateField(ExprId, Field, ExprId),
     /// A variable and its generic arguments.
     Var(Res, Vec<GenericArg>),
     /// A while loop: `while a { ... }`.
-    While(Box<Expr>, Block),
-    /// An invalid expression.
-    #[default]
-    Err,
+    While(ExprId, BlockId),
 }
 
 impl Display for ExprKind {
@@ -648,48 +736,44 @@ impl Display for ExprKind {
         let mut indent = set_indentation(indented(f), 0);
         match self {
             ExprKind::Array(exprs) => display_array(indent, exprs)?,
-            ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, val, size)?,
-            ExprKind::Assign(lhs, rhs) => display_assign(indent, lhs, rhs)?,
-            ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, lhs, rhs)?,
+            ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, *val, *size)?,
+            ExprKind::Assign(lhs, rhs) => display_assign(indent, *lhs, *rhs)?,
+            ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, *lhs, *rhs)?,
             ExprKind::AssignField(record, field, replace) => {
-                display_assign_field(indent, record, field, replace)?;
+                display_assign_field(indent, *record, field, *replace)?;
             }
             ExprKind::AssignIndex(container, item, replace) => {
-                display_assign_index(indent, container, item, replace)?;
+                display_assign_index(indent, *container, *item, *replace)?;
             }
-            ExprKind::BinOp(op, lhs, rhs) => display_bin_op(indent, *op, lhs, rhs)?,
+            ExprKind::BinOp(op, lhs, rhs) => display_bin_op(indent, *op, *lhs, *rhs)?,
             ExprKind::Block(block) => write!(indent, "Expr Block: {block}")?,
-            ExprKind::Call(callable, arg) => display_call(indent, callable, arg)?,
+            ExprKind::Call(callable, arg) => display_call(indent, *callable, *arg)?,
             ExprKind::Closure(args, callable) => display_closure(indent, args, *callable)?,
-            ExprKind::Conjugate(within, apply) => display_conjugate(indent, within, apply)?,
-            ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
-            ExprKind::Field(expr, field) => display_field(indent, expr, field)?,
-            ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
+            ExprKind::Field(expr, field) => display_field(indent, *expr, field)?,
             ExprKind::Hole => write!(indent, "Hole")?,
-            ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
-            ExprKind::Index(array, index) => display_index(indent, array, index)?,
+            ExprKind::If(cond, body, els) => display_if(indent, *cond, *body, *els)?,
+            ExprKind::Index(array, index) => display_index(indent, *array, *index)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
-            ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
+            ExprKind::Range(start, step, end) => display_range(indent, *start, *step, *end)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
             ExprKind::String(components) => display_string(indent, components)?,
             ExprKind::UpdateIndex(expr1, expr2, expr3) => {
-                display_update_index(indent, expr1, expr2, expr3)?;
+                display_update_index(indent, *expr1, *expr2, *expr3)?;
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
-            ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
+            ExprKind::UnOp(op, expr) => display_un_op(indent, *op, *expr)?,
             ExprKind::UpdateField(record, field, replace) => {
-                display_update_field(indent, record, field, replace)?;
+                display_update_field(indent, *record, field, *replace)?;
             }
             ExprKind::Var(res, args) => display_var(indent, *res, args)?,
-            ExprKind::While(cond, block) => display_while(indent, cond, block)?,
+            ExprKind::While(cond, block) => display_while(indent, *cond, *block)?,
         }
         Ok(())
     }
 }
 
-fn display_array(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
+fn display_array(mut indent: Indented<Formatter>, exprs: &Vec<ExprId>) -> fmt::Result {
     write!(indent, "Array:")?;
     indent = set_indentation(indent, 1);
     for e in exprs {
@@ -698,7 +782,7 @@ fn display_array(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Res
     Ok(())
 }
 
-fn display_array_repeat(mut indent: Indented<Formatter>, val: &Expr, size: &Expr) -> fmt::Result {
+fn display_array_repeat(mut indent: Indented<Formatter>, val: ExprId, size: ExprId) -> fmt::Result {
     write!(indent, "ArrayRepeat:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{val}")?;
@@ -706,7 +790,7 @@ fn display_array_repeat(mut indent: Indented<Formatter>, val: &Expr, size: &Expr
     Ok(())
 }
 
-fn display_assign(mut indent: Indented<Formatter>, lhs: &Expr, rhs: &Expr) -> fmt::Result {
+fn display_assign(mut indent: Indented<Formatter>, lhs: ExprId, rhs: ExprId) -> fmt::Result {
     write!(indent, "Assign:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{lhs}")?;
@@ -717,8 +801,8 @@ fn display_assign(mut indent: Indented<Formatter>, lhs: &Expr, rhs: &Expr) -> fm
 fn display_assign_op(
     mut indent: Indented<Formatter>,
     op: BinOp,
-    lhs: &Expr,
-    rhs: &Expr,
+    lhs: ExprId,
+    rhs: ExprId,
 ) -> fmt::Result {
     write!(indent, "AssignOp ({op:?}):")?;
     indent = set_indentation(indent, 1);
@@ -729,9 +813,9 @@ fn display_assign_op(
 
 fn display_assign_field(
     mut indent: Indented<Formatter>,
-    record: &Expr,
+    record: ExprId,
     field: &Field,
-    replace: &Expr,
+    replace: ExprId,
 ) -> fmt::Result {
     write!(indent, "AssignField:")?;
     indent = set_indentation(indent, 1);
@@ -743,9 +827,9 @@ fn display_assign_field(
 
 fn display_assign_index(
     mut indent: Indented<Formatter>,
-    array: &Expr,
-    index: &Expr,
-    replace: &Expr,
+    array: ExprId,
+    index: ExprId,
+    replace: ExprId,
 ) -> fmt::Result {
     write!(indent, "AssignIndex:")?;
     indent = set_indentation(indent, 1);
@@ -758,8 +842,8 @@ fn display_assign_index(
 fn display_bin_op(
     mut indent: Indented<Formatter>,
     op: BinOp,
-    lhs: &Expr,
-    rhs: &Expr,
+    lhs: ExprId,
+    rhs: ExprId,
 ) -> fmt::Result {
     write!(indent, "BinOp ({op:?}):")?;
     indent = set_indentation(indent, 1);
@@ -768,7 +852,7 @@ fn display_bin_op(
     Ok(())
 }
 
-fn display_call(mut indent: Indented<Formatter>, callable: &Expr, arg: &Expr) -> fmt::Result {
+fn display_call(mut indent: Indented<Formatter>, callable: ExprId, arg: ExprId) -> fmt::Result {
     write!(indent, "Call:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{callable}")?;
@@ -792,19 +876,7 @@ fn display_closure(
     write!(f, "], {callable})")
 }
 
-fn display_conjugate(
-    mut indent: Indented<Formatter>,
-    within: &Block,
-    apply: &Block,
-) -> fmt::Result {
-    write!(indent, "Conjugate:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{within}")?;
-    write!(indent, "\n{apply}")?;
-    Ok(())
-}
-
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: &Field) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: ExprId, field: &Field) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
@@ -812,25 +884,11 @@ fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: &Field) ->
     Ok(())
 }
 
-fn display_for(
-    mut indent: Indented<Formatter>,
-    iter: &Pat,
-    iterable: &Expr,
-    body: &Block,
-) -> fmt::Result {
-    write!(indent, "For:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{iter}")?;
-    write!(indent, "\n{iterable}")?;
-    write!(indent, "\n{body}")?;
-    Ok(())
-}
-
 fn display_if(
     mut indent: Indented<Formatter>,
-    cond: &Expr,
-    body: &Expr,
-    els: &Option<Box<Expr>>,
+    cond: ExprId,
+    body: ExprId,
+    els: Option<ExprId>,
 ) -> fmt::Result {
     write!(indent, "If:")?;
     indent = set_indentation(indent, 1);
@@ -842,7 +900,7 @@ fn display_if(
     Ok(())
 }
 
-fn display_index(mut indent: Indented<Formatter>, array: &Expr, index: &Expr) -> fmt::Result {
+fn display_index(mut indent: Indented<Formatter>, array: ExprId, index: ExprId) -> fmt::Result {
     write!(indent, "Index:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{array}")?;
@@ -852,9 +910,9 @@ fn display_index(mut indent: Indented<Formatter>, array: &Expr, index: &Expr) ->
 
 fn display_range(
     mut indent: Indented<Formatter>,
-    start: &Option<Box<Expr>>,
-    step: &Option<Box<Expr>>,
-    end: &Option<Box<Expr>>,
+    start: Option<ExprId>,
+    step: Option<ExprId>,
+    end: Option<ExprId>,
 ) -> fmt::Result {
     write!(indent, "Range:")?;
     indent = set_indentation(indent, 1);
@@ -869,23 +927,6 @@ fn display_range(
     match end {
         Some(e) => write!(indent, "\n{e}")?,
         None => write!(indent, "\n<no end>")?,
-    }
-    Ok(())
-}
-
-fn display_repeat(
-    mut indent: Indented<Formatter>,
-    repeat: &Block,
-    until: &Expr,
-    fixup: &Option<Block>,
-) -> fmt::Result {
-    write!(indent, "Repeat:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{repeat}")?;
-    write!(indent, "\n{until}")?;
-    match fixup {
-        Some(b) => write!(indent, "\n{b}")?,
-        None => write!(indent, "\n<no fixup>")?,
     }
     Ok(())
 }
@@ -905,9 +946,9 @@ fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent
 
 fn display_update_index(
     mut indent: Indented<Formatter>,
-    expr1: &Expr,
-    expr2: &Expr,
-    expr3: &Expr,
+    expr1: ExprId,
+    expr2: ExprId,
+    expr3: ExprId,
 ) -> fmt::Result {
     write!(indent, "UpdateIndex:")?;
     indent = set_indentation(indent, 1);
@@ -917,7 +958,7 @@ fn display_update_index(
     Ok(())
 }
 
-fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
+fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<ExprId>) -> fmt::Result {
     if exprs.is_empty() {
         write!(indent, "Unit")?;
     } else {
@@ -930,7 +971,7 @@ fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Res
     Ok(())
 }
 
-fn display_un_op(mut indent: Indented<Formatter>, op: UnOp, expr: &Expr) -> fmt::Result {
+fn display_un_op(mut indent: Indented<Formatter>, op: UnOp, expr: ExprId) -> fmt::Result {
     write!(indent, "UnOp ({op}):")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
@@ -939,9 +980,9 @@ fn display_un_op(mut indent: Indented<Formatter>, op: UnOp, expr: &Expr) -> fmt:
 
 fn display_update_field(
     mut indent: Indented<Formatter>,
-    record: &Expr,
+    record: ExprId,
     field: &Field,
-    replace: &Expr,
+    replace: ExprId,
 ) -> fmt::Result {
     write!(indent, "UpdateField:")?;
     indent = set_indentation(indent, 1);
@@ -967,7 +1008,7 @@ fn display_var(mut f: Indented<Formatter>, res: Res, args: &[GenericArg]) -> fmt
     }
 }
 
-fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) -> fmt::Result {
+fn display_while(mut indent: Indented<Formatter>, cond: ExprId, block: BlockId) -> fmt::Result {
     write!(indent, "While:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{cond}")?;
@@ -979,7 +1020,7 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
 #[derive(Clone, Debug, PartialEq)]
 pub enum StringComponent {
     /// An expression.
-    Expr(Expr),
+    Expr(ExprId),
     /// A string literal.
     Lit(Rc<str>),
 }
@@ -1015,7 +1056,7 @@ pub enum PatKind {
     /// A discarded binding, `_`.
     Discard,
     /// A tuple: `(a, b, c)`.
-    Tuple(Vec<Pat>),
+    Tuple(Vec<PatId>),
 }
 
 impl Display for PatKind {
@@ -1069,7 +1110,7 @@ impl Display for QubitInit {
 #[derive(Clone, Debug, PartialEq)]
 pub enum QubitInitKind {
     /// An array of qubits: `Qubit[a]`.
-    Array(Box<Expr>),
+    Array(ExprId),
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.

@@ -5,6 +5,7 @@ use indoc::indoc;
 use miette::Result;
 use qsc_eval::{output::CursorReceiver, val::Value};
 use qsc_frontend::compile::SourceMap;
+use qsc_passes::PackageType;
 use std::io::Cursor;
 
 use crate::interpret::{
@@ -69,8 +70,8 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         ],
         None,
     );
-    let mut interpreter =
-        Interpreter::new(true, source_map).expect("Failed to compile base environment.");
+    let mut interpreter = Interpreter::new_with_context(true, source_map, PackageType::Lib)
+        .expect("Failed to compile base environment.");
 
     let (result, _) = line(
         &mut interpreter,

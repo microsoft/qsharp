@@ -4,21 +4,36 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as vscode from "vscode";
-import { ICompiler, getCompilerWorker } from "qsharp";
+import {
+  ICompiler,
+  IDebugServiceWorker,
+  getCompilerWorker,
+  getDebugServiceWorker,
+} from "qsharp";
 import { FileAccessor, qsharpExtensionId } from "../common";
 import { QscDebugSession } from "./session";
 
 let compiler: ICompiler;
+let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
 export async function activateDebugger(
   context: vscode.ExtensionContext
 ): Promise<void> {
-  const workerScriptPath = vscode.Uri.joinPath(
+  const compilerWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
     "./out/compilerWorker.js"
   );
-  compiler = getCompilerWorker(workerScriptPath.toString()) as ICompiler;
-
+  const debugWorkerScriptPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "./out/debugger/debug-service-worker.js"
+  );
+  compiler = getCompilerWorker(
+    compilerWorkerScriptPath.toString()
+  ) as ICompiler;
+  debugServiceWorkerFactory = () =>
+    getDebugServiceWorker(
+      debugWorkerScriptPath.toString()
+    ) as IDebugServiceWorker;
   registerCommands(context);
 
   const provider = new QsDebugConfigProvider();
@@ -131,11 +146,18 @@ class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
   createDebugAdapterDescriptor(
-    _session: vscode.DebugSession,
+    session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    return new vscode.DebugAdapterInlineImplementation(
-      new QscDebugSession(workspaceFileAccessor, compiler)
+    const worker = debugServiceWorkerFactory();
+    const qscSession = new QscDebugSession(
+      workspaceFileAccessor,
+      compiler,
+      worker,
+      session.configuration
     );
+    return qscSession.init().then(() => {
+      return new vscode.DebugAdapterInlineImplementation(qscSession);
+    });
   }
 }

@@ -4,23 +4,26 @@
 #[cfg(test)]
 mod tests;
 
+use qsc_eval::debug::Frame;
 use qsc_frontend::compile::PackageStore;
 
-use qsc_eval::{debug::CallStack, val::GlobalId, Global, GlobalLookup};
+use qsc_eval::{val::GlobalId, Global, GlobalLookup};
+use qsc_fir::fir;
+use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
 
 #[must_use]
-pub(crate) fn format_call_stack<'a>(
+pub(crate) fn format_call_stack(
     store: &PackageStore,
-    globals: &impl GlobalLookup<'a>,
-    call_stack: &CallStack,
+    globals: &impl GlobalLookup,
+    frames: Vec<Frame>,
     error: &dyn std::error::Error,
 ) -> String {
     let mut trace = String::new();
     trace.push_str(&format!("Error: {error}\n"));
     trace.push_str("Call stack:\n");
 
-    let mut frames = call_stack.clone().into_frames();
+    let mut frames = frames;
     frames.reverse();
 
     for frame in frames {
@@ -53,8 +56,10 @@ pub(crate) fn format_call_stack<'a>(
 
 #[must_use]
 fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
-    store.get(id.package).and_then(|unit| {
-        let item = unit.package.items.get(id.item)?;
+    let package = hir::PackageId::from(<fir::PackageId as Into<usize>>::into(id.package));
+    let item = hir::LocalItemId::from(<fir::LocalItemId as Into<usize>>::into(id.item));
+    store.get(package).and_then(|unit| {
+        let item = unit.package.items.get(item)?;
         if let Some(parent) = item.parent {
             let parent = unit.package.items.get(parent)?;
             Some(parent.clone())
@@ -66,8 +71,10 @@ fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
 
 #[must_use]
 fn get_item_file_name(store: &PackageStore, id: GlobalId) -> Option<String> {
-    store.get(id.package).and_then(|unit| {
-        let item = unit.package.items.get(id.item)?;
+    let package = hir::PackageId::from(<fir::PackageId as Into<usize>>::into(id.package));
+    let item = hir::LocalItemId::from(<fir::LocalItemId as Into<usize>>::into(id.item));
+    store.get(package).and_then(|unit| {
+        let item = unit.package.items.get(item)?;
         let source = unit.sources.find_by_offset(item.span.lo);
         source.map(|s| s.name.to_string())
     })
