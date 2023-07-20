@@ -1,9 +1,8 @@
-namespace Kata.Reference {
-
+namespace Kata {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
-    operation SetInitialState (qs: Qubit[]) : Unit is Adj + Ctl {
+    operation SetInitialState(qs: Qubit[]): Unit is Adj + Ctl {
         // Next two lines set the second qubit into the desired state 
         let second_bit_angle = 2.0 * ArcCos(2.0 / 3.0);
         Ry(second_bit_angle, qs[1]);
@@ -13,12 +12,13 @@ namespace Kata.Reference {
         Controlled Ry([qs[1]], (first_bit_angle, qs[0]));
     }
 
-    operation ChangeBasis (qs: Qubit[]) : Unit is Adj + Ctl {
+    operation ChangeBasis(qs: Qubit[]): Unit is Adj + Ctl {
         H(qs[0]);
         H(qs[1]);
     }
 
-    operation CalculateProbabilities () : Unit {
+    @EntryPoint()
+    operation CalculateProbabilities(): Unit {
         // This allocates qubits for us to work with
         use qs = Qubit[2];
         

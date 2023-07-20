@@ -1,7 +1,3 @@
-﻿Any multi-qubit state can be prepared from the $|0...0\rangle$ state using an appropriate combination of quantum gates. 
-However, sometimes it is easier and more efficient to prepare a state using partial measurements. 
-You could prepare a simpler state involving additional qubits, which, when measured, result in a collapse of the remaining qubits to the desired state with a high probability. This is called **post-selection**, and is particularly useful if it is easier to prepare the pre-measurement state with the extra qubits than to prepare the desired state directly using unitary gates alone. This is demonstrated by the following exercise.
-
 ### <span style="color:blue">Exercise 8</span>: State preparation using partial measurements
 
 **Input:** Two qubits (in an array) which are in the state $\ket{00}$.

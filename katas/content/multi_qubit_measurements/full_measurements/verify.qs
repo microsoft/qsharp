@@ -1,4 +1,5 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
+
     // ------------------------------------------------------
     // Exercise 3: Distinguish four basis states
     // ------------------------------------------------------
@@ -13,8 +14,14 @@ namespace Kata.Reference {
         }
     }
 
-    @Test("Microsoft.Quantum.Katas.CounterSimulator")
-    operation T1_BasisStateMeasurement () : Unit {
-        DistinguishStates_MultiQubit(2, 4, StatePrep_BasisStateMeasurement, BasisStateMeasurement, false, ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]);
+    @EntryPoint()
+    operation CheckSolution() : Bool {
+        return DistinguishStates_MultiQubit(
+            2,
+            4,
+            StatePrep_BasisStateMeasurement,
+            BasisStateMeasurement,
+            false,
+            ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]);
     }
 }

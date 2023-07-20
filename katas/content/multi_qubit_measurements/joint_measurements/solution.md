@@ -1,4 +1,4 @@
-﻿### Solution
+### Solution
 
 If we were not asked to maintain the state of the qubits, one approach would be to measure both the qubits separately in the computational basis, and check if the result is the same for both the measurements. If the measurement results are equal, the input state must have been a superposition of $\ket{00}$ and $\ket{11}$, while different measurement outcomes will imply that the input state must have been a superposition of $\ket{01}$ and $\ket{10}$. However, in these measurements we will lose the information about the original superposition states: a state $\alpha |00\rangle + \beta |11\rangle$ will collapse to either $|00\rangle$ or $|11\rangle$, and we won't be able to recover the information about the coefficients $\alpha$ and $\beta$.
 
@@ -10,3 +10,8 @@ As we've seen in the tutorial, the state $\alpha |00\rangle + \beta |11\rangle$ 
 Hence, we can use this joint measurement to recognize which of the superposition states we were given while preserving the initial superposition state.
 
 In Q#, the operation [`Measure`](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) can be used to measure multiple qubits using an array of [Pauli](https://docs.microsoft.com/en-us/quantum/user-guide/language/types?#primitive-types) constants that define the basis for measurement.
+
+@[solution]({
+"id": "joint_measurements_solution",
+"codePath": "solution.qs"
+})

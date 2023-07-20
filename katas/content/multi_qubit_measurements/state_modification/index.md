@@ -1,7 +1,3 @@
-﻿## State modification using partial measurements
-
-For certain multi-qubit systems prepared in a superposition state, it is possible to use partial measurements to collapse a part of the system to some desired state. 
-
 ### <span style="color:blue">Exercise 7</span>: State selection using partial measurements 
 
 **Input**: 

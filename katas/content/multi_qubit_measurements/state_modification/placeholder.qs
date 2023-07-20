@@ -1,5 +1,7 @@
-﻿namespace Kata {
-    operation StateSelction (qs : Qubit[], ind : Int) : Unit {
+namespace Kata {
+
+    operation StateSelction(qs: Qubit[], ind: Int): Unit {
         // ...
     }
+
 }

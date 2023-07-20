@@ -1,5 +1,7 @@
-﻿namespace Kata {
-    operation IsPlusPlusMinus (qs : Qubit[]) : Int {
+namespace Kata {
+
+    operation IsPlusPlusMinus(qs: Qubit[]): Int {
         // ...
     }
+
 }

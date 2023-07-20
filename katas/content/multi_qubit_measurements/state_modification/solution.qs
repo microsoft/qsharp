@@ -1,4 +1,4 @@
-﻿namespace Kata.Reference {
+namespace Kata {
 
     operation StateSelction(qs : Qubit[], ind : Int) : Unit {
         // It is convenient to convert measurement outcome to an integer

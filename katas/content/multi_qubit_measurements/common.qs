@@ -1,4 +1,4 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Diagnostics;
@@ -11,12 +11,14 @@ namespace Kata.Reference {
     // ------------------------------------------------------
     // "Framework" operation for testing multi-qubit tasks for distinguishing states of an array of qubits
     // with Int return
-    operation DistinguishStates_MultiQubit (nQubits : Int,
-                                            nStates : Int,
-                                            statePrep : ((Qubit[], Int, Double) => Unit is Adj),
-                                            testImpl : (Qubit[] => Int),
-                                            preserveState : Bool,
-                                            stateNames : String[]) : Unit {
+    operation DistinguishStates_MultiQubit(
+        nQubits: Int,
+        nStates: Int,
+        statePrep: ((Qubit[], Int, Double) => Unit is Adj),
+        testImpl: (Qubit[] => Int),
+        preserveState: Bool,
+        stateNames: String[]): Bool {
+
         let nTotal = 100;
         // misclassifications will store the number of times state i has been classified as state j (dimension nStates^2)
         mutable misclassifications = [0, size = nStates * nStates];
@@ -70,7 +72,6 @@ namespace Kata.Reference {
                 Message($"Misclassified {stateNames[i]} as Unknown State in {unknownClassifications[i]} test runs.");
             }
         }
-        // This check will tell the total number of failed classifications
-        Fact(totalMisclassifications == 0, $"{totalMisclassifications} test runs out of {nTotal} returned incorrect state (see output for details).");
+        return totalMisclassifications == 0;
     }
 }

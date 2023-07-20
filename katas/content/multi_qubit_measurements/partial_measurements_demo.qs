@@ -1,12 +1,13 @@
 namespace Kata.Reference {
-
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Preparation;
     open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
 
-    operation DemoPartialMeasurement(numRuns : Int) : Unit {
+    @EntryPoint()
+    operation DemoPartialMeasurement() : Unit {
+        let numRuns = 100;
         let divider = "--------------------------------------------------------------------------------------------------";
         // 
         // We can use coefficients without normalization in PrepareArbitraryStateD, 

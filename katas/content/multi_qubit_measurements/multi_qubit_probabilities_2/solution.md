@@ -1,4 +1,5 @@
 ### Analytical solution
+
 Using the expressions $|0\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle + |-\rangle \big)$ and $|1\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle - |-\rangle \big)$, we first express $|\psi\rangle$ in the Pauli X basis. This gives us
 $$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} = $$ 
 
@@ -46,7 +47,6 @@ After this, the probabilities of measuring each of the four basis vectors is giv
     </tr> 
 </table>
 
-
 ### Code-based solution
 
 We can also use Q# to solve this problem. It can be achieved in three steps:
@@ -86,3 +86,8 @@ So the amplitudes of the computational basis states after the transformation are
 >This representation tells us how we should rotate individual qubits. You can read more about preparing superposition states in the [Superposition kata](../../Superposition/Superposition.ipynb#Part--II.-Arbitrary-rotations.).
 >
 > Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
+
+@[example]({
+"id": "multi_qubit_probabilities_2_example",
+"codePath": "solution.qs"
+})

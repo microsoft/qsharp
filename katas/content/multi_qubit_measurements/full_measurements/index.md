@@ -1,7 +1,3 @@
-## Using full measurements to identify the state of the system
-
-Full measurements can also be used to identify the state of the system, if it is guaranteed to be in one of several possible orthogonal states.
-
 ### <span style="color:blue">Exercise 3</span>: Distinguish four basis states
 
 **Input:** Two qubits (stored in an array of length 2) which are guaranteed to be in one of the four basis states ($|00\rangle$, $|01\rangle$, $|10\rangle$, or $|11\rangle$).
@@ -16,3 +12,8 @@ Full measurements can also be used to identify the state of the system, if it is
 In this task and the subsequent ones the order of qubit states in task description matches the order of qubits in the array (i.e., $|10\rangle$ state corresponds to `qs[0]` in state $|1\rangle$ and `qs[1]` in state $|0\rangle$).
 
 The state of the qubits at the end of the operation does not matter.
+
+@[solution]({
+"id": "full_measurements",
+"codePath": ".\solution.qs"
+})

@@ -1,4 +1,4 @@
-﻿### Solution
+### Solution
 While it is possible to prepare the state $\ket \psi$ directly using unitary rotations, it is simpler to use post-selection for preparing it. Here, we describe the procedure in more detail below.
 
 Initially we will prepare an equal superposition of all basis states corresponding to the first two qubits by applying the **H** gate to each of them: 
@@ -25,3 +25,8 @@ Finally we measure just the extra qubit; this causes a partial collapse of the s
 > * Finally, the `fixup` section allows us to clean up the results of the loop body execution before trying again if the success criteria is not met. In this case we reset the first two qubits back to the $|00\rangle$ state.
 
 This technique is sometimes called post-selection.
+
+@[solution]({
+"id": "state_preparation_solution",
+"codePath": "solution.qs"
+})

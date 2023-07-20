@@ -1,5 +1,7 @@
-﻿namespace Kata {
-    operation ParityMeasurement (qs : Qubit[]) : Int {
+namespace Kata {
+
+    operation ParityMeasurement(qs: Qubit[]): Int {
         // ...
     }
+
 }
