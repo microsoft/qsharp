@@ -3,26 +3,42 @@
 
 import { default as katasContent } from "./katas-content.generated.js";
 
+// TODO: Remove.
 export type Example = {
   type: "example";
   id: string;
   code: string;
 };
 
-export type Exercise = {
-  type: "exercise";
-  id: string;
-  codeDependencies: string[];
-  verificationCode: string;
-  placeholderCode: string;
-  solutionAsHtml: string;
-  solutionAsMarkdown: string;
+export type QSharp = {
+  type: "qsharp";
+  sourceId: string;
+  code: string;
 };
 
 export type Text = {
   type: "text";
   contentAsHtml: string;
   contentAsMarkdown: string;
+};
+
+export type LessonItem = QSharp | Text;
+
+export type Lesson = {
+  type: "reading";
+  id: string;
+  sections: LessonItem[];
+};
+
+export type Exercise = {
+  type: "exercise";
+  id: string;
+  // TODO: fields that represent Q# code should be of QSharp type.
+  codeDependencies: string[]; // Rename to just dependencies.
+  verificationCode: string; // Rename to just verification.
+  placeholderCode: string; // Rename to placeholder.
+  solutionAsHtml: string;
+  solutionAsMarkdown: string;
 };
 
 export type KataSection = Example | Exercise | Text;
