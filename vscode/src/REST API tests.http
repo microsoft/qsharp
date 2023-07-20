@@ -1,0 +1,43 @@
+@ARM_EP = management.azure.com
+@QUANTUM_EP = westus2.quantum.azure.com
+@SUBSCRIPTION = 02e0a16f-334e-47a5-8672-d94e1ebee1b1
+@WORKSPACE = QdkExperiments
+
+# Set ARM_MSA_TOKEN, ARM_AAD_TOKEN, and QUANTUM_TOKEN as environment variables. See https://github.com/Huachao/vscode-restclient#environment-variables
+
+### See the auth code flow at https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-auth-code-flow
+
+GET https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize
+        ?response_type=code
+        &client_id=cd2b63f7-1573-4507-b9ad-8329e3a38a91
+        &response_mode=query
+        &redirect_url=https%3A%2F%2Fvscode.dev%2Fredirect
+        &state=vscode%253A%252F%252Fquantum.qsharp-vscode%253FwindowId%253D22%2526nonce%253D1e63e4979beef0f475e72dc0571dd4be375e737fc1698b6e1db9f370
+        &scopes=https%3A%2F%2Fmanagement.azure.com%2Fuser_impersonation+https%3A%2F%2Fquantum.microsoft.com%2FJobs.ReadWrite+https%3A%2F%2Fgraph.microsoft.com%2FUser.Read+openid+profile+offline_access
+        &prompt=select_account
+        &code_challenge_method=S256
+        &code_challenge=kDCXIfaV6FhO_ZhRcbjTcVI1zZXbhdq2L9XtLw0ULTc
+
+### Get the tenants for a user
+
+GET https://{{ARM_EP}}/tenants?api-version=2020-01-01
+Authorization: Bearer {{ARM_MSA_TOKEN}}
+Content-type: application/json
+
+### Request all subscriptions for a user
+
+GET https://{{ARM_EP}}/subscriptions?api-version=2020-01-01
+Authorization: Bearer {{ARM_AAD_TOKEN}}
+Content-type: application/json
+
+### Get all Quantum workspaces for a subscription
+
+GET https://{{ARM_EP}}/subscriptions/{{SUBSCRIPTION}}/providers/Microsoft.Quantum/workspaces?api-version=2022-01-10-preview
+Authorization: Bearer {{ARM_AAD_TOKEN}}
+Content-type: application/json
+
+### Get the quotas for a workspace
+
+GET https://{{QUANTUM_EP}}/subscriptions/{{SUBSCRIPTION}}/resourceGroups/AzureQuantum/providers/Microsoft.Quantum/Workspaces/{{WORKSPACE}}/quotas?api-version=2022-09-12-preview
+Authorization: Bearer {{QUANTUM_TOKEN}}
+Content-type: application/json
