@@ -116,8 +116,7 @@
               },
               "shots": {
                 "type": "number",
-                "description": "Number of shots to execute.",
-                "default": 10
+                "description": "Number of shots to execute."
               },
               "trace": {
                 "type": "boolean",
