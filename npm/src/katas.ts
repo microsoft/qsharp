@@ -3,16 +3,18 @@
 
 import { default as katasContent } from "./katas-content.generated.js";
 
-export type QSharpSource = {
-  type: "qsharp";
-  sourceId: string;
+export type Source = {
+  type: "source";
+  id: string;
   code: string;
 };
 
 export type Example = {
   type: "example";
   id: string;
-  code: string; // TODO: Should use QSharpSource.
+  // TODO: Should be of type Source.
+  // TODO: Rename to source.
+  code: string;
 };
 
 export type Text = {
@@ -32,7 +34,7 @@ export type Lesson = {
 export type Solution = {
   type: "solution";
   id: string;
-  code: QSharpSource;
+  source: Source;
 };
 
 export type ExplainedSolutionItem = Example | Solution | Text;
@@ -46,8 +48,8 @@ export type Exercise = {
   type: "exercise";
   id: string;
   // TODO: fields that represent Q# code should be of QSharp type.
-  codeDependencies: string[]; // Rename to just sources.
-  placeholderCode: string; // Rename to placeholder.
+  sourcesIds: string[];
+  placeholderCode: string;
   solutionAsHtml: string;
   solutionAsMarkdown: string;
 };
@@ -73,10 +75,10 @@ export async function getKata(id: string): Promise<Kata> {
   );
 }
 
-export async function getExerciseDependencies(
+export async function getExerciseSources(
   exercise: Exercise
 ): Promise<string[]> {
   return katasContent.globalCodeSources
-    .filter((source) => exercise.codeDependencies.indexOf(source.name) > -1)
+    .filter((source) => exercise.sourcesIds.indexOf(source.name) > -1)
     .map((source) => source.contents);
 }

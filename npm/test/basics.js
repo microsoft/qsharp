@@ -13,11 +13,7 @@ import {
   getLanguageServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
-import {
-  getAllKatas,
-  getExerciseDependencies,
-  getKata,
-} from "../dist/katas.js";
+import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
 /** @type {import("../dist/log.js").TelemetryEvent[]} */
@@ -125,10 +121,10 @@ test("dump and message output", async () => {
 async function validateExercise(exercise, code) {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
-  const dependencies = await getExerciseDependencies(exercise);
+  const sources = await getExerciseSources(exercise);
   const success = await compiler.checkExerciseSolution(
     code,
-    dependencies,
+    sources,
     evtTarget
   );
 

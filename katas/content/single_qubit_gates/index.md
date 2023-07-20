@@ -16,7 +16,7 @@ This tutorial covers the following topics:
 
 @[exercise]({
     "id": "y_gate",
-    "codeDependenciesPaths": [
+    "codePaths": [
         "../KatasLibrary.qs",
         "./y_gate/Verification.qs"
     ],
@@ -33,7 +33,7 @@ This tutorial covers the following topics:
 
 @[exercise]({
     "id": "global_phase_i",
-    "codeDependenciesPaths": [
+    "codePaths": [
         "../KatasLibrary.qs",
         "./global_phase_i/Verification.qs"
     ],

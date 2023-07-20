@@ -99,28 +99,35 @@ function generateExampleSection(kataPath, properties) {
   };
 }
 
-function getCodeDependencyId(codeDependencyPath, basePath) {
-  return relative(basePath, codeDependencyPath).replace(sep, "__");
+function getSourceId(sourcePath, basePath) {
+  const r = relative(basePath, sourcePath);
+  const id = r.replace(sep, "__");
+  console.log(r);
+  console.log(sep);
+  console.log(id);
+  // TODO: Debug this.
+  const separatorRegex = new RegExp(`/${sep}/`, "g");
+  return relative(basePath, sourcePath).replace(separatorRegex, "__");
 }
 
-function generateCodeDependencies(paths, globalCodeSources) {
-  const codeDependencies = [];
+function aggregateSources(paths, globalCodeSources) {
+  const codeSources = [];
   for (const path of paths) {
-    const id = getCodeDependencyId(path, globalCodeSources.basePath);
+    const id = getSourceId(path, globalCodeSources.basePath);
     if (!(id in globalCodeSources.sources)) {
       const code = tryReadFile(path, "Could not read code dependency");
       globalCodeSources.sources[id] = code;
     }
-    codeDependencies.push(id);
+    codeSources.push(id);
   }
-  return codeDependencies;
+  return codeSources;
 }
 
 function generateExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
   const requiredProperties = [
     "id",
-    "codeDependenciesPaths",
+    "codePaths",
     "placeholderSourcePath",
     "solutionSourcePath",
     "solutionDescriptionPath",
@@ -136,13 +143,10 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   }
 
   // Generate the object using the macro properties.
-  const resolvedCodeDependenciesPaths = properties.codeDependenciesPaths.map(
-    (path) => join(kataPath, path)
+  const resolvedCodePaths = properties.codePaths.map((path) =>
+    join(kataPath, path)
   );
-  const codeDependencies = generateCodeDependencies(
-    resolvedCodeDependenciesPaths,
-    globalCodeSources
-  );
+  const sourcesIds = aggregateSources(resolvedCodePaths, globalCodeSources);
   const placeholderCode = tryReadFile(
     join(kataPath, properties.placeholderSourcePath),
     `Could not read placeholder code for exercise ${properties.id}`
@@ -155,7 +159,7 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   return {
     type: "exercise",
     id: properties.id,
-    codeDependencies: codeDependencies,
+    sourcesIds: sourcesIds,
     placeholderCode: placeholderCode,
     solutionAsMarkdown: solutionAsMarkdown,
     solutionAsHtml: solutionAsHtml,
