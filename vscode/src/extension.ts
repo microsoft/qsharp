@@ -13,9 +13,11 @@ import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
+import { activateDebugger } from "./debugger/activate.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
+  log.info("Q# extension activating.");
 
   const languageService = await loadLanguageService(context.extensionUri);
 
@@ -51,6 +53,10 @@ export async function activate(context: vscode.ExtensionContext) {
       createDefinitionProvider(languageService)
     )
   );
+
+  activateDebugger(context);
+
+  log.info("Q# extension activated.");
 }
 
 function initializeLogger() {
@@ -62,8 +68,6 @@ function initializeLogger() {
   log.info = output.info;
   log.debug = output.debug;
   log.trace = output.trace;
-
-  log.info("Q# extension activated.");
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
