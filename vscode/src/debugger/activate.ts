@@ -49,7 +49,7 @@ function registerCommands(context: vscode.ExtensionContext) {
               type: "qsharp",
               name: "Run Q# File",
               request: "launch",
-              program: targetResource.toString(),
+              program: targetResource,
               shots: 1,
               stopOnEntry: false,
             },
