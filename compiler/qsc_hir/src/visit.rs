@@ -55,7 +55,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) => vis.visit_ident(name),
-        ItemKind::Ty(udt) => vis.visit_ident(&udt.name),
+        ItemKind::Ty(udt) => todo!(),
     }
 }
 

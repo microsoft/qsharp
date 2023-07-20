@@ -63,15 +63,10 @@ impl<'a> CodeDisplay<'a> {
         IdentTyDef { ident, def }
     }
 
-    pub(crate) fn hir_ident_udt(
-        &self,
-        ident: &'a hir::Ident,
-        def: &'a hir::TyDef,
-    ) -> impl Display + 'a {
+    pub(crate) fn hir_udt(&self, udt: &'a hir::ty::Udt) -> impl Display + 'a {
         HirUdt {
             compilation: self.compilation,
-            ident,
-            def,
+            udt,
         }
     }
 
@@ -211,14 +206,13 @@ impl<'a> Display for IdentTyDef<'a> {
 
 struct HirUdt<'a> {
     compilation: &'a Compilation,
-    ident: &'a hir::Ident,
-    def: &'a hir::TyDef,
+    udt: &'a hir::ty::Udt,
 }
 
 impl<'a> Display for HirUdt<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let udt_def = UdtDef::new(self.compilation, self.def);
-        write!(f, "{} = {}", self.ident.name, udt_def)
+        let udt_def = UdtDef::new(self.compilation, &self.udt.definition);
+        write!(f, "{} = {}", self.udt.name, udt_def)
     }
 }
 
@@ -234,14 +228,14 @@ enum UdtDefKind<'a> {
 }
 
 impl<'a> UdtDef<'a> {
-    pub fn new(compilation: &'a Compilation, def: &'a hir::TyDef) -> Self {
+    pub fn new(compilation: &'a Compilation, def: &'a hir::ty::TyDef) -> Self {
         match &def.kind {
-            hir::TyDefKind::Field(name, ty) => UdtDef {
+            hir::ty::TyDefKind::Field(name, ty) => UdtDef {
                 compilation,
-                name: name.as_ref().map(|n| n.name.clone()),
+                name: name.as_ref().cloned(),
                 kind: UdtDefKind::SingleTy(ty),
             },
-            hir::TyDefKind::Tuple(defs) => UdtDef {
+            hir::ty::TyDefKind::Tuple(defs) => UdtDef {
                 compilation,
                 name: None,
                 kind: UdtDefKind::TupleTy(
@@ -376,7 +370,7 @@ impl<'a> Display for HirTy<'a> {
                 hir::Res::Item(item_id) => {
                     if let Some(item) = find_item(self.compilation, item_id) {
                         match &item.kind {
-                            hir::ItemKind::Ty(udt) => write!(f, "{}", udt.name.name),
+                            hir::ItemKind::Ty(udt) => write!(f, "{}", udt.name),
                             _ => panic!("UDT has invalid resolution."),
                         }
                     } else {

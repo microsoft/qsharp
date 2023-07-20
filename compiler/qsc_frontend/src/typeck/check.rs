@@ -222,7 +222,14 @@ impl Visitor<'_> for ItemCollector<'_> {
                 );
 
                 let fields = convert::ast_ty_def_fields(def);
-                self.checker.table.udts.insert(item, Udt { base, fields });
+                self.checker.table.udts.insert(
+                    item,
+                    Udt {
+                        name: name.name.clone(),
+                        span: todo!(),
+                        definition: todo!(),
+                    },
+                );
                 self.checker.globals.insert(item, cons);
             }
             _ => {}

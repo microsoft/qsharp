@@ -291,7 +291,7 @@ pub enum ItemKind {
     /// A `namespace` declaration.
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
-    Ty(MyUdt),
+    Ty(Udt),
 }
 
 impl Display for ItemKind {
@@ -315,114 +315,6 @@ impl Display for ItemKind {
         }
     }
 }
-
-/// A user-defined type.
-#[derive(Clone, Debug, PartialEq)]
-pub struct MyUdt {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The name.
-    pub name: Ident,
-    // The definition.
-    pub definition: TyDef,
-}
-
-impl Display for MyUdt {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "{} {} ({}):", self.id, self.span, self.name)?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "{}", self.definition)?;
-        Ok(())
-    }
-}
-
-impl MyUdt {
-    pub fn get_pure_ty(&self) -> Ty {
-        fn get_pure_ty(def: &TyDef) -> Ty {
-            match &def.kind {
-                TyDefKind::Field(_, ty) => ty.clone(),
-                TyDefKind::Tuple(tup) => Ty::Tuple(tup.iter().map(get_pure_ty).collect()),
-            }
-        }
-        get_pure_ty(&self.definition)
-    }
-
-    /// The type scheme of the constructor for this type definition.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ID of the constructed type.
-    #[must_use]
-    pub fn cons_scheme(&self, id: ItemId) -> Scheme {
-        Scheme::new(
-            Vec::new(),
-            Box::new(Arrow {
-                kind: CallableKind::Function,
-                input: Box::new(self.get_pure_ty()),
-                output: Box::new(Ty::Udt(Res::Item(id))),
-                functors: FunctorSet::Value(FunctorSetValue::Empty),
-            }),
-        )
-    }
-}
-
-/// A type definition.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TyDef {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The type definition kind.
-    pub kind: TyDefKind,
-}
-
-impl Display for TyDef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A type definition kind.
-#[derive(Clone, Debug, PartialEq)]
-pub enum TyDefKind {
-    /// A field definition with an optional name but required type.
-    Field(Option<Ident>, Ty),
-    /// A tuple.
-    Tuple(Vec<TyDef>),
-}
-
-impl Display for TyDefKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match &self {
-            TyDefKind::Field(name, t) => {
-                write!(indent, "Field:")?;
-                indent = set_indentation(indent, 1);
-                if let Some(n) = name {
-                    write!(indent, "\n{n}")?;
-                }
-                write!(indent, "\n{t}")?;
-            }
-            TyDefKind::Tuple(ts) => {
-                if ts.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = set_indentation(indent, 1);
-                    for t in ts.iter() {
-                        write!(indent, "\n{t}")?;
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
 /// A callable declaration header.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallableDecl {
