@@ -433,15 +433,15 @@ impl Udt {
     /// * `id` - The ID of the constructed type.
     #[must_use]
     pub fn cons_scheme(&self, id: ItemId) -> Scheme {
-        Scheme::new(
-            Vec::new(),
-            Box::new(Arrow {
+        Scheme {
+            params: Vec::new(),
+            ty: Box::new(Arrow {
                 kind: CallableKind::Function,
                 input: Box::new(self.get_pure_ty()),
                 output: Box::new(Ty::Udt(Res::Item(id))),
                 functors: FunctorSet::Value(FunctorSetValue::Empty),
             }),
-        )
+        }
     }
 
     /// The path to the field with the given name. Returns [None] if this user-defined type does not
@@ -484,7 +484,7 @@ impl Udt {
 impl Display for Udt {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "{} ({}):", self.span, self.name)?;
+        write!(indent, "UDT {}:", self.span)?;
         indent = set_indentation(indent, 1);
         write!(indent, "{}", self.definition)?;
         Ok(())

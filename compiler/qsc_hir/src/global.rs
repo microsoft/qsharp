@@ -105,7 +105,7 @@ impl PackageIter<'_> {
                     scheme: decl.scheme(),
                 }),
             }),
-            (ItemKind::Ty(udt), Some(ItemKind::Namespace(namespace, _))) => {
+            (ItemKind::Ty(_, udt), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: Rc::clone(&namespace.name),
                     name: udt.name.clone(),

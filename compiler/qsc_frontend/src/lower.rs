@@ -183,7 +183,7 @@ impl With<'_> {
                     })
                     .expect("type item should have lowered UDT");
 
-                (id, hir::ItemKind::Ty(udt.clone()))
+                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
         };
 

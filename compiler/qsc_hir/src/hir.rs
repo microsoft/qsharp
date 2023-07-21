@@ -291,7 +291,7 @@ pub enum ItemKind {
     /// A `namespace` declaration.
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
-    Ty(Udt),
+    Ty(Ident, Udt),
 }
 
 impl Display for ItemKind {
@@ -311,7 +311,7 @@ impl Display for ItemKind {
                     write!(f, " <empty>")
                 }
             }
-            ItemKind::Ty(udt) => write!(f, "Type {udt}"),
+            ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
         }
     }
 }

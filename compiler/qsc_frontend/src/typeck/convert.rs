@@ -93,7 +93,7 @@ pub(super) fn ast_ty_def_cons(
     (scheme, errors)
 }
 
-pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
+fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
     match &*def.kind {
         TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
         TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),

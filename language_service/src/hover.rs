@@ -170,7 +170,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                                         path.id
                                     )
                                 }
-                                hir::ItemKind::Ty(udt) => {
+                                hir::ItemKind::Ty(_, udt) => {
                                     Some(markdown_fenced_block(self.display.hir_udt(udt)))
                                 }
                             };
