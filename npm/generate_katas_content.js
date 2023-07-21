@@ -100,14 +100,7 @@ function generateExampleSection(kataPath, properties) {
 }
 
 function getSourceId(sourcePath, basePath) {
-  const r = relative(basePath, sourcePath);
-  const id = r.replace(sep, "__");
-  console.log(r);
-  console.log(sep);
-  console.log(id);
-  // TODO: Debug this.
-  const separatorRegex = new RegExp(`/${sep}/`, "g");
-  return relative(basePath, sourcePath).replace(separatorRegex, "__");
+  return relative(basePath, sourcePath).replaceAll(sep, "__");
 }
 
 function aggregateSources(paths, globalCodeSources) {
