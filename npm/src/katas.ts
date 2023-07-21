@@ -3,17 +3,9 @@
 
 import { default as katasContent } from "./katas-content.generated.js";
 
-export type Source = {
-  type: "source";
-  id: string;
-  code: string;
-};
-
 export type Example = {
   type: "example";
   id: string;
-  // TODO: Should be of type Source.
-  // TODO: Rename to source.
   code: string;
 };
 
@@ -34,7 +26,7 @@ export type Lesson = {
 export type Solution = {
   type: "solution";
   id: string;
-  source: Source;
+  code: string;
 };
 
 export type ExplainedSolutionItem = Example | Solution | Text;
@@ -79,6 +71,6 @@ export async function getExerciseSources(
   exercise: Exercise
 ): Promise<string[]> {
   return katasContent.globalCodeSources
-    .filter((source) => exercise.sourceIds.indexOf(source.name) > -1)
-    .map((source) => source.contents);
+    .filter((source) => exercise.sourceIds.indexOf(source.id) > -1)
+    .map((source) => source.code);
 }

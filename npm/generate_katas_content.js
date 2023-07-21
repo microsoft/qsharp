@@ -263,10 +263,10 @@ function generateKatasContent(katasPath, outputPath) {
   }
 
   const globalCodeSources = [];
-  for (let name in globalCodeSourcesContainer.sources) {
+  for (let id in globalCodeSourcesContainer.sources) {
     globalCodeSources.push({
-      name: name,
-      contents: globalCodeSourcesContainer.sources[name],
+      id: id,
+      code: globalCodeSourcesContainer.sources[id],
     });
   }
   const katasContent = {
