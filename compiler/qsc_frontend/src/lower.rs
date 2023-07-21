@@ -16,7 +16,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, Ty, Udt},
+    ty::{Arrow, FunctorSetValue, Ty},
 };
 use std::{clone::Clone, rc::Rc, vec};
 use thiserror::Error;

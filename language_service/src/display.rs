@@ -228,14 +228,14 @@ enum UdtDefKind<'a> {
 }
 
 impl<'a> UdtDef<'a> {
-    pub fn new(compilation: &'a Compilation, def: &'a hir::ty::TyDef) -> Self {
+    pub fn new(compilation: &'a Compilation, def: &'a hir::ty::UdtDef) -> Self {
         match &def.kind {
-            hir::ty::TyDefKind::Field(name, ty) => UdtDef {
+            hir::ty::UdtDefKind::Field(name, ty) => UdtDef {
                 compilation,
                 name: name.as_ref().cloned(),
                 kind: UdtDefKind::SingleTy(ty),
             },
-            hir::ty::TyDefKind::Tuple(defs) => UdtDef {
+            hir::ty::UdtDefKind::Tuple(defs) => UdtDef {
                 compilation,
                 name: None,
                 kind: UdtDefKind::TupleTy(

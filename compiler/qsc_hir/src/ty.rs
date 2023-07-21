@@ -411,16 +411,16 @@ pub struct Udt {
     /// The name.
     pub name: Rc<str>,
     // The definition.
-    pub definition: TyDef,
+    pub definition: UdtDef,
 }
 
 impl Udt {
     #[must_use]
     pub fn get_pure_ty(&self) -> Ty {
-        fn get_pure_ty(def: &TyDef) -> Ty {
+        fn get_pure_ty(def: &UdtDef) -> Ty {
             match &def.kind {
-                TyDefKind::Field(_, ty) => ty.clone(),
-                TyDefKind::Tuple(tup) => Ty::Tuple(tup.iter().map(get_pure_ty).collect()),
+                UdtDefKind::Field(_, ty) => ty.clone(),
+                UdtDefKind::Tuple(tup) => Ty::Tuple(tup.iter().map(get_pure_ty).collect()),
             }
         }
         get_pure_ty(&self.definition)
@@ -491,35 +491,36 @@ impl Display for Udt {
     }
 }
 
-/// A type definition.
+/// A UDT type definition.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TyDef {
+pub struct UdtDef {
     /// The span.
     pub span: Span,
     /// The type definition kind.
-    pub kind: TyDefKind,
+    pub kind: UdtDefKind,
 }
 
-impl Display for TyDef {
+impl Display for UdtDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "TyDef {}: {}", self.span, self.kind)
     }
 }
 
-/// A type definition kind.
+/// A UDT type definition kind.
 #[derive(Clone, Debug, PartialEq)]
-pub enum TyDefKind {
+pub enum UdtDefKind {
+    // ToDo: span specifically for name, if present
     /// A field definition with an optional name but required type.
     Field(Option<Rc<str>>, Ty),
     /// A tuple.
-    Tuple(Vec<TyDef>),
+    Tuple(Vec<UdtDef>),
 }
 
-impl Display for TyDefKind {
+impl Display for UdtDefKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match &self {
-            TyDefKind::Field(name, t) => {
+            UdtDefKind::Field(name, t) => {
                 write!(indent, "Field:")?;
                 indent = set_indentation(indent, 1);
                 if let Some(n) = name {
@@ -527,7 +528,7 @@ impl Display for TyDefKind {
                 }
                 write!(indent, "\n{t}")?;
             }
-            TyDefKind::Tuple(ts) => {
+            UdtDefKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
                 } else {
@@ -541,15 +542,6 @@ impl Display for TyDefKind {
         }
         Ok(())
     }
-}
-
-/// A named field in a user-defined type.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UdtField {
-    /// The field name.
-    pub name: Rc<str>,
-    /// The field path.
-    pub path: FieldPath,
 }
 
 /// A placeholder type variable used during type inference.

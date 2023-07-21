@@ -9,9 +9,10 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir,
-    ty::{Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtField},
+    ty::{
+        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtDef, UdtDefKind,
+    },
 };
-use std::rc::Rc;
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -110,26 +111,23 @@ pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyE
     }
 }
 
-pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
-    match &*def.kind {
-        TyDefKind::Field(Some(name), _) => {
-            vec![UdtField {
-                name: Rc::clone(&name.name),
-                path: hir::FieldPath::default(),
-            }]
-        }
-        TyDefKind::Field(None, _) => Vec::new(),
-        TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
-        TyDefKind::Tuple(items) => {
-            let mut fields = Vec::new();
-            for (index, item) in items.iter().enumerate() {
-                for mut field in ast_ty_def_fields(item) {
-                    field.path.indices.insert(0, index);
-                    fields.push(field);
-                }
+pub(super) fn ast_ty_def_fields(names: &Names, def: &TyDef) -> UdtDef {
+    if let TyDefKind::Paren(inner) = &*def.kind {
+        return ast_ty_def_fields(names, inner);
+    }
+
+    UdtDef {
+        span: def.span,
+        kind: match &*def.kind {
+            TyDefKind::Field(name, ty) => {
+                let (ty, _) = ty_from_ast(names, ty); // ToDo: handle errors
+                UdtDefKind::Field(name.as_ref().map(|n| n.name.clone()), ty)
             }
-            fields
-        }
+            TyDefKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
+            TyDefKind::Tuple(items) => {
+                UdtDefKind::Tuple(items.iter().map(|i| ast_ty_def_fields(names, i)).collect())
+            }
+        },
     }
 }
 
