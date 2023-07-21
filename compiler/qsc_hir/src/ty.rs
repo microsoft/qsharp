@@ -419,7 +419,7 @@ impl Udt {
     pub fn get_pure_ty(&self) -> Ty {
         fn get_pure_ty(def: &UdtDef) -> Ty {
             match &def.kind {
-                UdtDefKind::Field(_, ty) => ty.clone(),
+                UdtDefKind::Field(field) => field.ty.clone(),
                 UdtDefKind::Tuple(tup) => Ty::Tuple(tup.iter().map(get_pure_ty).collect()),
             }
         }
@@ -453,14 +453,13 @@ impl Udt {
 
     fn find_field_path(def: &UdtDef, name: &str) -> Option<FieldPath> {
         match &def.kind {
-            UdtDefKind::Field(Some((field_name, _)), _) => {
+            UdtDefKind::Field(field) => field.name.as_ref().and_then(|field_name| {
                 if field_name.as_ref() == name {
                     Some(FieldPath::default())
                 } else {
                     None
                 }
-            }
-            UdtDefKind::Field(None, _) => None,
+            }),
             UdtDefKind::Tuple(defs) => defs.iter().enumerate().find_map(|(i, def)| {
                 Self::find_field_path(def, name).map(|mut path| {
                     path.indices.insert(0, i);
@@ -470,17 +469,21 @@ impl Udt {
         }
     }
 
-    /// The type of the field at the given path. Returns [None] if the path is not valid for this
-    /// user-defined type.
-    #[must_use]
-    pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
+    fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
         let mut udt_def = &self.definition;
         for &index in &path.indices {
             let UdtDefKind::Tuple(items) = &udt_def.kind else { return None };
             udt_def = &items[index];
         }
-        let UdtDefKind::Field(_, ty) = &udt_def.kind else { return None };
-        Some(ty)
+        let UdtDefKind::Field(field) = &udt_def.kind else { return None };
+        Some(field)
+    }
+
+    /// The type of the field at the given path. Returns [None] if the path is not valid for this
+    /// user-defined type.
+    #[must_use]
+    pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
+        self.find_field(path).map(|field| &field.ty)
     }
 
     /// The type of the field with the given name. Returns [None] if this user-defined type does not
@@ -521,7 +524,7 @@ impl Display for UdtDef {
 #[derive(Clone, Debug, PartialEq)]
 pub enum UdtDefKind {
     /// A field definition with an optional name but required type.
-    Field(Option<(Rc<str>, Span)>, Ty),
+    Field(UdtField),
     /// A tuple.
     Tuple(Vec<UdtDef>),
 }
@@ -530,13 +533,10 @@ impl Display for UdtDefKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match &self {
-            UdtDefKind::Field(name, t) => {
+            UdtDefKind::Field(field) => {
                 write!(indent, "Field:")?;
                 indent = set_indentation(indent, 1);
-                if let Some((n, s)) = name {
-                    write!(indent, "\n{n} {s}")?;
-                }
-                write!(indent, "\n{t}")?;
+                write!(indent, "{field}")?;
             }
             UdtDefKind::Tuple(ts) => {
                 if ts.is_empty() {
@@ -550,6 +550,29 @@ impl Display for UdtDefKind {
                 }
             }
         }
+        Ok(())
+    }
+}
+
+/// A user-defined type.
+#[derive(Clone, Debug, PartialEq)]
+pub struct UdtField {
+    /// The span of the field name.
+    pub name_span: Option<Span>,
+    /// The field name.
+    pub name: Option<Rc<str>>,
+    // The field type.
+    pub ty: Ty,
+}
+
+impl Display for UdtField {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(n) = &self.name {
+            if let Some(s) = &self.name_span {
+                write!(f, "\n{n} {s}")?;
+            }
+        }
+        write!(f, "\n{}", self.ty)?;
         Ok(())
     }
 }

@@ -11,6 +11,7 @@ use qsc_hir::{
     hir,
     ty::{
         Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtDef, UdtDefKind,
+        UdtField,
     },
 };
 
@@ -123,7 +124,16 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyEr
             TyDefKind::Field(name, ty) => {
                 let (ty, item_errors) = ty_from_ast(names, ty);
                 errors.extend(item_errors);
-                UdtDefKind::Field(name.as_ref().map(|n| (n.name.clone(), n.span)), ty)
+                let (name_span, name) = match name {
+                    Some(name) => (Some(name.span), Some(name.name.clone())),
+                    None => (None, None),
+                };
+                let field = UdtField {
+                    name_span,
+                    name,
+                    ty,
+                };
+                UdtDefKind::Field(field)
             }
             TyDefKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             TyDefKind::Tuple(items) => UdtDefKind::Tuple(
