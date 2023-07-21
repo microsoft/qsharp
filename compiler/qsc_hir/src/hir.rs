@@ -315,6 +315,7 @@ impl Display for ItemKind {
         }
     }
 }
+
 /// A callable declaration header.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallableDecl {
