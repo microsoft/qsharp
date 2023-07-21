@@ -239,9 +239,9 @@ fn lift_local_newtype() {
                         ctl-adj: <none>
                 Item 2 [49-67] (Internal):
                     Parent: 1
-                    Type (Ident 6 [57-60] "Bar"): Udt:
-                        base: Int
-                        fields:"#]],
+                    Type (Ident 6 [57-60] "Bar"): UDT [49-67]:
+                        TyDef [63-66]: Field:
+                            type: Int"#]],
     );
 }
 
@@ -1550,9 +1550,8 @@ fn item_docs() {
                     Parent: 0
                     Doc:
                         This is a newtype.
-                    Type (Ident 0 [102-105] "Foo"): Udt:
-                        base: Unit
-                        fields:
+                    Type (Ident 0 [102-105] "Foo"): UDT [59-111]:
+                        TyDef [108-110]: Unit
                 Item 2 [125-183] (Public):
                     Parent: 0
                     Doc:

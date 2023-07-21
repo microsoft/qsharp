@@ -500,7 +500,7 @@ impl Display for Udt {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "UDT {}:", self.span)?;
         indent = set_indentation(indent, 1);
-        write!(indent, "{}", self.definition)?;
+        write!(indent, "\n{}", self.definition)?;
         Ok(())
     }
 }
@@ -569,10 +569,10 @@ impl Display for UdtField {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(n) = &self.name {
             if let Some(s) = &self.name_span {
-                write!(f, "\n{n} {s}")?;
+                write!(f, "\nname: {n} {s}")?;
             }
         }
-        write!(f, "\n{}", self.ty)?;
+        write!(f, "\ntype: {}", self.ty)?;
         Ok(())
     }
 }
