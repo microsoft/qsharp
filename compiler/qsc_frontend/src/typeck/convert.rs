@@ -123,7 +123,7 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyEr
             TyDefKind::Field(name, ty) => {
                 let (ty, item_errors) = ty_from_ast(names, ty);
                 errors.extend(item_errors);
-                UdtDefKind::Field(name.as_ref().map(|n| n.name.clone()), ty)
+                UdtDefKind::Field(name.as_ref().map(|n| (n.name.clone(), n.span)), ty)
             }
             TyDefKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             TyDefKind::Tuple(items) => UdtDefKind::Tuple(

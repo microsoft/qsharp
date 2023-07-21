@@ -232,7 +232,7 @@ impl<'a> UdtDef<'a> {
         match &def.kind {
             hir::ty::UdtDefKind::Field(name, ty) => UdtDef {
                 compilation,
-                name: name.as_ref().cloned(),
+                name: name.as_ref().map(|(n, _)| n.clone()),
                 kind: UdtDefKind::SingleTy(ty),
             },
             hir::ty::UdtDefKind::Tuple(defs) => UdtDef {

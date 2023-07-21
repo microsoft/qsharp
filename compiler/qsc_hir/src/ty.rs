@@ -453,7 +453,7 @@ impl Udt {
 
     fn find_field_path(def: &UdtDef, name: &str) -> Option<FieldPath> {
         match &def.kind {
-            UdtDefKind::Field(Some(field_name), _) => {
+            UdtDefKind::Field(Some((field_name, _)), _) => {
                 if field_name.as_ref() == name {
                     Some(FieldPath::default())
                 } else {
@@ -520,9 +520,8 @@ impl Display for UdtDef {
 /// A UDT type definition kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum UdtDefKind {
-    // ToDo: span specifically for name, if present
     /// A field definition with an optional name but required type.
-    Field(Option<Rc<str>>, Ty),
+    Field(Option<(Rc<str>, Span)>, Ty),
     /// A tuple.
     Tuple(Vec<UdtDef>),
 }
@@ -534,8 +533,8 @@ impl Display for UdtDefKind {
             UdtDefKind::Field(name, t) => {
                 write!(indent, "Field:")?;
                 indent = set_indentation(indent, 1);
-                if let Some(n) = name {
-                    write!(indent, "\n{n}")?;
+                if let Some((n, s)) = name {
+                    write!(indent, "\n{n} {s}")?;
                 }
                 write!(indent, "\n{t}")?;
             }
