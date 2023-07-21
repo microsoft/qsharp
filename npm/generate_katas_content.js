@@ -137,9 +137,9 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
   const requiredProperties = [
     "id",
+    "descriptionPath",
     "codePaths",
     "placeholderSourcePath",
-    "solutionSourcePath",
     "solutionPath",
   ];
   const missingProperties = getMissingProperties(
@@ -153,6 +153,11 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   }
 
   // Generate the object using the macro properties.
+  const descriptionMarkdown = tryReadFile(
+    join(kataPath, properties.descriptionPath),
+    `Could not read descriptopm for exercise ${properties.id}`
+  );
+  const descriptionHtml = marked(descriptionMarkdown);
   const resolvedCodePaths = properties.codePaths.map((path) =>
     join(kataPath, path)
   );
@@ -168,6 +173,8 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   return {
     type: "exercise",
     id: properties.id,
+    descriptionAsHtml: descriptionHtml,
+    descriptionAsMarkdown: descriptionMarkdown,
     sourceIds: sourceIds,
     placeholderCode: placeholderCode,
     explainedSolution: explainedSolution,

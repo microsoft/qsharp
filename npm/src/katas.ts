@@ -39,7 +39,9 @@ export type ExplainedSolution = {
 export type Exercise = {
   type: "exercise";
   id: string;
-  // TODO: fields that represent Q# code should be of QSharp type.
+  // TODO: Add title field.
+  descriptionAsHtml: string;
+  descriptionAsMarkdown: string;
   sourceIds: string[];
   placeholderCode: string;
   explainedSolution: ExplainedSolution;
