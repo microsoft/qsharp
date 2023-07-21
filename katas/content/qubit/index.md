@@ -316,36 +316,27 @@ If your operation acts on a single qubit, such as most intrinsic gates, or on a 
 >
 > A lot of resources on quantum computing use big-endian encoding, so in them the second column of the CNOT matrix corresponds to the input state $|1\rangle_{BE} = |01\rangle$, which should be left unchanged by the CNOT gate.
 
-### <span style="color:blue">Exercise 4</span>: Read the operation matrix
+## Display the circuit performed by the operation
 
-In this task you will be interpreting the matrix of an operation `MysteryOperation1` that implements a unitary operation $U$, defined in the `Quantum.Kata.VisualizationTools` namespace. 
-This operation will not be passed as an input to your task; you can access it by creating a separate code cell with a new operation (or modifying `DumpOperationDemo`), and using `%simulate` for that operation.
+[Quantum circuits](https://en.wikipedia.org/wiki/Quantum_circuit) are a very common way of visualizing quantum programs; you'll see them in a lot of tutorials, papers and books on quantum computing.
+Quantum circuits are a less powerful way of expressing the quantum computation compared to a quantum program. 
+They don't offer a good way to show the values of classical variables and their evolution, the decisions made based on the classical parameters or the measurement results, or even flow control structures such as loops or conditional statements.
+At the same time, they can be convenient to get a quick idea of what the program did, or to compare your implementation to the one offered in a book.
 
-**Input:** None.
+[`%trace` magic command](https://docs.microsoft.com/qsharp/api/iqsharp-magic/trace) (available only in Q# Jupyter Notebooks) offers a way to trace one run of the Q# program and to build a circuit based on that execution.
+Note that these circuits include only the quantum gates executed by the program. 
+They might differ in different runs of the same program, if that program takes parameters, has conditional branching or other behaviors that can change the sequence of gates applied by the program.
 
-**Output:** A single floating-point number: the amplitude of the $|10\rangle$ basis state in the state $U|01\rangle$ (i.e., the element of the matrix implemented by $U$ which describes the transformation $|01\rangle \rightarrow |10\rangle$). The result must be within 0.001 from the actual value.
-
-<br/>
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-  There are two ways to do this task. You can use DumpOperation directly, or (since you're looking for just one coefficient, not all of them) you can allocate 2 qubits, prepare them in the right basis state, apply the MysteryOperation1 and use DumpMachine to see the amplitudes of the resulting superposition state.
-</details>
+You can pass parameters to the operation traced with `%trace` same as for `%simulate`, by adding `<parameterName>=<value>` for each parameter after the operation name.
 
 
-@[exercise]({
-    "id": "read_mystery_operation_matrix",
-    "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
-    ],
-    "verificationSourcePath": "./read_mystery_operation_matrix/Verification.qs",
-    "placeholderSourcePath": "./read_mystery_operation_matrix/Placeholder.qs",
-    "solutionSourcePath": "./read_mystery_operation_matrix/Solution.qs",
-    "solutionDescriptionPath": "./read_mystery_operation_matrix/solution.md"
-})
-++++++++++++++++++++
+### <span style="color:blue">Demo: Using %trace</span>
 
+Let's take a look at the circuit produced by the `MultiQubitDumpMachineDemo` operation defined earlier.
 
+> If the cell below gives you an "Invalid operation name" error, return to the demo [DumpMachine for multi-qubit systems](#Demo:-DumpMachine-for-multi-qubit-systems) and run it to define the operation.
 
+Try clicking on the gates that show a magnifying glass when the cursor hovers over them to see their internal implementation.
 
 ## Relative and Global Phase
 
