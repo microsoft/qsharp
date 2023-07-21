@@ -39,7 +39,7 @@ export type ExplainedSolution = {
 export type Exercise = {
   type: "exercise";
   id: string;
-  // TODO: Add title field.
+  title: string;
   descriptionAsHtml: string;
   descriptionAsMarkdown: string;
   sourceIds: string[];

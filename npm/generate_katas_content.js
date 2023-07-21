@@ -158,6 +158,7 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
     `Could not read descriptopm for exercise ${properties.id}`
   );
   const descriptionHtml = marked(descriptionMarkdown);
+  const title = getTitleFromMarkdown(descriptionMarkdown);
   const resolvedCodePaths = properties.codePaths.map((path) =>
     join(kataPath, path)
   );
@@ -173,6 +174,7 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   return {
     type: "exercise",
     id: properties.id,
+    title: title,
     descriptionAsHtml: descriptionHtml,
     descriptionAsMarkdown: descriptionMarkdown,
     sourceIds: sourceIds,

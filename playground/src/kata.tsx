@@ -64,6 +64,9 @@ export function Kata(props: {
         if (!contentDiv) return;
         contentDiv.innerHTML = section.contentAsHtml;
       } else if (section.type === "exercise") {
+        const titleDiv = parentDiv?.querySelector(".exercise-title");
+        if (!titleDiv) return;
+        titleDiv.innerHTML = "\u{1F4D3} " + section.title;
         const descriptionDiv = parentDiv?.querySelector(
           ".exercise-description"
         );
@@ -96,6 +99,7 @@ export function Kata(props: {
         } else if (section.type === "example" || section.type === "exercise") {
           return (
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
+              <div class="exercise-title"></div>
               <div class="exercise-description"></div>
               <div>
                 <Editor
