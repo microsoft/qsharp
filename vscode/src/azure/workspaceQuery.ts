@@ -157,8 +157,8 @@ export async function queryWorkspace(
   endpointUri = "http://localhost:5555";
 
   const apiVersion = "api-version=2022-09-12-preview";
-  const providerStatusUri = `${endpointUri}${workspaceUri}/providerStatus?${apiVersion}`;
-  const storageSasUri = `${endpointUri}${workspaceUri}/storage/sasUri?${apiVersion}`;
+  // const providerStatusUri = `${endpointUri}${workspaceUri}/providerStatus?${apiVersion}`;
+  // const storageSasUri = `${endpointUri}${workspaceUri}/storage/sasUri?${apiVersion}`;
   const quotasUri = `${endpointUri}${workspaceUri}/quotas?${apiVersion}`;
 
   try {

@@ -13,7 +13,7 @@ import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
-import { setupWorkspaces } from "./workspace.js";
+import { setupWorkspaces } from "./azure/workspace.js";
 import { activateDebugger } from "./debugger/activate.js";
 
 export async function activate(context: vscode.ExtensionContext) {
