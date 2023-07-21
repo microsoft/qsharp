@@ -447,37 +447,48 @@ impl Udt {
     /// The path to the field with the given name. Returns [None] if this user-defined type does not
     /// have a field with the given name.
     #[must_use]
-    pub fn field_path(&self, name: &str) -> Option<&FieldPath> {
-        todo!()
-        // for field in &self.fields {
-        //     if field.name.as_ref() == name {
-        //         return Some(&field.path);
-        //     }
-        // }
+    pub fn field_path(&self, name: &str) -> Option<FieldPath> {
+        Self::find_field_path(&self.definition, name)
+    }
 
-        // None
+    fn find_field_path(def: &UdtDef, name: &str) -> Option<FieldPath> {
+        match &def.kind {
+            UdtDefKind::Field(Some(field_name), _) => {
+                if field_name.as_ref() == name {
+                    Some(FieldPath::default())
+                } else {
+                    None
+                }
+            }
+            UdtDefKind::Field(None, _) => None,
+            UdtDefKind::Tuple(defs) => defs.iter().enumerate().find_map(|(i, def)| {
+                Self::find_field_path(def, name).map(|mut path| {
+                    path.indices.insert(0, i);
+                    path
+                })
+            }),
+        }
     }
 
     /// The type of the field at the given path. Returns [None] if the path is not valid for this
     /// user-defined type.
     #[must_use]
     pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
-        todo!()
-        // let mut ty = &self.base;
-        // for &index in &path.indices {
-        //     let Ty::Tuple(items) = ty else { return None; };
-        //     ty = &items[index];
-        // }
-        // Some(ty)
+        let mut udt_def = &self.definition;
+        for &index in &path.indices {
+            let UdtDefKind::Tuple(items) = &udt_def.kind else { return None };
+            udt_def = &items[index];
+        }
+        let UdtDefKind::Field(_, ty) = &udt_def.kind else { return None };
+        Some(ty)
     }
 
     /// The type of the field with the given name. Returns [None] if this user-defined type does not
     /// have a field with the given name.
     #[must_use]
     pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
-        todo!()
-        // let path = self.field_path(name)?;
-        // self.field_ty(path)
+        let path = self.field_path(name)?;
+        self.field_ty(&path)
     }
 }
 
