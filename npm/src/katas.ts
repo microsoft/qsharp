@@ -48,7 +48,7 @@ export type Exercise = {
   type: "exercise";
   id: string;
   // TODO: fields that represent Q# code should be of QSharp type.
-  sourcesIds: string[];
+  sourceIds: string[];
   placeholderCode: string;
   solutionAsHtml: string;
   solutionAsMarkdown: string;
@@ -79,6 +79,6 @@ export async function getExerciseSources(
   exercise: Exercise
 ): Promise<string[]> {
   return katasContent.globalCodeSources
-    .filter((source) => exercise.sourcesIds.indexOf(source.name) > -1)
+    .filter((source) => exercise.sourceIds.indexOf(source.name) > -1)
     .map((source) => source.contents);
 }

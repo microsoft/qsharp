@@ -139,7 +139,7 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   const resolvedCodePaths = properties.codePaths.map((path) =>
     join(kataPath, path)
   );
-  const sourcesIds = aggregateSources(resolvedCodePaths, globalCodeSources);
+  const sourceIds = aggregateSources(resolvedCodePaths, globalCodeSources);
   const placeholderCode = tryReadFile(
     join(kataPath, properties.placeholderSourcePath),
     `Could not read placeholder code for exercise ${properties.id}`
@@ -152,7 +152,7 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
   return {
     type: "exercise",
     id: properties.id,
-    sourcesIds: sourcesIds,
+    sourceIds: sourceIds,
     placeholderCode: placeholderCode,
     solutionAsMarkdown: solutionAsMarkdown,
     solutionAsHtml: solutionAsHtml,
