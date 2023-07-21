@@ -105,20 +105,20 @@ impl PackageIter<'_> {
                     scheme: decl.scheme(),
                 }),
             }),
-            (ItemKind::Ty(_, udt), Some(ItemKind::Namespace(namespace, _))) => {
+            (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: Rc::clone(&namespace.name),
-                    name: udt.name.clone(),
+                    name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     kind: Kind::Term(Term {
                         id,
-                        scheme: udt.cons_scheme(id),
+                        scheme: def.cons_scheme(id),
                     }),
                 });
 
                 Some(Global {
                     namespace: Rc::clone(&namespace.name),
-                    name: udt.name.clone(),
+                    name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     kind: Kind::Ty(Ty { id }),
                 })
