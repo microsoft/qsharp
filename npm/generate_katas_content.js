@@ -116,6 +116,23 @@ function aggregateSources(paths, globalCodeSources) {
   return codeSources;
 }
 
+function generateExplainedSolution(path) {
+  // TODO: Temporary scaffolding.
+  const solutionAsMarkdown = tryReadFile(
+    path,
+    `Could not read solution markdown file`
+  );
+  const text = {
+    type: "text",
+    contentAsMarkdown: solutionAsMarkdown,
+    contentAsHtml: marked(solutionAsMarkdown),
+  };
+  return {
+    type: "explained-solution",
+    items: [text],
+  };
+}
+
 function generateExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
   const requiredProperties = [
@@ -123,7 +140,7 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
     "codePaths",
     "placeholderSourcePath",
     "solutionSourcePath",
-    "solutionDescriptionPath",
+    "solutionPath",
   ];
   const missingProperties = getMissingProperties(
     properties,
@@ -144,18 +161,16 @@ function generateExerciseSection(kataPath, properties, globalCodeSources) {
     join(kataPath, properties.placeholderSourcePath),
     `Could not read placeholder code for exercise ${properties.id}`
   );
-  const solutionAsMarkdown = tryReadFile(
-    join(kataPath, properties.solutionDescriptionPath),
-    `Could not read solution description for exercise ${properties.id}`
+  const explainedSolution = generateExplainedSolution(
+    join(kataPath, properties.solutionPath)
   );
-  const solutionAsHtml = marked.parse(solutionAsMarkdown);
+
   return {
     type: "exercise",
     id: properties.id,
     sourceIds: sourceIds,
     placeholderCode: placeholderCode,
-    solutionAsMarkdown: solutionAsMarkdown,
-    solutionAsHtml: solutionAsHtml,
+    explainedSolution: explainedSolution,
   };
 }
 

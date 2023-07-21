@@ -42,8 +42,7 @@ export type Exercise = {
   // TODO: fields that represent Q# code should be of QSharp type.
   sourceIds: string[];
   placeholderCode: string;
-  solutionAsHtml: string;
-  solutionAsMarkdown: string;
+  explainedSolution: ExplainedSolution;
 };
 
 // TODO: Should be Exercise | Lesson | Question

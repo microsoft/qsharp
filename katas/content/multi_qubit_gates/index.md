@@ -22,5 +22,5 @@ This tutorial covers the following topics:
     ],
     "placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",
     "solutionSourcePath": "./preparing_bell_state/Solution.qs",
-    "solutionDescriptionPath": "./preparing_bell_state/solution.md"
+    "solutionPath": "./preparing_bell_state/solution.md"
 })

@@ -7,6 +7,7 @@ import {
   ICompilerWorker,
   ILanguageServiceWorker,
   Kata,
+  Text,
   QscEventTarget,
 } from "qsharp";
 import { Editor } from "./editor.js";
@@ -47,7 +48,11 @@ export function Kata(props: {
       if (section.type === "text") {
         div.innerHTML = section.contentAsHtml;
       } else if (section.type === "exercise") {
-        div.innerHTML = section.solutionAsHtml;
+        const text = section.explainedSolution.items.find(
+          (item) => item.type === "text"
+        );
+        const content = text !== undefined ? (text as Text).contentAsHtml : "";
+        div.innerHTML = content;
       } else {
         div.innerHTML = "";
       }

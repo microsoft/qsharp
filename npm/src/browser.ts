@@ -160,6 +160,7 @@ export {
   type KataSection,
   type Example,
   type Exercise,
+  type Text,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
 export { type VSDiagnostic } from "./vsdiagnostic.js";

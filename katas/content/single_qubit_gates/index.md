@@ -22,7 +22,7 @@ This tutorial covers the following topics:
     ],
     "placeholderSourcePath": "./y_gate/Placeholder.qs",
     "solutionSourcePath": "./y_gate/Solution.qs",
-    "solutionDescriptionPath": "./y_gate/solution.md"
+    "solutionPath": "./y_gate/solution.md"
 })
 
 ## Applying a global phase $i$
@@ -39,5 +39,5 @@ This tutorial covers the following topics:
     ],
     "placeholderSourcePath": "./global_phase_i/Placeholder.qs",
     "solutionSourcePath": "./global_phase_i/Solution.qs",
-    "solutionDescriptionPath": "./global_phase_i/solution.md"
+    "solutionPath": "./global_phase_i/solution.md"
 })
