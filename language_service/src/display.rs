@@ -370,7 +370,7 @@ impl<'a> Display for HirTy<'a> {
                 hir::Res::Item(item_id) => {
                     if let Some(item) = find_item(self.compilation, item_id) {
                         match &item.kind {
-                            hir::ItemKind::Ty(udt) => write!(f, "{}", udt.name),
+                            hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                             _ => panic!("UDT has invalid resolution."),
                         }
                     } else {
