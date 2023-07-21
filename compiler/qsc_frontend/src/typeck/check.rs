@@ -214,19 +214,20 @@ impl Visitor<'_> for ItemCollector<'_> {
                 };
 
                 let (cons, cons_errors) = convert::ast_ty_def_cons(self.names, item, def);
+                let (udt_def, def_errors) = convert::ast_ty_def(self.names, def);
                 self.checker.errors.extend(
                     cons_errors
                         .into_iter()
+                        .chain(def_errors)
                         .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
                 );
 
-                let fields = convert::ast_ty_def_fields(self.names, def);
                 self.checker.table.udts.insert(
                     item,
                     Udt {
                         name: name.name.clone(),
                         span,
-                        definition: fields,
+                        definition: udt_def,
                     },
                 );
                 self.checker.globals.insert(item, cons);

@@ -111,24 +111,35 @@ fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
     }
 }
 
-pub(super) fn ast_ty_def_fields(names: &Names, def: &TyDef) -> UdtDef {
+pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyError>) {
     if let TyDefKind::Paren(inner) = &*def.kind {
-        return ast_ty_def_fields(names, inner);
+        return ast_ty_def(names, inner);
     }
 
-    UdtDef {
+    let mut errors = Vec::new();
+    let def = UdtDef {
         span: def.span,
         kind: match &*def.kind {
             TyDefKind::Field(name, ty) => {
-                let (ty, _) = ty_from_ast(names, ty); // ToDo: handle errors
+                let (ty, item_errors) = ty_from_ast(names, ty);
+                errors.extend(item_errors);
                 UdtDefKind::Field(name.as_ref().map(|n| n.name.clone()), ty)
             }
             TyDefKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            TyDefKind::Tuple(items) => {
-                UdtDefKind::Tuple(items.iter().map(|i| ast_ty_def_fields(names, i)).collect())
-            }
+            TyDefKind::Tuple(items) => UdtDefKind::Tuple(
+                items
+                    .iter()
+                    .map(|i| {
+                        let (item_def, item_errors) = ast_ty_def(names, i);
+                        errors.extend(item_errors);
+                        item_def
+                    })
+                    .collect(),
+            ),
         },
-    }
+    };
+
+    (def, errors)
 }
 
 pub(super) fn ast_callable_scheme(
