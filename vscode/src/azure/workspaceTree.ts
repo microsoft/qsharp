@@ -10,13 +10,17 @@ let resourcesPath: vscode.Uri;
 export class WorkspaceTreeProvider
   implements vscode.TreeDataProvider<Workspace>
 {
+  private _onDidChangeData = new vscode.EventEmitter<Workspace | undefined>();
+  readonly onDidChangeTreeData: vscode.Event<Workspace | undefined> =
+    this._onDidChangeData.event;
+
   constructor(context: vscode.ExtensionContext) {
     resourcesPath = vscode.Uri.joinPath(context.extensionUri, "resources");
   }
-  refresh() {
-    // TODO
+  async refresh() {
+    this._onDidChangeData.fire(undefined);
   }
-  // onDidChangeTreeData?: vscode.Event<void | Workspace | Workspace[] | null | undefined> | undefined;
+
   getTreeItem(element: Workspace): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return element;
   }
@@ -67,6 +71,14 @@ class Workspace extends vscode.TreeItem {
         light: vscode.Uri.joinPath(resourcesPath, "light", icon),
         dark: vscode.Uri.joinPath(resourcesPath, "dark", icon),
       };
+    }
+    if (this.label === "IonQ") {
+      const status = new vscode.MarkdownString(`
+__Status__: Online<br>
+__Queue time__: 2 hours
+      `);
+      status.supportHtml = true;
+      this.tooltip = status;
     }
   }
 }

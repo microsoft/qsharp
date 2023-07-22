@@ -49,6 +49,11 @@
           "command": "quantum-workspaces-refresh",
           "when": "view == quantum-workspaces",
           "group": "navigation"
+        },
+        {
+          "command": "quantum-workspaces-add",
+          "when": "view == quantum-workspaces",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -56,6 +61,11 @@
           "command": "quantum-target-submit",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == target"
+        },
+        {
+          "command": "quantum-result-view",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result"
         },
         {
           "command": "quantum-result-download",
@@ -72,6 +82,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "quantum-workspaces",
+        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:extension.qsharp.listWorkspaces)\n[Use connection string](command:git.clone)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+      }
+    ],
     "commands": [
       {
         "command": "qsharp-vscode.debugEditorContents",
@@ -100,6 +116,14 @@
         }
       },
       {
+        "command": "quantum-workspaces-add",
+        "title": "Add",
+        "icon": {
+          "light": "resources/light/add.svg",
+          "dark": "resources/dark/add.svg"
+        }
+      },
+      {
         "command": "quantum-target-submit",
         "title": "Submit job"
       },
@@ -109,6 +133,14 @@
         "icon": {
           "light": "resources/light/download.svg",
           "dark": "resources/dark/download.svg"
+        }
+      },
+      {
+        "command": "quantum-result-view",
+        "title": "View",
+        "icon": {
+          "light": "resources/light/view.svg",
+          "dark": "resources/dark/view.svg"
         }
       }
     ],
