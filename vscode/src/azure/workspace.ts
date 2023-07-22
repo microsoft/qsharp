@@ -37,6 +37,25 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     workspaceTreeProvider.refresh();
   });
 
+  vscode.commands.registerCommand("quantum-workspace-getkey", async () => {
+    const rawPrompt = "Get access key only";
+    const pythonPrompt = "Get Python code with access key";
+    const result = await vscode.window.showQuickPick(
+      [rawPrompt, pythonPrompt],
+      { title: "Copy workspace access key" }
+    );
+    if (result === rawPrompt) {
+      await vscode.env.clipboard.writeText("asdlfkjwekj22343242lkdf");
+    } else {
+      await vscode.env.clipboard.writeText(`from azure.quantum import Workspace
+workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
+`);
+    }
+    vscode.window.showInformationMessage(
+      "Workspace key copied to the clipboard"
+    );
+  });
+
   vscode.commands.registerCommand("quantum-job-cancel", async () => {
     const confirm = await vscode.window.showWarningMessage(
       "Are you sure you want to cancel the job?",

@@ -58,6 +58,11 @@
       ],
       "view/item/context": [
         {
+          "command": "quantum-workspace-getkey",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == workspace"
+        },
+        {
           "command": "quantum-target-submit",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == target"
@@ -150,6 +155,14 @@
         "icon": {
           "dark": "resources/dark/trash.svg",
           "light": "resources/light/trash.svg"
+        }
+      },
+      {
+        "command": "quantum-workspace-getkey",
+        "title": "Get access key",
+        "icon": {
+          "light": "resources/light/key.svg",
+          "dark": "resources/dark/key.svg"
         }
       },
       {
