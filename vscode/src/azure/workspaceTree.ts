@@ -80,5 +80,30 @@ __Queue time__: 2 hours
       status.supportHtml = true;
       this.tooltip = status;
     }
+    if (this.label === "Chemistry") {
+      const hover = new vscode.MarkdownString(`
+__Quota remaining__: $500.00
+  `);
+      hover.supportHtml = true;
+      this.tooltip = hover;
+    }
+    if (type === "job") {
+      const hover = new vscode.MarkdownString(
+        `__Submitted__: 2023-06-25, 15:34 UTC`
+      );
+      hover.supportHtml = true;
+      this.tooltip = hover;
+    }
+    if (type === "result") {
+      const hover = new vscode.MarkdownString(
+        `__Submitted__: 2023-06-25, 15:34 UTC<br>
+__Completed__: 2023-06-25, 15:45 UTC<br>
+__Result__: Success<br>
+__Size__: 10kb
+        `
+      );
+      hover.supportHtml = true;
+      this.tooltip = hover;
+    }
   }
 }

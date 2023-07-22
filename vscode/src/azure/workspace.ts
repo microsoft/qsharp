@@ -22,8 +22,31 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     }
   });
 
+  vscode.commands.registerCommand("quantum-target-submit", () => {
+    vscode.window.showErrorMessage(
+      `The current target does not support all features required by this program.
+  Please resolve the error messages for the current project and try again.`,
+      {
+        modal: true,
+        detail: "For more details, see https://aka.ms/qir-profiles",
+      }
+    );
+  });
+
   vscode.commands.registerCommand("quantum-workspaces-refresh", () => {
     workspaceTreeProvider.refresh();
+  });
+
+  vscode.commands.registerCommand("quantum-job-cancel", async () => {
+    const confirm = await vscode.window.showWarningMessage(
+      "Are you sure you want to cancel the job?",
+      {
+        modal: true,
+      },
+      "Yes",
+      "No"
+    );
+    if (confirm === "Yes") vscode.window.showInformationMessage("Job deleted");
   });
 
   vscode.commands.registerCommand("quantum-workspaces-add", async () => {
@@ -43,14 +66,44 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
         ["MSDN Subscription", "Production"],
         { title: "Select the Azure subscription" }
       );
+      const workspace = await vscode.window.showQuickPick(
+        ["Chemistry", "Research"],
+        { title: "Select the workspace to add" }
+      );
     }
   });
 
-  vscode.commands.registerCommand("quantum-result-view", async () => {
+  vscode.commands.registerCommand("quantum-target-view", async () => {
+    vscode.window.showInformationMessage("All systems are go!");
+  });
+  vscode.commands.registerCommand("quantum-result-download", async () => {
     const doc = await vscode.workspace.openTextDocument({
-      content: `# Results
-ABC, [Zero, One]
-DEF, 3.14159
+      content: `# Job results for provider IonQ on 2023-06-23 10::34 UTC
+
+START
+METADATA\tmetadata1_name_only
+METADATA\tmetadata2_name\tmetadata2_value
+METADATA\tmetadata3_name\tmetadata3_value
+OUTPUT\tTUPLE\t2\t0_t
+OUTPUT\tRESULT\t0\t1_t0r
+OUTPUT\tDOUBLE\t0.42\t2_t1d
+END\t0
+START
+METADATA\tmetadata1_name_only
+METADATA\tmetadata2_name\tmetadata2_value
+METADATA\tmetadata3_name\tmetadata3_value
+OUTPUT\tTUPLE\t2\t0_t
+OUTPUT\tRESULT\t1\t1_t0r
+OUTPUT\tDOUBLE\t0.42\t2_t1d
+END\t0
+START
+METADATA\tmetadata1_name_only
+METADATA\tmetadata2_name\tmetadata2_value
+METADATA\tmetadata3_name\tmetadata3_value
+OUTPUT\tTUPLE\t2\t0_t
+OUTPUT\tRESULT\t0\t1_t0r
+OUTPUT\tDOUBLE\t0.25\t2_t1d
+END\t0
 `,
       language: "plaintext",
     });

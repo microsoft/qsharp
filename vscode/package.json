@@ -63,14 +63,19 @@
           "when": "view == quantum-workspaces && viewItem == target"
         },
         {
-          "command": "quantum-result-view",
+          "command": "quantum-target-view",
           "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == result"
+          "when": "view == quantum-workspaces && viewItem == target"
         },
         {
           "command": "quantum-result-download",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == result"
+        },
+        {
+          "command": "quantum-job-cancel",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == job"
         }
       ]
     },
@@ -105,7 +110,7 @@
       },
       {
         "command": "extension.qsharp.listWorkspaces",
-        "title": "List qsharp workspaces"
+        "title": "List Q# workspaces"
       },
       {
         "command": "quantum-workspaces-refresh",
@@ -117,7 +122,7 @@
       },
       {
         "command": "quantum-workspaces-add",
-        "title": "Add",
+        "title": "Add a workspace",
         "icon": {
           "light": "resources/light/add.svg",
           "dark": "resources/dark/add.svg"
@@ -125,7 +130,11 @@
       },
       {
         "command": "quantum-target-submit",
-        "title": "Submit job"
+        "title": "Submit current program",
+        "icon": {
+          "light": "resources/light/create.svg",
+          "dark": "resources/dark/create.svg"
+        }
       },
       {
         "command": "quantum-result-download",
@@ -136,7 +145,15 @@
         }
       },
       {
-        "command": "quantum-result-view",
+        "command": "quantum-job-cancel",
+        "title": "Cancel job",
+        "icon": {
+          "dark": "resources/dark/trash.svg",
+          "light": "resources/light/trash.svg"
+        }
+      },
+      {
+        "command": "quantum-target-view",
         "title": "View",
         "icon": {
           "light": "resources/light/view.svg",
