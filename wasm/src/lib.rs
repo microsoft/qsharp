@@ -116,8 +116,8 @@ where
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
-    let context = stateless::Context::new(true, sources);
-    if let Err(err) = context {
+    let interpreter = stateless::Interpreter::new(true, sources);
+    if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
@@ -127,9 +127,10 @@ where
         (out.event_cb)(&msg.to_string());
         return Err(e);
     }
-    let context = context.expect("context should be valid");
+    let interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {
-        let result = context.eval(&mut out);
+        let mut eval_ctx = interpreter.new_eval_context();
+        let result = eval_ctx.eval_entry(&mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),
@@ -233,13 +234,17 @@ mod test {
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
-        let (_, diag) = crate::compile(code);
-        assert_eq!(diag.len(), 1, "{diag:#?}");
-        let err = diag.first().unwrap();
+        let (_, mut diag) = crate::compile(code);
+        assert_eq!(diag.len(), 2, "{diag:#?}");
+        let err_1 = diag.pop().unwrap();
+        let err_2 = diag.pop().unwrap();
 
-        assert_eq!(err.start_pos, 32);
-        assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
+        assert_eq!(err_1.start_pos, 32);
+        assert_eq!(err_1.end_pos, 33);
+        assert_eq!(err_1.message, "type error: insufficient type information to infer type\n\nhelp: provide a type annotation");
+        assert_eq!(err_2.start_pos, 32);
+        assert_eq!(err_2.end_pos, 33);
+        assert_eq!(err_2.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]

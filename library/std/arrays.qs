@@ -487,6 +487,23 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Returns a tuple of first and all remaining elements of the array.
+    ///
+    /// # Type Parameters
+    /// ## 'A
+    /// The type of the array elements.
+    ///
+    /// # Input
+    /// ## array
+    /// An array with at least one element.
+    ///
+    /// # Output
+    /// A tuple of first and all remaining elements of the array.
+    function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[]) {
+        (Head(array), Rest(array))
+    }
+
+    /// # Summary
     /// Returns the first index of the first element in an array that satisfies
     /// a given predicate. If no such element exists, returns -1.
     ///
@@ -828,6 +845,23 @@ namespace Microsoft.Quantum.Arrays {
     /// An array containing the elements `array[0..Length(array) - 2]`.
     function Most<'T> (array : 'T[]) : 'T[] {
         array[... Length(array) - 2]
+    }
+
+    /// # Summary
+    /// Returns a tuple of all but one and the last element of the array.
+    ///
+    /// # Type Parameters
+    /// ## 'A
+    /// The type of the array elements.
+    ///
+    /// # Input
+    /// ## array
+    /// An array with at least one element.
+    ///
+    /// # Output
+    /// A tuple of all but one and the last element of the array.
+    function MostAndTail<'A>(array : 'A[]) : ('A[], 'A) {
+        (Most(array), Tail(array))
     }
 
     /// # Summary

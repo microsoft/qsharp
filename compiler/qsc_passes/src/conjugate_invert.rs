@@ -23,6 +23,7 @@ use qsc_hir::{
 use thiserror::Error;
 
 use crate::{
+    id_update::NodeIdRefresher,
     invert_block::adj_invert_block,
     spec_gen::adj_gen::{self, AdjDistrib},
 };
@@ -125,22 +126,23 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
                 self.errors
                     .extend(distrib.errors.into_iter().map(Error::AdjGen));
 
-                let (bind_id, apply_as_bind) =
-                    block_as_binding(apply, expr.ty.clone(), self.assigner);
+                NodeIdRefresher::new(self.assigner).visit_block(&mut adj_within);
+
+                let (bind_id, apply_as_bind) = self.block_as_binding(apply, expr.ty.clone());
 
                 let new_block = Block {
-                    id: NodeId::default(),
+                    id: self.assigner.next_node(),
                     span: Span::default(),
                     ty: expr.ty.clone(),
                     stmts: vec![
-                        block_as_stmt(within),
+                        self.block_as_stmt(within),
                         apply_as_bind,
-                        block_as_stmt(adj_within),
+                        self.block_as_stmt(adj_within),
                         Stmt {
-                            id: NodeId::default(),
+                            id: self.assigner.next_node(),
                             span: Span::default(),
                             kind: StmtKind::Expr(Expr {
-                                id: NodeId::default(),
+                                id: self.assigner.next_node(),
                                 span: Span::default(),
                                 ty: expr.ty.clone(),
                                 kind: ExprKind::Var(Res::Local(bind_id), Vec::new()),
@@ -148,7 +150,7 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
                         },
                     ],
                 };
-                *expr = block_as_expr(new_block, expr.ty.clone());
+                *expr = self.block_as_expr(new_block, expr.ty.clone());
             }
             kind => expr.kind = kind,
         }
@@ -157,46 +159,47 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
     }
 }
 
-fn block_as_expr(block: Block, ty: Ty) -> Expr {
-    Expr {
-        id: NodeId::default(),
-        span: Span::default(),
-        ty,
-        kind: ExprKind::Block(block),
-    }
-}
-
-fn block_as_stmt(block: Block) -> Stmt {
-    Stmt {
-        id: NodeId::default(),
-        span: Span::default(),
-        kind: StmtKind::Expr(block_as_expr(block, Ty::UNIT)),
-    }
-}
-
-fn block_as_binding(block: Block, ty: Ty, assigner: &mut Assigner) -> (NodeId, Stmt) {
-    let bind_id = assigner.next_node();
-    (
-        bind_id,
-        Stmt {
-            id: assigner.next_node(),
+impl ConjugateElim<'_> {
+    fn block_as_expr(&mut self, block: Block, ty: Ty) -> Expr {
+        Expr {
+            id: self.assigner.next_node(),
             span: Span::default(),
-            kind: StmtKind::Local(
-                Mutability::Immutable,
-                Pat {
-                    id: assigner.next_node(),
-                    span: Span::default(),
-                    ty: ty.clone(),
-                    kind: PatKind::Bind(Ident {
-                        id: bind_id,
+            ty,
+            kind: ExprKind::Block(block),
+        }
+    }
+
+    fn block_as_stmt(&mut self, block: Block) -> Stmt {
+        Stmt {
+            id: self.assigner.next_node(),
+            span: Span::default(),
+            kind: StmtKind::Expr(self.block_as_expr(block, Ty::UNIT)),
+        }
+    }
+    fn block_as_binding(&mut self, block: Block, ty: Ty) -> (NodeId, Stmt) {
+        let bind_id = self.assigner.next_node();
+        (
+            bind_id,
+            Stmt {
+                id: self.assigner.next_node(),
+                span: Span::default(),
+                kind: StmtKind::Local(
+                    Mutability::Immutable,
+                    Pat {
+                        id: self.assigner.next_node(),
                         span: Span::default(),
-                        name: "apply_res".into(),
-                    }),
-                },
-                block_as_expr(block, ty),
-            ),
-        },
-    )
+                        ty: ty.clone(),
+                        kind: PatKind::Bind(Ident {
+                            id: bind_id,
+                            span: Span::default(),
+                            name: "apply_res".into(),
+                        }),
+                    },
+                    self.block_as_expr(block, ty),
+                ),
+            },
+        )
+    }
 }
 
 struct Usage {

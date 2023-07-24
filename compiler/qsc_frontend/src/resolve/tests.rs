@@ -381,9 +381,9 @@ fn open_shadows_prelude() {
 }
 
 #[test]
-#[should_panic(expected = "ambiguity in prelude resolution")]
 fn ambiguous_prelude() {
-    resolve_names(indoc! {"
+    check(
+        indoc! {"
         namespace Microsoft.Quantum.Canon {
             function A() : Unit {}
         }
@@ -397,7 +397,25 @@ fn ambiguous_prelude() {
                 A();
             }
         }
-    "});
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+            }
+
+            namespace item2 {
+                function item3() : Unit {}
+            }
+
+            namespace item4 {
+                function item5() : Unit {
+                    A();
+                }
+            }
+
+            // AmbiguousPrelude { name: "A", candidate_a: "Microsoft.Quantum.Canon", candidate_b: "Microsoft.Quantum.Core", span: Span { lo: 181, hi: 182 } }
+        "#]],
+    );
 }
 
 #[test]
@@ -1735,13 +1753,13 @@ fn use_unbound_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'param0>(local9: 'U) : 'U {
+                function item1<param0>(local9: 'U) : 'U {
                     local9
                 }
             }
 
-            // NotFound("U", Span { lo: 37, hi: 38 })
-            // NotFound("U", Span { lo: 43, hi: 44 })
+            // NotFound("'U", Span { lo: 36, hi: 38 })
+            // NotFound("'U", Span { lo: 42, hi: 44 })
         "#]],
     );
 }
@@ -1757,7 +1775,7 @@ fn resolve_local_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'param0>(local9: 'param0) : 'param0 {
+                function item1<param0>(local9: param0) : param0 {
                     local9
                 }
             }
