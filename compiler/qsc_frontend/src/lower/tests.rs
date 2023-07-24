@@ -568,7 +568,6 @@ fn lift_newtype_from_newtype() {
     );
 }
 
-
 #[test]
 fn lambda_function_empty_closure() {
     check_hir(
