@@ -5,7 +5,7 @@ use crate::replace_qubit_allocation::ReplaceQubitAllocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::mut_visit::MutVisitor;
+use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
@@ -13,6 +13,7 @@ fn check(file: &str, expect: &Expect) {
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     ReplaceQubitAllocation::new(store.core(), &mut unit.assigner).visit_package(&mut unit.package);
+    Validator::default().visit_package(&unit.package);
     expect.assert_eq(&unit.package.to_string());
 }
 
