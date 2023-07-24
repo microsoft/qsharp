@@ -127,8 +127,30 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
-                    self.set_definition_from_position(field.span.lo);
+                ast::ExprKind::Field(udt, field) if span_contains(field.span, self.offset) => {
+                    if let Some(hir::ty::Ty::Udt(res)) =
+                        self.compilation.unit.ast.tys.terms.get(udt.id)
+                    {
+                        match res {
+                            hir::Res::Item(item_id) => {
+                                if let Some(item) = find_item(self.compilation, item_id) {
+                                    match &item.kind {
+                                        hir::ItemKind::Ty(_, udt) => {
+                                            if let Some(field) = udt.find_field_by_name(&field.name)
+                                            {
+                                                let span = field.name_span.expect(
+                                                    "field found via name should have a name",
+                                                );
+                                                self.set_definition_from_position(span.lo);
+                                            }
+                                        }
+                                        _ => panic!("UDT has invalid resolution."),
+                                    }
+                                }
+                            }
+                            _ => panic!("UDT has invalid resolution."),
+                        }
+                    }
                 }
                 _ => walk_expr(self, expr),
             }
