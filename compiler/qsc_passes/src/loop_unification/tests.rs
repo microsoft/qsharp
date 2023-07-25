@@ -6,7 +6,7 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::mut_visit::MutVisitor;
+use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 use crate::loop_unification::LoopUni;
 
@@ -20,6 +20,7 @@ fn check(file: &str, expect: &Expect) {
         assigner: &mut unit.assigner,
     }
     .visit_package(&mut unit.package);
+    Validator::default().visit_package(&unit.package);
     expect.assert_eq(&unit.package.to_string());
 }
 
@@ -48,38 +49,38 @@ fn convert_for_array() {
                         functors: empty set
                         body: SpecDecl 4 [21-131]: Impl:
                             Block 5 [56-131] [Type Unit]:
-                                Stmt 6 [66-125]: Expr: Expr _id_ [66-125] [Type Unit]: Expr Block: Block _id_ [66-125] [Type Unit]:
-                                    Stmt _id_ [75-78]: Local (Immutable):
-                                        Pat _id_ [75-78] [Type (Int)[]]: Bind: Ident 17 [75-78] "array_id_17"
+                                Stmt 6 [66-125]: Expr: Expr 43 [66-125] [Type Unit]: Expr Block: Block 44 [66-125] [Type Unit]:
+                                    Stmt 18 [75-78]: Local (Immutable):
+                                        Pat 19 [75-78] [Type (Int)[]]: Bind: Ident 17 [75-78] "array_id_17"
                                         Expr 10 [75-78] [Type (Int)[]]: Var: Local 3
-                                    Stmt _id_ [75-78]: Local (Immutable):
-                                        Pat _id_ [75-78] [Type Int]: Bind: Ident 18 [75-78] "len_id_18"
-                                        Expr _id_ [75-78] [Type (Int)[]]: Call:
-                                            Expr _id_ [75-78] [Type ((Int)[] -> Int)]: Var:
+                                    Stmt 24 [75-78]: Local (Immutable):
+                                        Pat 25 [75-78] [Type Int]: Bind: Ident 21 [75-78] "len_id_21"
+                                        Expr 22 [75-78] [Type (Int)[]]: Call:
+                                            Expr 20 [75-78] [Type ((Int)[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
                                                     Int
-                                            Expr _id_ [75-78] [Type (Int)[]]: Var: Local 17
-                                    Stmt _id_ [75-78]: Local (Mutable):
-                                        Pat _id_ [75-78] [Type Int]: Bind: Ident 19 [75-78] "index_id_19"
-                                        Expr _id_ [75-78] [Type Int]: Lit: Int(0)
-                                    Stmt _id_ [66-125]: Expr: Expr _id_ [66-125] [Type Unit]: While:
-                                        Expr _id_ [75-78] [Type Bool]: BinOp (Lt):
-                                            Expr _id_ [75-78] [Type Int]: Var: Local 19
-                                            Expr _id_ [75-78] [Type Int]: Var: Local 18
+                                            Expr 23 [75-78] [Type (Int)[]]: Var: Local 17
+                                    Stmt 28 [75-78]: Local (Mutable):
+                                        Pat 29 [75-78] [Type Int]: Bind: Ident 26 [75-78] "index_id_26"
+                                        Expr 27 [75-78] [Type Int]: Lit: Int(0)
+                                    Stmt 41 [66-125]: Expr: Expr 42 [66-125] [Type Unit]: While:
+                                        Expr 38 [75-78] [Type Bool]: BinOp (Lt):
+                                            Expr 39 [75-78] [Type Int]: Var: Local 26
+                                            Expr 40 [75-78] [Type Int]: Var: Local 21
                                         Block 11 [79-125] [Type Unit]:
-                                            Stmt _id_ [66-125]: Local (Immutable):
+                                            Stmt 30 [66-125]: Local (Immutable):
                                                 Pat 8 [70-71] [Type Int]: Bind: Ident 9 [70-71] "i"
-                                                Expr _id_ [75-78] [Type Int]: Index:
-                                                    Expr _id_ [75-78] [Type (Int)[]]: Var: Local 17
-                                                    Expr _id_ [75-78] [Type Int]: Var: Local 19
+                                                Expr 31 [75-78] [Type Int]: Index:
+                                                    Expr 32 [75-78] [Type (Int)[]]: Var: Local 17
+                                                    Expr 33 [75-78] [Type Int]: Var: Local 26
                                             Stmt 12 [93-115]: Local (Immutable):
                                                 Pat 13 [97-98] [Type String]: Bind: Ident 14 [97-98] "x"
                                                 Expr 15 [101-114] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [75-78]: Semi: Expr _id_ [75-78] [Type Unit]: AssignOp (Add):
-                                                Expr _id_ [75-78] [Type Int]: Var: Local 19
-                                                Expr _id_ [75-78] [Type Int]: Lit: Int(1)
+                                            Stmt 35 [75-78]: Semi: Expr 36 [75-78] [Type Unit]: AssignOp (Add):
+                                                Expr 37 [75-78] [Type Int]: Var: Local 26
+                                                Expr 34 [75-78] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -111,40 +112,40 @@ fn convert_for_array_deconstruct() {
                         functors: empty set
                         body: SpecDecl 4 [21-146]: Impl:
                             Block 5 [66-146] [Type Unit]:
-                                Stmt 6 [76-140]: Expr: Expr _id_ [76-140] [Type Unit]: Expr Block: Block _id_ [76-140] [Type Unit]:
-                                    Stmt _id_ [90-93]: Local (Immutable):
-                                        Pat _id_ [90-93] [Type ((Int, Double))[]]: Bind: Ident 20 [90-93] "array_id_20"
+                                Stmt 6 [76-140]: Expr: Expr 46 [76-140] [Type Unit]: Expr Block: Block 47 [76-140] [Type Unit]:
+                                    Stmt 21 [90-93]: Local (Immutable):
+                                        Pat 22 [90-93] [Type ((Int, Double))[]]: Bind: Ident 20 [90-93] "array_id_20"
                                         Expr 13 [90-93] [Type ((Int, Double))[]]: Var: Local 3
-                                    Stmt _id_ [90-93]: Local (Immutable):
-                                        Pat _id_ [90-93] [Type Int]: Bind: Ident 21 [90-93] "len_id_21"
-                                        Expr _id_ [90-93] [Type ((Int, Double))[]]: Call:
-                                            Expr _id_ [90-93] [Type (((Int, Double))[] -> Int)]: Var:
+                                    Stmt 27 [90-93]: Local (Immutable):
+                                        Pat 28 [90-93] [Type Int]: Bind: Ident 24 [90-93] "len_id_24"
+                                        Expr 25 [90-93] [Type ((Int, Double))[]]: Call:
+                                            Expr 23 [90-93] [Type (((Int, Double))[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
                                                     (Int, Double)
-                                            Expr _id_ [90-93] [Type ((Int, Double))[]]: Var: Local 20
-                                    Stmt _id_ [90-93]: Local (Mutable):
-                                        Pat _id_ [90-93] [Type Int]: Bind: Ident 22 [90-93] "index_id_22"
-                                        Expr _id_ [90-93] [Type Int]: Lit: Int(0)
-                                    Stmt _id_ [76-140]: Expr: Expr _id_ [76-140] [Type Unit]: While:
-                                        Expr _id_ [90-93] [Type Bool]: BinOp (Lt):
-                                            Expr _id_ [90-93] [Type Int]: Var: Local 22
-                                            Expr _id_ [90-93] [Type Int]: Var: Local 21
+                                            Expr 26 [90-93] [Type ((Int, Double))[]]: Var: Local 20
+                                    Stmt 31 [90-93]: Local (Mutable):
+                                        Pat 32 [90-93] [Type Int]: Bind: Ident 29 [90-93] "index_id_29"
+                                        Expr 30 [90-93] [Type Int]: Lit: Int(0)
+                                    Stmt 44 [76-140]: Expr: Expr 45 [76-140] [Type Unit]: While:
+                                        Expr 41 [90-93] [Type Bool]: BinOp (Lt):
+                                            Expr 42 [90-93] [Type Int]: Var: Local 29
+                                            Expr 43 [90-93] [Type Int]: Var: Local 24
                                         Block 14 [94-140] [Type Unit]:
-                                            Stmt _id_ [76-140]: Local (Immutable):
+                                            Stmt 33 [76-140]: Local (Immutable):
                                                 Pat 8 [80-86] [Type (Int, Double)]: Tuple:
                                                     Pat 9 [81-82] [Type Int]: Bind: Ident 10 [81-82] "i"
                                                     Pat 11 [84-85] [Type Double]: Bind: Ident 12 [84-85] "d"
-                                                Expr _id_ [90-93] [Type (Int, Double)]: Index:
-                                                    Expr _id_ [90-93] [Type ((Int, Double))[]]: Var: Local 20
-                                                    Expr _id_ [90-93] [Type Int]: Var: Local 22
+                                                Expr 34 [90-93] [Type (Int, Double)]: Index:
+                                                    Expr 35 [90-93] [Type ((Int, Double))[]]: Var: Local 20
+                                                    Expr 36 [90-93] [Type Int]: Var: Local 29
                                             Stmt 15 [108-130]: Local (Immutable):
                                                 Pat 16 [112-113] [Type String]: Bind: Ident 17 [112-113] "x"
                                                 Expr 18 [116-129] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [90-93]: Semi: Expr _id_ [90-93] [Type Unit]: AssignOp (Add):
-                                                Expr _id_ [90-93] [Type Int]: Var: Local 22
-                                                Expr _id_ [90-93] [Type Int]: Lit: Int(1)
+                                            Stmt 38 [90-93]: Semi: Expr 39 [90-93] [Type Unit]: AssignOp (Add):
+                                                Expr 40 [90-93] [Type Int]: Var: Local 29
+                                                Expr 37 [90-93] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -176,9 +177,9 @@ fn convert_for_slice() {
                         functors: empty set
                         body: SpecDecl 4 [21-141]: Impl:
                             Block 5 [56-141] [Type Unit]:
-                                Stmt 6 [66-135]: Expr: Expr _id_ [66-135] [Type Unit]: Expr Block: Block _id_ [66-135] [Type Unit]:
-                                    Stmt _id_ [75-88]: Local (Immutable):
-                                        Pat _id_ [75-88] [Type (Int)[]]: Bind: Ident 23 [75-88] "array_id_23"
+                                Stmt 6 [66-135]: Expr: Expr 49 [66-135] [Type Unit]: Expr Block: Block 50 [66-135] [Type Unit]:
+                                    Stmt 24 [75-88]: Local (Immutable):
+                                        Pat 25 [75-88] [Type (Int)[]]: Bind: Ident 23 [75-88] "array_id_23"
                                         Expr 10 [75-88] [Type (Int)[]]: Index:
                                             Expr 11 [75-78] [Type (Int)[]]: Var: Local 3
                                             Expr 12 [79-87] [Type Range]: Range:
@@ -186,34 +187,34 @@ fn convert_for_slice() {
                                                 Expr 14 [82-84] [Type Int]: UnOp (Neg):
                                                     Expr 15 [83-84] [Type Int]: Lit: Int(2)
                                                 Expr 16 [86-87] [Type Int]: Lit: Int(2)
-                                    Stmt _id_ [75-88]: Local (Immutable):
-                                        Pat _id_ [75-88] [Type Int]: Bind: Ident 24 [75-88] "len_id_24"
-                                        Expr _id_ [75-88] [Type (Int)[]]: Call:
-                                            Expr _id_ [75-88] [Type ((Int)[] -> Int)]: Var:
+                                    Stmt 30 [75-88]: Local (Immutable):
+                                        Pat 31 [75-88] [Type Int]: Bind: Ident 27 [75-88] "len_id_27"
+                                        Expr 28 [75-88] [Type (Int)[]]: Call:
+                                            Expr 26 [75-88] [Type ((Int)[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
                                                     Int
-                                            Expr _id_ [75-88] [Type (Int)[]]: Var: Local 23
-                                    Stmt _id_ [75-88]: Local (Mutable):
-                                        Pat _id_ [75-88] [Type Int]: Bind: Ident 25 [75-88] "index_id_25"
-                                        Expr _id_ [75-88] [Type Int]: Lit: Int(0)
-                                    Stmt _id_ [66-135]: Expr: Expr _id_ [66-135] [Type Unit]: While:
-                                        Expr _id_ [75-88] [Type Bool]: BinOp (Lt):
-                                            Expr _id_ [75-88] [Type Int]: Var: Local 25
-                                            Expr _id_ [75-88] [Type Int]: Var: Local 24
+                                            Expr 29 [75-88] [Type (Int)[]]: Var: Local 23
+                                    Stmt 34 [75-88]: Local (Mutable):
+                                        Pat 35 [75-88] [Type Int]: Bind: Ident 32 [75-88] "index_id_32"
+                                        Expr 33 [75-88] [Type Int]: Lit: Int(0)
+                                    Stmt 47 [66-135]: Expr: Expr 48 [66-135] [Type Unit]: While:
+                                        Expr 44 [75-88] [Type Bool]: BinOp (Lt):
+                                            Expr 45 [75-88] [Type Int]: Var: Local 32
+                                            Expr 46 [75-88] [Type Int]: Var: Local 27
                                         Block 17 [89-135] [Type Unit]:
-                                            Stmt _id_ [66-135]: Local (Immutable):
+                                            Stmt 36 [66-135]: Local (Immutable):
                                                 Pat 8 [70-71] [Type Int]: Bind: Ident 9 [70-71] "i"
-                                                Expr _id_ [75-88] [Type Int]: Index:
-                                                    Expr _id_ [75-88] [Type (Int)[]]: Var: Local 23
-                                                    Expr _id_ [75-88] [Type Int]: Var: Local 25
+                                                Expr 37 [75-88] [Type Int]: Index:
+                                                    Expr 38 [75-88] [Type (Int)[]]: Var: Local 23
+                                                    Expr 39 [75-88] [Type Int]: Var: Local 32
                                             Stmt 18 [103-125]: Local (Immutable):
                                                 Pat 19 [107-108] [Type String]: Bind: Ident 20 [107-108] "x"
                                                 Expr 21 [111-124] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [75-88]: Semi: Expr _id_ [75-88] [Type Unit]: AssignOp (Add):
-                                                Expr _id_ [75-88] [Type Int]: Var: Local 25
-                                                Expr _id_ [75-88] [Type Int]: Lit: Int(1)
+                                            Stmt 41 [75-88]: Semi: Expr 42 [75-88] [Type Unit]: AssignOp (Add):
+                                                Expr 43 [75-88] [Type Int]: Var: Local 32
+                                                Expr 40 [75-88] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -245,55 +246,55 @@ fn convert_for_range() {
                         functors: empty set
                         body: SpecDecl 3 [21-121]: Impl:
                             Block 4 [45-121] [Type Unit]:
-                                Stmt 5 [55-115]: Expr: Expr _id_ [55-115] [Type Unit]: Expr Block: Block _id_ [55-115] [Type Unit]:
-                                    Stmt _id_ [64-68]: Local (Immutable):
-                                        Pat _id_ [64-68] [Type Range]: Bind: Ident 18 [64-68] "range_id_18"
+                                Stmt 5 [55-115]: Expr: Expr 59 [55-115] [Type Unit]: Expr Block: Block 60 [55-115] [Type Unit]:
+                                    Stmt 19 [64-68]: Local (Immutable):
+                                        Pat 20 [64-68] [Type Range]: Bind: Ident 18 [64-68] "range_id_18"
                                         Expr 9 [64-68] [Type Range]: Range:
                                             Expr 10 [64-65] [Type Int]: Lit: Int(0)
                                             <no step>
                                             Expr 11 [67-68] [Type Int]: Lit: Int(4)
-                                    Stmt _id_ [64-68]: Local (Mutable):
-                                        Pat _id_ [64-68] [Type Int]: Bind: Ident 19 [64-68] "index_id_19"
-                                        Expr _id_ [64-68] [Type Int]: Field:
-                                            Expr _id_ [64-68] [Type Range]: Var: Local 18
+                                    Stmt 24 [64-68]: Local (Mutable):
+                                        Pat 25 [64-68] [Type Int]: Bind: Ident 21 [64-68] "index_id_21"
+                                        Expr 22 [64-68] [Type Int]: Field:
+                                            Expr 23 [64-68] [Type Range]: Var: Local 18
                                             Prim(Start)
-                                    Stmt _id_ [64-68]: Local (Immutable):
-                                        Pat _id_ [64-68] [Type Int]: Bind: Ident 20 [64-68] "step_id_20"
-                                        Expr _id_ [64-68] [Type Int]: Field:
-                                            Expr _id_ [64-68] [Type Range]: Var: Local 18
+                                    Stmt 29 [64-68]: Local (Immutable):
+                                        Pat 30 [64-68] [Type Int]: Bind: Ident 26 [64-68] "step_id_26"
+                                        Expr 27 [64-68] [Type Int]: Field:
+                                            Expr 28 [64-68] [Type Range]: Var: Local 18
                                             Prim(Step)
-                                    Stmt _id_ [64-68]: Local (Immutable):
-                                        Pat _id_ [64-68] [Type Int]: Bind: Ident 21 [64-68] "end_id_21"
-                                        Expr _id_ [64-68] [Type Int]: Field:
-                                            Expr _id_ [64-68] [Type Range]: Var: Local 18
+                                    Stmt 34 [64-68]: Local (Immutable):
+                                        Pat 35 [64-68] [Type Int]: Bind: Ident 31 [64-68] "end_id_31"
+                                        Expr 32 [64-68] [Type Int]: Field:
+                                            Expr 33 [64-68] [Type Range]: Var: Local 18
                                             Prim(End)
-                                    Stmt _id_ [55-115]: Expr: Expr _id_ [55-115] [Type Unit]: While:
-                                        Expr _id_ [64-68] [Type Bool]: BinOp (OrL):
-                                            Expr _id_ [64-68] [Type Bool]: BinOp (AndL):
-                                                Expr _id_ [64-68] [Type Bool]: BinOp (Gt):
-                                                    Expr _id_ [64-68] [Type Int]: Var: Local 20
-                                                    Expr _id_ [64-68] [Type Int]: Lit: Int(0)
-                                                Expr _id_ [64-68] [Type Bool]: BinOp (Lte):
-                                                    Expr _id_ [64-68] [Type Int]: Var: Local 19
-                                                    Expr _id_ [64-68] [Type Int]: Var: Local 21
-                                            Expr _id_ [64-68] [Type Bool]: BinOp (AndL):
-                                                Expr _id_ [64-68] [Type Bool]: BinOp (Lt):
-                                                    Expr _id_ [64-68] [Type Int]: Var: Local 20
-                                                    Expr _id_ [64-68] [Type Int]: Lit: Int(0)
-                                                Expr _id_ [64-68] [Type Bool]: BinOp (Gte):
-                                                    Expr _id_ [64-68] [Type Int]: Var: Local 19
-                                                    Expr _id_ [64-68] [Type Int]: Var: Local 21
+                                    Stmt 57 [55-115]: Expr: Expr 58 [55-115] [Type Unit]: While:
+                                        Expr 42 [64-68] [Type Bool]: BinOp (OrL):
+                                            Expr 43 [64-68] [Type Bool]: BinOp (AndL):
+                                                Expr 44 [64-68] [Type Bool]: BinOp (Gt):
+                                                    Expr 45 [64-68] [Type Int]: Var: Local 26
+                                                    Expr 46 [64-68] [Type Int]: Lit: Int(0)
+                                                Expr 47 [64-68] [Type Bool]: BinOp (Lte):
+                                                    Expr 48 [64-68] [Type Int]: Var: Local 21
+                                                    Expr 49 [64-68] [Type Int]: Var: Local 31
+                                            Expr 50 [64-68] [Type Bool]: BinOp (AndL):
+                                                Expr 51 [64-68] [Type Bool]: BinOp (Lt):
+                                                    Expr 52 [64-68] [Type Int]: Var: Local 26
+                                                    Expr 53 [64-68] [Type Int]: Lit: Int(0)
+                                                Expr 54 [64-68] [Type Bool]: BinOp (Gte):
+                                                    Expr 55 [64-68] [Type Int]: Var: Local 21
+                                                    Expr 56 [64-68] [Type Int]: Var: Local 31
                                         Block 12 [69-115] [Type Unit]:
-                                            Stmt _id_ [55-115]: Local (Immutable):
+                                            Stmt 36 [55-115]: Local (Immutable):
                                                 Pat 7 [59-60] [Type Int]: Bind: Ident 8 [59-60] "i"
-                                                Expr _id_ [64-68] [Type Int]: Var: Local 19
+                                                Expr 37 [64-68] [Type Int]: Var: Local 21
                                             Stmt 13 [83-105]: Local (Immutable):
                                                 Pat 14 [87-88] [Type String]: Bind: Ident 15 [87-88] "x"
                                                 Expr 16 [91-104] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [64-68]: Semi: Expr _id_ [64-68] [Type Unit]: AssignOp (Add):
-                                                Expr _id_ [64-68] [Type Int]: Var: Local 19
-                                                Expr _id_ [64-68] [Type Int]: Var: Local 20
+                                            Stmt 39 [64-68]: Semi: Expr 40 [64-68] [Type Unit]: AssignOp (Add):
+                                                Expr 41 [64-68] [Type Int]: Var: Local 21
+                                                Expr 38 [64-68] [Type Int]: Var: Local 26
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -325,56 +326,56 @@ fn convert_for_reverse_range() {
                         functors: empty set
                         body: SpecDecl 3 [21-125]: Impl:
                             Block 4 [45-125] [Type Unit]:
-                                Stmt 5 [55-119]: Expr: Expr _id_ [55-119] [Type Unit]: Expr Block: Block _id_ [55-119] [Type Unit]:
-                                    Stmt _id_ [64-72]: Local (Immutable):
-                                        Pat _id_ [64-72] [Type Range]: Bind: Ident 20 [64-72] "range_id_20"
+                                Stmt 5 [55-119]: Expr: Expr 61 [55-119] [Type Unit]: Expr Block: Block 62 [55-119] [Type Unit]:
+                                    Stmt 21 [64-72]: Local (Immutable):
+                                        Pat 22 [64-72] [Type Range]: Bind: Ident 20 [64-72] "range_id_20"
                                         Expr 9 [64-72] [Type Range]: Range:
                                             Expr 10 [64-65] [Type Int]: Lit: Int(4)
                                             Expr 11 [67-69] [Type Int]: UnOp (Neg):
                                                 Expr 12 [68-69] [Type Int]: Lit: Int(1)
                                             Expr 13 [71-72] [Type Int]: Lit: Int(0)
-                                    Stmt _id_ [64-72]: Local (Mutable):
-                                        Pat _id_ [64-72] [Type Int]: Bind: Ident 21 [64-72] "index_id_21"
-                                        Expr _id_ [64-72] [Type Int]: Field:
-                                            Expr _id_ [64-72] [Type Range]: Var: Local 20
+                                    Stmt 26 [64-72]: Local (Mutable):
+                                        Pat 27 [64-72] [Type Int]: Bind: Ident 23 [64-72] "index_id_23"
+                                        Expr 24 [64-72] [Type Int]: Field:
+                                            Expr 25 [64-72] [Type Range]: Var: Local 20
                                             Prim(Start)
-                                    Stmt _id_ [64-72]: Local (Immutable):
-                                        Pat _id_ [64-72] [Type Int]: Bind: Ident 22 [64-72] "step_id_22"
-                                        Expr _id_ [64-72] [Type Int]: Field:
-                                            Expr _id_ [64-72] [Type Range]: Var: Local 20
+                                    Stmt 31 [64-72]: Local (Immutable):
+                                        Pat 32 [64-72] [Type Int]: Bind: Ident 28 [64-72] "step_id_28"
+                                        Expr 29 [64-72] [Type Int]: Field:
+                                            Expr 30 [64-72] [Type Range]: Var: Local 20
                                             Prim(Step)
-                                    Stmt _id_ [64-72]: Local (Immutable):
-                                        Pat _id_ [64-72] [Type Int]: Bind: Ident 23 [64-72] "end_id_23"
-                                        Expr _id_ [64-72] [Type Int]: Field:
-                                            Expr _id_ [64-72] [Type Range]: Var: Local 20
+                                    Stmt 36 [64-72]: Local (Immutable):
+                                        Pat 37 [64-72] [Type Int]: Bind: Ident 33 [64-72] "end_id_33"
+                                        Expr 34 [64-72] [Type Int]: Field:
+                                            Expr 35 [64-72] [Type Range]: Var: Local 20
                                             Prim(End)
-                                    Stmt _id_ [55-119]: Expr: Expr _id_ [55-119] [Type Unit]: While:
-                                        Expr _id_ [64-72] [Type Bool]: BinOp (OrL):
-                                            Expr _id_ [64-72] [Type Bool]: BinOp (AndL):
-                                                Expr _id_ [64-72] [Type Bool]: BinOp (Gt):
-                                                    Expr _id_ [64-72] [Type Int]: Var: Local 22
-                                                    Expr _id_ [64-72] [Type Int]: Lit: Int(0)
-                                                Expr _id_ [64-72] [Type Bool]: BinOp (Lte):
-                                                    Expr _id_ [64-72] [Type Int]: Var: Local 21
-                                                    Expr _id_ [64-72] [Type Int]: Var: Local 23
-                                            Expr _id_ [64-72] [Type Bool]: BinOp (AndL):
-                                                Expr _id_ [64-72] [Type Bool]: BinOp (Lt):
-                                                    Expr _id_ [64-72] [Type Int]: Var: Local 22
-                                                    Expr _id_ [64-72] [Type Int]: Lit: Int(0)
-                                                Expr _id_ [64-72] [Type Bool]: BinOp (Gte):
-                                                    Expr _id_ [64-72] [Type Int]: Var: Local 21
-                                                    Expr _id_ [64-72] [Type Int]: Var: Local 23
+                                    Stmt 59 [55-119]: Expr: Expr 60 [55-119] [Type Unit]: While:
+                                        Expr 44 [64-72] [Type Bool]: BinOp (OrL):
+                                            Expr 45 [64-72] [Type Bool]: BinOp (AndL):
+                                                Expr 46 [64-72] [Type Bool]: BinOp (Gt):
+                                                    Expr 47 [64-72] [Type Int]: Var: Local 28
+                                                    Expr 48 [64-72] [Type Int]: Lit: Int(0)
+                                                Expr 49 [64-72] [Type Bool]: BinOp (Lte):
+                                                    Expr 50 [64-72] [Type Int]: Var: Local 23
+                                                    Expr 51 [64-72] [Type Int]: Var: Local 33
+                                            Expr 52 [64-72] [Type Bool]: BinOp (AndL):
+                                                Expr 53 [64-72] [Type Bool]: BinOp (Lt):
+                                                    Expr 54 [64-72] [Type Int]: Var: Local 28
+                                                    Expr 55 [64-72] [Type Int]: Lit: Int(0)
+                                                Expr 56 [64-72] [Type Bool]: BinOp (Gte):
+                                                    Expr 57 [64-72] [Type Int]: Var: Local 23
+                                                    Expr 58 [64-72] [Type Int]: Var: Local 33
                                         Block 14 [73-119] [Type Unit]:
-                                            Stmt _id_ [55-119]: Local (Immutable):
+                                            Stmt 38 [55-119]: Local (Immutable):
                                                 Pat 7 [59-60] [Type Int]: Bind: Ident 8 [59-60] "i"
-                                                Expr _id_ [64-72] [Type Int]: Var: Local 21
+                                                Expr 39 [64-72] [Type Int]: Var: Local 23
                                             Stmt 15 [87-109]: Local (Immutable):
                                                 Pat 16 [91-92] [Type String]: Bind: Ident 17 [91-92] "x"
                                                 Expr 18 [95-108] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [64-72]: Semi: Expr _id_ [64-72] [Type Unit]: AssignOp (Add):
-                                                Expr _id_ [64-72] [Type Int]: Var: Local 21
-                                                Expr _id_ [64-72] [Type Int]: Var: Local 22
+                                            Stmt 41 [64-72]: Semi: Expr 42 [64-72] [Type Unit]: AssignOp (Add):
+                                                Expr 43 [64-72] [Type Int]: Var: Local 23
+                                                Expr 40 [64-72] [Type Int]: Var: Local 28
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -406,20 +407,20 @@ fn convert_repeat() {
                         functors: empty set
                         body: SpecDecl 3 [21-126]: Impl:
                             Block 4 [45-126] [Type Unit]:
-                                Stmt 5 [55-120]: Semi: Expr _id_ [55-119] [Type Unit]: Expr Block: Block _id_ [55-119] [Type Unit]:
-                                    Stmt _id_ [115-119]: Local (Mutable):
-                                        Pat _id_ [115-119] [Type Bool]: Bind: Ident 14 [115-119] "continue_cond_14"
-                                        Expr _id_ [115-119] [Type Bool]: Lit: Bool(true)
-                                    Stmt _id_ [55-119]: Expr: Expr _id_ [55-119] [Type Unit]: While:
-                                        Expr _id_ [115-119] [Type Bool]: Var: Local 14
+                                Stmt 5 [55-120]: Semi: Expr 26 [55-119] [Type Unit]: Expr Block: Block 22 [55-119] [Type Unit]:
+                                    Stmt 16 [115-119]: Local (Mutable):
+                                        Pat 17 [115-119] [Type Bool]: Bind: Ident 14 [115-119] "continue_cond_14"
+                                        Expr 15 [115-119] [Type Bool]: Lit: Bool(true)
+                                    Stmt 23 [55-119]: Expr: Expr 24 [55-119] [Type Unit]: While:
+                                        Expr 25 [115-119] [Type Bool]: Var: Local 14
                                         Block 7 [62-108] [Type Unit]:
                                             Stmt 8 [76-98]: Local (Immutable):
                                                 Pat 9 [80-81] [Type String]: Bind: Ident 10 [80-81] "x"
                                                 Expr 11 [84-97] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type Unit]: Assign:
-                                                Expr _id_ [115-119] [Type Bool]: Var: Local 14
-                                                Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
+                                            Stmt 18 [115-119]: Semi: Expr 19 [115-119] [Type Unit]: Assign:
+                                                Expr 20 [115-119] [Type Bool]: Var: Local 14
+                                                Expr 21 [115-119] [Type Bool]: UnOp (NotL):
                                                     Expr 12 [115-119] [Type Bool]: Lit: Bool(true)
                         adj: <none>
                         ctl: <none>
@@ -455,24 +456,24 @@ fn convert_repeat_fixup() {
                         functors: empty set
                         body: SpecDecl 3 [21-180]: Impl:
                             Block 4 [45-180] [Type Unit]:
-                                Stmt 5 [55-174]: Expr: Expr _id_ [55-174] [Type Unit]: Expr Block: Block _id_ [55-174] [Type Unit]:
-                                    Stmt _id_ [115-119]: Local (Mutable):
-                                        Pat _id_ [115-119] [Type Bool]: Bind: Ident 19 [115-119] "continue_cond_19"
-                                        Expr _id_ [115-119] [Type Bool]: Lit: Bool(true)
-                                    Stmt _id_ [55-174]: Expr: Expr _id_ [55-174] [Type Unit]: While:
-                                        Expr _id_ [115-119] [Type Bool]: Var: Local 19
+                                Stmt 5 [55-174]: Expr: Expr 35 [55-174] [Type Unit]: Expr Block: Block 31 [55-174] [Type Unit]:
+                                    Stmt 21 [115-119]: Local (Mutable):
+                                        Pat 22 [115-119] [Type Bool]: Bind: Ident 19 [115-119] "continue_cond_19"
+                                        Expr 20 [115-119] [Type Bool]: Lit: Bool(true)
+                                    Stmt 32 [55-174]: Expr: Expr 33 [55-174] [Type Unit]: While:
+                                        Expr 34 [115-119] [Type Bool]: Var: Local 19
                                         Block 7 [62-108] [Type Unit]:
                                             Stmt 8 [76-98]: Local (Immutable):
                                                 Pat 9 [80-81] [Type String]: Bind: Ident 10 [80-81] "x"
                                                 Expr 11 [84-97] [Type String]: String:
                                                     Lit: "Hello World"
-                                            Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type Unit]: Assign:
-                                                Expr _id_ [115-119] [Type Bool]: Var: Local 19
-                                                Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
+                                            Stmt 23 [115-119]: Semi: Expr 24 [115-119] [Type Unit]: Assign:
+                                                Expr 25 [115-119] [Type Bool]: Var: Local 19
+                                                Expr 26 [115-119] [Type Bool]: UnOp (NotL):
                                                     Expr 12 [115-119] [Type Bool]: Lit: Bool(true)
-                                            Stmt _id_ [134-174]: Expr: Expr _id_ [134-174] [Type Unit]: If:
-                                                Expr _id_ [115-119] [Type Bool]: Var: Local 19
-                                                Expr _id_ [134-174] [Type Unit]: Expr Block: Block 13 [134-174] [Type Unit]:
+                                            Stmt 27 [134-174]: Expr: Expr 28 [134-174] [Type Unit]: If:
+                                                Expr 29 [115-119] [Type Bool]: Var: Local 19
+                                                Expr 30 [134-174] [Type Unit]: Expr Block: Block 13 [134-174] [Type Unit]:
                                                     Stmt 14 [148-164]: Local (Immutable):
                                                         Pat 15 [152-153] [Type String]: Bind: Ident 16 [152-153] "y"
                                                         Expr 17 [156-163] [Type String]: String:
@@ -530,56 +531,56 @@ fn convert_repeat_nested() {
                                 Stmt 13 [100-113]: Local (Immutable):
                                     Pat 14 [104-105] [Type Bool]: Bind: Ident 15 [104-105] "c"
                                     Expr 16 [108-112] [Type Bool]: Lit: Bool(true)
-                                Stmt 17 [122-395]: Expr: Expr _id_ [122-395] [Type Unit]: Expr Block: Block _id_ [122-395] [Type Unit]:
-                                    Stmt _id_ [291-292]: Local (Mutable):
-                                        Pat _id_ [291-292] [Type Bool]: Bind: Ident 46 [291-292] "continue_cond_46"
-                                        Expr _id_ [291-292] [Type Bool]: Lit: Bool(true)
-                                    Stmt _id_ [122-395]: Expr: Expr _id_ [122-395] [Type Unit]: While:
-                                        Expr _id_ [291-292] [Type Bool]: Var: Local 46
+                                Stmt 17 [122-395]: Expr: Expr 90 [122-395] [Type Unit]: Expr Block: Block 86 [122-395] [Type Unit]:
+                                    Stmt 76 [291-292]: Local (Mutable):
+                                        Pat 77 [291-292] [Type Bool]: Bind: Ident 74 [291-292] "continue_cond_74"
+                                        Expr 75 [291-292] [Type Bool]: Lit: Bool(true)
+                                    Stmt 87 [122-395]: Expr: Expr 88 [122-395] [Type Unit]: While:
+                                        Expr 89 [291-292] [Type Bool]: Var: Local 74
                                         Block 19 [129-284] [Type Unit]:
-                                            Stmt 20 [143-274]: Expr: Expr _id_ [143-274] [Type Unit]: Expr Block: Block _id_ [143-274] [Type Unit]:
-                                                Stmt _id_ [205-206]: Local (Mutable):
-                                                    Pat _id_ [205-206] [Type Bool]: Bind: Ident 44 [205-206] "continue_cond_44"
-                                                    Expr _id_ [205-206] [Type Bool]: Lit: Bool(true)
-                                                Stmt _id_ [143-274]: Expr: Expr _id_ [143-274] [Type Unit]: While:
-                                                    Expr _id_ [205-206] [Type Bool]: Var: Local 44
+                                            Stmt 20 [143-274]: Expr: Expr 60 [143-274] [Type Unit]: Expr Block: Block 56 [143-274] [Type Unit]:
+                                                Stmt 46 [205-206]: Local (Mutable):
+                                                    Pat 47 [205-206] [Type Bool]: Bind: Ident 44 [205-206] "continue_cond_44"
+                                                    Expr 45 [205-206] [Type Bool]: Lit: Bool(true)
+                                                Stmt 57 [143-274]: Expr: Expr 58 [143-274] [Type Unit]: While:
+                                                    Expr 59 [205-206] [Type Bool]: Var: Local 44
                                                     Block 22 [150-198] [Type Unit]:
                                                         Stmt 23 [168-184]: Local (Immutable):
                                                             Pat 24 [172-173] [Type String]: Bind: Ident 25 [172-173] "x"
                                                             Expr 26 [176-183] [Type String]: String:
                                                                 Lit: "First"
-                                                        Stmt _id_ [205-206]: Semi: Expr _id_ [205-206] [Type Unit]: Assign:
-                                                            Expr _id_ [205-206] [Type Bool]: Var: Local 44
-                                                            Expr _id_ [205-206] [Type Bool]: UnOp (NotL):
+                                                        Stmt 48 [205-206]: Semi: Expr 49 [205-206] [Type Unit]: Assign:
+                                                            Expr 50 [205-206] [Type Bool]: Var: Local 44
+                                                            Expr 51 [205-206] [Type Bool]: UnOp (NotL):
                                                                 Expr 27 [205-206] [Type Bool]: Var: Local 7
-                                                        Stmt _id_ [225-274]: Expr: Expr _id_ [225-274] [Type Unit]: If:
-                                                            Expr _id_ [205-206] [Type Bool]: Var: Local 44
-                                                            Expr _id_ [225-274] [Type Unit]: Expr Block: Block 28 [225-274] [Type Unit]:
+                                                        Stmt 52 [225-274]: Expr: Expr 53 [225-274] [Type Unit]: If:
+                                                            Expr 54 [205-206] [Type Bool]: Var: Local 44
+                                                            Expr 55 [225-274] [Type Unit]: Expr Block: Block 28 [225-274] [Type Unit]:
                                                                 Stmt 29 [243-260]: Local (Immutable):
                                                                     Pat 30 [247-248] [Type String]: Bind: Ident 31 [247-248] "y"
                                                                     Expr 32 [251-259] [Type String]: String:
                                                                         Lit: "Second"
-                                            Stmt _id_ [291-292]: Semi: Expr _id_ [291-292] [Type Unit]: Assign:
-                                                Expr _id_ [291-292] [Type Bool]: Var: Local 46
-                                                Expr _id_ [291-292] [Type Bool]: UnOp (NotL):
+                                            Stmt 78 [291-292]: Semi: Expr 79 [291-292] [Type Unit]: Assign:
+                                                Expr 80 [291-292] [Type Bool]: Var: Local 74
+                                                Expr 81 [291-292] [Type Bool]: UnOp (NotL):
                                                     Expr 33 [291-292] [Type Bool]: Var: Local 11
-                                            Stmt _id_ [307-395]: Expr: Expr _id_ [307-395] [Type Unit]: If:
-                                                Expr _id_ [291-292] [Type Bool]: Var: Local 46
-                                                Expr _id_ [307-395] [Type Unit]: Expr Block: Block 34 [307-395] [Type Unit]:
-                                                    Stmt 35 [321-385]: Semi: Expr _id_ [321-384] [Type Unit]: Expr Block: Block _id_ [321-384] [Type Unit]:
-                                                        Stmt _id_ [383-384]: Local (Mutable):
-                                                            Pat _id_ [383-384] [Type Bool]: Bind: Ident 45 [383-384] "continue_cond_45"
-                                                            Expr _id_ [383-384] [Type Bool]: Lit: Bool(true)
-                                                        Stmt _id_ [321-384]: Expr: Expr _id_ [321-384] [Type Unit]: While:
-                                                            Expr _id_ [383-384] [Type Bool]: Var: Local 45
+                                            Stmt 82 [307-395]: Expr: Expr 83 [307-395] [Type Unit]: If:
+                                                Expr 84 [291-292] [Type Bool]: Var: Local 74
+                                                Expr 85 [307-395] [Type Unit]: Expr Block: Block 34 [307-395] [Type Unit]:
+                                                    Stmt 35 [321-385]: Semi: Expr 73 [321-384] [Type Unit]: Expr Block: Block 69 [321-384] [Type Unit]:
+                                                        Stmt 63 [383-384]: Local (Mutable):
+                                                            Pat 64 [383-384] [Type Bool]: Bind: Ident 61 [383-384] "continue_cond_61"
+                                                            Expr 62 [383-384] [Type Bool]: Lit: Bool(true)
+                                                        Stmt 70 [321-384]: Expr: Expr 71 [321-384] [Type Unit]: While:
+                                                            Expr 72 [383-384] [Type Bool]: Var: Local 61
                                                             Block 37 [328-376] [Type Unit]:
                                                                 Stmt 38 [346-362]: Local (Immutable):
                                                                     Pat 39 [350-351] [Type String]: Bind: Ident 40 [350-351] "z"
                                                                     Expr 41 [354-361] [Type String]: String:
                                                                         Lit: "Third"
-                                                                Stmt _id_ [383-384]: Semi: Expr _id_ [383-384] [Type Unit]: Assign:
-                                                                    Expr _id_ [383-384] [Type Bool]: Var: Local 45
-                                                                    Expr _id_ [383-384] [Type Bool]: UnOp (NotL):
+                                                                Stmt 65 [383-384]: Semi: Expr 66 [383-384] [Type Unit]: Assign:
+                                                                    Expr 67 [383-384] [Type Bool]: Var: Local 61
+                                                                    Expr 68 [383-384] [Type Bool]: UnOp (NotL):
                                                                         Expr 42 [383-384] [Type Bool]: Var: Local 15
                         adj: <none>
                         ctl: <none>

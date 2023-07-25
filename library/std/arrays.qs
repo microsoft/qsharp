@@ -897,8 +897,8 @@ namespace Microsoft.Quantum.Arrays {
     function Padded<'T> (paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[] {
         let nElementsInitial = Length(inputArray);
         let nAbsElementsTotal = AbsI(paddedLength);
-        if nAbsElementsTotal <= nElementsInitial {
-            fail "Specified output array length must be longer than `inputArray` length.";
+        if nAbsElementsTotal < nElementsInitial {
+            fail "Specified output array length must be at least as long as `inputArray` length.";
         }
         let nElementsPad = nAbsElementsTotal - nElementsInitial;
         let padArray = Repeated(defaultElement, nElementsPad);
