@@ -6,7 +6,7 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{ident, opt, path, seq, token},
+    prim::{apos_ident, opt, path, seq, token},
     scan::Scanner,
     Error, Parser, Result,
 };
@@ -53,8 +53,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
 }
 
 pub(super) fn param(s: &mut Scanner) -> Result<Box<Ident>> {
-    token(s, TokenKind::Apos)?;
-    ident(s)
+    apos_ident(s)
 }
 
 fn array(s: &mut Scanner) -> Result<()> {
