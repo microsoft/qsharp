@@ -15,7 +15,13 @@ export type Text = {
   contentAsMarkdown: string;
 };
 
-export type LessonItem = Example | Text;
+export type TextContent = {
+  type: "text-content";
+  asHtml: string;
+  asMarkdown: string;
+};
+
+export type LessonItem = Example | TextContent;
 
 export type Lesson = {
   type: "reading";
@@ -29,7 +35,7 @@ export type Solution = {
   code: string;
 };
 
-export type ExplainedSolutionItem = Example | Solution | Text;
+export type ExplainedSolutionItem = Example | Solution | TextContent;
 
 export type ExplainedSolution = {
   type: "explained-solution";
@@ -40,6 +46,7 @@ export type Exercise = {
   type: "exercise";
   id: string;
   title: string;
+  // TODO: Just have one description field of type TextContent
   descriptionAsHtml: string;
   descriptionAsMarkdown: string;
   sourceIds: string[];
