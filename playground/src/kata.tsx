@@ -4,11 +4,13 @@
 import { useEffect, useRef } from "preact/hooks";
 import {
   CompilerState,
+  ExplainedSolution,
   ICompilerWorker,
   ILanguageServiceWorker,
   Kata,
-  ExplainedSolution,
+  Lesson,
   QscEventTarget,
+  Question,
 } from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
@@ -26,6 +28,33 @@ function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
       html += "</div>";
     }
   }
+  return html;
+}
+
+function LessonAsHtml(lesson: Lesson): string {
+  let html = "";
+  for (const item of lesson.items) {
+    if (item.type === "example") {
+      html += '<code class="language-qsharp">';
+      html += item.code;
+      html += "</code>";
+    } else if (item.type === "text-content") {
+      html += "<div>";
+      html += item.asHtml;
+      html += "</div>";
+    }
+  }
+  return html;
+}
+
+function QuestionAsHtml(question: Question): string {
+  let html = "";
+  html += "<div>";
+  html += question.description.asHtml;
+  html += "</div>";
+  html += "<div>";
+  html += question.answer.asHtml;
+  html += "</div>";
   return html;
 }
 
@@ -59,14 +88,9 @@ export function Kata(props: {
 
     props.kata.sections.forEach((section, idx) => {
       const parentDiv = itemContent.current[idx];
-      if (section.type === "text") {
-        const contentDiv = parentDiv?.querySelector(".kata-item-content");
-        if (!contentDiv) return;
-        contentDiv.innerHTML = section.contentAsHtml;
-      } else if (section.type === "exercise") {
-        const titleDiv = parentDiv?.querySelector(".exercise-title");
-        if (!titleDiv) return;
-        titleDiv.innerHTML = "\u{1F4D3} " + section.title;
+      let titleIcon = "\u{1F41B}";
+      if (section.type === "exercise") {
+        titleIcon = "\u{2328}";
         const descriptionDiv = parentDiv?.querySelector(
           ".exercise-description"
         );
@@ -77,7 +101,21 @@ export function Kata(props: {
         solutionDiv.innerHTML = ExplainedSolutionAsHtml(
           section.explainedSolution
         );
+      } else if (section.type === "lesson") {
+        titleIcon = "\u{1F4D6}";
+        const contentDiv = parentDiv?.querySelector(".kata-item-content");
+        if (!contentDiv) return;
+        contentDiv.innerHTML = LessonAsHtml(section);
+      } else if (section.type === "question") {
+        titleIcon = "\u{2753}";
+        const contentDiv = parentDiv?.querySelector(".kata-item-content");
+        if (!contentDiv) return;
+        contentDiv.innerHTML = QuestionAsHtml(section);
       }
+
+      const titleDiv = parentDiv?.querySelector(".section-title");
+      if (!titleDiv) return;
+      titleDiv.innerHTML = titleIcon + " <u>" + section.title + "</u>";
     });
     // In case we're now rendering less items than before, be sure to truncate
     itemContent.current.length = props.kata.sections.length;
@@ -90,16 +128,18 @@ export function Kata(props: {
       <div ref={kataContent}></div>
       <br></br>
       {props.kata.sections.map((section, idx) => {
-        if (section.type === "text") {
+        if (section.type === "lesson" || section.type === "question") {
           return (
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
+              <div class="section-title"></div>
               <div class="kata-item-content"></div>
             </div>
           );
-        } else if (section.type === "example" || section.type === "exercise") {
+        } else if (section.type === "exercise") {
+          // TODO: Probably will have to remove example from here while scaffolding.
           return (
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
-              <div class="exercise-title"></div>
+              <div class="section-title"></div>
               <div class="exercise-description"></div>
               <div>
                 <Editor
@@ -110,14 +150,8 @@ export function Kata(props: {
                   compiler={props.compiler}
                   compilerState={props.compilerState}
                   onRestartCompiler={props.onRestartCompiler}
-                  code={
-                    section.type === "exercise"
-                      ? section.placeholderCode
-                      : section.code
-                  }
-                  kataExercise={
-                    section.type === "exercise" ? section : undefined
-                  }
+                  code={section.placeholderCode}
+                  kataExercise={section}
                   key={section.id}
                   setHir={() => ({})}
                   activeTab="results-tab"

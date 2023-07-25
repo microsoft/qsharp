@@ -156,12 +156,15 @@ export {
   getAllKatas,
   getExerciseSources,
   getKata,
-  type Kata,
-  type KataSection,
   type Example,
   type Exercise,
   type ExplainedSolution,
   type ExplainedSolutionItem,
+  type Kata,
+  type KataSection,
+  type Lesson,
+  type LessonItem,
+  type Question,
   type Text,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";

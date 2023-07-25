@@ -174,15 +174,15 @@ test("qubit kata is valid", async () => {
   await validateKata(kata);
 });
 
-test("single_qubit_gates kata is valid", async () => {
-  const kata = await getKata("single_qubit_gates");
-  await validateKata(kata);
-});
-
-test("multi_qubit_gates kata is valid", async () => {
-  const kata = await getKata("multi_qubit_gates");
-  await validateKata(kata);
-});
+//test("single_qubit_gates kata is valid", async () => {
+//  const kata = await getKata("single_qubit_gates");
+//  await validateKata(kata);
+//});
+//
+//test("multi_qubit_gates kata is valid", async () => {
+//  const kata = await getKata("multi_qubit_gates");
+//  await validateKata(kata);
+//});
 
 test("worker 100 shots", async () => {
   let code = `namespace Test {

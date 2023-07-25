@@ -21,14 +21,6 @@ export type TextContent = {
   asMarkdown: string;
 };
 
-export type LessonItem = Example | TextContent;
-
-export type Lesson = {
-  type: "reading";
-  id: string;
-  items: LessonItem[];
-};
-
 export type Solution = {
   type: "solution";
   id: string;
@@ -52,8 +44,24 @@ export type Exercise = {
   explainedSolution: ExplainedSolution;
 };
 
-// TODO: Should be Exercise | Lesson | Question
-export type KataSection = Example | Exercise | Text;
+export type LessonItem = Example | TextContent;
+
+export type Lesson = {
+  type: "lesson";
+  id: string;
+  title: string;
+  items: LessonItem[];
+};
+
+export type Question = {
+  type: "question";
+  id: string;
+  title: string;
+  description: TextContent;
+  answer: TextContent;
+};
+
+export type KataSection = Exercise | Lesson | Question;
 
 export type Kata = {
   id: string;
