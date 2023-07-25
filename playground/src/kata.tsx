@@ -136,7 +136,6 @@ export function Kata(props: {
             </div>
           );
         } else if (section.type === "exercise") {
-          // TODO: Probably will have to remove example from here while scaffolding.
           return (
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
               <div class="section-title"></div>

@@ -4,15 +4,12 @@
 /**
  * Katas Taxonomy
  *
- * A Kata is a top-level container of educational items (exercises and examples) which are used to explain a particular
- * topic.
+ * A Kata is a top-level container of educational items which are used to explain a particular topic.
  *
- * This file builds the content for all the Katas. The katas ordering is conveyed by the katas.json file where each
+ * This file builds the content for all the Katas. The katas ordering is conveyed by JSON file where each
  * string in the array represents a folder that contains all the data to build the kata.
  *
- * Each Kata is organized in a directory where an index.md file, an items.json file, and multiple sub-directories are
- * present. Each sub-directory represents an item within the Kata and its specific content depends on the type of item
- * it represents.
+ * Each Kata is organized in a directory where an index.md file provides a description on how the kata must be composed.
  */
 
 // @ts-check
@@ -47,6 +44,29 @@ function tryGetTitleFromMarkdown(markdown, errorPrefix) {
   }
 
   return firstLine.replace(titleRe, "");
+}
+
+function tryGetTitleFromToken(token, errorPrefix) {
+  // The token that represents the title can only be a markdown token.
+  if (token.type !== "markdown") {
+    throw new Error(
+      `${errorPrefix}\n` +
+        `Token is expected to be the title but found a token of type '${token.type}' instead`
+    );
+  }
+
+  // Check that the token has just one line.
+  const linesCount = token.markdown.split(/\r?\n/).length;
+  if (linesCount !== 1) {
+    throw new Error(
+      `${errorPrefix}\n` +
+        `A title token must be 1 line, but ${linesCount} lines are present\n` +
+        `Hint: is the markdown missing a @[section] macro?`
+    );
+  }
+  const title = tryGetTitleFromMarkdown(token.markdown, errorPrefix);
+
+  return title;
 }
 
 function tryParseJSON(json, errorPrefix) {
@@ -154,6 +174,11 @@ function createExample(baseFolderPath, properties) {
   };
 }
 
+function createTextContent(markdown) {
+  const html = marked(markdown);
+  return { type: "text-content", asHtml: html, asMarkdown: markdown };
+}
+
 function createSolution(baseFolderPath, properties) {
   // Validate that the data contains the required properties.
   const requiredProperties = ["id", "codePath"];
@@ -178,11 +203,6 @@ function createSolution(baseFolderPath, properties) {
     id: properties.id,
     code: code,
   };
-}
-
-function createTextContent(markdown) {
-  const html = marked(markdown);
-  return { type: "text-content", asHtml: html, asMarkdown: markdown };
 }
 
 function createExplainedSolution(markdownFilePath) {
@@ -387,29 +407,6 @@ function tryCreateMarkdownToken(text) {
   return null;
 }
 
-function tryGetTitleFromToken(token, errorPrefix) {
-  // The token that represents the title can only be a markdown token.
-  if (token.type !== "markdown") {
-    throw new Error(
-      `${errorPrefix}\n` +
-        `Token is expected to be the title but found a token of type '${token.type}' instead`
-    );
-  }
-
-  // Check that the token has just one line.
-  const linesCount = token.markdown.split(/\r?\n/).length;
-  if (linesCount !== 1) {
-    throw new Error(
-      `${errorPrefix}\n` +
-        `A title token must be 1 line, but ${linesCount} lines are present\n` +
-        `Hint: is the markdown missing a @[section] macro?`
-    );
-  }
-  const title = tryGetTitleFromMarkdown(token.markdown, errorPrefix);
-
-  return title;
-}
-
 function createKata(tokens, kataPath, globalCodeSources) {
   const kataId = basename(kataPath);
 
@@ -494,10 +491,14 @@ function generateKatasContent(katasPath, outputPath) {
     indexJson,
     `Invalid katas index at ${indexPath}`
   );
+
+  // Initialize an object where all the global code sources will be aggregated.
   const globalCodeSourcesContainer = {
     basePath: katasPath,
     sources: {},
   };
+
+  // Generate an object for each kata and update the global code sources with the code they reference.
   var katas = [];
   for (const kataDir of katasDirs) {
     const kataPath = join(katasPath, kataDir);
@@ -505,6 +506,7 @@ function generateKatasContent(katasPath, outputPath) {
     katas.push(kata);
   }
 
+  // Create the objects that will be written to a file.
   const globalCodeSources = [];
   for (let id in globalCodeSourcesContainer.sources) {
     globalCodeSources.push({
