@@ -394,7 +394,7 @@ fn function_one_ty_param() {
                 Callable _id_ [0-45] (Function):
                     name: Ident _id_ [9-12] "Foo"
                     generics:
-                        Ident _id_ [14-15] "T"
+                        Ident _id_ [13-15] "'T"
                     input: Pat _id_ [16-18]: Unit
                     output: Type _id_ [21-25]: Path: Path _id_ [21-25] (Ident _id_ [21-25] "Unit")
                     body: Specializations:
@@ -412,8 +412,8 @@ fn function_two_ty_params() {
                 Callable _id_ [0-49] (Function):
                     name: Ident _id_ [9-12] "Foo"
                     generics:
-                        Ident _id_ [14-15] "T"
-                        Ident _id_ [18-19] "U"
+                        Ident _id_ [13-15] "'T"
+                        Ident _id_ [17-19] "'U"
                     input: Pat _id_ [20-22]: Unit
                     output: Type _id_ [25-29]: Path: Path _id_ [25-29] (Ident _id_ [25-29] "Unit")
                     body: Specializations:

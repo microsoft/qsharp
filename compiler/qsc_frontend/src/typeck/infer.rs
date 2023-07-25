@@ -15,6 +15,7 @@ use std::{
     fmt::Debug,
 };
 
+#[derive(Debug)]
 pub(super) struct Solution {
     tys: IndexMap<InferTyId, Ty>,
     functors: IndexMap<InferFunctorId, FunctorSet>,
@@ -175,6 +176,30 @@ impl Class {
     }
 }
 
+/// Meta-level descriptions about the source of a type.
+/// The compiler uses the notion of "unresolved types" to
+/// represent both divergent types (return expressions, similar to
+/// the `never` type), and types with insufficient information to
+/// be inferred.
+/// We want to generate compiler errors in the latter case,
+/// so we need to track where types came from. This `TySource`
+/// struct allows us to know if a type originates from a divergent
+/// source, and if it doesn't, we generate an ambiguous type error.
+pub(super) enum TySource {
+    Divergent,
+    NotDivergent { span: Span },
+}
+
+impl TySource {
+    pub(super) fn not_divergent(span: Span) -> Self {
+        TySource::NotDivergent { span }
+    }
+
+    pub(crate) fn divergent() -> TySource {
+        TySource::Divergent
+    }
+}
+
 /// An argument type and tags describing the call syntax.
 #[derive(Clone, Debug)]
 pub(super) enum ArgTy {
@@ -274,6 +299,7 @@ struct App {
     errors: Vec<Error>,
 }
 
+#[derive(Debug)]
 enum Constraint {
     Class(Class, Span),
     Eq {
@@ -290,6 +316,8 @@ enum Constraint {
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
+    /// Metadata about the construction of types.
+    ty_metadata: IndexMap<InferTyId, TySource>,
     next_ty: InferTyId,
     next_functor: InferFunctorId,
 }
@@ -300,6 +328,7 @@ impl Inferrer {
             constraints: VecDeque::new(),
             next_ty: InferTyId::default(),
             next_functor: InferFunctorId::default(),
+            ty_metadata: IndexMap::default(),
         }
     }
 
@@ -318,9 +347,10 @@ impl Inferrer {
     }
 
     /// Returns a unique unconstrained type variable.
-    pub(super) fn fresh_ty(&mut self) -> Ty {
+    pub(super) fn fresh_ty(&mut self, meta: TySource) -> Ty {
         let fresh = self.next_ty;
         self.next_ty = fresh.successor();
+        self.ty_metadata.insert(fresh, meta);
         Ty::Infer(fresh)
     }
 
@@ -337,7 +367,7 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty => GenericArg::Ty(self.fresh_ty()),
+                GenericParam::Ty => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -359,21 +389,42 @@ impl Inferrer {
 
     /// Solves for all variables given the accumulated constraints.
     pub(super) fn solve(mut self, udts: &HashMap<ItemId, Udt>) -> (Solution, Vec<Error>) {
-        // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
-        // However, if an unsolved variable is the result of a divergent expression, it may be OK to
-        // leave it or substitute it with a concrete uninhabited type.
-        // https://github.com/microsoft/qsharp/issues/152
         let mut solver = Solver::new(udts, self.next_functor);
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in solver.constrain(constraint).into_iter().rev() {
                 self.constraints.push_front(constraint);
             }
         }
+        let mut unresolved_ty_errs = self.find_unresolved_types(&mut solver);
+        let (solution, mut errs) = solver.into_solution();
+        errs.append(&mut unresolved_ty_errs);
+        (solution, errs)
+    }
 
-        solver.into_solution()
+    fn find_unresolved_types(&self, solver: &mut Solver) -> Vec<Error> {
+        self.ty_metadata
+            .iter()
+            .filter_map(|(id, meta)| {
+                if solver.solution.tys.get(id).is_none() {
+                    match meta {
+                        TySource::Divergent => {
+                            // here, we are resolving all divergent types to the unit type.
+                            solver.solution.tys.insert(id, Ty::UNIT);
+                            None
+                        }
+                        TySource::NotDivergent { span } => {
+                            Some(Error(ErrorKind::AmbiguousTy(*span)))
+                        }
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
+#[derive(Debug)]
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     functor_end: InferFunctorId,

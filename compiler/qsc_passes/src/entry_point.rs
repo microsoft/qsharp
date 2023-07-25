@@ -9,9 +9,10 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
+    assigner::Assigner,
     hir::{
-        Attr, CallableDecl, Expr, ExprKind, Item, ItemId, ItemKind, LocalItemId, NodeId, Package,
-        PatKind, Res,
+        Attr, CallableDecl, Expr, ExprKind, Item, ItemId, ItemKind, LocalItemId, Package, PatKind,
+        Res,
     },
     ty::Ty,
     visit::Visitor,
@@ -51,7 +52,7 @@ pub(super) fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
         return vec![];
     }
 
-    match create_entry_from_callables(callables) {
+    match create_entry_from_callables(&mut unit.assigner, callables) {
         Ok(expr) => {
             unit.package.entry = Some(expr);
             vec![]
@@ -61,6 +62,7 @@ pub(super) fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
 }
 
 fn create_entry_from_callables(
+    assigner: &mut Assigner,
     callables: Vec<(&CallableDecl, LocalItemId)>,
 ) -> Result<Expr, Vec<super::Error>> {
     if callables.len() == 1 {
@@ -80,7 +82,7 @@ fn create_entry_from_callables(
                     }
                     qsc_hir::hir::SpecBody::Impl(_, block) => {
                         let arg = Expr {
-                            id: NodeId::default(),
+                            id: assigner.next_node(),
                             span: ep.span,
                             ty: Ty::UNIT,
                             kind: ExprKind::Tuple(Vec::new()),
@@ -91,13 +93,13 @@ fn create_entry_from_callables(
                             item,
                         };
                         let callee = Expr {
-                            id: NodeId::default(),
+                            id: assigner.next_node(),
                             span: ep.span,
                             ty: block.ty.clone(),
                             kind: ExprKind::Var(Res::Item(item_id), Vec::new()),
                         };
                         let call = Expr {
-                            id: NodeId::default(),
+                            id: assigner.next_node(),
                             span: ep.span,
                             ty: block.ty.clone(),
                             kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
