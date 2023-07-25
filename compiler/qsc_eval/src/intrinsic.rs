@@ -68,6 +68,16 @@ pub(crate) fn call(
                 Ok(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
             }
         }
+        "DrawRandomDouble" => {
+            let [lo, hi] = unwrap_tuple(arg);
+            let lo = lo.unwrap_double();
+            let hi = hi.unwrap_double();
+            if lo > hi {
+                Err(Error::EmptyRange(arg_span))
+            } else {
+                Ok(Value::Double(rand::thread_rng().gen_range(lo..=hi)))
+            }
+        }
         #[allow(clippy::cast_possible_truncation)]
         "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),
         "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(sim.qubit_allocate()))),
