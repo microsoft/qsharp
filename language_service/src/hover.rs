@@ -198,10 +198,10 @@ fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
         markdown_fenced_block(code)
     } else {
         format!(
-            "{}
-{}",
+            "{}{}
+",
+            markdown_fenced_block(code),
             parsed_doc.summary,
-            markdown_fenced_block(code)
         )
     }
 }
