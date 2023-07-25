@@ -198,7 +198,13 @@ fn two_files_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(vec![("test2", Span { lo: 50, hi: 51 })], errors);
+    assert_eq!(
+        vec![
+            ("test2", Span { lo: 50, hi: 51 }),
+            ("test2", Span { lo: 50, hi: 53 }),
+        ],
+        errors
+    );
 }
 
 #[test]
@@ -515,4 +521,34 @@ fn std_dependency() {
 
     let unit = compile(&store, &[std], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+#[test]
+fn introduce_prelude_ambiguity() {
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store));
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"namespace Microsoft.Quantum.Canon {
+                function Length () : () { }
+            }
+                namespace Foo {
+                    function Main (): () { Length }
+                }"}
+            .into(),
+        )],
+        Some("Foo.Main()".into()),
+    );
+
+    let unit = compile(&store, &[std], sources);
+    let errors: Vec<Error> = unit.errors;
+    assert!(
+        errors.len() == 1
+            && matches!(
+                errors[0],
+                Error(super::ErrorKind::Resolve(
+                    super::resolve::Error::AmbiguousPrelude { .. }
+                ))
+            )
+    );
 }

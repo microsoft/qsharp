@@ -9,7 +9,7 @@ use std::io::Cursor;
 
 use crate::interpret::{
     stateful::{Interpreter, LineError},
-    stateless::{self, Context},
+    stateless::{self},
 };
 
 fn line(
@@ -24,10 +24,11 @@ fn line(
     )
 }
 
-fn eval(context: &Context) -> (Result<Value, Vec<stateless::Error>>, String) {
+fn eval(interpreter: &stateless::Interpreter) -> (Result<Value, Vec<stateless::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    (context.eval(&mut receiver), receiver.dump())
+    let mut eval_ctx = interpreter.new_eval_context();
+    (eval_ctx.eval_entry(&mut receiver), receiver.dump())
 }
 
 #[test]
@@ -137,10 +138,10 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         ],
         Some("Adjoint Test2.A(0);".into()),
     );
-    let context =
-        stateless::Context::new(true, source_map).expect("Failed to compile base environment.");
+    let interpreter =
+        stateless::Interpreter::new(true, source_map).expect("Failed to compile base environment.");
 
-    let (result, _) = eval(&context);
+    let (result, _) = eval(&interpreter);
 
     match result {
         Ok(_) => panic!("Expected error"),

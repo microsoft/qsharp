@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Example
     /// ```qsharp
-    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]); 
+    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
     /// // evensCount is 1.
     /// ```
     function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
@@ -371,7 +371,7 @@ namespace Microsoft.Quantum.Arrays {
     function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[] {
         mutable output = [];
         for element in array {
-            set output += mapper(element); 
+            set output += mapper(element);
         }
         output
     }
@@ -482,7 +482,25 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The first element of the array.
     function Head<'A> (array : 'A[]) : 'A {
+        Fact(Length(array) > 0, "Array must have at least 1 element");
         array[0]
+    }
+
+    /// # Summary
+    /// Returns a tuple of first and all remaining elements of the array.
+    ///
+    /// # Type Parameters
+    /// ## 'A
+    /// The type of the array elements.
+    ///
+    /// # Input
+    /// ## array
+    /// An array with at least one element.
+    ///
+    /// # Output
+    /// A tuple of first and all remaining elements of the array.
+    function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[]) {
+        (Head(array), Rest(array))
     }
 
     /// # Summary
@@ -830,6 +848,23 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Returns a tuple of all but one and the last element of the array.
+    ///
+    /// # Type Parameters
+    /// ## 'A
+    /// The type of the array elements.
+    ///
+    /// # Input
+    /// ## array
+    /// An array with at least one element.
+    ///
+    /// # Output
+    /// A tuple of all but one and the last element of the array.
+    function MostAndTail<'A>(array : 'A[]) : ('A[], 'A) {
+        (Most(array), Tail(array))
+    }
+
+    /// # Summary
     /// Returns an array padded at with specified values up to a
     /// specified length.
     ///
@@ -862,8 +897,8 @@ namespace Microsoft.Quantum.Arrays {
     function Padded<'T> (paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[] {
         let nElementsInitial = Length(inputArray);
         let nAbsElementsTotal = AbsI(paddedLength);
-        if nAbsElementsTotal <= nElementsInitial {
-            fail "Specified output array length must be longer than `inputArray` length.";
+        if nAbsElementsTotal < nElementsInitial {
+            fail "Specified output array length must be at least as long as `inputArray` length.";
         }
         let nElementsPad = nAbsElementsTotal - nElementsInitial;
         let padArray = Repeated(defaultElement, nElementsPad);
@@ -1041,7 +1076,7 @@ namespace Microsoft.Quantum.Arrays {
     /// ```qsharp
     /// let sortedArray = Sorted(LessThanOrEqualI, [3, 17, 11, -201, -11]);
     /// ```
-    /// 
+    ///
     /// # Remarks
     /// The function `comparison` is assumed to be transitive, such that
     /// if `comparison(a, b)` and `comparison(b, c)`, then `comparison(a, c)`
@@ -1059,7 +1094,7 @@ namespace Microsoft.Quantum.Arrays {
         // Sort each sublist, then merge them back into a single combined
         // list and return.
         SortedMerged(
-            comparison, 
+            comparison,
             Sorted(comparison, left),
             Sorted(comparison, right)
         )
@@ -1093,7 +1128,7 @@ namespace Microsoft.Quantum.Arrays {
     /// array that match the given locations.
     ///
     /// # Remarks
-    /// If `locations` contains repeated elements, the corresponding elements 
+    /// If `locations` contains repeated elements, the corresponding elements
     /// of `array` will likewise be repeated.
     ///
     /// # Type Parameters
@@ -1109,9 +1144,9 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array `out` of elements whose locations correspond to the subarray,
     /// such that `out[index] == array[locations[index]]`.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```qsharp
     /// let array = [1, 2, 3, 4];
     /// let permutation = Subarray([3, 0, 2, 1], array); // [4, 1, 3, 2]
@@ -1210,7 +1245,9 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The last element of the array.
     function Tail<'A> (array : 'A[]) : 'A {
-        array[Length(array) - 1]
+        let size = Length(array);
+        Fact(size > 0, "Array must have at least 1 element");
+        array[size - 1]
     }
 
     /// # Summary

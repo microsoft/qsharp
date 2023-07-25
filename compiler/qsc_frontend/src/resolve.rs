@@ -64,6 +64,17 @@ pub(super) enum Error {
         second_open_span: Span,
     },
 
+    #[error("`{name}` could refer to the item in `{candidate_a}` or an item in `{candidate_b}`")]
+    #[diagnostic(help("both namespaces are implicitly opened by the prelude"))]
+    #[diagnostic(code("Qsc.Resolve.AmbiguousPrelude"))]
+    AmbiguousPrelude {
+        name: String,
+        candidate_a: String,
+        candidate_b: String,
+        #[label("ambiguous name")]
+        span: Span,
+    },
+
     #[error("duplicate declaration of `{0}` in namespace `{1}`")]
     #[diagnostic(code("Qsc.Resolve.Duplicate"))]
     Duplicate(String, String, #[label] Span),
@@ -635,8 +646,26 @@ fn resolve(
     if candidates.is_empty() && namespace.is_empty() {
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name_str);
-        assert!(candidates.len() <= 1, "ambiguity in prelude resolution");
-        if let Some(res) = single(candidates) {
+        if candidates.len() > 1 {
+            let mut candidates: Vec<_> = candidates.into_iter().collect();
+            candidates.sort_by_key(|x| x.1);
+            let mut candidates = candidates
+                .into_iter()
+                .map(|candidate| candidate.1.to_string());
+            let candidate_a = candidates
+                .next()
+                .expect("infallible as per length check above");
+            let candidate_b = candidates
+                .next()
+                .expect("infallible as per length check above");
+            return Err(Error::AmbiguousPrelude {
+                span: name.span,
+                name: name.name.to_string(),
+                candidate_a,
+                candidate_b,
+            });
+        }
+        if let Some((res, _)) = single(candidates) {
             return Ok(res);
         }
     }
@@ -707,18 +736,19 @@ fn resolve_scope_locals(
 
     None
 }
-
-fn resolve_implicit_opens(
+/// The return type represents the resolution of implicit opens, but also
+/// retains the namespace that the resolution comes from.
+/// This retained namespace string is used for error reporting.
+fn resolve_implicit_opens<'a, 'b>(
     kind: NameKind,
-    globals: &GlobalScope,
-    namespaces: impl IntoIterator<Item = impl AsRef<str>>,
-    name: &str,
-) -> HashSet<Res> {
-    let mut candidates = HashSet::new();
+    globals: &'b GlobalScope,
+    namespaces: impl IntoIterator<Item = &'a &'a str>,
+    name: &'b str,
+) -> HashMap<Res, &'a str> {
+    let mut candidates = HashMap::new();
     for namespace in namespaces {
-        let namespace = namespace.as_ref();
         if let Some(&res) = globals.get(kind, namespace, name) {
-            candidates.insert(res);
+            candidates.insert(res, *namespace);
         }
     }
     candidates
