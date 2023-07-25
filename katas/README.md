@@ -16,7 +16,7 @@ Katas are composed through an index.md markdown file that uses macros to indicat
 ### Macros
 
 The following macros are available for katas composition:
- - @[exercise]: Used to create Q# code exercises that we can be automatically verified.
+- @[exercise]: Used to create Q# code exercises that we can be automatically verified.
     - id: Unique identifier for the exercise.
     - descriptionPath: Path to a markdown file that contains the description of the exercise.
     - placeholderSourcePath: Path to a Q# file. It contains Q# code which is used as template code that helps the user to start implementing a solution.
