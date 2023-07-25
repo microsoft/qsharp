@@ -583,6 +583,28 @@ fn check_padded() {
             .into(),
         ),
     );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Padded(3, 2, [10, 11, 12])",
+        &Value::Array(
+            vec![
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Padded(-3, 2, [10, 11, 12])",
+        &Value::Array(
+            vec![
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+            ]
+            .into(),
+        ),
+    );
 }
 
 #[test]
