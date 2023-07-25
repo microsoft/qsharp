@@ -11,10 +11,12 @@ use crate::{
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
+    backend::SparseSim,
     debug::CallStack,
+    eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global,
+    Env, Global, GlobalLookup,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
@@ -60,6 +62,19 @@ pub enum LineErrorKind {
     Eval(#[from] qsc_eval::Error),
 }
 
+struct Lookup<'a> {
+    store: &'a PackageStore,
+    package: PackageId,
+    udts: &'a HashSet<LocalItemId>,
+    callables: &'a IndexMap<LocalItemId, CallableDecl>,
+}
+
+impl<'a> GlobalLookup<'a> for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
+        get_global(self.store, self.udts, self.callables, self.package, id)
+    }
+}
+
 pub struct Interpreter {
     store: PackageStore,
     package: PackageId,
@@ -67,6 +82,7 @@ pub struct Interpreter {
     udts: HashSet<LocalItemId>,
     callables: IndexMap<LocalItemId, CallableDecl>,
     env: Env,
+    sim: SparseSim,
 }
 
 impl Interpreter {
@@ -74,8 +90,6 @@ impl Interpreter {
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
     pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<CompileError>> {
-        qsc_eval::init();
-
         let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
         if std {
@@ -100,6 +114,7 @@ impl Interpreter {
             udts: HashSet::new(),
             callables: IndexMap::new(),
             env: Env::with_empty_scope(),
+            sim: SparseSim::new(),
         })
     }
 
@@ -109,7 +124,7 @@ impl Interpreter {
     /// If there is a runtime error when interpreting the line, an error is returned.
     pub fn interpret_line(
         &mut self,
-        receiver: &mut dyn Receiver,
+        receiver: &mut impl Receiver,
         line: &str,
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
@@ -170,25 +185,34 @@ impl Interpreter {
 
     fn eval_stmt(
         &mut self,
-        receiver: &mut dyn Receiver,
+        receiver: &mut impl Receiver,
         stmt: &Stmt,
     ) -> Result<Value, (qsc_eval::Error, CallStack)> {
-        qsc_eval::eval_stmt(
+        let globals = Lookup {
+            store: &self.store,
+            package: self.package,
+            udts: &self.udts,
+            callables: &self.callables,
+        };
+
+        eval_stmt(
             stmt,
-            &|id| get_global(&self.store, &self.udts, &self.callables, self.package, id),
-            self.package,
+            &globals,
             &mut self.env,
+            &mut self.sim,
+            self.package,
             receiver,
         )
     }
 
     fn render_call_stack(&self, call_stack: &CallStack, error: &dyn std::error::Error) -> String {
-        format_call_stack(
-            &self.store,
-            &|id| get_global(&self.store, &self.udts, &self.callables, self.package, id),
-            call_stack,
-            error,
-        )
+        let globals = Lookup {
+            store: &self.store,
+            package: self.package,
+            udts: &self.udts,
+            callables: &self.callables,
+        };
+        format_call_stack(&self.store, &globals, call_stack, error)
     }
 }
 

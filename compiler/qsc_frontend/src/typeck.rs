@@ -20,10 +20,13 @@ use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
-pub(super) struct Table {
-    pub(super) udts: HashMap<ItemId, Udt>,
-    pub(super) terms: IndexMap<NodeId, Ty>,
-    pub(super) generics: IndexMap<NodeId, Vec<GenericArg>>,
+#[derive(Debug, Default)]
+pub struct Table {
+    pub udts: HashMap<ItemId, Udt>,
+
+    // AST nodes that get mapped to types are Expr, Block, Pat, and QubitInit nodes
+    pub terms: IndexMap<NodeId, Ty>,
+    pub generics: IndexMap<NodeId, Vec<GenericArg>>,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -101,4 +104,8 @@ enum ErrorKind {
     #[diagnostic(help("replace this hole with an expression of the expected type"))]
     #[diagnostic(code("Qsc.TypeCk.TyHole"))]
     TyHole(Ty, #[label] Span),
+    #[error("insufficient type information to infer type")]
+    #[diagnostic(help("provide a type annotation"))]
+    #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
+    AmbiguousTy(#[label] Span),
 }

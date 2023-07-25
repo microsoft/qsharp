@@ -7,8 +7,14 @@ mod tests;
 use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
+use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
-    hir::{Attr, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
+    assigner::Assigner,
+    hir::{
+        Attr, CallableDecl, Expr, ExprKind, Item, ItemId, ItemKind, LocalItemId, Package, PatKind,
+        Res,
+    },
+    ty::Ty,
     visit::Visitor,
 };
 use thiserror::Error;
@@ -34,18 +40,33 @@ pub enum Error {
     NotFound,
 }
 
-/// Extracts a single entry point callable declaration, if found.
-/// # Errors
-/// Returns an error if a single entry point with no parameters cannot be found.
-pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
-    let mut finder = EntryPointFinder {
-        callables: Vec::new(),
-    };
-    finder.visit_package(package);
-    let entry_points = finder.callables;
+// If no entry expression is provided, generate one from the entry point callable.
+// Only one callable should be annotated with the entry point attribute.
+// If more than one callable is annotated, or none are annotated, we skip this pass.
+pub(super) fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
+    if unit.package.entry.is_some() {
+        return vec![];
+    }
+    let callables = get_callables(&unit.package);
+    if callables.len() != 1 {
+        return vec![];
+    }
 
-    if entry_points.len() == 1 {
-        let ep = entry_points[0];
+    match create_entry_from_callables(&mut unit.assigner, callables) {
+        Ok(expr) => {
+            unit.package.entry = Some(expr);
+            vec![]
+        }
+        Err(errs) => errs,
+    }
+}
+
+fn create_entry_from_callables(
+    assigner: &mut Assigner,
+    callables: Vec<(&CallableDecl, LocalItemId)>,
+) -> Result<Expr, Vec<super::Error>> {
+    if callables.len() == 1 {
+        let ep = callables[0].0;
         let arg_count = if let PatKind::Tuple(args) = &ep.input.kind {
             args.len()
         } else {
@@ -59,36 +80,66 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
                     qsc_hir::hir::SpecBody::Gen(_) => {
                         Err(vec![PassErr::EntryPoint(Error::BodyMissing(ep.span))])
                     }
-                    qsc_hir::hir::SpecBody::Impl(_, block) => Ok(Expr {
-                        id: NodeId::default(),
-                        span: Span::default(),
-                        ty: ep.output.clone(),
-                        kind: ExprKind::Block(block.clone()),
-                    }),
+                    qsc_hir::hir::SpecBody::Impl(_, block) => {
+                        let arg = Expr {
+                            id: assigner.next_node(),
+                            span: ep.span,
+                            ty: Ty::UNIT,
+                            kind: ExprKind::Tuple(Vec::new()),
+                        };
+                        let item = callables[0].1;
+                        let item_id = ItemId {
+                            package: None,
+                            item,
+                        };
+                        let callee = Expr {
+                            id: assigner.next_node(),
+                            span: ep.span,
+                            ty: block.ty.clone(),
+                            kind: ExprKind::Var(Res::Item(item_id), Vec::new()),
+                        };
+                        let call = Expr {
+                            id: assigner.next_node(),
+                            span: ep.span,
+                            ty: block.ty.clone(),
+                            kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
+                        };
+                        Ok(call)
+                    }
                 }
             }
         } else {
             Err(vec![PassErr::EntryPoint(Error::Args(ep.input.span))])
         }
-    } else if entry_points.is_empty() {
+    } else if callables.is_empty() {
         Err(vec![PassErr::EntryPoint(Error::NotFound)])
     } else {
-        Err(entry_points
+        Err(callables
             .into_iter()
-            .map(|ep| PassErr::EntryPoint(Error::Duplicate(ep.name.name.to_string(), ep.name.span)))
+            .map(|ep| {
+                PassErr::EntryPoint(Error::Duplicate(ep.0.name.name.to_string(), ep.0.name.span))
+            })
             .collect())
     }
 }
 
+fn get_callables(package: &Package) -> Vec<(&CallableDecl, LocalItemId)> {
+    let mut finder = EntryPointFinder {
+        callables: Vec::new(),
+    };
+    finder.visit_package(package);
+    finder.callables
+}
+
 struct EntryPointFinder<'a> {
-    callables: Vec<&'a CallableDecl>,
+    callables: Vec<(&'a CallableDecl, LocalItemId)>,
 }
 
 impl<'a> Visitor<'a> for EntryPointFinder<'a> {
     fn visit_item(&mut self, item: &'a Item) {
         if let ItemKind::Callable(callable) = &item.kind {
             if item.attrs.iter().any(|a| a == &Attr::EntryPoint) {
-                self.callables.push(callable);
+                self.callables.push((callable, item.id));
             }
         }
     }

@@ -1,12 +1,47 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
+use crate::{
+    backend::SparseSim,
+    debug::CallStack,
+    output::{GenericReceiver, Receiver},
+    val::GlobalId,
+    Env, Error, Global, GlobalLookup, State, Value,
+};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_hir::hir::Expr;
 use qsc_hir::hir::ItemKind;
+use qsc_hir::hir::PackageId;
+
 use qsc_passes::{run_core_passes, run_default_passes};
+/// Evaluates the given expression with the given context.
+/// Creates a new environment and simulator.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub(super) fn eval_expr<'a>(
+    expr: &'a Expr,
+    globals: &impl GlobalLookup<'a>,
+    package: PackageId,
+    out: &mut impl Receiver,
+) -> Result<Value, (Error, CallStack)> {
+    let mut state = State::new(package);
+    state.push_expr(expr);
+    let mut env = Env::with_empty_scope();
+    let mut sim = SparseSim::new();
+    state.eval(globals, &mut env, &mut sim, out)
+}
+
+struct Lookup<'a> {
+    store: &'a PackageStore,
+}
+
+impl<'a> GlobalLookup<'a> for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<crate::Global<'a>> {
+        get_global(self.store, id)
+    }
+}
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut core = compile::core();
@@ -31,13 +66,8 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         .expect("package should have entry");
 
     let mut out = Vec::new();
-    match eval_expr(
-        entry,
-        &|id| get_global(&store, id),
-        id,
-        &mut Env::default(),
-        &mut GenericReceiver::new(&mut out),
-    ) {
+    let lookup = Lookup { store: &store };
+    match eval_expr(entry, &lookup, id, &mut GenericReceiver::new(&mut out)) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
     }
@@ -2674,6 +2704,63 @@ fn lambda_operation_closure() {
         ",
         "A.Bar()",
         &expect!["One"],
+    );
+}
+
+#[test]
+fn lambda_operation_controlled() {
+    check_expr(
+        "
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : Qubit => Unit is Adj + Ctl, q : Qubit) : Unit is Adj + Ctl { op(q) }
+                operation Bar() : Result[] {
+                    mutable output = [];
+                    use (ctls, q) = (Qubit[1], Qubit());
+                    let op = q => X(q);
+                    Foo(op, q);
+                    set output += [MResetZ(q)];
+                    Controlled Foo(ctls, (op, q));
+                    set output += [MResetZ(q)];
+                    X(ctls[0]);
+                    Controlled Foo(ctls, (op, q));
+                    set output += [MResetZ(q)];
+                    ResetAll(ctls);
+                    output
+                }
+            }
+        ",
+        "A.Bar()",
+        &expect!["[One, Zero, One]"],
+    );
+}
+
+#[test]
+fn lambda_operation_controlled_controlled() {
+    check_expr(
+        "
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : Qubit => Unit is Adj + Ctl, q : Qubit) : Unit is Adj + Ctl { op(q) }
+                operation Bar() : Result[] {
+                    mutable output = [];
+                    use (ctls1, ctls2, q) = (Qubit[1], Qubit[1], Qubit());
+                    let op = q => X(q);
+                    Foo(op, q);
+                    set output += [MResetZ(q)];
+                    Controlled Controlled Foo(ctls1, (ctls2, (op, q)));
+                    set output += [MResetZ(q)];
+                    X(ctls1[0]);
+                    X(ctls2[0]);
+                    Controlled Controlled Foo(ctls1, (ctls2, (op, q)));
+                    set output += [MResetZ(q)];
+                    ResetAll(ctls1 + ctls2);
+                    output
+                }
+            }
+        ",
+        "A.Bar()",
+        &expect!["[One, Zero, One]"],
     );
 }
 

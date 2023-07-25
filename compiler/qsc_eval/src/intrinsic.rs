@@ -5,32 +5,22 @@
 mod tests;
 
 use crate::{
+    backend::Backend,
     output::Receiver,
     val::{Qubit, Value},
     Error,
 };
 use num_bigint::BigInt;
-use qir_backend::{
-    __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
-    __quantum__qis__cz__body, __quantum__qis__h__body, __quantum__qis__m__body,
-    __quantum__qis__mresetz__body, __quantum__qis__reset__body, __quantum__qis__rx__body,
-    __quantum__qis__rxx__body, __quantum__qis__ry__body, __quantum__qis__ryy__body,
-    __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__s__adj,
-    __quantum__qis__s__body, __quantum__qis__swap__body, __quantum__qis__t__adj,
-    __quantum__qis__t__body, __quantum__qis__x__body, __quantum__qis__y__body,
-    __quantum__qis__z__body, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
-    capture_quantum_state, qubit_is_zero,
-    result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
-};
 use qsc_data_structures::span::Span;
 use rand::Rng;
-use std::{array, ffi::c_void};
+use std::array;
 
 pub(crate) fn call(
     name: &str,
     name_span: Span,
     arg: Value,
     arg_span: Span,
+    sim: &mut dyn Backend,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {
     match name {
@@ -42,7 +32,7 @@ pub(crate) fn call(
         "IntAsDouble" => Ok(Value::Double(arg.unwrap_int() as f64)),
         "IntAsBigInt" => Ok(Value::BigInt(BigInt::from(arg.unwrap_int()))),
         "DumpMachine" => {
-            let (state, qubit_count) = capture_quantum_state();
+            let (state, qubit_count) = sim.capture_quantum_state();
             match out.state(state, qubit_count) {
                 Ok(_) => Ok(Value::unit()),
                 Err(_) => Err(Error::OutputFail(name_span)),
@@ -52,7 +42,7 @@ pub(crate) fn call(
             Ok(_) => Ok(Value::unit()),
             Err(_) => Err(Error::OutputFail(name_span)),
         },
-        "CheckZero" => Ok(Value::Bool(qubit_is_zero(arg.unwrap_qubit().0))),
+        "CheckZero" => Ok(Value::Bool(sim.qubit_is_zero(arg.unwrap_qubit().0))),
         "ArcCos" => Ok(Value::Double(arg.unwrap_double().acos())),
         "ArcSin" => Ok(Value::Double(arg.unwrap_double().asin())),
         "ArcTan" => Ok(Value::Double(arg.unwrap_double().atan())),
@@ -78,63 +68,69 @@ pub(crate) fn call(
                 Ok(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
             }
         }
-        #[allow(clippy::cast_possible_truncation)]
-        "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),
-        "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(__quantum__rt__qubit_allocate()))),
-        "__quantum__rt__qubit_release" => {
-            let qubit = arg.unwrap_qubit().0;
-            if qubit_is_zero(qubit) {
-                __quantum__rt__qubit_release(qubit);
-                Ok(Value::unit())
+        "DrawRandomDouble" => {
+            let [lo, hi] = unwrap_tuple(arg);
+            let lo = lo.unwrap_double();
+            let hi = hi.unwrap_double();
+            if lo > hi {
+                Err(Error::EmptyRange(arg_span))
             } else {
-                Err(Error::ReleasedQubitNotZero(qubit as usize))
+                Ok(Value::Double(rand::thread_rng().gen_range(lo..=hi)))
             }
         }
-        "__quantum__qis__ccx__body" => three_qubit_gate(__quantum__qis__ccx__body, arg, arg_span),
-        "__quantum__qis__cx__body" => two_qubit_gate(__quantum__qis__cx__body, arg, arg_span),
-        "__quantum__qis__cy__body" => two_qubit_gate(__quantum__qis__cy__body, arg, arg_span),
-        "__quantum__qis__cz__body" => two_qubit_gate(__quantum__qis__cz__body, arg, arg_span),
-        "__quantum__qis__rx__body" => Ok(one_qubit_rotation(__quantum__qis__rx__body, arg)),
-        "__quantum__qis__rxx__body" => two_qubit_rotation(__quantum__qis__rxx__body, arg, arg_span),
-        "__quantum__qis__ry__body" => Ok(one_qubit_rotation(__quantum__qis__ry__body, arg)),
-        "__quantum__qis__ryy__body" => two_qubit_rotation(__quantum__qis__ryy__body, arg, arg_span),
-        "__quantum__qis__rz__body" => Ok(one_qubit_rotation(__quantum__qis__rz__body, arg)),
-        "__quantum__qis__rzz__body" => two_qubit_rotation(__quantum__qis__rzz__body, arg, arg_span),
-        "__quantum__qis__h__body" => Ok(one_qubit_gate(__quantum__qis__h__body, arg)),
-        "__quantum__qis__s__body" => Ok(one_qubit_gate(__quantum__qis__s__body, arg)),
-        "__quantum__qis__s__adj" => Ok(one_qubit_gate(__quantum__qis__s__adj, arg)),
-        "__quantum__qis__t__body" => Ok(one_qubit_gate(__quantum__qis__t__body, arg)),
-        "__quantum__qis__t__adj" => Ok(one_qubit_gate(__quantum__qis__t__adj, arg)),
-        "__quantum__qis__x__body" => Ok(one_qubit_gate(__quantum__qis__x__body, arg)),
-        "__quantum__qis__y__body" => Ok(one_qubit_gate(__quantum__qis__y__body, arg)),
-        "__quantum__qis__z__body" => Ok(one_qubit_gate(__quantum__qis__z__body, arg)),
-        "__quantum__qis__swap__body" => two_qubit_gate(__quantum__qis__swap__body, arg, arg_span),
-        "__quantum__qis__reset__body" => Ok(one_qubit_gate(__quantum__qis__reset__body, arg)),
-        "__quantum__qis__m__body" => {
-            let res = __quantum__qis__m__body(arg.unwrap_qubit().0);
-            Ok(Value::Result(__quantum__rt__result_equal(
-                res,
-                __quantum__rt__result_get_one(),
-            )))
+        #[allow(clippy::cast_possible_truncation)]
+        "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),
+        "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(sim.qubit_allocate()))),
+        "__quantum__rt__qubit_release" => {
+            let qubit = arg.unwrap_qubit().0;
+            if sim.qubit_is_zero(qubit) {
+                sim.qubit_release(qubit);
+                Ok(Value::unit())
+            } else {
+                Err(Error::ReleasedQubitNotZero(qubit))
+            }
         }
-        "__quantum__qis__mresetz__body" => {
-            let res = __quantum__qis__mresetz__body(arg.unwrap_qubit().0);
-            Ok(Value::Result(__quantum__rt__result_equal(
-                res,
-                __quantum__rt__result_get_one(),
-            )))
+        "__quantum__qis__ccx__body" => {
+            three_qubit_gate(|ctl0, ctl1, q| sim.ccx(ctl0, ctl1, q), arg, arg_span)
         }
+        "__quantum__qis__cx__body" => two_qubit_gate(|ctl, q| sim.cx(ctl, q), arg, arg_span),
+        "__quantum__qis__cy__body" => two_qubit_gate(|ctl, q| sim.cy(ctl, q), arg, arg_span),
+        "__quantum__qis__cz__body" => two_qubit_gate(|ctl, q| sim.cz(ctl, q), arg, arg_span),
+        "__quantum__qis__rx__body" => Ok(one_qubit_rotation(|theta, q| sim.rx(theta, q), arg)),
+        "__quantum__qis__rxx__body" => {
+            two_qubit_rotation(|theta, q0, q1| sim.rxx(theta, q0, q1), arg, arg_span)
+        }
+        "__quantum__qis__ry__body" => Ok(one_qubit_rotation(|theta, q| sim.ry(theta, q), arg)),
+        "__quantum__qis__ryy__body" => {
+            two_qubit_rotation(|theta, q0, q1| sim.ryy(theta, q0, q1), arg, arg_span)
+        }
+        "__quantum__qis__rz__body" => Ok(one_qubit_rotation(|theta, q| sim.rz(theta, q), arg)),
+        "__quantum__qis__rzz__body" => {
+            two_qubit_rotation(|theta, q0, q1| sim.rzz(theta, q0, q1), arg, arg_span)
+        }
+        "__quantum__qis__h__body" => Ok(one_qubit_gate(|q| sim.h(q), arg)),
+        "__quantum__qis__s__body" => Ok(one_qubit_gate(|q| sim.s(q), arg)),
+        "__quantum__qis__s__adj" => Ok(one_qubit_gate(|q| sim.sadj(q), arg)),
+        "__quantum__qis__t__body" => Ok(one_qubit_gate(|q| sim.t(q), arg)),
+        "__quantum__qis__t__adj" => Ok(one_qubit_gate(|q| sim.tadj(q), arg)),
+        "__quantum__qis__x__body" => Ok(one_qubit_gate(|q| sim.x(q), arg)),
+        "__quantum__qis__y__body" => Ok(one_qubit_gate(|q| sim.y(q), arg)),
+        "__quantum__qis__z__body" => Ok(one_qubit_gate(|q| sim.z(q), arg)),
+        "__quantum__qis__swap__body" => two_qubit_gate(|q0, q1| sim.swap(q0, q1), arg, arg_span),
+        "__quantum__qis__reset__body" => Ok(one_qubit_gate(|q| sim.reset(q), arg)),
+        "__quantum__qis__m__body" => Ok(Value::Result(sim.m(arg.unwrap_qubit().0))),
+        "__quantum__qis__mresetz__body" => Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0))),
         _ => Err(Error::UnknownIntrinsic(name.to_string(), name_span)),
     }
 }
 
-fn one_qubit_gate(gate: extern "C" fn(*mut c_void), arg: Value) -> Value {
+fn one_qubit_gate(mut gate: impl FnMut(usize), arg: Value) -> Value {
     gate(arg.unwrap_qubit().0);
     Value::unit()
 }
 
 fn two_qubit_gate(
-    gate: extern "C" fn(*mut c_void, *mut c_void),
+    mut gate: impl FnMut(usize, usize),
     arg: Value,
     arg_span: Span,
 ) -> Result<Value, Error> {
@@ -147,14 +143,14 @@ fn two_qubit_gate(
     }
 }
 
-fn one_qubit_rotation(gate: extern "C" fn(f64, *mut c_void), arg: Value) -> Value {
+fn one_qubit_rotation(mut gate: impl FnMut(f64, usize), arg: Value) -> Value {
     let [x, y] = unwrap_tuple(arg);
     gate(x.unwrap_double(), y.unwrap_qubit().0);
     Value::unit()
 }
 
 fn three_qubit_gate(
-    gate: extern "C" fn(*mut c_void, *mut c_void, *mut c_void),
+    mut gate: impl FnMut(usize, usize, usize),
     arg: Value,
     arg_span: Span,
 ) -> Result<Value, Error> {
@@ -168,7 +164,7 @@ fn three_qubit_gate(
 }
 
 fn two_qubit_rotation(
-    gate: extern "C" fn(f64, *mut c_void, *mut c_void),
+    mut gate: impl FnMut(f64, usize, usize),
     arg: Value,
     arg_span: Span,
 ) -> Result<Value, Error> {

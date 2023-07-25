@@ -3,6 +3,7 @@
 
 use qsc_data_structures::span::Span;
 use qsc_hir::{
+    assigner::Assigner,
     global::Table,
     hir::{
         Expr, ExprKind, Field, Ident, Mutability, NodeId, Pat, PatKind, PrimField, Res, Stmt,
@@ -12,6 +13,7 @@ use qsc_hir::{
 };
 use std::rc::Rc;
 
+#[derive(Debug, Clone)]
 pub(crate) struct IdentTemplate {
     pub id: NodeId,
     pub span: Span,
@@ -20,18 +22,18 @@ pub(crate) struct IdentTemplate {
 }
 
 impl IdentTemplate {
-    pub fn gen_local_ref(&self) -> Expr {
+    pub fn gen_local_ref(&self, assigner: &mut Assigner) -> Expr {
         Expr {
-            id: NodeId::default(),
+            id: assigner.next_node(),
             span: self.span,
             ty: self.ty.clone(),
             kind: ExprKind::Var(Res::Local(self.id), Vec::new()),
         }
     }
 
-    fn gen_pat(&self) -> Pat {
+    fn gen_pat(&self, assigner: &mut Assigner) -> Pat {
         Pat {
-            id: NodeId::default(),
+            id: assigner.next_node(),
             span: self.span,
             ty: self.ty.clone(),
             kind: PatKind::Bind(Ident {
@@ -42,20 +44,20 @@ impl IdentTemplate {
         }
     }
 
-    pub fn gen_field_access(&self, field: PrimField) -> Expr {
+    pub fn gen_field_access(&self, field: PrimField, assigner: &mut Assigner) -> Expr {
         Expr {
-            id: NodeId::default(),
+            id: assigner.next_node(),
             span: self.span,
             ty: Ty::Prim(Prim::Int),
-            kind: ExprKind::Field(Box::new(self.gen_local_ref()), Field::Prim(field)),
+            kind: ExprKind::Field(Box::new(self.gen_local_ref(assigner)), Field::Prim(field)),
         }
     }
 
-    pub fn gen_id_init(&self, mutability: Mutability, expr: Expr) -> Stmt {
+    pub fn gen_id_init(&self, mutability: Mutability, expr: Expr, assigner: &mut Assigner) -> Stmt {
         Stmt {
-            id: NodeId::default(),
+            id: assigner.next_node(),
             span: self.span,
-            kind: StmtKind::Local(mutability, self.gen_pat(), expr),
+            kind: StmtKind::Local(mutability, self.gen_pat(assigner), expr),
         }
     }
 }

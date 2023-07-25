@@ -13,7 +13,7 @@ fn check(input: &str, expect: &Expect) {
 
 fn op_string(kind: TokenKind) -> Option<String> {
     match kind {
-        TokenKind::Apos => Some("'".to_string()),
+        TokenKind::AposIdent => Some("'T".to_string()),
         TokenKind::At => Some("@".to_string()),
         TokenKind::Bang => Some("!".to_string()),
         TokenKind::Bar => Some("|".to_string()),
@@ -94,7 +94,9 @@ fn amp() {
             [
                 Err(
                     IncompleteEof(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -117,7 +119,9 @@ fn amp_amp() {
             [
                 Err(
                     IncompleteEof(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -140,7 +144,9 @@ fn amp_plus() {
             [
                 Err(
                     Incomplete(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -177,7 +183,9 @@ fn amp_multibyte() {
             [
                 Err(
                     Incomplete(
-                        Amp,
+                        Single(
+                            Amp,
+                        ),
                         ClosedBinOp(
                             AmpAmpAmp,
                         ),
@@ -243,7 +251,9 @@ fn caret_caret() {
             [
                 Err(
                     IncompleteEof(
-                        Caret,
+                        Single(
+                            Caret,
+                        ),
                         ClosedBinOp(
                             CaretCaretCaret,
                         ),
@@ -1655,6 +1665,160 @@ fn comment_four_slashes() {
                         span: Span {
                             lo: 12,
                             hi: 13,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn unfinished_generic() {
+    check(
+        "'  T",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Ident,
+                        AposIdent,
+                        Whitespace,
+                        Span {
+                            lo: 1,
+                            hi: 3,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+#[test]
+fn unfinished_generic_2() {
+    check(
+        "'// test
+         T",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Ident,
+                        AposIdent,
+                        Comment(
+                            Normal,
+                        ),
+                        Span {
+                            lo: 1,
+                            hi: 8,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 18,
+                            hi: 19,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn unfinished_generic_3() {
+    check(
+        "'    T",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Ident,
+                        AposIdent,
+                        Whitespace,
+                        Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+#[test]
+fn correct_generic() {
+    check(
+        "'T",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: AposIdent,
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+#[test]
+fn generic_missing_ident() {
+    check(
+        "'",
+        &expect![[r#"
+            [
+                Err(
+                    IncompleteEof(
+                        Ident,
+                        AposIdent,
+                        Span {
+                            lo: 1,
+                            hi: 1,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generic_underscore_name() {
+    check(
+        "'_",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: AposIdent,
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
                         },
                     },
                 ),

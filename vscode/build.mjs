@@ -12,13 +12,18 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-  entryPoints: [join(thisDir, "src", "extension.ts")],
-  outfile: join(thisDir, "out", "extension.cjs"),
+  entryPoints: [
+    join(thisDir, "src", "extension.ts"),
+    join(thisDir, "src", "compilerWorker.ts"),
+  ],
+  outdir: join(thisDir, "out"),
   bundle: true,
+  mainFields: ["browser", "module", "main"],
   external: ["vscode"],
   format: "cjs",
   platform: "browser",
   target: ["es2020"],
+  sourcemap: "linked",
   define: { "import.meta.url": "undefined" },
 };
 

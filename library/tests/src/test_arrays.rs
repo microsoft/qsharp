@@ -56,7 +56,10 @@ fn check_chunks() {
         ),
     );
     test_expression(
-        "Microsoft.Quantum.Arrays.Chunks(2, [])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.Chunks(2, empty)
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(
@@ -142,7 +145,10 @@ fn check_count() {
 #[test]
 fn check_diagnonal() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Diagonal([])",
+        "{
+            let empty: Int[][] = [];
+            Microsoft.Quantum.Arrays.Diagonal(empty)
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(
@@ -186,7 +192,10 @@ fn check_draw_many() {
 #[test]
 fn check_excluding() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Excluding([], [])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.Excluding(empty, empty)
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(
@@ -318,6 +327,20 @@ fn check_head() {
 }
 
 #[test]
+fn check_head_and_rest() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.HeadAndRest([5,6,7,8])",
+        &Value::Tuple(
+            vec![
+                Value::Int(5),
+                Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_index_of() {
     test_expression(
         "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 != 0, [10, 8, 6, 5, 4])",
@@ -373,7 +396,13 @@ fn check_interleaved() {
 
 #[test]
 fn check_is_empty() {
-    test_expression("Microsoft.Quantum.Arrays.IsEmpty([])", &Value::Bool(true));
+    test_expression(
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.IsEmpty(empty)
+        }",
+        &Value::Bool(true),
+    );
     test_expression("Microsoft.Quantum.Arrays.IsEmpty([1])", &Value::Bool(false));
     test_expression(
         "Microsoft.Quantum.Arrays.IsEmpty([1, 2, 3, 4, 5])",
@@ -384,7 +413,10 @@ fn check_is_empty() {
 #[test]
 fn check_is_rectangular_array() {
     test_expression(
-        "Microsoft.Quantum.Arrays.IsRectangularArray([])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.IsRectangularArray([empty])
+        }",
         &Value::Bool(true),
     );
     test_expression(
@@ -408,7 +440,10 @@ fn check_is_rectangular_array() {
 #[test]
 fn check_is_sorted() {
     test_expression(
-        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, empty)
+        }",
         &Value::Bool(true),
     );
     test_expression(
@@ -436,7 +471,10 @@ fn check_is_sorted() {
 #[test]
 fn check_is_square_array() {
     test_expression(
-        "Microsoft.Quantum.Arrays.IsSquareArray([])",
+        "{
+            let empty: Int[][] = [];
+            Microsoft.Quantum.Arrays.IsSquareArray(empty)
+        }",
         &Value::Bool(true),
     );
     test_expression(
@@ -504,6 +542,20 @@ fn check_most() {
 }
 
 #[test]
+fn check_most_and_tail() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.MostAndTail([5, 6, 7, 8])",
+        &Value::Tuple(
+            vec![
+                Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+                Value::Int(8),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_padded() {
     test_expression(
         "Microsoft.Quantum.Arrays.Padded(-5, 2, [10, 11, 12])",
@@ -530,6 +582,14 @@ fn check_padded() {
             ]
             .into(),
         ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Padded(3, 2, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(10), Value::Int(11), Value::Int(12)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Padded(-3, 2, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(10), Value::Int(11), Value::Int(12)].into()),
     );
 }
 
@@ -610,7 +670,10 @@ fn check_sequence_l() {
 #[test]
 fn check_sorted() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, empty)
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(
@@ -749,7 +812,10 @@ fn check_transposed() {
 #[test]
 fn check_unzipped() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Unzipped([])",
+        "{
+            let empty: (Int, Int)[] = [];
+            Microsoft.Quantum.Arrays.Unzipped(empty)
+        }",
         &Value::Tuple(vec![Value::Array(vec![].into()), Value::Array(vec![].into())].into()),
     );
     test_expression(
@@ -851,15 +917,24 @@ fn check_windows() {
 #[test]
 fn check_zipped() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Zipped([], [])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.Zipped(empty, empty)
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(
-        "Microsoft.Quantum.Arrays.Zipped([1], [])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.Zipped([1], empty)
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(
-        "Microsoft.Quantum.Arrays.Zipped([], [false])",
+        "{
+            let empty: Int[] = [];
+            Microsoft.Quantum.Arrays.Zipped(empty, [false])
+        }",
         &Value::Array(vec![].into()),
     );
     test_expression(

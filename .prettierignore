@@ -4,11 +4,13 @@ __pycache__/
 .cargo/
 .github/
 .vscode/
+.vscode-test-web/
 .venv/
 /compiler/
 /jupyterlab/.pytest_cache/
 /jupyterlab/lib/
 /jupyterlab/qsharp_jupyterlab/labextension/
+/katas/**/*.md
 /library/
 /npm/dist/
 /npm/lib/

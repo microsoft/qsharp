@@ -6,17 +6,18 @@
 #[cfg(test)]
 mod tests;
 
+pub mod backend;
 pub mod debug;
 mod intrinsic;
 pub mod output;
 pub mod val;
 
 use crate::val::{FunctorApp, Value};
+use backend::Backend;
 use debug::{CallStack, Frame};
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
-use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
@@ -29,7 +30,6 @@ use std::{
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
-    ptr::null_mut,
     rc::Rc,
 };
 use thiserror::Error;
@@ -125,38 +125,36 @@ impl Display for Spec {
     }
 }
 
-/// Evaluates the given statement with the given context.
+/// Evaluates the given stmt with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
 pub fn eval_stmt<'a>(
     stmt: &'a Stmt,
-    globals: &'a impl GlobalLookup<'a>,
+    globals: &impl GlobalLookup<'a>,
+    env: &mut Env,
+    sim: &mut impl Backend,
     package: PackageId,
-    env: &'a mut Env,
-    out: &'a mut dyn Receiver,
+    receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, CallStack)> {
-    let mut state = State::new(globals, package, env, out);
+    let mut state = State::new(package);
     state.push_stmt(stmt);
-    state.eval()
+    state.eval(globals, env, sim, receiver)
 }
 
-/// Evaluates the given expression with the given context.
+/// Evaluates the given expr with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr<'a>(
+pub fn eval_expr<'a, 'receiver>(
+    state: &mut State<'a>,
     expr: &'a Expr,
-    globals: &'a impl GlobalLookup<'a>,
-    package: PackageId,
-    env: &'a mut Env,
-    out: &'a mut dyn Receiver,
-) -> Result<Value, (Error, CallStack)> {
-    let mut state = State::new(globals, package, env, out);
-    state.push_expr(expr);
-    state.eval()
-}
+    globals: &impl GlobalLookup<'a>,
+    env: &mut Env,
+    sim: &mut impl Backend,
 
-pub fn init() {
-    __quantum__rt__initialize(null_mut());
+    out: &'receiver mut impl Receiver,
+) -> Result<Value, (Error, CallStack)> {
+    state.push_expr(expr);
+    state.eval(globals, env, sim, out)
 }
 
 trait AsIndex {
@@ -227,16 +225,11 @@ pub trait GlobalLookup<'a> {
     fn get(&self, id: GlobalId) -> Option<Global<'a>>;
 }
 
-impl<'a, F: Fn(GlobalId) -> Option<Global<'a>>> GlobalLookup<'a> for F {
-    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
-        self(id)
-    }
-}
-
 #[derive(Default)]
 pub struct Env(Vec<Scope>);
 
 impl Env {
+    #[must_use]
     fn get(&self, id: NodeId) -> Option<&Variable> {
         self.0
             .iter()
@@ -249,6 +242,16 @@ impl Env {
             .iter_mut()
             .rev()
             .find_map(|scope| scope.bindings.get_mut(&id))
+    }
+
+    fn push_scope(&mut self) {
+        self.0.push(Scope::default());
+    }
+
+    fn leave_scope(&mut self) {
+        self.0
+            .pop()
+            .expect("scope should be entered first before leaving");
     }
 }
 
@@ -296,30 +299,20 @@ enum Action<'a> {
     While(&'a Expr, &'a Block),
 }
 
-pub(crate) struct State<'a, G> {
+pub struct State<'a> {
     stack: Vec<Cont<'a>>,
     vals: Vec<Value>,
     package: PackageId,
-    globals: &'a G,
-    env: &'a mut Env,
-    out: &'a mut dyn Receiver,
     call_stack: CallStack,
 }
 
-impl<'a, G: GlobalLookup<'a>> State<'a, G> {
-    fn new(
-        globals: &'a G,
-        package: PackageId,
-        env: &'a mut Env,
-        out: &'a mut dyn Receiver,
-    ) -> Self {
+impl<'a> State<'a> {
+    #[must_use]
+    pub fn new(package: PackageId) -> Self {
         Self {
             stack: Vec::new(),
             vals: Vec::new(),
             package,
-            globals,
-            env,
-            out,
             call_stack: CallStack::default(),
         }
     }
@@ -358,24 +351,17 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(frame_val);
     }
 
-    fn push_scope(&mut self) {
-        self.env.0.push(Scope::default());
+    fn push_scope(&mut self, env: &mut Env) {
+        env.push_scope();
         self.stack.push(Cont::Scope);
-    }
-
-    fn leave_scope(&mut self) {
-        self.env
-            .0
-            .pop()
-            .expect("scope should be entered first before leaving");
     }
 
     fn push_stmt(&mut self, stmt: &'a Stmt) {
         self.stack.push(Cont::Stmt(stmt));
     }
 
-    fn push_block(&mut self, block: &'a Block) {
-        self.push_scope();
+    fn push_block(&mut self, env: &mut Env, block: &'a Block) {
+        self.push_scope(env);
         for stmt in block.stmts.iter().rev() {
             self.push_stmt(stmt);
             self.push_action(Action::Consume);
@@ -399,17 +385,25 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.vals.push(val);
     }
 
-    pub(crate) fn eval(&mut self) -> Result<Value, (Error, CallStack)> {
+    /// # Errors
+    /// Returns the first error encountered during execution.
+    pub fn eval(
+        &mut self,
+        globals: &impl GlobalLookup<'a>,
+        env: &mut Env,
+        sim: &mut impl Backend,
+        out: &mut impl Receiver,
+    ) -> Result<Value, (Error, CallStack)> {
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
-                Cont::Action(action) => self.cont_action(action),
-                Cont::Expr(expr) => self.cont_expr(expr),
+                Cont::Action(action) => self.cont_action(env, sim, globals, action, out),
+                Cont::Expr(expr) => self.cont_expr(env, expr),
                 Cont::Frame(len) => {
                     self.leave_frame(len);
                     Ok(())
                 }
                 Cont::Scope => {
-                    self.leave_scope();
+                    env.leave_scope();
                     Ok(())
                 }
                 Cont::Stmt(stmt) => {
@@ -425,7 +419,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         Ok(self.pop_val())
     }
 
-    fn cont_expr(&mut self, expr: &'a Expr) -> Result<(), Error> {
+    #[allow(clippy::similar_names)]
+    fn cont_expr(&mut self, env: &mut Env, expr: &'a Expr) -> Result<(), Error> {
         match &expr.kind {
             ExprKind::Array(arr) => self.cont_arr(arr),
             ExprKind::ArrayRepeat(item, size) => self.cont_arr_repeat(item, size),
@@ -436,10 +431,10 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             }
             ExprKind::AssignIndex(lhs, mid, rhs) => self.cont_assign_index(lhs, mid, rhs),
             ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(*op, rhs, lhs),
-            ExprKind::Block(block) => self.push_block(block),
+            ExprKind::Block(block) => self.push_block(env, block),
             ExprKind::Call(callee_expr, args_expr) => self.cont_call(callee_expr, args_expr),
             ExprKind::Closure(args, callable) => {
-                let closure = resolve_closure(self.package, self.env, expr.span, args, *callable)?;
+                let closure = resolve_closure(env, self.package, expr.span, args, *callable)?;
                 self.push_val(closure);
             }
             ExprKind::Conjugate(..) => panic!("conjugate should be eliminated by passes"),
@@ -464,7 +459,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.cont_update_field(record, field, replace);
             }
             ExprKind::Var(res, _) => {
-                self.push_val(resolve_binding(self.env, self.package, *res, expr.span)?);
+                self.push_val(resolve_binding(env, self.package, *res, expr.span)?);
             }
             ExprKind::While(cond_expr, block) => self.cont_while(cond_expr, block),
         }
@@ -656,14 +651,23 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         }
     }
 
-    fn cont_action(&mut self, action: Action<'a>) -> Result<(), Error> {
+    fn cont_action(
+        &mut self,
+        env: &mut Env,
+        sim: &mut impl Backend,
+        globals: &impl GlobalLookup<'a>,
+        action: Action<'a>,
+        out: &mut impl Receiver,
+    ) -> Result<(), Error> {
         match action {
             Action::Array(len) => self.eval_arr(len),
             Action::ArrayRepeat(span) => self.eval_arr_repeat(span)?,
-            Action::Assign(lhs) => self.eval_assign(lhs)?,
+            Action::Assign(lhs) => self.eval_assign(env, lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
-            Action::Bind(pat, mutability) => self.eval_bind(pat, mutability),
-            Action::Call(callee_span, args_span) => self.eval_call(callee_span, args_span)?,
+            Action::Bind(pat, mutability) => self.eval_bind(env, pat, mutability),
+            Action::Call(callee_span, args_span) => {
+                self.eval_call(env, sim, globals, callee_span, args_span, out)?;
+            }
             Action::Consume => {
                 self.pop_val();
             }
@@ -679,14 +683,14 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Action::Range(has_start, has_step, has_end) => {
                 self.eval_range(has_start, has_step, has_end);
             }
-            Action::Return => self.eval_ret(),
+            Action::Return => self.eval_ret(env),
             Action::StringConcat(len) => self.eval_string_concat(len),
             Action::StringLit(str) => self.push_val(Value::String(Rc::clone(str))),
             Action::UpdateIndex(span) => self.eval_update_index(span)?,
             Action::Tuple(len) => self.eval_tup(len),
             Action::UnOp(op) => self.eval_unop(op),
             Action::UpdateField(field) => self.eval_update_field(field),
-            Action::While(cond_expr, block) => self.eval_while(cond_expr, block),
+            Action::While(cond_expr, block) => self.eval_while(env, cond_expr, block),
         }
         Ok(())
     }
@@ -707,14 +711,14 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         Ok(())
     }
 
-    fn eval_assign(&mut self, lhs: &'a Expr) -> Result<(), Error> {
+    fn eval_assign(&mut self, env: &mut Env, lhs: &'a Expr) -> Result<(), Error> {
         let rhs = self.pop_val();
-        update_binding(self.env, lhs, rhs)
+        update_binding(env, lhs, rhs)
     }
 
-    fn eval_bind(&mut self, pat: &'a Pat, mutability: Mutability) {
+    fn eval_bind(&mut self, env: &mut Env, pat: &'a Pat, mutability: Mutability) {
         let val = self.pop_val();
-        bind_value(self.env, pat, val, mutability);
+        bind_value(env, pat, val, mutability);
     }
 
     fn eval_binop(&mut self, op: BinOp, span: Span, rhs: Option<&'a Expr>) -> Result<(), Error> {
@@ -779,7 +783,15 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         Ok(())
     }
 
-    fn eval_call(&mut self, callee_span: Span, arg_span: Span) -> Result<(), Error> {
+    fn eval_call(
+        &mut self,
+        env: &mut Env,
+        sim: &mut impl Backend,
+        globals: &impl GlobalLookup<'a>,
+        callee_span: Span,
+        arg_span: Span,
+        out: &mut impl Receiver,
+    ) -> Result<(), Error> {
         let arg = self.pop_val();
         let (callee_id, functor, fixed_args) = match self.pop_val() {
             Value::Closure(fixed_args, id, functor) => (id, functor, Some(fixed_args)),
@@ -787,13 +799,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             _ => panic!("value is not callable"),
         };
 
-        let arg = if let Some(fixed_args) = fixed_args {
-            Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
-        } else {
-            arg
-        };
-
-        let callee = match self.globals.get(callee_id) {
+        let callee = match globals.get(callee_id) {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
                 self.push_val(arg);
@@ -804,7 +810,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
 
         let spec = spec_from_functor_app(functor);
         self.push_frame(Some(callee_span), callee_id, functor);
-        self.push_scope();
+        self.push_scope(env);
         let block_body = &match spec {
             Spec::Body => Some(&callee.body),
             Spec::Adj => callee.adj.as_ref(),
@@ -815,13 +821,20 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         .body;
         match block_body {
             SpecBody::Impl(input, body_block) => {
-                bind_args_for_spec(self.env, &callee.input, input, arg, functor.controlled);
-                self.push_block(body_block);
+                bind_args_for_spec(
+                    env,
+                    &callee.input,
+                    input,
+                    arg,
+                    functor.controlled,
+                    fixed_args,
+                );
+                self.push_block(env, body_block);
                 Ok(())
             }
             SpecBody::Gen(SpecGen::Intrinsic) => {
                 let name = &callee.name.name;
-                let val = intrinsic::call(name, callee_span, arg, arg_span, self.out)?;
+                let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
                 self.push_val(val);
                 Ok(())
             }
@@ -885,14 +898,14 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(Value::Range(start, step, end));
     }
 
-    fn eval_ret(&mut self) {
+    fn eval_ret(&mut self, env: &mut Env) {
         while let Some(cont) = self.pop_cont() {
             match cont {
                 Cont::Frame(len) => {
                     self.leave_frame(len);
                     break;
                 }
-                Cont::Scope => self.leave_scope(),
+                Cont::Scope => env.leave_scope(),
                 _ => {}
             }
         }
@@ -985,15 +998,23 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(update);
     }
 
-    fn eval_while(&mut self, cond_expr: &'a Expr, block: &'a Block) {
+    fn eval_while(&mut self, env: &mut Env, cond_expr: &'a Expr, block: &'a Block) {
         if self.pop_val().unwrap_bool() {
             self.cont_while(cond_expr, block);
             self.push_action(Action::Consume);
             self.push_val(Value::unit());
-            self.push_block(block);
+            self.push_block(env, block);
         } else {
             self.push_val(Value::unit());
         }
+    }
+}
+
+fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
+    if let Some(fixed_args) = fixed_args {
+        Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
+    } else {
+        arg
     }
 }
 
@@ -1060,6 +1081,7 @@ fn bind_args_for_spec(
     spec_pat: &Option<Pat>,
     args_val: Value,
     ctl_count: u8,
+    fixed_args: Option<Rc<[Value]>>,
 ) {
     match spec_pat {
         Some(spec_pat) => {
@@ -1084,9 +1106,19 @@ fn bind_args_for_spec(
                 Value::Array(ctls.into()),
                 Mutability::Immutable,
             );
-            bind_value(env, decl_pat, tup, Mutability::Immutable);
+            bind_value(
+                env,
+                decl_pat,
+                merge_fixed_args(fixed_args, tup),
+                Mutability::Immutable,
+            );
         }
-        None => bind_value(env, decl_pat, args_val, Mutability::Immutable),
+        None => bind_value(
+            env,
+            decl_pat,
+            merge_fixed_args(fixed_args, args_val),
+            Mutability::Immutable,
+        ),
     }
 }
 
@@ -1100,8 +1132,8 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
 }
 
 fn resolve_closure(
-    package: PackageId,
     env: &Env,
+    package: PackageId,
     span: Span,
     args: &[NodeId],
     callable: LocalItemId,

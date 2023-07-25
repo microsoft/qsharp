@@ -9,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dev-dependencies]
+expect-test = { workspace = true }
 indoc = { workspace = true }
 
 [dependencies]
@@ -16,3 +17,4 @@ log = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 enum-iterator = { workspace = true }
+regex-lite = { workspace = true }
