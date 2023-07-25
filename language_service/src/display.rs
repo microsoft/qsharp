@@ -139,9 +139,9 @@ struct HirCallableDecl<'a, 'b> {
 
 impl Display for HirCallableDecl<'_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let (kind, arrow) = match self.decl.kind {
-            hir::CallableKind::Function => ("function", "->"),
-            hir::CallableKind::Operation => ("operation", "=>"),
+        let kind = match self.decl.kind {
+            hir::CallableKind::Function => "function",
+            hir::CallableKind::Operation => "operation",
         };
 
         write!(f, "{} {}", kind, self.decl.name.name)?;
@@ -156,8 +156,7 @@ impl Display for HirCallableDecl<'_, '_> {
         }
         write!(
             f,
-            " {} {}{}",
-            arrow,
+            " : {}{}",
             HirTy {
                 ty: &self.decl.output,
                 compilation: self.compilation
@@ -176,9 +175,9 @@ struct AstCallableDecl<'a> {
 
 impl<'a> Display for AstCallableDecl<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let (kind, arrow) = match self.decl.kind {
-            ast::CallableKind::Function => ("function", "->"),
-            ast::CallableKind::Operation => ("operation", "=>"),
+        let kind = match self.decl.kind {
+            ast::CallableKind::Function => "function",
+            ast::CallableKind::Operation => "operation",
         };
 
         let functors = ast_callable_functors(self.decl);
@@ -196,8 +195,7 @@ impl<'a> Display for AstCallableDecl<'a> {
         }
         write!(
             f,
-            " {} {}{}",
-            arrow,
+            " : {}{}",
             AstTy {
                 ty: &self.decl.output
             },
