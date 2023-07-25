@@ -90,20 +90,45 @@ function aggregateSources(paths, globalCodeSources) {
   return codeSources;
 }
 
-function createExplainedSolution(path) {
-  // TODO: Temporary scaffolding.
-  const solutionAsMarkdown = tryReadFile(
-    path,
-    `Could not read solution markdown file`
-  );
-  const textContent = createTextContent(solutionAsMarkdown);
-  return {
-    type: "explained-solution",
-    items: [textContent],
-  };
+function parseMarkdown(markdown) {
+  const tokens = [];
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\n/gs;
+  let latestProcessedIndex = 0;
+  while (latestProcessedIndex < markdown.length) {
+    const match = macroRegex.exec(markdown);
+    if (match !== null) {
+      // If there is something between the last processed index and the start of the match that is not just whitespace,
+      // it represents a text token.
+      const delta = match.index - latestProcessedIndex;
+      if (delta > 0) {
+        const textToken = tryCreateMarkdownToken(
+          markdown.substring(latestProcessedIndex, match.index)
+        );
+        if (textToken !== null) {
+          tokens.push(textToken);
+        }
+      }
+
+      // Create a token that corresponds to the found macro.
+      const macroToken = createMacroToken(match);
+      tokens.push(macroToken);
+      latestProcessedIndex = macroRegex.lastIndex;
+    } else {
+      // No more matches were found, create a text token with the remaining content.
+      const textToken = tryCreateMarkdownToken(
+        markdown.substring(latestProcessedIndex, markdown.length)
+      );
+      if (textToken !== null) {
+        tokens.push(textToken);
+      }
+      latestProcessedIndex = markdown.length;
+    }
+  }
+
+  return tokens;
 }
 
-function createExample(kataPath, properties) {
+function createExample(baseFolderPath, properties) {
   // Validate that the data contains the required properties.
   const requiredProperties = ["id", "codePath"];
   const missingProperties = identifyMissingProperties(
@@ -117,10 +142,10 @@ function createExample(kataPath, properties) {
   }
 
   // Generate the object using the macro properties.
-  const codePath = join(kataPath, properties.codePath);
+  const codePath = join(baseFolderPath, properties.codePath);
   const code = tryReadFile(
     codePath,
-    "Could not read the contents of the example code file"
+    `Could not read the contents of the example code file at ${codePath}`
   );
   return {
     type: "example",
@@ -129,9 +154,65 @@ function createExample(kataPath, properties) {
   };
 }
 
+function createSolution(baseFolderPath, properties) {
+  // Validate that the data contains the required properties.
+  const requiredProperties = ["id", "codePath"];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `Solution macro is missing the following properties: ${missingProperties}`
+    );
+  }
+
+  // Generate the object using the macro properties.
+  const codePath = join(baseFolderPath, properties.codePath);
+  const code = tryReadFile(
+    codePath,
+    `Could not read the contents of the solution code file at ${codePath}`
+  );
+  return {
+    type: "solution",
+    id: properties.id,
+    code: code,
+  };
+}
+
 function createTextContent(markdown) {
   const html = marked(markdown);
   return { type: "text-content", asHtml: html, asMarkdown: markdown };
+}
+
+function createExplainedSolution(markdownFilePath) {
+  const markdown = tryReadFile(
+    markdownFilePath,
+    `Could not read solution markdown file at ${markdownFilePath}`
+  );
+
+  const solutionFolderPath = dirname(markdownFilePath);
+  const tokens = parseMarkdown(markdown);
+  const solutionItems = [];
+  for (const token of tokens) {
+    let solutionItem = null;
+    if (token.type === "example") {
+      solutionItem = createExample(solutionFolderPath, token.properties);
+    } else if (token.type === "solution") {
+      solutionItem = createSolution(solutionFolderPath, token.properties);
+    } else if (token.type === "markdown") {
+      solutionItem = createTextContent(token.markdown);
+    }
+
+    if (solutionItem !== null) {
+      solutionItems.push(solutionItem);
+    }
+  }
+
+  return {
+    type: "explained-solution",
+    items: solutionItems,
+  };
 }
 
 function createExerciseSection(kataPath, properties, globalCodeSources) {
@@ -217,8 +298,8 @@ function createLessonSection(kataPath, properties, tokensStack) {
     let lessonItem = null;
     if (currentToken.type === "example") {
       lessonItem = createExample(kataPath, currentToken.properties);
-    } else if (currentToken.type === "text") {
-      lessonItem = createTextContent(currentToken.value);
+    } else if (currentToken.type === "markdown") {
+      lessonItem = createTextContent(currentToken.markdown);
     }
 
     // Check that a valid lesson item was created.
@@ -356,51 +437,13 @@ function createMacroToken(match) {
   };
 }
 
-function tryCreateTextToken(text) {
+function tryCreateMarkdownToken(text) {
   const trimmedText = text.trim();
   if (trimmedText.length > 0) {
-    return { type: "text", value: trimmedText };
+    return { type: "markdown", markdown: trimmedText };
   }
 
   return null;
-}
-
-function parseMarkdown(markdown) {
-  const tokens = [];
-  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\n/gs;
-  let latestProcessedIndex = 0;
-  while (latestProcessedIndex < markdown.length) {
-    const match = macroRegex.exec(markdown);
-    if (match !== null) {
-      // If there is something between the last processed index and the start of the match that is not just whitespace,
-      // it represents a text token.
-      const delta = match.index - latestProcessedIndex;
-      if (delta > 0) {
-        const textToken = tryCreateTextToken(
-          markdown.substring(latestProcessedIndex, match.index)
-        );
-        if (textToken !== null) {
-          tokens.push(textToken);
-        }
-      }
-
-      // Create a token that corresponds to the found macro.
-      const macroToken = createMacroToken(match);
-      tokens.push(macroToken);
-      latestProcessedIndex = macroRegex.lastIndex;
-    } else {
-      // No more matches were found, create a text token with the remaining content.
-      const textToken = tryCreateTextToken(
-        markdown.substring(latestProcessedIndex, markdown.length)
-      );
-      if (textToken !== null) {
-        tokens.push(textToken);
-      }
-      latestProcessedIndex = markdown.length;
-    }
-  }
-
-  return tokens;
 }
 
 function createKata(tokens, kataPath, globalCodeSources) {
@@ -416,13 +459,13 @@ function createKata(tokens, kataPath, globalCodeSources) {
 
   // The first token in the kata must be the title.
   const firstToken = tokensStack.pop();
-  if (firstToken.type !== "text") {
+  if (firstToken.type !== "markdown") {
     throw new Error(
       `First token is expected to be the title but found a token of type '${firstToken.type}' instead`
     );
   }
   const title = tryGetTitleFromMarkdown(
-    firstToken.value,
+    firstToken.markdown,
     `Could not get title for kata '${kataId}'`
   );
 
