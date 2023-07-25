@@ -20,9 +20,9 @@ function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
       html += '<code class="language-qsharp">';
       html += item.code;
       html += "</code>";
-    } else if (item.type === "text") {
+    } else if (item.type === "text-content") {
       html += "<div>";
-      html += item.contentAsHtml;
+      html += item.asHtml;
       html += "</div>";
     }
   }
@@ -71,7 +71,7 @@ export function Kata(props: {
           ".exercise-description"
         );
         if (!descriptionDiv) return;
-        descriptionDiv.innerHTML = section.descriptionAsHtml;
+        descriptionDiv.innerHTML = section.description.asHtml;
         const solutionDiv = parentDiv?.querySelector(".exercise-solution");
         if (!solutionDiv) return;
         solutionDiv.innerHTML = ExplainedSolutionAsHtml(

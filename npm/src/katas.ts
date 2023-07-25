@@ -46,9 +46,7 @@ export type Exercise = {
   type: "exercise";
   id: string;
   title: string;
-  // TODO: Just have one description field of type TextContent
-  descriptionAsHtml: string;
-  descriptionAsMarkdown: string;
+  description: TextContent;
   sourceIds: string[];
   placeholderCode: string;
   explainedSolution: ExplainedSolution;

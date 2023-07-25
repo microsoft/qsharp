@@ -242,7 +242,7 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
     join(kataPath, properties.descriptionPath),
     `Could not read descripton for exercise ${properties.id}`
   );
-  const descriptionHtml = marked(descriptionMarkdown);
+  const description = createTextContent(descriptionMarkdown);
   const title = tryGetTitleFromMarkdown(
     descriptionMarkdown,
     `Could not get title for exercise '${properties.id}'`
@@ -263,8 +263,7 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
     type: "exercise",
     id: properties.id,
     title: title,
-    descriptionAsHtml: descriptionHtml,
-    descriptionAsMarkdown: descriptionMarkdown,
+    description: description,
     sourceIds: sourceIds,
     placeholderCode: placeholderCode,
     explainedSolution: explainedSolution,
