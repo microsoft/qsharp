@@ -6,7 +6,7 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::mut_visit::MutVisitor;
+use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 use crate::loop_unification::LoopUni;
 
@@ -20,6 +20,7 @@ fn check(file: &str, expect: &Expect) {
         assigner: &mut unit.assigner,
     }
     .visit_package(&mut unit.package);
+    Validator::default().visit_package(&unit.package);
     expect.assert_eq(&unit.package.to_string());
 }
 
