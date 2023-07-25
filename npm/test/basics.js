@@ -118,12 +118,12 @@ test("dump and message output", async () => {
   assert(result.events[1].message == "hello, qsharp");
 });
 
-async function validateExercise(exercise, code) {
+async function runExerciseSolutionCheck(exercise, solution) {
   const evtTarget = new QscEventTarget(true);
   const compiler = getCompiler();
   const sources = await getExerciseSources(exercise);
   const success = await compiler.checkExerciseSolution(
-    code,
+    solution,
     sources,
     evtTarget
   );
@@ -148,19 +148,24 @@ async function validateExercise(exercise, code) {
   };
 }
 
-async function validateKata(kata) {
+async function validateKata(kata, validatePlaceholder) {
   const exercises = kata.sections.filter(
     (section) => section.type === "exercise"
   );
   for (const exercise of exercises) {
-    const result = await validateExercise(exercise, exercise.placeholderCode);
-    if (result.success || result.errorCount > 0) {
-      console.log(
-        `Exercise error (${exercise.id}): \n| ${result.success} \n| ${result.errorMsg}`
+    if (validatePlaceholder) {
+      const result = await runExerciseSolutionCheck(
+        exercise,
+        exercise.placeholderCode
       );
+      if (result.success || result.errorCount > 0) {
+        console.log(
+          `Exercise error (${exercise.id}):\n| ${result.success} \n| ${result.errorMsg}`
+        );
+      }
+      assert(!result.success);
+      assert(result.errorCount === 0);
     }
-    assert(!result.success);
-    assert(result.errorCount === 0);
   }
 }
 
@@ -171,17 +176,17 @@ test("all katas work", async () => {
 
 test("qubit kata is valid", async () => {
   const kata = await getKata("qubit");
-  await validateKata(kata);
+  await validateKata(kata, true);
 });
 
 test("single_qubit_gates kata is valid", async () => {
   const kata = await getKata("single_qubit_gates");
-  await validateKata(kata);
+  await validateKata(kata, true);
 });
 
 test("multi_qubit_gates kata is valid", async () => {
   const kata = await getKata("multi_qubit_gates");
-  await validateKata(kata);
+  await validateKata(kata, true);
 });
 
 test("worker 100 shots", async () => {
