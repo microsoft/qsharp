@@ -387,6 +387,29 @@ function tryCreateMarkdownToken(text) {
   return null;
 }
 
+function tryGetTitleFromToken(token, errorPrefix) {
+  // The token that represents the title can only be a markdown token.
+  if (token.type !== "markdown") {
+    throw new Error(
+      `${errorPrefix}\n` +
+        `Token is expected to be the title but found a token of type '${token.type}' instead`
+    );
+  }
+
+  // Check that the token has just one line.
+  const linesCount = token.markdown.split(/\r?\n/).length;
+  if (linesCount !== 1) {
+    throw new Error(
+      `${errorPrefix}\n` +
+        `A title token must be 1 line, but ${linesCount} lines are present\n` +
+        `Hint: is the markdown missing a @[section] macro?`
+    );
+  }
+  const title = tryGetTitleFromMarkdown(token.markdown, errorPrefix);
+
+  return title;
+}
+
 function createKata(tokens, kataPath, globalCodeSources) {
   const kataId = basename(kataPath);
 
@@ -400,13 +423,8 @@ function createKata(tokens, kataPath, globalCodeSources) {
 
   // The first token in the kata must be the title.
   const firstToken = tokensStack.pop();
-  if (firstToken.type !== "markdown") {
-    throw new Error(
-      `First token is expected to be the title but found a token of type '${firstToken.type}' instead`
-    );
-  }
-  const title = tryGetTitleFromMarkdown(
-    firstToken.markdown,
+  const title = tryGetTitleFromToken(
+    firstToken,
     `Could not get title for kata '${kataId}'`
   );
 

@@ -1,5 +1,10 @@
 # Multi-Qubit Gates
 
+@[section]({
+    "id": "multi_qubit_gates_overview",
+    "title": "Overview"
+})
+
 This tutorial continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
 
 This tutorial covers the following topics:
