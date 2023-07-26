@@ -19,9 +19,7 @@ function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
   let html = "";
   for (const item of solution.items) {
     if (item.type === "example" || item.type === "solution") {
-      html += '<code class="language-qsharp">';
-      html += item.code;
-      html += "</code>";
+      html += `<pre><code>${item.code}</code></pre>`;
     } else if (item.type === "text-content") {
       html += "<div>";
       html += item.asHtml;
@@ -35,9 +33,7 @@ function LessonAsHtml(lesson: Lesson): string {
   let html = "";
   for (const item of lesson.items) {
     if (item.type === "example") {
-      html += '<code class="language-qsharp">';
-      html += item.code;
-      html += "</code>";
+      html += `<pre><code>${item.code}</code></pre>`;
     } else if (item.type === "text-content") {
       html += "<div>";
       html += item.asHtml;
@@ -88,9 +84,9 @@ export function Kata(props: {
 
     props.kata.sections.forEach((section, idx) => {
       const parentDiv = itemContent.current[idx];
-      let titleIcon = "\u{1F41B}";
+      let titlePrefix = "\u{1F41B}";
       if (section.type === "exercise") {
-        titleIcon = "\u{2328}";
+        titlePrefix = "\u{2328} Exercise: ";
         const descriptionDiv = parentDiv?.querySelector(
           ".exercise-description"
         );
@@ -102,12 +98,12 @@ export function Kata(props: {
           section.explainedSolution
         );
       } else if (section.type === "lesson") {
-        titleIcon = "\u{1F4D6}";
+        titlePrefix = "\u{1F4D6} Lesson: ";
         const contentDiv = parentDiv?.querySelector(".kata-item-content");
         if (!contentDiv) return;
         contentDiv.innerHTML = LessonAsHtml(section);
       } else if (section.type === "question") {
-        titleIcon = "\u{2753}";
+        titlePrefix = "\u{2753} Question: ";
         const contentDiv = parentDiv?.querySelector(".kata-item-content");
         if (!contentDiv) return;
         contentDiv.innerHTML = QuestionAsHtml(section);
@@ -115,7 +111,7 @@ export function Kata(props: {
 
       const titleDiv = parentDiv?.querySelector(".section-title");
       if (!titleDiv) return;
-      titleDiv.innerHTML = titleIcon + " <u>" + section.title + "</u>";
+      titleDiv.innerHTML = titlePrefix + " <u>" + section.title + "</u>";
     });
     // In case we're now rendering less items than before, be sure to truncate
     itemContent.current.length = props.kata.sections.length;
