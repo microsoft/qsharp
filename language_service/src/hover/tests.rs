@@ -36,7 +36,7 @@ fn check_none(source_with_markers: &str) {
 }
 
 #[test]
-fn hover_callable_unit_types() {
+fn callable_unit_types() {
     check(
         indoc! {r#"
         namespace Test {
@@ -52,7 +52,7 @@ fn hover_callable_unit_types() {
 }
 
 #[test]
-fn hover_callable_with_callable_types() {
+fn callable_with_callable_types() {
     check(
         indoc! {r#"
         namespace Test {
@@ -67,7 +67,7 @@ fn hover_callable_with_callable_types() {
 }
 
 #[test]
-fn hover_call() {
+fn callable_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -83,7 +83,7 @@ fn hover_call() {
 }
 
 #[test]
-fn hover_callable_unit_types_functors() {
+fn callable_unit_types_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -98,7 +98,7 @@ fn hover_callable_unit_types_functors() {
 }
 
 #[test]
-fn hover_callable_with_callable_types_functors() {
+fn callable_with_callable_types_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -113,7 +113,7 @@ fn hover_callable_with_callable_types_functors() {
 }
 
 #[test]
-fn hover_call_functors() {
+fn callable_ref_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -129,7 +129,7 @@ fn hover_call_functors() {
 }
 
 #[test]
-fn hover_identifier() {
+fn identifier() {
     check(
         indoc! {r#"
         namespace Test {
@@ -145,7 +145,7 @@ fn hover_identifier() {
 }
 
 #[test]
-fn hover_identifier_ref() {
+fn identifier_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -162,7 +162,7 @@ fn hover_identifier_ref() {
 }
 
 #[test]
-fn hover_identifier_tuple() {
+fn identifier_tuple() {
     check(
         indoc! {r#"
         namespace Test {
@@ -178,7 +178,7 @@ fn hover_identifier_tuple() {
 }
 
 #[test]
-fn hover_identifier_tuple_ref() {
+fn identifier_tuple_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -195,7 +195,7 @@ fn hover_identifier_tuple_ref() {
 }
 
 #[test]
-fn hover_identifier_for_loop() {
+fn identifier_for_loop() {
     check(
         indoc! {r#"
         namespace Test {
@@ -213,7 +213,7 @@ fn hover_identifier_for_loop() {
 }
 
 #[test]
-fn hover_identifier_for_loop_ref() {
+fn identifier_for_loop_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -231,7 +231,7 @@ fn hover_identifier_for_loop_ref() {
 }
 
 #[test]
-fn hover_identifier_nested_ref() {
+fn identifier_nested_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -250,7 +250,7 @@ fn hover_identifier_nested_ref() {
 }
 
 #[test]
-fn hover_lambda() {
+fn lambda() {
     check(
         indoc! {r#"
         namespace Test {
@@ -268,7 +268,7 @@ fn hover_lambda() {
 }
 
 #[test]
-fn hover_lambda_ref() {
+fn lambda_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -286,7 +286,7 @@ fn hover_lambda_ref() {
 }
 
 #[test]
-fn hover_lambda_param() {
+fn lambda_param() {
     check(
         indoc! {r#"
         namespace Test {
@@ -304,7 +304,7 @@ fn hover_lambda_param() {
 }
 
 #[test]
-fn hover_lambda_param_ref() {
+fn lambda_param_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -321,7 +321,7 @@ fn hover_lambda_param_ref() {
 }
 
 #[test]
-fn hover_lambda_closure_ref() {
+fn lambda_closure_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -339,7 +339,7 @@ fn hover_lambda_closure_ref() {
 }
 
 #[test]
-fn hover_identifier_udt() {
+fn identifier_udt() {
     check(
         indoc! {r#"
         namespace Test {
@@ -357,7 +357,7 @@ fn hover_identifier_udt() {
 }
 
 #[test]
-fn hover_udt() {
+fn udt() {
     check(
         indoc! {r#"
         namespace Test {
@@ -371,7 +371,7 @@ fn hover_udt() {
 }
 
 #[test]
-fn hover_udt_ref() {
+fn udt_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -388,7 +388,7 @@ fn hover_udt_ref() {
 }
 
 #[test]
-fn hover_udt_ref_nested_udt() {
+fn udt_ref_nested_udt() {
     check(
         indoc! {r#"
         namespace Test {
@@ -406,7 +406,7 @@ fn hover_udt_ref_nested_udt() {
 }
 
 #[test]
-fn hover_udt_anno_ref() {
+fn udt_anno_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -423,7 +423,7 @@ fn hover_udt_anno_ref() {
 }
 
 #[test]
-fn hover_udt_constructor() {
+fn udt_constructor() {
     check(
         indoc! {r#"
         namespace Test {
@@ -440,7 +440,7 @@ fn hover_udt_constructor() {
 }
 
 #[test]
-fn hover_udt_field() {
+fn udt_field() {
     check(
         indoc! {r#"
         namespace Test {
@@ -454,7 +454,7 @@ fn hover_udt_field() {
 }
 
 #[test]
-fn hover_udt_field_ref() {
+fn udt_field_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -472,7 +472,7 @@ fn hover_udt_field_ref() {
 }
 
 #[test]
-fn hover_primitive_type() {
+fn primitive_type() {
     check_none(indoc! {r#"
         namespace Test {
             newtype Pair = (◉I↘nt◉, snd : Int);
@@ -485,7 +485,7 @@ fn hover_primitive_type() {
 }
 
 #[test]
-fn hover_foreign_call() {
+fn foreign_call() {
     check(
         indoc! {r#"
         namespace Test {
@@ -502,7 +502,7 @@ fn hover_foreign_call() {
 }
 
 #[test]
-fn hover_foreign_call_functors() {
+fn foreign_call_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -519,7 +519,7 @@ fn hover_foreign_call_functors() {
 }
 
 #[test]
-fn hover_foreign_call_with_param() {
+fn foreign_call_with_param() {
     check(
         indoc! {r#"
         namespace Test {
@@ -536,7 +536,7 @@ fn hover_foreign_call_with_param() {
 }
 
 #[test]
-fn hover_callable_summary() {
+fn callable_summary() {
     check(
         indoc! {r#"
         namespace Test {
@@ -553,7 +553,7 @@ fn hover_callable_summary() {
 }
 
 #[test]
-fn hover_callable_summary_stuff_before() {
+fn callable_summary_stuff_before() {
     check(
         indoc! {r#"
         namespace Test {
@@ -571,7 +571,7 @@ fn hover_callable_summary_stuff_before() {
 }
 
 #[test]
-fn hover_callable_summary_other_header_before() {
+fn callable_summary_other_header_before() {
     check(
         indoc! {r#"
         namespace Test {
@@ -590,7 +590,7 @@ fn hover_callable_summary_other_header_before() {
 }
 
 #[test]
-fn hover_callable_summary_other_header_after() {
+fn callable_summary_other_header_after() {
     check(
         indoc! {r#"
         namespace Test {
@@ -609,7 +609,7 @@ fn hover_callable_summary_other_header_after() {
 }
 
 #[test]
-fn hover_callable_summary_other_headers() {
+fn callable_summary_other_headers() {
     check(
         indoc! {r#"
         namespace Test {
@@ -630,7 +630,7 @@ fn hover_callable_summary_other_headers() {
 }
 
 #[test]
-fn hover_callable_headers_but_no_summary() {
+fn callable_headers_but_no_summary() {
     check(
         indoc! {r#"
         namespace Test {
@@ -648,7 +648,7 @@ fn hover_callable_headers_but_no_summary() {
 }
 
 #[test]
-fn hover_callable_summary_only_header_matches() {
+fn callable_summary_only_header_matches() {
     check(
         indoc! {r#"
         namespace Test {
@@ -669,7 +669,7 @@ fn hover_callable_summary_only_header_matches() {
 }
 
 #[test]
-fn hover_callable_summary_successive_headers() {
+fn callable_summary_successive_headers() {
     check(
         indoc! {r#"
         namespace Test {
@@ -687,7 +687,7 @@ fn hover_callable_summary_successive_headers() {
 }
 
 #[test]
-fn hover_callable_empty_summary() {
+fn callable_empty_summary() {
     check(
         indoc! {r#"
         namespace Test {
