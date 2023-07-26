@@ -24,6 +24,6 @@ namespace Kata.Verification {
             ShowQuantumStateComparison(target, op, reference);
         }
 
-        return false;
+        return isCorrect;
     }
 }
