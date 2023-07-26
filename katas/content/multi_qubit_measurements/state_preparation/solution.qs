@@ -5,10 +5,11 @@ namespace Kata {
         // Initialize the extra qubit
         use anc = Qubit();
         // Using the repeat-until-success pattern to prepare the right state
+        mutable res = Zero;
         repeat {
             ApplyToEach(H, qs);
             Controlled X(qs, anc);
-            let res = MResetZ(anc);
+            set res = MResetZ(anc);
         } 
         until (res == Zero)
         fixup {

@@ -27,7 +27,7 @@ namespace Kata.Verification {
             2,
             2,
             StatePrep_ParityMeasurement,
-            ParityMeasurement,
+            Kata.ParityMeasurement,
             true,
             ["α|00⟩ + β|11⟩", "α|01⟩ + β|10⟩"]);
     }

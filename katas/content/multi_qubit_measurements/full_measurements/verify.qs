@@ -20,7 +20,7 @@ namespace Kata.Verification {
             2,
             4,
             StatePrep_BasisStateMeasurement,
-            BasisStateMeasurement,
+            Kata.BasisStateMeasurement,
             false,
             ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]);
     }

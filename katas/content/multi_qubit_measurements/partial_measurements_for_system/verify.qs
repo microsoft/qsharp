@@ -27,7 +27,7 @@ namespace Kata.Verification {
             3,
             2,
             StatePrep_IsPlusPlusMinus,
-            IsPlusPlusMinus,
+            Kata.IsPlusPlusMinus,
             false,
             ["|++-⟩", "|---⟩"]);
     }

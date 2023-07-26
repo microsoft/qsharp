@@ -39,7 +39,7 @@ namespace Kata.Verification {
                 stateInitialize_StateSelction(alpha, qs);
 
                 // operate testImplementation
-                StateSelction(qs, Choice);
+                Kata.StateSelction(qs, Choice);
                 // reset the first qubit, since its state does not matter
                 Reset(qs[0]);
 

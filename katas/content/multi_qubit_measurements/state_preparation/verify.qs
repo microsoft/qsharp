@@ -11,7 +11,7 @@ namespace Kata.Verification {
         Ry(2.0 * theta, qs[0]);
 
         // Split the state sqrt(2) |0⟩ ⊗ |0⟩ into |00⟩ + |01⟩
-        (ControlledOnInt(0, H))([qs[0]], qs[1]);
+        ApplyControlledOnInt(0, H, [qs[0]], qs[1]);
     }
 
 
@@ -20,7 +20,7 @@ namespace Kata.Verification {
         use qs = Qubit[2];
 
         // operate the test implementation
-        PostSelection(qs);
+        Kata.PostSelection(qs);
 
         // apply adjoint reference operation and check that the result is |0⟩
         Adjoint RefImpl_T4(qs);
