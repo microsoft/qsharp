@@ -280,6 +280,15 @@ fn draw_random_int() {
 }
 
 #[test]
+fn draw_random_double() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Random.DrawRandomDouble(5.0,5.0)",
+        &Value::Double(5.0),
+    );
+}
+
+#[test]
 fn truncate() {
     check_intrinsic_value("", "Microsoft.Quantum.Math.Truncate(3.1)", &Value::Int(3));
     check_intrinsic_value("", "Microsoft.Quantum.Math.Truncate(3.9)", &Value::Int(3));
