@@ -208,21 +208,28 @@ impl Visitor<'_> for ItemCollector<'_> {
                 self.checker.globals.insert(item, scheme);
             }
             ast::ItemKind::Ty(name, def) => {
+                let span = item.span;
                 let Some(&Res::Item(item)) = self.names.get(name.id) else {
                     panic!("type should have item ID");
                 };
 
-                let (base, base_errors) = convert::ast_ty_def_base(self.names, def);
                 let (cons, cons_errors) = convert::ast_ty_def_cons(self.names, item, def);
+                let (udt_def, def_errors) = convert::ast_ty_def(self.names, def);
                 self.checker.errors.extend(
-                    base_errors
+                    cons_errors
                         .into_iter()
-                        .chain(cons_errors)
+                        .chain(def_errors)
                         .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
                 );
 
-                let fields = convert::ast_ty_def_fields(def);
-                self.checker.table.udts.insert(item, Udt { base, fields });
+                self.checker.table.udts.insert(
+                    item,
+                    Udt {
+                        name: name.name.clone(),
+                        span,
+                        definition: udt_def,
+                    },
+                );
                 self.checker.globals.insert(item, cons);
             }
             _ => {}
