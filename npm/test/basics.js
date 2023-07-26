@@ -155,21 +155,21 @@ async function validateExercise(
 ) {
   // Validate the correctness of the placeholder code.
   if (validatePlaceholder) {
-    const result = await runExerciseSolutionCheck(
+    const placeholderResult = await runExerciseSolutionCheck(
       exercise,
       exercise.placeholderCode
     );
 
     // Check that there are no compilation or runtime errors.
     assert(
-      result.errorCount === 0,
+      placeholderResult.errorCount === 0,
       `Placeholder for exercise "${exercise.id}" has compilation or runtime errors` +
-        `Compilation and runtime errors:\n${result.errorMsg}`
+        `Compilation and runtime errors:\n${placeholderResult.errorMsg}`
     );
 
     // Check that the placeholder is an incorrect solution.
     assert(
-      !result.success,
+      !placeholderResult.success,
       `Placeholder for exercise "${exercise.id}" is a correct solution but it is expected to be an incorrect solution`
     );
   }
@@ -185,6 +185,27 @@ async function validateExercise(
       solutions.length > 0,
       `Exercise "${exercise.id}" does not have solutions`
     );
+
+    // Check that the solutions are correct.
+    for (const solution of solutions) {
+      const solutionResult = await runExerciseSolutionCheck(
+        exercise,
+        solution.code
+      );
+
+      // Check that there are no compilation or runtime errors.
+      assert(
+        solutionResult.errorCount === 0,
+        `Solution "${solution.id}" for exercise "${exercise.id}" has compilation or runtime errors` +
+          `Compilation and runtime errors:\n${solutionResult.errorMsg}`
+      );
+
+      // Check that the solution is correct.
+      assert(
+        solutionResult.success,
+        `Solution "${solution.id}" for exercise "${exercise.id}" is incorrect`
+      );
+    }
   }
 }
 
