@@ -2,8 +2,6 @@ namespace Kata.Verification {
 
     open Microsoft.Quantum.Diagnostics;
 
-    // TODO: Move to KataLibrary.qs or even to the standard library.
-
     /// # Summary
     /// Given two registers, prepares the maximally entangled state 
     /// between each pair of qubits on the respective registers.
@@ -27,6 +25,7 @@ namespace Kata.Verification {
         }
     }
     
+    // TODO: Maybe move this to Katas library (or reuse if there's a similar one)
     
     /// # Summary
     /// Given two operations, asserts that they act identically for all input states.
@@ -86,45 +85,6 @@ namespace Kata.Verification {
             }
         }
         true
-    }
-
-    // TODO: Move to standard library
-
-    /// # Summary
-    /// Applies a unitary operation on the target register, controlled on a a state specified by a given
-    /// bit mask.
-    ///
-    /// # Input
-    /// ## bits
-    /// The bit string to control the given unitary operation on.
-    /// ## oracle
-    /// The unitary operation to be applied on the target register.
-    /// ## targetRegister
-    /// The target register to be passed to `oracle` as an input.
-    /// ## controlRegister
-    /// A quantum register that controls application of `oracle`.
-    ///
-    /// # Remarks
-    /// The pattern given by `bits` may be shorter than `controlRegister`,
-    /// in which case additional control qubits are ignored (that is, neither
-    /// controlled on $\ket{0}$ nor $\ket{1}$).
-    /// If `bits` is longer than `controlRegister`, an error is raised.
-    ///
-    /// For example, `bits = [0,1,0,0,1]` means that `oracle` is applied if and only if `controlRegister`
-    /// is in the state $\ket{0}\ket{1}\ket{0}\ket{0}\ket{1}$.
-    operation ApplyControlledOnBitString<'T> (bits : Bool[], oracle : ('T => Unit is Adj + Ctl), controlRegister : Qubit[], targetRegister : 'T)
-    : Unit is Adj + Ctl {
-        // The control register must have enough bits to implement the requested control.
-        Fact(Length(bits) <= Length(controlRegister), "Control register shorter than control pattern.");
-
-        // Use a subregister of the controlled register when
-        // bits is shorter than controlRegister.
-        let controlSubregister = controlRegister[...Length(bits) - 1];
-        within {
-            ApplyPauliFromBitString(PauliX, false, bits, controlSubregister);
-        } apply {
-            Controlled oracle(controlSubregister, targetRegister);
-        }
     }
 
 }
