@@ -9,9 +9,11 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir,
-    ty::{Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtField},
+    ty::{
+        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtDef, UdtDefKind,
+        UdtField,
+    },
 };
-use std::rc::Rc;
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -92,7 +94,7 @@ pub(super) fn ast_ty_def_cons(
     (scheme, errors)
 }
 
-pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
+fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
     match &*def.kind {
         TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
         TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),
@@ -110,27 +112,44 @@ pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyE
     }
 }
 
-pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
-    match &*def.kind {
-        TyDefKind::Field(Some(name), _) => {
-            vec![UdtField {
-                name: Rc::clone(&name.name),
-                path: hir::FieldPath::default(),
-            }]
-        }
-        TyDefKind::Field(None, _) => Vec::new(),
-        TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
-        TyDefKind::Tuple(items) => {
-            let mut fields = Vec::new();
-            for (index, item) in items.iter().enumerate() {
-                for mut field in ast_ty_def_fields(item) {
-                    field.path.indices.insert(0, index);
-                    fields.push(field);
-                }
-            }
-            fields
-        }
+pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyError>) {
+    if let TyDefKind::Paren(inner) = &*def.kind {
+        return ast_ty_def(names, inner);
     }
+
+    let mut errors = Vec::new();
+    let def = UdtDef {
+        span: def.span,
+        kind: match &*def.kind {
+            TyDefKind::Field(name, ty) => {
+                let (ty, item_errors) = ty_from_ast(names, ty);
+                errors.extend(item_errors);
+                let (name_span, name) = match name {
+                    Some(name) => (Some(name.span), Some(name.name.clone())),
+                    None => (None, None),
+                };
+                let field = UdtField {
+                    name_span,
+                    name,
+                    ty,
+                };
+                UdtDefKind::Field(field)
+            }
+            TyDefKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
+            TyDefKind::Tuple(items) => UdtDefKind::Tuple(
+                items
+                    .iter()
+                    .map(|i| {
+                        let (item_def, item_errors) = ast_ty_def(names, i);
+                        errors.extend(item_errors);
+                        item_def
+                    })
+                    .collect(),
+            ),
+        },
+    };
+
+    (def, errors)
 }
 
 pub(super) fn ast_callable_scheme(

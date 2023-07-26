@@ -5,6 +5,7 @@ namespace Microsoft.Quantum.Canon {
     open QIR.Intrinsic;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
 
     /// # Summary
     /// Applies an operation to each element in a register.
@@ -328,7 +329,7 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Input
     /// ## pauli
-    /// Pauli operator to apply to `qubits[idx]` where `bitsApply == bits[idx]`
+    /// Pauli operator to apply to `qubits[idx]` where `bitApply == bits[idx]`
     /// ## bitApply
     /// apply Pauli if bit is this value
     /// ## bits
@@ -357,6 +358,124 @@ namespace Microsoft.Quantum.Canon {
             if bits[i] == bitApply {
                 ApplyP(pauli, qubits[i]);
             }
+        }
+    }
+
+    /// # Summary
+    /// Applies a Pauli operator on each qubit in an array if the corresponding
+    /// bit of a Little-endian integer matches a given input.
+    ///
+    /// # Input
+    /// ## pauli
+    /// Pauli operator to apply to `qubits[idx]` when bit of numberState
+    /// in idx position is the same as bitApply.
+    /// ## bitApply
+    /// apply Pauli if bit is this value
+    /// ## numberState
+    /// Little-endian integer specifying which corresponding qubit in `qubits` should be operated on
+    /// ## qubits
+    /// Quantum register on which to selectively apply the specified Pauli operator
+    ///
+    /// # Example
+    /// The following applies an X operation on qubits 0 and 2, and a Z operation on qubits 1 and 3.
+    /// ```qsharp
+    /// use qubits = Qubit[4];
+    /// let n = 5;
+    /// // Apply when index in `bits` is `true`.
+    /// ApplyPauliFromBitString(PauliX, true, n, qubits);
+    /// // Apply when index in `bits` is `false`.
+    /// ApplyPauliFromBitString(PauliZ, false, n, qubits);
+    /// ```
+    operation ApplyPauliFromInt(
+        pauli: Pauli,
+        bitApply: Bool,
+        numberState: Int,
+        qubits: Qubit[]): Unit is Adj + Ctl {
+
+        let length = Length(qubits);
+        Fact(numberState >= 0, "number must be non-negative");
+        Fact(BitSizeI(numberState) <= length, "Bit size of numberState must not exceed qubits length");
+
+        for i in 0..length-1 {
+            // If we assume loop unrolling, 2^i will be optimized to a constant.
+            if ((numberState &&& (1 <<< i)) != 0) == bitApply {
+                ApplyP(pauli, qubits[i]);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Applies a unitary operation on the target if the control
+    /// register state corresponds to a specified nonnegative integer.
+    ///
+    /// # Input
+    /// ## numberState
+    /// A nonnegative integer on which the operation `oracle` should be
+    /// controlled.
+    /// ## oracle
+    /// A unitary operation to be controlled.
+    /// ## target
+    /// A target on which to apply `oracle`.
+    /// ## controlRegister
+    /// A quantum register that controls application of `oracle`.
+    ///
+    /// # Remarks
+    /// The value of `numberState` is interpreted using a little-endian encoding.
+    ///
+    /// `numberState` must be at most $2^\texttt{Length(controlRegister)} - 1$.
+    /// For example, `numberState = 537` means that `oracle`
+    /// is applied if and only if `controlRegister` is in the state $\ket{537}$.
+    operation ApplyControlledOnInt<'T>(
+        numberState: Int,
+        oracle: ('T => Unit is Adj + Ctl),
+        controlRegister: Qubit[],
+        target: 'T): Unit is Adj + Ctl {
+
+        within {
+            ApplyPauliFromInt(PauliX, false, numberState, controlRegister);
+        } apply {
+            Controlled oracle(controlRegister, target);
+        }
+    }
+
+    /// # Summary
+    /// Applies a unitary operation on the target,
+    /// controlled on a state specified by a given bit mask.
+    ///
+    /// # Input
+    /// ## bits
+    /// The bit string to control the given unitary operation on.
+    /// ## oracle
+    /// The unitary operation to be applied on the target.
+    /// ## target
+    /// The target to be passed to `oracle` as an input.
+    /// ## controlRegister
+    /// A quantum register that controls application of `oracle`.
+    ///
+    /// # Remarks
+    /// The pattern given by `bits` may be shorter than `controlRegister`,
+    /// in which case additional control qubits are ignored (that is, neither
+    /// controlled on $\ket{0}$ nor $\ket{1}$).
+    /// If `bits` is longer than `controlRegister`, an error is raised.
+    ///
+    /// For example, `bits = [0,1,0,0,1]` means that `oracle` is applied if and only if `controlRegister`
+    /// is in the state $\ket{0}\ket{1}\ket{0}\ket{0}\ket{1}$.
+    operation ApplyControlledOnBitString<'T>(
+        bits: Bool[],
+        oracle: ('T => Unit is Adj + Ctl),
+        controlRegister: Qubit[],
+        target: 'T): Unit is Adj + Ctl {
+
+        // The control register must have enough bits to implement the requested control.
+        Fact(Length(bits) <= Length(controlRegister), "Control register shorter than control pattern.");
+
+        // Use a subregister of the controlled register when
+        // bits is shorter than controlRegister.
+        let controlSubregister = controlRegister[...Length(bits) - 1];
+        within {
+            ApplyPauliFromBitString(PauliX, false, bits, controlSubregister);
+        } apply {
+            Controlled oracle(controlSubregister, target);
         }
     }
 
