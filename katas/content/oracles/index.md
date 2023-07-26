@@ -16,7 +16,7 @@ Let's get started!
 
 ## Classical Oracles
 In classical computing, we often discuss "black box" versus "white box" testing.  In "white box" testing, the implementation of a function is visible to the tester,  thus they can verify specific runtime or memory complexity expectations for the algorithm.  
-However, in "black box" testing the tester doesn't have access to the details of the function implementation, but only to the "box" that takes an input and produces the corresponding output. This means the tester can only test the functionality and expected behavior of the function, but not the implementation has been abstracted away.
+However, in "black box" testing, the tester doesn't have access to the details of the function implementation. They only have access to the "black box" that takes an input and produces the corresponding output. This means the tester can only test the functionality and expected behavior of the function, but not the implementation, which is hidden behind abstraction.
 
 Formally, a **classical oracle** is a function that, provided some input, produces a *deterministic* output
 (the same input *always* results in the same output).
