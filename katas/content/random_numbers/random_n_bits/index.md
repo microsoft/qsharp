@@ -1,4 +1,4 @@
-## <span style="color:blue">Exercise 3</span>: Generate a number of arbitrary size
+# Generate a number of arbitrary size
 
 Let's take it a step further and generate an $N$-bit number. 
 

@@ -31,7 +31,6 @@ Ry operation applies a given rotation about $Y$-axis (i.e., in the $ZX$-plane), 
 > We can also calculate ${\theta}$ by comparing the amplitudes of the state $|1 \rangle$ on both equations, which is $2 \arcsin\sqrt{1.0 - x}$
 
 @[solution]({
-"id": "weighted_random_bit_solution",
-"exerciseId": "weighted_random_bit",
-"codePath": "solution.qs"
+    "id": "weighted_random_bit_solution",
+    "codePath": "solution.qs"
 })

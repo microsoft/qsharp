@@ -1,4 +1,4 @@
-## <span style="color:blue">Exercise 4</span>: Generate a weighted bit!
+# Generate a weighted bit
 
 In each of the above exercises, all generated numbers were equally likely. Now let's create an operation that will return a random bit with different probabilities of outcomes. 
 
