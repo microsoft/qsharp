@@ -1,5 +1,10 @@
 namespace Kata.Verification {
 
+    // Task 3.2.
+    operation KthBit_Oracle_Reference(x: Qubit[], k: Int): Unit is Adj + Ctl {
+        Z(x[k]);
+    }
+
     // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution(): Bool {
@@ -8,7 +13,7 @@ namespace Kata.Verification {
                 let isCorrect = CheckOperationsEqualReferenced(
                     N,
                     Kata.KthBit_Oracle(_, k),
-                    KthBit_Oracle(_, k));
+                    KthBit_OracleReference(_, k));
                 if not isCorrect {
                     Message($"Failed on test case for NumberOfQubits = {N}, k = {k}.");
                     return false;

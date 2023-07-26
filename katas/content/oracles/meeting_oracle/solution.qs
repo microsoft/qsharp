@@ -1,4 +1,4 @@
-namespace Kata.Verification {
+namespace Kata {
     open Microsoft.Quantum.Arrays;
 
     operation Or_Oracle(x: Qubit[], y: Qubit): Unit is Adj + Ctl {

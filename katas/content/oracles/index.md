@@ -97,7 +97,7 @@ Now you will implement the classical oracle that you've implemented in task 1.1 
 "id": "phase_oracle_seven",
 "descriptionPath": "./phase_oracle_seven/index.md",
 "placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
-"solutionPath": "./solution.md"
+"solutionPath": "./phase_oracle_seven/solution.md"
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
@@ -163,76 +163,17 @@ The basis states $|010\rangle \otimes |0\rangle$ and $|101\rangle \otimes |0\ran
 
 Now you will implement the same function you've seen in the first two tasks as a marking oracle $U_{7,mark}$.
 
-### <span style="color:blue">Task 1.3</span>: Implement a marking oracle
-
-**Inputs:**
-
-  1. 3 qubits in an arbitrary state $|x\rangle$ (input/query register)
-    
-  2. A qubit in an arbitrary state $|y\rangle$ (target qubit)
-
-**Goal:**
-
-Flip the state of $|y\rangle$ if the input register is in the 
-state $|111\rangle$, and leave the state $|y\rangle$ unchanged otherwise.
-
-**Examples:**
-
-* If the query register is in the state $|111\rangle$, flip the state of the target qubit $|y\rangle$.
-* If the query register is in the state $|010\rangle$ or $|101\rangle$, do nothing.
-
 @[exercise]({
 "id": "marking_oracle_seven",
+"descriptionPath": "./marking_oracle_seven/index.md",
+"placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
+"solutionPath": "./marking_oracle_seven/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./marking_oracle_seven/solution.qs"
+"./marking_oracle_seven/verification.qs"
 ],
-"verificationSourcePath": "./marking_oracle_seven/verification.qs",
-"placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
-"solutionSourcePath": "./marking_oracle_seven/solution.qs",
-"solutionDescriptionPath": "./solution.md"
 })
-
-<details>
-    <summary><b>For a closer look at the mathematical properties of this oracle, click here</b></summary>
-
-Consider how the oracle from task 1.3 acts on two input basis states and two "output" basis states:
-
-$$U_{7,mark} |111\rangle |0\rangle = |111\rangle |0 \oplus f(111)\rangle = |111\rangle |0 \oplus 1\rangle = |111\rangle |1\rangle$$
-$$U_{7,mark} |111\rangle |1\rangle = |111\rangle |1 \oplus f(111)\rangle = |111\rangle |1 \oplus 1\rangle = |111\rangle |0\rangle$$
-
-$$U_{7,mark} |110\rangle |0\rangle = |110\rangle |0 \oplus f(110)\rangle = |110\rangle |0 \oplus 0\rangle = |110\rangle |0\rangle$$
-$$U_{7,mark} |110\rangle |1\rangle = |110\rangle |1 \oplus f(110)\rangle = |110\rangle |1 \oplus 0\rangle = |110\rangle |1\rangle$$
-
-You can see that the state of the input qubit array is unchanged, and the state of the output qubit changes if $f(x) = 1$ and is unchanged if $f(x) = 0$ - this matches the definition of a marking oracle precisely.
-
-Now let's again apply this oracle to a superposition state $|\alpha\rangle$ such that $|x\rangle$ is a superposition of the $|6\rangle$ and $|7\rangle$ basis states and $|y\rangle = |0\rangle$:
-$$|\alpha\rangle = \frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)|0\rangle = 
-|11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big) \otimes |0\rangle = |11+\rangle |0\rangle$$
-
-Let's consider how our operator $U_{7,mark}$ acts on this state.
-
-> Recall that oracles are linear operators, thus they can be applied to each term individually.
-
-$$U_{7,mark} |\alpha\rangle = \frac{1}{\sqrt{2}} \big(U_{7,mark}|110\rangle |0\rangle + U_{7,mark}|111\rangle |0\rangle\big) =$$
-$$= \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) := |\epsilon\rangle$$
-
-Was our input state modified during this operation?  Let's simplify the resulting state $|\epsilon\rangle$:
-$$|\epsilon\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle |0\rangle + |1\rangle |1\rangle\big) = $$
-$$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|00\rangle + |11\rangle\big) = |11\rangle \otimes |\Phi^+\rangle = |11\Phi^+\rangle$$
-
-We have entangled the states of qubits $|x\rangle$ and $|y\rangle$!  This is a common occurrence for marking oracles when the input is a superposition of basis states: after applying the oracle, the input $|x\rangle$ will often become entangled with $|y\rangle$. Thus, while applying the marking oracle to a basis state will leave the input array unchanged, applying the marking oracle to a superposition state will change the state of both the input array and the output qubit.
-
->As an exercise, what entangled state would we get in the previous example if $|y\rangle = |1\rangle$ instead of $|y\rangle = |0\rangle$?
->
-> <br/>
-> <details>
->   <summary><b>Click here for the answer!</b></summary>
-> $$U_{7,mark} |11+\rangle |1\rangle = |11\rangle \otimes \frac1{\sqrt2}\big(|01\rangle + |10\rangle\big) = |11\rangle |\Psi^+\rangle$$
-> </details>
-
-</details>
 
 # Part II: Phase Kickback
 
@@ -305,33 +246,16 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
     
 </details>
 
-### <span style="color:blue">Task 2.1</span>: Apply the marking oracle as a phase oracle
-**Inputs:**
-
-  1. A marking oracle implementing an unknown $N$-bit function $f(x)$.
-  2. $N$ qubits in an arbitrary state (input/query register).
-  
-**Goal:**
-
-Flip the phase of each basis state $|x\rangle$ for which $f(x) = 1$. You can only access $f(x)$ via the marking oracle you are given.
-
-<br/>
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-    Recall that you can allocate extra qubits to assist in this operation.  Is there a state that you could prepare with an auxiliary qubit which would help you to convert the marking oracle to a phase oracle?
-</details>
-
 @[exercise]({
 "id": "marking_oracle_as_phase",
+"descriptionPath": "./marking_oracle_as_phase/index.md",
+"placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
+"solutionPath": "./marking_oracle_as_phase/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./marking_oracle_as_phase/solution.qs"
-],
-"verificationSourcePath": "./marking_oracle_as_phase/verification.qs",
-"placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
-"solutionSourcePath": "./marking_oracle_as_phase/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./marking_oracle_as_phase/verification.qs"
+]
 })
 
 
@@ -354,265 +278,78 @@ In this section you will implement a few more complicated quantum oracles.
 
 > Notice that the operation declarations below require adjoint and controlled variants of the oracle to be automatically generated. This is common practice that makes testing and reusing the code easier. Typically Q# compiler will easily generate these variants, as long as you don't use mutable variables or operations that don't support these functors.
 
-### <span style="color:blue">Task 3.1</span>: Implement the OR oracle
-
-**Inputs:**
-
-  1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
-  2. A qubit in an arbitrary state $|y\rangle$ (target qubit).
-
-**Goal:**
-
-Flip the state of $|y\rangle$ if the input register is in any basis state
-except for $|00...0\rangle$ (the all zero state).
-
-**Examples:**
-
-* If the query register is in the state $|10000001\rangle$, $|11101101\rangle$ or $|0010101\rangle$, flip the state $|y\rangle$.
-* If the query register is in the state $|000\rangle$, do nothing.
-
-<br/>
-<details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
-    This is a marking oracle, because we are flipping the state of the target qubit $|y\rangle$ based on the state of the input $|x\rangle$.
-</details>
-
-<br/>
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-  You need to flip the state of $|y\rangle$ for every input except $|00...0\rangle$, or, alternatively, flip it unconditionally and then flip it for the $|00...0\rangle$ state.   You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonint">ControlledOnInt</a> useful in your implementation.
-</details>
-
 @[exercise]({
 "id": "or_oracle",
+"descriptionPath": "./or_oracle/index.md",
+"placeholderSourcePath": "./or_oracle/placeholder.qs",
+"solutionPath": "./or_oracle/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./or_oracle/solution.qs"
-],
-"verificationSourcePath": "./or_oracle/verification.qs",
-"placeholderSourcePath": "./or_oracle/placeholder.qs",
-"solutionSourcePath": "./or_oracle/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./or_oracle/verification.qs"
+]
 })
-
-
-> Notice that you can modify the state of the input register during your computations (this is what `ControlledOnInt` function does under the hood). 
-> However, it is essential to undo those modifications ("uncompute" the changes), except the final one, so that the oracle will preserve the input if it is a basis state.
-
-### <span style="color:blue">Task 3.2</span>: Implement the $k$-th bit oracle
-
-**Inputs:**
-
-  1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
-  2. An integer $k$ such that $0 \leq k < N$.
-
-**Goal:**
-
-Flip the sign of the input state $|x\rangle$ if the $k$-th bit of $x$ is $1$.  
-**Implement this oracle without using auxiliary qubits.**
-
-**Examples:**
-
-* If the query register is in the state $|010\rangle$ and $k=0$, do nothing.
-* If the query register is in the state $|010\rangle$ and $k=1$, flip the sign of the basis state.
-
-<br/>
-<details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
-    This is a phase oracle, because we are changing the phase of the input state $|x\rangle$ based on the value of the function $f(x)$.
-</details>
 
 @[exercise]({
 "id": "kth_bit_oracle",
+"descriptionPath": "./kth_bit_oracle/index.md",
+"placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
+"solutionPath": "./kth_bit_oracle/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./kth_bit_oracle/solution.qs"
-],
-"verificationSourcePath": "./kth_bit_oracle/verification.qs",
-"placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
-"solutionSourcePath": "./kth_bit_oracle/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./kth_bit_oracle/verification.qs"
+]
 })
-
-> Notice how the oracles - both phase and marking - can take extra "classical" parameters.
-
-Another key tool for implementing quantum oracles is allocating auxiliary qubits to assist in a computation.  Below are some exercises where you will practice that.
-
-### <span style="color:blue">Task 3.3</span>: Implement the OR oracle of all bits except the $k$-th
-
-**Inputs:**
-
-  1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
-  2. An integer $k$ such that $0 \leq k < N$.
-
-**Goal:**
-
-Flip the sign of the basis state $|x\rangle$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in input register. In other words, the input register with the $k$-th qubit excluded should not be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
-
-Feel free to explore implementing this operation with or without auxiliary qubits.
-
-**Examples:**
-
-* If the query register is in the state $|010\rangle$ and $k=0$, flip the sign of the register.
-* If the query register is in the state $|010\rangle$ and $k=1$, do nothing.
-
-<br/>
-<details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
-    This is a phase oracle, because we are changing the phase of the input state $|x\rangle$ based on the value of the function $f(x)$.
-</details>
-
-<br/>
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-  You can reuse the previously implemented oracles and operations, same as how you would use library operations.
-  <br/>
-  You can use <a href="https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/itemaccessexpressions">array slicing</a> to get parts of the array before and after the $k$-th element.
-</details>
 
 @[exercise]({
 "id": "or_but_kth_oracle",
+"descriptionPath": "./or_but_kth_oracle/index.md",
+"placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
+"solutionPath": "./or_but_kth_oracle/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./or_but_kth_oracle/solution.qs"
-],
-"verificationSourcePath": "./or_but_kth_oracle/verification.qs",
-"placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
-"solutionSourcePath": "./or_but_kth_oracle/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./or_but_kth_oracle/verification.qs"
+]
 })
 
 # Part IV: More Oracles!  Implementation and Testing:
 
-### <span style="color:blue">Task 4.1</span>: Implement the arbitrary bit pattern oracle
-
-**Inputs:**
-
-  1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
-  2. A qubit in an arbitrary state $|y\rangle$ (target qubit).
-  3. A boolean array of length $N$ `pattern` representing a basis state; `true` and `false` elements correspond to $|1\rangle$ and $|0\rangle$, respectively.
-
-**Goal:**
-
-Flip the state of $|y\rangle$ if the input register matches the basis state
-represented by `pattern`.  
-
-**Examples:**
-
-* If the query register is in the state $|010\rangle$ and `pattern = [false, true, false]`, flip the state $|y\rangle$.
-* If the query register is in the state $|1001\rangle$ and `pattern = [false, true, true, false]`, do nothing.
-    
-<br/>
-<details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
-    This is a marking oracle, because we are flipping the state of the target qubit $|y\rangle$ based on the state of the input $|x\rangle$.
-</details>
-
-<br/>
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-  You need to flip the state of $|y\rangle$ if $|x\rangle$ matches the given pattern.  You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring">ControlledOnBitString</a> useful in your implementation.
-</details>
-
 @[exercise]({
 "id": "bit_pattern_oracle",
+"descriptionPath": "./bit_pattern_oracle/index.md",
+"placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
+"solutionPath": "./bit_pattern_oracle/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./bit_pattern_oracle/solution.qs"
-],
-"verificationSourcePath": "./bit_pattern_oracle/verification.qs",
-"placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
-"solutionSourcePath": "./bit_pattern_oracle/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./bit_pattern_oracle/verification.qs"
+]
 })
-
-### <span style="color:blue">Task 4.2</span>: Implement the arbitrary bit pattern oracle (challenge version)
-
-**Inputs:**
-
-  1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
-  2. A boolean array of length $N$ `pattern` representing a basis state; `true` and `false` elements correspond to $|1\rangle$ and $|0\rangle$, respectively.
-
-**Goal:**
- 
-Flip the sign of the input state $|x\rangle$ if the input register matches the basis state
-represented by `pattern`.  
-**Implement this oracle without using auxiliary qubits**
-
-**Examples:**
-
- * If the query register is in the state $|010\rangle$ and `pattern = [false, true, false]`, flip the sign of the input register.
- * If the query register is in the state $|1001\rangle$ and `pattern = [false, true, true, false]`, do nothing.
-  
-<br/>
-<details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
-    This is a phase oracle, because we are changing the phase of the input state $|x\rangle$ based on the value of the function $f(x)$.
-</details>
-
-<br/>
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-  Can you transform the state of the input register based on the <code>pattern</code> value so as to have to flip the phase only for the $|1...1\rangle$ state?
-</details>
 
 @[exercise]({
 "id": "bit_pattern_challenge",
+"descriptionPath": "./bit_pattern_challenge/index.md",
+"placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
+"solutionPath": "./bit_pattern_challenge/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./bit_pattern_challenge/solution.qs"
-],
-"verificationSourcePath": "./bit_pattern_challenge/verification.qs",
-"placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
-"solutionSourcePath": "./bit_pattern_challenge/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./bit_pattern_challenge/verification.qs"
+]
 })
-
-### <span style="color:blue">Task 4.3</span>: Implement the meeting oracle
-
-Suppose that you would like to schedule a meeting with your co-worker Jasmine. 
-You both work five day workweeks, and $|x\rangle$ and $|jasmine\rangle$ are 5-bit states represent your and Jasmine's schedules. 
-The schedules are indicators of a person being busy on that day: a $1$ bit means that person is busy on that day, and $0$ means they're free for a meeting that day. Implement a function that determines if you and Jasmine can schedule a meeting during the week, i.e., whether there is a day when both schedules have a $0$ simultaneously.
-
-**Inputs:**
-
-  1. 5 qubits in an arbitrary state $|x\rangle$ representing your schedule for the week (input/query register).
-  2. 5 qubits in an arbitrary state $|jasmine\rangle$ representing Jasmine's schedule for the week (input/query register).
-  3. A qubit in an arbitrary state $|y\rangle$ (target qubit).
-
-**Goal:**
-
-Flip the state of $|y\rangle$ if you and Jasmine are both free on the same day for at least one day during the week.  Recall that a $0$ means that a person is free on that day.
-
-**Examples:**
-
-* If $|x\rangle=|10101\rangle$ and $|jasmine\rangle=|01010\rangle$, do nothing (there is no day on which you both are free).
-* If $|x\rangle=|10001\rangle$ and $|jasmine\rangle=|01010\rangle$, flip the state $|y\rangle$ (you are both free on Wednesday).
-* If $|x\rangle=|00000\rangle$ and $|jasmine\rangle=|00000\rangle$, flip the state $|z\rangle$ (you are both free all week).
-* If $|x\rangle=|11111\rangle$ and $|jasmine\rangle=|11111\rangle$, do nothing (you are both busy all week).
-    
-<br/>
-<details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
-    This is a marking oracle, because we are flipping the state of the target qubit $|y\rangle$ based on the state of the inputs $|x\rangle$ and $|jasmine\rangle$. Notice that even though we do not have the typical single-input-register situation that we saw earlier, this is still a marking oracle.
-</details>
 
 @[exercise]({
 "id": "meeting_oracle",
+"descriptionPath": "./meeting_oracle/index.md",
+"placeholderSourcePath": "./meeting_oracle/placeholder.qs",
+"solutionPath": "./meeting_oracle/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./meeting_oracle/solution.qs"
-],
-"verificationSourcePath": "./meeting_oracle/verification.qs",
-"placeholderSourcePath": "./meeting_oracle/placeholder.qs",
-"solutionSourcePath": "./meeting_oracle/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./meeting_oracle/verification.qs"
+]
 })
 
 ### <span style="color:blue">Demo 4.1</span>: Testing an oracle implementation

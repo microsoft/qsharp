@@ -1,6 +1,26 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
 
+    operation Or_Oracle_Reference(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+        X(y);
+        ApplyControlledOnInt(0, X, x, y);
+    }
+
+    // Task 4.3.
+    operation Meeting_Oracle_Reference(x: Qubit[], jasmine: Qubit[], z: Qubit): Unit is Adj + Ctl {
+        use q = Qubit[Length(x)];
+        within {
+            for i in IndexRange(q) {
+                // flip q[i] if both x and jasmine are free on the given day
+                X(x[i]);
+                X(jasmine[i]);
+                CCNOT(x[i], jasmine[i], q[i]);
+            }
+        } apply {
+            Or_Oracle_Reference(q, z);
+        }
+    }
+
     // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution(): Bool {
@@ -15,7 +35,7 @@ namespace Kata.Verification {
                     set isCorrect = CheckTwoOraclesAreEqual(
                         1..N,
                         Kata.Meeting_Oracle(_, jasmine, _),
-                        Meeting_Oracle(_, jasmine, _));
+                        Meeting_Oracle_Reference(_, jasmine, _));
                 }
                 if not isCorrect {
                     Message($"Failed on test case for N = {N}, k = {k}.");

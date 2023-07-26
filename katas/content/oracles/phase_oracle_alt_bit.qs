@@ -1,10 +1,8 @@
 namespace Kata {
-
     open Microsoft.Quantum.Diagnostics;
-    open Kata.Verification; // TODO: Remove this when ApplyControlledOnBitString is in the library!
 
     // This operation implements the oracle; we will learn how to implement oracles later in the tutorial
-    operation AlternatingBitPattern_PhaseOracle (x: Qubit[]) : Unit is Adj + Ctl {
+    operation AlternatingBitPattern_PhaseOracle(x: Qubit[]): Unit is Adj + Ctl {
         use q = Qubit();
         X(q);
         ApplyControlledOnBitString([false, true, false], Z, x, q);
@@ -13,7 +11,7 @@ namespace Kata {
     }
 
     @EntryPoint()
-    operation PhaseOracle_Demo() : Unit {
+    operation PhaseOracle_Demo(): Unit {
         // Allocate 3 qubits in the |000⟩ state
         use q = Qubit[3];
         // Prepare an equal superposition of all basis states

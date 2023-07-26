@@ -1,7 +1,6 @@
 namespace Kata {
 
     open Microsoft.Quantum.Diagnostics;
-    open Kata.Verification; // TODO: Remove this when ApplyControlledOnBitString is in the library!
 
     // This operation implements the oracle; we will learn how to implement oracles later in the tutorial
     operation AlternatingBitPattern_MarkingOracle(x: Qubit[], y: Qubit) : Unit is Adj + Ctl {

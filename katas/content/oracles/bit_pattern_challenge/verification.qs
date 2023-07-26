@@ -1,5 +1,19 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Arrays;
+
+    // Task 4.2.
+    operation ArbitraryBitPattern_Oracle_Challenge_Reference(x: Qubit[], pattern: Bool[]): Unit is Adj + Ctl {
+        within {
+            for i in IndexRange(x) {
+                if not pattern[i] {
+                    X(x[i]);
+                }
+            }
+        } apply {
+            Controlled Z(Most(x), Tail(x));
+        }
+    }
 
     // ------------------------------------------------------
     @EntryPoint()
@@ -11,7 +25,7 @@ namespace Kata.Verification {
                 let isCorrect = CheckOperationsEqualReferenced(
                     N,
                     Kata.ArbitraryBitPattern_Oracle_Challenge(_, pattern),
-                    ArbitraryBitPattern_Oracle_Challenge(_, pattern));
+                    ArbitraryBitPattern_Oracle_Challenge_Reference(_, pattern));
                 if not isCorrect {
                     Message($"Failed on pattern {pattern}.");
                     return false;

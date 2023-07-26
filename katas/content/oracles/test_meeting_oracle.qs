@@ -1,9 +1,7 @@
 namespace Kata {
-
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Convert;
-    open Kata.Verification; // TODO: Remove this when ApplyControledOnInt is in the library.
 
     // The classical function to perform the same computation
     function Meeting_Classical(x: Bool[], jasmine: Bool[]): Bool {
@@ -17,8 +15,6 @@ namespace Kata {
         // At least one of them is busy every day of the week
         return false;
     }
-
-    // TODO: Reuse oracles when reuse is implemented.
 
     operation Or_Oracle(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
         X(y);

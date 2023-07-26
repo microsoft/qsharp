@@ -1,4 +1,4 @@
-namespace Kata.Verification {
+namespace Kata {
 
     // Task 2.1.
     operation ApplyMarkingOracleAsPhaseOracle(
