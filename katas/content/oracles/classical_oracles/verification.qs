@@ -2,6 +2,11 @@ namespace Kata.Verification {
 
     open Microsoft.Quantum.Convert;
 
+    // Task 1.1.
+    function IsSeven_Reference(x: Bool[]): Bool {
+        return BoolArrayAsInt(x) == 7;
+    }
+
     // ------------------------------------------------------
     @EntryPoint()
     function CheckSolution(): Bool {
@@ -10,7 +15,7 @@ namespace Kata.Verification {
             let x = IntAsBoolArray(k, N);
 
             let actual = Kata.IsSeven(x);
-            let expected = IsSeven(x);
+            let expected = IsSeven_Reference(x);
 
             if actual != expected {
                 Message($"Failed on test case x = {x}: got {actual}, expected {expected}");

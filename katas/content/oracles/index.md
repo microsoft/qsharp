@@ -27,29 +27,16 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 >
 > This function is an example of a classical oracle.
 
-### <span style="color:blue">Task 1.1</span>: Implement a classical oracle
-**Input:** 
-  A bit vector of length 3 represented as a `Bool[]` - a binary representation of a number.
-
-**Output:**
-  Return `true` if the input array represents the number $7$, and `false` otherwise.
-
-**Examples:**
-
-* If the input array is `[true, true, true]`, return `true`.
-* If the input array is `[true, true, false]`, return `false`.
-
 @[exercise]({
 "id": "classical_oracles",
-"codeDependenciesPaths": [
+"descriptionPath": "./classical_oracles/index.md",
+"placeholderSourcePath": "./classical_oracles/placeholder.qs",
+"solutionPath": "./classical_oracles/solution.md",
+"codePaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./classical_oracles/solution.qs"
-],
-"verificationSourcePath": "./classical_oracles/verification.qs",
-"placeholderSourcePath": "./classical_oracles/placeholder.qs",
-"solutionSourcePath": "./classical_oracles/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./classical_oracles/verification.qs"
+]
 })
 
 ## Quantum Oracles
@@ -106,38 +93,16 @@ After applying the oracle the absolute values of all amplitudes are the same, bu
 
 Now you will implement the classical oracle that you've implemented in task 1.1 as a quantum phase oracle $U_{7,phase}$.
 
-### <span style="color:blue">Task 1.2</span>: Implement a phase oracle
-
-**Input:**
-  3 qubits in an arbitrary state $|x\rangle$ (input/query register).
-
-**Goal:**
-
-Flip the sign of the input state $|x\rangle$ if the input register is in
-the state $|111\rangle$ (encoding the integer $7$), and leave the input register unchanged otherwise.  
-Don't allocate extra qubits to perform this operation.
-
-**Examples:**
-
-* If the query register is in the state $|111\rangle$, flip its sign.
-* If the query register is in the state $|010\rangle$ or $|101\rangle$, do nothing.
-
-<details>
-  <summary><b>Need a hint? Click here</b></summary>
-  To solve this problem, you need to find a gate that will only flip the sign of the $|111\rangle$ basis state.  Which single-qubit gate flips the sign of the basis state $|1\rangle$ but not $|0\rangle$? How can you modify this gate to solve this problem?
-</details>
-
 @[exercise]({
 "id": "phase_oracle_seven",
+"descriptionPath": "./phase_oracle_seven/index.md",
+"placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
+"solutionPath": "./solution.md"
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
 "./common.qs",
-"./phase_oracle_seven/solution.qs"
-],
-"verificationSourcePath": "./phase_oracle_seven/verification.qs",
-"placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
-"solutionSourcePath": "./phase_oracle_seven/solution.qs",
-"solutionDescriptionPath": "./solution.md"
+"./phase_oracle_seven/verification.qs"
+]
 })
 
 <details>

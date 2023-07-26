@@ -1,10 +1,20 @@
 namespace Kata.Verification {
 
+    open Microsoft.Quantum.Arrays;
+
+    // Task 1.2.
+    operation IsSeven_PhaseOracle_Reference(x : Qubit[]) : Unit is Adj + Ctl {
+        Controlled Z(Most(x), Tail(x));
+    }
+
     // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution(): Bool {
         let N = 3;
-        let isCorrect = CheckOperationsEqualReferenced(N, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle);
+        let isCorrect = CheckOperationsEqualReferenced(
+            N,
+            Kata.IsSeven_PhaseOracle,
+            IsSeven_PhaseOracle_Reference);
         if isCorrect {
             Message("All tests passed.");
         } else {

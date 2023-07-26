@@ -1,4 +1,4 @@
-namespace Kata.Verification {
+namespace Kata {
 
     open Microsoft.Quantum.Arrays;
 

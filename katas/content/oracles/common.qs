@@ -67,46 +67,6 @@ namespace Kata.Verification {
         }
     }
 
-
-    // TODO: Move to standard library
-
-    // Applies operator `op` on each qubit in the `qubits` array if the
-    // corresponding bit in the LittleEndian `number` matches the given
-    // `bitApply`.
-    operation ApplyOpFromInt(
-        number: Int,
-        bitApply: Bool,
-        op:(Qubit => Unit is Adj),
-        qubits: Qubit[]): Unit is Adj {
-
-        Fact(number>=0, "number must be non-negative");
-
-        for i in 0..Length(qubits)-1 {
-            // If we assume loop unrolling, 2^i
-            // will be optimized to a constant.
-            if (((number &&& 2^i) != 0) == bitApply) {
-                op(qubits[i]);
-            }
-        }
-    }
-
-    // Applies a unitary operation `oracle` on the target qubit
-    // if the control register state corresponds to a specified
-    // nonnegative integer `numberState`.
-    operation ApplyControlledOnInt(
-        numberState: Int,
-        controls: Qubit[],
-        oracle:(Qubit => Unit is Adj + Ctl),
-        target: Qubit): Unit is Adj + Ctl {
-
-        within {
-            ApplyOpFromInt(numberState, false, X, controls);
-        } apply {
-            Controlled oracle(controls, target);
-        }
-    }
-
-
     // ------------------------------------------------------
     // Helper functions
     operation ApplyOracle (qs : Qubit[], oracle : ((Qubit[], Qubit) => Unit is Adj + Ctl)) : Unit is Adj + Ctl {

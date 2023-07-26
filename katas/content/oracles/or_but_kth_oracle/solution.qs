@@ -2,7 +2,7 @@ namespace Kata.Verification {
 
     operation Or_Oracle(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
         X(y);
-        ApplyControlledOnInt(0, x, X, y);
+        ApplyControlledOnInt(0, X, x, y);
     }
 
     // Task 3.3.
