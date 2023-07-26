@@ -405,7 +405,7 @@ namespace Microsoft.Quantum.Canon {
     }
 
     /// # Summary
-    /// Applies a unitary operation on the target register if the control
+    /// Applies a unitary operation on the target if the control
     /// register state corresponds to a specified nonnegative integer.
     ///
     /// # Input
@@ -414,8 +414,8 @@ namespace Microsoft.Quantum.Canon {
     /// controlled.
     /// ## oracle
     /// A unitary operation to be controlled.
-    /// ## targetRegister
-    /// A register on which to apply `oracle`.
+    /// ## target
+    /// A target on which to apply `oracle`.
     /// ## controlRegister
     /// A quantum register that controls application of `oracle`.
     ///
@@ -429,26 +429,26 @@ namespace Microsoft.Quantum.Canon {
         numberState: Int,
         oracle: ('T => Unit is Adj + Ctl),
         controlRegister: Qubit[],
-        targetRegister: 'T): Unit is Adj + Ctl {
+        target: 'T): Unit is Adj + Ctl {
 
         within {
             ApplyPauliFromInt(PauliX, false, numberState, controlRegister);
         } apply {
-            Controlled oracle(controlRegister, targetRegister);
+            Controlled oracle(controlRegister, target);
         }
     }
 
     /// # Summary
-    /// Applies a unitary operation on the target register,
+    /// Applies a unitary operation on the target,
     /// controlled on a state specified by a given bit mask.
     ///
     /// # Input
     /// ## bits
     /// The bit string to control the given unitary operation on.
     /// ## oracle
-    /// The unitary operation to be applied on the target register.
-    /// ## targetRegister
-    /// The target register to be passed to `oracle` as an input.
+    /// The unitary operation to be applied on the target.
+    /// ## target
+    /// The target to be passed to `oracle` as an input.
     /// ## controlRegister
     /// A quantum register that controls application of `oracle`.
     ///
@@ -464,8 +464,8 @@ namespace Microsoft.Quantum.Canon {
         bits: Bool[],
         oracle: ('T => Unit is Adj + Ctl),
         controlRegister: Qubit[],
-        targetRegister: 'T): Unit is Adj + Ctl {
-            
+        target: 'T): Unit is Adj + Ctl {
+
         // The control register must have enough bits to implement the requested control.
         Fact(Length(bits) <= Length(controlRegister), "Control register shorter than control pattern.");
 
@@ -475,7 +475,7 @@ namespace Microsoft.Quantum.Canon {
         within {
             ApplyPauliFromBitString(PauliX, false, bits, controlSubregister);
         } apply {
-            Controlled oracle(controlSubregister, targetRegister);
+            Controlled oracle(controlSubregister, target);
         }
     }
 
