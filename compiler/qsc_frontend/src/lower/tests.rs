@@ -239,9 +239,332 @@ fn lift_local_newtype() {
                         ctl-adj: <none>
                 Item 2 [49-67] (Internal):
                     Parent: 1
-                    Type (Ident 6 [57-60] "Bar"): Udt:
-                        base: Int
-                        fields:"#]],
+                    Type (Ident 6 [57-60] "Bar"): UDT [49-67]:
+                        TyDef [63-66]: Field:
+                            type: Int"#]],
+    );
+}
+
+#[test]
+fn lift_newtype() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                newtype Foo = Int;
+                operation Bar() : Unit {
+                    let x = Foo(1);
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-97] (Public):
+                    Namespace (Ident 12 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-36] (Public):
+                    Parent: 0
+                    Type (Ident 0 [26-29] "Foo"): UDT [18-36]:
+                        TyDef [32-35]: Field:
+                            type: Int
+                Item 2 [41-95] (Public):
+                    Parent: 0
+                    Callable 1 [41-95] (operation):
+                        name: Ident 2 [51-54] "Bar"
+                        input: Pat 3 [54-56] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [41-95]: Impl:
+                            Block 5 [64-95] [Type Unit]:
+                                Stmt 6 [74-89]: Local (Immutable):
+                                    Pat 7 [78-79] [Type UDT<Item 1>]: Bind: Ident 8 [78-79] "x"
+                                    Expr 9 [82-88] [Type UDT<Item 1>]: Call:
+                                        Expr 10 [82-85] [Type (Int -> UDT<Item 1>)]: Var: Item 1
+                                        Expr 11 [86-87] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lift_newtype_tuple() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, Double);
+                operation Bar() : Unit {
+                    let x = Foo(1, 2.3);
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-112] (Public):
+                    Namespace (Ident 14 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-46] (Public):
+                    Parent: 0
+                    Type (Ident 0 [26-29] "Foo"): UDT [18-46]:
+                        TyDef [32-45]: Tuple:
+                            TyDef [33-36]: Field:
+                                type: Int
+                            TyDef [38-44]: Field:
+                                type: Double
+                Item 2 [51-110] (Public):
+                    Parent: 0
+                    Callable 1 [51-110] (operation):
+                        name: Ident 2 [61-64] "Bar"
+                        input: Pat 3 [64-66] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [51-110]: Impl:
+                            Block 5 [74-110] [Type Unit]:
+                                Stmt 6 [84-104]: Local (Immutable):
+                                    Pat 7 [88-89] [Type UDT<Item 1>]: Bind: Ident 8 [88-89] "x"
+                                    Expr 9 [92-103] [Type UDT<Item 1>]: Call:
+                                        Expr 10 [92-95] [Type ((Int, Double) -> UDT<Item 1>)]: Var: Item 1
+                                        Expr 11 [95-103] [Type (Int, Double)]: Tuple:
+                                            Expr 12 [96-97] [Type Int]: Lit: Int(1)
+                                            Expr 13 [99-102] [Type Double]: Lit: Double(2.3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lift_newtype_tuple_fields() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                newtype Foo = (a: Int, b: Double);
+                operation Bar() : Unit {
+                    let x = Foo(1, 2.3);
+                    let y = x::b;
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-140] (Public):
+                    Namespace (Ident 19 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-52] (Public):
+                    Parent: 0
+                    Type (Ident 0 [26-29] "Foo"): UDT [18-52]:
+                        TyDef [32-51]: Tuple:
+                            TyDef [33-39]: Field:
+                                name: a [33-34]
+                                type: Int
+                            TyDef [41-50]: Field:
+                                name: b [41-42]
+                                type: Double
+                Item 2 [57-138] (Public):
+                    Parent: 0
+                    Callable 1 [57-138] (operation):
+                        name: Ident 2 [67-70] "Bar"
+                        input: Pat 3 [70-72] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [57-138]: Impl:
+                            Block 5 [80-138] [Type Unit]:
+                                Stmt 6 [90-110]: Local (Immutable):
+                                    Pat 7 [94-95] [Type UDT<Item 1>]: Bind: Ident 8 [94-95] "x"
+                                    Expr 9 [98-109] [Type UDT<Item 1>]: Call:
+                                        Expr 10 [98-101] [Type ((Int, Double) -> UDT<Item 1>)]: Var: Item 1
+                                        Expr 11 [101-109] [Type (Int, Double)]: Tuple:
+                                            Expr 12 [102-103] [Type Int]: Lit: Int(1)
+                                            Expr 13 [105-108] [Type Double]: Lit: Double(2.3)
+                                Stmt 14 [119-132]: Local (Immutable):
+                                    Pat 15 [123-124] [Type Double]: Bind: Ident 16 [123-124] "y"
+                                    Expr 17 [127-131] [Type Double]: Field:
+                                        Expr 18 [127-128] [Type UDT<Item 1>]: Var: Local 8
+                                        Path(FieldPath { indices: [1] })
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lift_newtype_nested_tuple() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, (Double, Bool));
+                operation Bar() : Unit {
+                    let x = Foo(1, (2.3, true));
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-128] (Public):
+                    Namespace (Ident 16 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-54] (Public):
+                    Parent: 0
+                    Type (Ident 0 [26-29] "Foo"): UDT [18-54]:
+                        TyDef [32-53]: Tuple:
+                            TyDef [33-36]: Field:
+                                type: Int
+                            TyDef [38-52]: Tuple:
+                                TyDef [39-45]: Field:
+                                    type: Double
+                                TyDef [47-51]: Field:
+                                    type: Bool
+                Item 2 [59-126] (Public):
+                    Parent: 0
+                    Callable 1 [59-126] (operation):
+                        name: Ident 2 [69-72] "Bar"
+                        input: Pat 3 [72-74] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [59-126]: Impl:
+                            Block 5 [82-126] [Type Unit]:
+                                Stmt 6 [92-120]: Local (Immutable):
+                                    Pat 7 [96-97] [Type UDT<Item 1>]: Bind: Ident 8 [96-97] "x"
+                                    Expr 9 [100-119] [Type UDT<Item 1>]: Call:
+                                        Expr 10 [100-103] [Type ((Int, (Double, Bool)) -> UDT<Item 1>)]: Var: Item 1
+                                        Expr 11 [103-119] [Type (Int, (Double, Bool))]: Tuple:
+                                            Expr 12 [104-105] [Type Int]: Lit: Int(1)
+                                            Expr 13 [107-118] [Type (Double, Bool)]: Tuple:
+                                                Expr 14 [108-111] [Type Double]: Lit: Double(2.3)
+                                                Expr 15 [113-117] [Type Bool]: Lit: Bool(true)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lift_newtype_nested_tuple_fields() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                newtype Foo = (a: Int, (b: Double, c: Bool));
+                operation Bar() : Unit {
+                    let x = Foo(1, (2.3, true));
+                    let y = x::c;
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-159] (Public):
+                    Namespace (Ident 21 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-63] (Public):
+                    Parent: 0
+                    Type (Ident 0 [26-29] "Foo"): UDT [18-63]:
+                        TyDef [32-62]: Tuple:
+                            TyDef [33-39]: Field:
+                                name: a [33-34]
+                                type: Int
+                            TyDef [41-61]: Tuple:
+                                TyDef [42-51]: Field:
+                                    name: b [42-43]
+                                    type: Double
+                                TyDef [53-60]: Field:
+                                    name: c [53-54]
+                                    type: Bool
+                Item 2 [68-157] (Public):
+                    Parent: 0
+                    Callable 1 [68-157] (operation):
+                        name: Ident 2 [78-81] "Bar"
+                        input: Pat 3 [81-83] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [68-157]: Impl:
+                            Block 5 [91-157] [Type Unit]:
+                                Stmt 6 [101-129]: Local (Immutable):
+                                    Pat 7 [105-106] [Type UDT<Item 1>]: Bind: Ident 8 [105-106] "x"
+                                    Expr 9 [109-128] [Type UDT<Item 1>]: Call:
+                                        Expr 10 [109-112] [Type ((Int, (Double, Bool)) -> UDT<Item 1>)]: Var: Item 1
+                                        Expr 11 [112-128] [Type (Int, (Double, Bool))]: Tuple:
+                                            Expr 12 [113-114] [Type Int]: Lit: Int(1)
+                                            Expr 13 [116-127] [Type (Double, Bool)]: Tuple:
+                                                Expr 14 [117-120] [Type Double]: Lit: Double(2.3)
+                                                Expr 15 [122-126] [Type Bool]: Lit: Bool(true)
+                                Stmt 16 [138-151]: Local (Immutable):
+                                    Pat 17 [142-143] [Type Bool]: Bind: Ident 18 [142-143] "y"
+                                    Expr 19 [146-150] [Type Bool]: Field:
+                                        Expr 20 [146-147] [Type UDT<Item 1>]: Var: Local 8
+                                        Path(FieldPath { indices: [1, 1] })
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lift_newtype_from_newtype() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                newtype Foo = (a: Int, (b: Double, c: Bool));
+                newtype Bar = (x: Int, y: Foo);
+                operation Baz() : Unit {
+                    let x = Bar(1, Foo(2, (3.4, false)));
+                    let y = x::y::c;
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-207] (Public):
+                    Namespace (Ident 27 [10-11] "A"): Item 1, Item 2, Item 3
+                Item 1 [18-63] (Public):
+                    Parent: 0
+                    Type (Ident 0 [26-29] "Foo"): UDT [18-63]:
+                        TyDef [32-62]: Tuple:
+                            TyDef [33-39]: Field:
+                                name: a [33-34]
+                                type: Int
+                            TyDef [41-61]: Tuple:
+                                TyDef [42-51]: Field:
+                                    name: b [42-43]
+                                    type: Double
+                                TyDef [53-60]: Field:
+                                    name: c [53-54]
+                                    type: Bool
+                Item 2 [68-99] (Public):
+                    Parent: 0
+                    Type (Ident 1 [76-79] "Bar"): UDT [68-99]:
+                        TyDef [82-98]: Tuple:
+                            TyDef [83-89]: Field:
+                                name: x [83-84]
+                                type: Int
+                            TyDef [91-97]: Field:
+                                name: y [91-92]
+                                type: UDT<Item 1>
+                Item 3 [104-205] (Public):
+                    Parent: 0
+                    Callable 2 [104-205] (operation):
+                        name: Ident 3 [114-117] "Baz"
+                        input: Pat 4 [117-119] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 5 [104-205]: Impl:
+                            Block 6 [127-205] [Type Unit]:
+                                Stmt 7 [137-174]: Local (Immutable):
+                                    Pat 8 [141-142] [Type UDT<Item 2>]: Bind: Ident 9 [141-142] "x"
+                                    Expr 10 [145-173] [Type UDT<Item 2>]: Call:
+                                        Expr 11 [145-148] [Type ((Int, UDT<Item 1>) -> UDT<Item 2>)]: Var: Item 2
+                                        Expr 12 [148-173] [Type (Int, UDT<Item 1>)]: Tuple:
+                                            Expr 13 [149-150] [Type Int]: Lit: Int(1)
+                                            Expr 14 [152-172] [Type UDT<Item 1>]: Call:
+                                                Expr 15 [152-155] [Type ((Int, (Double, Bool)) -> UDT<Item 1>)]: Var: Item 1
+                                                Expr 16 [155-172] [Type (Int, (Double, Bool))]: Tuple:
+                                                    Expr 17 [156-157] [Type Int]: Lit: Int(2)
+                                                    Expr 18 [159-171] [Type (Double, Bool)]: Tuple:
+                                                        Expr 19 [160-163] [Type Double]: Lit: Double(3.4)
+                                                        Expr 20 [165-170] [Type Bool]: Lit: Bool(false)
+                                Stmt 21 [183-199]: Local (Immutable):
+                                    Pat 22 [187-188] [Type Bool]: Bind: Ident 23 [187-188] "y"
+                                    Expr 24 [191-198] [Type Bool]: Field:
+                                        Expr 25 [191-195] [Type UDT<Item 1>]: Field:
+                                            Expr 26 [191-192] [Type UDT<Item 2>]: Var: Local 9
+                                            Path(FieldPath { indices: [1] })
+                                        Path(FieldPath { indices: [1, 1] })
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -1550,9 +1873,8 @@ fn item_docs() {
                     Parent: 0
                     Doc:
                         This is a newtype.
-                    Type (Ident 0 [102-105] "Foo"): Udt:
-                        base: Unit
-                        fields:
+                    Type (Ident 0 [102-105] "Foo"): UDT [59-111]:
+                        TyDef [108-110]: Unit
                 Item 2 [125-183] (Public):
                     Parent: 0
                     Doc:
