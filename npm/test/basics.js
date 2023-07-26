@@ -148,45 +148,88 @@ async function runExerciseSolutionCheck(exercise, solution) {
   };
 }
 
-async function validateKata(kata, validatePlaceholder) {
+async function validateExercise(
+  exercise,
+  validatePlaceholder,
+  validateSolutions
+) {
+  // Validate the correctness of the placeholder code.
+  if (validatePlaceholder) {
+    const result = await runExerciseSolutionCheck(
+      exercise,
+      exercise.placeholderCode
+    );
+
+    // Check that there are no compilation or runtime errors.
+    assert(
+      result.errorCount === 0,
+      `Placeholder for exercise "${exercise.id}" has compilation or runtime errors` +
+        `Compilation and runtime errors:\n${result.errorMsg}`
+    );
+
+    // Check that the placeholder is an incorrect solution.
+    assert(
+      !result.success,
+      `Placeholder for exercise "${exercise.id}" is a correct solution but it is expected to be an incorrect solution`
+    );
+  }
+
+  // Validate the correctness of the solutions.
+  if (validateSolutions) {
+    const solutions = exercise.explainedSolution.items.filter(
+      (item) => item.type === "solution"
+    );
+
+    // Check that the exercise has at least one solution.
+    assert(
+      solutions.length > 0,
+      `Exercise "${exercise.id}" does not have solutions`
+    );
+  }
+}
+
+async function validateKata(
+  kata,
+  validateExercisePlaceholder,
+  validateExerciseSolutions
+) {
+  // Validate the correctness of Q# code related to exercises.
   const exercises = kata.sections.filter(
     (section) => section.type === "exercise"
   );
   for (const exercise of exercises) {
-    if (validatePlaceholder) {
-      const result = await runExerciseSolutionCheck(
-        exercise,
-        exercise.placeholderCode
-      );
-      if (result.success || result.errorCount > 0) {
-        console.log(
-          `Exercise error (${exercise.id}):\n| ${result.success} \n| ${result.errorMsg}`
-        );
-      }
-      assert(!result.success);
-      assert(result.errorCount === 0);
-    }
+    await validateExercise(
+      exercise,
+      validateExercisePlaceholder,
+      validateExerciseSolutions
+    );
   }
 }
 
 test("all katas work", async () => {
   const katas = await getAllKatas();
-  assert.equal(katas.length, 3);
+  // N.B. If you update the expected katas count, make sure to add a validation test for your newly added kata.
+  const expectedKatasCount = 3;
+  assert.equal(
+    katas.length,
+    expectedKatasCount,
+    `Expected ${expectedKatasCount} katas, but found ${katas.length} katas`
+  );
 });
 
 test("qubit kata is valid", async () => {
   const kata = await getKata("qubit");
-  await validateKata(kata, true);
+  await validateKata(kata, true, true);
 });
 
 test("single_qubit_gates kata is valid", async () => {
   const kata = await getKata("single_qubit_gates");
-  await validateKata(kata, true);
+  await validateKata(kata, true, true);
 });
 
 test("multi_qubit_gates kata is valid", async () => {
   const kata = await getKata("multi_qubit_gates");
-  await validateKata(kata, true);
+  await validateKata(kata, true, true);
 });
 
 test("worker 100 shots", async () => {
