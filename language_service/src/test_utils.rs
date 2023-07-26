@@ -36,6 +36,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
             "<std>".into(),
             "namespace FakeStdLib {
                 operation Fake() : Unit {}
+                operation FakeWithParam(x: Int) : Unit {}
                 operation FakeCtlAdj() : Unit is Ctl + Adj {}
             }"
             .into(),
