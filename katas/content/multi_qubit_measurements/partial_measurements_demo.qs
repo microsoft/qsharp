@@ -1,13 +1,12 @@
-namespace Kata.Reference {
+namespace Kata {
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Preparation;
     open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
     operation DemoPartialMeasurement() : Unit {
-        let numRuns = 100;
+        let numRuns = 1000;
         let divider = "--------------------------------------------------------------------------------------------------";
         // 
         // We can use coefficients without normalization in PrepareArbitraryStateD, 
@@ -22,7 +21,7 @@ namespace Kata.Reference {
         for i in 1 .. numRuns {
             // Prepare the state from Exercise 4:
             // |𝜓❭ = (1/√12)(3|00⟩+|01⟩+|10⟩+|11⟩) 
-            PrepareArbitraryStateD(coefficients, LittleEndian(qs));
+            PrepareHardyState(qs);
                 
             // Display the state of the qubits.
             if i == 1 {
@@ -51,6 +50,25 @@ namespace Kata.Reference {
         
         Message($"Theoretical measurement probabilities are {expected_probabilities}");
         Message($"Simulated measurement probabilities are {simulated_probabilities}");
+    }
+    
+    operation PrepareHardyState(q: Qubit[]): Unit {
+        within {
+            S(q[1]);
+            H(q[1]);
+        } apply {
+            Rz(-ArcCos(2.0/3.0), q[1]);
+        }
+
+        within {
+            S(q[0]);
+            H(q[0]);
+        } apply {
+            CNOT(q[1], q[0]);
+            Rz(ArcTan(1.0/2.0), q[0]);
+            CNOT(q[1], q[0]);
+            Rz(-ArcTan(2.0), q[0]);
+        }        
     }
 
 }
