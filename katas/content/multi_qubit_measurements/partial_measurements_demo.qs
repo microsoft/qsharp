@@ -53,13 +53,7 @@ namespace Kata {
     }
     
     operation PrepareHardyState(q: Qubit[]): Unit {
-        within {
-            S(q[1]);
-            H(q[1]);
-        } apply {
-            Rz(-ArcCos(2.0/3.0), q[1]);
-        }
-
+        Ry(ArcCos(2.0/3.0), q[1]);
         within {
             S(q[0]);
             H(q[0]);
