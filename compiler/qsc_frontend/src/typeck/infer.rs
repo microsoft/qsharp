@@ -984,7 +984,7 @@ fn check_unwrap(
             return (
                 vec![Constraint::Eq {
                     expected: base,
-                    actual: udt.base.clone(),
+                    actual: udt.get_pure_ty(),
                     span,
                 }],
                 Vec::new(),
