@@ -15,6 +15,17 @@ on:
   schedule:                                   # Production runs against default branch.
     - cron: '24 11 * * 0'                     # Run after 11:24 UTC (4:24am PDT/3:24am PST) on Sun.
   workflow_dispatch:                          # Manual runs.
+  push:
+    branches:
+      - main                                  # Development runs against main branch.
+    paths:
+      - 'compiler/**'                         # Run if the compiler was changed.
+      - 'fuzz/**'                             # Run if the fuzzing infra was changed.
+      - '.github/ISSUE_TEMPLATE/fuzz_bug_report.md'
+                                              # Run if the GitHub issue template was changed.
+      - '.github/workflows/fuzz.yml'          # Run if the workflow itself was changed.
+      - '!compiler/qsc_eval/**'               # Exclude the qsc_eval dir.
+      - '!compiler/qsc_codegen/**'            # Exclude the qsc_codegen dir.
 
 jobs:
   fuzz:
