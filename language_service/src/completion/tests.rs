@@ -1,76 +1,77 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use expect_test::{expect, Expect};
+
 use super::{get_completions, CompletionItemKind};
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 
-/// Asserts that the completion list at the given cursor position contains the expected completions.
-/// The cursor position is indicated by a `↘` marker in the source text.
 fn assert_completions_contain(
     source_with_cursor: &str,
-    completions: &[(&str, CompletionItemKind)],
+    completions_to_check: &[&str],
+    expect: &Expect,
 ) {
     let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual_completions = get_completions(&compilation, "<source>", cursor_offset[0]);
-    for expected_completion in completions.iter() {
-        assert!(
-            actual_completions
-                .items
-                .iter()
-                .any(|c| c.kind == expected_completion.1 && c.label == expected_completion.0),
-            "expected to find\n{expected_completion:?}\nin:\n{actual_completions:?}"
-        );
-    }
-}
+    let checked_completions: Vec<Option<(&String, CompletionItemKind, &Option<String>)>> =
+        completions_to_check
+            .iter()
+            .map(|comp| {
+                actual_completions.items.iter().find_map(|item| {
+                    if item.label == **comp {
+                        Some((&item.label, item.kind, &item.detail))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
 
-fn assert_completions_contain_detail(
-    source_with_cursor: &str,
-    completions: &[(&str, CompletionItemKind, Option<String>)],
-) {
-    let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual_completions = get_completions(&compilation, "<source>", cursor_offset[0]);
-    for expected_completion in completions.iter() {
-        assert!(
-            actual_completions
-                .items
-                .iter()
-                .any(|c| c.kind == expected_completion.1
-                    && c.label == expected_completion.0
-                    && c.detail == expected_completion.2),
-            "expected to find\n{expected_completion:?}\nin:\n{actual_completions:?}"
-        );
-    }
+    expect.assert_debug_eq(&checked_completions);
 }
 
 #[test]
 fn in_block_contains_std_functions() {
-    assert_completions_contain_detail(
+    assert_completions_contain(
         r#"
     namespace Test {
         operation Test() : Unit {
             ↘
         }
     }"#,
-        &[
-            (
-                "Fake",
-                CompletionItemKind::Function,
-                Some("operation Fake() : Unit".to_owned()),
-            ),
-            (
-                "FakeWithParam",
-                CompletionItemKind::Function,
-                Some("operation FakeWithParam(x: Int) : Unit".to_owned()),
-            ),
-            (
-                "FakeCtlAdj",
-                CompletionItemKind::Function,
-                Some("operation FakeCtlAdj() : Unit is Adj + Ctl".to_owned()),
-            ),
-            ("FakeStdLib", CompletionItemKind::Module, None),
-        ],
+        &["Fake", "FakeWithParam", "FakeCtlAdj"],
+        &expect![[r#"
+            [
+                Some(
+                    (
+                        "Fake",
+                        Function,
+                        Some(
+                            "operation Fake() : Unit",
+                        ),
+                    ),
+                ),
+                Some(
+                    (
+                        "FakeWithParam",
+                        Function,
+                        Some(
+                            "operation FakeWithParam(x: Int) : Unit",
+                        ),
+                    ),
+                ),
+                Some(
+                    (
+                        "FakeCtlAdj",
+                        Function,
+                        Some(
+                            "operation FakeCtlAdj() : Unit is Adj + Ctl",
+                        ),
+                    ),
+                ),
+            ]
+        "#]],
     );
 }
 
@@ -83,7 +84,18 @@ fn in_namespace_contains_open() {
         operation Test() : Unit {
         }
     }"#,
-        &[("open", CompletionItemKind::Keyword)],
+        &["open"],
+        &expect![[r#"
+            [
+                Some(
+                    (
+                        "open",
+                        Keyword,
+                        None,
+                    ),
+                ),
+            ]
+        "#]],
     );
 }
 
@@ -94,6 +106,17 @@ fn top_level_contains_namespace() {
         namespace Test {}
         ↘
         "#,
-        &[("namespace", CompletionItemKind::Keyword)],
+        &["namespace"],
+        &expect![[r#"
+            [
+                Some(
+                    (
+                        "namespace",
+                        Keyword,
+                        None,
+                    ),
+                ),
+            ]
+        "#]],
     );
 }
