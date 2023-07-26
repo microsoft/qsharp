@@ -1,12 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use indenter::{indented, Format, Indented};
+use qsc_data_structures::span::Span;
+
 use crate::hir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
 };
+
+fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: usize,
+) -> Indented<'a, Formatter<'b>> {
+    indent.with_format(Format::Custom {
+        inserter: Box::new(move |_, f| {
+            for _ in 0..level {
+                write!(f, "    ")?;
+            }
+            Ok(())
+        }),
+    })
+}
 
 /// A type.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -389,13 +406,26 @@ impl Display for FunctorSetValue {
 /// A user-defined type.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Udt {
-    /// The basis type used as the definition of the user-defined type.
-    pub base: Ty,
-    /// The named fields of the user-defined type.
-    pub fields: Vec<UdtField>,
+    /// The span.
+    pub span: Span,
+    /// The name.
+    pub name: Rc<str>,
+    // The definition.
+    pub definition: UdtDef,
 }
 
 impl Udt {
+    #[must_use]
+    pub fn get_pure_ty(&self) -> Ty {
+        fn get_pure_ty(def: &UdtDef) -> Ty {
+            match &def.kind {
+                UdtDefKind::Field(field) => field.ty.clone(),
+                UdtDefKind::Tuple(tup) => Ty::Tuple(tup.iter().map(get_pure_ty).collect()),
+            }
+        }
+        get_pure_ty(&self.definition)
+    }
+
     /// The type scheme of the constructor for this type definition.
     ///
     /// # Arguments
@@ -407,7 +437,7 @@ impl Udt {
             params: Vec::new(),
             ty: Box::new(Arrow {
                 kind: CallableKind::Function,
-                input: Box::new(self.base.clone()),
+                input: Box::new(self.get_pure_ty()),
                 output: Box::new(Ty::Udt(Res::Item(id))),
                 functors: FunctorSet::Value(FunctorSetValue::Empty),
             }),
@@ -417,26 +447,43 @@ impl Udt {
     /// The path to the field with the given name. Returns [None] if this user-defined type does not
     /// have a field with the given name.
     #[must_use]
-    pub fn field_path(&self, name: &str) -> Option<&FieldPath> {
-        for field in &self.fields {
-            if field.name.as_ref() == name {
-                return Some(&field.path);
-            }
-        }
+    pub fn field_path(&self, name: &str) -> Option<FieldPath> {
+        Self::find_field_path(&self.definition, name)
+    }
 
-        None
+    fn find_field_path(def: &UdtDef, name: &str) -> Option<FieldPath> {
+        match &def.kind {
+            UdtDefKind::Field(field) => field.name.as_ref().and_then(|field_name| {
+                if field_name.as_ref() == name {
+                    Some(FieldPath::default())
+                } else {
+                    None
+                }
+            }),
+            UdtDefKind::Tuple(defs) => defs.iter().enumerate().find_map(|(i, def)| {
+                Self::find_field_path(def, name).map(|mut path| {
+                    path.indices.insert(0, i);
+                    path
+                })
+            }),
+        }
+    }
+
+    fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
+        let mut udt_def = &self.definition;
+        for &index in &path.indices {
+            let UdtDefKind::Tuple(items) = &udt_def.kind else { return None };
+            udt_def = &items[index];
+        }
+        let UdtDefKind::Field(field) = &udt_def.kind else { return None };
+        Some(field)
     }
 
     /// The type of the field at the given path. Returns [None] if the path is not valid for this
     /// user-defined type.
     #[must_use]
     pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
-        let mut ty = &self.base;
-        for &index in &path.indices {
-            let Ty::Tuple(items) = ty else { return None; };
-            ty = &items[index];
-        }
-        Some(ty)
+        self.find_field(path).map(|field| &field.ty)
     }
 
     /// The type of the field with the given name. Returns [None] if this user-defined type does not
@@ -444,29 +491,90 @@ impl Udt {
     #[must_use]
     pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
         let path = self.field_path(name)?;
-        self.field_ty(path)
+        self.field_ty(&path)
     }
 }
 
 impl Display for Udt {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.write_str("Udt:")?;
-        write!(f, "\n    base: {}", self.base)?;
-        f.write_str("\n    fields:")?;
-        for field in &self.fields {
-            write!(f, "\n        {}: {:?}", field.name, field.path.indices)?;
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "UDT {}:", self.span)?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\n{}", self.definition)?;
+        Ok(())
+    }
+}
+
+/// A UDT type definition.
+#[derive(Clone, Debug, PartialEq)]
+pub struct UdtDef {
+    /// The span.
+    pub span: Span,
+    /// The type definition kind.
+    pub kind: UdtDefKind,
+}
+
+impl Display for UdtDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "TyDef {}: {}", self.span, self.kind)
+    }
+}
+
+/// A UDT type definition kind.
+#[derive(Clone, Debug, PartialEq)]
+pub enum UdtDefKind {
+    /// A field definition with an optional name but required type.
+    Field(UdtField),
+    /// A tuple.
+    Tuple(Vec<UdtDef>),
+}
+
+impl Display for UdtDefKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        match &self {
+            UdtDefKind::Field(field) => {
+                write!(indent, "Field:")?;
+                indent = set_indentation(indent, 1);
+                write!(indent, "{field}")?;
+            }
+            UdtDefKind::Tuple(ts) => {
+                if ts.is_empty() {
+                    write!(indent, "Unit")?;
+                } else {
+                    write!(indent, "Tuple:")?;
+                    indent = set_indentation(indent, 1);
+                    for t in ts.iter() {
+                        write!(indent, "\n{t}")?;
+                    }
+                }
+            }
         }
         Ok(())
     }
 }
 
-/// A named field in a user-defined type.
-#[derive(Clone, Debug, Eq, PartialEq)]
+/// A user-defined type.
+#[derive(Clone, Debug, PartialEq)]
 pub struct UdtField {
+    /// The span of the field name.
+    pub name_span: Option<Span>,
     /// The field name.
-    pub name: Rc<str>,
-    /// The field path.
-    pub path: FieldPath,
+    pub name: Option<Rc<str>>,
+    // The field type.
+    pub ty: Ty,
+}
+
+impl Display for UdtField {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(n) = &self.name {
+            if let Some(s) = &self.name_span {
+                write!(f, "\nname: {n} {s}")?;
+            }
+        }
+        write!(f, "\ntype: {}", self.ty)?;
+        Ok(())
+    }
 }
 
 /// A placeholder type variable used during type inference.
