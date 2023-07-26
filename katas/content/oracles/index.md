@@ -54,7 +54,7 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 
 ## Quantum Oracles
 
-An oracle in the quantum world is a "black box" operation that is used as input to an algorithm (such as Deutsch-Jozsa algorithm or Grover's search algorithm which you'll learn later). 
+An oracle in the quantum world is a "black box" operation that is used as input to an algorithm (such as Deutsch-Jozsa algorithm or Grover's search algorithm, which you'll learn later). 
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
 In this tutorial you will learn the properties of quantum oracles and how to implement them.
 
