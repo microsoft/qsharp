@@ -8,7 +8,7 @@ namespace Kata.Verification {
 
     operation CheckSolution() : Bool {
         use (control, target) = (Qubit(), Qubit());
-        let isCorrect = Kata.LearnSingleQubitState(target) == Kata.LearnSingleQubitState(control);
+        let isCorrect = Kata.LearnSingleQubitState(target) == LearnSingleQubitState(control);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         if isCorrect {
