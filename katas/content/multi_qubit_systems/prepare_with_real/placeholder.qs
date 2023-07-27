@@ -1,6 +1,6 @@
-﻿namespace Quantum.Kata {
+﻿namespace Kata {
 
-    operation PrepareState3 (qs : Qubit[]) : Unit is Adj+Ctl {
+    operation PrepareState3(qs: Qubit[]): Unit is Adj+Ctl {
         // ...
     }
 

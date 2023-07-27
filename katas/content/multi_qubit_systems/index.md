@@ -90,80 +90,17 @@ $$\begin{bmatrix} \frac{1}{\sqrt{2}} \\ 0 \\ \frac{1}{\sqrt{2}} \\ 0 \end{bmatri
 
 The states that allow such representation are known as **separable states**. 
 
-### <span style="color:blue">Exercise 1</span>: Show that the state is separable
-
-$$\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
-\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}$$
-
-*Can't come up with a solution? See the explained solution in the [Multi-Qubit Systems Workbook](./Workbook_MultiQubitSystems.ipynb#Exercise-1:-Show-that-the-state-is-separable).*
-
-@[exercise]({
-
+@[question]({
 "id": "separable_state",
-"solutionDescriptionPath": "./separable_state/solution.md"
+"descriptionPath": "./separable_state/index.md",
+"answerPath": "./separable_state/solution.md"
 })
 
-<details>
-    <summary>Solution</summary>
-
-To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
-
-$$\begin{bmatrix} \alpha \color{red}\gamma \\ \alpha \color{red}\delta \\ \beta \color{red}\gamma \\ \beta \color{red}\delta \end{bmatrix} = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} \otimes \begin{bmatrix} \color{red}\gamma \\ \color{red}\delta \end{bmatrix}$$
-
-This brings us to a system of equations:
-
-$$\begin{cases}
-\alpha\gamma = \frac{1}{2} \\
-\alpha\delta = \frac{i}{2} \\
-\beta \gamma = \frac{-i}{2} \\
-\beta \delta = \frac{1}{2} \\
-\end{cases}$$
-
-Solving this system of equations gives us the answer:
-
-$$\alpha = \frac{1}{\sqrt2}, \beta = \frac{-i}{\sqrt2}, \gamma = \frac{1}{\sqrt2}, \delta = \frac{i}{\sqrt2}$$
-
-$$\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} = \frac{1}{\sqrt2}
-\begin{bmatrix} 1 \\ -i \end{bmatrix} \otimes \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ i \end{bmatrix}$$
-
-</details>
-
-> Note that finding such representation is not always possible, as you will see in the next exercise.
-
-### <span style="color:blue">Exercise 2</span>: Is this state separable?
-
-$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
-
-*Can't come up with a solution? See the explained solution in the [Multi-Qubit Systems Workbook](./Workbook_MultiQubitSystems.ipynb#Exercise-2:-Is-this-state-separable?).*
-
-<details>
-    <summary>Solution</summary>
-
-### <span style="color:blue">Exercise 2</span>: Is this state separable?
-
-$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
-
-### Solution
-
-Let's assume that this state is separable and write down the system of equations to determine the coefficients of individual qubit states in the tensor product, similar to what we did in the previous exercise:
-
-$$\begin{cases}
-\alpha\gamma = \frac{1}{\sqrt2} \\
-\alpha\delta = 0 \\
-\beta \gamma = 0 \\
-\beta \delta = \frac{1}{\sqrt2} \\
-\end{cases}$$
-
-Now let's multiply the first and the last equations, and the second and the third equations:
-
-$$\begin{cases}
-\alpha\beta\gamma\delta = \frac{1}{2} \\
-\alpha\beta\gamma\delta = 0
-\end{cases}$$
-
-We can see that this system of equations doesn't have a solution, which means that this state is **not separable**.
-
-</details>
+@[question]({
+"id": "is_it_separable",
+"descriptionPath": "./is_it_separable/index.md",
+"answerPath": "./is_it_separable/solution.md"
+})
 
 # Entanglement
 
@@ -303,80 +240,41 @@ You will only need [single-qubit gates](../SingleQubitGates/SingleQubitGates.ipy
 > In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`. 
 Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
-### <span style="color:blue">Exercise 3</span>: Prepare a basis state
-
-**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
-
-**Goal:** Transform the system into the basis state $|11\rangle = \begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}$.
-
 @[exercise]({
 "id": "prepare_basis_state",
+"descriptionPath": "./prepare_basis_state/index.md",
+"placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
+"solutionPath": "./prepare_basis_state/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
-],
-"verificationSourcePath": "./prepare_basis_state/verification.qs",
-"placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
-"solutionSourcePath": "./prepare_basis_state/solution.qs",
-"solutionDescriptionPath": "./prepare_basis_state/solution.md"
+"./Common.qs",
+"./prepare_basis_state/verification.qs"
+]
 })
-
-### <span style="color:blue">Exercise 4</span>: Prepare a superposition of two basis states
-
-**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
-
-**Goal:** Transform the system into the state $\frac{1}{\sqrt2}\big(|00\rangle - |01\rangle\big) = \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \\ 0 \\ 0 \end{bmatrix}$.
-
-<details>
-    <summary><b>Need a hint? Click here</b></summary>
-    Represent the target state as a tensor product $|0\rangle \otimes \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big) = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \end{bmatrix}$.
-</details>
 
 @[exercise]({
 "id": "prepare_superposition",
+"descriptionPath": "./prepare_superposition/index.md",
+"placeholderSourcePath": "./prepare_superposition/placeholder.qs",
+"solutionPath": "./prepare_superposition/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
-],
-"verificationSourcePath": "./prepare_superposition/verification.qs",
-"placeholderSourcePath": "./prepare_superposition/placeholder.qs",
-"solutionSourcePath": "./prepare_superposition/solution.qs",
-"solutionDescriptionPath": "./prepare_superposition/solution.md"
+"./Common.qs",
+"./prepare_superposition/verification.qs"
+]
 })
-
-### <span style="color:blue">Exercise 5</span>: Prepare a superposition with real amplitudes
-
-**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
-
-**Goal:** Transform the system into the state $\frac{1}{2}\big(|00\rangle - |01\rangle + |10\rangle - |11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\ -1 \\ 1 \\ -1 \end{bmatrix}$.
-
-<details>
-    <summary><b>Need a hint? Click here</b></summary>
-    Represent the target state as a tensor product $\frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big) = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \end{bmatrix}$.
-</details>
 
 @[exercise]({
 "id": "prepare_with_real",
+"descriptionPath": "./prepare_with_real/index.md",
+"placeholderSourcePath": "./prepare_with_real/placeholder.qs",
+"solutionPath": "./prepare_with_real/solution.md",
 "codeDependenciesPaths": [
 "../KatasLibrary.qs",
-"./Common.qs"
-],
-"verificationSourcePath": "./prepare_with_real/verification.qs",
-"placeholderSourcePath": "./prepare_with_real/placeholder.qs",
-"solutionSourcePath": "./prepare_with_real/solution.qs",
-"solutionDescriptionPath": "./prepare_with_real/solution.md"
+"./Common.qs",
+"./prepare_with_real/verification.qs"
+]
 })
-
-### <span style="color:blue">Exercise 6</span>: Prepare a superposition with complex amplitudes
-
-**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
-
-**Goal:** Transform the system into the state $\frac{1}{2}\big(|00\rangle + e^{i\pi/4}|01\rangle + e^{i\pi/2}|10\rangle + e^{3i\pi/4}|11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\ e^{i\pi/4} \\ e^{i\pi/2} \\ e^{3i\pi/4} \end{bmatrix}$.
-
-<details>
-    <summary><b>Need a hint? Click here</b></summary>
-    Represent the target state as a tensor product $\frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/2}|1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/4}|1\rangle\big) = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ e^{i\pi/2} \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ e^{i\pi/4} \end{bmatrix}$.
-</details>
 
 @[exercise]({
 "id": "prepare_with_complex",

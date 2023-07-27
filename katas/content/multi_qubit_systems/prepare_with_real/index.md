@@ -1,0 +1,11 @@
+
+### <span style="color:blue">Exercise 5</span>: Prepare a superposition with real amplitudes
+
+**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
+
+**Goal:** Transform the system into the state $\frac{1}{2}\big(|00\rangle - |01\rangle + |10\rangle - |11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\ -1 \\ 1 \\ -1 \end{bmatrix}$.
+
+<details>
+    <summary><b>Need a hint? Click here</b></summary>
+    Represent the target state as a tensor product $\frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big) = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ -1 \end{bmatrix}$.
+</details>
