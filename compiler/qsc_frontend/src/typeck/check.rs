@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{
+    infer::{Inferrer, Solution},
     rules::{self, SpecImpl},
     Error, ErrorKind, Table,
 };
@@ -57,6 +58,8 @@ impl GlobalTable {
 pub(crate) struct Checker {
     globals: HashMap<ItemId, Scheme>,
     table: Table,
+    inferrer: Inferrer,
+    solution: Solution,
     errors: Vec<Error>,
 }
 
@@ -69,6 +72,8 @@ impl Checker {
                 terms: IndexMap::new(),
                 generics: IndexMap::new(),
             },
+            inferrer: Inferrer::new(),
+            solution: Solution::default(),
             errors: globals.errors,
         }
     }
@@ -164,16 +169,12 @@ impl Checker {
         ItemCollector::new(self, names).visit_stmt(stmt);
         ItemChecker::new(self, names).visit_stmt(stmt);
 
-        // TODO: Normally, all statements in a specialization are type checked in the same inference
-        // context. However, during incremental compilation, each statement is type checked with a
-        // new inference context. This can cause issues if inference variables aren't fully solved
-        // for within each statement. Either those variables should cause an error, or the
-        // incremental compiler should be able to persist the inference context across statements.
-        // https://github.com/microsoft/qsharp/issues/205
-        self.errors.append(&mut rules::stmt(
+        self.errors.append(&mut rules::stmt_fragment(
             names,
             &self.globals,
             &mut self.table,
+            &mut self.inferrer,
+            &mut self.solution,
             stmt,
         ));
     }

@@ -15,7 +15,7 @@ use std::{
     fmt::Debug,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(super) struct Solution {
     tys: IndexMap<InferTyId, Ty>,
     functors: IndexMap<InferFunctorId, FunctorSet>,
@@ -388,22 +388,25 @@ impl Inferrer {
     }
 
     /// Solves for all variables given the accumulated constraints.
-    pub(super) fn solve(mut self, udts: &HashMap<ItemId, Udt>) -> (Solution, Vec<Error>) {
-        let mut solver = Solver::new(udts, self.next_functor);
+    pub(super) fn solve(
+        &mut self,
+        udts: &HashMap<ItemId, Udt>,
+        solution: &mut Solution,
+    ) -> (Vec<Error>, Vec<Error>) {
+        let mut solver = Solver::new(udts, self.next_functor, solution);
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in solver.constrain(constraint).into_iter().rev() {
                 self.constraints.push_front(constraint);
             }
         }
-        let mut unresolved_ty_errs = self.find_unresolved_types(&mut solver);
-        let (solution, mut errs) = solver.into_solution();
-        errs.append(&mut unresolved_ty_errs);
-        (solution, errs)
+        let unresolved_ty_errs = self.find_unresolved_types(&mut solver);
+        let errs = solver.into_errors();
+        (errs, unresolved_ty_errs)
     }
 
-    fn find_unresolved_types(&self, solver: &mut Solver) -> Vec<Error> {
+    fn find_unresolved_types(&mut self, solver: &mut Solver) -> Vec<Error> {
         self.ty_metadata
-            .iter()
+            .drain()
             .filter_map(|(id, meta)| {
                 if solver.solution.tys.get(id).is_none() {
                     match meta {
@@ -413,7 +416,7 @@ impl Inferrer {
                             None
                         }
                         TySource::NotDivergent { span } => {
-                            Some(Error(ErrorKind::AmbiguousTy(*span)))
+                            Some(Error(ErrorKind::AmbiguousTy(span)))
                         }
                     }
                 } else {
@@ -428,21 +431,22 @@ impl Inferrer {
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     functor_end: InferFunctorId,
-    solution: Solution,
+    solution: &'a mut Solution,
     pending_tys: HashMap<InferTyId, Vec<Class>>,
     pending_functors: HashMap<InferFunctorId, FunctorSetValue>,
     errors: Vec<Error>,
 }
 
 impl<'a> Solver<'a> {
-    fn new(udts: &'a HashMap<ItemId, Udt>, functor_end: InferFunctorId) -> Self {
+    fn new(
+        udts: &'a HashMap<ItemId, Udt>,
+        functor_end: InferFunctorId,
+        solution: &'a mut Solution,
+    ) -> Self {
         Self {
             udts,
             functor_end,
-            solution: Solution {
-                tys: IndexMap::new(),
-                functors: IndexMap::new(),
-            },
+            solution,
             pending_tys: HashMap::new(),
             pending_functors: HashMap::new(),
             errors: Vec::new(),
@@ -487,7 +491,7 @@ impl<'a> Solver<'a> {
             Vec::new()
         } else {
             let (constraints, mut errors) = class
-                .map(|ty| substituted_ty(&self.solution, ty))
+                .map(|ty| substituted_ty(self.solution, ty))
                 .check(self.udts, span);
             self.errors.append(&mut errors);
             constraints
@@ -495,13 +499,13 @@ impl<'a> Solver<'a> {
     }
 
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
-        substitute_ty(&self.solution, &mut expected);
-        substitute_ty(&self.solution, &mut actual);
+        substitute_ty(self.solution, &mut expected);
+        substitute_ty(self.solution, &mut actual);
         self.unify(&expected, &actual, span)
     }
 
     fn superset(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
-        substitute_functor(&self.solution, &mut actual);
+        substitute_functor(self.solution, &mut actual);
         match (expected, actual) {
             (_, FunctorSet::Value(FunctorSetValue::CtlAdj))
             | (FunctorSetValue::Empty, _)
@@ -631,9 +635,9 @@ impl<'a> Solver<'a> {
         }
     }
 
-    fn into_solution(mut self) -> (Solution, Vec<Error>) {
+    fn into_errors(mut self) -> Vec<Error> {
         self.default_functors();
-        (self.solution, self.errors)
+        self.errors
     }
 }
 

@@ -238,6 +238,30 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "DumpMachine()");
             is_unit_with_output(&result, &output, "STATE:\n|0101⟩: 1+0i");
         }
+
+        #[test]
+        fn ambiguous_type_allowed_only_in_top_level_stmts() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = [];");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "function Foo() : Unit { let x = []; }");
+            is_only_error(
+                &result,
+                &output,
+                "type error: insufficient type information to infer type",
+            );
+        }
+
+        #[test]
+        fn resolved_type_persists_across_stmts() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = [];");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "let y = [0] + x;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "let z = [0.0] + x;");
+            is_only_error(&result, &output, "type error: expected Double, found Int");
+        }
     }
 
     #[cfg(test)]

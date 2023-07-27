@@ -3,7 +3,7 @@
 
 use super::{
     convert,
-    infer::{self, ArgTy, Class, Inferrer, TySource},
+    infer::{self, ArgTy, Class, Inferrer, Solution, TySource},
     Error, Table,
 };
 use crate::resolve::{self, Names, Res};
@@ -34,6 +34,24 @@ impl<T> Partial<T> {
     }
 }
 
+struct RuleErrors {
+    ty_errors: Vec<Error>,
+    unresolved_ty_errors: Vec<Error>,
+}
+
+impl RuleErrors {
+    fn ty_only(self) -> Vec<Error> {
+        self.ty_errors
+    }
+
+    fn combined(self) -> Vec<Error> {
+        self.ty_errors
+            .into_iter()
+            .chain(self.unresolved_ty_errors)
+            .collect()
+    }
+}
+
 struct Context<'a> {
     names: &'a Names,
     globals: &'a HashMap<ItemId, Scheme>,
@@ -41,11 +59,16 @@ struct Context<'a> {
     return_ty: Option<&'a Ty>,
     typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
-    inferrer: Inferrer,
+    inferrer: &'a mut Inferrer,
 }
 
 impl<'a> Context<'a> {
-    fn new(names: &'a Names, globals: &'a HashMap<ItemId, Scheme>, table: &'a mut Table) -> Self {
+    fn new(
+        names: &'a Names,
+        globals: &'a HashMap<ItemId, Scheme>,
+        table: &'a mut Table,
+        inferrer: &'a mut Inferrer,
+    ) -> Self {
         Self {
             names,
             globals,
@@ -53,7 +76,7 @@ impl<'a> Context<'a> {
             return_ty: None,
             typed_holes: Vec::new(),
             new: Vec::new(),
-            inferrer: Inferrer::new(),
+            inferrer,
         }
     }
 
@@ -705,31 +728,45 @@ impl<'a> Context<'a> {
         self.table.terms.insert(id, ty);
     }
 
-    fn solve(self) -> Vec<Error> {
-        let (solution, mut errors) = self.inferrer.solve(&self.table.udts);
+    fn solve(&mut self) -> Vec<Error> {
+        // For normal type inference, return the combined list of errors and ambiguous type errors.
+        self.solve_impl(&mut Solution::default()).combined()
+    }
 
-        for id in self.new {
+    fn solve_fragment(&mut self, solution: &mut Solution) -> Vec<Error> {
+        // For fragments, only return errors that are not ambiguous type errors. This allows
+        // incremental compilation to permit ambiguous types in statements like `let x = [];`
+        self.solve_impl(solution).ty_only()
+    }
+
+    fn solve_impl(&mut self, solution: &mut Solution) -> RuleErrors {
+        let (mut ty_errors, unresolved_ty_errors) = self.inferrer.solve(&self.table.udts, solution);
+
+        for id in self.new.drain(..) {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            infer::substitute_ty(&solution, ty);
+            infer::substitute_ty(solution, ty);
 
             if let Some(args) = self.table.generics.get_mut(id) {
                 for arg in args {
                     match arg {
-                        GenericArg::Ty(ty) => infer::substitute_ty(&solution, ty),
+                        GenericArg::Ty(ty) => infer::substitute_ty(solution, ty),
                         GenericArg::Functor(functors) => {
-                            infer::substitute_functor(&solution, functors);
+                            infer::substitute_functor(solution, functors);
                         }
                     }
                 }
             }
         }
 
-        for (id, span) in self.typed_holes {
+        for (id, span) in self.typed_holes.drain(..) {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
+            ty_errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
 
-        errors
+        RuleErrors {
+            ty_errors,
+            unresolved_ty_errors,
+        }
     }
 }
 
@@ -748,7 +785,8 @@ pub(super) fn spec(
     table: &mut Table,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, globals, table);
+    let mut inferrer = Inferrer::new();
+    let mut context = Context::new(names, globals, table, &mut inferrer);
     context.infer_spec(spec);
     context.solve()
 }
@@ -759,20 +797,23 @@ pub(super) fn expr(
     table: &mut Table,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, globals, table);
+    let mut inferrer = Inferrer::new();
+    let mut context = Context::new(names, globals, table, &mut inferrer);
     context.infer_expr(expr);
     context.solve()
 }
 
-pub(super) fn stmt(
+pub(super) fn stmt_fragment(
     names: &Names,
     globals: &HashMap<ItemId, Scheme>,
     table: &mut Table,
+    inferrer: &mut Inferrer,
+    solution: &mut Solution,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, globals, table);
+    let mut context = Context::new(names, globals, table, inferrer);
     context.infer_stmt(stmt);
-    context.solve()
+    context.solve_fragment(solution)
 }
 
 fn converge<T>(ty: T) -> Partial<T> {
