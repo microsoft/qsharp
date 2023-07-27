@@ -51,6 +51,11 @@ impl Compiler {
     pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
+        if let Some(unit) = store.get(PackageId::CORE) {
+            resolve_globals.add_external_package(PackageId::CORE, &unit.package);
+            typeck_globals.add_external_package(PackageId::CORE, &unit.package);
+        }
+
         for id in dependencies {
             let unit = store
                 .get(id)
