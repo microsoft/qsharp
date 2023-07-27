@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    compile::{self, compile, CheckEntry},
+    compile::{self, compile, PackageType},
     error::WithSource,
 };
 use miette::Diagnostic;
@@ -96,7 +96,7 @@ impl Interpreter {
             dependencies.push(store.insert(compile::std(&store)));
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, CheckEntry::Optional);
+        let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Lib);
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()

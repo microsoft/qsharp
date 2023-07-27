@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::qsc_utils::Compilation;
-use qsc::compile::CheckEntry;
+use qsc::compile::PackageType;
 use qsc::hir::PackageId;
 use qsc::{compile, PackageStore, SourceMap};
 
@@ -48,7 +48,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         &package_store,
         &[PackageId::CORE],
         std_source_map,
-        CheckEntry::Optional,
+        PackageType::Lib,
     );
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);
@@ -57,7 +57,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         &package_store,
         &[std_package_id],
         source_map,
-        CheckEntry::Required,
+        PackageType::Exe,
     );
     Compilation {
         package_store,

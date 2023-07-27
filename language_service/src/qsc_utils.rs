@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::compile::CheckEntry;
+use qsc::compile::PackageType;
 use qsc::hir::{Item, ItemId, PackageId};
 use qsc::{
     compile::{self, Error},
@@ -28,7 +28,7 @@ pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Comp
         &package_store,
         &[std_package_id],
         source_map,
-        CheckEntry::Required,
+        PackageType::Exe,
     );
     Compilation {
         package_store,

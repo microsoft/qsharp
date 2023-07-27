@@ -17,9 +17,9 @@ pub enum Error {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CheckEntry {
-    Required,
-    Optional,
+pub enum PackageType {
+    Exe,
+    Lib,
 }
 
 #[must_use]
@@ -27,7 +27,7 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
-    entry: CheckEntry,
+    package_type: PackageType,
 ) -> (CompileUnit, Vec<Error>) {
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources);
     let mut errors = Vec::new();
@@ -39,7 +39,7 @@ pub fn compile(
         for error in run_default_passes(store.core(), &mut unit) {
             errors.push(error.into());
         }
-        if entry == CheckEntry::Required {
+        if package_type == PackageType::Exe {
             for error in generate_entry_expr(&mut unit) {
                 errors.push(error.into());
             }

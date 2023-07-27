@@ -13,7 +13,7 @@ pub fn large_file(c: &mut Criterion) {
             let mut store = PackageStore::new(compile::core());
             let std = store.insert(compile::std(&store));
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
-            let (_, reports) = compile(&store, &[std], sources, compile::CheckEntry::Required);
+            let (_, reports) = compile(&store, &[std], sources, compile::PackageType::Exe);
             assert!(reports.is_empty());
         })
     });
