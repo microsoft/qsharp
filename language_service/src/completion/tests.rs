@@ -40,12 +40,16 @@ fn in_block_contains_std_functions() {
             ↘
         }
     }"#,
-        &["Fake", "FakeWithParam", "FakeCtlAdj"],
+        &[
+            "FakeStdLib.Fake",
+            "FakeStdLib.FakeWithParam",
+            "FakeStdLib.FakeCtlAdj",
+        ],
         &expect![[r#"
             [
                 Some(
                     (
-                        "Fake",
+                        "FakeStdLib.Fake",
                         Function,
                         Some(
                             "operation Fake() : Unit",
@@ -54,7 +58,7 @@ fn in_block_contains_std_functions() {
                 ),
                 Some(
                     (
-                        "FakeWithParam",
+                        "FakeStdLib.FakeWithParam",
                         Function,
                         Some(
                             "operation FakeWithParam(x: Int) : Unit",
@@ -63,7 +67,7 @@ fn in_block_contains_std_functions() {
                 ),
                 Some(
                     (
-                        "FakeCtlAdj",
+                        "FakeStdLib.FakeCtlAdj",
                         Function,
                         Some(
                             "operation FakeCtlAdj() : Unit is Adj + Ctl",

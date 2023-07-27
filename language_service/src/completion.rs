@@ -157,15 +157,15 @@ impl CompletionListBuilder {
         let display = CodeDisplay { compilation };
 
         self.push_sorted_completions(
-            Self::get_callables(current, &display),
+            Self::get_callables(current, &display, false),
             CompletionItemKind::Function,
         );
         self.push_sorted_completions(
-            Self::get_callables(std, &display),
+            Self::get_callables(std, &display, true),
             CompletionItemKind::Function,
         );
         self.push_sorted_completions(
-            Self::get_callables(core, &display),
+            Self::get_callables(core, &display, false),
             CompletionItemKind::Function,
         );
         self.push_completions(Self::get_namespaces(current), CompletionItemKind::Module);
@@ -216,9 +216,9 @@ impl CompletionListBuilder {
     }
 
     /// Push a group of completions that are themselves sorted into subgroups
-    fn push_sorted_completions<'a>(
+    fn push_sorted_completions(
         &mut self,
-        iter: impl Iterator<Item = (&'a str, String, u32)>,
+        iter: impl Iterator<Item = (String, String, u32)>,
         kind: CompletionItemKind,
     ) {
         self.items
@@ -242,15 +242,33 @@ impl CompletionListBuilder {
     fn get_callables<'a>(
         package: &'a Package,
         display: &'a CodeDisplay,
-    ) -> impl Iterator<Item = (&'a str, String, u32)> {
-        package.items.values().filter_map(|i| match &i.kind {
-            ItemKind::Callable(callable_decl) => Some({
+        is_qualified: bool,
+    ) -> impl Iterator<Item = (String, String, u32)> + 'a {
+        package.items.values().filter_map(move |i| match &i.kind {
+            ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
                 let detail = display.hir_callable_decl(callable_decl).to_string();
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
-                (name, detail, sort_group)
-            }),
+
+                let mut qualification: Option<&str> = None;
+                if is_qualified {
+                    if let Some(item_id) = i.parent {
+                        if let Some(parent) = package.items.get(item_id) {
+                            if let ItemKind::Namespace(namespace, _) = &parent.kind {
+                                qualification = Some(&namespace.name);
+                            }
+                        }
+                    }
+                }
+
+                let label = if let Some(qualification) = qualification {
+                    format!("{qualification}.{name}")
+                } else {
+                    name.to_owned()
+                };
+                Some((label, detail, sort_group))
+            }
             _ => None,
         })
     }
