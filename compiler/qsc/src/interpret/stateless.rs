@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compile::{self, compile, PackageType},
+    compile::{self, compile},
     error::WithSource,
 };
 use miette::Diagnostic;
@@ -16,6 +16,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
 use qsc_hir::hir::{Expr, ItemKind, PackageId};
+use qsc_passes::PackageType;
 use thiserror::Error;
 
 use super::debug::format_call_stack;

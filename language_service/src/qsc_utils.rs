@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::compile::PackageType;
-use qsc::hir::{Item, ItemId, PackageId};
 use qsc::{
     compile::{self, Error},
-    PackageStore, SourceMap,
+    hir::{Item, ItemId, PackageId},
+    CompileUnit, PackageStore, PackageType, SourceMap, Span,
 };
-use qsc::{CompileUnit, Span};
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.

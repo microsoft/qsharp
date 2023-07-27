@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    compile::{self, compile, PackageType},
+    compile::{self, compile},
     error::WithSource,
 };
 use miette::Diagnostic;
@@ -23,7 +23,7 @@ use qsc_frontend::{
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
-use qsc_passes::run_default_passes_for_fragment;
+use qsc_passes::{run_default_passes_for_fragment, PackageType};
 use std::{collections::HashSet, sync::Arc};
 use thiserror::Error;
 

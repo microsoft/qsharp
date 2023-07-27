@@ -18,8 +18,7 @@ fn compile(data: &[u8]) {
         }
         let sources = SourceMap::new([("fuzzed_code".into(), fuzzed_code.into())], None);
         STORE_STD.with(|(store, std)| {
-            let mut _unit =
-                qsc::compile::compile(store, &[*std], sources, qsc::compile::PackageType::Lib);
+            let mut _unit = qsc::compile::compile(store, &[*std], sources, qsc::PackageType::Lib);
         });
     }
 }

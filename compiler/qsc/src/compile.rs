@@ -5,7 +5,7 @@ use crate::error::WithSource;
 use miette::{Diagnostic, Report};
 use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
-use qsc_passes::{entry_point::generate_entry_expr, run_core_passes, run_default_passes};
+use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -14,12 +14,6 @@ use thiserror::Error;
 pub enum Error {
     Frontend(#[from] qsc_frontend::compile::Error),
     Pass(#[from] qsc_passes::Error),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum PackageType {
-    Exe,
-    Lib,
 }
 
 #[must_use]
@@ -36,13 +30,8 @@ pub fn compile(
     }
 
     if errors.is_empty() {
-        for error in run_default_passes(store.core(), &mut unit) {
+        for error in run_default_passes(store.core(), &mut unit, package_type) {
             errors.push(error.into());
-        }
-        if package_type == PackageType::Exe {
-            for error in generate_entry_expr(&mut unit) {
-                errors.push(error.into());
-            }
         }
     }
 
@@ -78,7 +67,7 @@ pub fn core() -> CompileUnit {
 #[must_use]
 pub fn std(store: &PackageStore) -> CompileUnit {
     let mut unit = qsc_frontend::compile::std(store);
-    let pass_errors = run_default_passes(store.core(), &mut unit);
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     if pass_errors.is_empty() {
         unit
     } else {

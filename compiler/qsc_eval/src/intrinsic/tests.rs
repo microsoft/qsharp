@@ -14,7 +14,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_passes::{run_core_passes, run_default_passes};
+use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 struct Lookup<'a> {
     store: &'a PackageStore,
@@ -32,13 +32,13 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let mut store = PackageStore::new(core);
     let mut std = compile::std(&store);
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
 
     let std_id = store.insert(std);
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(&store, &[std_id], sources);
     assert!(unit.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut unit).is_empty());
+    assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib).is_empty());
 
     let id = store.insert(unit);
     let entry = store

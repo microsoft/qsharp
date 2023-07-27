@@ -6,9 +6,10 @@
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
-use qsc::compile::{compile, PackageType};
+use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::Package;
+use qsc_passes::PackageType;
 use std::{
     concat, fs,
     io::{self, Read},

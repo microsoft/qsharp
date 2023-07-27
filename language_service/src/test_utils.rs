@@ -2,9 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::qsc_utils::Compilation;
-use qsc::compile::PackageType;
-use qsc::hir::PackageId;
-use qsc::{compile, PackageStore, SourceMap};
+use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap};
 
 pub(crate) fn get_source_and_marker_offsets(
     source_with_markers: &str,

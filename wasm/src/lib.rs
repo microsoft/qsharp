@@ -6,13 +6,13 @@ use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
-    compile::{self, PackageType},
+    compile::{self},
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, SourceContents, SourceMap, SourceName,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName,
 };
 use serde_json::json;
 use std::fmt::Write;
