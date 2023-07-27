@@ -23,7 +23,7 @@ use qsc_frontend::{
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
-use qsc_passes::{run_default_passes_for_fragment, PackageType};
+use qsc_passes::{PackageType, PassContext};
 use std::{collections::HashSet, sync::Arc};
 use thiserror::Error;
 
@@ -81,6 +81,7 @@ pub struct Interpreter {
     compiler: Compiler,
     udts: HashSet<LocalItemId>,
     callables: IndexMap<LocalItemId, CallableDecl>,
+    passes: PassContext,
     env: Env,
     sim: SparseSim,
 }
@@ -113,6 +114,7 @@ impl Interpreter {
             compiler,
             udts: HashSet::new(),
             callables: IndexMap::new(),
+            passes: PassContext::default(),
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
         })
@@ -140,7 +142,7 @@ impl Interpreter {
         let pass_errors = fragments
             .iter_mut()
             .flat_map(|fragment| {
-                run_default_passes_for_fragment(
+                self.passes.run_default_passes_for_fragment(
                     self.store.core(),
                     self.compiler.assigner_mut(),
                     fragment,
