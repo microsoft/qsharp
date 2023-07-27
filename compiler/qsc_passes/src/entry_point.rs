@@ -42,7 +42,6 @@ pub enum Error {
 
 // If no entry expression is provided, generate one from the entry point callable.
 // Only one callable should be annotated with the entry point attribute.
-// If more than one callable is annotated, or none are annotated, we skip this pass.
 pub fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
     if unit.package.entry.is_some() {
         return vec![];
