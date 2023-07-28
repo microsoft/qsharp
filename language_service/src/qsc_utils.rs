@@ -8,6 +8,13 @@ use qsc::{
 };
 use qsc::{CompileUnit, Span};
 
+/// Represents a span of text used by the Language Server API
+#[derive(Debug, PartialEq)]
+pub struct LsSpan {
+    pub start: u32,
+    pub end: u32,
+}
+
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
 pub(crate) struct Compilation {

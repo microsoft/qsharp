@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::display::CodeDisplay;
-use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
+use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation, LsSpan};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 use regex_lite::Regex;
@@ -15,13 +15,7 @@ use std::rc::Rc;
 #[derive(Debug, PartialEq)]
 pub struct Hover {
     pub contents: String,
-    pub span: Span,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Span {
-    pub start: u32,
-    pub end: u32,
+    pub span: LsSpan,
 }
 
 struct Documentation {
@@ -50,7 +44,7 @@ pub(crate) fn get_hover(
 
     hover_visitor.contents.map(|contents| Hover {
         contents,
-        span: Span {
+        span: LsSpan {
             start: hover_visitor.start,
             end: hover_visitor.end,
         },
