@@ -15,7 +15,7 @@ use qsc_hir::hir::Expr;
 use qsc_hir::hir::ItemKind;
 use qsc_hir::hir::PackageId;
 
-use qsc_passes::{run_core_passes, run_default_passes};
+use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Evaluates the given expression with the given context.
 /// Creates a new environment and simulator.
 /// # Errors
@@ -50,13 +50,13 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
 
     let mut std = compile::std(&store);
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(&store, &[std_id], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(store.core(), &mut unit);
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let id = store.insert(unit);
 
