@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { log } from "qsharp";
-import { uris, scopes, ResponseTypes } from "./azure";
+import { AzureUris, scopes, ResponseTypes } from "./azure";
 import * as vscode from "vscode";
 
 export async function queryWorkspaces() {
@@ -16,7 +16,7 @@ export async function queryWorkspaces() {
     { createIfNone: true }
   );
 
-  let response = await fetch(uris.tenants(), {
+  let response = await fetch(AzureUris.tenants(), {
     headers: [
       ["Authorization", `Bearer ${firstAuth.accessToken}`],
       ["Content-Type", "application/json"],
@@ -39,7 +39,7 @@ export async function queryWorkspaces() {
     { createIfNone: true }
   );
 
-  response = await fetch(uris.subscriptions(), {
+  response = await fetch(AzureUris.subscriptions(), {
     headers: [
       ["Authorization", `Bearer ${tenantAuth.accessToken}`],
       ["Content-Type", "application/json"],
@@ -56,7 +56,7 @@ export async function queryWorkspaces() {
 
   // *** Fetch the Quantum Workspaces in the subscription ***
 
-  response = await fetch(uris.workspaces(subId), {
+  response = await fetch(AzureUris.workspaces(subId), {
     headers: [
       ["Authorization", `Bearer ${tenantAuth.accessToken}`],
       ["Content-Type", "application/json"],

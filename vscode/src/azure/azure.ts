@@ -3,7 +3,25 @@
 
 const publicMgmtEndpoint = "https://management.azure.com";
 
-export const uris = {
+export async function azureRequest(
+  uri: string,
+  token: string,
+  method = "GET",
+  body?: string
+) {
+  const response = await fetch(uri, {
+    headers: [
+      ["Authorization", `Bearer ${token}`],
+      ["Content-Type", "application/json"],
+    ],
+    method,
+    body,
+  });
+  if (!response.ok) throw "Failed"; // TODO: Proper error propogation
+  return await response.json();
+}
+
+export const AzureUris = {
   tenants(mgmtEndpoint?: string) {
     // https://learn.microsoft.com/en-us/rest/api/resources/tenants/list
     return `${
@@ -23,6 +41,27 @@ export const uris = {
     }/subscriptions/${subscriptionId}/providers/Microsoft.Quantum/workspaces?api-version=2022-01-10-preview`;
   },
 };
+
+export class QuantumUris {
+  readonly apiVersion = "2022-09-12-preview";
+
+  constructor(
+    public endpoint: string, // e.g. "https://westus.quantum.azure.com"
+    public id: string // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
+  ) {}
+
+  quotas() {
+    return `${this.endpoint}${this.id}/quotas?api-version=${this.apiVersion}`;
+  }
+
+  providerStatus() {
+    return `${this.endpoint}${this.id}/providerStatus?api-version=${this.apiVersion}`;
+  }
+
+  sasUri() {
+    return `${this.endpoint}${this.id}/sasUri?api-version=${this.apiVersion}`;
+  }
+}
 
 export const scopes = {
   // The VS Code first-party app is trusted for both the below scopes.
