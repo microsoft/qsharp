@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { IDiagnostic } from "../../lib/node/qsc_wasm.cjs";
+import { PackageType } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
@@ -57,7 +58,7 @@ export class Compiler implements ICompiler {
         diags = errors;
       }
     );
-    languageService.update_document("code", 1, code);
+    languageService.update_document("code", 1, code, PackageType.Exe);
     return mapDiagnostics(diags, code);
   }
 

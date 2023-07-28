@@ -8,6 +8,7 @@ import type {
   IDefinition,
   LanguageService,
 } from "../../lib/node/qsc_wasm.cjs";
+import { PackageType } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
   VSDiagnostic,
@@ -18,7 +19,6 @@ import {
 import { IServiceEventTarget, IServiceProxy } from "../worker-proxy.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
-// Only one event type for now
 export type LanguageServiceEvent = {
   type: "diagnostics";
   detail: {
@@ -31,7 +31,12 @@ export type LanguageServiceEvent = {
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
-  updateDocument(uri: string, version: number, code: string): Promise<void>;
+  updateDocument(
+    uri: string,
+    version: number,
+    code: string,
+    pacakgeType: PackageType
+  ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | null>;
@@ -72,10 +77,16 @@ export class QSharpLanguageService implements ILanguageService {
   async updateDocument(
     documentUri: string,
     version: number,
-    code: string
+    code: string,
+    packageType: PackageType
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code);
+    this.languageService.update_document(
+      documentUri,
+      version,
+      code,
+      packageType
+    );
   }
 
   async closeDocument(documentUri: string): Promise<void> {

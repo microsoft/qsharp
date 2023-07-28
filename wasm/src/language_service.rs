@@ -2,10 +2,25 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Severity};
-use qsc::compile;
+use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub enum PackageType {
+    Exe,
+    Lib,
+}
+
+impl From<PackageType> for qsc::PackageType {
+    fn from(package_type: PackageType) -> Self {
+        match package_type {
+            PackageType::Exe => qsc::PackageType::Exe,
+            PackageType::Lib => qsc::PackageType::Lib,
+        }
+    }
+}
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
@@ -32,8 +47,15 @@ impl LanguageService {
         LanguageService(inner)
     }
 
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        self.0.update_document(uri, version, text);
+    pub fn update_document(
+        &mut self,
+        uri: &str,
+        version: u32,
+        text: &str,
+        package_type: PackageType,
+    ) {
+        self.0
+            .update_document(uri, version, text, package_type.into());
     }
 
     pub fn close_document(&mut self, uri: &str) {

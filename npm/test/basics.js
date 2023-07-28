@@ -19,6 +19,7 @@ import {
   getKata,
 } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
+import { PackageType } from "../lib/node/qsc_wasm.cjs";
 
 /** @type {import("../dist/log.js").TelemetryEvent[]} */
 const telemetryEvents = [];
@@ -334,7 +335,8 @@ test("language service diagnostics", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+    PackageType.Exe
   );
   assert(gotDiagnostics);
 });
@@ -361,7 +363,8 @@ test("language service diagnostics - web worker", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+    PackageType.Exe
   );
   languageService.terminate();
   assert(gotDiagnostics);

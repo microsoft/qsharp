@@ -167,3 +167,4 @@ export { log, type LogLevel };
 export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export { type LanguageServiceEvent } from "./language-service/language-service.js";
+export { PackageType } from "../lib/web/qsc_wasm.js";

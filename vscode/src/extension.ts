@@ -3,6 +3,7 @@
 
 import {
   ILanguageService,
+  PackageType,
   getLanguageService,
   loadWasmModule,
   log,
@@ -101,7 +102,8 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
-        document.getText()
+        document.getText(),
+        PackageType.Exe
       );
     }
   }
