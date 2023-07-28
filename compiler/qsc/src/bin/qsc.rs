@@ -9,6 +9,7 @@ use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::Package;
+use qsc_passes::PackageType;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -68,7 +69,7 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources);
+    let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Lib);
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
