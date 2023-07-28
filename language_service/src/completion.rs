@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use std::rc::Rc;
+
 use crate::display::CodeDisplay;
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
 use qsc::ast::visit::{self, Visitor};
@@ -54,6 +56,7 @@ pub(crate) fn get_completions(
             // Starting context is top-level (i.e. outside a namespace block)
             Context::TopLevel
         },
+        opens: vec![],
     };
     context_finder.visit_package(&compilation.unit.ast.package);
 
@@ -77,7 +80,7 @@ pub(crate) fn get_completions(
             builder.push_stmt_keywords();
             builder.push_expr_keywords();
             builder.push_types();
-            builder.push_globals(compilation);
+            builder.push_globals(compilation, &context_finder.opens);
         }
 
         Context::CallableSignature => {
@@ -88,7 +91,7 @@ pub(crate) fn get_completions(
             builder.push_stmt_keywords();
             builder.push_expr_keywords();
             builder.push_types();
-            builder.push_globals(compilation);
+            builder.push_globals(compilation, &context_finder.opens);
 
             // Item decl keywords last, unlike in a namespace
             builder.push_item_decl_keywords();
@@ -141,7 +144,7 @@ impl CompletionListBuilder {
         self.push_completions(FUNCTOR_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
     }
 
-    fn push_globals(&mut self, compilation: &Compilation) {
+    fn push_globals(&mut self, compilation: &Compilation, opens: &[(Rc<str>, Option<Rc<str>>)]) {
         let current = &compilation.unit.package;
         let std = &compilation
             .package_store
@@ -157,15 +160,15 @@ impl CompletionListBuilder {
         let display = CodeDisplay { compilation };
 
         self.push_sorted_completions(
-            Self::get_callables(current, &display, false),
+            Self::get_callables(current, &display, false, opens),
             CompletionItemKind::Function,
         );
         self.push_sorted_completions(
-            Self::get_callables(std, &display, true),
+            Self::get_callables(std, &display, true, opens),
             CompletionItemKind::Function,
         );
         self.push_sorted_completions(
-            Self::get_callables(core, &display, false),
+            Self::get_callables(core, &display, false, opens),
             CompletionItemKind::Function,
         );
         self.push_completions(Self::get_namespaces(current), CompletionItemKind::Module);
@@ -243,6 +246,7 @@ impl CompletionListBuilder {
         package: &'a Package,
         display: &'a CodeDisplay,
         is_qualified: bool,
+        opens: &'a [(Rc<str>, Option<Rc<str>>)],
     ) -> impl Iterator<Item = (String, String, u32)> + 'a {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
@@ -251,12 +255,22 @@ impl CompletionListBuilder {
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
 
-                let mut qualification: Option<&str> = None;
+                let mut qualification: Option<Rc<str>> = None;
                 if is_qualified {
                     if let Some(item_id) = i.parent {
                         if let Some(parent) = package.items.get(item_id) {
                             if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                                qualification = Some(&namespace.name);
+                                let temp = opens.iter().find_map(|(name, alias)| {
+                                    if *name == namespace.name {
+                                        Some(alias)
+                                    } else {
+                                        None
+                                    }
+                                });
+                                qualification = match temp {
+                                    Some(alias) => alias.as_ref().cloned(),
+                                    None => Some(namespace.name.clone()),
+                                }
                             }
                         }
                     }
@@ -284,6 +298,7 @@ impl CompletionListBuilder {
 struct ContextFinder {
     offset: u32,
     context: Context,
+    opens: Vec<(Rc<str>, Option<Rc<str>>)>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -299,9 +314,22 @@ impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
             self.context = Context::Namespace;
+            self.opens = vec![];
+            visit::walk_namespace(self, namespace);
+        }
+    }
+
+    fn visit_item(&mut self, item: &'_ qsc::ast::Item) {
+        if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
+            self.opens.push((
+                name.name.clone(),
+                alias.as_ref().map(|alias| alias.name.clone()),
+            ));
         }
 
-        visit::walk_namespace(self, namespace);
+        if span_contains(item.span, self.offset) {
+            visit::walk_item(self, item);
+        }
     }
 
     fn visit_callable_decl(&mut self, decl: &'_ qsc::ast::CallableDecl) {
@@ -310,9 +338,8 @@ impl Visitor<'_> for ContextFinder {
             // context will get overwritten by visit_block
             // if the offset is inside the actual body
             self.context = Context::CallableSignature;
+            visit::walk_callable_decl(self, decl);
         }
-
-        visit::walk_callable_decl(self, decl);
     }
 
     fn visit_block(&mut self, block: &'_ qsc::ast::Block) {
