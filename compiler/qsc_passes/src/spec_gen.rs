@@ -113,7 +113,7 @@ impl MutVisitor for SpecPlacePass<'_> {
                 SpecGen::Distribute
             };
             decl.ctl_adj = Some(SpecDecl {
-                id: NodeId::default(),
+                id: self.assigner.next_node(),
                 span: decl.span,
                 body: SpecBody::Gen(gen),
             });

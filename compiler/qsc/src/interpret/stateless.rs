@@ -16,6 +16,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
 use qsc_hir::hir::{Expr, ItemKind, PackageId};
+use qsc_passes::PackageType;
 use thiserror::Error;
 
 use super::debug::format_call_stack;
@@ -82,7 +83,7 @@ impl Interpreter {
             dependencies.push(store.insert(compile::std(&store)));
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources);
+        let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Exe);
         if errors.is_empty() {
             let package = store.insert(unit);
             Ok(Self { store, package })
