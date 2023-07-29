@@ -15,6 +15,7 @@ This tutorial covers the following topics:
 
 @[exercise]({
     "id": "preparing_bell_state",
+    "title": "Preparing a Bell state",
     "descriptionPath": "./preparing_bell_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",

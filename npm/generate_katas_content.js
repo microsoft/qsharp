@@ -29,21 +29,10 @@ const contentFileNames = {
 };
 
 function tryGetTitleFromMarkdown(markdown, errorPrefix) {
-  const titleRe = /#+ /;
-  const lines = markdown.trim().split(/\r?\n/);
-  if (lines.length === 0) {
-    throw new Error(`${errorPrefix}\nCould not get title, markdown is empty`);
-  }
-
-  const firstLine = lines[0];
-  const match = firstLine.match(titleRe);
-  if (match === null) {
-    throw new Error(
-      `${errorPrefix}\nFirst line does not follow the expected title pattern: "${firstLine}"`
-    );
-  }
-
-  return firstLine.replace(titleRe, "");
+  const result = /^# (.*)/.exec(markdown);
+  if (result?.length !== 2)
+    throw new Error(`${errorPrefix}\nCould not get title from markdown`);
+  return result[1];
 }
 
 function tryGetTitleFromToken(token, errorPrefix) {
@@ -112,7 +101,7 @@ function aggregateSources(paths, globalCodeSources) {
 
 function parseMarkdown(markdown) {
   const tokens = [];
-  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\n/gs;
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);
@@ -295,6 +284,7 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
   const requiredProperties = [
     "id",
+    "title",
     "descriptionPath",
     "codePaths",
     "placeholderSourcePath",
@@ -319,10 +309,6 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
     `Could not read descripton for exercise ${properties.id}`
   );
   const description = createTextContent(descriptionMarkdown);
-  const title = tryGetTitleFromMarkdown(
-    descriptionMarkdown,
-    `Could not get title for exercise '${properties.id}'`
-  );
   const resolvedCodePaths = properties.codePaths.map((path) =>
     join(kataPath, path)
   );
@@ -338,7 +324,7 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   return {
     type: "exercise",
     id: properties.id,
-    title: title,
+    title: properties.title,
     description: description,
     sourceIds: sourceIds,
     placeholderCode: placeholderCode,

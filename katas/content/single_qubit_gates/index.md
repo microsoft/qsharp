@@ -15,6 +15,7 @@ This tutorial covers the following topics:
 
 @[exercise]({
     "id": "y_gate",
+    "title": "The $Y$ gate",
     "descriptionPath": "./y_gate/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -26,6 +27,7 @@ This tutorial covers the following topics:
 
 @[exercise]({
     "id": "global_phase_i",
+    "title": "Applying a global phase $i$",
     "descriptionPath": "./global_phase_i/index.md",
     "codePaths": [
         "../KatasLibrary.qs",

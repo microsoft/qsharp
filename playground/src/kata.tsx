@@ -16,7 +16,8 @@ import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 
 function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
-  let html = "";
+  let html = `<div style="margin-left: 15px;">`;
+  html += `<h2>💡 Solution</h2>`;
   for (const item of solution.items) {
     switch (item.type) {
       case "example":
@@ -28,6 +29,7 @@ function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
         break;
     }
   }
+  html += `</div>`;
   return html;
 }
 
@@ -53,7 +55,7 @@ function QuestionAsHtml(question: Question): string {
   let html = "<h2>❓ Question:</h2>";
   html += `<div>${question.description.asHtml}</div>`;
   html += "<div>";
-  html += "<h3>Aswer</h3>";
+  html += "<h3>Answer</h3>";
   for (const item of question.answer.items) {
     switch (item.type) {
       case "example":
