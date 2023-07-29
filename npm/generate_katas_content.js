@@ -35,25 +35,25 @@ function tryGetTitleFromMarkdown(markdown, errorPrefix) {
   return result[1];
 }
 
-function tryGetTitleFromToken(token, errorPrefix) {
-  // The token that represents the title can only be a markdown token.
-  if (token.type !== "markdown") {
+function tryGetTitleFromSegment(segment, errorPrefix) {
+  // The segment that represents the title can only be a markdown segment.
+  if (segment.type !== "markdown") {
     throw new Error(
       `${errorPrefix}\n` +
-        `Token is expected to be the title but found a token of type '${token.type}' instead`
+        `segment is expected to be the title but found a segment of type '${segment.type}' instead`
     );
   }
 
-  // Check that the token has just one line.
-  const linesCount = token.markdown.split(/\r?\n/).length;
+  // Check that the segment has just one line.
+  const linesCount = segment.markdown.split(/\r?\n/).length;
   if (linesCount !== 1) {
     throw new Error(
       `${errorPrefix}\n` +
-        `A title token must be 1 line, but ${linesCount} lines are present\n` +
+        `A title segment must be 1 line, but ${linesCount} lines are present\n` +
         `Hint: is the markdown missing a @[section] macro?`
     );
   }
-  const title = tryGetTitleFromMarkdown(token.markdown, errorPrefix);
+  const title = tryGetTitleFromMarkdown(segment.markdown, errorPrefix);
 
   return title;
 }
@@ -100,41 +100,41 @@ function aggregateSources(paths, globalCodeSources) {
 }
 
 function parseMarkdown(markdown) {
-  const tokens = [];
+  const segments = [];
   const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);
     if (match !== null) {
       // If there is something between the last processed index and the start of the match that is not just whitespace,
-      // it represents a text token.
+      // it represents a text segment.
       const delta = match.index - latestProcessedIndex;
       if (delta > 0) {
-        const textToken = tryCreateMarkdownToken(
+        const textSegment = tryCreateMarkdownSegment(
           markdown.substring(latestProcessedIndex, match.index)
         );
-        if (textToken !== null) {
-          tokens.push(textToken);
+        if (textSegment !== null) {
+          segments.push(textSegment);
         }
       }
 
-      // Create a token that corresponds to the found macro.
-      const macroToken = createMacroToken(match);
-      tokens.push(macroToken);
+      // Create a segment that corresponds to the found macro.
+      const macroSegment = createMacroSegment(match);
+      segments.push(macroSegment);
       latestProcessedIndex = macroRegex.lastIndex;
     } else {
-      // No more matches were found, create a text token with the remaining content.
-      const textToken = tryCreateMarkdownToken(
+      // No more matches were found, create a text segment with the remaining content.
+      const textSegment = tryCreateMarkdownSegment(
         markdown.substring(latestProcessedIndex, markdown.length)
       );
-      if (textToken !== null) {
-        tokens.push(textToken);
+      if (textSegment !== null) {
+        segments.push(textSegment);
       }
       latestProcessedIndex = markdown.length;
     }
   }
 
-  return tokens;
+  return segments;
 }
 
 function createExample(baseFolderPath, properties) {
@@ -201,16 +201,16 @@ function createExplainedSolution(markdownFilePath) {
   );
 
   const solutionFolderPath = dirname(markdownFilePath);
-  const tokens = parseMarkdown(markdown);
+  const segments = parseMarkdown(markdown);
   const solutionItems = [];
-  for (const token of tokens) {
+  for (const segment of segments) {
     let solutionItem = null;
-    if (token.type === "example") {
-      solutionItem = createExample(solutionFolderPath, token.properties);
-    } else if (token.type === "solution") {
-      solutionItem = createSolution(solutionFolderPath, token.properties);
-    } else if (token.type === "markdown") {
-      solutionItem = createTextContent(token.markdown);
+    if (segment.type === "example") {
+      solutionItem = createExample(solutionFolderPath, segment.properties);
+    } else if (segment.type === "solution") {
+      solutionItem = createSolution(solutionFolderPath, segment.properties);
+    } else if (segment.type === "markdown") {
+      solutionItem = createTextContent(segment.markdown);
     }
 
     if (solutionItem !== null) {
@@ -231,14 +231,14 @@ function createAnswer(markdownFilePath) {
   );
 
   const answerFolderPath = dirname(markdownFilePath);
-  const tokens = parseMarkdown(markdown);
+  const segments = parseMarkdown(markdown);
   const items = [];
-  for (const token of tokens) {
+  for (const segment of segments) {
     let answerItem = null;
-    if (token.type === "example") {
-      answerItem = createExample(answerFolderPath, token.properties);
-    } else if (token.type === "markdown") {
-      answerItem = createTextContent(token.markdown);
+    if (segment.type === "example") {
+      answerItem = createExample(answerFolderPath, segment.properties);
+    } else if (segment.type === "markdown") {
+      answerItem = createTextContent(segment.markdown);
     }
 
     if (answerItem !== null) {
@@ -332,7 +332,7 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   };
 }
 
-function createLessonSection(kataPath, properties, tokensStack) {
+function createLessonSection(kataPath, properties, segmentsStack) {
   // Validate that the data contains the required properties.
   const requiredProperties = ["id", "title"];
   const missingProperties = identifyMissingProperties(
@@ -348,30 +348,30 @@ function createLessonSection(kataPath, properties, tokensStack) {
     );
   }
 
-  // Continue processing tokens until another section-delimiting token appears.
+  // Continue processing segments until another section-delimiting segment appears.
   const lessonItems = [];
-  const isSectionDelimiterToken = (token) =>
-    token.type === "exercise" || token.type === "section";
+  const isSectionDelimiterSegment = (segment) =>
+    segment.type === "exercise" || segment.type === "section";
   while (
-    tokensStack.length > 0 &&
-    !isSectionDelimiterToken(tokensStack.at(-1))
+    segmentsStack.length > 0 &&
+    !isSectionDelimiterSegment(segmentsStack.at(-1))
   ) {
-    const currentToken = tokensStack.pop();
+    const currentSegment = segmentsStack.pop();
     let lessonItem = null;
-    if (currentToken.type === "example") {
-      lessonItem = createExample(kataPath, currentToken.properties);
-    } else if (currentToken.type === "markdown") {
-      lessonItem = createTextContent(currentToken.markdown);
-    } else if (currentToken.type === "question") {
-      lessonItem = createQuestion(kataPath, currentToken.properties);
+    if (currentSegment.type === "example") {
+      lessonItem = createExample(kataPath, currentSegment.properties);
+    } else if (currentSegment.type === "markdown") {
+      lessonItem = createTextContent(currentSegment.markdown);
+    } else if (currentSegment.type === "question") {
+      lessonItem = createQuestion(kataPath, currentSegment.properties);
     }
 
     // Check that a valid lesson item was created.
     if (lessonItem === null) {
       throw new Error(
-        `Lesson item could not be generated for token of type '${currentToken.type}'\n` +
-          `Token:\n` +
-          `${JSON.stringify(currentToken, undefined, 2)}`
+        `Lesson item could not be generated for segment of type '${currentSegment.type}'\n` +
+          `segment:\n` +
+          `${JSON.stringify(currentSegment, undefined, 2)}`
       );
     }
 
@@ -386,7 +386,7 @@ function createLessonSection(kataPath, properties, tokensStack) {
   };
 }
 
-function createMacroToken(match) {
+function createMacroSegment(match) {
   const type = match.groups.type;
   const propertiesJson = match.groups.json;
   const properties = tryParseJSON(
@@ -399,7 +399,7 @@ function createMacroToken(match) {
   };
 }
 
-function tryCreateMarkdownToken(text) {
+function tryCreateMarkdownSegment(text) {
   const trimmedText = text.trim();
   if (trimmedText.length > 0) {
     return { type: "markdown", markdown: trimmedText };
@@ -408,49 +408,49 @@ function tryCreateMarkdownToken(text) {
   return null;
 }
 
-function createKata(tokens, kataPath, globalCodeSources) {
+function createKata(segments, kataPath, globalCodeSources) {
   const kataId = basename(kataPath);
 
   // Validate that the kata markdown file is not empty.
-  if (tokens.length === 0) {
-    throw new Error(`Markdown for '${kataId}' kata does not have any tokens`);
+  if (segments.length === 0) {
+    throw new Error(`Markdown for '${kataId}' kata does not have any segments`);
   }
 
-  // Use the array of tokens as a stack to keep track of the tokens that have not been processed.
-  const tokensStack = tokens.reverse();
+  // Use the array of segments as a stack to keep track of the segments that have not been processed.
+  const segmentsStack = segments.reverse();
 
-  // The first token in the kata must be the title.
-  const firstToken = tokensStack.pop();
-  const title = tryGetTitleFromToken(
-    firstToken,
+  // The first segment in the kata must be the title.
+  const firstSegment = segmentsStack.pop();
+  const title = tryGetTitleFromSegment(
+    firstSegment,
     `Could not get title for kata '${kataId}'`
   );
 
-  // Create sections from the remainin tokens in the stack.
+  // Create sections from the remainin segments in the stack.
   const sections = [];
-  while (tokensStack.length > 0) {
-    const currentToken = tokensStack.pop();
+  while (segmentsStack.length > 0) {
+    const currentSegment = segmentsStack.pop();
     let section = null;
-    if (currentToken.type === "exercise") {
+    if (currentSegment.type === "exercise") {
       section = createExerciseSection(
         kataPath,
-        currentToken.properties,
+        currentSegment.properties,
         globalCodeSources
       );
-    } else if (currentToken.type === "section") {
+    } else if (currentSegment.type === "section") {
       section = createLessonSection(
         kataPath,
-        currentToken.properties,
-        tokensStack
+        currentSegment.properties,
+        segmentsStack
       );
     }
 
     // Check if a valid section was created.
     if (section === null) {
       throw new Error(
-        `Unexpexted token of type '${currentToken.type}'\n` +
-          `Token:\n` +
-          `${JSON.stringify(currentToken, undefined, 2)}\n` +
+        `Unexpexted segment of type '${currentSegment.type}'\n` +
+          `segment:\n` +
+          `${JSON.stringify(currentSegment, undefined, 2)}\n` +
           `Hint: is the markdown missing a @[section] macro?`
       );
     }
@@ -461,7 +461,6 @@ function createKata(tokens, kataPath, globalCodeSources) {
   return {
     id: kataId,
     title: title,
-    tokens: tokens,
     sections: sections,
   };
 }
@@ -473,8 +472,8 @@ function generateKataContent(path, globalCodeSources) {
     markdownPath,
     "Could not read the contents of the kata markdown file"
   );
-  const tokens = parseMarkdown(markdown);
-  const kata = createKata(tokens, path, globalCodeSources);
+  const segments = parseMarkdown(markdown);
+  const kata = createKata(segments, path, globalCodeSources);
   console.log(`-- '${kata.id}' kata was successfully created`);
   return kata;
 }
