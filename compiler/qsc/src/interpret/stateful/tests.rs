@@ -40,6 +40,13 @@ mod given_interpreter {
         }
 
         #[test]
+        fn core_members_should_be_available() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "Length([1, 2, 3])");
+            is_only_value(&result, &output, &Value::Int(3));
+        }
+
+        #[test]
         fn let_bindings_update_interpreter() {
             let mut interpreter = get_interpreter();
             line(&mut interpreter, "let y = 7;")

@@ -705,6 +705,29 @@ fn check_apply_controlled_on_int() {
 }
 
 #[test]
+fn check_apply_controlled_on_bitstring() {
+    test_expression(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use c = Qubit[4];
+            use t1 = Qubit();
+            use t2 = Qubit();
+            within {
+                X(c[0]);
+                X(c[2]);
+            } apply {
+                ApplyControlledOnBitString([true, false, true], X, c, t1);
+            }
+            ApplyControlledOnBitString([true, false, true], X, c, t2);
+            return [MResetZ(t1), M(t2)];
+        }"
+        },
+        &Value::Array(vec![Value::Result(true), Value::Result(false)].into()),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_3a() {
     test_expression(
         {
