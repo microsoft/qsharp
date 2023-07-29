@@ -11,7 +11,6 @@ import {
   getCompilerWorker,
   getLanguageService,
   getLanguageServiceWorker,
-  PackageType,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import {
@@ -336,7 +335,7 @@ test("language service diagnostics", async () => {
         return [m1];
     }
 }`,
-    PackageType.Exe
+    0 // PackageType "exe"
   );
   assert(gotDiagnostics);
 });
@@ -364,7 +363,7 @@ test("language service diagnostics - web worker", async () => {
         return [m1];
     }
 }`,
-    PackageType.Exe
+    0 // PackageType "exe"
   );
   languageService.terminate();
   assert(gotDiagnostics);
