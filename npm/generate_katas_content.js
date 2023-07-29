@@ -235,7 +235,7 @@ function createExplainedSolution(markdownFilePath) {
   };
 }
 
-function createAnswerItems(markdownFilePath) {
+function createAnswer(markdownFilePath) {
   const markdown = tryReadFile(
     markdownFilePath,
     `Could not read answer markdown file at ${markdownFilePath}`
@@ -243,7 +243,7 @@ function createAnswerItems(markdownFilePath) {
 
   const answerFolderPath = dirname(markdownFilePath);
   const tokens = parseMarkdown(markdown);
-  const answerItems = [];
+  const items = [];
   for (const token of tokens) {
     let answerItem = null;
     if (token.type === "example") {
@@ -253,11 +253,11 @@ function createAnswerItems(markdownFilePath) {
     }
 
     if (answerItem !== null) {
-      answerItems.push(answerItem);
+      items.push(answerItem);
     }
   }
 
-  return answerItems;
+  return { type: "answer", items: items };
 }
 
 function createQuestion(kataPath, properties) {
@@ -282,7 +282,7 @@ function createQuestion(kataPath, properties) {
     `Could not read descripton for question ${properties.id}`
   );
   const description = createTextContent(descriptionMarkdown);
-  const answerItems = createAnswerItems(properties.answerPath);
+  const answerItems = createAnswer(properties.answerPath);
 
   return {
     type: "question",

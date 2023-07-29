@@ -40,10 +40,15 @@ export type Exercise = {
   explainedSolution: ExplainedSolution;
 };
 
+export type Answer = {
+  type: "answer";
+  items: ContentItem[];
+};
+
 export type Question = {
   type: "question";
   description: TextContent;
-  answerItems: ContentItem[];
+  answer: Answer;
 };
 
 export type LessonItem = ContentItem | Question;

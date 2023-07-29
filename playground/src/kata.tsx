@@ -50,9 +50,11 @@ function LessonAsHtml(lesson: Lesson): string {
 }
 
 function QuestionAsHtml(question: Question): string {
-  let html = `<div>${question.description.asHtml}</div>`;
+  let html = "<h2>❓ Question:</h2>";
+  html += `<div>${question.description.asHtml}</div>`;
   html += "<div>";
-  for (const item of question.answerItems) {
+  html += "<h3>Aswer</h3>";
+  for (const item of question.answer.items) {
     switch (item.type) {
       case "example":
         html += `<pre><code>${item.code}</code></pre>`;
