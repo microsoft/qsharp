@@ -11,6 +11,7 @@ import {
   getCompilerWorker,
   getLanguageService,
   getLanguageServiceWorker,
+  PackageType,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import {
@@ -19,7 +20,6 @@ import {
   getKata,
 } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
-import { PackageType } from "../lib/node/qsc_wasm.cjs";
 
 /** @type {import("../dist/log.js").TelemetryEvent[]} */
 const telemetryEvents = [];

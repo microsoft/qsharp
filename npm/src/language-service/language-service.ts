@@ -7,8 +7,8 @@ import type {
   IHover,
   IDefinition,
   LanguageService,
+  PackageType,
 } from "../../lib/node/qsc_wasm.cjs";
-import { PackageType } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
   VSDiagnostic,
