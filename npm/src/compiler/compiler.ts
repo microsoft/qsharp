@@ -28,8 +28,7 @@ export interface ICompiler {
   ): Promise<void>;
   checkExerciseSolution(
     user_code: string,
-    verification_code: string,
-    code_dependencies: string[],
+    exercise_sources: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
 }
@@ -84,14 +83,12 @@ export class Compiler implements ICompiler {
 
   async checkExerciseSolution(
     user_code: string,
-    verification_code: string,
-    code_dependencies: string[],
+    exercise_sources: string[],
     eventHandler: IQscEventTarget
   ): Promise<boolean> {
     const success = this.wasm.check_exercise_solution(
       user_code,
-      verification_code,
-      code_dependencies,
+      exercise_sources,
       (msg: string) => onCompilerEvent(msg, eventHandler)
     );
 
