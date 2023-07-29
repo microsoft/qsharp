@@ -9,17 +9,13 @@ export type Example = {
   code: string;
 };
 
-export type Text = {
-  type: "text";
-  contentAsHtml: string;
-  contentAsMarkdown: string;
-};
-
 export type TextContent = {
   type: "text-content";
   asHtml: string;
   asMarkdown: string;
 };
+
+export type ContentItem = Example | TextContent;
 
 export type Solution = {
   type: "solution";
@@ -27,7 +23,7 @@ export type Solution = {
   code: string;
 };
 
-export type ExplainedSolutionItem = Example | Solution | TextContent;
+export type ExplainedSolutionItem = ContentItem | Solution;
 
 export type ExplainedSolution = {
   type: "explained-solution";
@@ -44,7 +40,13 @@ export type Exercise = {
   explainedSolution: ExplainedSolution;
 };
 
-export type LessonItem = Example | TextContent;
+export type Question = {
+  type: "question";
+  description: TextContent;
+  answerItems: ContentItem[];
+};
+
+export type LessonItem = ContentItem | Question;
 
 export type Lesson = {
   type: "lesson";
@@ -53,15 +55,7 @@ export type Lesson = {
   items: LessonItem[];
 };
 
-export type Question = {
-  type: "question";
-  id: string;
-  title: string;
-  description: TextContent;
-  answer: TextContent;
-};
-
-export type KataSection = Exercise | Lesson | Question;
+export type KataSection = Exercise | Lesson;
 
 export type Kata = {
   id: string;

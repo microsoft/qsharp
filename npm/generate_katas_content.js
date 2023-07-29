@@ -235,6 +235,41 @@ function createExplainedSolution(markdownFilePath) {
   };
 }
 
+function createQuestion(kataPath, properties) {
+  // Validate that the data contains the required properties.
+  const requiredProperties = ["descriptionPath", "answerPath"];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `Question macro is missing the following properties\n` +
+        `${missingProperties}\n` +
+        `Macro properties:\n` +
+        `${JSON.stringify(properties, undefined, 2)}`
+    );
+  }
+
+  // Generate the object using the macro properties.
+  const descriptionMarkdown = tryReadFile(
+    join(kataPath, properties.descriptionPath),
+    `Could not read descripton for question ${properties.id}`
+  );
+  const description = createTextContent(descriptionMarkdown);
+  const answerMarkdown = tryReadFile(
+    join(kataPath, properties.descriptionPath),
+    `Could not read answer for question ${properties.id}`
+  );
+  const answer = createTextContent(answerMarkdown);
+
+  return {
+    type: "question",
+    description: description,
+    answerItems: [answer], // TODO: Implement correctly. Temporary scaffolding.
+  };
+}
+
 function createExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
   const requiredProperties = [
@@ -309,9 +344,7 @@ function createLessonSection(kataPath, properties, tokensStack) {
   // Continue processing tokens until another section-delimiting token appears.
   const lessonItems = [];
   const isSectionDelimiterToken = (token) =>
-    token.type === "exercise" ||
-    token.type === "question" ||
-    token.type === "section";
+    token.type === "exercise" || token.type === "section";
   while (
     tokensStack.length > 0 &&
     !isSectionDelimiterToken(tokensStack.at(-1))
@@ -322,6 +355,8 @@ function createLessonSection(kataPath, properties, tokensStack) {
       lessonItem = createExample(kataPath, currentToken.properties);
     } else if (currentToken.type === "markdown") {
       lessonItem = createTextContent(currentToken.markdown);
+    } else if (currentToken.type === "question") {
+      lessonItem = createQuestion(kataPath, currentToken.properties);
     }
 
     // Check that a valid lesson item was created.
@@ -341,47 +376,6 @@ function createLessonSection(kataPath, properties, tokensStack) {
     id: properties.id,
     title: properties.title,
     items: lessonItems,
-  };
-}
-
-function createQuestionSection(kataPath, properties) {
-  // Validate that the data contains the required properties.
-  const requiredProperties = ["id", "descriptionPath", "answerPath"];
-  const missingProperties = identifyMissingProperties(
-    properties,
-    requiredProperties
-  );
-  if (missingProperties.length > 0) {
-    throw new Error(
-      `Question macro is missing the following properties\n` +
-        `${missingProperties}\n` +
-        `Macro properties:\n` +
-        `${JSON.stringify(properties, undefined, 2)}`
-    );
-  }
-
-  // Generate the object using the macro properties.
-  const descriptionMarkdown = tryReadFile(
-    join(kataPath, properties.descriptionPath),
-    `Could not read descripton for question ${properties.id}`
-  );
-  const description = createTextContent(descriptionMarkdown);
-  const title = tryGetTitleFromMarkdown(
-    descriptionMarkdown,
-    `Could not get title for question '${properties.id}'`
-  );
-  const answerMarkdown = tryReadFile(
-    join(kataPath, properties.descriptionPath),
-    `Could not read answer for question ${properties.id}`
-  );
-  const answer = createTextContent(answerMarkdown);
-
-  return {
-    type: "question",
-    id: properties.id,
-    title: title,
-    description: description,
-    answer: answer,
   };
 }
 
@@ -436,8 +430,6 @@ function createKata(tokens, kataPath, globalCodeSources) {
         currentToken.properties,
         globalCodeSources
       );
-    } else if (currentToken.type === "question") {
-      section = createQuestionSection(kataPath, currentToken.properties);
     } else if (currentToken.type === "section") {
       section = createLessonSection(
         kataPath,

@@ -18,12 +18,14 @@ import { OutputTabs } from "./tabs.js";
 function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
   let html = "";
   for (const item of solution.items) {
-    if (item.type === "example" || item.type === "solution") {
-      html += `<pre><code>${item.code}</code></pre>`;
-    } else if (item.type === "text-content") {
-      html += "<div>";
-      html += item.asHtml;
-      html += "</div>";
+    switch (item.type) {
+      case "example":
+      case "solution":
+        html += `<pre><code>${item.code}</code></pre>`;
+        break;
+      case "text-content":
+        html += `<div>${item.asHtml}</div>`;
+        break;
     }
   }
   return html;
@@ -32,24 +34,34 @@ function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
 function LessonAsHtml(lesson: Lesson): string {
   let html = "";
   for (const item of lesson.items) {
-    if (item.type === "example") {
-      html += `<pre><code>${item.code}</code></pre>`;
-    } else if (item.type === "text-content") {
-      html += "<div>";
-      html += item.asHtml;
-      html += "</div>";
+    switch (item.type) {
+      case "example":
+        html += `<pre><code>${item.code}</code></pre>`;
+        break;
+      case "text-content":
+        html += `<div>${item.asHtml}</div>`;
+        break;
+      case "question":
+        html += QuestionAsHtml(item);
+        break;
     }
   }
   return html;
 }
 
 function QuestionAsHtml(question: Question): string {
-  let html = "";
+  let html = `<div>${question.description.asHtml}</div>`;
   html += "<div>";
-  html += question.description.asHtml;
-  html += "</div>";
-  html += "<div>";
-  html += question.answer.asHtml;
+  for (const item of question.answerItems) {
+    switch (item.type) {
+      case "example":
+        html += `<pre><code>${item.code}</code></pre>`;
+        break;
+      case "text-content":
+        html += `<div>${item.asHtml}</div>`;
+        break;
+    }
+  }
   html += "</div>";
   return html;
 }
@@ -84,34 +96,32 @@ export function Kata(props: {
 
     props.kata.sections.forEach((section, idx) => {
       const parentDiv = itemContent.current[idx];
-      let titlePrefix = "\u{1F41B}";
+      let titlePrefix = "🐛";
       if (section.type === "exercise") {
-        titlePrefix = "\u{2328} Exercise: ";
+        titlePrefix = "⌨ Exercise: ";
         const descriptionDiv = parentDiv?.querySelector(
           ".exercise-description"
         );
-        if (!descriptionDiv) return;
+        if (!descriptionDiv)
+          throw new Error("exercise-description div not found");
         descriptionDiv.innerHTML = section.description.asHtml;
         const solutionDiv = parentDiv?.querySelector(".exercise-solution");
-        if (!solutionDiv) return;
+        if (!solutionDiv) throw new Error("exercise-solution div not found");
         solutionDiv.innerHTML = ExplainedSolutionAsHtml(
           section.explainedSolution
         );
       } else if (section.type === "lesson") {
-        titlePrefix = "\u{1F4D6} Lesson: ";
-        const contentDiv = parentDiv?.querySelector(".kata-item-content");
-        if (!contentDiv) return;
+        titlePrefix = "📖 Lesson: ";
+        const contentDiv = parentDiv?.querySelector(".kata-text-content");
+        if (!contentDiv) throw new Error("kata-text-content div not found");
         contentDiv.innerHTML = LessonAsHtml(section);
-      } else if (section.type === "question") {
-        titlePrefix = "\u{2753} Question: ";
-        const contentDiv = parentDiv?.querySelector(".kata-item-content");
-        if (!contentDiv) return;
-        contentDiv.innerHTML = QuestionAsHtml(section);
+      } else {
+        throw new Error(`Unexpected section`);
       }
 
       const titleDiv = parentDiv?.querySelector(".section-title");
-      if (!titleDiv) return;
-      titleDiv.innerHTML = titlePrefix + " <u>" + section.title + "</u>";
+      if (!titleDiv) throw new Error("section-title div not found");
+      titleDiv.innerHTML = `<h1>${titlePrefix} <u>${section.title}</u></h1>`;
     });
     // In case we're now rendering less items than before, be sure to truncate
     itemContent.current.length = props.kata.sections.length;
@@ -124,11 +134,11 @@ export function Kata(props: {
       <div ref={kataContent}></div>
       <br></br>
       {props.kata.sections.map((section, idx) => {
-        if (section.type === "lesson" || section.type === "question") {
+        if (section.type === "lesson") {
           return (
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
               <div class="section-title"></div>
-              <div class="kata-item-content"></div>
+              <div class="kata-text-content"></div>
             </div>
           );
         } else if (section.type === "exercise") {
