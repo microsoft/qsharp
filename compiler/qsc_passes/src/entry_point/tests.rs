@@ -1,30 +1,27 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::entry_point::generate_entry_expr;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::{
-    assigner::Assigner,
-    hir::{Expr, Package},
-};
-
-/// Extracts a single entry point callable declaration, if found.
-/// # Errors
-/// Returns an error if a single entry point with no parameters cannot be found.
-fn extract_entry(assigner: &mut Assigner, package: &Package) -> Result<Expr, Vec<crate::Error>> {
-    let callables = super::get_callables(package);
-    super::create_entry_from_callables(assigner, callables)
-}
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(&PackageStore::new(compile::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    match extract_entry(&mut unit.assigner, &unit.package) {
-        Ok(entry) => expect.assert_eq(&entry.to_string()),
-        Err(errors) => expect.assert_debug_eq(&errors),
+    let errors = generate_entry_expr(&mut unit);
+    if errors.is_empty() {
+        expect.assert_eq(
+            &unit
+                .package
+                .entry
+                .expect("entry should be present in success case")
+                .to_string(),
+        );
+    } else {
+        expect.assert_debug_eq(&errors);
     }
 }
 

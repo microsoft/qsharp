@@ -9,23 +9,58 @@ export type Example = {
   code: string;
 };
 
+export type TextContent = {
+  type: "text-content";
+  asHtml: string;
+  asMarkdown: string;
+};
+
+export type ContentItem = Example | TextContent;
+
+export type Solution = {
+  type: "solution";
+  id: string;
+  code: string;
+};
+
+export type ExplainedSolutionItem = ContentItem | Solution;
+
+export type ExplainedSolution = {
+  type: "explained-solution";
+  items: ExplainedSolutionItem[];
+};
+
 export type Exercise = {
   type: "exercise";
   id: string;
-  codeDependencies: string[];
-  verificationCode: string;
+  title: string;
+  description: TextContent;
+  sourceIds: string[];
   placeholderCode: string;
-  solutionAsHtml: string;
-  solutionAsMarkdown: string;
+  explainedSolution: ExplainedSolution;
 };
 
-export type Text = {
-  type: "text";
-  contentAsHtml: string;
-  contentAsMarkdown: string;
+export type Answer = {
+  type: "answer";
+  items: ContentItem[];
 };
 
-export type KataSection = Example | Exercise | Text;
+export type Question = {
+  type: "question";
+  description: TextContent;
+  answer: Answer;
+};
+
+export type LessonItem = ContentItem | Question;
+
+export type Lesson = {
+  type: "lesson";
+  id: string;
+  title: string;
+  items: LessonItem[];
+};
+
+export type KataSection = Exercise | Lesson;
 
 export type Kata = {
   id: string;
@@ -45,10 +80,10 @@ export async function getKata(id: string): Promise<Kata> {
   );
 }
 
-export async function getExerciseDependencies(
+export async function getExerciseSources(
   exercise: Exercise
 ): Promise<string[]> {
   return katasContent.globalCodeSources
-    .filter((source) => exercise.codeDependencies.indexOf(source.name) > -1)
-    .map((source) => source.contents);
+    .filter((source) => exercise.sourceIds.indexOf(source.id) > -1)
+    .map((source) => source.code);
 }

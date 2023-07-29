@@ -1,10 +1,6 @@
-### Solution
-
 Here's the solution:
 
-```qsharp
-operation BellState (qs : Qubit[]) : Unit is Adj + Ctl {
-    H(qs[0]);
-    CNOT(qs[0], qs[1]);
-}
-```
+@[solution]({
+    "id": "preparing_bell_state_solution",
+    "codePath": "./Solution.qs"
+})
