@@ -235,6 +235,31 @@ function createExplainedSolution(markdownFilePath) {
   };
 }
 
+function createAnswerItems(markdownFilePath) {
+  const markdown = tryReadFile(
+    markdownFilePath,
+    `Could not read answer markdown file at ${markdownFilePath}`
+  );
+
+  const answerFolderPath = dirname(markdownFilePath);
+  const tokens = parseMarkdown(markdown);
+  const answerItems = [];
+  for (const token of tokens) {
+    let answerItem = null;
+    if (token.type === "example") {
+      answerItem = createExample(answerFolderPath, token.properties);
+    } else if (token.type === "markdown") {
+      answerItem = createTextContent(token.markdown);
+    }
+
+    if (answerItem !== null) {
+      answerItems.push(answerItem);
+    }
+  }
+
+  return answerItems;
+}
+
 function createQuestion(kataPath, properties) {
   // Validate that the data contains the required properties.
   const requiredProperties = ["descriptionPath", "answerPath"];
@@ -257,16 +282,12 @@ function createQuestion(kataPath, properties) {
     `Could not read descripton for question ${properties.id}`
   );
   const description = createTextContent(descriptionMarkdown);
-  const answerMarkdown = tryReadFile(
-    join(kataPath, properties.descriptionPath),
-    `Could not read answer for question ${properties.id}`
-  );
-  const answer = createTextContent(answerMarkdown);
+  const answerItems = createAnswerItems(properties.answerPath);
 
   return {
     type: "question",
     description: description,
-    answerItems: [answer], // TODO: Implement correctly. Temporary scaffolding.
+    answerItems: answerItems,
   };
 }
 
