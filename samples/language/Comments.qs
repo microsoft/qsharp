@@ -15,7 +15,7 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Result[] {
         // Comments can go anywhere in a program, although they typically
-		// preface what they refer to.
+	// preface what they refer to.
         return [];
     }
 }

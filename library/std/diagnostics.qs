@@ -8,11 +8,11 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    function CheckZero(qubit : Qubit) : Bool {
+    operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
-    function CheckAllZero(qubits : Qubit[]) : Bool {
+    operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
             if not CheckZero(q) {
                 return false;
