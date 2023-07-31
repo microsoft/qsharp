@@ -7,7 +7,6 @@ import type {
   IHover,
   IDefinition,
   LanguageService,
-  PackageType,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -19,6 +18,7 @@ import {
 import { IServiceEventTarget, IServiceProxy } from "../worker-proxy.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
+// Only one event type for now
 export type LanguageServiceEvent = {
   type: "diagnostics";
   detail: {
@@ -35,7 +35,7 @@ export interface ILanguageService {
     uri: string,
     version: number,
     code: string,
-    pacakgeType: PackageType
+    isExe: boolean
   ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
@@ -78,15 +78,10 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     version: number,
     code: string,
-    packageType: PackageType
+    isExe: boolean
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(
-      documentUri,
-      version,
-      code,
-      packageType
-    );
+    this.languageService.update_document(documentUri, version, code, isExe);
   }
 
   async closeDocument(documentUri: string): Promise<void> {

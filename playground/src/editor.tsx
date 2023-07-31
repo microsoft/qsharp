@@ -12,7 +12,6 @@ import {
   ILanguageServiceWorker,
   LanguageServiceEvent,
   QscEventTarget,
-  PackageType,
   VSDiagnostic,
   log,
 } from "qsharp";
@@ -174,10 +173,6 @@ export function Editor(props: {
     newEditor.setModel(srcModel);
     srcModel.onDidChangeContent(() => hirRef.current());
 
-    // The language service must be told if the document is an exe or a library,
-    // and since katas do not have an entry point, they are treated as libaries.
-    const packageType = props.kataExercise ? PackageType.Lib : PackageType.Exe;
-
     // TODO: If the language service ever changes, this callback
     // will be invalid as it captures the *original* props.languageService
     // and not the updated one. Not a problem currently since the language
@@ -188,7 +183,7 @@ export function Editor(props: {
         srcModel.uri.toString(),
         srcModel.getVersionId(),
         srcModel.getValue(),
-        packageType
+        !props.kataExercise // Kata exercises are always libraries
       );
       const measure = performance.measure(
         "update-document",

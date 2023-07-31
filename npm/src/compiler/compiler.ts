@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type { IDiagnostic, PackageType } from "../../lib/node/qsc_wasm.cjs";
+import { IDiagnostic } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
@@ -57,12 +57,7 @@ export class Compiler implements ICompiler {
         diags = errors;
       }
     );
-    languageService.update_document(
-      "code",
-      1,
-      code,
-      0 /* exe */ as PackageType
-    );
+    languageService.update_document("code", 1, code, true /* exe */);
     return mapDiagnostics(diags, code);
   }
 

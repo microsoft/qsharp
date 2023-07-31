@@ -8,21 +8,6 @@ use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub enum PackageType {
-    Exe,
-    Lib,
-}
-
-impl From<PackageType> for qsc::PackageType {
-    fn from(package_type: PackageType) -> Self {
-        match package_type {
-            PackageType::Exe => qsc::PackageType::Exe,
-            PackageType::Lib => qsc::PackageType::Lib,
-        }
-    }
-}
-
-#[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
 #[wasm_bindgen]
@@ -47,15 +32,17 @@ impl LanguageService {
         LanguageService(inner)
     }
 
-    pub fn update_document(
-        &mut self,
-        uri: &str,
-        version: u32,
-        text: &str,
-        package_type: PackageType,
-    ) {
-        self.0
-            .update_document(uri, version, text, package_type.into());
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str, is_exe: bool) {
+        self.0.update_document(
+            uri,
+            version,
+            text,
+            if is_exe {
+                qsc::PackageType::Exe
+            } else {
+                qsc::PackageType::Lib
+            },
+        );
     }
 
     pub fn close_document(&mut self, uri: &str) {

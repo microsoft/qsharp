@@ -335,7 +335,7 @@ test("language service diagnostics", async () => {
         return [m1];
     }
 }`,
-    0 // PackageType "exe"
+    true // PackageType "exe"
   );
   assert(gotDiagnostics);
 });
@@ -363,7 +363,7 @@ test("language service diagnostics - web worker", async () => {
         return [m1];
     }
 }`,
-    0 // PackageType "exe"
+    true // PackageType "exe"
   );
   languageService.terminate();
   assert(gotDiagnostics);
