@@ -7,6 +7,7 @@
 // a particular name such as `main`, `Main`, or `__main__`.
 namespace MyQuantumApp {
 
+    // The Q# compiler identifies `Main` as the entry point operation because it is marked with the `@EntryPoint()` attribute.
     @EntryPoint()
     operation Main() : Result[] {
         return [];
