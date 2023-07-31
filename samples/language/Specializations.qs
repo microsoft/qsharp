@@ -9,7 +9,10 @@
 /// body implementation.
 namespace MyQuantumApp {
 
-    /// Implicit
+    // The adjoint, controlled and adjoint-controlled specializations are implicitly
+    // generated for the `DoNothing` operation that declares supports for these
+    // specializations using the `is` keyword followed by the union of the supported
+    // specializations (`Adj + Ctl`).
     operation DoNothing() : Unit 
         is Adj + Ctl { }
 
