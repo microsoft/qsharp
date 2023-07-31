@@ -10,7 +10,7 @@ export default [
     {title: "Minimal", file: "Minimal.qs", shots: 100},
     {title: "Bell state", file: "BellState.qs", shots: 100},
     {title: "Teleportation", file: "Teleportation.qs", shots: 10},
-    {title: "Random numbers", file: "qrng.qs", shots: 1000},
+    {title: "Random Number Generator", file: "./algorithms/QRNG.qs", shots: 1000},
     {title: "Deutsch-Jozsa", file: "DeutschJozsa.qs", shots: 1},
     {title: "Bernstein–Vazirani", file: "BernsteinVazirani.qs", shots: 1},
     {title: "Grover's search", file: "Grover.qs", shots: 100},
