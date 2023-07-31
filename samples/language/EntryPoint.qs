@@ -2,13 +2,12 @@
 /// EntryPoint
 ///
 /// # Description
-/// When defining an entry point into a Q# program, the Q# compiler recognizes
-/// the @EntryPoint() attribute rather than requiring that entry points have a
-/// particular name, for example, main, Main, or __main__. That is, from the
-/// perspective of a Q# developer, entry points are ordinary operations annotated
-/// with @EntryPoint().
+/// The `@EntryPoint()` attribute is used to designate a particular operation as
+/// the entry point of a Q# program rather than requiring entry points to have 
+// a particular name such as `main`, `Main`, or `__main__`.
 namespace MyQuantumApp {
 
+    // The Q# compiler identifies `Main` as the entry point operation because it is marked with the `@EntryPoint()` attribute.
     @EntryPoint()
     operation Main() : Result[] {
         return [];

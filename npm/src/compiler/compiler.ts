@@ -56,7 +56,7 @@ export class Compiler implements ICompiler {
         diags = errors;
       }
     );
-    languageService.update_document("code", 1, code);
+    languageService.update_document("code", 1, code, true /* exe */);
     return mapDiagnostics(diags, code);
   }
 
