@@ -12,4 +12,15 @@ namespace MyQuantumApp {
     function Main() : Unit {
         return ();
     }
+
+    function MyFunction(qubits: Qubit[]) : Int {
+        // Functions can call other functions.
+        let length = Length(qubits);
+
+        // Functions cannot call operations.
+        // Uncommenting the following line would cause a compilation error.
+        // CNOT(qubits[0], qubits[1]);
+
+        return length;
+    }
 }
