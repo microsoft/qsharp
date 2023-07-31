@@ -16,18 +16,18 @@ pub(crate) struct Compilation {
     pub errors: Vec<Error>,
 }
 
-pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Compilation {
+pub(crate) fn compile_document(
+    source_name: &str,
+    source_contents: &str,
+    package_type: PackageType,
+) -> Compilation {
     let mut package_store = PackageStore::new(compile::core());
     let std_package_id = package_store.insert(compile::std(&package_store));
 
     // Source map only contains the current document.
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (unit, errors) = compile::compile(
-        &package_store,
-        &[std_package_id],
-        source_map,
-        PackageType::Exe,
-    );
+    let (unit, errors) =
+        compile::compile(&package_store, &[std_package_id], source_map, package_type);
     Compilation {
         package_store,
         std_package_id,
