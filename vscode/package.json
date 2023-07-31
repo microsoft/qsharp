@@ -73,6 +73,16 @@
           "when": "view == quantum-workspaces && viewItem == target"
         },
         {
+          "command": "quantum-filter-results",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == completed-jobs"
+        },
+        {
+          "command": "quantum-result-histogram",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result"
+        },
+        {
           "command": "quantum-result-download",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == result"
@@ -120,58 +130,47 @@
       {
         "command": "quantum-workspaces-refresh",
         "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
+        "icon": "$(refresh)"
       },
       {
         "command": "quantum-workspaces-add",
         "title": "Add a workspace",
-        "icon": {
-          "light": "resources/light/add.svg",
-          "dark": "resources/dark/add.svg"
-        }
+        "icon": "$(add)"
       },
       {
         "command": "quantum-target-submit",
         "title": "Submit current program",
-        "icon": {
-          "light": "resources/light/create.svg",
-          "dark": "resources/dark/create.svg"
-        }
+        "icon": "$(run)"
+      },
+      {
+        "command": "quantum-filter-results",
+        "title": "Filter results",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "quantum-result-histogram",
+        "title": "View results histogram",
+        "icon": "$(graph)"
       },
       {
         "command": "quantum-result-download",
-        "title": "Download",
-        "icon": {
-          "light": "resources/light/download.svg",
-          "dark": "resources/dark/download.svg"
-        }
+        "title": "Download full results",
+        "icon": "$(cloud-download)"
       },
       {
         "command": "quantum-job-cancel",
         "title": "Cancel job",
-        "icon": {
-          "dark": "resources/dark/trash.svg",
-          "light": "resources/light/trash.svg"
-        }
+        "icon": "$(trash)"
       },
       {
         "command": "quantum-workspace-getkey",
         "title": "Get access key",
-        "icon": {
-          "light": "resources/light/key.svg",
-          "dark": "resources/dark/key.svg"
-        }
+        "icon": "$(key)"
       },
       {
         "command": "quantum-target-view",
-        "title": "View",
-        "icon": {
-          "light": "resources/light/view.svg",
-          "dark": "resources/dark/view.svg"
-        }
+        "title": "View provider details",
+        "icon": "$(info)"
       }
     ],
     "breakpoints": [

@@ -93,7 +93,16 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
   });
 
   vscode.commands.registerCommand("quantum-target-view", async () => {
+    // TODO: Open a webview or browser window for the target
     vscode.window.showInformationMessage("All systems are go!");
+  });
+  vscode.commands.registerCommand("quantum-filter-results", async () => {
+    // TODO: Open a webview with a histogram similar to playground
+    vscode.window.showInformationMessage("TODO");
+  });
+  vscode.commands.registerCommand("quantum-result-histogram", async () => {
+    // TODO: Open a webview with a histogram similar to playground
+    vscode.window.showInformationMessage("TODO");
   });
   vscode.commands.registerCommand("quantum-result-download", async () => {
     const doc = await vscode.workspace.openTextDocument({

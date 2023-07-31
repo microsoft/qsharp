@@ -36,7 +36,11 @@ export class WorkspaceTreeProvider
       return [
         new Workspace("header", "Targets", true),
         new Workspace("header", "Jobs", true),
-        new Workspace("header", "Results", true),
+      ];
+    } else if (element.label === "Jobs") {
+      return [
+        new Workspace("header", "Pending", true),
+        new Workspace("header", "Completed", true),
       ];
     } else if (element.label === "Targets") {
       return [
@@ -44,9 +48,9 @@ export class WorkspaceTreeProvider
         new Workspace("target", "Quantinuum", false, "atom.svg"),
         new Workspace("target", "Rigetti", false, "atom.svg"),
       ];
-    } else if (element.label === "Jobs") {
+    } else if (element.label === "Pending") {
       return [new Workspace("job", "hydrogen-2", false, "job.svg")];
-    } else if (element.label === "Results") {
+    } else if (element.label === "Completed") {
       return [
         new Workspace("result", "analysis-1", false, "check.svg"),
         new Workspace("result", "qrng-estimate", false, "check.svg"),
@@ -65,12 +69,24 @@ class Workspace extends vscode.TreeItem {
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None
     );
-    this.contextValue = type;
+    this.contextValue = label === "Completed" ? "completed-jobs" : type;
     if (icon) {
-      this.iconPath = {
-        light: vscode.Uri.joinPath(resourcesPath, "light", icon),
-        dark: vscode.Uri.joinPath(resourcesPath, "dark", icon),
-      };
+      if (label.startsWith("analysis")) {
+        this.iconPath = new vscode.ThemeIcon("pass");
+      } else if (label.startsWith("qrng")) {
+        this.iconPath = new vscode.ThemeIcon("error");
+      } else if (label.startsWith("hydro")) {
+        this.iconPath = new vscode.ThemeIcon("watch");
+      } else if (type === "workspace") {
+        this.iconPath = new vscode.ThemeIcon("notebook");
+      } else if (type === "target") {
+        this.iconPath = new vscode.ThemeIcon("package");
+      } else {
+        this.iconPath = {
+          light: vscode.Uri.joinPath(resourcesPath, "light", icon),
+          dark: vscode.Uri.joinPath(resourcesPath, "dark", icon),
+        };
+      }
     }
     if (this.label === "IonQ") {
       const status = new vscode.MarkdownString(`
