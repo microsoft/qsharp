@@ -14,7 +14,7 @@ namespace MyQuantumApp {
         // We apply a Hadamard operation H to the state
         // It now has a 50% chance of being measured 0 or 1  
         H(q);      
-        // Now we measure the qubit in Z-basis.
+        // Now we measure the qubit in Z-basis using the `M` operation.
         let result = M(q);
         // We reset the qubit before releasing it.
         if result == One { X(q); }
