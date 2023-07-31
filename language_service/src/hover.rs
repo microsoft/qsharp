@@ -6,7 +6,9 @@ mod tests;
 
 use crate::display::CodeDisplay;
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
-use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
+use qsc::ast::visit::{
+    walk_callable_decl, walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor,
+};
 use qsc::{ast, hir, resolve};
 use regex_lite::Regex;
 use std::fmt::Display;
@@ -44,6 +46,7 @@ pub(crate) fn get_hover(
         start: 0,
         end: 0,
         display: CodeDisplay { compilation },
+        current_namespace: None,
     };
 
     hover_visitor.visit_package(package);
@@ -64,9 +67,17 @@ struct HoverVisitor<'a> {
     start: u32,
     end: u32,
     display: CodeDisplay<'a>,
+    current_namespace: Option<Rc<str>>,
 }
 
 impl Visitor<'_> for HoverVisitor<'_> {
+    fn visit_namespace(&mut self, namespace: &'_ ast::Namespace) {
+        if span_contains(namespace.span, self.offset) {
+            self.current_namespace = Some(namespace.name.name.clone());
+            walk_namespace(self, namespace);
+        }
+    }
+
     fn visit_item(&mut self, item: &'_ ast::Item) {
         if span_contains(item.span, self.offset) {
             match &*item.kind {
@@ -74,6 +85,7 @@ impl Visitor<'_> for HoverVisitor<'_> {
                     if span_contains(decl.name.span, self.offset) {
                         self.contents = Some(markdown_with_doc(
                             &item.doc,
+                            self.current_namespace.clone(),
                             self.display.ast_callable_decl(decl),
                         ));
                         self.start = decl.name.span.lo;
@@ -158,10 +170,11 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if let Some(item) = find_item(self.compilation, item_id) {
+                        if let Some((item, ns)) = find_item(self.compilation, item_id) {
                             self.contents = match &item.kind {
                                 hir::ItemKind::Callable(decl) => Some(markdown_with_doc(
                                     &item.doc,
+                                    ns,
                                     self.display.hir_callable_decl(decl),
                                 )),
                                 hir::ItemKind::Namespace(_, _) => {
@@ -192,16 +205,23 @@ impl Visitor<'_> for HoverVisitor<'_> {
     }
 }
 
-fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
+fn markdown_with_doc(doc: &str, namespace: Option<Rc<str>>, code: impl Display) -> String {
     let parsed_doc = parse_doc(doc);
+
+    let code = match namespace {
+        Some(namespace) if !namespace.is_empty() => {
+            markdown_fenced_block(format!("{namespace}\n{code}"))
+        }
+        _ => markdown_fenced_block(code),
+    };
+
     if parsed_doc.summary.is_empty() {
-        markdown_fenced_block(code)
+        code
     } else {
         format!(
             "{}{}
 ",
-            markdown_fenced_block(code),
-            parsed_doc.summary,
+            code, parsed_doc.summary,
         )
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::rc::Rc;
+
 use qsc::{
     compile::{self, Error},
     hir::{Item, ItemId, PackageId},
@@ -48,7 +50,10 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
         + source_offset
 }
 
-pub(crate) fn find_item<'a>(compilation: &'a Compilation, id: &ItemId) -> Option<&'a Item> {
+pub(crate) fn find_item<'a>(
+    compilation: &'a Compilation,
+    id: &ItemId,
+) -> Option<(&'a Item, Option<Rc<str>>)> {
     let package = if let Some(package_id) = id.package {
         match &compilation.package_store.get(package_id) {
             Some(compilation) => &compilation.package,
@@ -59,5 +64,15 @@ pub(crate) fn find_item<'a>(compilation: &'a Compilation, id: &ItemId) -> Option
     } else {
         &compilation.unit.package
     };
-    package.items.get(id.item)
+    package.items.get(id.item).map(|item| {
+        (
+            item,
+            item.parent
+                .and_then(|parent_id| package.items.get(parent_id))
+                .and_then(|parent| match &parent.kind {
+                    qsc::hir::ItemKind::Namespace(namespace, _) => Some(namespace.name.clone()),
+                    _ => None,
+                }),
+        )
+    })
 }
