@@ -2,8 +2,11 @@
 /// Specializations
 ///
 /// # Description
-/// Q# employs symbolic computation that can automatically generate
-/// the corresponding adjoint implementation for a particular body implementation.
+/// Q# allows specialized implementations. Operations in Q# can implicitly
+/// or explicitly define adjoint and/or controlled versions.
+/// Q# employs symbolic computation that can automatically generate the
+/// corresponding adjoint and controlled implementations for a particular 
+/// body implementation.
 namespace MyQuantumApp {
 
     /// Implicit
