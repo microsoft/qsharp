@@ -811,6 +811,9 @@ pub(super) fn stmt_fragment(
     solution: &mut Solution,
     stmt: &Stmt,
 ) -> Vec<Error> {
+    // Because a fragment is a top-level statement in the interpreter, it has slightly different rules
+    // for how it is solved. In particular, it is allowed to have ambiguous types, since those can
+    // and should be resolved in later statements once the type has enough information to be inferred.
     let mut context = Context::new(names, globals, table, inferrer);
     context.infer_stmt(stmt);
     context.solve_fragment(solution)
