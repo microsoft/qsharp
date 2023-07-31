@@ -392,7 +392,7 @@ impl Inferrer {
         &mut self,
         udts: &HashMap<ItemId, Udt>,
         solution: &mut Solution,
-    ) -> (Vec<Error>, Vec<Error>) {
+    ) -> Vec<Error> {
         let mut solver = Solver::new(udts, self.next_functor, solution);
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in solver.constrain(constraint).into_iter().rev() {
@@ -400,8 +400,11 @@ impl Inferrer {
             }
         }
         let unresolved_ty_errs = self.find_unresolved_types(&mut solver);
-        let errs = solver.into_errors();
-        (errs, unresolved_ty_errs)
+        solver
+            .into_errors()
+            .into_iter()
+            .chain(unresolved_ty_errs.into_iter())
+            .collect()
     }
 
     fn find_unresolved_types(&mut self, solver: &mut Solver) -> Vec<Error> {

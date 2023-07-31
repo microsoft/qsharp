@@ -78,7 +78,7 @@ impl Compiler {
     }
 
     pub fn compile_fragments(&mut self, input: &str) -> Vec<Fragment> {
-        let (fragments, errors) = qsc_parse::fragments(input);
+        let (mut fragments, errors) = qsc_parse::fragments(input);
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors
@@ -88,6 +88,14 @@ impl Compiler {
             )];
         }
 
+        for fragment in &mut fragments {
+            match fragment {
+                qsc_parse::Fragment::Namespace(namespace) => self.check_namespace(namespace),
+                qsc_parse::Fragment::Stmt(stmt) => self.check_stmt(stmt),
+            }
+        }
+        self.checker.solve(self.resolver.names());
+
         fragments
             .into_iter()
             .flat_map(|f| self.compile_fragment(f))
@@ -96,10 +104,11 @@ impl Compiler {
 
     fn compile_fragment(&mut self, fragment: qsc_parse::Fragment) -> Vec<Fragment> {
         let fragment = match fragment {
-            qsc_parse::Fragment::Namespace(namespace) => {
-                self.compile_namespace(namespace).err().map(Fragment::Error)
-            }
-            qsc_parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
+            qsc_parse::Fragment::Namespace(namespace) => self
+                .compile_namespace(&namespace)
+                .err()
+                .map(Fragment::Error),
+            qsc_parse::Fragment::Stmt(stmt) => self.compile_stmt(&stmt),
         };
 
         if matches!(fragment, Some(Fragment::Error(..))) {
@@ -117,21 +126,23 @@ impl Compiler {
         }
     }
 
-    fn compile_namespace(&mut self, mut namespace: ast::Namespace) -> Result<(), Vec<Error>> {
-        self.ast_assigner.visit_namespace(&mut namespace);
+    fn check_namespace(&mut self, namespace: &mut ast::Namespace) {
+        self.ast_assigner.visit_namespace(namespace);
         self.resolver
             .with(&mut self.hir_assigner)
-            .visit_namespace(&namespace);
+            .visit_namespace(namespace);
         self.checker
-            .check_namespace(self.resolver.names(), &namespace);
+            .check_namespace(self.resolver.names(), namespace);
+    }
 
+    fn compile_namespace(&mut self, namespace: &ast::Namespace) -> Result<(), Vec<Error>> {
         self.lowerer
             .with(
                 &mut self.hir_assigner,
                 self.resolver.names(),
                 self.checker.table(),
             )
-            .lower_namespace(&namespace);
+            .lower_namespace(namespace);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
@@ -141,12 +152,14 @@ impl Compiler {
         }
     }
 
-    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Option<Fragment> {
-        self.ast_assigner.visit_stmt(&mut stmt);
-        self.resolver.with(&mut self.hir_assigner).visit_stmt(&stmt);
+    fn check_stmt(&mut self, stmt: &mut ast::Stmt) {
+        self.ast_assigner.visit_stmt(stmt);
+        self.resolver.with(&mut self.hir_assigner).visit_stmt(stmt);
         self.checker
-            .check_stmt_fragment(self.resolver.names(), &stmt);
+            .check_stmt_fragment(self.resolver.names(), stmt);
+    }
 
+    fn compile_stmt(&mut self, stmt: &ast::Stmt) -> Option<Fragment> {
         let fragment = self
             .lowerer
             .with(
@@ -154,7 +167,7 @@ impl Compiler {
                 self.resolver.names(),
                 self.checker.table(),
             )
-            .lower_stmt(&stmt)
+            .lower_stmt(stmt)
             .map(Fragment::Stmt);
         let errors = self.drain_errors();
         if errors.is_empty() {

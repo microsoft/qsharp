@@ -34,25 +34,7 @@ impl<T> Partial<T> {
     }
 }
 
-struct RuleErrors {
-    ty_errors: Vec<Error>,
-    unresolved_ty_errors: Vec<Error>,
-}
-
-impl RuleErrors {
-    fn ty_only(self) -> Vec<Error> {
-        self.ty_errors
-    }
-
-    fn combined(self) -> Vec<Error> {
-        self.ty_errors
-            .into_iter()
-            .chain(self.unresolved_ty_errors)
-            .collect()
-    }
-}
-
-struct Context<'a> {
+pub(super) struct Context<'a> {
     names: &'a Names,
     globals: &'a HashMap<ItemId, Scheme>,
     table: &'a mut Table,
@@ -63,7 +45,7 @@ struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    fn new(
+    pub(super) fn new(
         names: &'a Names,
         globals: &'a HashMap<ItemId, Scheme>,
         table: &'a mut Table,
@@ -730,17 +712,11 @@ impl<'a> Context<'a> {
 
     fn solve(&mut self) -> Vec<Error> {
         // For normal type inference, return the combined list of errors and ambiguous type errors.
-        self.solve_impl(&mut Solution::default()).combined()
+        self.solve_fragment(&mut Solution::default())
     }
 
-    fn solve_fragment(&mut self, solution: &mut Solution) -> Vec<Error> {
-        // For fragments, only return errors that are not ambiguous type errors. This allows
-        // incremental compilation to permit ambiguous types in statements like `let x = [];`
-        self.solve_impl(solution).ty_only()
-    }
-
-    fn solve_impl(&mut self, solution: &mut Solution) -> RuleErrors {
-        let (mut ty_errors, unresolved_ty_errors) = self.inferrer.solve(&self.table.udts, solution);
+    pub(crate) fn solve_fragment(&mut self, solution: &mut Solution) -> Vec<Error> {
+        let mut errs = self.inferrer.solve(&self.table.udts, solution);
 
         for id in self.new.drain(..) {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
@@ -760,13 +736,10 @@ impl<'a> Context<'a> {
 
         for (id, span) in self.typed_holes.drain(..) {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            ty_errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
+            errs.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
 
-        RuleErrors {
-            ty_errors,
-            unresolved_ty_errors,
-        }
+        errs
     }
 }
 
@@ -808,15 +781,13 @@ pub(super) fn stmt_fragment(
     globals: &HashMap<ItemId, Scheme>,
     table: &mut Table,
     inferrer: &mut Inferrer,
-    solution: &mut Solution,
     stmt: &Stmt,
-) -> Vec<Error> {
+) {
     // Because a fragment is a top-level statement in the interpreter, it has slightly different rules
     // for how it is solved. In particular, it is allowed to have ambiguous types, since those can
     // and should be resolved in later statements once the type has enough information to be inferred.
     let mut context = Context::new(names, globals, table, inferrer);
     context.infer_stmt(stmt);
-    context.solve_fragment(solution)
 }
 
 fn converge<T>(ty: T) -> Partial<T> {

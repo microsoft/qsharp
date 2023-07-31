@@ -2709,9 +2709,9 @@ fn typed_hole_error_ambiguous_type() {
             #2 0-1 "_" : ?0
             #3 1-4 "(3)" : Int
             #4 2-3 "3" : Int
-            Error(Type(Error(TyHole(Infer(InferTyId(0)), Span { lo: 0, hi: 1 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 1 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 4 }))))
+            Error(Type(Error(TyHole(Infer(InferTyId(0)), Span { lo: 0, hi: 1 }))))
         "##]],
     );
 }
