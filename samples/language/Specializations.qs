@@ -9,14 +9,21 @@
 /// body implementation.
 namespace MyQuantumApp {
 
-    // The adjoint, controlled and adjoint-controlled specializations are implicitly
-    // generated for the `DoNothing` operation that declares supports for these
-    // specializations using the `is` keyword followed by the union of the supported
-    // specializations (`Adj + Ctl`).
+    /// The adjoint, controlled and adjoint-controlled specializations are implicitly
+    /// generated for the `DoNothing` operation that declares supports for these
+    /// specializations using the `is` keyword followed by the union of the supported
+    /// specializations (`Adj + Ctl`).
     operation DoNothing() : Unit 
         is Adj + Ctl { }
 
-    /// Explicit
+    /// Here, the specializations hvae been explicitly defined. 
+    /// In the following example, the declaration for an operation SWAP,
+    /// which exchanges the state of two qubits q1 and q2, declares an
+    /// explicit specialization for its adjoint version and its controlled
+    /// version. While the implementations for Adjoint SWAP and Controlled
+    /// SWAP are thus user-defined, the compiler still needs to generate 
+    /// the implementation for the combination of both functors (Controlled
+    /// Adjoint SWAP, which is the same as Adjoint Controlled SWAP).
     operation SWAP (q1 : Qubit, q2 : Qubit) : Unit
         is Adj + Ctl { 
 

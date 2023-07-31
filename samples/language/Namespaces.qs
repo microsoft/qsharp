@@ -9,7 +9,6 @@ namespace MyQuantumApp {
 
     // The following `open` directive is used to import all types and callables declared in the
     // Microsoft.Quantum.Arrays namespace.
-
     open Microsoft.Quantum.Arrays;
 	
     @EntryPoint()
