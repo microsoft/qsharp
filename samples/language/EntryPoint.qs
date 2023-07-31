@@ -7,7 +7,6 @@
 /// particular name, for example, main, Main, or __main__. That is, from the
 /// perspective of a Q# developer, entry points are ordinary operations annotated
 /// with @EntryPoint().
-
 namespace MyQuantumApp {
 
     @EntryPoint()

@@ -4,7 +4,6 @@
 /// # Description
 /// Q# employs symbolic computation that can automatically generate
 /// the corresponding adjoint implementation for a particular body implementation.
-
 namespace MyQuantumApp {
 
     /// Implicit

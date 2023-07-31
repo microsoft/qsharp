@@ -6,7 +6,6 @@
 /// operation is a quantum subroutine. That is, it's a callable routine
 /// that contains quantum operations that modify the state of the
 /// qubit register.
-
 namespace MyQuantumApp {
 	
     @EntryPoint()

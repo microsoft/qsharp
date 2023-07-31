@@ -7,7 +7,6 @@
 /// Q# does not currently support block comments.
 /// Documentation comments, or doc comments, are denoted with three
 /// forward slashes (`///`) instead of two.
-
 namespace MyQuantumApp {
     open Microsoft.Quantum.Diagnostics;
 	
