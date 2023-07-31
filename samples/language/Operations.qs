@@ -4,8 +4,7 @@
 /// # Description
 /// Operations are the basic building blocks of a Q# program. A Q#
 /// operation is a quantum subroutine. That is, it's a callable routine
-/// that contains quantum operations that modify the state of the
-/// qubit register.
+/// that contains quantum operations that modify the state of qubits.
 namespace MyQuantumApp {
 	
     @EntryPoint()
