@@ -7,7 +7,7 @@
 
 /** @type {Array<{title: string; file: string; shots: number}>} */
 export default [
-    {title: "Minimal", file: "Minimal.qs", shots: 100},
+    {title: "Getting Started", file: "./language/GettingStarted.qs", shots: 100},
     {title: "Bell state", file: "BellState.qs", shots: 100},
     {title: "Teleportation", file: "Teleportation.qs", shots: 10},
     {title: "Random Number Generator", file: "./algorithms/QRNG.qs", shots: 1000},

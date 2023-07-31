@@ -2,8 +2,8 @@
 /// Quantum Random Number Generator
 ///
 /// # Description
-/// This sample implements a quantum ranndom number generator by setting qubits
-/// in superposition using the measurement results as random bits.
+/// This program implements a quantum ranndom number generator by setting qubits
+/// in superposition and then using the measurement results as random bits.
 namespace Sample {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
