@@ -6,6 +6,7 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_hir::{validate::Validator, visit::Visitor};
 
 use crate::conjugate_invert::invert_conjugate_exprs;
 
@@ -16,6 +17,7 @@ fn check(file: &str, expect: &Expect) {
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = invert_conjugate_exprs(store.core(), &mut unit);
+    Validator::default().visit_package(&unit.package);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
     } else {

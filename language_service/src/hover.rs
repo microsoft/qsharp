@@ -170,9 +170,9 @@ impl Visitor<'_> for HoverVisitor<'_> {
                                         path.id
                                     )
                                 }
-                                hir::ItemKind::Ty(ident, udt) => Some(markdown_fenced_block(
-                                    self.display.hir_ident_udt(ident, udt),
-                                )),
+                                hir::ItemKind::Ty(_, udt) => {
+                                    Some(markdown_fenced_block(self.display.hir_udt(udt)))
+                                }
                             };
                             self.start = path.span.lo;
                             self.end = path.span.hi;
@@ -198,10 +198,10 @@ fn markdown_with_doc(doc: &Rc<str>, code: impl Display) -> String {
         markdown_fenced_block(code)
     } else {
         format!(
-            "{}
-{}",
+            "{}{}
+",
+            markdown_fenced_block(code),
             parsed_doc.summary,
-            markdown_fenced_block(code)
         )
     }
 }
