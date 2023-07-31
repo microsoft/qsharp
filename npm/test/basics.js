@@ -396,7 +396,8 @@ test("language service diagnostics", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+    true // PackageType "exe"
   );
   assert(gotDiagnostics);
 });
@@ -423,7 +424,8 @@ test("language service diagnostics - web worker", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+    true // PackageType "exe"
   );
   languageService.terminate();
   assert(gotDiagnostics);

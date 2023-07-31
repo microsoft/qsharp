@@ -181,7 +181,8 @@ export function Editor(props: {
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
-        srcModel.getValue()
+        srcModel.getValue(),
+        !props.kataExercise // Kata exercises are always libraries
       );
       const measure = performance.measure(
         "update-document",
