@@ -2,11 +2,11 @@
 /// Comments
 ///
 /// # Description
-/// Comments begin with two forward slashes (//) and continue until the
-/// end of line. Such end-of-line comments may appear anywhere in the
-/// source code. Q# does not currently support block comments.
+/// Comments begin with two forward slashes (`//`) and continue until the
+/// end of line. Comments may appear anywhere in the source code. 
+/// Q# does not currently support block comments.
 /// Documentation comments, or doc comments, are denoted with three
-/// forward slashes instead of two.
+/// forward slashes (`///`) instead of two.
 
 namespace MyQuantumApp {
     open Microsoft.Quantum.Diagnostics;
