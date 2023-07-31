@@ -57,6 +57,18 @@ impl LanguageService {
                     .to_string(),
                     sortText: i.sort_text,
                     detail: i.detail,
+                    additionalTextEdits: i.additional_text_edits.map(|edits| {
+                        edits
+                            .into_iter()
+                            .map(|(span, text)| TextEdit {
+                                range: Span {
+                                    start: span.start,
+                                    end: span.end,
+                                },
+                                newText: text,
+                            })
+                            .collect()
+                    }),
                 })
                 .collect(),
         })?)
@@ -101,6 +113,7 @@ export interface ICompletionList {
         kind: "function" | "interface" | "keyword" | "module";
         sortText?: string;
         detail?: string;
+        additionalTextEdits?: TextEdit[];
     }>
 }
 "#;
@@ -117,6 +130,22 @@ pub struct CompletionItem {
     pub sortText: Option<String>,
     pub kind: String,
     pub detail: Option<String>,
+    pub additionalTextEdits: Option<Vec<TextEdit>>,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const ITextEdit: &'static str = r#"
+export interface ITextEdit {
+    range: { start: number; end: number; };
+    newText: string;
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)] // These types propagate to JS which expects camelCase
+pub struct TextEdit {
+    pub range: Span,
+    pub newText: String,
 }
 
 #[wasm_bindgen(typescript_custom_section)]

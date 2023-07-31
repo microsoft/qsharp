@@ -7,7 +7,7 @@ mod tests;
 use std::rc::Rc;
 
 use crate::display::CodeDisplay;
-use crate::qsc_utils::{map_offset, span_contains, Compilation};
+use crate::qsc_utils::{map_offset, span_contains, Compilation, LsSpan};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 
@@ -29,13 +29,14 @@ pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
 pub struct CompletionItem {
     pub label: String,
     pub kind: CompletionItemKind,
     pub sort_text: Option<String>,
     pub detail: Option<String>,
+    pub additional_text_edits: Option<Vec<(LsSpan, String)>>,
 }
 
 pub(crate) fn get_completions(
@@ -57,6 +58,7 @@ pub(crate) fn get_completions(
             Context::TopLevel
         },
         opens: vec![],
+        start_of_namespace: None,
     };
     context_finder.visit_package(&compilation.unit.ast.package);
 
@@ -80,7 +82,11 @@ pub(crate) fn get_completions(
             builder.push_stmt_keywords();
             builder.push_expr_keywords();
             builder.push_types();
-            builder.push_globals(compilation, &context_finder.opens);
+            builder.push_globals(
+                compilation,
+                &context_finder.opens,
+                context_finder.start_of_namespace,
+            );
         }
 
         Context::CallableSignature => {
@@ -91,7 +97,11 @@ pub(crate) fn get_completions(
             builder.push_stmt_keywords();
             builder.push_expr_keywords();
             builder.push_types();
-            builder.push_globals(compilation, &context_finder.opens);
+            builder.push_globals(
+                compilation,
+                &context_finder.opens,
+                context_finder.start_of_namespace,
+            );
 
             // Item decl keywords last, unlike in a namespace
             builder.push_item_decl_keywords();
@@ -144,7 +154,12 @@ impl CompletionListBuilder {
         self.push_completions(FUNCTOR_KEYWORDS.into_iter(), CompletionItemKind::Keyword);
     }
 
-    fn push_globals(&mut self, compilation: &Compilation, opens: &[(Rc<str>, Option<Rc<str>>)]) {
+    fn push_globals(
+        &mut self,
+        compilation: &Compilation,
+        opens: &[(Rc<str>, Option<Rc<str>>)],
+        start_of_namespace: Option<u32>,
+    ) {
         let current = &compilation.unit.package;
         let std = &compilation
             .package_store
@@ -160,15 +175,15 @@ impl CompletionListBuilder {
         let display = CodeDisplay { compilation };
 
         self.push_sorted_completions(
-            Self::get_callables(current, &display, false, opens),
+            Self::get_callables(current, &display, false, opens, start_of_namespace),
             CompletionItemKind::Function,
         );
         self.push_sorted_completions(
-            Self::get_callables(std, &display, true, opens),
+            Self::get_callables(std, &display, true, opens, start_of_namespace),
             CompletionItemKind::Function,
         );
         self.push_sorted_completions(
-            Self::get_callables(core, &display, false, opens),
+            Self::get_callables(core, &display, false, opens, start_of_namespace),
             CompletionItemKind::Function,
         );
         self.push_completions(Self::get_namespaces(current), CompletionItemKind::Module);
@@ -213,6 +228,7 @@ impl CompletionListBuilder {
                 ))
             },
             detail: None,
+            additional_text_edits: None,
         }));
 
         self.current_sort_group += 1;
@@ -221,23 +237,27 @@ impl CompletionListBuilder {
     /// Push a group of completions that are themselves sorted into subgroups
     fn push_sorted_completions(
         &mut self,
-        iter: impl Iterator<Item = (String, String, u32)>,
+        iter: impl Iterator<Item = (String, String, Option<Vec<(LsSpan, String)>>, u32)>,
         kind: CompletionItemKind,
     ) {
-        self.items
-            .extend(iter.map(|(name, detail, item_sort_group)| CompletionItem {
-                label: name.to_string(),
-                kind,
-                sort_text: Some(format!(
-                    "{:02}{:02}{}",
-                    self.current_sort_group, item_sort_group, name
-                )),
-                detail: if detail.is_empty() {
-                    None
-                } else {
-                    Some(detail)
+        self.items.extend(
+            iter.map(
+                |(name, detail, additional_text_edits, item_sort_group)| CompletionItem {
+                    label: name.to_string(),
+                    kind,
+                    sort_text: Some(format!(
+                        "{:02}{:02}{}",
+                        self.current_sort_group, item_sort_group, name
+                    )),
+                    detail: if detail.is_empty() {
+                        None
+                    } else {
+                        Some(detail)
+                    },
+                    additional_text_edits,
                 },
-            }));
+            ),
+        );
 
         self.current_sort_group += 1;
     }
@@ -247,7 +267,8 @@ impl CompletionListBuilder {
         display: &'a CodeDisplay,
         is_qualified: bool,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
-    ) -> impl Iterator<Item = (String, String, u32)> + 'a {
+        start_of_namespace: Option<u32>,
+    ) -> impl Iterator<Item = (String, String, Option<Vec<(LsSpan, String)>>, u32)> + 'a {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
@@ -255,33 +276,53 @@ impl CompletionListBuilder {
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
 
+                let mut additional_edits = vec![];
+
                 let mut qualification: Option<Rc<str>> = None;
                 if is_qualified {
                     if let Some(item_id) = i.parent {
                         if let Some(parent) = package.items.get(item_id) {
                             if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                                let temp = opens.iter().find_map(|(name, alias)| {
+                                let open = opens.iter().find_map(|(name, alias)| {
                                     if *name == namespace.name {
                                         Some(alias)
                                     } else {
                                         None
                                     }
                                 });
-                                qualification = match temp {
+                                qualification = match open {
                                     Some(alias) => alias.as_ref().cloned(),
-                                    None => Some(namespace.name.clone()),
+                                    None => match start_of_namespace {
+                                        Some(start) => {
+                                            additional_edits.push((
+                                                LsSpan {
+                                                    start,
+                                                    end: start + 12,
+                                                },
+                                                "This is a new Open!".to_owned(),
+                                            ));
+                                            None
+                                        }
+                                        None => Some(namespace.name.clone()),
+                                    },
                                 }
                             }
                         }
                     }
                 }
 
+                let additional_text_edits = if additional_edits.is_empty() {
+                    None
+                } else {
+                    Some(additional_edits)
+                };
+
                 let label = if let Some(qualification) = qualification {
                     format!("{qualification}.{name}")
                 } else {
                     name.to_owned()
                 };
-                Some((label, detail, sort_group))
+                Some((label, detail, additional_text_edits, sort_group))
             }
             _ => None,
         })
@@ -299,6 +340,7 @@ struct ContextFinder {
     offset: u32,
     context: Context,
     opens: Vec<(Rc<str>, Option<Rc<str>>)>,
+    start_of_namespace: Option<u32>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -315,11 +357,16 @@ impl Visitor<'_> for ContextFinder {
         if span_contains(namespace.span, self.offset) {
             self.context = Context::Namespace;
             self.opens = vec![];
+            self.start_of_namespace = None;
             visit::walk_namespace(self, namespace);
         }
     }
 
     fn visit_item(&mut self, item: &'_ qsc::ast::Item) {
+        if self.start_of_namespace.is_none() {
+            self.start_of_namespace = Some(item.span.lo);
+        }
+
         if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
             self.opens.push((
                 name.name.clone(),
