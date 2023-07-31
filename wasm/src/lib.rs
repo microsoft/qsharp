@@ -175,16 +175,12 @@ pub fn run(
 
 fn check_exercise_solution_internal(
     solution_code: &str,
-    verification_code: &str,
-    code_dependencies: Vec<(SourceName, SourceContents)>,
+    exercise_sources: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
 ) -> bool {
-    let mut sources = vec![
-        ("solution".into(), solution_code.into()),
-        ("verification".into(), verification_code.into()),
-    ];
-    for code_dependency in code_dependencies {
-        sources.push(code_dependency);
+    let mut sources = vec![("solution".into(), solution_code.into())];
+    for exercise_source in exercise_sources {
+        sources.push(exercise_source);
     }
     let mut out = CallbackReceiver { event_cb };
     let result = check_solution(sources, &mut out);
@@ -207,24 +203,18 @@ fn check_exercise_solution_internal(
 #[wasm_bindgen]
 pub fn check_exercise_solution(
     solution_code: &str,
-    verification_code: &str,
-    code_dependencies_js: JsValue,
+    exercise_sources_js: JsValue,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    let code_dependencies_strs: Vec<String> = serde_wasm_bindgen::from_value(code_dependencies_js)
+    let exercise_soruces_strs: Vec<String> = serde_wasm_bindgen::from_value(exercise_sources_js)
         .expect("Deserializing code dependencies should succeed");
-    let mut code_dependencies: Vec<(SourceName, SourceContents)> = vec![];
-    for (index, code) in code_dependencies_strs.into_iter().enumerate() {
-        code_dependencies.push((index.to_string().into(), code.into()));
+    let mut exercise_sources: Vec<(SourceName, SourceContents)> = vec![];
+    for (index, code) in exercise_soruces_strs.into_iter().enumerate() {
+        exercise_sources.push((index.to_string().into(), code.into()));
     }
-    let success = check_exercise_solution_internal(
-        solution_code,
-        verification_code,
-        code_dependencies,
-        |msg: &str| {
-            let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-        },
-    );
+    let success = check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
+        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+    });
 
     Ok(JsValue::from_bool(success))
 }
