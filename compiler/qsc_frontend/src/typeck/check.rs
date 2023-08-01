@@ -11,7 +11,7 @@ use crate::{
     typeck::convert::{self, MissingTyError},
 };
 use qsc_ast::{
-    ast::{self},
+    ast::{self, NodeId},
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -59,6 +59,7 @@ pub(crate) struct Checker {
     globals: HashMap<ItemId, Scheme>,
     table: Table,
     inferrer: Inferrer,
+    new: Vec<NodeId>,
     errors: Vec<Error>,
 }
 
@@ -72,6 +73,7 @@ impl Checker {
                 generics: IndexMap::new(),
             },
             inferrer: Inferrer::new(),
+            new: Vec::new(),
             errors: globals.errors,
         }
     }
@@ -167,13 +169,13 @@ impl Checker {
         ItemCollector::new(self, names).visit_stmt(stmt);
         ItemChecker::new(self, names).visit_stmt(stmt);
 
-        rules::stmt_fragment(
+        self.new.append(&mut rules::stmt_fragment(
             names,
             &self.globals,
             &mut self.table,
             &mut self.inferrer,
             stmt,
-        );
+        ));
     }
 
     pub(crate) fn solve(&mut self, names: &Names) {
@@ -182,6 +184,7 @@ impl Checker {
             &self.globals,
             &mut self.table,
             &mut self.inferrer,
+            std::mem::take(&mut self.new),
         ));
     }
 }

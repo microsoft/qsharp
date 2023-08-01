@@ -128,22 +128,34 @@ impl Interpreter {
         line: &str,
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
-        for mut fragment in self.compiler.compile_fragments(line) {
-            let pass_errors = run_default_passes_for_fragment(
-                self.store.core(),
-                self.compiler.assigner_mut(),
-                &mut fragment,
-            );
-            if !pass_errors.is_empty() {
-                let source = line.into();
-                return Err(pass_errors
-                    .into_iter()
-                    .map(|error| {
-                        LineError(WithSource::new(Arc::clone(&source), error.into(), None))
-                    })
-                    .collect());
-            }
 
+        let mut fragments = self.compiler.compile_fragments(line).map_err(|errors| {
+            let source = line.into();
+            errors
+                .into_iter()
+                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .collect::<Vec<_>>()
+        })?;
+
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                run_default_passes_for_fragment(
+                    self.store.core(),
+                    self.compiler.assigner_mut(),
+                    fragment,
+                )
+            })
+            .collect::<Vec<_>>();
+        if !pass_errors.is_empty() {
+            let source = line.into();
+            return Err(pass_errors
+                .into_iter()
+                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .collect());
+        }
+
+        for fragment in fragments {
             match fragment {
                 Fragment::Item(item) => match item.kind {
                     ItemKind::Callable(callable) => self.callables.insert(item.id, callable),
@@ -168,15 +180,6 @@ impl Interpreter {
                         ))]);
                     }
                 },
-                Fragment::Error(errors) => {
-                    let source = line.into();
-                    return Err(errors
-                        .into_iter()
-                        .map(|error| {
-                            LineError(WithSource::new(Arc::clone(&source), error.into(), None))
-                        })
-                        .collect());
-                }
             }
         }
 

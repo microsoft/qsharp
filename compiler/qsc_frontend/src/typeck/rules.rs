@@ -50,6 +50,7 @@ impl<'a> Context<'a> {
         globals: &'a HashMap<ItemId, Scheme>,
         table: &'a mut Table,
         inferrer: &'a mut Inferrer,
+        new: Vec<NodeId>,
     ) -> Self {
         Self {
             names,
@@ -57,7 +58,7 @@ impl<'a> Context<'a> {
             table,
             return_ty: None,
             typed_holes: Vec::new(),
-            new: Vec::new(),
+            new,
             inferrer,
         }
     }
@@ -754,7 +755,7 @@ pub(super) fn spec(
     spec: SpecImpl,
 ) -> Vec<Error> {
     let mut inferrer = Inferrer::new();
-    let mut context = Context::new(names, globals, table, &mut inferrer);
+    let mut context = Context::new(names, globals, table, &mut inferrer, Vec::new());
     context.infer_spec(spec);
     context.solve()
 }
@@ -766,7 +767,7 @@ pub(super) fn expr(
     expr: &Expr,
 ) -> Vec<Error> {
     let mut inferrer = Inferrer::new();
-    let mut context = Context::new(names, globals, table, &mut inferrer);
+    let mut context = Context::new(names, globals, table, &mut inferrer, Vec::new());
     context.infer_expr(expr);
     context.solve()
 }
@@ -777,9 +778,10 @@ pub(super) fn stmt_fragment(
     table: &mut Table,
     inferrer: &mut Inferrer,
     stmt: &Stmt,
-) {
-    let mut context = Context::new(names, globals, table, inferrer);
+) -> Vec<NodeId> {
+    let mut context = Context::new(names, globals, table, inferrer, Vec::new());
     context.infer_stmt(stmt);
+    context.new
 }
 
 pub(super) fn solve(
@@ -787,8 +789,9 @@ pub(super) fn solve(
     globals: &HashMap<ItemId, Scheme>,
     table: &mut Table,
     inferrer: &mut Inferrer,
+    new_nodes: Vec<NodeId>,
 ) -> Vec<Error> {
-    let context = Context::new(names, globals, table, inferrer);
+    let context = Context::new(names, globals, table, inferrer, new_nodes);
     context.solve()
 }
 

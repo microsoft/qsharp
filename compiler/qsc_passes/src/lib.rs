@@ -165,7 +165,7 @@ pub fn run_default_passes_for_fragment(
             LoopUni { core, assigner }.visit_callable_decl(decl);
             ReplaceQubitAllocation::new(core, assigner).visit_callable_decl(decl);
         }
-        Fragment::Item(_) | Fragment::Error(_) => {}
+        Fragment::Item(_) => {}
     }
 
     errors

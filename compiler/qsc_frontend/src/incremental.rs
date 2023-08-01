@@ -36,7 +36,6 @@ enum ErrorKind {
 pub enum Fragment {
     Stmt(hir::Stmt),
     Item(hir::Item),
-    Error(Vec<Error>),
 }
 
 pub struct Compiler {
@@ -77,15 +76,16 @@ impl Compiler {
         &mut self.hir_assigner
     }
 
-    pub fn compile_fragments(&mut self, input: &str) -> Vec<Fragment> {
+    /// Compile a string with one or more fragments of Q# code.
+    /// # Errors
+    /// Returns a vector of errors if any of the input fails compilation.
+    pub fn compile_fragments(&mut self, input: &str) -> Result<Vec<Fragment>, Vec<Error>> {
         let (mut fragments, errors) = qsc_parse::fragments(input);
         if !errors.is_empty() {
-            return vec![Fragment::Error(
-                errors
-                    .into_iter()
-                    .map(|e| Error(ErrorKind::Parse(e)))
-                    .collect(),
-            )];
+            return Err(errors
+                .into_iter()
+                .map(|e| Error(ErrorKind::Parse(e)))
+                .collect());
         }
 
         for fragment in &mut fragments {
@@ -96,34 +96,34 @@ impl Compiler {
         }
         self.checker.solve(self.resolver.names());
 
-        fragments
+        let fragments = fragments
             .into_iter()
             .flat_map(|f| self.compile_fragment(f))
-            .collect()
+            .collect();
+
+        let errors = self.drain_errors();
+        if errors.is_empty() {
+            Ok(fragments)
+        } else {
+            self.lowerer.clear_items();
+            Err(errors)
+        }
     }
 
     fn compile_fragment(&mut self, fragment: qsc_parse::Fragment) -> Vec<Fragment> {
         let fragment = match fragment {
-            qsc_parse::Fragment::Namespace(namespace) => self
-                .compile_namespace(&namespace)
-                .err()
-                .map(Fragment::Error),
-            qsc_parse::Fragment::Stmt(stmt) => self.compile_stmt(&stmt),
+            qsc_parse::Fragment::Namespace(namespace) => {
+                self.lower_namespace(&namespace);
+                None
+            }
+            qsc_parse::Fragment::Stmt(stmt) => self.lower_stmt(&stmt),
         };
 
-        if matches!(fragment, Some(Fragment::Error(..))) {
-            // In the error case, we should not return items up to the caller since they cannot
-            // safely be used by later parts of the compilation. Clear them here to prevent
-            // them from persisting into the next invocation of `compile_fragment`.
-            self.lowerer.clear_items();
-            fragment.into_iter().collect()
-        } else {
-            self.lowerer
-                .drain_items()
-                .map(Fragment::Item)
-                .chain(fragment)
-                .collect()
-        }
+        self.lowerer
+            .drain_items()
+            .map(Fragment::Item)
+            .chain(fragment)
+            .collect()
     }
 
     fn check_namespace(&mut self, namespace: &mut ast::Namespace) {
@@ -135,7 +135,7 @@ impl Compiler {
             .check_namespace(self.resolver.names(), namespace);
     }
 
-    fn compile_namespace(&mut self, namespace: &ast::Namespace) -> Result<(), Vec<Error>> {
+    fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         self.lowerer
             .with(
                 &mut self.hir_assigner,
@@ -143,13 +143,6 @@ impl Compiler {
                 self.checker.table(),
             )
             .lower_namespace(namespace);
-
-        let errors = self.drain_errors();
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
     }
 
     fn check_stmt(&mut self, stmt: &mut ast::Stmt) {
@@ -159,22 +152,15 @@ impl Compiler {
             .check_stmt_fragment(self.resolver.names(), stmt);
     }
 
-    fn compile_stmt(&mut self, stmt: &ast::Stmt) -> Option<Fragment> {
-        let fragment = self
-            .lowerer
+    fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Option<Fragment> {
+        self.lowerer
             .with(
                 &mut self.hir_assigner,
                 self.resolver.names(),
                 self.checker.table(),
             )
             .lower_stmt(stmt)
-            .map(Fragment::Stmt);
-        let errors = self.drain_errors();
-        if errors.is_empty() {
-            fragment
-        } else {
-            Some(Fragment::Error(errors))
-        }
+            .map(Fragment::Stmt)
     }
 
     fn drain_errors(&mut self) -> Vec<Error> {
