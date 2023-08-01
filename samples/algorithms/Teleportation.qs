@@ -10,10 +10,9 @@
 ///
 /// This following Q# program implements quantum teleportation.
 namespace Microsoft.Quantum.Samples.Teleportation {
-    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Random; 
+    open Microsoft.Quantum.Measurement;
 
     /// # Summary
     /// Sends the state of one qubit to a target qubit by using teleportation.
@@ -68,7 +67,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
     }
 
     @EntryPoint()
-    operation Main () : Unit {
+    operation Main () : (Result, Result, Result, Result) {
         // Allocate the message and target qubits.
         use (message, target) = (Qubit(), Qubit());
 
@@ -82,7 +81,9 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         Teleport(message, target);
         Message("Received state |0〉");
         DumpMachine();
-        ResetAll([message, target]);
+        // Measure target in the Z-basis (should be |0〉).
+        let zeroResult = MResetZ(target);
+        Reset(message);
 
         // Teleport the |1〉 state.
         X(message);
@@ -91,7 +92,9 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         Teleport(message, target);
         Message("Received state |1〉");
         DumpMachine();
-        ResetAll([message, target]);
+        // Measure target in the Z-basis (should be |1〉).
+        let oneResult = MResetZ(target);
+        Reset(message);
 
         // Teleport the |+〉 state.
         SetToPlus(message);
@@ -100,7 +103,9 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         Teleport(message, target);
         Message("Received state |+〉");
         DumpMachine();
-        ResetAll([message, target]);
+        // Measure target in the X-basis (should be |0〉).
+        let plusResult = MResetX(target);
+        Reset(message);
 
         // Teleport the |-〉 state.
         SetToMinus(message);
@@ -109,6 +114,10 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         Teleport(message, target);
         Message("Received state |-〉");
         DumpMachine();
-        ResetAll([message, target]);
+        // Measure target in the X-basis (should be |1〉).
+        let minusResult = MResetX(target);
+        Reset(message);
+
+        return (zeroResult, oneResult, plusResult, minusResult);
     }
 }
