@@ -34,7 +34,7 @@ impl<T> Partial<T> {
     }
 }
 
-pub(super) struct Context<'a> {
+struct Context<'a> {
     names: &'a Names,
     globals: &'a HashMap<ItemId, Scheme>,
     table: &'a mut Table,
@@ -45,7 +45,7 @@ pub(super) struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    pub(super) fn new(
+    fn new(
         names: &'a Names,
         globals: &'a HashMap<ItemId, Scheme>,
         table: &'a mut Table,
@@ -710,10 +710,10 @@ impl<'a> Context<'a> {
         self.table.terms.insert(id, ty);
     }
 
-    pub(crate) fn solve(&mut self) -> Vec<Error> {
+    pub(crate) fn solve(self) -> Vec<Error> {
         let mut errs = self.inferrer.solve(&self.table.udts);
 
-        for id in self.new.drain(..) {
+        for id in self.new {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
             self.inferrer.substitute_ty(ty);
 
@@ -729,7 +729,7 @@ impl<'a> Context<'a> {
             }
         }
 
-        for (id, span) in self.typed_holes.drain(..) {
+        for (id, span) in self.typed_holes {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
             errs.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
@@ -780,6 +780,16 @@ pub(super) fn stmt_fragment(
 ) {
     let mut context = Context::new(names, globals, table, inferrer);
     context.infer_stmt(stmt);
+}
+
+pub(super) fn solve(
+    names: &Names,
+    globals: &HashMap<ItemId, Scheme>,
+    table: &mut Table,
+    inferrer: &mut Inferrer,
+) -> Vec<Error> {
+    let context = Context::new(names, globals, table, inferrer);
+    context.solve()
 }
 
 fn converge<T>(ty: T) -> Partial<T> {

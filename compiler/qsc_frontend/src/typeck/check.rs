@@ -3,7 +3,7 @@
 
 use super::{
     infer::Inferrer,
-    rules::{self, Context, SpecImpl},
+    rules::{self, SpecImpl},
     Error, ErrorKind, Table,
 };
 use crate::{
@@ -177,8 +177,12 @@ impl Checker {
     }
 
     pub(crate) fn solve(&mut self, names: &Names) {
-        let mut context = Context::new(names, &self.globals, &mut self.table, &mut self.inferrer);
-        self.errors.append(&mut context.solve());
+        self.errors.append(&mut rules::solve(
+            names,
+            &self.globals,
+            &mut self.table,
+            &mut self.inferrer,
+        ));
     }
 }
 
