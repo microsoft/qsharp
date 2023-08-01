@@ -194,7 +194,7 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 
 @[exercise]({
     "id": "learn_single_qubit_state",
-    "title": "Learn Single Qubit State"
+    "title": "Learn Single Qubit State",
     "descriptionPath": "./learn_single_qubit_state/index.md"
     "codePaths": [
         "../KatasLibrary.qs",
@@ -223,7 +223,7 @@ For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQu
 
 @[exercise]({
     "id": "learn_basis_state_amplitudes",
-    "title": "Learn Basis State Amplitudes"
+    "title": "Learn Basis State Amplitudes",
     "codeDependenciesPaths": [
         "../KatasLibrary.qs"
         "../learn_basis_state_amplitudes/Verification.qs"
@@ -268,7 +268,7 @@ If you choose to display the numeric value of measurement probability, you can c
 
 @[exercise]({
     "id": "high_probability_basis_states",
-    "title": "High Probability Basis States"
+    "title": "High Probability Basis States",
     "codeDependenciesPaths": [
         "../KatasLibrary.qs",
         "../high_probability_basis_states/Verification.qs"
