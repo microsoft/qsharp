@@ -228,7 +228,7 @@ fn markdown_with_doc(doc: &str, namespace: Option<Rc<str>>, code: impl Display) 
     if parsed_doc.summary.is_empty() {
         code
     } else {
-        format!("{}---\n{}", code, parsed_doc.summary,)
+        format!("{}---\n{}\n", code, parsed_doc.summary,)
     }
 }
 

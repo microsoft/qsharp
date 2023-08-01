@@ -50,6 +50,7 @@ fn hover_callable_unit_types() {
             Test
             operation Bar() : Unit
             ```
+            ---
             Doc comment
             with multiple lines!
         "#]],
@@ -70,6 +71,7 @@ fn hover_callable_with_callable_types() {
             Test
             operation Foo(x: (Int => Int)) : (Int => Int)
             ```
+            ---
             Doc comment!
         "#]],
     );
@@ -108,6 +110,7 @@ fn hover_callable_unit_types_functors() {
             Test
             operation Foo() : Unit is Ctl
             ```
+            ---
             Doc comment!
         "#]],
     );
@@ -127,6 +130,7 @@ fn hover_callable_with_callable_types_functors() {
             Test
             operation Foo(x: (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
             ```
+            ---
             Doc comment!
         "#]],
     );
@@ -623,6 +627,7 @@ fn hover_callable_summary() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line summary!
         "#]],
@@ -646,6 +651,7 @@ fn hover_callable_summary_stuff_before() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line summary!
         "#]],
@@ -670,6 +676,7 @@ fn hover_callable_summary_other_header_before() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line summary!
         "#]],
@@ -694,6 +701,7 @@ fn hover_callable_summary_other_header_after() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line summary!
         "#]],
@@ -720,6 +728,7 @@ fn hover_callable_summary_other_headers() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line summary!
         "#]],
@@ -743,6 +752,7 @@ fn hover_callable_headers_but_no_summary() {
             Test
             operation Foo() : Unit
             ```
+            ---
             # Not The Summary
             This stuff is not the summary.
             # Also Not The Summary
@@ -771,6 +781,7 @@ fn hover_callable_summary_only_header_matches() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line # Summary!
         "#]],
@@ -794,6 +805,7 @@ fn hover_callable_summary_successive_headers() {
             Test
             operation Foo() : Unit
             ```
+            ---
             This is a
             multi-line summary!
         "#]],
