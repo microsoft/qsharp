@@ -4,15 +4,12 @@
 /**
  * Katas Taxonomy
  *
- * A Kata is a top-level container of educational items (exercises and examples) which are used to explain a particular
- * topic.
+ * A Kata is a top-level container of educational items which are used to explain a particular topic.
  *
- * This file builds the content for all the Katas. The katas ordering is conveyed by the katas.json file where each
+ * This file builds the content for all the Katas. The katas ordering is conveyed by JSON file where each
  * string in the array represents a folder that contains all the data to build the kata.
  *
- * Each Kata is organized in a directory where an index.md file, an items.json file, and multiple sub-directories are
- * present. Each sub-directory represents an item within the Kata and its specific content depends on the type of item
- * it represents.
+ * Each Kata is organized in a directory where an index.md file provides a description on how the kata must be composed.
  */
 
 // @ts-check
@@ -31,22 +28,34 @@ const contentFileNames = {
   kataMarkdown: "index.md",
 };
 
-function getTitleFromMarkdown(markdown) {
-  const titleRe = /#+ /;
-  const lines = markdown.split(/\r?\n/);
-  if (lines.length === 0) {
-    throw new Error("Could not parse title, markdown is empty");
-  }
+function tryGetTitleFromMarkdown(markdown, errorPrefix) {
+  const result = /^# (.*)/.exec(markdown);
+  if (result?.length !== 2)
+    throw new Error(`${errorPrefix}\nCould not get title from markdown`);
+  return result[1];
+}
 
-  const firstLine = lines[0];
-  const match = firstLine.match(titleRe);
-  if (match === null) {
+function tryGetTitleFromSegment(segment, errorPrefix) {
+  // The segment that represents the title can only be a markdown segment.
+  if (segment.type !== "markdown") {
     throw new Error(
-      `First line does not follow the expected title pattern: ${firstLine}`
+      `${errorPrefix}\n` +
+        `segment is expected to be the title but found a segment of type '${segment.type}' instead`
     );
   }
 
-  return firstLine.replace(titleRe, "");
+  // Check that the segment has just one line.
+  const linesCount = segment.markdown.split(/\r?\n/).length;
+  if (linesCount !== 1) {
+    throw new Error(
+      `${errorPrefix}\n` +
+        `A title segment must be 1 line, but ${linesCount} lines are present\n` +
+        `Hint: is the markdown missing a @[section] macro?`
+    );
+  }
+  const title = tryGetTitleFromMarkdown(segment.markdown, errorPrefix);
+
+  return title;
 }
 
 function tryParseJSON(json, errorPrefix) {
@@ -54,7 +63,7 @@ function tryParseJSON(json, errorPrefix) {
   try {
     parsed = JSON.parse(json);
   } catch (e) {
-    throw new Error(`${errorPrefix}: ${e}`);
+    throw new Error(`${errorPrefix}\n${e}`);
   }
   return parsed;
 }
@@ -64,19 +73,74 @@ function tryReadFile(filePath, errorPrefix) {
   try {
     content = readFileSync(filePath, "utf8");
   } catch (e) {
-    throw new Error(`${errorPrefix}: ${e}`);
+    throw new Error(`${errorPrefix}\n${e}`);
   }
   return content;
 }
 
-function getMissingProperties(properties, required) {
+function identifyMissingProperties(properties, required) {
   return required.filter((property) => !Object.hasOwn(properties, property));
 }
 
-function generateExampleSection(kataPath, properties) {
+function getSourceId(sourcePath, basePath) {
+  return relative(basePath, sourcePath).replaceAll(sep, "__");
+}
+
+function aggregateSources(paths, globalCodeSources) {
+  const codeSources = [];
+  for (const path of paths) {
+    const id = getSourceId(path, globalCodeSources.basePath);
+    if (!(id in globalCodeSources.sources)) {
+      const code = tryReadFile(path, "Could not read code dependency");
+      globalCodeSources.sources[id] = code;
+    }
+    codeSources.push(id);
+  }
+  return codeSources;
+}
+
+function parseMarkdown(markdown) {
+  const segments = [];
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
+  let latestProcessedIndex = 0;
+  while (latestProcessedIndex < markdown.length) {
+    const match = macroRegex.exec(markdown);
+    if (match !== null) {
+      // If there is something between the last processed index and the start of the match that is not just whitespace,
+      // it represents a text segment.
+      const delta = match.index - latestProcessedIndex;
+      if (delta > 0) {
+        const textSegment = tryCreateMarkdownSegment(
+          markdown.substring(latestProcessedIndex, match.index)
+        );
+        if (textSegment !== null) {
+          segments.push(textSegment);
+        }
+      }
+
+      // Create a segment that corresponds to the found macro.
+      const macroSegment = createMacroSegment(match);
+      segments.push(macroSegment);
+      latestProcessedIndex = macroRegex.lastIndex;
+    } else {
+      // No more matches were found, create a text segment with the remaining content.
+      const textSegment = tryCreateMarkdownSegment(
+        markdown.substring(latestProcessedIndex, markdown.length)
+      );
+      if (textSegment !== null) {
+        segments.push(textSegment);
+      }
+      latestProcessedIndex = markdown.length;
+    }
+  }
+
+  return segments;
+}
+
+function createExample(baseFolderPath, properties) {
   // Validate that the data contains the required properties.
   const requiredProperties = ["id", "codePath"];
-  const missingProperties = getMissingProperties(
+  const missingProperties = identifyMissingProperties(
     properties,
     requiredProperties
   );
@@ -87,10 +151,10 @@ function generateExampleSection(kataPath, properties) {
   }
 
   // Generate the object using the macro properties.
-  const codePath = join(kataPath, properties.codePath);
+  const codePath = join(baseFolderPath, properties.codePath);
   const code = tryReadFile(
     codePath,
-    "Could not read the contents of the example code file"
+    `Could not read the contents of the example code file at ${codePath}`
   );
   return {
     type: "example",
@@ -99,153 +163,319 @@ function generateExampleSection(kataPath, properties) {
   };
 }
 
-function getCodeDependencyId(codeDependencyPath, basePath) {
-  return relative(basePath, codeDependencyPath).replace(sep, "__");
+function createTextContent(markdown) {
+  const html = marked(markdown);
+  return { type: "text-content", asHtml: html, asMarkdown: markdown };
 }
 
-function generateCodeDependencies(paths, globalCodeSources) {
-  const codeDependencies = [];
-  for (const path of paths) {
-    const id = getCodeDependencyId(path, globalCodeSources.basePath);
-    if (!(id in globalCodeSources.sources)) {
-      const code = tryReadFile(path, "Could not read code dependency");
-      globalCodeSources.sources[id] = code;
-    }
-    codeDependencies.push(id);
-  }
-  return codeDependencies;
-}
-
-function generateExerciseSection(kataPath, properties, globalCodeSources) {
+function createSolution(baseFolderPath, properties) {
   // Validate that the data contains the required properties.
-  const requiredProperties = [
-    "id",
-    "codeDependenciesPaths",
-    "verificationSourcePath",
-    "placeholderSourcePath",
-    "solutionSourcePath",
-    "solutionDescriptionPath",
-  ];
-  const missingProperties = getMissingProperties(
+  const requiredProperties = ["id", "codePath"];
+  const missingProperties = identifyMissingProperties(
     properties,
     requiredProperties
   );
   if (missingProperties.length > 0) {
     throw new Error(
-      `Exercise macro is missing the following properties: ${missingProperties}`
+      `Solution macro is missing the following properties: ${missingProperties}`
     );
   }
 
   // Generate the object using the macro properties.
-  const resolvedCodeDependenciesPaths = properties.codeDependenciesPaths.map(
-    (path) => join(kataPath, path)
+  const codePath = join(baseFolderPath, properties.codePath);
+  const code = tryReadFile(
+    codePath,
+    `Could not read the contents of the solution code file at ${codePath}`
   );
-  const codeDependencies = generateCodeDependencies(
-    resolvedCodeDependenciesPaths,
-    globalCodeSources
-  );
-  const verificationCode = tryReadFile(
-    join(kataPath, properties.verificationSourcePath),
-    `Could not read verification code for exercise ${properties.id}`
-  );
-  const placeholderCode = tryReadFile(
-    join(kataPath, properties.placeholderSourcePath),
-    `Could not read placeholder code for exercise ${properties.id}`
-  );
-  const solutionAsMarkdown = tryReadFile(
-    join(kataPath, properties.solutionDescriptionPath),
-    `Could not read solution description for exercise ${properties.id}`
-  );
-  const solutionAsHtml = marked.parse(solutionAsMarkdown);
   return {
-    type: "exercise",
+    type: "solution",
     id: properties.id,
-    codeDependencies: codeDependencies,
-    verificationCode: verificationCode,
-    placeholderCode: placeholderCode,
-    solutionAsMarkdown: solutionAsMarkdown,
-    solutionAsHtml: solutionAsHtml,
+    code: code,
   };
 }
 
-function generateMacroSection(kataPath, match, globalCodeSources) {
+function createExplainedSolution(markdownFilePath) {
+  const markdown = tryReadFile(
+    markdownFilePath,
+    `Could not read solution markdown file at ${markdownFilePath}`
+  );
+
+  const solutionFolderPath = dirname(markdownFilePath);
+  const segments = parseMarkdown(markdown);
+  const solutionItems = [];
+  for (const segment of segments) {
+    let solutionItem = null;
+    if (segment.type === "example") {
+      solutionItem = createExample(solutionFolderPath, segment.properties);
+    } else if (segment.type === "solution") {
+      solutionItem = createSolution(solutionFolderPath, segment.properties);
+    } else if (segment.type === "markdown") {
+      solutionItem = createTextContent(segment.markdown);
+    }
+
+    if (solutionItem !== null) {
+      solutionItems.push(solutionItem);
+    }
+  }
+
+  return {
+    type: "explained-solution",
+    items: solutionItems,
+  };
+}
+
+function createAnswer(markdownFilePath) {
+  const markdown = tryReadFile(
+    markdownFilePath,
+    `Could not read answer markdown file at ${markdownFilePath}`
+  );
+
+  const answerFolderPath = dirname(markdownFilePath);
+  const segments = parseMarkdown(markdown);
+  const items = [];
+  for (const segment of segments) {
+    let answerItem = null;
+    if (segment.type === "example") {
+      answerItem = createExample(answerFolderPath, segment.properties);
+    } else if (segment.type === "markdown") {
+      answerItem = createTextContent(segment.markdown);
+    }
+
+    if (answerItem !== null) {
+      items.push(answerItem);
+    }
+  }
+
+  return { type: "answer", items: items };
+}
+
+function createQuestion(kataPath, properties) {
+  // Validate that the data contains the required properties.
+  const requiredProperties = ["descriptionPath", "answerPath"];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `Question macro is missing the following properties\n` +
+        `${missingProperties}\n` +
+        `Macro properties:\n` +
+        `${JSON.stringify(properties, undefined, 2)}`
+    );
+  }
+
+  // Generate the object using the macro properties.
+  const descriptionMarkdown = tryReadFile(
+    join(kataPath, properties.descriptionPath),
+    `Could not read descripton for question ${properties.id}`
+  );
+  const description = createTextContent(descriptionMarkdown);
+  const answerItems = createAnswer(properties.answerPath);
+
+  return {
+    type: "question",
+    description: description,
+    answerItems: answerItems,
+  };
+}
+
+function createExerciseSection(kataPath, properties, globalCodeSources) {
+  // Validate that the data contains the required properties.
+  const requiredProperties = [
+    "id",
+    "title",
+    "descriptionPath",
+    "codePaths",
+    "placeholderSourcePath",
+    "solutionPath",
+  ];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `Exercise macro is missing the following properties\n` +
+        `${missingProperties}\n` +
+        `Macro properties:\n` +
+        `${JSON.stringify(properties, undefined, 2)}`
+    );
+  }
+
+  // Generate the object using the macro properties.
+  const descriptionMarkdown = tryReadFile(
+    join(kataPath, properties.descriptionPath),
+    `Could not read descripton for exercise ${properties.id}`
+  );
+  const description = createTextContent(descriptionMarkdown);
+  const resolvedCodePaths = properties.codePaths.map((path) =>
+    join(kataPath, path)
+  );
+  const sourceIds = aggregateSources(resolvedCodePaths, globalCodeSources);
+  const placeholderCode = tryReadFile(
+    join(kataPath, properties.placeholderSourcePath),
+    `Could not read placeholder code for exercise '${properties.id}'`
+  );
+  const explainedSolution = createExplainedSolution(
+    join(kataPath, properties.solutionPath)
+  );
+
+  return {
+    type: "exercise",
+    id: properties.id,
+    title: properties.title,
+    description: description,
+    sourceIds: sourceIds,
+    placeholderCode: placeholderCode,
+    explainedSolution: explainedSolution,
+  };
+}
+
+function createLessonSection(kataPath, properties, segmentsStack) {
+  // Validate that the data contains the required properties.
+  const requiredProperties = ["id", "title"];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `Section macro is missing the following properties\n` +
+        `${missingProperties}\n` +
+        `Macro properties:\n` +
+        `${JSON.stringify(properties, undefined, 2)}`
+    );
+  }
+
+  // Continue processing segments until another section-delimiting segment appears.
+  const lessonItems = [];
+  const isSectionDelimiterSegment = (segment) =>
+    segment.type === "exercise" || segment.type === "section";
+  while (
+    segmentsStack.length > 0 &&
+    !isSectionDelimiterSegment(segmentsStack.at(-1))
+  ) {
+    const currentSegment = segmentsStack.pop();
+    let lessonItem = null;
+    if (currentSegment.type === "example") {
+      lessonItem = createExample(kataPath, currentSegment.properties);
+    } else if (currentSegment.type === "markdown") {
+      lessonItem = createTextContent(currentSegment.markdown);
+    } else if (currentSegment.type === "question") {
+      lessonItem = createQuestion(kataPath, currentSegment.properties);
+    }
+
+    // Check that a valid lesson item was created.
+    if (lessonItem === null) {
+      throw new Error(
+        `Lesson item could not be generated for segment of type '${currentSegment.type}'\n` +
+          `segment:\n` +
+          `${JSON.stringify(currentSegment, undefined, 2)}`
+      );
+    }
+
+    lessonItems.push(lessonItem);
+  }
+
+  return {
+    type: "lesson",
+    id: properties.id,
+    title: properties.title,
+    items: lessonItems,
+  };
+}
+
+function createMacroSegment(match) {
   const type = match.groups.type;
   const propertiesJson = match.groups.json;
   const properties = tryParseJSON(
     propertiesJson,
-    `Invalid JSON for ${type} macro.`
+    `Invalid JSON for macro of type ${type}.\n` + `JSON: ${propertiesJson}`
   );
-  if (type === "example") {
-    return generateExampleSection(kataPath, properties);
-  } else if (type === "exercise") {
-    return generateExerciseSection(kataPath, properties, globalCodeSources);
-  }
-
-  throw new Error(`Unknown macro type ${type}`);
-}
-
-function generateTextSection(markdown) {
-  const html = marked.parse(markdown);
   return {
-    type: "text",
-    contentAsMarkdown: markdown,
-    contentAsHtml: html,
+    type: type,
+    properties: properties,
   };
 }
 
-function generateSections(kataPath, markdown, globalCodeSources) {
-  const sections = [];
-  const macroRegex = /@\[(?<type>\w+)\]\(\s*(?<json>\{[^@]+\})\s*\)\s+/g;
-  let latestProcessedIndex = 0;
-  while (latestProcessedIndex < markdown.length) {
-    const match = macroRegex.exec(markdown);
-    if (match !== null) {
-      // If there is something between the last processed index and the start of the match, create a text section for
-      // it.
-      const delta = match.index - latestProcessedIndex;
-      if (delta > 0) {
-        const textSection = generateTextSection(
-          markdown.substring(latestProcessedIndex, match.index)
-        );
-        sections.push(textSection);
-      }
-
-      // Create a section object that corresponds to the found macro.
-      const macroSection = generateMacroSection(
-        kataPath,
-        match,
-        globalCodeSources
-      );
-      sections.push(macroSection);
-      latestProcessedIndex = macroRegex.lastIndex;
-    } else {
-      // No more matches were found, create a text section with the remaining content.
-      const textSection = generateTextSection(
-        markdown.substring(latestProcessedIndex, markdown.length)
-      );
-      sections.push(textSection);
-      latestProcessedIndex = markdown.length;
-    }
+function tryCreateMarkdownSegment(text) {
+  const trimmedText = text.trim();
+  if (trimmedText.length > 0) {
+    return { type: "markdown", markdown: trimmedText };
   }
 
-  return sections;
+  return null;
 }
 
-function generateKataContent(path, globalCodeSources) {
-  const kataId = basename(path);
-  console.log(`- ${kataId}`);
-  const markdownPath = join(path, contentFileNames.kataMarkdown);
-  const markdown = tryReadFile(
-    markdownPath,
-    "Could not read the contents of the kata markdown file"
+function createKata(segments, kataPath, globalCodeSources) {
+  const kataId = basename(kataPath);
+
+  // Validate that the kata markdown file is not empty.
+  if (segments.length === 0) {
+    throw new Error(`Markdown for '${kataId}' kata does not have any segments`);
+  }
+
+  // Use the array of segments as a stack to keep track of the segments that have not been processed.
+  const segmentsStack = segments.reverse();
+
+  // The first segment in the kata must be the title.
+  const firstSegment = segmentsStack.pop();
+  const title = tryGetTitleFromSegment(
+    firstSegment,
+    `Could not get title for kata '${kataId}'`
   );
-  const title = getTitleFromMarkdown(markdown);
-  const sections = generateSections(path, markdown, globalCodeSources);
+
+  // Create sections from the remainin segments in the stack.
+  const sections = [];
+  while (segmentsStack.length > 0) {
+    const currentSegment = segmentsStack.pop();
+    let section = null;
+    if (currentSegment.type === "exercise") {
+      section = createExerciseSection(
+        kataPath,
+        currentSegment.properties,
+        globalCodeSources
+      );
+    } else if (currentSegment.type === "section") {
+      section = createLessonSection(
+        kataPath,
+        currentSegment.properties,
+        segmentsStack
+      );
+    }
+
+    // Check if a valid section was created.
+    if (section === null) {
+      throw new Error(
+        `Unexpexted segment of type '${currentSegment.type}'\n` +
+          `segment:\n` +
+          `${JSON.stringify(currentSegment, undefined, 2)}\n` +
+          `Hint: is the markdown missing a @[section] macro?`
+      );
+    }
+
+    sections.push(section);
+  }
+
   return {
     id: kataId,
     title: title,
     sections: sections,
   };
+}
+
+function generateKataContent(path, globalCodeSources) {
+  console.log(`- Creating content for kata at: ${path}`);
+  const markdownPath = join(path, contentFileNames.kataMarkdown);
+  const markdown = tryReadFile(
+    markdownPath,
+    "Could not read the contents of the kata markdown file"
+  );
+  const segments = parseMarkdown(markdown);
+  const kata = createKata(segments, path, globalCodeSources);
+  console.log(`-- '${kata.id}' kata was successfully created`);
+  return kata;
 }
 
 function generateKatasContent(katasPath, outputPath) {
@@ -259,10 +489,14 @@ function generateKatasContent(katasPath, outputPath) {
     indexJson,
     `Invalid katas index at ${indexPath}`
   );
+
+  // Initialize an object where all the global code sources will be aggregated.
   const globalCodeSourcesContainer = {
     basePath: katasPath,
     sources: {},
   };
+
+  // Generate an object for each kata and update the global code sources with the code they reference.
   var katas = [];
   for (const kataDir of katasDirs) {
     const kataPath = join(katasPath, kataDir);
@@ -270,11 +504,12 @@ function generateKatasContent(katasPath, outputPath) {
     katas.push(kata);
   }
 
+  // Create the objects that will be written to a file.
   const globalCodeSources = [];
-  for (let name in globalCodeSourcesContainer.sources) {
+  for (let id in globalCodeSourcesContainer.sources) {
     globalCodeSources.push({
-      name: name,
-      contents: globalCodeSourcesContainer.sources[name],
+      id: id,
+      code: globalCodeSourcesContainer.sources[id],
     });
   }
   const katasContent = {
