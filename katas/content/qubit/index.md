@@ -198,13 +198,16 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
     "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
-        "./sign_flip_on_zero/Verification.qs"
+        "./learn_single_qubit_state/Verification.qs"
     ],
     "placeholderSourcePath": "./learn_single_qubit_state/Placeholder.qs",
-    "solutionPath": "./learn_single_qubit_state/solution.md",
+    "solutionPath": "./learn_single_qubit_state/solution.md"
 })
 
-### Display the quantum state of a multi-qubit program
+@[section]({
+    "id": "qubit_visualizing_multi_qubit",
+    "title": "Display the Quantum State of a Multi-Qubit Program"
+})
 
 Now let's take a look at the general case: a program that acts on $N$ qubits. 
 The state of the quantum system used by this program can be represented as a complex vector of length $2^N$, or, using Dirac notation,
@@ -217,16 +220,17 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 By default, `DumpMachine` uses little-endian to convert bit strings to integers in the ket notation.
 For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQubitSystems/MultiQubitSystems.ipynb#Endianness).
 
-### Demo: DumpMachine for multi-qubit systems
+## Demo: DumpMachine for multi-qubit systems
 
 @[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
 
 @[exercise]({
     "id": "learn_basis_state_amplitudes",
     "title": "Learn Basis State Amplitudes",
-    "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
-        "../learn_basis_state_amplitudes/Verification.qs"
+    "descriptionPath": "./learn_basis_state_amplitudes/index.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./learn_basis_state_amplitudes/Verification.qs"
     ],
     "placeholderSourcePath": "./learn_basis_state_amplitudes/Placeholder.qs",
     "solutionPath": "./learn_basis_state_amplitudes/solution.md"
@@ -269,9 +273,10 @@ If you choose to display the numeric value of measurement probability, you can c
 @[exercise]({
     "id": "high_probability_basis_states",
     "title": "High Probability Basis States",
-    "codeDependenciesPaths": [
+    "descriptionPath": "./high_probability_basis_states/index.md",
+    "codePaths": [
         "../KatasLibrary.qs",
-        "../high_probability_basis_states/Verification.qs"
+        "./high_probability_basis_states/Verification.qs"
     ],
     "placeholderSourcePath": "./high_probability_basis_states/Placeholder.qs",
     "solutionPath": "./high_probability_basis_states/solution.md"
