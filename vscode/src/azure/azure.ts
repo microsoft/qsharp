@@ -1,7 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log } from "qsharp";
+
 const publicMgmtEndpoint = "https://management.azure.com";
+
+// TODO: Remove once cors on quantum endpoint is fixed
+const proxy = "http://localhost:5555";
 
 export async function azureRequest(
   uri: string,
@@ -9,38 +14,53 @@ export async function azureRequest(
   method = "GET",
   body?: string
 ) {
-  const response = await fetch(uri, {
-    headers: [
-      ["Authorization", `Bearer ${token}`],
-      ["Content-Type", "application/json"],
-    ],
-    method,
-    body,
-  });
-  if (!response.ok) throw "Failed"; // TODO: Proper error propogation
-  return await response.json();
+  const headers: [string, string][] = [
+    ["Authorization", `Bearer ${token}`],
+    ["Content-Type", "application/json"],
+  ];
+
+  if (proxy) {
+    // Replace the host with the proxy, and put the original host in a header
+    const url = new URL(uri);
+    uri = `${proxy}${url.pathname}${url.search}`;
+    headers.push(["x-proxy-to", url.origin]);
+  }
+
+  try {
+    log.debug(`Fetching ${uri}`);
+    const response = await fetch(uri, {
+      headers,
+      method,
+      body,
+    });
+
+    if (!response.ok) throw "Failed"; // TODO: Proper error propogation
+    return await response.json();
+  } catch (e) {
+    log.error(`Failed to fetch ${uri}: ${e}`);
+  }
 }
 
-export const AzureUris = {
-  tenants(mgmtEndpoint?: string) {
+export class AzureUris {
+  readonly apiVersion = "2020-01-01";
+
+  constructor(public mgmtEndpoint = publicMgmtEndpoint) {}
+
+  tenants() {
     // https://learn.microsoft.com/en-us/rest/api/resources/tenants/list
-    return `${
-      mgmtEndpoint || publicMgmtEndpoint
-    }/tenants?api-version=2020-01-01`;
-  },
-  subscriptions(mgmtEndpoint?: string) {
+    return `${this.mgmtEndpoint}/tenants?api-version=${this.apiVersion}`;
+  }
+
+  subscriptions() {
     // https://learn.microsoft.com/en-us/rest/api/resources/subscriptions/list
-    return `${
-      mgmtEndpoint || publicMgmtEndpoint
-    }/subscriptions?api-version=2020-01-01`;
-  },
-  workspaces(subscriptionId: string, mgmtEndpoint?: string) {
+    return `${this.mgmtEndpoint}/subscriptions?api-version=${this.apiVersion}`;
+  }
+
+  workspaces(subscriptionId: string) {
     // https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/resource-manager/Microsoft.Quantum/preview/2022-01-10-preview/quantum.json#L221
-    return `${
-      mgmtEndpoint || publicMgmtEndpoint
-    }/subscriptions/${subscriptionId}/providers/Microsoft.Quantum/workspaces?api-version=2022-01-10-preview`;
-  },
-};
+    return `${this.mgmtEndpoint}/subscriptions/${subscriptionId}/providers/Microsoft.Quantum/workspaces?api-version=2022-01-10-preview`;
+  }
+}
 
 export class QuantumUris {
   readonly apiVersion = "2022-09-12-preview";
@@ -58,9 +78,54 @@ export class QuantumUris {
     return `${this.endpoint}${this.id}/providerStatus?api-version=${this.apiVersion}`;
   }
 
-  sasUri() {
-    return `${this.endpoint}${this.id}/sasUri?api-version=${this.apiVersion}`;
+  jobs() {
+    return `${this.endpoint}${this.id}/jobs?api-version=${this.apiVersion}`;
   }
+
+  // Needs to POST an application/json payload such as: {"containerName": "job-073064ed-2a47-11ee-b8e7-010101010000","blobName":"outputData"}
+  sasUri() {
+    return `${this.endpoint}${this.id}/storage/sasUri?api-version=${this.apiVersion}`;
+  }
+}
+
+export class StorageUris {
+  // Note that to user AzureAD auth, you need a token for https://storage.azure.com/user_impersonation
+  // See https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-azure-active-directory#use-oauth-access-tokens-for-authentication
+
+  // Here was use a Shared Access Signature. See https://learn.microsoft.com/en-us/rest/api/storageservices/service-sas-examples
+  // Appears to be using an account SAS - https://learn.microsoft.com/en-us/rest/api/storageservices/create-account-sas
+
+  // x-ms-date header should be present in format: Sun, 06 Nov 1994 08:49:37 GMT
+  // See https://learn.microsoft.com/en-us/rest/api/storageservices/representation-of-date-time-values-in-headers
+
+  readonly apiVersion = "2023-01-03"; // Pass as x-ms-version header (see https://learn.microsoft.com/en-us/rest/api/storageservices/versioning-for-the-azure-storage-services#authorize-requests-by-using-azure-ad-shared-key-or-shared-key-lite)
+
+  // List containers - do we need this? The response is in XML
+  // See https://learn.microsoft.com/en-us/rest/api/storageservices/list-containers2?tabs=shared-access-signatures
+  getContainers(storageAccount: string, sas: string) {
+    return `https://${storageAccount}.blob.core.windows.net/?comp=list&${sas}`;
+  }
+
+  // Same URI for PUT, with a status code of 201 if successful
+  getContainer(storageAccount: string, container: string, sas: string) {
+    return `https://${storageAccount}.blob.core.windows.net/${container}?restype=container&${sas}`;
+  }
+
+  // Same for DELETE, with a status code of 202 if successful
+  getBlob(
+    storageAccount: string,
+    container: string,
+    blob: string,
+    sas: string
+  ) {
+    return `https://${storageAccount}.blob.core.windows.net/${container}/${blob}?${sas}`;
+  }
+  /*
+  Same URI as above for put, but must include the following headers:
+  - x-ms-blob-type: BlockBlob
+  - Content-Length: <n>
+  It will return 201 if created.
+  */
 }
 
 export const scopes = {
@@ -99,7 +164,7 @@ export namespace ResponseTypes {
           resourceUsageId: string;
         }>;
         provisioningState: string;
-        storageAccount: string;
+        storageAccount: string; // "/subscriptions/02e0a16f-334e-47a5-8672-d94e1ebee1b1/resourceGroups/AzureQuantum/providers/Microsoft.Storage/storageAccounts/aq8cf1612dd26f4d90b8e931"
         endpointUri: string;
       };
     }>;
@@ -114,5 +179,26 @@ export namespace ResponseTypes {
       utilization: number;
       limit: number;
     }>;
+  };
+
+  export type Jobs = {
+    nextLink: string;
+    value: Array<{
+      id: string;
+      jobType: string;
+      sessionId: string;
+      containerUri: string;
+      inputDataUri: string;
+      outputDataUri: string;
+      inputDataFormat: string;
+      outputDataFormat: string;
+      inputParams: any;
+      status: "Waiting" | "Executing" | "Succeeded" | "Failed" | "Cancelled";
+      cancellationTime: string;
+    }>;
+  };
+
+  export type SasUri = {
+    sasUri: string;
   };
 }

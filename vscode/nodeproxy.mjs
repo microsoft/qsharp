@@ -24,14 +24,30 @@ const server = createServer(async (req, res) => {
     res.setHeader("cache-control", "public, max-age=3110400, immutable");
     res.setHeader("vary", "Access-Control-Allow-Headers");
     res.end();
-  } else if (req.method === "GET") {
+  } else if (req.method === "GET" || req.method === "POST") {
     // Proxy the request
     const token = req.headers["authorization"]?.substring(7);
     const target = req.headers["x-proxy-to"];
     const path = req.url;
 
+    let body = undefined;
+    if (req.method === "POST") {
+      // Read the body
+      body = await new Promise((resolve) => {
+        let data = "";
+        req.on("data", (chunk) => {
+          data += chunk;
+        });
+        req.on("end", () => {
+          resolve(data);
+        });
+      });
+    }
+
     // Fetch from the origin, then return the payload
     const response = await fetch(`${target}${path}`, {
+      method: req.method,
+      body,
       headers: [
         ["Authorization", `Bearer ${token}`],
         ["Content-Type", "application/json"],

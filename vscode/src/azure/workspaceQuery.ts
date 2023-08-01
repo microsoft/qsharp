@@ -1,9 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp";
-import { AzureUris, scopes, ResponseTypes } from "./azure";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import * as vscode from "vscode";
+import { log } from "qsharp";
+import {
+  azureRequest,
+  scopes,
+  AzureUris,
+  QuantumUris,
+  ResponseTypes,
+} from "./azure";
+import { get } from "http";
 
 export async function queryWorkspaces() {
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
@@ -15,63 +24,91 @@ export async function queryWorkspaces() {
     [scopes.armMgmt],
     { createIfNone: true }
   );
+  log.debug(`Got first token: ${JSON.stringify(firstAuth, null, 2)}`);
+  const firstToken = firstAuth.accessToken;
 
-  let response = await fetch(AzureUris.tenants(), {
-    headers: [
-      ["Authorization", `Bearer ${firstAuth.accessToken}`],
-      ["Content-Type", "application/json"],
-    ],
-    method: "GET",
-  });
-  if (!response.ok) throw "Failed to get tenants";
+  const azureUris = new AzureUris();
 
-  const tenantsObj = (await response.json()) as ResponseTypes.TenantList;
-  if (!tenantsObj?.value?.length) throw "No tenants returned";
+  const tenants: ResponseTypes.TenantList = await azureRequest(
+    azureUris.tenants(),
+    firstToken
+  );
+  if (!tenants?.value?.length) throw "No tenants returned";
 
-  // TODO: Quick-pick if more than one
-  const tenantId = tenantsObj.value[0].tenantId;
+  // Quick-pick if more than one
+  let tenantId = tenants.value[0].tenantId;
+  if (tenants.value.length > 1) {
+    const pickItems = tenants.value.map((tenant) => ({
+      label: tenant.displayName,
+      detail: tenant.tenantId,
+    }));
+    const choice = await vscode.window.showQuickPick(pickItems, {
+      title: "Select a tenant",
+    });
+    if (!choice) return;
+    tenantId = choice.detail;
+  }
 
   // *** Sign-in to that tenant and query the subscriptions available for it ***
 
-  const tenantAuth = await vscode.authentication.getSession(
-    "microsoft",
-    [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
-    { createIfNone: true }
+  // Skip if first token is already for the correct tenant and for AAD.
+  let tenantAuth = firstAuth;
+  const matchesTenant = tenantAuth.account.id.startsWith(tenantId);
+  const accountType = (tenantAuth as any).account?.type || "";
+  if (accountType !== "aad" || !matchesTenant) {
+    tenantAuth = await vscode.authentication.getSession(
+      "microsoft",
+      [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
+      { createIfNone: true }
+    );
+    log.debug(`Got tenant token: ${JSON.stringify(tenantAuth, null, 2)}`);
+  }
+  const tenantToken = tenantAuth.accessToken;
+
+  const subs: ResponseTypes.SubscriptionList = await azureRequest(
+    azureUris.subscriptions(),
+    tenantToken
   );
+  if (!subs?.value?.length) throw "No subscriptions returned";
 
-  response = await fetch(AzureUris.subscriptions(), {
-    headers: [
-      ["Authorization", `Bearer ${tenantAuth.accessToken}`],
-      ["Content-Type", "application/json"],
-    ],
-    method: "GET",
-  });
-  if (!response.ok) throw "Failed to get subscriptions";
-
-  const subsObj = (await response.json()) as ResponseTypes.SubscriptionList;
-  if (!subsObj?.value?.length) throw "No subscriptions returned";
-
-  // TODO: Quick-pick if more than one
-  const subId = subsObj.value[0].subscriptionId;
+  // Quick-pick if more than one
+  let subId = subs.value[0].subscriptionId;
+  if (subs.value.length > 1) {
+    const pickItems = subs.value.map((sub) => ({
+      label: sub.displayName,
+      detail: sub.subscriptionId,
+    }));
+    const choice = await vscode.window.showQuickPick(pickItems, {
+      title: "Select a subscription",
+    });
+    if (!choice) return;
+    subId = choice.detail;
+  }
 
   // *** Fetch the Quantum Workspaces in the subscription ***
-
-  response = await fetch(AzureUris.workspaces(subId), {
-    headers: [
-      ["Authorization", `Bearer ${tenantAuth.accessToken}`],
-      ["Content-Type", "application/json"],
-    ],
-    method: "GET",
-  });
-  if (!response.ok) throw "Failed to get workspaces";
-  const workspacesObj = (await response.json()) as ResponseTypes.WorkspaceList;
-  if (!workspacesObj.value.length) throw "Failed to get any workspaces";
+  const workspaces: ResponseTypes.WorkspaceList = await azureRequest(
+    azureUris.workspaces(subId),
+    tenantToken
+  );
+  if (!workspaces.value.length) throw "Failed to get any workspaces";
 
   // id will be similar to: "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
   // endpointUri will be like: "https://quantumworkspace1.westus.quantum.azure.com" (but first segment should be removed)
 
-  log.info(`Workspaces: ${JSON.stringify(workspacesObj, null, 2)}`);
-  const workspace = workspacesObj.value[0];
+  // Quick-pick if more than one
+  let workspace = workspaces.value[0];
+  if (workspaces.value.length > 1) {
+    const pickItems = workspaces.value.map((worksp) => ({
+      label: worksp.name,
+      detail: worksp.id,
+      selection: worksp,
+    }));
+    const choice = await vscode.window.showQuickPick(pickItems, {
+      title: "Select a workspace",
+    });
+    if (!choice) return;
+    workspace = choice.selection;
+  }
 
   // Need to remove the first part of the endpoint
   const fixedEndpoint = workspace.properties.endpointUri.replace(
@@ -80,7 +117,6 @@ export async function queryWorkspaces() {
   );
 
   // *** Query the workspace for its properties ***
-
   queryWorkspace(fixedEndpoint, workspace.id, tenantId);
 }
 
@@ -97,32 +133,66 @@ export async function queryWorkspace(
     [scopes.quantum, `VSCODE_TENANT:${tenantId}`],
     { createIfNone: true }
   );
+  const token = workspaceAuth.accessToken;
 
-  // TODO(billti) remove proxy hack once proper cors is in place
-  const proxyTo = endpointUri;
-  endpointUri = "http://localhost:5555";
+  const quantumUris = new QuantumUris(endpointUri, workspaceUri);
 
-  const apiVersion = "api-version=2022-09-12-preview";
-  // const providerStatusUri = `${endpointUri}${workspaceUri}/providerStatus?${apiVersion}`;
-  // const storageSasUri = `${endpointUri}${workspaceUri}/storage/sasUri?${apiVersion}`;
-  const quotasUri = `${endpointUri}${workspaceUri}/quotas?${apiVersion}`;
+  const quotas: ResponseTypes.Quotas = await azureRequest(
+    quantumUris.quotas(),
+    token
+  );
+
+  const jobs: ResponseTypes.Jobs = await azureRequest(
+    quantumUris.jobs(),
+    token
+  );
+
+  if (jobs.nextLink) {
+    log.error("TODO: Handle pagination");
+  }
+
+  if (jobs.value.length === 0) return;
+  // TODO: Populate tree view with results
+  const job =
+    jobs.value.length === 1
+      ? jobs.value[0]
+      : jobs.value.find(
+          (job) => job.id === "073064ed-2a47-11ee-b8e7-010101010000"
+        );
+
+  // TODO: Get a SAS token for this job container
+  if (!job) return;
+  const fileUri = vscode.Uri.parse(job.outputDataUri);
+  const [_, container, blob] = fileUri.path.split("/");
+  getJobFiles(container, blob, token, quantumUris);
+}
+
+async function getJobFiles(
+  containerName: string,
+  blobName: string,
+  token: string,
+  quantumUris: QuantumUris
+) {
+  const body = JSON.stringify({ containerName, blobName });
+  const sasResponse: ResponseTypes.SasUri = await azureRequest(
+    quantumUris.sasUri(),
+    token,
+    "POST",
+    body
+  );
+  const sasUri = decodeURI(sasResponse.sasUri);
+  log.debug(`Got SAS URI: ${sasUri}`);
 
   try {
-    const response = await fetch(quotasUri, {
+    const file = await fetch(sasUri, {
       headers: [
-        ["Authorization", `Bearer ${workspaceAuth.accessToken}`],
-        ["Content-Type", "application/json"],
-        ["x-proxy-to", proxyTo], // TODO(billti) remove once cors is working
+        ["x-ms-version", "2023-01-03"],
+        ["x-ms-date", new Date().toUTCString()],
       ],
-      method: "GET",
     });
-    if (!response.ok) throw "Failed to query workspace";
-
-    const quotasObj = (await response.json()) as ResponseTypes.Quotas;
-    if (!quotasObj?.value?.length) throw "No quotas found";
-
-    log.debug(`Quotas: ${JSON.stringify(quotasObj, null, 2)}`);
+    const blob = await file.text();
+    log.debug(`Got file of length ${blob.length}`);
   } catch (e) {
-    log.error("Failed to get quotas from workspace with: ", e);
+    log.error(`Failed to get file: ${e}`);
   }
 }
