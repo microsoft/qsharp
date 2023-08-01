@@ -266,6 +266,15 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "let z = [0.0] + x;");
             is_only_error(&result, &output, "type error: expected Double, found Int");
         }
+
+        #[test]
+        fn incremental_lambas_work() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = 1; let f = (y) -> x + y;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "f(1)");
+            is_only_value(&result, &output, &Value::Int(2));
+        }
     }
 
     #[cfg(test)]
