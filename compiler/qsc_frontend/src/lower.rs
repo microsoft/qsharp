@@ -603,7 +603,7 @@ impl With<'_> {
                 .udts
                 .get(id)
                 .and_then(|udt| udt.field_path(name))
-                .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
+                .map_or(hir::Field::Err, hir::Field::Path)
         } else if let Ok(prim) = name.parse() {
             hir::Field::Prim(prim)
         } else {

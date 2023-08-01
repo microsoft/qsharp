@@ -23,7 +23,7 @@ use qsc_frontend::{
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
-use qsc_passes::run_default_passes_for_fragment;
+use qsc_passes::{run_default_passes_for_fragment, PackageType};
 use std::{collections::HashSet, sync::Arc};
 use thiserror::Error;
 
@@ -96,7 +96,7 @@ impl Interpreter {
             dependencies.push(store.insert(compile::std(&store)));
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources);
+        let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Lib);
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
