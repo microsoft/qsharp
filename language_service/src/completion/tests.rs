@@ -6,11 +6,7 @@ use expect_test::{expect, Expect};
 use super::{get_completions, CompletionItemKind};
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 
-fn assert_completions_contain(
-    source_with_cursor: &str,
-    completions_to_check: &[&str],
-    expect: &Expect,
-) {
+fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual_completions = get_completions(&compilation, "<source>", cursor_offset[0]);
@@ -33,7 +29,7 @@ fn assert_completions_contain(
 
 #[test]
 fn in_block_contains_std_functions() {
-    assert_completions_contain(
+    check(
         r#"
     namespace Test {
         operation Test() : Unit {
@@ -77,7 +73,7 @@ fn in_block_contains_std_functions() {
 
 #[test]
 fn in_namespace_contains_open() {
-    assert_completions_contain(
+    check(
         r#"
     namespace Test {
         ↘
@@ -101,7 +97,7 @@ fn in_namespace_contains_open() {
 
 #[test]
 fn top_level_contains_namespace() {
-    assert_completions_contain(
+    check(
         r#"
         namespace Test {}
         ↘
