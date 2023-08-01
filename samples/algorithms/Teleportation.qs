@@ -8,7 +8,7 @@
 /// between the sending and the receiving locations, and classical
 /// communication.
 ///
-/// This following Q# program implements quantum teleportation.
+/// This Q# program implements quantum teleportation.
 namespace Microsoft.Quantum.Samples.Teleportation {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;

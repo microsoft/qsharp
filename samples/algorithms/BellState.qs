@@ -4,7 +4,8 @@
 /// # Description
 /// Bell states or EPR pairs are specific quantum states of two qubits
 /// that represent the simplest (and maximal) examples of quantum entanglement.
-/// The following Q# program implements one of these Bell states.
+///
+/// This Q# program implements a Bell state.
 namespace Sample {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
