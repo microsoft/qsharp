@@ -50,29 +50,14 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
         + source_offset
 }
 
-pub(crate) fn find_item<'a>(
-    compilation: &'a Compilation,
-    id: &ItemId,
-) -> Option<(&'a Item, Option<Rc<str>>)> {
+pub(crate) fn find_item<'a>(compilation: &'a Compilation, id: &ItemId) -> Option<&'a Item> {
     let package = if let Some(package_id) = id.package {
-        match &compilation.package_store.get(package_id) {
+        match compilation.package_store.get(package_id) {
             Some(compilation) => &compilation.package,
-            None => {
-                return None;
-            }
+            None => return None,
         }
     } else {
         &compilation.unit.package
     };
-    package.items.get(id.item).map(|item| {
-        (
-            item,
-            item.parent
-                .and_then(|parent_id| package.items.get(parent_id))
-                .and_then(|parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => Some(namespace.name.clone()),
-                    _ => None,
-                }),
-        )
-    })
+    package.items.get(id.item)
 }
