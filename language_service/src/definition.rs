@@ -140,7 +140,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     {
                         match res {
                             hir::Res::Item(item_id) => {
-                                if let Some(item) = find_item(self.compilation, item_id) {
+                                if let (Some(item), _) = find_item(self.compilation, item_id) {
                                     match &item.kind {
                                         hir::ItemKind::Ty(_, udt) => {
                                             if let Some(field) = udt.find_field_by_name(&field.name)
@@ -172,7 +172,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                 match &res {
                     resolve::Res::Item(item_id) => {
                         if item_id.package.is_none() {
-                            if let Some(item) = find_item(self.compilation, item_id) {
+                            if let (Some(item), _) = find_item(self.compilation, item_id) {
                                 let lo = match &item.kind {
                                     hir::ItemKind::Callable(decl) => decl.name.span.lo,
                                     hir::ItemKind::Namespace(_, _) => {
