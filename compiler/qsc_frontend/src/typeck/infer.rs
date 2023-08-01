@@ -397,9 +397,10 @@ impl Inferrer {
             }
         }
         let unresolved_ty_errs = self.find_unresolved_types();
+        self.solver.default_functors(self.next_functor);
         self.solver
-            .drain_errors(self.next_functor)
-            .into_iter()
+            .errors
+            .drain(..)
             .chain(unresolved_ty_errs.into_iter())
             .collect()
     }
@@ -637,11 +638,6 @@ impl Solver {
 
             functor = functor.successor();
         }
-    }
-
-    fn drain_errors(&mut self, functor_end: InferFunctorId) -> Vec<Error> {
-        self.default_functors(functor_end);
-        self.errors.drain(..).collect()
     }
 }
 
