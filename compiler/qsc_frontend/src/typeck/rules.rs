@@ -3,7 +3,7 @@
 
 use super::{
     convert,
-    infer::{self, ArgTy, Class, Inferrer, Solution, TySource},
+    infer::{ArgTy, Class, Inferrer, TySource},
     Error, Table,
 };
 use crate::resolve::{self, Names, Res};
@@ -710,23 +710,19 @@ impl<'a> Context<'a> {
         self.table.terms.insert(id, ty);
     }
 
-    fn solve(&mut self) -> Vec<Error> {
-        self.solve_fragment(&mut Solution::default())
-    }
-
-    pub(crate) fn solve_fragment(&mut self, solution: &mut Solution) -> Vec<Error> {
-        let mut errs = self.inferrer.solve(&self.table.udts, solution);
+    pub(crate) fn solve(&mut self) -> Vec<Error> {
+        let mut errs = self.inferrer.solve(&self.table.udts);
 
         for id in self.new.drain(..) {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            infer::substitute_ty(solution, ty);
+            self.inferrer.substitute_ty(ty);
 
             if let Some(args) = self.table.generics.get_mut(id) {
                 for arg in args {
                     match arg {
-                        GenericArg::Ty(ty) => infer::substitute_ty(solution, ty),
+                        GenericArg::Ty(ty) => self.inferrer.substitute_ty(ty),
                         GenericArg::Functor(functors) => {
-                            infer::substitute_functor(solution, functors);
+                            self.inferrer.substitute_functor(functors);
                         }
                     }
                 }

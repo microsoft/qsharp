@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{
-    infer::{Inferrer, Solution},
+    infer::Inferrer,
     rules::{self, Context, SpecImpl},
     Error, ErrorKind, Table,
 };
@@ -59,7 +59,6 @@ pub(crate) struct Checker {
     globals: HashMap<ItemId, Scheme>,
     table: Table,
     inferrer: Inferrer,
-    solution: Solution,
     errors: Vec<Error>,
 }
 
@@ -73,7 +72,6 @@ impl Checker {
                 generics: IndexMap::new(),
             },
             inferrer: Inferrer::new(),
-            solution: Solution::default(),
             errors: globals.errors,
         }
     }
@@ -180,8 +178,7 @@ impl Checker {
 
     pub(crate) fn solve(&mut self, names: &Names) {
         let mut context = Context::new(names, &self.globals, &mut self.table, &mut self.inferrer);
-        self.errors
-            .append(&mut context.solve_fragment(&mut self.solution));
+        self.errors.append(&mut context.solve());
     }
 }
 
