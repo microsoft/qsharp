@@ -62,7 +62,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   });
 
   const [currentNavItem, setCurrentNavItem] = useState(
-    props.linkedCode ? "linked" : "Minimal"
+    props.linkedCode ? "linked" : "Getting Started"
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined
