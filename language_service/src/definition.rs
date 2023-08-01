@@ -183,7 +183,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {
                             {
-                                let mut finder = AstFindNode {
+                                let mut finder = AstPatFinder {
                                     node_id,
                                     result: None,
                                 };
@@ -201,12 +201,12 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
     }
 }
 
-struct AstFindNode<'a> {
+struct AstPatFinder<'a> {
     node_id: &'a ast::NodeId,
     result: Option<u32>,
 }
 
-impl<'a> Visitor<'a> for AstFindNode<'_> {
+impl<'a> Visitor<'a> for AstPatFinder<'_> {
     fn visit_pat(&mut self, pat: &'a ast::Pat) {
         match &*pat.kind {
             ast::PatKind::Bind(ident, _) => {
