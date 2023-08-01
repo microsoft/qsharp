@@ -15,6 +15,7 @@ use crate::{
     completion::CompletionList, definition::Definition, hover::Hover, qsc_utils::compile_document,
 };
 use log::trace;
+use qsc::PackageType;
 use qsc_utils::Compilation;
 use std::collections::HashMap;
 
@@ -50,9 +51,15 @@ impl<'a> LanguageService<'a> {
     /// This should be called before any language service requests have been made
     /// for the document, typically when the document is first opened in the editor.
     /// It should also be called whenever the source code is updated.
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    pub fn update_document(
+        &mut self,
+        uri: &str,
+        version: u32,
+        text: &str,
+        package_type: PackageType,
+    ) {
         trace!("update_document: {uri:?} {version:?}");
-        let compilation = compile_document(uri, text);
+        let compilation = compile_document(uri, text, package_type);
         let errors = compilation.errors.clone();
 
         // insert() will update the value if the key already exists

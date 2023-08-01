@@ -405,7 +405,7 @@ namespace Microsoft.Quantum.Canon {
     }
 
     /// # Summary
-    /// Applies a unitary operation on the target register if the control
+    /// Applies a unitary operation on the target if the control
     /// register state corresponds to a specified nonnegative integer.
     ///
     /// # Input
@@ -414,8 +414,8 @@ namespace Microsoft.Quantum.Canon {
     /// controlled.
     /// ## oracle
     /// A unitary operation to be controlled.
-    /// ## targetRegister
-    /// A register on which to apply `oracle`.
+    /// ## target
+    /// A target on which to apply `oracle`.
     /// ## controlRegister
     /// A quantum register that controls application of `oracle`.
     ///
@@ -429,14 +429,54 @@ namespace Microsoft.Quantum.Canon {
         numberState: Int,
         oracle: ('T => Unit is Adj + Ctl),
         controlRegister: Qubit[],
-        targetRegister: 'T): Unit is Adj + Ctl {
+        target: 'T): Unit is Adj + Ctl {
 
         within {
             ApplyPauliFromInt(PauliX, false, numberState, controlRegister);
         } apply {
-            Controlled oracle(controlRegister, targetRegister);
+            Controlled oracle(controlRegister, target);
         }
     }
 
+    /// # Summary
+    /// Applies a unitary operation on the target,
+    /// controlled on a state specified by a given bit mask.
+    ///
+    /// # Input
+    /// ## bits
+    /// The bit string to control the given unitary operation on.
+    /// ## oracle
+    /// The unitary operation to be applied on the target.
+    /// ## target
+    /// The target to be passed to `oracle` as an input.
+    /// ## controlRegister
+    /// A quantum register that controls application of `oracle`.
+    ///
+    /// # Remarks
+    /// The pattern given by `bits` may be shorter than `controlRegister`,
+    /// in which case additional control qubits are ignored (that is, neither
+    /// controlled on $\ket{0}$ nor $\ket{1}$).
+    /// If `bits` is longer than `controlRegister`, an error is raised.
+    ///
+    /// For example, `bits = [0,1,0,0,1]` means that `oracle` is applied if and only if `controlRegister`
+    /// is in the state $\ket{0}\ket{1}\ket{0}\ket{0}\ket{1}$.
+    operation ApplyControlledOnBitString<'T>(
+        bits: Bool[],
+        oracle: ('T => Unit is Adj + Ctl),
+        controlRegister: Qubit[],
+        target: 'T): Unit is Adj + Ctl {
+
+        // The control register must have enough bits to implement the requested control.
+        Fact(Length(bits) <= Length(controlRegister), "Control register shorter than control pattern.");
+
+        // Use a subregister of the controlled register when
+        // bits is shorter than controlRegister.
+        let controlSubregister = controlRegister[...Length(bits) - 1];
+        within {
+            ApplyPauliFromBitString(PauliX, false, bits, controlSubregister);
+        } apply {
+            Controlled oracle(controlSubregister, target);
+        }
+    }
 
 }

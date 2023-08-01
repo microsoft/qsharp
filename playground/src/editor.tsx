@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
   Exercise,
-  getExerciseDependencies,
+  getExerciseSources,
   ICompilerWorker,
   ILanguageServiceWorker,
   LanguageServiceEvent,
@@ -127,12 +127,11 @@ export function Editor(props: {
 
     try {
       if (props.kataExercise) {
-        // This is for a kata exercise. Provide the verification code.
-        const dependencies = await getExerciseDependencies(props.kataExercise);
+        // This is for a kata exercise. Provide the sources that implement the solution verification.
+        const sources = await getExerciseSources(props.kataExercise);
         await props.compiler.checkExerciseSolution(
           code,
-          props.kataExercise.verificationCode,
-          dependencies,
+          sources,
           props.evtTarget
         );
       } else {
@@ -182,7 +181,8 @@ export function Editor(props: {
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
-        srcModel.getValue()
+        srcModel.getValue(),
+        !props.kataExercise // Kata exercises are always libraries
       );
       const measure = performance.measure(
         "update-document",
