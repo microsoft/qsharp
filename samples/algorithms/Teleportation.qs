@@ -9,7 +9,7 @@
 /// communication.
 ///
 /// This Q# program implements quantum teleportation.
-namespace Microsoft.Quantum.Samples.Teleportation {
+namespace Sample {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Measurement;
