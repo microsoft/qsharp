@@ -13,7 +13,7 @@ const server = createServer(async (req, res) => {
     // Send cors stuff
     res.setHeader(
       "access-control-allow-headers",
-      "authorization,content-type,x-proxy-to"
+      "authorization,content-type,x-proxy-to,x-ms-version,x-ms-date"
     );
     res.setHeader(
       "access-control-allow-methods",
@@ -44,14 +44,20 @@ const server = createServer(async (req, res) => {
       });
     }
 
+    const reqHeaders = [];
+    if (token) reqHeaders.push(["Authorization", `Bearer ${token}`]);
+    if (req.headers["content-type"])
+      reqHeaders.push(["Content-type", req.headers["content-type"]]);
+    if (req.headers["x-ms-version"])
+      reqHeaders.push(["x-ms-version", req.headers["x-ms-version"]]);
+    if (req.headers["x-ms-date"])
+      reqHeaders.push(["x-ms-date", req.headers["x-ms-date"]]);
+
     // Fetch from the origin, then return the payload
     const response = await fetch(`${target}${path}`, {
       method: req.method,
       body,
-      headers: [
-        ["Authorization", `Bearer ${token}`],
-        ["Content-Type", "application/json"],
-      ],
+      headers: reqHeaders,
     });
 
     if (!response.ok) {
@@ -59,7 +65,7 @@ const server = createServer(async (req, res) => {
       console.error("Response was an error");
       res.end();
     } else {
-      res.setHeader("Content-type", "application/json");
+      res.setHeader("Content-type", response.headers.get("content-type"));
       res.setHeader("access-control-allow-origin", "*");
       res.write(await response.text());
       res.end();

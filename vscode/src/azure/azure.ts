@@ -41,6 +41,27 @@ export async function azureRequest(
   }
 }
 
+// Different enough to above to warrant it's own function
+export async function storageRequest(uri: string, method: string, body?: any) {
+  const headers: [string, string][] = [
+    ["x-ms-version", "2023-01-03"],
+    ["x-ms-date", new Date().toUTCString()],
+  ];
+  if (proxy) {
+    // Replace the host with the proxy, and put the original host in a header
+    const url = new URL(uri);
+    uri = `${proxy}${url.pathname}${url.search}`;
+    headers.push(["x-proxy-to", url.origin]);
+  }
+  try {
+    const response = await fetch(uri, { method, headers, body });
+    if (!response.ok) throw "Failed"; // TODO: Proper error propogation
+    return response;
+  } catch (e) {
+    log.error(`Failed to fetch ${uri}: ${e}`);
+  }
+}
+
 export class AzureUris {
   readonly apiVersion = "2020-01-01";
 

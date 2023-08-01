@@ -11,6 +11,7 @@ import {
   AzureUris,
   QuantumUris,
   ResponseTypes,
+  storageRequest,
 } from "./azure";
 import { get } from "http";
 
@@ -184,12 +185,8 @@ async function getJobFiles(
   log.debug(`Got SAS URI: ${sasUri}`);
 
   try {
-    const file = await fetch(sasUri, {
-      headers: [
-        ["x-ms-version", "2023-01-03"],
-        ["x-ms-date", new Date().toUTCString()],
-      ],
-    });
+    const file = await storageRequest(sasUri, "GET");
+    if (!file) throw "No file returned";
     const blob = await file.text();
     log.debug(`Got file of length ${blob.length}`);
   } catch (e) {
