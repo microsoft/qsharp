@@ -170,7 +170,17 @@ impl Visitor<'_> for HoverVisitor<'_> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if let Some((item, ns)) = find_item(self.compilation, item_id) {
+                        if let (Some(item), Some(package)) = find_item(self.compilation, item_id) {
+                            let ns = item
+                                .parent
+                                .and_then(|parent_id| package.items.get(parent_id))
+                                .and_then(|parent| match &parent.kind {
+                                    qsc::hir::ItemKind::Namespace(namespace, _) => {
+                                        Some(namespace.name.clone())
+                                    }
+                                    _ => None,
+                                });
+
                             self.contents = match &item.kind {
                                 hir::ItemKind::Callable(decl) => Some(markdown_with_doc(
                                     &item.doc,
