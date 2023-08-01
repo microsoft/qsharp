@@ -24,7 +24,7 @@ fn check(source_with_markers: &str, expect: &Expect) {
             end: target_offsets[1],
         }
     );
-    expect.assert_debug_eq(&actual.contents);
+    expect.assert_eq(&actual.contents);
 }
 
 /// Asserts that there is no hover for the given test case.
@@ -46,7 +46,13 @@ fn hover_callable_unit_types() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Bar() : Unit\n```\nDoc comment\nwith multiple lines!\n"
+            ```qsharp
+            Test
+            operation Bar() : Unit
+            ```
+            ---
+            Doc comment
+            with multiple lines!
         "#]],
     );
 }
@@ -61,7 +67,12 @@ fn hover_callable_with_callable_types() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo(x: (Int => Int)) : (Int => Int)\n```\nDoc comment!\n"
+            ```qsharp
+            Test
+            operation Foo(x: (Int => Int)) : (Int => Int)
+            ```
+            ---
+            Doc comment!
         "#]],
     );
 }
@@ -77,7 +88,10 @@ fn hover_call() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Bar() : Unit\n```\n"
+            ```qsharp
+            Test
+            operation Bar() : Unit
+            ```
         "#]],
     );
 }
@@ -92,7 +106,12 @@ fn hover_callable_unit_types_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit is Ctl\n```\nDoc comment!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit is Ctl
+            ```
+            ---
+            Doc comment!
         "#]],
     );
 }
@@ -107,7 +126,12 @@ fn hover_callable_with_callable_types_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo(x: (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj\n```\nDoc comment!\n"
+            ```qsharp
+            Test
+            operation Foo(x: (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
+            ```
+            ---
+            Doc comment!
         "#]],
     );
 }
@@ -123,7 +147,10 @@ fn hover_call_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Bar() : Unit is Adj\n```\n"
+            ```qsharp
+            Test
+            operation Bar() : Unit is Adj
+            ```
         "#]],
     );
 }
@@ -139,7 +166,9 @@ fn hover_identifier() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nx: Int\n```\n"
+            ```qsharp
+            x: Int
+            ```
         "#]],
     );
 }
@@ -156,7 +185,9 @@ fn hover_identifier_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nx: Int\n```\n"
+            ```qsharp
+            x: Int
+            ```
         "#]],
     );
 }
@@ -172,7 +203,9 @@ fn hover_identifier_tuple() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: Double\n```\n"
+            ```qsharp
+            y: Double
+            ```
         "#]],
     );
 }
@@ -189,7 +222,9 @@ fn hover_identifier_tuple_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: Double\n```\n"
+            ```qsharp
+            y: Double
+            ```
         "#]],
     );
 }
@@ -207,7 +242,9 @@ fn hover_identifier_for_loop() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ni: Int\n```\n"
+            ```qsharp
+            i: Int
+            ```
         "#]],
     );
 }
@@ -225,7 +262,9 @@ fn hover_identifier_for_loop_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ni: Int\n```\n"
+            ```qsharp
+            i: Int
+            ```
         "#]],
     );
 }
@@ -244,7 +283,9 @@ fn hover_identifier_nested_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nx: Int\n```\n"
+            ```qsharp
+            x: Int
+            ```
         "#]],
     );
 }
@@ -262,7 +303,9 @@ fn hover_lambda() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nlambda: ((Double, String) => Int)\n```\n"
+            ```qsharp
+            lambda: ((Double, String) => Int)
+            ```
         "#]],
     );
 }
@@ -280,7 +323,9 @@ fn hover_lambda_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nlambda: ((Double, String) => Int)\n```\n"
+            ```qsharp
+            lambda: ((Double, String) => Int)
+            ```
         "#]],
     );
 }
@@ -298,7 +343,9 @@ fn hover_lambda_param() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: String\n```\n"
+            ```qsharp
+            y: String
+            ```
         "#]],
     );
 }
@@ -315,7 +362,9 @@ fn hover_lambda_param_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: String\n```\n"
+            ```qsharp
+            y: String
+            ```
         "#]],
     );
 }
@@ -333,7 +382,9 @@ fn hover_lambda_closure_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\na: Int\n```\n"
+            ```qsharp
+            a: Int
+            ```
         "#]],
     );
 }
@@ -351,7 +402,9 @@ fn hover_identifier_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\na: Pair\n```\n"
+            ```qsharp
+            a: Pair
+            ```
         "#]],
     );
 }
@@ -365,7 +418,9 @@ fn hover_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
+            ```qsharp
+            newtype Pair = (Int, snd: Int)
+            ```
         "#]],
     );
 }
@@ -382,7 +437,9 @@ fn hover_udt_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)\n```\n"
+            ```qsharp
+            newtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)
+            ```
         "#]],
     );
 }
@@ -400,7 +457,9 @@ fn hover_udt_ref_nested_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)\n```\n"
+            ```qsharp
+            newtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)
+            ```
         "#]],
     );
 }
@@ -417,7 +476,9 @@ fn hover_udt_anno_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
+            ```qsharp
+            newtype Pair = (Int, snd: Int)
+            ```
         "#]],
     );
 }
@@ -434,7 +495,9 @@ fn hover_udt_constructor() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
+            ```qsharp
+            newtype Pair = (Int, snd: Int)
+            ```
         "#]],
     );
 }
@@ -448,7 +511,9 @@ fn hover_udt_field() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nsnd: Int\n```\n"
+            ```qsharp
+            snd: Int
+            ```
         "#]],
     );
 }
@@ -466,7 +531,9 @@ fn hover_udt_field_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nsnd: Int\n```\n"
+            ```qsharp
+            snd: Int
+            ```
         "#]],
     );
 }
@@ -496,7 +563,10 @@ fn hover_foreign_call() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Fake() : Unit\n```\n"
+            ```qsharp
+            FakeStdLib
+            operation Fake() : Unit
+            ```
         "#]],
     );
 }
@@ -513,7 +583,10 @@ fn hover_foreign_call_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation FakeCtlAdj() : Unit is Adj + Ctl\n```\n"
+            ```qsharp
+            FakeStdLib
+            operation FakeCtlAdj() : Unit is Adj + Ctl
+            ```
         "#]],
     );
 }
@@ -530,7 +603,10 @@ fn hover_foreign_call_with_param() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation FakeWithParam(x: Int) : Unit\n```\n"
+            ```qsharp
+            FakeStdLib
+            operation FakeWithParam(x: Int) : Unit
+            ```
         "#]],
     );
 }
@@ -547,7 +623,13 @@ fn hover_callable_summary() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
@@ -565,7 +647,13 @@ fn hover_callable_summary_stuff_before() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
@@ -584,7 +672,13 @@ fn hover_callable_summary_other_header_before() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
@@ -603,7 +697,13 @@ fn hover_callable_summary_other_header_after() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
@@ -624,7 +724,13 @@ fn hover_callable_summary_other_headers() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
@@ -642,7 +748,15 @@ fn hover_callable_headers_but_no_summary() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\n# Not The Summary\nThis stuff is not the summary.\n# Also Not The Summary\nThis stuff is also not the summary.\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            # Not The Summary
+            This stuff is not the summary.
+            # Also Not The Summary
+            This stuff is also not the summary.
         "#]],
     );
 }
@@ -663,7 +777,13 @@ fn hover_callable_summary_only_header_matches() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line # Summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line # Summary!
         "#]],
     );
 }
@@ -681,7 +801,13 @@ fn hover_callable_summary_successive_headers() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
@@ -698,7 +824,10 @@ fn hover_callable_empty_summary() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
         "#]],
     );
 }
