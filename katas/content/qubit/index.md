@@ -195,7 +195,7 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 @[exercise]({
     "id": "learn_single_qubit_state",
     "title": "Learn Single Qubit State",
-    "descriptionPath": "./learn_single_qubit_state/index.md"
+    "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
         "./sign_flip_on_zero/Verification.qs"
