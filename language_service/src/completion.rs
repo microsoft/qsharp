@@ -218,7 +218,7 @@ impl CompletionListBuilder {
     /// Push a group of completions that are themselves sorted into subgroups
     fn push_sorted_completions<'a>(
         &mut self,
-        iter: impl Iterator<Item = (&'a str, String, u32)>,
+        iter: impl Iterator<Item = (&'a str, Option<String>, u32)>,
         kind: CompletionItemKind,
     ) {
         self.items
@@ -229,11 +229,7 @@ impl CompletionListBuilder {
                     "{:02}{:02}{}",
                     self.current_sort_group, item_sort_group, name
                 )),
-                detail: if detail.is_empty() {
-                    None
-                } else {
-                    Some(detail)
-                },
+                detail,
             }));
 
         self.current_sort_group += 1;
@@ -242,11 +238,11 @@ impl CompletionListBuilder {
     fn get_callables<'a>(
         package: &'a Package,
         display: &'a CodeDisplay,
-    ) -> impl Iterator<Item = (&'a str, String, u32)> {
+    ) -> impl Iterator<Item = (&'a str, Option<String>, u32)> {
         package.items.values().filter_map(|i| match &i.kind {
             ItemKind::Callable(callable_decl) => Some({
                 let name = callable_decl.name.name.as_ref();
-                let detail = display.hir_callable_decl(callable_decl).to_string();
+                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
                 (name, detail, sort_group)
