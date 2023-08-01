@@ -1,5 +1,10 @@
 # The Qubit
 
+@[section]({
+    "id": "qubit_overview",
+    "title": "Overview"
+})
+
 This tutorial introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
 
 This tutorial assumes familiarity with complex arithmetic and linear algebra.
@@ -12,7 +17,10 @@ This tutorial covers the following topics:
 - Dirac notation
 - `Qubit` data type in Q#"
 
-## The Concept of a Qubit
+@[section]({
+    "id": "qubit_concept",
+    "title": "The Concept of Qubit"
+})
 
 The basic building block of a classical computer is the bit - a single memory cell that is either in state $0$ or in state $1$. Similarly, the basic building block of a quantum computer is the quantum bit, or **qubit**. Like the classical bit, a qubit can be in state $0$ or in state $1$. Unlike the classical bit, however, the qubit isn't limited to just those two states - it may also be in a combination, or **superposition** of those states.
 
@@ -80,7 +88,10 @@ This means that these vectors form an **orthonormal basis**. The basis of $\begi
 >
 > The Hadamard basis is widely used in quantum computing, for example, in the [BB84 quantum key distribution protocol](https://en.wikipedia.org/wiki/BB84).
 
-## Dirac Notation
+@[section]({
+    "id": "qubit_dirac_notation",
+    "title": "Dirac Notation"
+})
 
 Writing out each vector when doing quantum calculations takes up a lot of space, and this will get even worse once we introduce quantum gates and multi-qubit systems. **Dirac notation** is a shorthand notation that helps solve this issue. In Dirac notation, a vector is denoted by a symbol called a **ket**. For example, a qubit in state $0$ is represented by the ket $|0\rangle$, and a qubit in state $1$ is represented by the ket $|1\rangle$:
 
@@ -118,7 +129,10 @@ Several ket symbols have a generally accepted use, such as:
 
 We will learn more about Dirac notation in the next tutorials, as we introduce quantum gates and multi-qubit systems.
 
-## Qubit data type
+@[section]({
+    "id": "qubit_qsharp_data_type",
+    "title": "Q# Qubit data type"
+})
 
 In Q#, qubits are represented by the `Qubit` data type. On a physical quantum computer, it's impossible to directly access the state of a qubit, whether to read its exact state, or to set it to a desired state, and this data type reflects that. Instead, you can change the state of a qubit using quantum gates, and extract information about the state of the system using measurements.
 
@@ -149,7 +163,7 @@ You can take advantage of this to do some non-physical things, such as peeking a
 
 [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from [Microsoft.Quantum.Diagnostics namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. This function is available in standalone Q# applications as well.
 
-### <span style="color:blue">Demo: DumpMachine for single-qubit systems</span>
+### Demo: DumpMachine for single-qubit systems
 
 The following demo shows how to use [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to output the state of the system at any point in the program without affecting the state.
 
@@ -178,7 +192,7 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 
 @[example]({"id": "qubit_data_type", "codePath": "./examples/QubitDataType.qs"})
 
-### <span style="color:blue">Exercise 1</span>: Learn the state of the qubit without measurements
+### Exercise 1: Learn the state of the qubit without measurements
 
 **Input:** A qubit in an unknown state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$. The amplitudes $\alpha$ and $\beta$ will be real and non-negative.
 
@@ -339,6 +353,12 @@ Let's take a look at the circuit produced by the `MultiQubitDumpMachineDemo` ope
 Try clicking on the gates that show a magnifying glass when the cursor hovers over them to see their internal implementation.
 
 ## Relative and Global Phase
+=======
+@[section]({
+    "id": "qubit_relative_and_global_phase",
+    "title": "Relative and Global Phase"
+})
+>>>>>>> acfdb4e310b8342cb4f6e47e601929660aa0fda0
 
 You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
 

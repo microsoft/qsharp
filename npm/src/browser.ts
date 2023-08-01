@@ -154,12 +154,18 @@ export { type CompilerState } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
 export {
   getAllKatas,
-  getExerciseDependencies,
+  getExerciseSources,
   getKata,
-  type Kata,
-  type KataSection,
+  type ContentItem,
   type Example,
   type Exercise,
+  type ExplainedSolution,
+  type ExplainedSolutionItem,
+  type Kata,
+  type KataSection,
+  type Lesson,
+  type LessonItem,
+  type Question,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
 export { type VSDiagnostic } from "./vsdiagnostic.js";
