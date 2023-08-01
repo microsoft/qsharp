@@ -98,7 +98,7 @@ impl Compiler {
 
         let fragments = fragments
             .into_iter()
-            .flat_map(|f| self.compile_fragment(f))
+            .flat_map(|f| self.lower_fragment(f))
             .collect();
 
         let errors = self.drain_errors();
@@ -110,7 +110,7 @@ impl Compiler {
         }
     }
 
-    fn compile_fragment(&mut self, fragment: qsc_parse::Fragment) -> Vec<Fragment> {
+    fn lower_fragment(&mut self, fragment: qsc_parse::Fragment) -> Vec<Fragment> {
         let fragment = match fragment {
             qsc_parse::Fragment::Namespace(namespace) => {
                 self.lower_namespace(&namespace);
