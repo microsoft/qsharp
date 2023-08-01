@@ -523,7 +523,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Description
     /// \begin{align}
-    ///     R_xx(\theta) \mathrel{:=}
+    ///     R_{xx}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
     ///         \cos \theta & 0 & 0 & -i\sin \theta  \\\\
     ///         0 & \cos \theta & -i\sin \theta & 0  \\\\
@@ -617,7 +617,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Description
     /// \begin{align}
-    ///     R_yy(\theta) \mathrel{:=}
+    ///     R_{yy}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
     ///         \cos \theta & 0 & 0 & i\sin \theta  \\\\
     ///         0 & \cos \theta & -i\sin \theta & 0  \\\\
@@ -716,7 +716,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Description
     /// \begin{align}
-    ///     R_zz(\theta) \mathrel{:=}
+    ///     R_{zz}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
     ///         e^{-i \theta / 2} & 0 & 0 & 0 \\\\
     ///         0 & e^{i \theta / 2} & 0 & 0 \\\\
