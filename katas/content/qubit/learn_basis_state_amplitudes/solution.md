@@ -1,10 +1,6 @@
 ### Solution
 
-```qsharp
-
-operation LearnBasisStateAmplitudes (qs : Qubit[]) : (Double, Double) {
-    DumpMachine();
-    return (0.3821, 0.339);
-}
-
-```
+@[solution]({
+    "id": "learn_basis_state_amplitudes",
+    "codePath": "./Solution.qs"
+})

@@ -192,24 +192,16 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 
 @[example]({"id": "qubit_data_type", "codePath": "./examples/QubitDataType.qs"})
 
-### Exercise 1: Learn the state of the qubit without measurements
-
-**Input:** A qubit in an unknown state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$. The amplitudes $\alpha$ and $\beta$ will be real and non-negative.
-
-**Output:** A tuple of two numbers $(\alpha', \beta')$ - your estimates of the amplitudes $\alpha$ and $\beta$.
-The absolute errors $|\alpha - \alpha'|$ and $|\beta - \beta'|$ should be less than or equal to 0.001.
-
-The test will call your code exactly once, with the fixed state parameter that will not change if you run the cell several times.
-
 @[exercise]({
     "id": "learn_single_qubit_state",
-    "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
+    "title": "Learn Single Qubit State"
+    "descriptionPath": "./learn_single_qubit_state/index.md"
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./sign_flip_on_zero/Verification.qs"
     ],
-    "verificationSourcePath": "./learn_single_qubit_state/Verification.qs",
     "placeholderSourcePath": "./learn_single_qubit_state/Placeholder.qs",
-    "solutionSourcePath": "./learn_single_qubit_state/Solution.qs",
-    "solutionDescriptionPath": "./learn_single_qubit_state/solution.md"
+    "solutionPath": "./learn_single_qubit_state/solution.md",
 })
 
 ### Display the quantum state of a multi-qubit program
@@ -225,28 +217,19 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 By default, `DumpMachine` uses little-endian to convert bit strings to integers in the ket notation.
 For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQubitSystems/MultiQubitSystems.ipynb#Endianness).
 
-### <span style="color:blue">Demo: DumpMachine for multi-qubit systems</span>
+### Demo: DumpMachine for multi-qubit systems
 
 @[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
 
-### <span style="color:blue">Exercise 2</span>: Learn the amplitude of a basis state without measurements
-
-**Input:** 2 qubits in an unknown state $|\psi\rangle = \sum_{k = 0}^{3} x_k |k\rangle$. The amplitudes $x_k$ will be real and non-negative.
-
-**Output:** A tuple of two numbers $(x_1', x_2')$ - your estimates of the amplitudes of the state $|1\rangle$ and $|2\rangle$, respectively.
-The absolute errors $|x_1 - x_1'|$ and $|x_2 - x_2'|$ should be less than or equal to 0.001.
-
-The test will call your code exactly once, with the fixed state parameter that will not change if you run the cell several times.
-
 @[exercise]({
     "id": "learn_basis_state_amplitudes",
+    "title": "Learn Basis State Amplitudes"
     "codeDependenciesPaths": [
         "../KatasLibrary.qs"
+        "../learn_basis_state_amplitudes/Verification.qs"
     ],
-    "verificationSourcePath": "./learn_basis_state_amplitudes/Verification.qs",
     "placeholderSourcePath": "./learn_basis_state_amplitudes/Placeholder.qs",
-    "solutionSourcePath": "./learn_basis_state_amplitudes/Solution.qs",
-    "solutionDescriptionPath": "./learn_basis_state_amplitudes/solution.md"
+    "solutionPath": "./learn_basis_state_amplitudes/solution.md"
 })
 
 ## Configure DumpMachine output
@@ -283,23 +266,15 @@ By default the measurement probability has to be less than $10^{-10}$ for the st
 * `dump.measurementDisplayStyle` and `dump.phaseDisplayStyle` set the style of display for "Measurement Probability" and "Phase" columns; you can choose between bar/arrow, number, both, or none for each of the columns. 
 If you choose to display the numeric value of measurement probability, you can configure its probability using `dump.measurementDisplayPrecision`.
 
-### <span style="color:blue">Exercise 3</span>: High-probability basis states
-
-**Input:** $N$ qubits in an unknown state $|\psi\rangle = \sum_{k = 0}^{2^N-1} x_k |k\rangle$. The amplitudes $x_k$ will be real and non-negative.
-
-**Output:** An array of integers which represent the basis states which have amplitudes bigger than 0.01 (in little endian encoding). The integers can be returned in any order.
-
-The test will call your code exactly once, with the fixed state parameter that will not change if you run the cell several times.
-
 @[exercise]({
     "id": "high_probability_basis_states",
+    "title": "High Probability Basis States"
     "codeDependenciesPaths": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "../high_probability_basis_states/Verification.qs"
     ],
-    "verificationSourcePath": "./high_probability_basis_states/Verification.qs",
     "placeholderSourcePath": "./high_probability_basis_states/Placeholder.qs",
-    "solutionSourcePath": "./high_probability_basis_states/Solution.qs",
-    "solutionDescriptionPath": "./high_probability_basis_states/solution.md"
+    "solutionPath": "./high_probability_basis_states/solution.md"
 })
 
 ## Display the matrix implemented by the operation
@@ -314,7 +289,7 @@ However, [DumpOperation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.
 
 Similarly to `DumpMachine`, the output of `DumpOperation` is accurate up to a global phase.
 
-### <span style="color:blue">Demo: Using DumpOperation</span>
+### Demo: Using DumpOperation
 
 `DumpOperation` requires an operation that acts on an array of qubits. 
 If your operation acts on a single qubit, such as most intrinsic gates, or on a mix of individual qubits and qubit arrays, you'll need to write a wrapper for it that takes a single array of qubits as an argument and applies the operation to the right qubits of that array.
@@ -337,28 +312,11 @@ Quantum circuits are a less powerful way of expressing the quantum computation c
 They don't offer a good way to show the values of classical variables and their evolution, the decisions made based on the classical parameters or the measurement results, or even flow control structures such as loops or conditional statements.
 At the same time, they can be convenient to get a quick idea of what the program did, or to compare your implementation to the one offered in a book.
 
-[`%trace` magic command](https://docs.microsoft.com/qsharp/api/iqsharp-magic/trace) (available only in Q# Jupyter Notebooks) offers a way to trace one run of the Q# program and to build a circuit based on that execution.
-Note that these circuits include only the quantum gates executed by the program. 
-They might differ in different runs of the same program, if that program takes parameters, has conditional branching or other behaviors that can change the sequence of gates applied by the program.
 
-You can pass parameters to the operation traced with `%trace` same as for `%simulate`, by adding `<parameterName>=<value>` for each parameter after the operation name.
-
-
-### <span style="color:blue">Demo: Using %trace</span>
-
-Let's take a look at the circuit produced by the `MultiQubitDumpMachineDemo` operation defined earlier.
-
-> If the cell below gives you an "Invalid operation name" error, return to the demo [DumpMachine for multi-qubit systems](#Demo:-DumpMachine-for-multi-qubit-systems) and run it to define the operation.
-
-Try clicking on the gates that show a magnifying glass when the cursor hovers over them to see their internal implementation.
-
-## Relative and Global Phase
-=======
 @[section]({
     "id": "qubit_relative_and_global_phase",
     "title": "Relative and Global Phase"
 })
->>>>>>> acfdb4e310b8342cb4f6e47e601929660aa0fda0
 
 You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
 
