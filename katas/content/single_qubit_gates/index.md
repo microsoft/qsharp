@@ -17,8 +17,6 @@ This tutorial covers the following topics:
     "title": "The Basics"
 })
 
-# The Basics
-
 There are certain properties common to all quantum gates. This section will introduce those properties, using the $X$ gate as an example.
 
 ## Matrix Representation
@@ -120,8 +118,6 @@ That is, applying a gate to a qubit in superposition is equivalent to applying t
     "title": "Ket-bra Representation"
 })
 
-# Ket-bra Representation
-
 There is another way to represent quantum gates, this time using Dirac notation. However, the kets we've been using aren't enough to represent arbitrary matrices. We need to introduce another piece of notation: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
 
 Recall that kets represent column vectors; a bra is a ket's row vector counterpart. For any ket $|\psi\rangle$, the corresponding bra is its adjoint (conjugate transpose): $\langle\psi| = |\psi\rangle^\dagger$.
@@ -215,8 +211,6 @@ $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\l
     "id": "single_qubit_gates_important_gates",
     "title": "Important Gates"
 })
-
-# Important Gates
 
 This section introduces some of the common single-qubit gates, including their matrix form, their ket-bra decomposition, and a brief "cheatsheet" listing their effect on some common qubit states.
 
@@ -313,8 +307,6 @@ Here are several properties of the Pauli gates that are easy to verify and conve
     "title": "Pauli Gates in Q#"
 })
 
-# Pauli Gates in Q#
-
 The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
 In the previous tutorial we discussed that the qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to the quantum gates: applying a gate to a qubit modifies the internal state of that qubit but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
@@ -332,6 +324,7 @@ All the basic gates we will be covering in this tutorial are part of the [Intrin
 
 @[exercise]({
     "id": "y_gate",
+    "title": "The $Y$ gate",
     "descriptionPath": "./y_gate/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -343,6 +336,7 @@ All the basic gates we will be covering in this tutorial are part of the [Intrin
 
 @[exercise]({
     "id": "global_phase_i",
+    "title": "Applying a global phase $i$",
     "descriptionPath": "./global_phase_i/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -354,6 +348,7 @@ All the basic gates we will be covering in this tutorial are part of the [Intrin
 
 @[exercise]({
     "id": "sign_flip_on_zero",
+    "title": "Sign Flip on Zero",
     "descriptionPath": "./sign_flip_on_zero/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -365,6 +360,7 @@ All the basic gates we will be covering in this tutorial are part of the [Intrin
 
 @[exercise]({
     "id": "prepare_minus",
+    "title": "Prepare Minus",
     "descriptionPath": "./prepare_minus/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -378,8 +374,6 @@ All the basic gates we will be covering in this tutorial are part of the [Intrin
     "id": "single_qubit_gates_phase_shift_gates",
     "title": "Phase Shift Gates"
 })
-
-# Phase Shift Gates
 
 The next two gates are known as phase shift gates. They apply a phase to the $|1\rangle$ state, and leave the $|0\rangle$ state unchanged.
 
@@ -425,6 +419,7 @@ $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
     "id": "three_quarters_pi_phase",
+    "title": "Three Quarters Pi Phase",
     "descriptionPath": "./three_quarters_pi_phase/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -438,8 +433,6 @@ $$T^2 = S, S^2 = Z$$
     "id": "single_qubit_gates_rotation_gates",
     "title": "Rotation Gates"
 })
-
-# Rotation Gates
 
 The next few gates are parametrized: their exact behavior depends on a numeric parameter - an angle $\theta$, given in radians. 
 These gates are the $X$ rotation gate $R_x(\theta)$, $Y$ rotation gate $R_y(\theta)$, $Z$ rotation gate $R_z(\theta)$, and the arbitrary phase gate $R_1(\theta)$. 
@@ -513,6 +506,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
     "id": "prepare_rotated_state",
+    "title": "Prepare Rotate State",
     "descriptionPath": "./prepare_rotated_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -524,6 +518,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
     "id": "prepare_arbitrary_state",
+    "title": "Prepare Arbitrary State",
     "descriptionPath": "./prepare_arbitrary_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
