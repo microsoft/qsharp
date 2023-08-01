@@ -142,11 +142,8 @@ impl Interpreter {
         let pass_errors = fragments
             .iter_mut()
             .flat_map(|fragment| {
-                self.passes.run_default_passes_for_fragment(
-                    self.store.core(),
-                    self.compiler.assigner_mut(),
-                    fragment,
-                )
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
             })
             .collect::<Vec<_>>();
         if !pass_errors.is_empty() {

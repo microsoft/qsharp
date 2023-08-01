@@ -121,7 +121,7 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
 }
 
 impl PassContext {
-    pub fn run_default_passes_for_fragment(
+    pub fn run(
         &mut self,
         core: &Table,
         assigner: &mut Assigner,
