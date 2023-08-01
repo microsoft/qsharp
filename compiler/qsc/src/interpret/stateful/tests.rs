@@ -275,6 +275,28 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "f(1)");
             is_only_value(&result, &output, &Value::Int(2));
         }
+
+        #[test]
+        fn mutability_persists_across_stmts() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "mutable x : Int[] = []; let y : Int[] = [];",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "set x += [0];");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "set y += [0];");
+            is_only_error(&result, &output, "cannot update immutable variable");
+            let (result, output) = line(&mut interpreter, "let lam = () -> y + [0];");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "let lam = () -> x + [0];");
+            is_only_error(
+                &result,
+                &output,
+                "lambdas cannot close over mutable variables",
+            );
+        }
     }
 
     #[cfg(test)]

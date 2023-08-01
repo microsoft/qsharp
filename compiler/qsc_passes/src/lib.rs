@@ -48,6 +48,11 @@ pub enum PackageType {
     Lib,
 }
 
+#[derive(Default)]
+pub struct PassContext {
+    borrow_check: borrowck::Checker,
+}
+
 /// Run the default set of passes required for evaluation.
 pub fn run_default_passes(
     core: &Table,
@@ -115,58 +120,56 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
     borrow_errors.into_iter().map(Error::BorrowCk).collect()
 }
 
-pub fn run_default_passes_for_fragment(
-    core: &Table,
-    assigner: &mut Assigner,
-    fragment: &mut Fragment,
-) -> Vec<Error> {
-    let mut errors = Vec::new();
+impl PassContext {
+    pub fn run(
+        &mut self,
+        core: &Table,
+        assigner: &mut Assigner,
+        fragment: &mut Fragment,
+    ) -> Vec<Error> {
+        let mut errors = Vec::new();
 
-    match fragment {
-        Fragment::Stmt(stmt) => {
-            // TODO: This creates a branch new borrow checker for every statement, when it really
-            // should have a context that tracks mutability across all statements that are part of
-            // incremental compilation. This is realted thematically to https://github.com/microsoft/qsharp/issues/205,
-            // which has been updated to note the connection.
-            let mut borrow_check = borrowck::Checker::default();
-            borrow_check.visit_stmt(stmt);
-            errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));
+        match fragment {
+            Fragment::Stmt(stmt) => {
+                self.borrow_check.visit_stmt(stmt);
+                errors.extend(self.borrow_check.errors.drain(..).map(Error::BorrowCk));
 
-            errors.extend(
-                conjugate_invert::invert_conjugate_exprs_for_stmt(core, assigner, stmt)
-                    .into_iter()
-                    .map(Error::ConjInvert),
-            );
-            LoopUni { core, assigner }.visit_stmt(stmt);
-            ReplaceQubitAllocation::new(core, assigner).visit_stmt(stmt);
+                errors.extend(
+                    conjugate_invert::invert_conjugate_exprs_for_stmt(core, assigner, stmt)
+                        .into_iter()
+                        .map(Error::ConjInvert),
+                );
+                LoopUni { core, assigner }.visit_stmt(stmt);
+                ReplaceQubitAllocation::new(core, assigner).visit_stmt(stmt);
+            }
+            Fragment::Item(Item {
+                kind: ItemKind::Callable(decl),
+                ..
+            }) => {
+                let mut call_limits = CallableLimits::default();
+                call_limits.visit_callable_decl(decl);
+                errors.extend(call_limits.errors.into_iter().map(Error::CallableLimits));
+
+                let mut borrow_check = borrowck::Checker::default();
+                borrow_check.visit_callable_decl(decl);
+                errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));
+
+                errors.extend(
+                    spec_gen::generate_specs_for_callable(core, assigner, decl)
+                        .into_iter()
+                        .map(Error::SpecGen),
+                );
+                errors.extend(
+                    conjugate_invert::invert_conjugate_exprs_for_callable(core, assigner, decl)
+                        .into_iter()
+                        .map(Error::ConjInvert),
+                );
+                LoopUni { core, assigner }.visit_callable_decl(decl);
+                ReplaceQubitAllocation::new(core, assigner).visit_callable_decl(decl);
+            }
+            Fragment::Item(_) => {}
         }
-        Fragment::Item(Item {
-            kind: ItemKind::Callable(decl),
-            ..
-        }) => {
-            let mut call_limits = CallableLimits::default();
-            call_limits.visit_callable_decl(decl);
-            errors.extend(call_limits.errors.into_iter().map(Error::CallableLimits));
 
-            let mut borrow_check = borrowck::Checker::default();
-            borrow_check.visit_callable_decl(decl);
-            errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));
-
-            errors.extend(
-                spec_gen::generate_specs_for_callable(core, assigner, decl)
-                    .into_iter()
-                    .map(Error::SpecGen),
-            );
-            errors.extend(
-                conjugate_invert::invert_conjugate_exprs_for_callable(core, assigner, decl)
-                    .into_iter()
-                    .map(Error::ConjInvert),
-            );
-            LoopUni { core, assigner }.visit_callable_decl(decl);
-            ReplaceQubitAllocation::new(core, assigner).visit_callable_decl(decl);
-        }
-        Fragment::Item(_) => {}
+        errors
     }
-
-    errors
 }
