@@ -49,7 +49,22 @@ function buildBundle() {
 
 async function buildWatch() {
   console.log("Building vscode extension in watch mode");
-  let ctx = await context(buildOptions);
+
+  // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
+  /** @type {import("esbuild").Plugin} */
+  const buildPlugin = {
+    name: "Build Events",
+    setup(build) {
+      build.onStart(() => console.log("esbuild build started"));
+      build.onEnd(() => console.log("esbuild build complete"));
+    },
+  };
+  let ctx = await context({
+    ...buildOptions,
+    plugins: [buildPlugin],
+    color: false,
+  });
+
   ctx.watch();
 }
 
