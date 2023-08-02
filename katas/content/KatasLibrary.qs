@@ -11,16 +11,31 @@ namespace Microsoft.Quantum.Katas {
         reference : (Qubit[] => Unit is Adj + Ctl),
         inputSize: Int)
     : Bool {
-        use (opRegister, referenceRegister) = (Qubit[inputSize], Qubit[inputSize]);
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
         within {
-            EntangleRegisters(opRegister, referenceRegister);
+            // N.B. The order in which quantum registers are passed to this operation is important.
+            EntangleRegisters(control, target);
         }
         apply {
-            op(opRegister);
-            Adjoint reference(referenceRegister);
+            op(target);
+            Adjoint reference(target);
         }
 
-        let areEquivalent = CheckAllZero(opRegister + referenceRegister);
+        let areEquivalent = CheckAllZero(control + target);
+        ResetAll(control + target);
+        areEquivalent
+    }
+
+    operation CheckOperationsEquivalenceStrict(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        let controlledOp = (register) => Controlled op(register[...0], register[1...]);
+        let controlledReference = (register) => Controlled reference(register[...0], register[1...]);
+        let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
         areEquivalent
     }
 
@@ -74,36 +89,16 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
-    /// # Summary
-    /// Verifies that an operation is equivalent to a reference operation.
-    operation VerifySingleQubitOperation(
-        op : (Qubit => Unit is Adj + Ctl),
-        reference : (Qubit => Unit is Adj + Ctl))
-    : Bool {
-        use (control, target) = (Qubit(), Qubit());
-        within {
-            H(control);
-        }
-        apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
-        }
-        let isCorrect = CheckAllZero([control, target]);
-        ResetAll([control, target]);
-
-        isCorrect
-    }
-
     internal operation EntangleRegisters(
-        registerA : Qubit[],
-        registerB : Qubit[]) : Unit is Adj + Ctl {
+        control : Qubit[],
+        target : Qubit[]) : Unit is Adj + Ctl {
         Fact(
-            Length(registerA) == Length(registerB),
+            Length(control) == Length(target),
             $"The length of qubit registers must be the same.");
 
-        for index in IndexRange(registerA) {
-            H(registerA[index]);
-            CNOT(registerA[index], registerB[index]);
+        for index in IndexRange(control) {
+            H(control[index]);
+            CNOT(control[index], target[index]);
         }
     }
 }
