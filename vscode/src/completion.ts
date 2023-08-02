@@ -45,7 +45,15 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       const item = new CompletionItem(c.label, kind);
       item.sortText = c.sortText;
       item.detail = c.detail;
-      item.additionalTextEdits = c.additionalTextEdits;
+      item.additionalTextEdits = c.additionalTextEdits?.map((edit) => {
+        return new vscode.TextEdit(
+          new vscode.Range(
+            document.positionAt(edit.range.start),
+            document.positionAt(edit.range.end)
+          ),
+          edit.newText
+        );
+      });
       return item;
     });
   }
