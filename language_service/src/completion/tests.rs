@@ -119,6 +119,34 @@ fn in_block_contains_std_functions() {
 }
 
 #[test]
+fn in_block_contains_no_auto_open() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Test() : Unit {
+            ↘
+        }
+    }"#,
+        &["Fake"],
+        &expect![[r#"
+            [
+                Some(
+                    (
+                        "Fake",
+                        Function,
+                        Some(
+                            "operation Fake() : Unit",
+                        ),
+                        None,
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn in_namespace_contains_open() {
     check(
         r#"
