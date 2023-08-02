@@ -1,5 +1,3 @@
-## <span style="color:blue">Exercise 6</span>: Distinguishing orthogonal states - 2
-
 **Inputs:** 
 
 1. Angle $\alpha$, in radians, represented as a `Double`.

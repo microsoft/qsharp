@@ -1,5 +1,3 @@
-## <span style="color:blue">Exercise 3</span>: Distinguish $|+\rangle$ and $|-\rangle$ using the `Measure` operation
-
 **Input**: A qubit which is guaranteed to be in either the $\ket +$ state, or the $\ket -$ state.
 
 **Output**: `true` if the qubit is in the $\ket -$ state, or `false` if it was in the $\ket +$ state. 

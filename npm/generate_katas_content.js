@@ -271,7 +271,7 @@ function createQuestion(kataPath, properties) {
     `Could not read descripton for question ${properties.id}`
   );
   const description = createTextContent(descriptionMarkdown);
-  const answerItems = createAnswer(properties.answerPath);
+  const answerItems = createAnswer(join(kataPath, properties.answerPath));
 
   return {
     type: "question",

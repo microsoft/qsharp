@@ -1,5 +1,3 @@
-## <span style="color:blue">Exercise 7</span>: Measurement in the $\ket A$, $\ket B$ basis
-
 **Inputs:** 
 1. Angle $\alpha$, in radians, represented as a `Double`.
 1. A qubit in some unknown state.
