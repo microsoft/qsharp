@@ -9,13 +9,56 @@
 /// 
 /// This Q# program implements the Deutsch–Jozsa algorithm.
 namespace Sample {
+    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
 
+    @EntryPoint()
+    operation Main() : (String, Bool)[] {
+        // A Boolean function is a function that maps bits trings to a bit:
+        //     𝑓 : {0, 1}^n → {0, 1}.
+
+        // We say that 𝑓 is constant if 𝑓(𝑥⃗) = 𝑓(𝑦⃗) for all bitstrings 𝑥⃗ and
+        // 𝑦⃗, and that 𝑓 is balanced if 𝑓 evaluates to true for exactly half of
+        // its inputs.
+
+        // If we are given a function 𝑓 as a quantum operation 𝑈 |𝑥〉|𝑦〉 =
+        // |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉, and are promised that 𝑓 is either constant or is
+        // balanced, then the Deutsch–Jozsa algorithm decides between these
+        // cases with a single application of 𝑈.
+
+        // Here, we demonstrate the use of the Deutsch-Jozsa algorithm by
+        // determining the type (constant or balanced) of various functions.
+        let nameFunctionTypeTuples = [
+            ("SimpleConstantBoolF", SimpleConstantBoolF, true),
+            ("SimpleBalancedBoolF", SimpleBalancedBoolF, false),
+            ("ConstantBoolF", ConstantBoolF, true),
+            ("BalancedBoolF", BalancedBoolF, false)
+        ];
+
+        mutable results = [];
+        for (name, fn, shouldBeConstant) in nameFunctionTypeTuples {
+            let isConstant = DeutschJozsa(fn, 5);
+            if (isConstant != shouldBeConstant) {
+                let shouldBeConstantStr = shouldBeConstant ?
+                    "constant" | 
+                    "balanced";
+                fail $"{name} should be detected as {shouldBeConstantStr}";
+            }
+
+            let isConstantStr = isConstant ? "constant" | "balanced";
+            Message($"{name} is {isConstantStr}");
+            set results += [(name, isConstant)];
+        }
+
+        return results;
+    }
+
     /// # Summary
-    /// The operation `IsConstantBooleanFunction` returns the Boolean value
-    /// `true` if the function is constant and `false` if it is not.
+    /// This operation implements the DeutschJozsa algorithm.
+    /// It returns the Boolean value `true` if the function is constant and
+    /// `false` if it is not.
     /// It is assumed that the function is either constant or balanced.
     ///
     /// # Input
@@ -36,10 +79,7 @@ namespace Sample {
     /// - [ *Michael A. Nielsen , Isaac L. Chuang*,
     ///     Quantum Computation and Quantum Information ]
     /// (http://doi.org/10.1017/CBO9780511976667)
-    operation IsConstantBooleanFunction(
-        Uf: ((Qubit[], Qubit) => Unit),
-        n: Int): Bool {
-
+    operation DeutschJozsa(Uf : ((Qubit[], Qubit) => Unit), n : Int) : Bool {
         // We allocate n + 1 clean qubits. Note that the function Uf is defined
         // on inputs of the form (x, y), where x has n bits and y has 1 bit.
         use queryRegister = Qubit[n];
@@ -81,116 +121,28 @@ namespace Sample {
     }
 
     // Simple constant Boolean function
-    operation SimpleConstantBoolF(
-        args: Qubit[],
-        target: Qubit): Unit {
-
+    operation SimpleConstantBoolF(args : Qubit[], target : Qubit) : Unit {
         X(target);
     }
 
     // Simple balanced Boolean function
-    operation SimpleBalancedBoolF(
-        args: Qubit[],
-        target: Qubit): Unit {
-
+    operation SimpleBalancedBoolF(args : Qubit[], target : Qubit) : Unit {
         CX(args[0], target);
     }
 
     // A more complex constant Boolean function.
     // It applies X to every input basis vector.
-    operation ConstantBoolF(
-        args: Qubit[],
-        target: Qubit): Unit {
-
+    operation ConstantBoolF(args : Qubit[], target : Qubit) : Unit {
         for i in 0..(2^Length(args))-1 {
-            ApplyControlledOnInt(i, args, X, target);
+            ApplyControlledOnInt(i, X, args, target);
         }
     }
 
     // A more complex balanced Boolean function.
     // It applies X to half of the input basis vectors.
-    operation BalancedBoolF(
-        args: Qubit[], target: Qubit): Unit {
-
+    operation BalancedBoolF(args : Qubit[], target : Qubit) : Unit {
         for i in 0..2..(2^Length(args))-1 {
-            ApplyControlledOnInt(i, args, X, target);
+            ApplyControlledOnInt(i, X, args, target);
         }
     }
-
-    // Applies operator `op` on each qubit in the `qubits` array if the
-    // corresponding bit in the LittleEndian `number` matches the given
-    // `bitApply`.
-    operation ApplyOpFromInt(
-        number: Int,
-        bitApply: Bool,
-        op:(Qubit => Unit is Adj),
-        qubits: Qubit[]): Unit is Adj {
-
-        Fact(number >= 0, "number must be non-negative");
-
-        for i in 0..Length(qubits)-1 {
-            if (((number &&& 2^i) != 0) == bitApply) {
-                op(qubits[i]);
-            }
-        }
-    }
-
-    // Applies a unitary operation `oracle` on the target qubit if the control
-    // register state corresponds to a specified non-negative integer
-    // `numberState`.
-    operation ApplyControlledOnInt(
-        numberState: Int,
-        controls: Qubit[],
-        oracle:(Qubit => Unit is Ctl),
-        target: Qubit): Unit {
-
-        within {
-            ApplyOpFromInt(numberState, false, X, controls);
-        } apply {
-            Controlled oracle(controls, target);
-        }
-    }
-
-    @EntryPoint()
-    operation DeutschJozsa() : (String, Bool)[] {
-        // A Boolean function is a function that maps bitstrings to a bit:
-        //     𝑓 : {0, 1}^n → {0, 1}.
-
-        // We say that 𝑓 is constant if 𝑓(𝑥⃗) = 𝑓(𝑦⃗) for all bitstrings 𝑥⃗ and
-        // 𝑦⃗, and that 𝑓 is balanced if 𝑓 evaluates to true for exactly half of
-        // its inputs.
-
-        // If we are given a function 𝑓 as a quantum operation 𝑈 |𝑥〉|𝑦〉 =
-        // |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉, and are promised that 𝑓 is either constant or is
-        // balanced, then the Deutsch–Jozsa algorithm decides between these
-        // cases with a single application of 𝑈.
-
-        // Here, we demonstrate the use of the `IsConstantBooleanFunction`,
-        // which is an implementation of the Deutsch-Jozsa algorithm, by
-        // determining the type (constant or balanced) of various functions.
-        let nameFunctionTypeTuples = [
-            ("SimpleConstantBoolF", SimpleConstantBoolF, true),
-            ("SimpleBalancedBoolF", SimpleBalancedBoolF, false),
-            ("ConstantBoolF", ConstantBoolF, true),
-            ("BalancedBoolF", BalancedBoolF, false)
-        ];
-
-        mutable results = [];
-        for (name, fn, shouldBeConstant) in nameFunctionTypeTuples {
-            let isConstant = IsConstantBooleanFunction(fn, 5);
-            if (isConstant != shouldBeConstant) {
-                let shouldBeConstantStr = shouldBeConstant ?
-                    "constant" | 
-                    "balanced";
-                fail $"{name} should be detected as {shouldBeConstantStr}";
-            }
-
-            let isConstantStr = isConstant ? "constant" | "balanced";
-            Message($"{name} is {isConstantStr}");
-            set results += [(name, isConstant)];
-        }
-
-        return results;
-    }
-
 }

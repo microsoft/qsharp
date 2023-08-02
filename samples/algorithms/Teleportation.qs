@@ -14,6 +14,43 @@ namespace Sample {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Measurement;
 
+    @EntryPoint()
+    operation Main () : Result[] {
+        // Allocate the message and target qubits.
+        use (message, target) = (Qubit(), Qubit());
+
+        // Use the `Teleport` operation to send different quantum states.
+        let stateInitializerBasisTuples = [
+            ("|0〉", I, PauliZ),
+            ("|1〉", X, PauliZ),
+            ("|+〉", SetToPlus, PauliX),
+            ("|-〉", SetToMinus, PauliX)
+        ];
+
+        mutable results = [];
+        for (state, initializer, basis) in stateInitializerBasisTuples {
+            // Initialize the message and show its state using the `DumpMachine`
+            // function.
+            initializer(message);
+            Message($"Teleporting state {state}");
+            DumpMachine();
+
+            // Teleport the message and show the quantum state after
+            // teleportation.
+            Teleport(message, target);
+            Message($"Received state {state}");
+            DumpMachine();
+
+            // Measure target in the corresponding basis and reset the qubits to
+            // continue teleporting more messages.
+            let result = Measure([basis], [target]);
+            set results += [result];
+            ResetAll([message, target]);
+        }
+
+        return results;
+    }
+
     /// # Summary
     /// Sends the state of one qubit to a target qubit by using teleportation.
     ///
@@ -25,7 +62,7 @@ namespace Sample {
     /// ## target
     /// A qubit initially in the |0〉 state that we want to send
     /// the state of message to.
-    operation Teleport (message : Qubit, target : Qubit) : Unit {
+    operation Teleport(message : Qubit, target : Qubit) : Unit {
         // Allocate an auxiliary qubit.
         use auxiliary = Qubit();
 
@@ -52,72 +89,15 @@ namespace Sample {
     }
 
     /// # Summary
-    /// Sets the qubit's state to |+⟩.
-    operation SetToPlus(q: Qubit) : Unit {
-        Reset(q);
+    /// Sets a qubit in state |0⟩ to |+⟩.
+    operation SetToPlus(q: Qubit) : Unit is Adj + Ctl {
         H(q);
     }
 
     /// # Summary
-    /// Sets the qubit's state to |−⟩.
-    operation SetToMinus(q: Qubit) : Unit {
-        Reset(q);
+    /// Sets a qubit in state |0⟩ to |−⟩.
+    operation SetToMinus(q: Qubit) : Unit is Adj + Ctl {
         X(q);
         H(q);
-    }
-
-    @EntryPoint()
-    operation Main () : (Result, Result, Result, Result) {
-        // Allocate the message and target qubits.
-        use (message, target) = (Qubit(), Qubit());
-
-        // Use the `Teleport` operation to send different quantum states.
-        // Calls to the `DumpMachine` function are used to show the quantum
-        // state before and after teleportation.
-
-        // Teleport the |0〉 state.
-        Message("Sending state |0〉");
-        DumpMachine();
-        Teleport(message, target);
-        Message("Received state |0〉");
-        DumpMachine();
-        // Measure target in the Z-basis (should be |0〉).
-        let zeroResult = MResetZ(target);
-        Reset(message);
-
-        // Teleport the |1〉 state.
-        X(message);
-        Message("Sending state |1〉");
-        DumpMachine();
-        Teleport(message, target);
-        Message("Received state |1〉");
-        DumpMachine();
-        // Measure target in the Z-basis (should be |1〉).
-        let oneResult = MResetZ(target);
-        Reset(message);
-
-        // Teleport the |+〉 state.
-        SetToPlus(message);
-        Message("Sending state |+〉");
-        DumpMachine();
-        Teleport(message, target);
-        Message("Received state |+〉");
-        DumpMachine();
-        // Measure target in the X-basis (should be |0〉).
-        let plusResult = MResetX(target);
-        Reset(message);
-
-        // Teleport the |-〉 state.
-        SetToMinus(message);
-        Message("Sending state |-〉");
-        DumpMachine();
-        Teleport(message, target);
-        Message("Received state |-〉");
-        DumpMachine();
-        // Measure target in the X-basis (should be |1〉).
-        let minusResult = MResetX(target);
-        Reset(message);
-
-        return (zeroResult, oneResult, plusResult, minusResult);
     }
 }
