@@ -10,7 +10,7 @@
 namespace MyQuantumApp {
     open Microsoft.Quantum.Diagnostics;
 	
-	/// This is a doc-comment for the `Main` operation.
+    /// This is a doc-comment for the `Main` operation.
     @EntryPoint()
     operation Main() : Result[] {
         // Comments can go anywhere in a program, although they typically
