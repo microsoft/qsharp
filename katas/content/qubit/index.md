@@ -236,7 +236,11 @@ For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQu
     "solutionPath": "./learn_basis_state_amplitudes/solution.md"
 })
 
-## Configure DumpMachine output
+
+@[section]({
+    "id": "configure_dumpmachine_output",
+    "title": "Configure DumpMachine Output"
+})
 
 Sometimes you want to focus on certain properties of the quantum state, such as the relative phases of individual basis states, or on certain parts of the state, such as the basis states with larger amplitudes associated with them. 
 [%config](https://docs.microsoft.com/qsharp/api/iqsharp-magic/config) magic command allows you to tweak the format of `DumpMachine` output (available in Q# Jupyter Notebooks only). 
@@ -282,7 +286,10 @@ If you choose to display the numeric value of measurement probability, you can c
     "solutionPath": "./high_probability_basis_states/solution.md"
 })
 
-## Display the matrix implemented by the operation
+@[section]({
+    "id": "display_the_matrix",
+    "title": "Display the matrix implemented by the operation"
+})
 
 Let's consider a more complex scenario: you've written a Q# operation and want to check that it implements exactly the matrix you're looking for. 
 (An examples of such cases could be quantum oracle implementation, unitary gate synthesis, or more uncommon scenarios such as the [UnitaryPatterns kata](../../UnitaryPatterns/UnitaryPatterns.ipynb)).
