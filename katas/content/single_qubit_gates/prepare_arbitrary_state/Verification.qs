@@ -1,6 +1,8 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Convert;
 
     operation PrepareArbitraryState (alpha : Double, beta : Double, theta : Double, q : Qubit) : Unit is Adj+Ctl {
         let phi = ArcTan2(beta, alpha);
@@ -13,8 +15,9 @@ namespace Kata.Verification {
             let i = IntAsDouble(i);
             let alpha = Cos(i);
             let beta = Sin(i);
-            let op = (qubit) => Kata.PrepareArbitraryState(alpha, beta, qubit);
-            let reference = (qubit) => PrepareArbitraryState(alpha, beta, qubit);
+            let theta = Sin(i);
+            let op = (qubit) => Kata.PrepareArbitraryState(alpha, beta, theta, qubit);
+            let reference = (qubit) => PrepareArbitraryState(alpha, beta, theta, qubit);
             let isCorrect = VerifySingleQubitOperation(op, reference);
             if not isCorrect {
                 Message("Incorrect.");
