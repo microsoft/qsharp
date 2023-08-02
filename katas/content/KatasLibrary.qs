@@ -33,10 +33,24 @@ namespace Microsoft.Quantum.Katas {
         inputSize: Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
-        let controlledOp = (register) => Controlled op(register[...0], register[1...]);
-        let controlledReference = (register) => Controlled reference(register[...0], register[1...]);
+        let controlledOp = register => Controlled op(register[...0], register[1...]);
+        let controlledReference = register => Controlled reference(register[...0], register[1...]);
         let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
         areEquivalent
+    }
+
+    operation CheckOperationsEquivalenceOnZeroState(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        use target = Qubit[inputSize];
+        op(target);
+        Adjoint reference(target);
+        let isCorrect = CheckAllZero(target);
+        ResetAll(target);
+        isCorrect
     }
 
     /// # Summary
@@ -73,20 +87,6 @@ namespace Microsoft.Quantum.Katas {
         Message("Actual quantum state after applying the operation:");
         DumpMachine();
         Adjoint op(targetRegister);
-    }
-
-    /// # Summary
-    /// Verifies that an operation is equivalent to a reference operation.
-    operation VerifyMultiQubitOperation(
-        unitary : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl))
-    : Bool {
-        use targetRegister = Qubit[2];
-        unitary(targetRegister);
-        Adjoint reference(targetRegister);
-        let isCorrect = CheckAllZero(targetRegister);
-        ResetAll(targetRegister);
-        isCorrect
     }
 
     internal operation EntangleRegisters(

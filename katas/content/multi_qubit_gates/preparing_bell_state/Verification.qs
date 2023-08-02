@@ -9,14 +9,19 @@ namespace Kata.Verification {
     }
 
     operation CheckSolution() : Bool {
-        let isCorrect = VerifyMultiQubitOperation(Kata.BellState, BellState);
+        let solution = Kata.BellState;
+        let reference = BellState;
+        let isCorrect = CheckOperationsEquivalenceOnZeroState(solution, reference, 2);
 
-        // Output different feedback to the user depending on whether the exercise was correct.
-        use target = Qubit[2];
+        // Output different feedback to the user depending on whether the solution was correct.
+        use target = Qubit[2]; // |00〉
         if isCorrect {
-            ShowEffectOnQuantumState(target, Kata.BellState);
+            Message("Correct!");
         } else {
-            ShowQuantumStateComparison(target, Kata.BellState, BellState);
+            Message("Incorrect :(");
+            Message("Hint: examine how your solution transforms the |00〉 state and compare it with the expected " +
+                "transformation");
+            ShowQuantumStateComparison(target, solution, reference);
         }
 
         isCorrect
