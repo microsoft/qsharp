@@ -479,6 +479,28 @@ impl Udt {
         Some(field)
     }
 
+    /// The field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn find_field_by_name(&self, name: &str) -> Option<&UdtField> {
+        Self::find_field_by_name_rec(&self.definition, name)
+    }
+
+    fn find_field_by_name_rec<'a>(def: &'a UdtDef, name: &str) -> Option<&'a UdtField> {
+        match &def.kind {
+            UdtDefKind::Field(field) => field.name.as_ref().and_then(|field_name| {
+                if field_name.as_ref() == name {
+                    Some(field)
+                } else {
+                    None
+                }
+            }),
+            UdtDefKind::Tuple(defs) => defs
+                .iter()
+                .find_map(|def| Self::find_field_by_name_rec(def, name)),
+        }
+    }
+
     /// The type of the field at the given path. Returns [None] if the path is not valid for this
     /// user-defined type.
     #[must_use]
@@ -490,8 +512,7 @@ impl Udt {
     /// have a field with the given name.
     #[must_use]
     pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
-        let path = self.field_path(name)?;
-        self.field_ty(&path)
+        self.find_field_by_name(name).map(|field| &field.ty)
     }
 }
 
