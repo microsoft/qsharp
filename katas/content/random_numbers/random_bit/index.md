@@ -1,5 +1,3 @@
-# Generate a single random bit
-
 **Input:** None.
 
 **Goal:** Generate a $0$ or $1$ with equal probability.

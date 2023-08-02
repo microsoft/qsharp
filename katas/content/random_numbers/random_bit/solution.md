@@ -1,5 +1,3 @@
-### Solution
-
 The state of single qubit can be represented as a two-dimensional column vector $\begin{bmatrix} \alpha\\ \beta \end{bmatrix}$, where $\alpha$ and $\beta$ are complex numbers that satisfy $|\alpha|^2 + |\beta|^2 = 1$. When we measure the qubit, we get either 0 with probability $|\alpha|^2$ or 1 with probability $|\beta|^2$. Essentially we can control probablity of measurement outcome by setting the right amplitudes of basis states. 
 
 When we allocate the qubit in Q#, amplitudes $\alpha$ and $\beta$ are 1 and 0, respectively. Now our goal is set equal amplitudes for $\alpha$ and $\beta$ for absolute randomness. We can achieve that by simply applying Hadamard gate to the initial state $|0\rangle$:

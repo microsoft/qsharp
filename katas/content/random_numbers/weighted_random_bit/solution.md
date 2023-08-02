@@ -1,5 +1,3 @@
-### Solution
-
 We already learnt how to generate random bit with equal probability in exercise 1, in this exercise we need to generate random bit with weighted probability.
 
 An arbitrary single-qubit state can be written as:

@@ -1,5 +1,3 @@
-# Generate a random number between min and max
-
 In the "Generate a number of arbitrary size" exercise, we generated numbers in the range $[0, 2^N-1]$ $(1 \leq N \leq 10)$. Now let's create an operation that will return a random number in the range $[min, max]$. 
 
 **Input:** 

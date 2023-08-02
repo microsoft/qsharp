@@ -40,6 +40,7 @@ This is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_bit",
+    "title": "Generate a single random bit",
     "descriptionPath": "./random_bit/index.md",
     "placeholderSourcePath": "./random_bit/placeholder.qs",
     "solutionPath": "./random_bit/solution.md",
@@ -52,6 +53,7 @@ This is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_two_bits",
+    "title": "Generate a random two-bit number",
     "descriptionPath": "./random_two_bits/index.md",
     "placeholderSourcePath": "./random_two_bits/placeholder.qs",
     "solutionPath": "./random_two_bits/solution.md",
@@ -64,6 +66,7 @@ This is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_n_bits",
+    "title": "Generate a number of arbitrary size",
     "descriptionPath": "./random_n_bits/index.md",
     "placeholderSourcePath": "./random_n_bits/placeholder.qs",
     "solutionPath": "./random_n_bits/solution.md",
@@ -76,6 +79,7 @@ This is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "weighted_random_bit",
+    "title": "Generate a weighted bit",
     "descriptionPath": "./weighted_random_bit/index.md",
     "placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
     "solutionPath": "./weighted_random_bit/solution.md",
@@ -88,6 +92,7 @@ This is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_number",
+    "title": "Generate a random number between min and max",
     "descriptionPath": "./random_number/index.md",
     "placeholderSourcePath": "./random_number/placeholder.qs",
     "solutionPath": "./random_number/solution.md",

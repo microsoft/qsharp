@@ -1,5 +1,3 @@
-# Generate a number of arbitrary size
-
 Let's take it a step further and generate an $N$-bit number. 
 
 > Remember that you can use previously defined operations in your solution.
