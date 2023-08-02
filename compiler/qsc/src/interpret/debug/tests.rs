@@ -70,7 +70,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         ],
         None,
     );
-    let mut interpreter = Interpreter::new_with_context(true, source_map, PackageType::Lib)
+    let mut interpreter = Interpreter::new(true, source_map, PackageType::Lib)
         .expect("Failed to compile base environment.");
 
     let (result, _) = line(

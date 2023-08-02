@@ -13,7 +13,7 @@ use qsc_eval::{
     eval_expr,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global, GlobalLookup, State,
+    Env, Global, NodeLookup, State,
 };
 use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
 use qsc_fir::fir::{ItemKind, PackageId};
@@ -77,7 +77,7 @@ impl<'a> Lookup<'a> {
     }
 }
 
-impl<'a> GlobalLookup for Lookup<'a> {
+impl<'a> NodeLookup for Lookup<'a> {
     fn get(&self, id: GlobalId) -> Option<Global<'a>> {
         get_global(self.fir_store, id)
     }
@@ -230,7 +230,7 @@ impl<'a> EvalContext<'a> {
 
 fn render_call_stack(
     store: &PackageStore,
-    globals: &impl GlobalLookup,
+    globals: &impl NodeLookup,
     call_stack: Vec<Frame>,
     error: &dyn std::error::Error,
 ) -> String {

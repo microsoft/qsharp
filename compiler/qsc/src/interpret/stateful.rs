@@ -16,13 +16,13 @@ use qsc_eval::{
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global, GlobalLookup, State,
+    Env, Global, NodeLookup, State,
 };
 
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, NodeId, Package, PackageId, Pat,
-        PatId, Stmt, StmtId,
+        Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
+        Stmt, StmtId,
     },
     visit::{self, Visitor},
 };
@@ -112,7 +112,7 @@ impl<'a> Lookup<'a> {
     }
 }
 
-impl<'a> GlobalLookup for Lookup<'a> {
+impl<'a> NodeLookup for Lookup<'a> {
     fn get(&self, id: GlobalId) -> Option<Global<'a>> {
         get_global(self.fir_store, self.udts, self.callables, self.package, id)
     }
@@ -161,14 +161,7 @@ impl Interpreter {
     /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
-    pub fn new(std: bool) -> Result<Self, Vec<Error>> {
-        Self::new_with_context(std, SourceMap::default(), PackageType::Lib)
-    }
-
-    /// # Errors
-    /// If the compilation of the standard library fails, an error is returned.
-    /// If the compilation of the sources fails, an error is returned.
-    pub fn new_with_context(
+    pub fn new(
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
@@ -244,8 +237,8 @@ impl Interpreter {
     pub fn eval_continue(
         &mut self,
         receiver: &mut impl Receiver,
-        breakpoints: &[NodeId],
-    ) -> Result<Option<NodeId>, Vec<Error>> {
+        breakpoints: &[StmtId],
+    ) -> Result<Option<StmtId>, Vec<Error>> {
         let globals = Lookup {
             fir_store: &self.fir_store,
             package: self.package,
@@ -253,7 +246,7 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        qsc_eval::eval_continue(
+        qsc_eval::eval_resume(
             &mut self.state,
             &globals,
             &mut self.env,
@@ -427,7 +420,10 @@ impl Interpreter {
     }
 
     fn update_fir(&mut self) {
-        let package = self.fir_store.get_mut(self.package).expect("msg");
+        let package = self
+            .fir_store
+            .get_mut(self.package)
+            .expect("package should be in store");
 
         for (id, value) in self.lowerer.blocks.drain() {
             if !package.blocks.contains_key(id) {

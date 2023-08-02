@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::fir::NodeId;
+use qsc::fir::StmtId;
 use qsc::interpret::stateful;
 use qsc::interpret::{stateful::Interpreter, Value};
-use qsc::SourceMap;
+use qsc::{PackageType, SourceMap};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -21,13 +21,14 @@ impl DebugService {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            interpreter: Interpreter::new(false).expect("Couldn't create interpreter"),
+            interpreter: Interpreter::new(false, SourceMap::default(), PackageType::Lib)
+                .expect("Couldn't create interpreter"),
         }
     }
 
     pub fn load_source(&mut self, path: &str, source: &str) -> bool {
         let source_map = SourceMap::new([(path.into(), source.into())], None);
-        match Interpreter::new_with_context(true, source_map, qsc::PackageType::Exe) {
+        match Interpreter::new(true, source_map, qsc::PackageType::Exe) {
             Ok(interpreter) => {
                 self.interpreter = interpreter;
                 self.interpreter.set_entry().is_ok()
@@ -61,7 +62,7 @@ impl DebugService {
         if !event_cb.is_function() {
             return Err(JsError::new("Events callback function must be provided").into());
         }
-        let bps: Vec<_> = ids.iter().map(|f| NodeId::from(*f)).collect();
+        let bps: Vec<_> = ids.iter().map(|f| StmtId::from(*f)).collect();
 
         match self.run_internal(
             |msg: &str| {
@@ -79,8 +80,8 @@ impl DebugService {
     fn run_internal<F>(
         &mut self,
         event_cb: F,
-        bps: &[NodeId],
-    ) -> Result<Option<NodeId>, Vec<stateful::Error>>
+        bps: &[StmtId],
+    ) -> Result<Option<StmtId>, Vec<stateful::Error>>
     where
         F: Fn(&str),
     {

@@ -9,7 +9,7 @@ use crate::{
     output::{GenericReceiver, Receiver},
     tests::get_global,
     val::{GlobalId, Value},
-    Error, GlobalLookup,
+    Error, NodeLookup,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -31,7 +31,7 @@ impl<'a> Lookup<'a> {
     }
 }
 
-impl<'a> GlobalLookup for Lookup<'a> {
+impl<'a> NodeLookup for Lookup<'a> {
     fn get(&self, id: GlobalId) -> Option<crate::Global<'a>> {
         get_global(self.fir_store, id)
     }

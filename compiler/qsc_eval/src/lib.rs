@@ -130,7 +130,7 @@ impl Display for Spec {
 /// Returns the first error encountered during execution.
 pub fn eval_stmt(
     stmt: StmtId,
-    globals: &impl GlobalLookup,
+    globals: &impl NodeLookup,
     env: &mut Env,
     sim: &mut impl Backend,
     package: PackageId,
@@ -138,7 +138,7 @@ pub fn eval_stmt(
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
-    state._continue(globals, env, sim, receiver, &[])?;
+    state.resume(globals, env, sim, receiver, &[])?;
     Ok(state.pop_val())
 }
 
@@ -148,13 +148,13 @@ pub fn eval_stmt(
 pub fn eval_expr(
     state: &mut State,
     expr: ExprId,
-    globals: &impl GlobalLookup,
+    globals: &impl NodeLookup,
     env: &mut Env,
     sim: &mut impl Backend,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     state.push_expr(expr);
-    state._continue(globals, env, sim, out, &[])?;
+    state.resume(globals, env, sim, out, &[])?;
     Ok(state.pop_val())
 }
 
@@ -165,15 +165,15 @@ pub fn eval_push_expr(state: &mut State, expr: ExprId) {
 /// Continues evaluation given current state with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_continue(
+pub fn eval_resume(
     state: &mut State,
-    globals: &impl GlobalLookup,
+    globals: &impl NodeLookup,
     env: &mut Env,
     sim: &mut impl Backend,
     out: &mut impl Receiver,
-    breakpoints: &[NodeId],
-) -> Result<Option<NodeId>, (Error, Vec<Frame>)> {
-    state._continue(globals, env, sim, out, breakpoints)
+    breakpoints: &[StmtId],
+) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
+    state.resume(globals, env, sim, out, breakpoints)
 }
 
 trait AsIndex {
@@ -240,7 +240,7 @@ pub enum Global<'a> {
     Udt,
 }
 
-pub trait GlobalLookup {
+pub trait NodeLookup {
     fn get(&self, id: GlobalId) -> Option<Global>;
     fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block;
     fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr;
@@ -385,7 +385,7 @@ impl State {
         self.stack.push(Cont::Stmt(stmt));
     }
 
-    fn push_block(&mut self, env: &mut Env, globals: &impl GlobalLookup, block: BlockId) {
+    fn push_block(&mut self, env: &mut Env, globals: &impl NodeLookup, block: BlockId) {
         let block = globals.get_block(self.package, block);
         self.push_scope(env);
         for stmt in block.stmts.iter().rev() {
@@ -424,14 +424,14 @@ impl State {
 
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn _continue(
+    pub fn resume(
         &mut self,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         env: &mut Env,
         sim: &mut impl Backend,
         out: &mut impl Receiver,
-        breakpoints: &[NodeId],
-    ) -> Result<Option<NodeId>, (Error, Vec<Frame>)> {
+        breakpoints: &[StmtId],
+    ) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
                 Cont::Action(action) => self
@@ -448,8 +448,7 @@ impl State {
                 }
                 Cont::Stmt(stmt) => {
                     self.cont_stmt(globals, stmt);
-                    let id = NodeId::from(stmt);
-                    match breakpoints.iter().find(|&bp| *bp == id) {
+                    match breakpoints.iter().find(|&bp| *bp == stmt) {
                         Some(bp) => Ok(Some(bp)),
                         None => Ok(None),
                     }
@@ -473,7 +472,7 @@ impl State {
     fn cont_expr(
         &mut self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         expr: ExprId,
     ) -> Result<(), Error> {
         let expr = globals.get_expr(self.package, expr);
@@ -539,7 +538,7 @@ impl State {
         }
     }
 
-    fn cont_arr_repeat(&mut self, globals: &impl GlobalLookup, item: ExprId, size: ExprId) {
+    fn cont_arr_repeat(&mut self, globals: &impl NodeLookup, item: ExprId, size: ExprId) {
         let size_expr = globals.get_expr(self.package, size);
         self.push_action(Action::ArrayRepeat(size_expr.span));
         self.push_expr(size);
@@ -567,7 +566,7 @@ impl State {
         self.push_val(Value::unit());
     }
 
-    fn cont_assign_op(&mut self, globals: &impl GlobalLookup, op: BinOp, lhs: ExprId, rhs: ExprId) {
+    fn cont_assign_op(&mut self, globals: &impl NodeLookup, op: BinOp, lhs: ExprId, rhs: ExprId) {
         self.push_action(Action::Assign(lhs));
         self.cont_binop(globals, op, rhs, lhs);
         self.push_val(Value::unit());
@@ -581,7 +580,7 @@ impl State {
 
     fn cont_assign_index(
         &mut self,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         lhs: ExprId,
         mid: ExprId,
         rhs: ExprId,
@@ -596,7 +595,7 @@ impl State {
         self.push_expr(expr);
     }
 
-    fn cont_index(&mut self, globals: &impl GlobalLookup, arr: ExprId, index: ExprId) {
+    fn cont_index(&mut self, globals: &impl NodeLookup, arr: ExprId, index: ExprId) {
         let index_expr = globals.get_expr(self.package, index);
         self.push_action(Action::Index(index_expr.span));
         self.push_expr(index);
@@ -640,7 +639,7 @@ impl State {
         self.push_expr(cond_expr);
     }
 
-    fn cont_call(&mut self, globals: &impl GlobalLookup, callee: ExprId, args: ExprId) {
+    fn cont_call(&mut self, globals: &impl NodeLookup, callee: ExprId, args: ExprId) {
         let callee_expr = globals.get_expr(self.package, callee);
         let args_expr = globals.get_expr(self.package, args);
         self.push_action(Action::Call(callee_expr.span, args_expr.span));
@@ -648,7 +647,7 @@ impl State {
         self.push_expr(callee);
     }
 
-    fn cont_binop(&mut self, globals: &impl GlobalLookup, op: BinOp, rhs: ExprId, lhs: ExprId) {
+    fn cont_binop(&mut self, globals: &impl NodeLookup, op: BinOp, rhs: ExprId, lhs: ExprId) {
         let rhs_expr = globals.get_expr(self.package, rhs);
         match op {
             BinOp::Add
@@ -679,7 +678,7 @@ impl State {
         }
     }
 
-    fn update_index(&mut self, globals: &impl GlobalLookup, lhs: ExprId, mid: ExprId, rhs: ExprId) {
+    fn update_index(&mut self, globals: &impl NodeLookup, lhs: ExprId, mid: ExprId, rhs: ExprId) {
         let mid_expr = globals.get_expr(self.package, mid);
         self.push_action(Action::UpdateIndex(mid_expr.span));
         self.push_expr(lhs);
@@ -698,7 +697,7 @@ impl State {
         self.push_expr(record);
     }
 
-    fn cont_stmt(&mut self, globals: &impl GlobalLookup, stmt: StmtId) {
+    fn cont_stmt(&mut self, globals: &impl NodeLookup, stmt: StmtId) {
         let stmt = globals.get_stmt(self.package, stmt);
         self.current_span = stmt.span;
 
@@ -723,7 +722,7 @@ impl State {
         &mut self,
         env: &mut Env,
         sim: &mut impl Backend,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         action: Action,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
@@ -782,7 +781,7 @@ impl State {
     fn eval_assign(
         &mut self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         lhs: ExprId,
     ) -> Result<(), Error> {
         let rhs = self.pop_val();
@@ -792,7 +791,7 @@ impl State {
     fn eval_bind(
         &mut self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         pat: PatId,
         mutability: Mutability,
     ) {
@@ -866,7 +865,7 @@ impl State {
         &mut self,
         env: &mut Env,
         sim: &mut impl Backend,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         callee_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
@@ -1081,7 +1080,7 @@ impl State {
     fn eval_while(
         &mut self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         cond_expr: ExprId,
         block: BlockId,
     ) {
@@ -1098,7 +1097,7 @@ impl State {
     fn bind_value(
         &self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         pat: PatId,
         val: Value,
         mutability: Mutability,
@@ -1129,7 +1128,7 @@ impl State {
     fn update_binding(
         &self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         lhs: ExprId,
         rhs: Value,
     ) -> Result<(), Error> {
@@ -1157,7 +1156,7 @@ impl State {
     fn bind_args_for_spec(
         &self,
         env: &mut Env,
-        globals: &impl GlobalLookup,
+        globals: &impl NodeLookup,
         decl_pat: PatId,
         spec_pat: Option<PatId>,
         args_val: Value,

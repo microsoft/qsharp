@@ -7,7 +7,7 @@ mod tests;
 use qsc_eval::debug::{map_fir_package_to_hir, Frame};
 use qsc_frontend::compile::PackageStore;
 
-use qsc_eval::{val::GlobalId, Global, GlobalLookup};
+use qsc_eval::{val::GlobalId, Global, NodeLookup};
 use qsc_fir::fir;
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
@@ -15,7 +15,7 @@ use qsc_hir::hir::{Item, ItemKind};
 #[must_use]
 pub(crate) fn format_call_stack(
     store: &PackageStore,
-    globals: &impl GlobalLookup,
+    globals: &impl NodeLookup,
     frames: Vec<Frame>,
     error: &dyn std::error::Error,
 ) -> String {

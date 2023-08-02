@@ -6,7 +6,7 @@ use crate::{
     debug::{map_hir_package_to_fir, Frame},
     output::{GenericReceiver, Receiver},
     val::GlobalId,
-    Env, Error, Global, GlobalLookup, State, Value,
+    Env, Error, Global, NodeLookup, State, Value,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -22,7 +22,7 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Returns the first error encountered during execution.
 pub(super) fn eval_expr(
     expr: ExprId,
-    globals: &impl GlobalLookup,
+    globals: &impl NodeLookup,
     package: PackageId,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
@@ -30,7 +30,7 @@ pub(super) fn eval_expr(
     let mut env = Env::with_empty_scope();
     let mut sim = SparseSim::new();
     state.push_expr(expr);
-    state._continue(globals, &mut env, &mut sim, out, &[])?;
+    state.resume(globals, &mut env, &mut sim, out, &[])?;
     Ok(state.pop_val())
 }
 
@@ -46,7 +46,7 @@ impl<'a> Lookup<'a> {
     }
 }
 
-impl<'a> GlobalLookup for Lookup<'a> {
+impl<'a> NodeLookup for Lookup<'a> {
     fn get(&self, id: GlobalId) -> Option<Global<'a>> {
         get_global(self.fir_store, id)
     }

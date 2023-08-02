@@ -97,7 +97,7 @@ fn main() -> miette::Result<ExitCode> {
         ));
     }
 
-    let mut interpreter = match Interpreter::new_with_context(
+    let mut interpreter = match Interpreter::new(
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
