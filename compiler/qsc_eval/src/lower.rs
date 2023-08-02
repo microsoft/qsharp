@@ -42,31 +42,11 @@ impl Lowerer {
             .map(|i| self.lower_item(i))
             .map(|i| (i.id, i))
             .collect();
-        let exprs = self
-            .exprs
-            .values()
-            .map(|i| (ExprId::from(i.id), i.clone()))
-            .collect();
-        let blocks = self
-            .blocks
-            .values()
-            .map(|i| (BlockId::from(i.id), i.clone()))
-            .collect();
-        let stmts = self
-            .stmts
-            .values()
-            .map(|i| (StmtId::from(i.id), i.clone()))
-            .collect();
-        let pats = self
-            .pats
-            .values()
-            .map(|i| (PatId::from(i.id), i.clone()))
-            .collect();
 
-        self.blocks.clear();
-        self.exprs.clear();
-        self.pats.clear();
-        self.stmts.clear();
+        let blocks: IndexMap<_, _> = self.blocks.drain().collect();
+        let exprs: IndexMap<_, _> = self.exprs.drain().collect();
+        let pats: IndexMap<_, _> = self.pats.drain().collect();
+        let stmts: IndexMap<_, _> = self.stmts.drain().collect();
 
         let package = fir::Package {
             items,

@@ -448,7 +448,8 @@ impl State {
                 }
                 Cont::Stmt(stmt) => {
                     self.cont_stmt(globals, stmt);
-                    match breakpoints.iter().find(|&bp| *bp == NodeId::from(stmt)) {
+                    let id = NodeId::from(stmt);
+                    match breakpoints.iter().find(|&bp| *bp == id) {
                         Some(bp) => Ok(Some(bp)),
                         None => Ok(None),
                     }

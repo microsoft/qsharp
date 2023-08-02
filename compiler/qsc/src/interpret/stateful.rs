@@ -429,30 +429,26 @@ impl Interpreter {
     fn update_fir(&mut self) {
         let package = self.fir_store.get_mut(self.package).expect("msg");
 
-        for (id, value) in self.lowerer.blocks.iter() {
+        for (id, value) in self.lowerer.blocks.drain() {
             if !package.blocks.contains_key(id) {
                 package.blocks.insert(id, value.clone());
             }
         }
-        for (id, value) in self.lowerer.exprs.iter() {
+        for (id, value) in self.lowerer.exprs.drain() {
             if !package.exprs.contains_key(id) {
                 package.exprs.insert(id, value.clone());
             }
         }
-        for (id, value) in self.lowerer.pats.iter() {
+        for (id, value) in self.lowerer.pats.drain() {
             if !package.pats.contains_key(id) {
                 package.pats.insert(id, value.clone());
             }
         }
-        for (id, value) in self.lowerer.stmts.iter() {
+        for (id, value) in self.lowerer.stmts.drain() {
             if !package.stmts.contains_key(id) {
                 package.stmts.insert(id, value.clone());
             }
         }
-        self.lowerer.blocks.clear();
-        self.lowerer.exprs.clear();
-        self.lowerer.pats.clear();
-        self.lowerer.stmts.clear();
     }
 
     fn eval_stmt(
