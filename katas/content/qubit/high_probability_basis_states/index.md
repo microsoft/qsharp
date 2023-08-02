@@ -1,4 +1,3 @@
-# High-probability basis states
 
 **Input:** $N$ qubits in an unknown state $|\psi\rangle = \sum_{k = 0}^{2^N-1} x_k |k\rangle$. The amplitudes $x_k$ will be real and non-negative.
 

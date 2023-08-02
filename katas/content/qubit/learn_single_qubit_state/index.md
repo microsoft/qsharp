@@ -1,4 +1,3 @@
-# Learn the state of the qubit without measurements
 
 **Input:** A qubit in an unknown state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$. The amplitudes $\alpha$ and $\beta$ will be real and non-negative.
 

@@ -1,4 +1,3 @@
-### Solution
 
 @[solution]({
     "id": "High Probability Basis States",

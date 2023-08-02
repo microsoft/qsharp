@@ -1,4 +1,3 @@
-### Solution
 
 @[solution]({
     "id": "learn_single_qubit_state",
