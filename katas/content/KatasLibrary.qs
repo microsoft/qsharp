@@ -6,6 +6,9 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
 
+    /// # Summary
+    /// Given two operations, checks whether they act identically for all input states.
+    /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
     operation CheckOperationsEquivalence(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
@@ -27,6 +30,10 @@ namespace Microsoft.Quantum.Katas {
         areEquivalent
     }
 
+    /// # Summary
+    /// Given two operations, checks whether they act identically (including global phase) for all input states.
+    /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
+    /// into a relative phase that can be detected.
     operation CheckOperationsEquivalenceStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
@@ -39,6 +46,9 @@ namespace Microsoft.Quantum.Katas {
         areEquivalent
     }
 
+    /// # Summary
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits.
     operation CheckOperationsEquivalenceOnZeroState(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
