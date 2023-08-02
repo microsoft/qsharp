@@ -1,5 +1,3 @@
-# Preparing a rotated state
-
 **Inputs:**
 
 1. Real numbers $\alpha$ and $\beta$ such that $\alpha^2 + \beta^2 = 1$.

@@ -1,5 +1,3 @@
-# Preparing an arbitrary state
-
 **Inputs:**
 
 1. A non-negative real number $\alpha$.
