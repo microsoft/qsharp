@@ -132,7 +132,7 @@ namespace Sample {
     /// Represents the |𝑥〉 register that 𝑈 acts on.
     /// ## yQubit
     /// Represents the |𝑦〉 qubit that 𝑈 acts on.
-    internal operation ApplyParityOperation(
+    operation ApplyParityOperation(
         bitStringAsInt : Int,
         xRegister : Qubit[],
         yQubit : Qubit)
@@ -158,7 +158,7 @@ namespace Sample {
     /// Returns black-box operations (Qubit[], Qubit) => () of the form
     /// U_f |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉.
     /// We define 𝑓 by providing the bit string 𝑟⃗ as an integer.
-    internal operation EncodeIntegerAsParityOperation(bitStringAsInt : Int)
+    operation EncodeIntegerAsParityOperation(bitStringAsInt : Int)
     : (Qubit[], Qubit) => Unit {
         return ApplyParityOperation(bitStringAsInt, _, _);
     }

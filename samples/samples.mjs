@@ -13,7 +13,7 @@ export default [
     {title: "Random Number Generator", file: "./algorithms/QRNG.qs", shots: 1000},
     {title: "Deutsch-Jozsa", file: "./algorithms/DeutschJozsa.qs", shots: 1},
     {title: "Bernstein–Vazirani", file: "./algorithms/BernsteinVazirani.qs", shots: 1},
-    {title: "Grover's search", file: "Grover.qs", shots: 100},
-    {title: "Hidden shift", file: "HiddenShift.qs", shots: 1},
+    {title: "Grover's search", file: "./algorithms/Grover.qs", shots: 100},
+    {title: "Hidden shift", file: "./algorithms/HiddenShift.qs", shots: 1},
     {title: "Shor", file: "Shor.qs", shots: 1},
 ];

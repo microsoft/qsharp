@@ -1,10 +1,12 @@
 /// # Sample
-/// Grover's searcg algorithm
+/// Grover's search algorithm
 ///
 /// # Description
-/// Grover's algorithm is a quantum algorithm that finds with high probability
-/// the unique input to a black box function that produces a particular output
-/// value.
+/// Grover's search algorithm is a quantum algorithm that finds with high
+/// probability the unique input to a black box function that produces a
+/// particular output value.
+///
+/// This Q# program implements the Grover's search algorithm.
 namespace Sample {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
