@@ -333,7 +333,7 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter = Interpreter::new(true, sources, PackageType::Lib)
+            let mut interpreter = Interpreter::new(true, sources, PackageType::Exe)
                 .expect("interpreter should be created");
 
             let (result, output) = entry(&mut interpreter);

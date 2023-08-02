@@ -73,9 +73,9 @@ pub fn run_default_passes(
     let conjugate_errors = conjugate_invert::invert_conjugate_exprs(core, unit);
     Validator::default().visit_package(&unit.package);
 
-    let entry_point_errors = generate_entry_expr(unit);
-    Validator::default().visit_package(&unit.package);
     let entry_point_errors = if package_type == PackageType::Exe {
+        let entry_point_errors = generate_entry_expr(unit);
+        Validator::default().visit_package(&unit.package);
         entry_point_errors
     } else {
         Vec::new()
