@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! The high-level intermediate representation for Q#. HIR is lowered from the AST.
+//! The flattened intermediate representation for Q#. FIR is lowered from the HIR.
+//! The blocks, exprs, pats, and stmts from HIR are replaced with IDs that index into
+//! the corresponding lookups in the package. This allows for traversal without
+//! leaking references to the FIR nodes.
 
 #![warn(missing_docs)]
 
@@ -32,7 +35,7 @@ fn set_indentation<'a, 'b>(
     })
 }
 
-/// A unique identifier for an HIR node.
+/// A unique identifier for an FIR node.
 #[derive(Clone, Copy, Debug)]
 pub struct NodeId(u32);
 
@@ -316,7 +319,7 @@ impl Display for Res {
     }
 }
 
-/// The root node of the HIR.
+/// The root node of the FIR.
 #[derive(Clone, Debug, Default)]
 pub struct Package {
     /// The items in the package.

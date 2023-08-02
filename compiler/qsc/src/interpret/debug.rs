@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_eval::debug::Frame;
+use qsc_eval::debug::{map_fir_package_to_hir, Frame};
 use qsc_frontend::compile::PackageStore;
 
 use qsc_eval::{val::GlobalId, Global, GlobalLookup};
@@ -56,7 +56,7 @@ pub(crate) fn format_call_stack(
 
 #[must_use]
 fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
-    let package = hir::PackageId::from(<fir::PackageId as Into<usize>>::into(id.package));
+    let package = map_fir_package_to_hir(id.package);
     let item = hir::LocalItemId::from(<fir::LocalItemId as Into<usize>>::into(id.item));
     store.get(package).and_then(|unit| {
         let item = unit.package.items.get(item)?;
@@ -71,7 +71,7 @@ fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
 
 #[must_use]
 fn get_item_file_name(store: &PackageStore, id: GlobalId) -> Option<String> {
-    let package = hir::PackageId::from(<fir::PackageId as Into<usize>>::into(id.package));
+    let package = map_fir_package_to_hir(id.package);
     let item = hir::LocalItemId::from(<fir::LocalItemId as Into<usize>>::into(id.item));
     store.get(package).and_then(|unit| {
         let item = unit.package.items.get(item)?;
