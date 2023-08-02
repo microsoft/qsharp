@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use expect_test::{expect, Expect};
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, Target};
 use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
     visit::{walk_stmt, Visitor},
@@ -28,8 +28,13 @@ impl<'a> Visitor<'a> for StmtSpans {
 
 fn check(block_str: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store));
-    let unit = compile(&store, &[std], SourceMap::new([], Some(block_str.into())));
+    let std = store.insert(compile::std(&store, Target::Full));
+    let unit = compile(
+        &store,
+        &[std],
+        SourceMap::new([], Some(block_str.into())),
+        Target::Full,
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let entry = unit.package.entry.expect("entry should exist");

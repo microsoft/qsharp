@@ -19,7 +19,7 @@ use qsc_eval::{
     Env, Global, GlobalLookup,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap, Target},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
@@ -93,10 +93,16 @@ impl Interpreter {
         let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
         if std {
-            dependencies.push(store.insert(compile::std(&store)));
+            dependencies.push(store.insert(compile::std(&store, Target::Full)));
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Lib);
+        let (unit, errors) = compile(
+            &store,
+            &dependencies,
+            sources,
+            PackageType::Lib,
+            Target::Full,
+        );
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()

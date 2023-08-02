@@ -3,7 +3,7 @@
 
 use crate::error::WithSource;
 use miette::{Diagnostic, Report};
-use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
+use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap, Target};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
@@ -22,15 +22,16 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     package_type: PackageType,
+    target: Target,
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources);
+    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, target);
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(error.into());
     }
 
     if errors.is_empty() {
-        for error in run_default_passes(store.core(), &mut unit, package_type) {
+        for error in run_default_passes(store.core(), &mut unit, package_type, target) {
             errors.push(error.into());
         }
     }
@@ -65,9 +66,9 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore) -> CompileUnit {
-    let mut unit = qsc_frontend::compile::std(store);
-    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
+pub fn std(store: &PackageStore, target: Target) -> CompileUnit {
+    let mut unit = qsc_frontend::compile::std(store, target);
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, target);
     if pass_errors.is_empty() {
         unit
     } else {

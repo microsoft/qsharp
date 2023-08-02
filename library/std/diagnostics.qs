@@ -8,10 +8,12 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
+    @TargetFullProfile()
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
+    @TargetFullProfile()
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
             if not CheckZero(q) {

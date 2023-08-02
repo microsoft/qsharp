@@ -4,16 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashSet;
-
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::PackageStore;
 use qsc_hir::{
-    hir::{
-        BinOp, CallableKind, Expr, ExprKind, Item, ItemId, ItemKind, Lit, Package, PackageId, Res,
-        SpecBody, SpecGen,
-    },
+    hir::{BinOp, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody, SpecGen},
     ty::{Prim, Ty},
     visit::{walk_expr, walk_item, Visitor},
 };
@@ -51,13 +45,8 @@ pub enum Error {
 }
 
 #[must_use]
-pub fn check_base_profile_compliance(store: &PackageStore, package: &Package) -> Vec<Error> {
-    let mut checker = Checker {
-        current_package: None,
-        pending: Vec::new(),
-        processed: HashSet::new(),
-        errors: Vec::new(),
-    };
+pub fn check_base_profile_compliance(package: &Package) -> Vec<Error> {
+    let mut checker = Checker { errors: Vec::new() };
     if let Some(entry) = &package.entry {
         if any_non_result_ty(&entry.ty) {
             checker.errors.push(Error::ReturnNonResult(entry.span));
@@ -65,29 +54,10 @@ pub fn check_base_profile_compliance(store: &PackageStore, package: &Package) ->
     }
     checker.visit_package(package);
 
-    while let Some(item_id) = checker.pending.pop() {
-        if !checker.processed.insert(item_id) {
-            continue;
-        }
-
-        let item = store
-            .get(item_id.package.expect("package id should be set"))
-            .expect("package should be present in store")
-            .package
-            .items
-            .get(item_id.item)
-            .expect("item should be present in package");
-        checker.current_package = item_id.package;
-        checker.visit_item(item);
-    }
-
     checker.errors
 }
 
 struct Checker {
-    current_package: Option<PackageId>,
-    pending: Vec<ItemId>,
-    processed: HashSet<ItemId>,
     errors: Vec<Error>,
 }
 
@@ -117,16 +87,6 @@ impl<'a> Visitor<'a> for Checker {
             }
             ExprKind::Lit(Lit::Result(_)) => {
                 self.errors.push(Error::ResultLiteral(expr.span));
-            }
-            ExprKind::Var(Res::Item(item_id), _) => {
-                if item_id.package.is_some() && !self.processed.contains(item_id) {
-                    self.pending.push(*item_id);
-                } else if self.current_package.is_some() {
-                    self.pending.push(ItemId {
-                        package: self.current_package,
-                        item: item_id.item,
-                    });
-                }
             }
             _ => {}
         }

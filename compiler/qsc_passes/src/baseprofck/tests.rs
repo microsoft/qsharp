@@ -3,44 +3,18 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, Target};
 
 use crate::baseprofck::check_base_profile_compliance;
 
 fn check(expr: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store));
-    let lib_src = SourceMap::new(
-        [(
-            "lib".into(),
-            indoc! {"
-        namespace Lib {
-            operation Foo() : Unit {
-                body intrinsic;
-            }
-            operation Bar() : Result {
-                body intrinsic;
-            }
-            operation Baz() : Int {
-                body intrinsic;
-            }
-            operation MeasAreEq(q1 : Qubit, q2 : Qubit) : Bool {
-                M(q1) == M(q2)
-            }
-        }
-    "}
-            .into(),
-        )],
-        None,
-    );
-    let lib_unit = compile(&store, &[std], lib_src);
-    assert!(lib_unit.errors.is_empty(), "{:?}", lib_unit.errors);
-    let lib = store.insert(lib_unit);
+    let std = store.insert(compile::std(&store, Target::Full));
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[std, lib], sources);
+    let unit = compile(&store, &[std], sources, Target::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let errors = check_base_profile_compliance(&store, &unit.package);
+    let errors = check_base_profile_compliance(&unit.package);
     expect.assert_debug_eq(&errors);
 }
 
@@ -59,39 +33,20 @@ fn simple_program_is_valid() {
 }
 
 #[test]
-fn intrinsic_lib_calls_with_supported_returns_are_valid() {
+fn intrinsic_calls_with_supported_returns_are_valid() {
     check(
         indoc! {"{
-            Lib.Foo();
-            Lib.Bar()
+            operation Foo() : Unit {
+                body intrinsic;
+            }
+            operation Bar() : Result {
+                body intrinsic;
+            }
+            Foo();
+            Bar()
         }"},
         &expect![[r#"
             []
-        "#]],
-    );
-}
-
-#[test]
-fn intrinsic_lib_calls_with_unsupported_returns_are_invalid() {
-    check(
-        indoc! {"{
-            Lib.Baz()
-        }"},
-        &expect![[r#"
-            [
-                ReturnNonResult(
-                    Span {
-                        lo: 0,
-                        hi: 17,
-                    },
-                ),
-                UnsupportedIntrinsic(
-                    Span {
-                        lo: 150,
-                        hi: 153,
-                    },
-                ),
-            ]
         "#]],
     );
 }
@@ -112,26 +67,6 @@ fn result_comparison_error() {
                     Span {
                         lo: 41,
                         hi: 53,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn result_comparison_in_lib_error() {
-    check(
-        indoc! {"{
-            use q = Qubit();
-            Lib.MeasAreEq(q, q);
-        }"},
-        &expect![[r#"
-            [
-                ResultComparison(
-                    Span {
-                        lo: 259,
-                        hi: 273,
                     },
                 ),
             ]

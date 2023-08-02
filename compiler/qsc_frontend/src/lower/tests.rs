@@ -1,19 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, PackageStore, SourceMap};
+use crate::compile::{self, compile, PackageStore, SourceMap, Target};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
 fn check_hir(input: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), input.into())], None);
-    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(compile::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     expect.assert_eq(&unit.package.to_string());
 }
 
 fn check_errors(input: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), input.into())], None);
-    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(compile::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
 
     let lower_errors: Vec<_> = unit
         .errors

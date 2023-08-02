@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::compile::Target;
+
 use super::{compile, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
@@ -63,7 +65,12 @@ fn one_file_no_entry() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = unit.package.entry.as_ref();
@@ -87,7 +94,12 @@ fn one_file_error() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -125,7 +137,12 @@ fn two_files_dependency() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -159,7 +176,12 @@ fn two_files_mutual_dependency() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -191,7 +213,12 @@ fn two_files_error() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -222,7 +249,12 @@ fn entry_call_operation() {
         Some("Foo.A()".into()),
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
@@ -252,7 +284,12 @@ fn entry_error() {
         Some("Foo.B()".into()),
     );
 
-    let unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     assert_eq!(
         ("<entry>", Span { lo: 4, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
@@ -289,7 +326,12 @@ fn replace_node() {
         None,
     );
 
-    let mut unit = compile(&PackageStore::new(super::core()), &[], sources);
+    let mut unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        Target::Full,
+    );
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
 
@@ -365,7 +407,7 @@ fn insert_core_call() {
     );
 
     let store = PackageStore::new(super::core());
-    let mut unit = compile(&store, &[], sources);
+    let mut unit = compile(&store, &[], sources, Target::Full);
     let mut inserter = Inserter { core: store.core() };
     inserter.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
@@ -410,7 +452,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1));
+    let package1 = store.insert(compile(&store, &[], sources1, Target::Full));
 
     let sources2 = SourceMap::new(
         [(
@@ -426,7 +468,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2);
+    let unit2 = compile(&store, &[package1], sources2, Target::Full);
 
     let foo_id = LocalItemId::from(1);
     let ItemKind::Callable(callable) = &unit2
@@ -466,7 +508,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1));
+    let package1 = store.insert(compile(&store, &[], sources1, Target::Full));
 
     let sources2 = SourceMap::new(
         [(
@@ -482,7 +524,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2);
+    let unit2 = compile(&store, &[package1], sources2, Target::Full);
 
     let ItemKind::Callable(callable) = &unit2
         .package
@@ -500,7 +542,7 @@ fn package_dependency_internal() {
 #[test]
 fn std_dependency() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store));
+    let std = store.insert(super::std(&store, Target::Full));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -519,13 +561,40 @@ fn std_dependency() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources);
+    let unit = compile(&store, &[std], sources, Target::Full);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
+
+#[test]
+fn std_dependency_base_profile() {
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store, Target::Base));
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    open Microsoft.Quantum.Intrinsic;
+
+                    operation Main() : Unit {
+                        use q = Qubit();
+                        X(q);
+                    }
+                }
+            "}
+            .into(),
+        )],
+        Some("Foo.Main()".into()),
+    );
+
+    let unit = compile(&store, &[std], sources, Target::Base);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
 #[test]
 fn introduce_prelude_ambiguity() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store));
+    let std = store.insert(super::std(&store, Target::Full));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -540,7 +609,7 @@ fn introduce_prelude_ambiguity() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources);
+    let unit = compile(&store, &[std], sources, Target::Full);
     let errors: Vec<Error> = unit.errors;
     assert!(
         errors.len() == 1

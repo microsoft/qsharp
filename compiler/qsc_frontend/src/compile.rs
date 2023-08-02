@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+mod preprocess;
+
 use crate::{
     lower::{self, Lowerer},
     resolve::{self, Names, Resolver},
@@ -27,8 +29,36 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Target {
+    Full,
+    Base,
+}
+
+impl Target {
+    #[must_use]
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::Full => "TargetFullProfile",
+            Self::Base => "TargetBaseProfile",
+        }
+    }
+}
+
+impl FromStr for Target {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "TargetFullProfile" => Ok(Target::Full),
+            "TargetBaseProfile" => Ok(Self::Base),
+            _ => Err(()),
+        }
+    }
+}
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
@@ -227,11 +257,14 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
+    target: Target,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
+
+    preprocess::Conditional { target }.visit_package(&mut ast_package);
 
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &ast_package);
@@ -292,7 +325,7 @@ pub fn core() -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(&store, &[], sources);
+    let mut unit = compile(&store, &[], sources, Target::Base);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -303,7 +336,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore) -> CompileUnit {
+pub fn std(store: &PackageStore, target: Target) -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
@@ -358,7 +391,7 @@ pub fn std(store: &PackageStore) -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(store, &[PackageId::CORE], sources);
+    let mut unit = compile(store, &[PackageId::CORE], sources, target);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }

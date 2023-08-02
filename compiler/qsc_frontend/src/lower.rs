@@ -6,9 +6,11 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
+    compile::Target,
     resolve::{self, Names},
     typeck::{self, convert},
 };
+use core::str::FromStr;
 use miette::Diagnostic;
 use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -211,11 +213,13 @@ impl With<'_> {
                     None
                 }
             }
-        } else {
+        } else if Target::from_str(attr.name.name.as_ref()).is_err() {
             self.lowerer.errors.push(Error::UnknownAttr(
                 attr.name.name.to_string(),
                 attr.name.span,
             ));
+            None
+        } else {
             None
         }
     }

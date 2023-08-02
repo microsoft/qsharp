@@ -10,7 +10,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, Target};
 use qsc_hir::hir::Expr;
 use qsc_hir::hir::ItemKind;
 use qsc_hir::hir::PackageId;
@@ -48,15 +48,15 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     run_core_passes(&mut core);
     let mut store = PackageStore::new(core);
 
-    let mut std = compile::std(&store);
+    let mut std = compile::std(&store, Target::Full);
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib, Target::Full).is_empty());
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources);
+    let mut unit = compile(&store, &[std_id], sources, Target::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, Target::Full);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let id = store.insert(unit);
 

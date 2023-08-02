@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-pub mod baseprofck;
+mod baseprofck;
 mod borrowck;
 mod callable_limits;
 mod common;
@@ -20,7 +20,10 @@ use callable_limits::CallableLimits;
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
-use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
+use qsc_frontend::{
+    compile::{CompileUnit, Target},
+    incremental::Fragment,
+};
 use qsc_hir::{
     assigner::Assigner,
     global::{self, Table},
@@ -55,6 +58,7 @@ pub fn run_default_passes(
     core: &Table,
     unit: &mut CompileUnit,
     package_type: PackageType,
+    target: Target,
 ) -> Vec<Error> {
     let mut call_limits = CallableLimits::default();
     call_limits.visit_package(&unit.package);
@@ -88,6 +92,12 @@ pub fn run_default_passes(
     ReplaceQubitAllocation::new(core, &mut unit.assigner).visit_package(&mut unit.package);
     Validator::default().visit_package(&unit.package);
 
+    let base_prof_errors = if target == Target::Base {
+        baseprofck::check_base_profile_compliance(&unit.package)
+    } else {
+        Vec::new()
+    };
+
     callable_errors
         .into_iter()
         .map(Error::CallableLimits)
@@ -95,6 +105,7 @@ pub fn run_default_passes(
         .chain(spec_errors.into_iter().map(Error::SpecGen))
         .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
         .chain(entry_point_errors.into_iter())
+        .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
         .collect()
 }
 
@@ -114,7 +125,13 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
     ReplaceQubitAllocation::new(&table, &mut core.assigner).visit_package(&mut core.package);
     Validator::default().visit_package(&core.package);
 
-    borrow_errors.into_iter().map(Error::BorrowCk).collect()
+    let base_prof_errors = baseprofck::check_base_profile_compliance(&core.package);
+
+    borrow_errors
+        .into_iter()
+        .map(Error::BorrowCk)
+        .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
+        .collect()
 }
 
 pub fn run_default_passes_for_fragment(

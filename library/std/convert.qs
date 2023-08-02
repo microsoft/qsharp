@@ -26,6 +26,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool` representing the `input`.
+    @TargetFullProfile()
     function ResultAsBool(input : Result) : Bool {
         input == One
     }
@@ -40,6 +41,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result` representing the `input`.
+    @TargetFullProfile()
     function BoolAsResult(input : Bool) : Result {
         if input {One} else {Zero}
     }
@@ -109,6 +111,7 @@ namespace Microsoft.Quantum.Convert {
     /// // The following returns 1
     /// let int1 = ResultArrayAsInt([One,Zero])
     /// ```
+    @TargetFullProfile()
     function ResultArrayAsInt(results : Result[]) : Int {
         let nBits = Length(results);
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
@@ -133,6 +136,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool[]` representing the `input`.
+    @TargetFullProfile()
     function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
         mutable output = [];
         for r in input {
@@ -152,6 +156,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result[]` representing the `input`.
+    @TargetFullProfile()
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];
         for b in input {
