@@ -2,8 +2,27 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Katas {
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
+
+    operation CheckOperationsEquivalence(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        use (opRegister, referenceRegister) = (Qubit[inputSize], Qubit[inputSize]);
+        within {
+            EntangleRegisters(opRegister, referenceRegister);
+        }
+        apply {
+            op(opRegister);
+            Adjoint reference(referenceRegister);
+        }
+
+        let areEquivalent = CheckAllZero(opRegister + referenceRegister);
+        areEquivalent
+    }
 
     /// # Summary
     /// Shows the effect a quantum operation has on the quantum state.
@@ -73,5 +92,18 @@ namespace Microsoft.Quantum.Katas {
         ResetAll([control, target]);
 
         isCorrect
+    }
+
+    internal operation EntangleRegisters(
+        registerA : Qubit[],
+        registerB : Qubit[]) : Unit is Adj + Ctl {
+        Fact(
+            Length(registerA) == Length(registerB),
+            $"The length of qubit registers must be the same.");
+
+        for index in IndexRange(registerA) {
+            H(registerA[index]);
+            CNOT(registerA[index], registerB[index]);
+        }
     }
 }
