@@ -15,5 +15,5 @@ export default [
     {title: "Bernstein–Vazirani", file: "./algorithms/BernsteinVazirani.qs", shots: 1},
     {title: "Grover's search", file: "./algorithms/Grover.qs", shots: 100},
     {title: "Hidden shift", file: "./algorithms/HiddenShift.qs", shots: 1},
-    {title: "Shor", file: "Shor.qs", shots: 1},
+    {title: "Shor", file: "./algorithms/Shor.qs", shots: 1},
 ];
