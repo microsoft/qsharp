@@ -72,7 +72,7 @@ fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
 #[must_use]
 fn get_item_file_name(store: &PackageStore, id: GlobalId) -> Option<String> {
     let package = map_fir_package_to_hir(id.package);
-    let item = hir::LocalItemId::from(<fir::LocalItemId as Into<usize>>::into(id.item));
+    let item = hir::LocalItemId::from(usize::from(id.item));
     store.get(package).and_then(|unit| {
         let item = unit.package.items.get(item)?;
         let source = unit.sources.find_by_offset(item.span.lo);
