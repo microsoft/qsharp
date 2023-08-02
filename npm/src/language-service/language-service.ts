@@ -31,7 +31,12 @@ export type LanguageServiceEvent = {
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
-  updateDocument(uri: string, version: number, code: string): Promise<void>;
+  updateDocument(
+    uri: string,
+    version: number,
+    code: string,
+    isExe: boolean
+  ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | null>;
@@ -72,10 +77,11 @@ export class QSharpLanguageService implements ILanguageService {
   async updateDocument(
     documentUri: string,
     version: number,
-    code: string
+    code: string,
+    isExe: boolean
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code);
+    this.languageService.update_document(documentUri, version, code, isExe);
   }
 
   async closeDocument(documentUri: string): Promise<void> {
