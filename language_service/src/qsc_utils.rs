@@ -3,7 +3,7 @@
 
 use qsc::{
     compile::{self, Error},
-    hir::{Item, ItemId, PackageId},
+    hir::{Item, ItemId, Package, PackageId},
     CompileUnit, PackageStore, PackageType, SourceMap, Span,
 };
 
@@ -16,18 +16,18 @@ pub(crate) struct Compilation {
     pub errors: Vec<Error>,
 }
 
-pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Compilation {
+pub(crate) fn compile_document(
+    source_name: &str,
+    source_contents: &str,
+    package_type: PackageType,
+) -> Compilation {
     let mut package_store = PackageStore::new(compile::core());
     let std_package_id = package_store.insert(compile::std(&package_store));
 
     // Source map only contains the current document.
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (unit, errors) = compile::compile(
-        &package_store,
-        &[std_package_id],
-        source_map,
-        PackageType::Exe,
-    );
+    let (unit, errors) =
+        compile::compile(&package_store, &[std_package_id], source_map, package_type);
     Compilation {
         package_store,
         std_package_id,
@@ -48,16 +48,17 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
         + source_offset
 }
 
-pub(crate) fn find_item<'a>(compilation: &'a Compilation, id: &ItemId) -> Option<&'a Item> {
+pub(crate) fn find_item<'a>(
+    compilation: &'a Compilation,
+    id: &ItemId,
+) -> (Option<&'a Item>, Option<&'a Package>) {
     let package = if let Some(package_id) = id.package {
-        match &compilation.package_store.get(package_id) {
+        match compilation.package_store.get(package_id) {
             Some(compilation) => &compilation.package,
-            None => {
-                return None;
-            }
+            None => return (None, None),
         }
     } else {
         &compilation.unit.package
     };
-    package.items.get(id.item)
+    (package.items.get(id.item), Some(package))
 }

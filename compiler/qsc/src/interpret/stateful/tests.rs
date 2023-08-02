@@ -238,6 +238,65 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "DumpMachine()");
             is_unit_with_output(&result, &output, "STATE:\n|0101⟩: 1+0i");
         }
+
+        #[test]
+        fn ambiguous_type_error_in_top_level_stmts() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = [];");
+            is_only_error(
+                &result,
+                &output,
+                "type error: insufficient type information to infer type",
+            );
+            let (result, output) = line(&mut interpreter, "let x = []; let y = [0] + x;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "function Foo() : Unit { let x = []; }");
+            is_only_error(
+                &result,
+                &output,
+                "type error: insufficient type information to infer type",
+            );
+        }
+
+        #[test]
+        fn resolved_type_persists_across_stmts() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = []; let y = [0] + x;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "let z = [0.0] + x;");
+            is_only_error(&result, &output, "type error: expected Double, found Int");
+        }
+
+        #[test]
+        fn incremental_lambas_work() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = 1; let f = (y) -> x + y;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "f(1)");
+            is_only_value(&result, &output, &Value::Int(2));
+        }
+
+        #[test]
+        fn mutability_persists_across_stmts() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "mutable x : Int[] = []; let y : Int[] = [];",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "set x += [0];");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "set y += [0];");
+            is_only_error(&result, &output, "cannot update immutable variable");
+            let (result, output) = line(&mut interpreter, "let lam = () -> y + [0];");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "let lam = () -> x + [0];");
+            is_only_error(
+                &result,
+                &output,
+                "lambdas cannot close over mutable variables",
+            );
+        }
     }
 
     #[cfg(test)]
