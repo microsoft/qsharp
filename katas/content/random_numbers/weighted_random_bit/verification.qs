@@ -2,9 +2,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-
-    // ------------------------------------------------------
-    // Exercise 4.
     @EntryPoint()
     operation CheckSolution(): Bool {
         for x in [0.0, 0.25, 0.5, 0.75, 1.0] {
@@ -22,7 +19,6 @@ namespace Kata.Verification {
         return true;
     }
 
-    // ------------------------------------------------------
     /// # Summary
     /// Helper operation that checks that the given RNG operation generates zero with x percent probability
     /// # Input

@@ -1,7 +1,4 @@
 namespace Kata.Verification {
-
-    // ------------------------------------------------------
-    // Exercise 3.
     @EntryPoint()
     operation CheckSolution(): Bool {
         // Test random number generation for 1, 2, 3, 10 bits

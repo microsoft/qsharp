@@ -1,7 +1,4 @@
 namespace Kata.Verification {
-
-    // ------------------------------------------------------
-    // Exercise 5.
     @EntryPoint()
     operation CheckSolution(): Bool {
 
