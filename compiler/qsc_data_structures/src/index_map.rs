@@ -39,6 +39,13 @@ impl<K, V> IndexMap<K, V> {
         }
     }
 
+    pub fn drain(&mut self) -> Drain<K, V> {
+        Drain {
+            _keys: PhantomData,
+            base: self.values.drain(..).enumerate(),
+        }
+    }
+
     #[must_use]
     pub fn values(&self) -> Values<V> {
         Values {
@@ -180,6 +187,23 @@ pub struct IntoIter<K, V> {
 }
 
 impl<K: From<usize>, V> Iterator for IntoIter<K, V> {
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let (index, Some(value)) = self.base.next()? {
+                break Some((index.into(), value));
+            }
+        }
+    }
+}
+
+pub struct Drain<'a, K, V> {
+    _keys: PhantomData<K>,
+    base: Enumerate<vec::Drain<'a, Option<V>>>,
+}
+
+impl<K: From<usize>, V> Iterator for Drain<'_, K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
