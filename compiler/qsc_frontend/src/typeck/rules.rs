@@ -3,7 +3,7 @@
 
 use super::{
     convert,
-    infer::{self, ArgTy, Class, Inferrer, TySource},
+    infer::{ArgTy, Class, Inferrer, TySource},
     Error, Table,
 };
 use crate::resolve::{self, Names, Res};
@@ -41,19 +41,25 @@ struct Context<'a> {
     return_ty: Option<&'a Ty>,
     typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
-    inferrer: Inferrer,
+    inferrer: &'a mut Inferrer,
 }
 
 impl<'a> Context<'a> {
-    fn new(names: &'a Names, globals: &'a HashMap<ItemId, Scheme>, table: &'a mut Table) -> Self {
+    fn new(
+        names: &'a Names,
+        globals: &'a HashMap<ItemId, Scheme>,
+        table: &'a mut Table,
+        inferrer: &'a mut Inferrer,
+        new: Vec<NodeId>,
+    ) -> Self {
         Self {
             names,
             globals,
             table,
             return_ty: None,
             typed_holes: Vec::new(),
-            new: Vec::new(),
-            inferrer: Inferrer::new(),
+            new,
+            inferrer,
         }
     }
 
@@ -705,19 +711,19 @@ impl<'a> Context<'a> {
         self.table.terms.insert(id, ty);
     }
 
-    fn solve(self) -> Vec<Error> {
-        let (solution, mut errors) = self.inferrer.solve(&self.table.udts);
+    pub(crate) fn solve(self) -> Vec<Error> {
+        let mut errs = self.inferrer.solve(&self.table.udts);
 
         for id in self.new {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            infer::substitute_ty(&solution, ty);
+            self.inferrer.substitute_ty(ty);
 
             if let Some(args) = self.table.generics.get_mut(id) {
                 for arg in args {
                     match arg {
-                        GenericArg::Ty(ty) => infer::substitute_ty(&solution, ty),
+                        GenericArg::Ty(ty) => self.inferrer.substitute_ty(ty),
                         GenericArg::Functor(functors) => {
-                            infer::substitute_functor(&solution, functors);
+                            self.inferrer.substitute_functor(functors);
                         }
                     }
                 }
@@ -726,10 +732,10 @@ impl<'a> Context<'a> {
 
         for (id, span) in self.typed_holes {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
+            errs.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
 
-        errors
+        errs
     }
 }
 
@@ -748,7 +754,8 @@ pub(super) fn spec(
     table: &mut Table,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, globals, table);
+    let mut inferrer = Inferrer::new();
+    let mut context = Context::new(names, globals, table, &mut inferrer, Vec::new());
     context.infer_spec(spec);
     context.solve()
 }
@@ -759,19 +766,32 @@ pub(super) fn expr(
     table: &mut Table,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, globals, table);
+    let mut inferrer = Inferrer::new();
+    let mut context = Context::new(names, globals, table, &mut inferrer, Vec::new());
     context.infer_expr(expr);
     context.solve()
 }
 
-pub(super) fn stmt(
+pub(super) fn stmt_fragment(
     names: &Names,
     globals: &HashMap<ItemId, Scheme>,
     table: &mut Table,
+    inferrer: &mut Inferrer,
     stmt: &Stmt,
-) -> Vec<Error> {
-    let mut context = Context::new(names, globals, table);
+) -> Vec<NodeId> {
+    let mut context = Context::new(names, globals, table, inferrer, Vec::new());
     context.infer_stmt(stmt);
+    context.new
+}
+
+pub(super) fn solve(
+    names: &Names,
+    globals: &HashMap<ItemId, Scheme>,
+    table: &mut Table,
+    inferrer: &mut Inferrer,
+    new_nodes: Vec<NodeId>,
+) -> Vec<Error> {
+    let context = Context::new(names, globals, table, inferrer, new_nodes);
     context.solve()
 }
 
