@@ -293,7 +293,7 @@ impl CompletionListBuilder {
                                         Some(start) => {
                                             additional_edits.push((
                                                 LsSpan { start, end: start },
-                                                "This is a new Open!".to_owned(),
+                                                format!("open {};\n    ", namespace.name.clone()),
                                             ));
                                             None
                                         }
