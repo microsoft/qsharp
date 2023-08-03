@@ -23,7 +23,6 @@ namespace Kata.Verification {
                 "is expected to have.");
             ShowQuantumStateComparison(target, solution, reference);
         }
-
         isCorrect
     }
 }
