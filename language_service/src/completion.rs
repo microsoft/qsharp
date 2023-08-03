@@ -361,7 +361,7 @@ impl CompletionListBuilder {
                     CompletionItem {
                         label: name.to_string(),
                         kind: CompletionItemKind::Function,
-                        sort_text: None, // This will get filled in later
+                        sort_text: None, // This will get filled in during `push_sorted_completions`
                         detail,
                         additional_text_edits: None,
                     },
