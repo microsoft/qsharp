@@ -204,7 +204,13 @@ class WorkspaceTreeItem extends vscode.TreeItem {
         );
       case "jobHeader":
         return (this.itemData as Job[]).map(
-          (job) => new WorkspaceTreeItem(job.name, this.workspace, "job", job)
+          (job) =>
+            new WorkspaceTreeItem(
+              job.name || job.id,
+              this.workspace,
+              "job",
+              job
+            )
         );
       case "target":
       case "job":

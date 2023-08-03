@@ -170,7 +170,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
 
   // Sort by creation time from newest to oldest
   workspace.jobs = jobs.value
-    .sort((a, b) => (a.creationTime > b.creationTime ? 1 : -1))
+    .sort((a, b) => (a.creationTime < b.creationTime ? 1 : -1))
     .map((job) => ({ ...job }));
 
   return;
