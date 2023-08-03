@@ -95,7 +95,21 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<ICompletionList> {
     const code = this.code[documentUri];
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    return this.languageService.get_completions(documentUri, convertedOffset);
+    const result = this.languageService.get_completions(
+      documentUri,
+      convertedOffset
+    ) as ICompletionList;
+    result.items.forEach((item) =>
+      item.additionalTextEdits?.forEach((edit) => {
+        const mappedSpan = mapUtf8UnitsToUtf16Units(
+          [edit.range.start, edit.range.end],
+          code
+        );
+        edit.range.start = mappedSpan[edit.range.start];
+        edit.range.end = mappedSpan[edit.range.end];
+      })
+    );
+    return result;
   }
 
   async getHover(documentUri: string, offset: number): Promise<IHover | null> {
@@ -110,8 +124,8 @@ export class QSharpLanguageService implements ILanguageService {
         [result.span.start, result.span.end],
         code
       );
-      result.span.start = mappedSpan[0];
-      result.span.end = mappedSpan[1];
+      result.span.start = mappedSpan[result.span.start];
+      result.span.end = mappedSpan[result.span.end];
     }
     return result;
   }
