@@ -10,13 +10,13 @@ import { BreakpointSpan, StackFrame } from "./types.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
-// for running the compiler in the same thread the result will be synchronous (a resolved promise).
+// for running the debugger in the same thread the result will be synchronous (a resolved promise).
 export interface IDebugService {
   loadSource(path: string, source: string): Promise<boolean>;
   getBreakpoints(path: string): Promise<BreakpointSpan[]>;
   getStackFrames(): Promise<StackFrame[]>;
   evalContinue(
-    bps: Uint32Array,
+    bps: number[],
     eventHandler: IQscEventTarget
   ): Promise<number | undefined>;
   dispose(): Promise<void>;
@@ -47,11 +47,12 @@ export class QSharpDebugService implements IDebugService {
   }
 
   async evalContinue(
-    bps: Uint32Array,
+    bps: number[],
     eventHandler: IQscEventTarget
   ): Promise<number | undefined> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
-    return this.debugService.eval_continue(event_cb, bps);
+    const ids = new Uint32Array(bps);
+    return this.debugService.eval_continue(event_cb, ids);
   }
 
   async getBreakpoints(path: string): Promise<BreakpointSpan[]> {

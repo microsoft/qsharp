@@ -22,13 +22,7 @@ import {
 
 import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
-import {
-  BreakpointSpan,
-  ICompiler,
-  IDebugServiceWorker,
-  log,
-  Span,
-} from "qsharp";
+import { BreakpointSpan, IDebugServiceWorker, log, Span } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 
@@ -42,52 +36,43 @@ function delay(ms: number): Promise<void> {
 
 export class QscDebugSession extends LoggingDebugSession {
   private static threadID = 1;
-  private _fileAccessor: FileAccessor;
-  private _compiler: ICompiler;
-  private _debugger: IDebugServiceWorker;
-  private _config: vscode.DebugConfiguration;
-  private _breakpointLocations: Map<string, BreakpointSpan[]>;
-  private _breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
-  private _failed: boolean;
+
+  private breakpointLocations: Map<string, BreakpointSpan[]>;
+  private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
+  private failed: boolean;
 
   public constructor(
-    fileAccessor: FileAccessor,
-    compiler: ICompiler,
-    debugService: IDebugServiceWorker,
-    config: vscode.DebugConfiguration
+    private fileAccessor: FileAccessor,
+    private debugService: IDebugServiceWorker,
+    private config: vscode.DebugConfiguration
   ) {
     super();
-    this._fileAccessor = fileAccessor;
-    this._compiler = compiler;
-    this._debugger = debugService;
-    this._config = config;
-    this._failed = false;
-    this._breakpointLocations = new Map<string, BreakpointSpan[]>();
-    this._breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
+
+    this.failed = false;
+    this.breakpointLocations = new Map<string, BreakpointSpan[]>();
+    this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
   }
 
   public async init(): Promise<void> {
-    const programText = await this._fileAccessor.readFileAsString(
-      this._config.program
+    const programText = await this.fileAccessor.readFileAsString(
+      this.config.program
     );
 
-    const loaded = await this._debugger.loadSource(
-      this._config.program.path,
+    const loaded = await this.debugService.loadSource(
+      this.config.program.path,
       programText
     );
     if (loaded) {
-      const locations = await this._debugger.getBreakpoints(
-        this._config.program.path
+      const locations = await this.debugService.getBreakpoints(
+        this.config.program.path
       );
-      log.trace(
-        `init breakpointLocations: ${JSON.stringify(locations, null, 2)}`
-      );
-      this._breakpointLocations.set(this._config.program.path, locations);
+      log.trace(`init breakpointLocations: %O`, locations);
+      this.breakpointLocations.set(this.config.program.path, locations);
     } else {
       log.warn(`compilation failed.`);
-      this._failed = true;
+      this.failed = true;
     }
   }
 
@@ -183,14 +168,13 @@ export class QscDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: ILaunchRequestArguments
   ): Promise<void> {
-    if (this._failed) {
+    if (this.failed) {
       log.trace("compilation failed. sending error response");
       this.sendErrorResponse(response, {
         id: -1,
         format: ErrorProgramHasErrors,
         showUser: true,
       });
-      this.sendResponse(response);
       return;
     }
 
@@ -222,9 +206,9 @@ export class QscDebugSession extends LoggingDebugSession {
     const bps = this.get_breakpoint_ids();
     this.run(bps);
   }
-  private async run(bps: Uint32Array): Promise<void> {
+  private async run(bps: number[]): Promise<void> {
     const eventTarget = createDebugConsoleEventTarget();
-    const res = await this._debugger
+    const res = await this.debugService
       .evalContinue(bps, eventTarget)
       .catch((e) => {
         log.info(`ending session due to error: ${e}`);
@@ -265,34 +249,34 @@ export class QscDebugSession extends LoggingDebugSession {
   private async runWithoutDebugging(
     args: ILaunchRequestArguments
   ): Promise<void> {
-    const bps = new Uint32Array();
+    const bps: number[] = [];
     for (let i = 0; i < args.shots; i++) {
       this.run(bps);
     }
   }
 
-  private get_breakpoint_ids(): Uint32Array {
+  private get_breakpoint_ids(): number[] {
     const bps: number[] = [];
-    for (const bp of this._breakpoints.get(this._config.program.path) ?? []) {
+    for (const bp of this.breakpoints.get(this.config.program.path) ?? []) {
       if (bp && bp.id) {
         bps.push(bp.id);
       }
     }
-    const v = new Uint32Array(bps);
-    return v;
+
+    return bps;
   }
   protected async continueRequest(
     response: DebugProtocol.ContinueResponse,
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
-    log.trace(`continueRequest: ${JSON.stringify(args, null, 2)}`);
+    log.trace(`continueRequest: %O`, args);
     const bps = this.get_breakpoint_ids();
 
     log.trace(`sending continue response`);
     this.sendResponse(response);
 
     const eventTarget = createDebugConsoleEventTarget();
-    await this._debugger.evalContinue(bps, eventTarget).then(
+    await this.debugService.evalContinue(bps, eventTarget).then(
       (res) => {
         if (res) {
           log.trace(`raising breakpoint event`);
@@ -321,7 +305,7 @@ export class QscDebugSession extends LoggingDebugSession {
     args: DebugProtocol.BreakpointLocationsArguments,
     request?: DebugProtocol.Request
   ): Promise<void> {
-    log.trace(`breakpointLocationsRequest: ${JSON.stringify(args, null, 2)}`);
+    log.trace(`breakpointLocationsRequest: %O`, args);
 
     response.body = {
       breakpoints: [],
@@ -369,10 +353,8 @@ export class QscDebugSession extends LoggingDebugSession {
         this._breakpointLocations
           .get(fileUri.path)
           ?.filter((bp) => startOffset <= bp.lo && bp.hi <= endOffset) ?? [];*/
-      const bps = this._breakpointLocations.get(fileUri.path) ?? [];
-      log.trace(
-        `breakpointLocationsRequest: candidates ${JSON.stringify(bps, null, 2)}`
-      );
+      const bps = this.breakpointLocations.get(fileUri.path) ?? [];
+      log.trace(`breakpointLocationsRequest: candidates %O`, bps);
 
       // must map the debugger breakpoints back to the client breakpoint locations
       const bls = bps.map((bps) => {
@@ -386,16 +368,12 @@ export class QscDebugSession extends LoggingDebugSession {
         };
         return bp;
       });
-      log.trace(
-        `breakpointLocationsRequest: mapped ${JSON.stringify(bls, null, 2)}`
-      );
+      log.trace(`breakpointLocationsRequest: mapped %O`, bls);
       response.body = {
         breakpoints: bls,
       };
     }
-    log.trace(
-      `breakpointLocationsResponse: ${JSON.stringify(response, null, 2)}`
-    );
+    log.trace(`breakpointLocationsResponse: %O`, response);
     this.sendResponse(response);
   }
 
@@ -404,7 +382,7 @@ export class QscDebugSession extends LoggingDebugSession {
     args: DebugProtocol.SetBreakpointsArguments,
     request?: DebugProtocol.Request
   ): Promise<void> {
-    log.trace(`setBreakPointsRequest: ${JSON.stringify(args, null, 2)}`);
+    log.trace(`setBreakPointsRequest: %O`, args);
 
     const fileUri = vscode.Uri.parse(args.source.path ?? "", false);
 
@@ -420,22 +398,13 @@ export class QscDebugSession extends LoggingDebugSession {
 
     if (fileUri && file) {
       log.trace(`setBreakPointsRequest: looking`);
-      this._breakpoints.set(fileUri.path, []);
+      this.breakpoints.set(fileUri.path, []);
       log.trace(
-        `setBreakPointsRequest: files in cache ${JSON.stringify(
-          this._breakpointLocations.keys(),
-          null,
-          2
-        )}`
+        `setBreakPointsRequest: files in cache %O`,
+        this.breakpointLocations.keys()
       );
-      const locations = this._breakpointLocations.get(fileUri.path) ?? [];
-      log.trace(
-        `setBreakPointsRequest: got locations ${JSON.stringify(
-          locations,
-          null,
-          2
-        )}`
-      );
+      const locations = this.breakpointLocations.get(fileUri.path) ?? [];
+      log.trace(`setBreakPointsRequest: got locations %O`, locations);
       // convert the request line/column to file offset for debugger
       const bpOffsets = (args.breakpoints ?? []).map((sourceBreakpoint) => {
         const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
@@ -483,13 +452,13 @@ export class QscDebugSession extends LoggingDebugSession {
       }
 
       // Update our breakpoint list for the given file
-      this._breakpoints.set(fileUri.path, bps);
+      this.breakpoints.set(fileUri.path, bps);
 
       response.body = {
         breakpoints: bps,
       };
     }
-    log.trace(`setBreakPointsResponse: ${JSON.stringify(response, null, 2)}`);
+    log.trace(`setBreakPointsResponse: %O`, response);
     this.sendResponse(response);
   }
 
@@ -498,7 +467,7 @@ export class QscDebugSession extends LoggingDebugSession {
     response.body = {
       threads: [new Thread(QscDebugSession.threadID, "thread 1")],
     };
-    log.trace(`threadResponse: ${JSON.stringify(response, null, 2)}`);
+    log.trace(`threadResponse: %O`, response);
     this.sendResponse(response);
   }
 
@@ -506,15 +475,15 @@ export class QscDebugSession extends LoggingDebugSession {
     response: DebugProtocol.StackTraceResponse,
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
-    log.trace(`stackTraceRequest: ${JSON.stringify(args, null, 2)}`);
-    const debuggerStackFrames = await this._debugger.getStackFrames();
-    log.trace(`frames: ${JSON.stringify(debuggerStackFrames, null, 2)}`);
+    log.trace(`stackTraceRequest: %O`, args);
+    const debuggerStackFrames = await this.debugService.getStackFrames();
+    log.trace(`frames: %O`, debuggerStackFrames);
     const filterUndefined = <V>(value: V | undefined): value is V =>
       value != null;
     const mappedStackFrames: StackFrame[] = debuggerStackFrames
       .map((f, id) => {
         const fileUri = vscode.Uri.parse(f.path, false);
-        log.trace(`frames: fileUri${JSON.stringify(fileUri, null, 2)}`);
+        log.trace(`frames: fileUri %O`, fileUri);
         const file = vscode.workspace.textDocuments.find(
           (td) => td.uri.path === fileUri.path
         );
@@ -536,7 +505,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
           return sf as DebugProtocol.StackFrame;
         }
-        log.trace(`frames: file ${JSON.stringify(file, null, 2)}`);
+        log.trace(`frames: file %O`, file);
         const start_pos = file.positionAt(f.lo);
         const end_pos = file.positionAt(f.hi);
         const sf: DebugProtocol.StackFrame = new StackFrame(
@@ -566,7 +535,7 @@ export class QscDebugSession extends LoggingDebugSession {
       totalFrames: stackFrames.length,
     };
 
-    log.trace(`stackTraceResponse: ${JSON.stringify(response, null, 2)}`);
+    log.trace(`stackTraceResponse: %O`, response);
     this.sendResponse(response);
   }
 
@@ -575,21 +544,21 @@ export class QscDebugSession extends LoggingDebugSession {
     args: DebugProtocol.DisconnectArguments,
     request?: DebugProtocol.Request
   ): void {
-    log.trace(`disconnectRequest: ${JSON.stringify(args, null, 2)}`);
-    this._debugger.terminate();
+    log.trace(`disconnectRequest: %O`, args);
+    this.debugService.terminate();
     this.sendResponse(response);
-    log.trace(`disconnectResponse: ${JSON.stringify(response, null, 2)}`);
+    log.trace(`disconnectResponse: %O`, response);
   }
 
   protected scopesRequest(
     response: DebugProtocol.ScopesResponse,
     args: DebugProtocol.ScopesArguments
   ): void {
-    log.trace(`scopesRequest: ${JSON.stringify(args, null, 2)}`);
+    log.trace(`scopesRequest: %O`, args);
     response.body = {
       scopes: [],
     };
-    log.trace(`scopesResponse: ${JSON.stringify(response, null, 2)}`);
+    log.trace(`scopesResponse: %O`, response);
     this.sendResponse(response);
   }
 

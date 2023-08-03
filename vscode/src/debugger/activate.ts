@@ -4,16 +4,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as vscode from "vscode";
-import {
-  ICompiler,
-  IDebugServiceWorker,
-  getCompilerWorker,
-  getDebugServiceWorker,
-} from "qsharp";
+import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp";
 import { FileAccessor, qsharpExtensionId } from "../common";
 import { QscDebugSession } from "./session";
 
-let compiler: ICompiler;
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
 export async function activateDebugger(
@@ -27,9 +21,7 @@ export async function activateDebugger(
     context.extensionUri,
     "./out/debugger/debug-service-worker.js"
   );
-  compiler = getCompilerWorker(
-    compilerWorkerScriptPath.toString()
-  ) as ICompiler;
+
   debugServiceWorkerFactory = () =>
     getDebugServiceWorker(
       debugWorkerScriptPath.toString()
@@ -152,7 +144,6 @@ class InlineDebugAdapterFactory
     const worker = debugServiceWorkerFactory();
     const qscSession = new QscDebugSession(
       workspaceFileAccessor,
-      compiler,
       worker,
       session.configuration
     );
