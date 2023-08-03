@@ -171,9 +171,11 @@ macro_rules! fir_id {
 
         impl From<usize> for $id {
             fn from(value: usize) -> Self {
-                $id(value
-                    .try_into()
-                    .expect(&format!("Type {} does not fit into u32", stringify!($id))))
+                $id(value.try_into().expect(&format!(
+                    "Value, {}, does not fit into {}",
+                    value,
+                    stringify!($id)
+                )))
             }
         }
 

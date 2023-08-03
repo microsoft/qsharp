@@ -8,7 +8,6 @@ use qsc_eval::debug::{map_fir_package_to_hir, Frame};
 use qsc_frontend::compile::PackageStore;
 
 use qsc_eval::{val::GlobalId, Global, NodeLookup};
-use qsc_fir::fir;
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
 

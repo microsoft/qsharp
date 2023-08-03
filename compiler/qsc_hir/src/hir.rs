@@ -78,23 +78,6 @@ impl From<NodeId> for usize {
     }
 }
 
-impl From<usize> for NodeId {
-    fn from(value: usize) -> Self {
-        NodeId(
-            value
-                .try_into()
-                .expect("Type Node ID does not fit into u32"),
-        )
-    }
-}
-
-impl From<NodeId> for u32 {
-    fn from(value: NodeId) -> Self {
-        assert!(!value.is_default(), "default node ID should be replaced");
-        value.0
-    }
-}
-
 impl PartialEq for NodeId {
     fn eq(&self, other: &Self) -> bool {
         assert!(!self.is_default(), "default node ID should be replaced");
