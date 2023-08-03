@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
-
 import { DebugProtocol } from "@vscode/debugprotocol";
 
 /**
@@ -14,7 +12,7 @@ import { DebugProtocol } from "@vscode/debugprotocol";
 export interface ILaunchRequestArguments
   extends DebugProtocol.LaunchRequestArguments {
   /** An absolute path to the "program" to debug. */
-  program: vscode.Uri;
+  program: string;
   /** Automatically stop target after launch at the entry expression */
   stopOnEntry?: boolean;
   /** Entry expression to execute overriding default entry behavior */
