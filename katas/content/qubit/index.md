@@ -292,7 +292,7 @@ If you choose to display the numeric value of measurement probability, you can c
 })
 
 Let's consider a more complex scenario: you've written a Q# operation and want to check that it implements exactly the matrix you're looking for. 
-(An examples of such cases could be quantum oracle implementation, unitary gate synthesis, or more uncommon scenarios such as the [UnitaryPatterns kata](../../UnitaryPatterns/UnitaryPatterns.ipynb)).
+An example of such cases could be quantum oracle implementation and unitary gate synthesis.
 
 You could do this semi-manually, by applying the operation to each basis state in turn and checking the amplitudes of the resulting states. 
 However, [DumpOperation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpoperation) library operation offers you a shorter and more elegant way to do this.
