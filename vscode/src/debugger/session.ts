@@ -40,6 +40,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private breakpointLocations: Map<string, BreakpointSpan[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private failed: boolean;
+  private program: string;
 
   public constructor(
     private fileAccessor: FileAccessor,
@@ -48,6 +49,7 @@ export class QscDebugSession extends LoggingDebugSession {
   ) {
     super();
 
+    this.program = vscode.Uri.parse(this.config.program).path;
     this.failed = false;
     this.breakpointLocations = new Map<string, BreakpointSpan[]>();
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
@@ -61,15 +63,13 @@ export class QscDebugSession extends LoggingDebugSession {
     );
 
     const loaded = await this.debugService.loadSource(
-      this.config.program.path,
+      this.program,
       programText
     );
     if (loaded) {
-      const locations = await this.debugService.getBreakpoints(
-        this.config.program.path
-      );
+      const locations = await this.debugService.getBreakpoints(this.program);
       log.trace(`init breakpointLocations: %O`, locations);
-      this.breakpointLocations.set(this.config.program.path, locations);
+      this.breakpointLocations.set(this.program, locations);
     } else {
       log.warn(`compilation failed.`);
       this.failed = true;
@@ -257,7 +257,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private get_breakpoint_ids(): number[] {
     const bps: number[] = [];
-    for (const bp of this.breakpoints.get(this.config.program.path) ?? []) {
+    for (const bp of this.breakpoints.get(this.program) ?? []) {
       if (bp && bp.id) {
         bps.push(bp.id);
       }
