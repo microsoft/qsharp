@@ -292,77 +292,81 @@ impl CompletionListBuilder {
         start_of_namespace: Option<u32>,
         current_namespace_name: Option<Rc<str>>,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
-        package.items.values().filter_map(move |i| match &i.kind {
-            ItemKind::Callable(callable_decl) => {
-                let name = callable_decl.name.name.as_ref();
-                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
-                // Everything that starts with a __ goes last in the list
-                let sort_group = u32::from(name.starts_with("__"));
-
-                let mut additional_edits = vec![];
-                let mut qualification: Option<Rc<str>> = None;
-                if let Some(item_id) = i.parent {
-                    if let Some(parent) = package.items.get(item_id) {
-                        if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                            match &current_namespace_name {
-                                Some(curr_ns) if *curr_ns == namespace.name => {}
-                                None => {}
-                                _ => {
-                                    // open is an option of option of Rc<str>
-                                    // the first option tells if it found an open with the namespace name
-                                    // the second, nested option tells if that open has an alias
-                                    let open = opens.iter().find_map(|(name, alias)| {
-                                        if *name == namespace.name {
-                                            Some(alias)
-                                        } else {
-                                            None
-                                        }
-                                    });
-                                    qualification = match open {
-                                        Some(alias) => alias.as_ref().cloned(),
-                                        None => match start_of_namespace {
-                                            Some(start) => {
-                                                additional_edits.push((
-                                                    LsSpan { start, end: start },
-                                                    format!(
-                                                        "open {};\n    ",
-                                                        namespace.name.clone()
-                                                    ),
-                                                ));
+        package.items.values().filter_map(move |i| {
+            // We only want items whose parents are namespaces
+            if let Some(item_id) = i.parent {
+                if let Some(parent) = package.items.get(item_id) {
+                    if let ItemKind::Namespace(namespace, _) = &parent.kind {
+                        return match &i.kind {
+                            ItemKind::Callable(callable_decl) => {
+                                let name = callable_decl.name.name.as_ref();
+                                let detail =
+                                    Some(display.hir_callable_decl(callable_decl).to_string());
+                                // Everything that starts with a __ goes last in the list
+                                let sort_group = u32::from(name.starts_with("__"));
+                                let mut additional_edits = vec![];
+                                let mut qualification: Option<Rc<str>> = None;
+                                match &current_namespace_name {
+                                    Some(curr_ns) if *curr_ns == namespace.name => {}
+                                    None => {}
+                                    _ => {
+                                        // open is an option of option of Rc<str>
+                                        // the first option tells if it found an open with the namespace name
+                                        // the second, nested option tells if that open has an alias
+                                        let open = opens.iter().find_map(|(name, alias)| {
+                                            if *name == namespace.name {
+                                                Some(alias)
+                                            } else {
                                                 None
                                             }
-                                            None => Some(namespace.name.clone()),
-                                        },
+                                        });
+                                        qualification = match open {
+                                            Some(alias) => alias.as_ref().cloned(),
+                                            None => match start_of_namespace {
+                                                Some(start) => {
+                                                    additional_edits.push((
+                                                        LsSpan { start, end: start },
+                                                        format!(
+                                                            "open {};\n    ",
+                                                            namespace.name.clone()
+                                                        ),
+                                                    ));
+                                                    None
+                                                }
+                                                None => Some(namespace.name.clone()),
+                                            },
+                                        }
                                     }
                                 }
+
+                                let additional_text_edits = if additional_edits.is_empty() {
+                                    None
+                                } else {
+                                    Some(additional_edits)
+                                };
+
+                                let label = if let Some(qualification) = qualification {
+                                    format!("{qualification}.{name}")
+                                } else {
+                                    name.to_owned()
+                                };
+                                Some((
+                                    CompletionItem {
+                                        label,
+                                        kind: CompletionItemKind::Function,
+                                        sort_text: None, // This will get filled in during `push_sorted_completions`
+                                        detail,
+                                        additional_text_edits,
+                                    },
+                                    sort_group,
+                                ))
                             }
-                        }
+                            _ => None,
+                        };
                     }
                 }
-
-                let additional_text_edits = if additional_edits.is_empty() {
-                    None
-                } else {
-                    Some(additional_edits)
-                };
-
-                let label = if let Some(qualification) = qualification {
-                    format!("{qualification}.{name}")
-                } else {
-                    name.to_owned()
-                };
-                Some((
-                    CompletionItem {
-                        label,
-                        kind: CompletionItemKind::Function,
-                        sort_text: None, // This will get filled in later
-                        detail,
-                        additional_text_edits,
-                    },
-                    sort_group,
-                ))
             }
-            _ => None,
+            None
         })
     }
 

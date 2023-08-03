@@ -214,6 +214,59 @@ fn in_block_from_other_namespace() {
     );
 }
 
+#[ignore = "nested callables are not currently supported for completions"]
+#[test]
+fn in_block_nested_op() {
+    check(
+        r#"
+    namespace Test {
+        operation Test() : Unit {
+            operation Foo() : Unit {}
+            ↘
+        }
+    }"#,
+        &["Foo"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0500Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn in_block_hidden_nested_op() {
+    check(
+        r#"
+    namespace Test {
+        operation Test() : Unit {
+            ↘
+        }
+        operation Foo() : Unit {
+            operation Bar() : Unit {}
+        }
+    }"#,
+        &["Bar"],
+        &expect![[r#"
+            [
+                None,
+            ]
+        "#]],
+    );
+}
+
 #[test]
 fn in_namespace_contains_open() {
     check(
