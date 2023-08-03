@@ -58,10 +58,10 @@ impl LanguageService {
                 .map(|i| CompletionItem {
                     label: i.label,
                     kind: (match i.kind {
-                        qsls::completion::CompletionItemKind::Function => "function",
-                        qsls::completion::CompletionItemKind::Interface => "interface",
-                        qsls::completion::CompletionItemKind::Keyword => "keyword",
-                        qsls::completion::CompletionItemKind::Module => "module",
+                        qsls::protocol::CompletionItemKind::Function => "function",
+                        qsls::protocol::CompletionItemKind::Interface => "interface",
+                        qsls::protocol::CompletionItemKind::Keyword => "keyword",
+                        qsls::protocol::CompletionItemKind::Module => "module",
                     })
                     .to_string(),
                     sortText: i.sort_text,

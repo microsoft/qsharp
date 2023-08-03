@@ -3,7 +3,7 @@
 
 use super::get_hover;
 use crate::{
-    qsc_utils::LsSpan,
+    protocol,
     test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets},
 };
 use expect_test::{expect, Expect};
@@ -19,7 +19,7 @@ fn check(source_with_markers: &str, expect: &Expect) {
     let actual = get_hover(&compilation, "<source>", cursor_offsets[0]).expect("Expected a hover.");
     assert_eq!(
         &actual.span,
-        &LsSpan {
+        &protocol::Span {
             start: target_offsets[0],
             end: target_offsets[1],
         }

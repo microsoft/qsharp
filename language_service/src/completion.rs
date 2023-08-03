@@ -7,49 +7,10 @@ mod tests;
 use std::rc::Rc;
 
 use crate::display::CodeDisplay;
-use crate::qsc_utils::{map_offset, span_contains, Compilation, LsSpan};
+use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
+use crate::qsc_utils::{map_offset, span_contains, Compilation};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[allow(clippy::module_name_repetitions)]
-pub enum CompletionItemKind {
-    // It would have been nice to match these enum values to the ones used by
-    // VS Code and Monaco, but unfortunately those two disagree on the values.
-    // So we define our own unique enum here to reduce confusion.
-    Function,
-    Interface,
-    Keyword,
-    Module,
-}
-
-#[derive(Debug)]
-#[allow(clippy::module_name_repetitions)]
-pub struct CompletionList {
-    pub items: Vec<CompletionItem>,
-}
-
-#[derive(Debug)]
-#[allow(clippy::module_name_repetitions)]
-pub struct CompletionItem {
-    pub label: String,
-    pub kind: CompletionItemKind,
-    pub sort_text: Option<String>,
-    pub detail: Option<String>,
-    pub additional_text_edits: Option<Vec<(LsSpan, String)>>,
-}
-
-impl CompletionItem {
-    fn new(label: String, kind: CompletionItemKind) -> Self {
-        CompletionItem {
-            label,
-            kind,
-            sort_text: None,
-            detail: None,
-            additional_text_edits: None,
-        }
-    }
-}
 
 pub(crate) fn get_completions(
     compilation: &Compilation,
@@ -325,7 +286,7 @@ impl CompletionListBuilder {
                                             None => match start_of_namespace {
                                                 Some(start) => {
                                                     additional_edits.push((
-                                                        LsSpan { start, end: start },
+                                                        protocol::Span { start, end: start },
                                                         format!(
                                                             "open {};\n    ",
                                                             namespace.name.clone()
