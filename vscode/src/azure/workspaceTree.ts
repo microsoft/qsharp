@@ -5,121 +5,190 @@ import * as vscode from "vscode";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
-let resourcesPath: vscode.Uri;
-
 export class WorkspaceTreeProvider
-  implements vscode.TreeDataProvider<Workspace>
+  implements vscode.TreeDataProvider<WorkspaceTreeItem>
 {
-  private _onDidChangeData = new vscode.EventEmitter<Workspace | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<Workspace | undefined> =
+  private treeState: Map<string, WorkspaceConnection> = new Map();
+
+  private _onDidChangeData = new vscode.EventEmitter<
+    WorkspaceTreeItem | undefined
+  >();
+  readonly onDidChangeTreeData: vscode.Event<WorkspaceTreeItem | undefined> =
     this._onDidChangeData.event;
 
-  constructor(context: vscode.ExtensionContext) {
-    resourcesPath = vscode.Uri.joinPath(context.extensionUri, "resources");
+  async updateWorkspace(workspace: WorkspaceConnection) {
+    this.treeState.set(workspace.id, workspace);
+    this.refresh();
   }
+
   async refresh() {
     this._onDidChangeData.fire(undefined);
   }
 
-  getTreeItem(element: Workspace): vscode.TreeItem | Thenable<vscode.TreeItem> {
+  getTreeItem(
+    element: WorkspaceTreeItem
+  ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return element;
   }
   getChildren(
-    element?: Workspace | undefined
-  ): vscode.ProviderResult<Workspace[]> {
+    element?: WorkspaceTreeItem | undefined
+  ): vscode.ProviderResult<WorkspaceTreeItem[]> {
     if (!element) {
-      return [
-        new Workspace("workspace", "Chemistry", true, "workspace.svg"),
-        new Workspace("workspace", "Research", true, "workspace.svg"),
-      ];
-    } else if (element.label === "Chemistry") {
-      return [
-        new Workspace("header", "Targets", true),
-        new Workspace("header", "Jobs", true),
-      ];
-    } else if (element.label === "Jobs") {
-      return [
-        new Workspace("header", "Pending", true),
-        new Workspace("header", "Completed", true),
-      ];
-    } else if (element.label === "Targets") {
-      return [
-        new Workspace("target", "IonQ", false, "atom.svg"),
-        new Workspace("target", "Quantinuum", false, "atom.svg"),
-        new Workspace("target", "Rigetti", false, "atom.svg"),
-      ];
-    } else if (element.label === "Pending") {
-      return [new Workspace("job", "hydrogen-2", false, "job.svg")];
-    } else if (element.label === "Completed") {
-      return [
-        new Workspace("result", "analysis-1", false, "check.svg"),
-        new Workspace("result", "qrng-estimate", false, "check.svg"),
-      ];
+      return [...this.treeState.values()].map(
+        (workspace) =>
+          new WorkspaceTreeItem(
+            workspace.name,
+            workspace,
+            "workspace",
+            workspace
+          )
+      );
     } else {
-      return [];
+      return element.getChildren();
     }
   }
 }
 
-class Workspace extends vscode.TreeItem {
-  constructor(type: string, label: string, expand: boolean, icon?: string) {
-    super(
-      label,
-      expand
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None
-    );
-    this.contextValue = label === "Completed" ? "completed-jobs" : type;
-    if (icon) {
-      if (label.startsWith("analysis")) {
-        this.iconPath = new vscode.ThemeIcon("pass");
-      } else if (label.startsWith("qrng")) {
-        this.iconPath = new vscode.ThemeIcon("error");
-      } else if (label.startsWith("hydro")) {
-        this.iconPath = new vscode.ThemeIcon("watch");
-      } else if (type === "workspace") {
+type Target = {
+  providerId: string;
+  provisioningState: string;
+};
+
+type Job = {
+  id: string;
+  status: "Waiting" | "Executing" | "Succeeded" | "Failed" | "Cancelled";
+  outputDataUri?: string;
+};
+
+export type WorkspaceConnection = {
+  connection: any;
+  id: string;
+  name: string;
+  storageAccount: string;
+  endpointUri: string;
+  tenantId: string;
+  quota?: any;
+  targets: Target[];
+  jobs: Job[];
+};
+
+class WorkspaceTreeItem extends vscode.TreeItem {
+  constructor(
+    label: string,
+    public workspace: WorkspaceConnection,
+    public type: "workspace" | "targetHeader" | "target" | "jobHeader" | "job",
+    public itemData: WorkspaceConnection | Target[] | Target | Job[] | Job
+  ) {
+    super(label, vscode.TreeItemCollapsibleState.Collapsed);
+
+    this.contextValue = type;
+    switch (type) {
+      case "workspace":
         this.iconPath = new vscode.ThemeIcon("notebook");
-      } else if (type === "target") {
+        break;
+      case "target":
         this.iconPath = new vscode.ThemeIcon("package");
-      } else {
-        this.iconPath = {
-          light: vscode.Uri.joinPath(resourcesPath, "light", icon),
-          dark: vscode.Uri.joinPath(resourcesPath, "dark", icon),
-        };
-      }
+        this.collapsibleState = vscode.TreeItemCollapsibleState.None;
+        break;
+      case "job":
+        this.collapsibleState = vscode.TreeItemCollapsibleState.None;
+        switch ((this.itemData as Job).status) {
+          case "Executing":
+            this.iconPath = new vscode.ThemeIcon("debug-line-by-line");
+            break;
+          case "Waiting":
+            this.iconPath = new vscode.ThemeIcon("watch");
+            break;
+          case "Cancelled":
+            this.iconPath = new vscode.ThemeIcon("circle-slash");
+            this.contextValue = "result";
+            break;
+          case "Failed":
+            this.iconPath = new vscode.ThemeIcon("error");
+            this.contextValue = "result";
+            break;
+          case "Succeeded":
+            this.iconPath = new vscode.ThemeIcon("pass");
+            this.contextValue = "result";
+            break;
+        }
+        break;
+
+      default:
+        break;
     }
-    if (this.label === "IonQ") {
-      const status = new vscode.MarkdownString(`
-__Status__: Online<br>
-__Queue time__: 2 hours
-      `);
-      status.supportHtml = true;
-      this.tooltip = status;
-    }
-    if (this.label === "Chemistry") {
-      const hover = new vscode.MarkdownString(`
-__Quota remaining__: $500.00
-  `);
-      hover.supportHtml = true;
-      this.tooltip = hover;
-    }
-    if (type === "job") {
-      const hover = new vscode.MarkdownString(
-        `__Submitted__: 2023-06-25, 15:34 UTC`
-      );
-      hover.supportHtml = true;
-      this.tooltip = hover;
-    }
-    if (type === "result") {
-      const hover = new vscode.MarkdownString(
-        `__Submitted__: 2023-06-25, 15:34 UTC<br>
-__Completed__: 2023-06-25, 15:45 UTC<br>
-__Result__: Success<br>
-__Size__: 10kb
-        `
-      );
-      hover.supportHtml = true;
-      this.tooltip = hover;
+  }
+
+  getChildren(): WorkspaceTreeItem[] {
+    switch (this.type) {
+      case "workspace":
+        return [
+          new WorkspaceTreeItem(
+            "Targets",
+            this.workspace,
+            "targetHeader",
+            this.workspace.targets
+          ),
+          new WorkspaceTreeItem(
+            "Jobs",
+            this.workspace,
+            "jobHeader",
+            this.workspace.jobs
+          ),
+        ];
+
+      case "targetHeader":
+        return (this.itemData as Target[]).map(
+          (target) =>
+            new WorkspaceTreeItem(
+              target.providerId,
+              this.workspace,
+              "target",
+              target
+            )
+        );
+      case "jobHeader":
+        return (this.itemData as Job[]).map(
+          (job) => new WorkspaceTreeItem(job.id, this.workspace, "job", job)
+        );
+      case "target":
+      case "job":
+      default:
+        return [];
     }
   }
 }
+
+//     if (this.label === "IonQ") {
+//       const status = new vscode.MarkdownString(`
+// __Status__: Online<br>
+// __Queue time__: 2 hours
+//       `);
+//       status.supportHtml = true;
+//       this.tooltip = status;
+//     }
+//     if (this.label === "Chemistry") {
+//       const hover = new vscode.MarkdownString(`
+// __Quota remaining__: $500.00
+//   `);
+//       hover.supportHtml = true;
+//       this.tooltip = hover;
+//     }
+//     if (type === "job") {
+//       const hover = new vscode.MarkdownString(
+//         `__Submitted__: 2023-06-25, 15:34 UTC`
+//       );
+//       hover.supportHtml = true;
+//       this.tooltip = hover;
+//     }
+//     if (type === "result") {
+//       const hover = new vscode.MarkdownString(
+//         `__Submitted__: 2023-06-25, 15:34 UTC<br>
+// __Completed__: 2023-06-25, 15:45 UTC<br>
+// __Result__: Success<br>
+// __Size__: 10kb
+//         `
+//       );
+//       hover.supportHtml = true;
+//       this.tooltip = hover;
+//     }

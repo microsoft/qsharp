@@ -13,7 +13,6 @@
     "Notebooks"
   ],
   "browser": "./out/extension.js",
-  "main": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
     "onNotebook:jupyter",
@@ -76,7 +75,7 @@
         {
           "command": "quantum-filter-results",
           "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == completed-jobs"
+          "when": "view == quantum-workspaces && viewItem == jobHeader"
         },
         {
           "command": "quantum-result-histogram",

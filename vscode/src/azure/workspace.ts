@@ -1,16 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import * as vscode from "vscode";
 import { log } from "qsharp";
 
 import { WorkspaceTreeProvider } from "./workspaceTree";
 import { queryWorkspaces } from "./workspaceQuery";
+import { sampleResult, sampleWorkspace } from "./sampleData";
 
 let workspaceTreeProvider: WorkspaceTreeProvider;
 
 export function setupWorkspaces(context: vscode.ExtensionContext) {
-  workspaceTreeProvider = new WorkspaceTreeProvider(context);
+  workspaceTreeProvider = new WorkspaceTreeProvider();
   const workspaceTree = vscode.window.createTreeView("quantum-workspaces", {
     treeDataProvider: workspaceTreeProvider,
   });
@@ -79,16 +82,12 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
       const _token = await vscode.window.showInputBox({
         title: "Enter the workspace access token",
       });
+      workspaceTreeProvider.updateWorkspace(sampleWorkspace);
     } else {
-      // TODO: Sign-in, select tenant, etc.
-      const sub = await vscode.window.showQuickPick(
-        ["MSDN Subscription", "Production"],
-        { title: "Select the Azure subscription" }
-      );
-      const workspace = await vscode.window.showQuickPick(
-        ["Chemistry", "Research"],
-        { title: "Select the workspace to add" }
-      );
+      const workspace = await queryWorkspaces();
+      if (workspace) {
+        workspaceTreeProvider.updateWorkspace(workspace);
+      }
     }
   });
 
@@ -106,33 +105,7 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
   });
   vscode.commands.registerCommand("quantum-result-download", async () => {
     const doc = await vscode.workspace.openTextDocument({
-      content: `# Job results for provider IonQ on 2023-06-23 10::34 UTC
-
-START
-METADATA\tmetadata1_name_only
-METADATA\tmetadata2_name\tmetadata2_value
-METADATA\tmetadata3_name\tmetadata3_value
-OUTPUT\tTUPLE\t2\t0_t
-OUTPUT\tRESULT\t0\t1_t0r
-OUTPUT\tDOUBLE\t0.42\t2_t1d
-END\t0
-START
-METADATA\tmetadata1_name_only
-METADATA\tmetadata2_name\tmetadata2_value
-METADATA\tmetadata3_name\tmetadata3_value
-OUTPUT\tTUPLE\t2\t0_t
-OUTPUT\tRESULT\t1\t1_t0r
-OUTPUT\tDOUBLE\t0.42\t2_t1d
-END\t0
-START
-METADATA\tmetadata1_name_only
-METADATA\tmetadata2_name\tmetadata2_value
-METADATA\tmetadata3_name\tmetadata3_value
-OUTPUT\tTUPLE\t2\t0_t
-OUTPUT\tRESULT\t0\t1_t0r
-OUTPUT\tDOUBLE\t0.25\t2_t1d
-END\t0
-`,
+      content: sampleResult,
       language: "plaintext",
     });
     vscode.window.showTextDocument(doc);

@@ -6,7 +6,7 @@ import { log } from "qsharp";
 const publicMgmtEndpoint = "https://management.azure.com";
 
 // TODO: Remove once cors on quantum endpoint is fixed
-const proxy = "http://localhost:5555";
+const proxy = ""; // "http://localhost:5555";
 
 export async function azureRequest(
   uri: string,
@@ -215,6 +215,7 @@ export namespace ResponseTypes {
       outputDataFormat: string;
       inputParams: any;
       status: "Waiting" | "Executing" | "Succeeded" | "Failed" | "Cancelled";
+      creationTime: string;
       cancellationTime: string;
     }>;
   };

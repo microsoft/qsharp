@@ -13,9 +13,11 @@ import {
   ResponseTypes,
   storageRequest,
 } from "./azure";
-import { get } from "http";
+import { WorkspaceConnection } from "./workspaceTree";
 
-export async function queryWorkspaces() {
+export async function queryWorkspaces(): Promise<
+  WorkspaceConnection | undefined
+> {
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
 
   // For the MSA case, you need to query the tenants first and get the underlying AzureAD
@@ -117,26 +119,37 @@ export async function queryWorkspaces() {
     "https://"
   );
 
+  const result: WorkspaceConnection = {
+    id: workspace.id,
+    name: workspace.name,
+    endpointUri: fixedEndpoint,
+    tenantId,
+    connection: "AAD", // TODO
+    storageAccount: workspace.properties.storageAccount,
+    targets: workspace.properties.providers.map((provider) => ({
+      providerId: provider.providerId,
+      provisioningState: provider.provisioningState,
+    })),
+    jobs: [],
+  };
+
   // *** Query the workspace for its properties ***
-  queryWorkspace(fixedEndpoint, workspace.id, tenantId);
+  await queryWorkspace(result);
+  return result;
 }
 
 // Reference for existing queries in Python SDK and Azure schema:
 // - https://github.com/microsoft/qdk-python/blob/main/azure-quantum/azure/quantum/_client/aio/operations/_operations.py
 // - https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/data-plane/Microsoft.Quantum/preview/2022-09-12-preview/quantum.json
-export async function queryWorkspace(
-  endpointUri: string,
-  workspaceUri: string,
-  tenantId: string
-) {
+export async function queryWorkspace(workspace: WorkspaceConnection) {
   const workspaceAuth = await vscode.authentication.getSession(
     "microsoft",
-    [scopes.quantum, `VSCODE_TENANT:${tenantId}`],
+    [scopes.quantum, `VSCODE_TENANT:${workspace.tenantId}`],
     { createIfNone: true }
   );
   const token = workspaceAuth.accessToken;
 
-  const quantumUris = new QuantumUris(endpointUri, workspaceUri);
+  const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
   const quotas: ResponseTypes.Quotas = await azureRequest(
     quantumUris.quotas(),
@@ -153,22 +166,32 @@ export async function queryWorkspace(
   }
 
   if (jobs.value.length === 0) return;
-  // TODO: Populate tree view with results
-  const job =
-    jobs.value.length === 1
-      ? jobs.value[0]
-      : jobs.value.find(
-          (job) => job.id === "073064ed-2a47-11ee-b8e7-010101010000"
-        );
 
-  // TODO: Get a SAS token for this job container
-  if (!job) return;
-  const fileUri = vscode.Uri.parse(job.outputDataUri);
-  const [_, container, blob] = fileUri.path.split("/");
-  getJobFiles(container, blob, token, quantumUris);
+  // Sort by creation time from newest to oldest
+  workspace.jobs = jobs.value
+    .sort((a, b) => (a.creationTime > b.creationTime ? 1 : -1))
+    .map((job) => ({
+      id: job.id,
+      status: job.status,
+      outputDataUri: job.outputDataUri,
+    }));
+
+  return;
+  // const job =
+  //   jobs.value.length === 1
+  //     ? jobs.value[0]
+  //     : jobs.value.find(
+  //         (job) => job.id === "073064ed-2a47-11ee-b8e7-010101010000"
+  //       );
+
+  // // TODO: Get a SAS token for this job container
+  // if (!job) return;
+  // const fileUri = vscode.Uri.parse(job.outputDataUri);
+  // const [_, container, blob] = fileUri.path.split("/");
+  // getJobFiles(container, blob, token, quantumUris);
 }
 
-async function getJobFiles(
+export async function getJobFiles(
   containerName: string,
   blobName: string,
   token: string,
