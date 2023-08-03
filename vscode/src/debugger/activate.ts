@@ -49,7 +49,7 @@ function registerCommands(context: vscode.ExtensionContext) {
               type: "qsharp",
               name: "Run Q# File",
               request: "launch",
-              program: targetResource,
+              program: targetResource.toString(),
               shots: 1,
               stopOnEntry: false,
             },
@@ -71,7 +71,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             type: "qsharp",
             name: "Debug Q# File",
             request: "launch",
-            program: targetResource,
+            program: targetResource.toString(),
             shots: 1,
             stopOnEntry: true,
           });
@@ -94,7 +94,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         config.type = "qsharp";
         config.name = "Launch";
         config.request = "launch";
-        config.program = editor.document.uri;
+        config.program = editor.document.uri.toString();
         config.shots = 1;
         config.stopOnEntry = true;
         config.noDebug = "noDebug" in config ? config.noDebug : false;
@@ -115,15 +115,15 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
 }
 
 export const workspaceFileAccessor: FileAccessor = {
-  async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    return await vscode.workspace.fs.readFile(uri);
+  async readFile(uri: string): Promise<Uint8Array> {
+    return await vscode.workspace.fs.readFile(vscode.Uri.parse(uri));
   },
-  async readFileAsString(uri: vscode.Uri): Promise<string> {
+  async readFileAsString(uri: string): Promise<string> {
     const contents = await this.readFile(uri);
     return new TextDecoder().decode(contents);
   },
-  async writeFile(uri: vscode.Uri, contents: Uint8Array) {
-    await vscode.workspace.fs.writeFile(uri, contents);
+  async writeFile(uri: string, contents: Uint8Array) {
+    await vscode.workspace.fs.writeFile(vscode.Uri.parse(uri), contents);
   },
 };
 
