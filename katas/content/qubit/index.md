@@ -308,7 +308,7 @@ If your operation acts on a single qubit, such as most intrinsic gates, or on a 
 
 @[example]({"id": "dump_operation_demo", "codePath": "./examples/DumpOperationDemo.qs"})
 
-> Note that the matrix of the CNOT gate produced by `DumpOperation` in this demo might differ from the one you are used to seeing in quantum computing resources, such as the [multi-qubit gates tutorial](../MultiQubitGates/MultiQubitGates.ipynb#CNOT-Gate):
+> Note that the matrix of the CNOT gate produced by `DumpOperation` in this demo might differ from the one you are used to seeing in quantum computing resources, such as the [multi-qubit gates tutorial](multi_qubit_gates):
 > $$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$$
 >
 > Similarly to `DumpMachine`, the way `DumpOperation` evaluates the matrix depends on the conventions used by the simulator. 
