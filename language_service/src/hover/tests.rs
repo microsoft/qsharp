@@ -24,7 +24,7 @@ fn check(source_with_markers: &str, expect: &Expect) {
             end: target_offsets[1],
         }
     );
-    expect.assert_debug_eq(&actual.contents);
+    expect.assert_eq(&actual.contents);
 }
 
 /// Asserts that there is no hover for the given test case.
@@ -36,7 +36,7 @@ fn check_none(source_with_markers: &str) {
 }
 
 #[test]
-fn hover_callable_unit_types() {
+fn callable_unit_types() {
     check(
         indoc! {r#"
         namespace Test {
@@ -46,13 +46,19 @@ fn hover_callable_unit_types() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Bar() : Unit\n```\nDoc comment\nwith multiple lines!\n"
+            ```qsharp
+            Test
+            operation Bar() : Unit
+            ```
+            ---
+            Doc comment
+            with multiple lines!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_with_callable_types() {
+fn callable_with_callable_types() {
     check(
         indoc! {r#"
         namespace Test {
@@ -61,13 +67,18 @@ fn hover_callable_with_callable_types() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo(x: (Int => Int)) : (Int => Int)\n```\nDoc comment!\n"
+            ```qsharp
+            Test
+            operation Foo(x: (Int => Int)) : (Int => Int)
+            ```
+            ---
+            Doc comment!
         "#]],
     );
 }
 
 #[test]
-fn hover_call() {
+fn callable_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -77,13 +88,16 @@ fn hover_call() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Bar() : Unit\n```\n"
+            ```qsharp
+            Test
+            operation Bar() : Unit
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_unit_types_functors() {
+fn callable_unit_types_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -92,13 +106,18 @@ fn hover_callable_unit_types_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit is Ctl\n```\nDoc comment!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit is Ctl
+            ```
+            ---
+            Doc comment!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_with_callable_types_functors() {
+fn callable_with_callable_types_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -107,13 +126,18 @@ fn hover_callable_with_callable_types_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo(x: (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj\n```\nDoc comment!\n"
+            ```qsharp
+            Test
+            operation Foo(x: (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
+            ```
+            ---
+            Doc comment!
         "#]],
     );
 }
 
 #[test]
-fn hover_call_functors() {
+fn callable_ref_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -123,13 +147,16 @@ fn hover_call_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Bar() : Unit is Adj\n```\n"
+            ```qsharp
+            Test
+            operation Bar() : Unit is Adj
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier() {
+fn identifier() {
     check(
         indoc! {r#"
         namespace Test {
@@ -139,13 +166,15 @@ fn hover_identifier() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nx: Int\n```\n"
+            ```qsharp
+            x: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_ref() {
+fn identifier_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -156,13 +185,15 @@ fn hover_identifier_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nx: Int\n```\n"
+            ```qsharp
+            x: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_tuple() {
+fn identifier_tuple() {
     check(
         indoc! {r#"
         namespace Test {
@@ -172,13 +203,15 @@ fn hover_identifier_tuple() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: Double\n```\n"
+            ```qsharp
+            y: Double
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_tuple_ref() {
+fn identifier_tuple_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -189,13 +222,15 @@ fn hover_identifier_tuple_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: Double\n```\n"
+            ```qsharp
+            y: Double
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_for_loop() {
+fn identifier_for_loop() {
     check(
         indoc! {r#"
         namespace Test {
@@ -207,13 +242,15 @@ fn hover_identifier_for_loop() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ni: Int\n```\n"
+            ```qsharp
+            i: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_for_loop_ref() {
+fn identifier_for_loop_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -225,13 +262,15 @@ fn hover_identifier_for_loop_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ni: Int\n```\n"
+            ```qsharp
+            i: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_nested_ref() {
+fn identifier_nested_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -244,13 +283,15 @@ fn hover_identifier_nested_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nx: Int\n```\n"
+            ```qsharp
+            x: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_lambda() {
+fn lambda() {
     check(
         indoc! {r#"
         namespace Test {
@@ -262,13 +303,15 @@ fn hover_lambda() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nlambda: ((Double, String) => Int)\n```\n"
+            ```qsharp
+            lambda: ((Double, String) => Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_lambda_ref() {
+fn lambda_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -280,13 +323,15 @@ fn hover_lambda_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nlambda: ((Double, String) => Int)\n```\n"
+            ```qsharp
+            lambda: ((Double, String) => Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_lambda_param() {
+fn lambda_param() {
     check(
         indoc! {r#"
         namespace Test {
@@ -298,13 +343,15 @@ fn hover_lambda_param() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: String\n```\n"
+            ```qsharp
+            y: String
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_lambda_param_ref() {
+fn lambda_param_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -315,13 +362,15 @@ fn hover_lambda_param_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\ny: String\n```\n"
+            ```qsharp
+            y: String
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_lambda_closure_ref() {
+fn lambda_closure_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -333,13 +382,15 @@ fn hover_lambda_closure_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\na: Int\n```\n"
+            ```qsharp
+            a: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_identifier_udt() {
+fn identifier_udt() {
     check(
         indoc! {r#"
         namespace Test {
@@ -351,13 +402,15 @@ fn hover_identifier_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\na: Pair\n```\n"
+            ```qsharp
+            a: Pair
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt() {
+fn udt() {
     check(
         indoc! {r#"
         namespace Test {
@@ -365,13 +418,15 @@ fn hover_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
+            ```qsharp
+            newtype Pair = (Int, snd: Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt_ref() {
+fn udt_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -382,13 +437,15 @@ fn hover_udt_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)\n```\n"
+            ```qsharp
+            newtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt_ref_nested_udt() {
+fn udt_ref_nested_udt() {
     check(
         indoc! {r#"
         namespace Test {
@@ -400,13 +457,15 @@ fn hover_udt_ref_nested_udt() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)\n```\n"
+            ```qsharp
+            newtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt_anno_ref() {
+fn udt_anno_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -417,13 +476,15 @@ fn hover_udt_anno_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
+            ```qsharp
+            newtype Pair = (Int, snd: Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt_constructor() {
+fn udt_constructor() {
     check(
         indoc! {r#"
         namespace Test {
@@ -434,13 +495,15 @@ fn hover_udt_constructor() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nnewtype Pair = (Int, snd: Int)\n```\n"
+            ```qsharp
+            newtype Pair = (Int, snd: Int)
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt_field() {
+fn udt_field() {
     check(
         indoc! {r#"
         namespace Test {
@@ -448,13 +511,15 @@ fn hover_udt_field() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nsnd: Int\n```\n"
+            ```qsharp
+            snd: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_udt_field_ref() {
+fn udt_field_ref() {
     check(
         indoc! {r#"
         namespace Test {
@@ -466,13 +531,15 @@ fn hover_udt_field_ref() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\nsnd: Int\n```\n"
+            ```qsharp
+            snd: Int
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_primitive_type() {
+fn primitive_type() {
     check_none(indoc! {r#"
         namespace Test {
             newtype Pair = (◉I↘nt◉, snd : Int);
@@ -485,7 +552,7 @@ fn hover_primitive_type() {
 }
 
 #[test]
-fn hover_foreign_call() {
+fn foreign_call() {
     check(
         indoc! {r#"
         namespace Test {
@@ -496,13 +563,16 @@ fn hover_foreign_call() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Fake() : Unit\n```\n"
+            ```qsharp
+            FakeStdLib
+            operation Fake() : Unit
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_foreign_call_functors() {
+fn foreign_call_functors() {
     check(
         indoc! {r#"
         namespace Test {
@@ -513,13 +583,16 @@ fn hover_foreign_call_functors() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation FakeCtlAdj() : Unit is Adj + Ctl\n```\n"
+            ```qsharp
+            FakeStdLib
+            operation FakeCtlAdj() : Unit is Adj + Ctl
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_foreign_call_with_param() {
+fn foreign_call_with_param() {
     check(
         indoc! {r#"
         namespace Test {
@@ -530,13 +603,16 @@ fn hover_foreign_call_with_param() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation FakeWithParam(x: Int) : Unit\n```\n"
+            ```qsharp
+            FakeStdLib
+            operation FakeWithParam(x: Int) : Unit
+            ```
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary() {
+fn callable_summary() {
     check(
         indoc! {r#"
         namespace Test {
@@ -547,13 +623,19 @@ fn hover_callable_summary() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary_stuff_before() {
+fn callable_summary_stuff_before() {
     check(
         indoc! {r#"
         namespace Test {
@@ -565,13 +647,19 @@ fn hover_callable_summary_stuff_before() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary_other_header_before() {
+fn callable_summary_other_header_before() {
     check(
         indoc! {r#"
         namespace Test {
@@ -584,13 +672,19 @@ fn hover_callable_summary_other_header_before() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary_other_header_after() {
+fn callable_summary_other_header_after() {
     check(
         indoc! {r#"
         namespace Test {
@@ -603,13 +697,19 @@ fn hover_callable_summary_other_header_after() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary_other_headers() {
+fn callable_summary_other_headers() {
     check(
         indoc! {r#"
         namespace Test {
@@ -624,13 +724,19 @@ fn hover_callable_summary_other_headers() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_headers_but_no_summary() {
+fn callable_headers_but_no_summary() {
     check(
         indoc! {r#"
         namespace Test {
@@ -642,13 +748,21 @@ fn hover_callable_headers_but_no_summary() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\n# Not The Summary\nThis stuff is not the summary.\n# Also Not The Summary\nThis stuff is also not the summary.\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            # Not The Summary
+            This stuff is not the summary.
+            # Also Not The Summary
+            This stuff is also not the summary.
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary_only_header_matches() {
+fn callable_summary_only_header_matches() {
     check(
         indoc! {r#"
         namespace Test {
@@ -663,13 +777,19 @@ fn hover_callable_summary_only_header_matches() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line # Summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line # Summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_summary_successive_headers() {
+fn callable_summary_successive_headers() {
     check(
         indoc! {r#"
         namespace Test {
@@ -681,13 +801,19 @@ fn hover_callable_summary_successive_headers() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\nThis is a\nmulti-line summary!\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
+            ---
+            This is a
+            multi-line summary!
         "#]],
     );
 }
 
 #[test]
-fn hover_callable_empty_summary() {
+fn callable_empty_summary() {
     check(
         indoc! {r#"
         namespace Test {
@@ -698,7 +824,10 @@ fn hover_callable_empty_summary() {
         }
     "#},
         &expect![[r#"
-            "```qsharp\noperation Foo() : Unit\n```\n"
+            ```qsharp
+            Test
+            operation Foo() : Unit
+            ```
         "#]],
     );
 }
