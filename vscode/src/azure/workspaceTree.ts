@@ -5,6 +5,11 @@ import * as vscode from "vscode";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
+// Convert a date such as "2023-07-24T17:25:09.1309979Z" into local time
+function localDate(date: string) {
+  return new Date(date).toLocaleString();
+}
+
 export class WorkspaceTreeProvider
   implements vscode.TreeDataProvider<WorkspaceTreeItem>
 {
@@ -52,12 +57,21 @@ export class WorkspaceTreeProvider
 type Target = {
   providerId: string;
   provisioningState: string;
+  status?: "Online" | "Offline";
+  queueTime?: number;
 };
 
 type Job = {
   id: string;
+  name: string;
+  target: string;
   status: "Waiting" | "Executing" | "Succeeded" | "Failed" | "Cancelled";
   outputDataUri?: string;
+  creationTime: string;
+  beginExecutionTime?: string;
+  endExecutionTime?: string;
+  cancellationTime?: string;
+  costEstimate?: any;
 };
 
 export type WorkspaceConnection = {
@@ -82,22 +96,40 @@ class WorkspaceTreeItem extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.Collapsed);
 
     this.contextValue = type;
+
     switch (type) {
       case "workspace":
         this.iconPath = new vscode.ThemeIcon("notebook");
         break;
-      case "target":
+      case "target": {
+        const target = itemData as Target;
         this.iconPath = new vscode.ThemeIcon("package");
         this.collapsibleState = vscode.TreeItemCollapsibleState.None;
+        if (target.status || target.queueTime) {
+          const hover = new vscode.MarkdownString(
+            `${target.status ? `__Status__: ${target.status}<br>` : ""}
+            ${
+              target.queueTime
+                ? `__Queue time__: ${target.queueTime}mins<br>`
+                : ""
+            }`
+          );
+          hover.supportHtml = true;
+          this.tooltip = hover;
+        }
         break;
-      case "job":
+      }
+      case "job": {
+        const job = itemData as Job;
         this.collapsibleState = vscode.TreeItemCollapsibleState.None;
-        switch ((this.itemData as Job).status) {
+        switch (job.status) {
           case "Executing":
-            this.iconPath = new vscode.ThemeIcon("debug-line-by-line");
+            // this.iconPath = new vscode.ThemeIcon("debug-line-by-line");
+            this.iconPath = new vscode.ThemeIcon("run-all");
             break;
           case "Waiting":
-            this.iconPath = new vscode.ThemeIcon("watch");
+            // this.iconPath = new vscode.ThemeIcon("watch");
+            this.iconPath = new vscode.ThemeIcon("loading~spin");
             break;
           case "Cancelled":
             this.iconPath = new vscode.ThemeIcon("circle-slash");
@@ -112,7 +144,30 @@ class WorkspaceTreeItem extends vscode.TreeItem {
             this.contextValue = "result";
             break;
         }
+        // Tooltip
+        const hover = new vscode.MarkdownString(
+          `__Created__: ${localDate(job.creationTime)}<br>
+          __Target__: ${job.target}<br>
+          __Status__: ${job.status}<br>
+          ${
+            job.beginExecutionTime
+              ? `__Started__: ${localDate(job.beginExecutionTime)}<br>`
+              : ""
+          }
+          ${
+            job.endExecutionTime
+              ? `__Completed__: ${localDate(job.endExecutionTime)}<br>`
+              : ""
+          }
+          ${
+            job.costEstimate ? `__Cost estimate__: ${job.costEstimate}<br>` : ""
+          }
+        `
+        );
+        hover.supportHtml = true;
+        this.tooltip = hover;
         break;
+      }
 
       default:
         break;
@@ -149,7 +204,7 @@ class WorkspaceTreeItem extends vscode.TreeItem {
         );
       case "jobHeader":
         return (this.itemData as Job[]).map(
-          (job) => new WorkspaceTreeItem(job.id, this.workspace, "job", job)
+          (job) => new WorkspaceTreeItem(job.name, this.workspace, "job", job)
         );
       case "target":
       case "job":

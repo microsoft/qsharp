@@ -105,7 +105,7 @@
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:extension.qsharp.listWorkspaces)\n[Use connection string](command:git.clone)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:extension.qsharp.aadSignin)\n[Use connection string](command:extension.qsharp.patSignin)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
       }
     ],
     "commands": [
@@ -124,8 +124,12 @@
         "icon": "$(play)"
       },
       {
-        "command": "extension.qsharp.listWorkspaces",
-        "title": "List Q# workspaces"
+        "command": "extension.qsharp.aadSignin",
+        "title": "Sign in to Azure Quantum with a Microsoft account"
+      },
+      {
+        "command": "extension.qsharp.patSignin",
+        "title": "Sign in to Azure Quantum using an access token"
       },
       {
         "command": "quantum-workspaces-refresh",

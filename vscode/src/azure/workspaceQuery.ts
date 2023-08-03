@@ -114,10 +114,11 @@ export async function queryWorkspaces(): Promise<
   }
 
   // Need to remove the first part of the endpoint
-  const fixedEndpoint = workspace.properties.endpointUri.replace(
-    `https://${workspace.name}.`,
-    "https://"
-  );
+  const fixedEndpoint =
+    workspace.properties.endpointUri?.replace(
+      `https://${workspace.name}.`,
+      "https://"
+    ) || "";
 
   const result: WorkspaceConnection = {
     id: workspace.id,
@@ -170,11 +171,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   // Sort by creation time from newest to oldest
   workspace.jobs = jobs.value
     .sort((a, b) => (a.creationTime > b.creationTime ? 1 : -1))
-    .map((job) => ({
-      id: job.id,
-      status: job.status,
-      outputDataUri: job.outputDataUri,
-    }));
+    .map((job) => ({ ...job }));
 
   return;
   // const job =

@@ -78,17 +78,26 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
       [accountPrompt, tokenPrompt],
       { title: "Select authentication method" }
     );
+    if (!method) return;
     if (method === tokenPrompt) {
-      const _token = await vscode.window.showInputBox({
-        title: "Enter the workspace access token",
-      });
-      workspaceTreeProvider.updateWorkspace(sampleWorkspace);
+      vscode.commands.executeCommand("extension.qsharp.patSignin");
     } else {
-      const workspace = await queryWorkspaces();
-      if (workspace) {
-        workspaceTreeProvider.updateWorkspace(workspace);
-      }
+      vscode.commands.executeCommand("extension.qsharp.aadSignin");
     }
+  });
+
+  vscode.commands.registerCommand("extension.qsharp.aadSignin", async () => {
+    const workspace = await queryWorkspaces();
+    if (workspace) {
+      workspaceTreeProvider.updateWorkspace(workspace);
+    }
+  });
+
+  vscode.commands.registerCommand("extension.qsharp.patSignin", async () => {
+    const _token = await vscode.window.showInputBox({
+      title: "Enter the workspace access token",
+    });
+    workspaceTreeProvider.updateWorkspace(sampleWorkspace);
   });
 
   vscode.commands.registerCommand("quantum-target-view", async () => {
@@ -110,9 +119,4 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
     });
     vscode.window.showTextDocument(doc);
   });
-
-  vscode.commands.registerCommand(
-    "extension.qsharp.listWorkspaces",
-    queryWorkspaces
-  );
 }

@@ -206,8 +206,8 @@ export namespace ResponseTypes {
     nextLink: string;
     value: Array<{
       id: string;
-      jobType: string;
-      sessionId: string;
+      name: string;
+      target: string;
       containerUri: string;
       inputDataUri: string;
       outputDataUri: string;
@@ -216,7 +216,11 @@ export namespace ResponseTypes {
       inputParams: any;
       status: "Waiting" | "Executing" | "Succeeded" | "Failed" | "Cancelled";
       creationTime: string;
-      cancellationTime: string;
+      beginExecutionTime: string;
+      endExecutionTime: string;
+      cancellationTime?: string;
+      costEstimate?: any;
+      errorData?: any;
     }>;
   };
 
