@@ -96,8 +96,8 @@ This means that these vectors form an **orthonormal basis**. The basis of $\begi
 Writing out each vector when doing quantum calculations takes up a lot of space, and this will get even worse once we introduce quantum gates and multi-qubit systems. **Dirac notation** is a shorthand notation that helps solve this issue. In Dirac notation, a vector is denoted by a symbol called a **ket**. For example, a qubit in state $0$ is represented by the ket $|0\rangle$, and a qubit in state $1$ is represented by the ket $|1\rangle$:
 
 <table>
-    <col width=150>
-    <col width=150>
+    <col>
+    <col>
     <tr>
         <td style=\"text-align:center; border:1px solid\">$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
         <td style=\"text-align:center; border:1px solid\">$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
@@ -115,8 +115,8 @@ $$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$$
 Several ket symbols have a generally accepted use, such as:
 
 <table>
-    <col width=180>
-    <col width=180>
+    <col>
+    <col>
     <tr>
         <td style=\"text-align:center; border:1px solid\">$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$</td>
         <td style=\"text-align:center; border:1px solid\">$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$</td>
@@ -248,9 +248,9 @@ Here are some useful options that help you extract the right information:
 
 * `dump.basisStateLabelingConvention` sets the way the basis states are labeled in the output. Here is how the basis state $|10\rangle$ will look like with different settings:
 
-  <table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
+  <table>
     <col>
-    <col width=300>
+    <col>
     <tr>
         <th style="text-align:center; border:1px solid">dump.basisStateLabelingConvention value</th>
         <th style="text-align:center; border:1px solid">DumpMachine output (first two columns)</th>
