@@ -257,15 +257,120 @@ Here are some useful options that help you extract the right information:
     </tr>
     <tr>
         <td style="text-align:left; border:1px solid"><tt>"LittleEndian"</tt> (default)</td>
-        <td style="text-align:center; border:1px solid"><img src="./img/DumpMachine_LittleEndian.PNG"/></td>
+        <td style="text-align:center; border:1px solid">
+            <table>
+                <tr>
+                    <td>
+                        $|0\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|1\rangle$
+                    </td>
+                    <td>
+                        $1.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|2\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|3\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+            </table>
+        </td>
     </tr>
     <tr>
         <td style="text-align:left; border:1px solid"><tt>"BigEndian"</tt></td>
-        <td style="text-align:center; border:1px solid"><img src="./img/DumpMachine_BigEndian.PNG"/></td>
+        <td style="text-align:center; border:1px solid"> 
+            <table>
+                <tr>
+                    <td>
+                        $|0\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|1\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|2\rangle$
+                    </td>
+                    <td>
+                        $1.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|3\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+            </table> 
+        </td>
     </tr>
     <tr>
         <td style="text-align:left; border:1px solid"><tt>"Bitstring"</tt></td>
-        <td style="text-align:center; border:1px solid"><img src="./img/DumpMachine_Bitstring.PNG"/></td>
+        <td style="text-align:center; border:1px solid"> 
+            <table>
+                <tr>
+                    <td>
+                        $|00\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|01\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|10\rangle$
+                    </td>
+                    <td>
+                        $1.0000 + 0.0000i$
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        $|11\rangle$
+                    </td>
+                    <td>
+                        $0.0000 + 0.0000i$
+                    </td>
+                </tr>
+            </table> 
+        </td>
     </tr>
   </table>
   
