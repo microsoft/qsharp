@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { DebugService } from "../../lib/node/qsc_wasm.cjs";
+import {
+  BreakpointSpan,
+  DebugService,
+  StackFrame,
+} from "../../lib/node/qsc_wasm.cjs";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
 import { log } from "../log.js";
 import { IServiceProxy } from "../worker-proxy.js";
-import { BreakpointSpan, StackFrame } from "./types.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
@@ -38,11 +41,7 @@ export class QSharpDebugService implements IDebugService {
 
   async getStackFrames(): Promise<StackFrame[]> {
     const stack_frame_list = this.debugService.get_stack_frames();
-    const stack_frames: StackFrame[] = stack_frame_list.frames.map(
-      (frame: any) => {
-        return new StackFrame(frame.name, frame.path, frame.lo, frame.hi);
-      }
-    );
+    const stack_frames: StackFrame[] = stack_frame_list.frames;
     return stack_frames;
   }
 
@@ -57,11 +56,7 @@ export class QSharpDebugService implements IDebugService {
 
   async getBreakpoints(path: string): Promise<BreakpointSpan[]> {
     const breakpoint_list = this.debugService.get_breakpoints(path);
-    const breakpoint_spans: BreakpointSpan[] = breakpoint_list.spans.map(
-      (bps: any) => {
-        return new BreakpointSpan(bps.id, bps.lo, bps.hi);
-      }
-    );
+    const breakpoint_spans: BreakpointSpan[] = breakpoint_list.spans;
     return breakpoint_spans;
   }
 
