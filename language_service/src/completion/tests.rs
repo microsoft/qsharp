@@ -172,6 +172,49 @@ fn in_block_with_alias() {
 }
 
 #[test]
+fn in_block_from_other_namespace() {
+    check(
+        r#"
+    namespace Test {
+        operation Test() : Unit {
+            ↘
+        }
+    }
+    namespace Other {
+        operation Foo() : Unit {}
+    }"#,
+        &["Foo"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0500Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    LsSpan {
+                                        start: 30,
+                                        end: 30,
+                                    },
+                                    "open Other;\n    ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn in_namespace_contains_open() {
     check(
         r#"

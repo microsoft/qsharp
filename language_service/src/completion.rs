@@ -71,6 +71,7 @@ pub(crate) fn get_completions(
         },
         opens: vec![],
         start_of_namespace: None,
+        current_namespace_name: None,
     };
     context_finder.visit_package(&compilation.unit.ast.package);
 
@@ -98,6 +99,7 @@ pub(crate) fn get_completions(
                 compilation,
                 &context_finder.opens,
                 context_finder.start_of_namespace,
+                &context_finder.current_namespace_name,
             );
         }
 
@@ -113,6 +115,7 @@ pub(crate) fn get_completions(
                 compilation,
                 &context_finder.opens,
                 context_finder.start_of_namespace,
+                &context_finder.current_namespace_name,
             );
 
             // Item decl keywords last, unlike in a namespace
@@ -190,6 +193,7 @@ impl CompletionListBuilder {
         compilation: &Compilation,
         opens: &[(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
+        current_namespace_name: &Option<Rc<str>>,
     ) {
         let current = &compilation.unit.package;
         let std = &compilation
@@ -205,14 +209,19 @@ impl CompletionListBuilder {
 
         let display = CodeDisplay { compilation };
 
-        self.push_sorted_completions(Self::get_callables(current, &display));
-        self.push_sorted_completions(Self::get_std_callables(
-            std,
-            &display,
-            opens,
-            start_of_namespace,
-        ));
-        self.push_sorted_completions(Self::get_callables(core, &display));
+        let get_callables = |current, display| {
+            Self::get_callables(
+                current,
+                display,
+                opens,
+                start_of_namespace,
+                current_namespace_name.clone(),
+            )
+        };
+
+        self.push_sorted_completions(get_callables(current, &display));
+        self.push_sorted_completions(get_callables(std, &display));
+        self.push_sorted_completions(Self::get_core_callables(core, &display));
         self.push_completions(Self::get_namespaces(current));
         self.push_completions(Self::get_namespaces(std));
         self.push_completions(Self::get_namespaces(core));
@@ -276,11 +285,12 @@ impl CompletionListBuilder {
         self.current_sort_group += 1;
     }
 
-    fn get_std_callables<'a>(
+    fn get_callables<'a>(
         package: &'a Package,
         display: &'a CodeDisplay,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
+        current_namespace_name: Option<Rc<str>>,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
@@ -294,28 +304,37 @@ impl CompletionListBuilder {
                 if let Some(item_id) = i.parent {
                     if let Some(parent) = package.items.get(item_id) {
                         if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                            // open is an option of option of Rc<str>
-                            // the first option tells if it found an open with the namespace name
-                            // the second, nested option tells if that open has an alias
-                            let open = opens.iter().find_map(|(name, alias)| {
-                                if *name == namespace.name {
-                                    Some(alias)
-                                } else {
-                                    None
-                                }
-                            });
-                            qualification = match open {
-                                Some(alias) => alias.as_ref().cloned(),
-                                None => match start_of_namespace {
-                                    Some(start) => {
-                                        additional_edits.push((
-                                            LsSpan { start, end: start },
-                                            format!("open {};\n    ", namespace.name.clone()),
-                                        ));
-                                        None
+                            match &current_namespace_name {
+                                Some(curr_ns) if *curr_ns == namespace.name => {}
+                                None => {}
+                                _ => {
+                                    // open is an option of option of Rc<str>
+                                    // the first option tells if it found an open with the namespace name
+                                    // the second, nested option tells if that open has an alias
+                                    let open = opens.iter().find_map(|(name, alias)| {
+                                        if *name == namespace.name {
+                                            Some(alias)
+                                        } else {
+                                            None
+                                        }
+                                    });
+                                    qualification = match open {
+                                        Some(alias) => alias.as_ref().cloned(),
+                                        None => match start_of_namespace {
+                                            Some(start) => {
+                                                additional_edits.push((
+                                                    LsSpan { start, end: start },
+                                                    format!(
+                                                        "open {};\n    ",
+                                                        namespace.name.clone()
+                                                    ),
+                                                ));
+                                                None
+                                            }
+                                            None => Some(namespace.name.clone()),
+                                        },
                                     }
-                                    None => Some(namespace.name.clone()),
-                                },
+                                }
                             }
                         }
                     }
@@ -347,7 +366,7 @@ impl CompletionListBuilder {
         })
     }
 
-    fn get_callables<'a>(
+    fn get_core_callables<'a>(
         package: &'a Package,
         display: &'a CodeDisplay,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
@@ -388,6 +407,7 @@ struct ContextFinder {
     context: Context,
     opens: Vec<(Rc<str>, Option<Rc<str>>)>,
     start_of_namespace: Option<u32>,
+    current_namespace_name: Option<Rc<str>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -402,6 +422,7 @@ enum Context {
 impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
+            self.current_namespace_name = Some(namespace.name.name.clone());
             self.context = Context::Namespace;
             self.opens = vec![];
             self.start_of_namespace = None;
