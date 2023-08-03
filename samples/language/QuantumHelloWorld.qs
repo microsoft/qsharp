@@ -1,6 +1,6 @@
 /// # Quantum Hello World!
 ///
-/// This Q# program implements a "Hello world!" for a quantum computer.
+/// This Q# code implements a "Hello world!" program for a quantum computer.
 /// It generates a random bit by setting a qubit in a 50/50 superposition of
 /// states |0〉 and |1〉, and the returning the result of measuring the qubit.
 namespace QuantumHelloWorld {
