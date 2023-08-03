@@ -1,4 +1,3 @@
-### Solution
 For this problem, we follow the procedure given in the [arbitrary basis measurement section](./SingleQubitSystemMeasurements.ipynb#Arbitrary-basis-measurements-implementation) of the tutorial.
 As noted in the solution of problem 6, the gate $R_x(-\theta)$, with $\theta = 2\alpha$ transforms the $\ket A/\ket B$ states to the $\ket 0/\ket 1$ states:
 \begin{align}
@@ -12,7 +11,7 @@ After the measurement, we apply the inverse of the $R_x(-\theta)$ gate, which is
 The final rotation ensures that the state of the qubit is in the state corresponding to the measurement outcome.
 
 @[solution]({
-"id": "a_b_basis_measurements_solution",
-"exerciseId": "a_b_basis_measurements",
-"codePath": "solution.qs"
+    "id": "a_b_basis_measurements_solution",
+    "exerciseId": "a_b_basis_measurements",
+    "codePath": "solution.qs"
 })
