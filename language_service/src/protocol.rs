@@ -45,6 +45,7 @@ pub struct CompletionItem {
 }
 
 impl CompletionItem {
+    #[must_use]
     pub fn new(label: String, kind: CompletionItemKind) -> Self {
         CompletionItem {
             label,
