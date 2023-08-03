@@ -21,6 +21,8 @@ namespace Kata.Verification {
             if not isCorrect {
                 Message("Incorrect.");
                 Message("The solution was incorrect for at least one test case.");
+                Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect " +
+                    "it is expected to have.");
                 use target = Qubit[1]; // |0〉
                 ShowQuantumStateComparison(target, solution, reference);
                 ResetAll(target);
