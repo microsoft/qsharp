@@ -64,6 +64,32 @@ namespace Microsoft.Quantum.Katas {
     }
 
     /// # Summary
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
+    /// it.
+    operation CheckOperationsEquivalenceOnZeroStateStrict(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        use control = Qubit();
+        use target = Qubit[inputSize];
+        within {
+            H(control);
+        }
+        apply {
+            Controlled op([control], target);
+            Adjoint Controlled reference([control], target);
+        }
+
+        let isCorrect = CheckAllZero([control] + target);
+        ResetAll([control] + target);
+        isCorrect
+    }
+
+    /// # Summary
     /// Shows the effect a quantum operation has on the quantum state.
     operation ShowEffectOnQuantumState(targetRegister : Qubit[], op : (Qubit[] => Unit is Adj + Ctl)) : Unit {
         Message("Quantum state before applying the operation:");

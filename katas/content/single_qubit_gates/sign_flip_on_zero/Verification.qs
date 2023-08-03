@@ -9,22 +9,22 @@ namespace Kata.Verification {
     }
 
     operation CheckSolution() : Bool {
-        let isCorrect = VerifySingleQubitOperation(Kata.SignFlipOnZero, SignFlipOnZero);
+        let solution = register => Kata.SignFlipOnZero(register[0]);
+        let reference = register => SignFlipOnZero(register[0]);
+        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
 
         // Output different feedback to the user depending on whether the exercise was correct.
-        use target = Qubit[1];
-        let op = register => Kata.SignFlipOnZero(register[0]);
-        let reference = register => SignFlipOnZero(register[0]);
+        use target = Qubit[1];  // |0〉
+        H(target[0]);           // |+〉
         if isCorrect {
             Message("Correct!");
-            Message("The solution was correct for all test cases.");
-            ShowEffectOnQuantumState(target, op);
         } else {
             Message("Incorrect.");
-            Message("The solution was incorrect for at least one test case.");
-            ShowQuantumStateComparison(target, op, reference);
+            Message("Hint: examine the effect your solution has on the |+〉 state and compare it with the effect it " +
+                "is expected to have.");
+            ShowQuantumStateComparison(target, solution, reference);
         }
-
+        ResetAll(target);
         isCorrect
     }
 }

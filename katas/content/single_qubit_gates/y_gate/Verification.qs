@@ -3,7 +3,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
     operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
-        // Apply the Pauli Y operation.
         Y(q);
     }
 
@@ -17,12 +16,12 @@ namespace Kata.Verification {
         if isCorrect {
             Message("Correct!");
         } else {
-            Message("Incorrect :(");
+            Message("Incorrect.");
             Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect it " +
                 "is expected to have.");
             ShowQuantumStateComparison(target, solution, reference);
         }
-
+        ResetAll(target);
         isCorrect
     }
 }
