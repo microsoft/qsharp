@@ -313,6 +313,7 @@ impl Interpreter {
             ))]
         })
     }
+
     fn get_entry_expr(&self) -> Result<ExprId, Vec<Error>> {
         let unit = self
             .fir_store
