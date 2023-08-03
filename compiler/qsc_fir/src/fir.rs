@@ -139,6 +139,25 @@ macro_rules! fir_id {
         #[derive(Debug, Clone, Copy)]
         pub struct $id(pub u32);
 
+        impl $id {
+            const DEFAULT_VALUE: u32 = u32::MAX;
+
+            /// The ID of the first node.
+            pub const FIRST: Self = Self(0);
+
+            /// The successor of this ID.
+            #[must_use]
+            pub fn successor(self) -> Self {
+                Self(self.0 + 1)
+            }
+
+            /// True if this is the default ID.
+            #[must_use]
+            pub fn is_default(self) -> bool {
+                self.0 == Self::DEFAULT_VALUE
+            }
+        }
+
         impl From<NodeId> for $id {
             fn from(val: NodeId) -> Self {
                 $id(val.into())
@@ -566,7 +585,7 @@ impl Display for SpecBody {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
     /// The node ID.
-    pub id: NodeId,
+    pub id: BlockId,
     /// The span.
     pub span: Span,
     /// The block type.
@@ -598,8 +617,8 @@ impl Display for Block {
 /// A statement.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Stmt {
-    /// The node ID.
-    pub id: NodeId,
+    /// The stmt ID.
+    pub id: StmtId,
     /// The span.
     pub span: Span,
     /// The statement kind.
@@ -657,8 +676,8 @@ impl Display for StmtKind {
 /// An expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
-    /// The node ID.
-    pub id: NodeId,
+    /// The expr ID.
+    pub id: ExprId,
     /// The span.
     pub span: Span,
     /// The expression type.
@@ -1034,7 +1053,7 @@ pub enum StringComponent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pat {
     /// The node ID.
-    pub id: NodeId,
+    pub id: PatId,
     /// The span.
     pub span: Span,
     /// The pattern type.
