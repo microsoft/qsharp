@@ -8,6 +8,12 @@ import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import { createCompilerProxy } from "./compiler/worker-proxy.js";
 import {
+  IDebugService,
+  IDebugServiceWorker,
+  QSharpDebugService,
+} from "./debug-service/debug-service.js";
+import { createDebugServiceProxy } from "./debug-service/worker-proxy.js";
+import {
   ILanguageService,
   ILanguageServiceWorker,
   QSharpLanguageService,
@@ -74,6 +80,42 @@ async function instantiateWasm() {
   // Once ready, set up logging and telemetry as soon as possible after instantiating
   wasm.initLogging(log.logWithLevel, log.getLogLevel());
   log.onLevelChanged = (level) => wasm.setLogLevel(level);
+}
+
+export async function getDebugService(): Promise<IDebugService> {
+  await instantiateWasm();
+  return new QSharpDebugService(wasm);
+}
+
+// Create the debugger inside a WebWorker and proxy requests.
+// If the Worker was already created via other means and is ready to receive
+// messages, then the worker may be passed in and it will be initialized.
+export function getDebugServiceWorker(
+  workerArg: string | Worker
+): IDebugServiceWorker {
+  if (!wasmModule) throw "Wasm module must be loaded first";
+
+  // Create or use the WebWorker
+  const worker =
+    typeof workerArg === "string" ? new Worker(workerArg) : workerArg;
+
+  // Send it the Wasm module to instantiate
+  worker.postMessage({
+    type: "init",
+    wasmModule,
+    qscLogLevel: log.getLogLevel(),
+  });
+
+  // If you lose the 'this' binding, some environments have issues
+  const postMessage = worker.postMessage.bind(worker);
+  const onTerminate = () => worker.terminate();
+
+  // Create the proxy which will forward method calls to the worker
+  const proxy = createDebugServiceProxy(postMessage, onTerminate);
+
+  // Let proxy handle response and event messages from the worker
+  worker.onmessage = (ev) => proxy.onMsgFromWorker(ev.data);
+  return proxy;
 }
 
 export async function getCompiler(): Promise<ICompiler> {
@@ -169,4 +211,6 @@ export { type VSDiagnostic } from "./vsdiagnostic.js";
 export { log, type LogLevel };
 export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
+export type { IDebugServiceWorker, IDebugService };
+export { BreakpointSpan, StackFrame } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";
