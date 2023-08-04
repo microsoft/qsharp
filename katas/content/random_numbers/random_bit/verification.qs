@@ -5,8 +5,8 @@ namespace Kata.Verification {
         let result = RetryTestOperation(() => CheckUniformDistribution(Kata.RandomBit, 0, 1, 1000));
         if result {
             Message("All tests passed.");	
-	}
-        return result;
+	    }
+        result
     }
 
 }
