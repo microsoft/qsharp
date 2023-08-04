@@ -14,6 +14,7 @@ num-bigint = { workspace = true }
 num-complex = { workspace = true }
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e96b9a12a43e98f83f2d4d499f46d651d0c6c341", default-features = false}
 qsc_data_structures = { path = "../qsc_data_structures" }
+qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 rand =  { workspace = true }
 thiserror = { workspace = true }
