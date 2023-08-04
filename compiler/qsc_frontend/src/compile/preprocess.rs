@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, Namespace},
+    ast::{Attr, ExprKind, Namespace},
     mut_visit::MutVisitor,
 };
 
@@ -18,7 +19,7 @@ impl MutVisitor for Conditional {
             .items
             .iter()
             .filter_map(|item| {
-                if item.attrs.is_empty() || matches_target(&item.attrs, self.target) {
+                if matches_target(&item.attrs, self.target) {
                     Some(item.clone())
                 } else {
                     None
@@ -30,14 +31,21 @@ impl MutVisitor for Conditional {
 }
 
 fn matches_target(attrs: &[Box<Attr>], target: Target) -> bool {
-    if attrs
-        .iter()
-        .any(|attr| attr.name.name.as_ref() == target.to_str())
-    {
-        true
-    } else {
-        !attrs
-            .iter()
-            .any(|attr| attr.name.name.starts_with("Target") && attr.name.name.ends_with("Profile"))
-    }
+    attrs.iter().all(|attr| {
+        if attr.name.name.as_ref() == "TargetProfile" {
+            if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
+                match inner.kind.as_ref() {
+                    ExprKind::Path(path) => match Target::from_str(path.name.name.as_ref()) {
+                        Ok(t) => t == target,
+                        Err(_) => true,
+                    },
+                    _ => true,
+                }
+            } else {
+                true
+            }
+        } else {
+            true
+        }
+    })
 }

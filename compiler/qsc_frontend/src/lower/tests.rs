@@ -85,6 +85,65 @@ fn test_entrypoint_attr_wrong_args() {
 }
 
 #[test]
+fn test_target_profile_base_attr_allowed() {
+    check_errors(
+        indoc! {"
+            namespace input {
+                @TargetProfile(Base)
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn test_target_profile_full_attr_allowed() {
+    check_errors(
+        indoc! {"
+            namespace input {
+                @TargetProfile(Full)
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn test_target_profile_attr_wrong_args() {
+    check_errors(
+        indoc! {"
+            namespace input {
+                @TargetProfile(Bar)
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                InvalidAttrArgs(
+                    "Full or Base",
+                    Span {
+                        lo: 36,
+                        hi: 41,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn test_unknown_attr() {
     check_errors(
         indoc! {"

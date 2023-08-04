@@ -332,6 +332,8 @@ impl AstVisitor<'_> for With<'_> {
         });
     }
 
+    fn visit_attr(&mut self, _: &ast::Attr) {}
+
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         self.with_scope(ScopeKind::Callable, |visitor| {
             visitor.resolver.bind_type_parameters(decl);

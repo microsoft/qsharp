@@ -10,7 +10,6 @@ use crate::{
     resolve::{self, Names},
     typeck::{self, convert},
 };
-use core::str::FromStr;
 use miette::Diagnostic;
 use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -26,7 +25,7 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
-    #[diagnostic(help("supported attributes are: EntryPoint"))]
+    #[diagnostic(help("supported attributes are: EntryPoint, TargetProfile"))]
     #[diagnostic(code("Qsc.LowerAst.UnknownAttr"))]
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
@@ -213,13 +212,33 @@ impl With<'_> {
                     None
                 }
             }
-        } else if Target::from_str(attr.name.name.as_ref()).is_err() {
+        } else if attr.name.name.as_ref() == "TargetProfile" {
+            if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
+                if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if Target::is_target_str(path.name.name.as_ref())))
+            {
+                self.lowerer
+                    .errors
+                    .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
+            }
+            // if let ast::ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
+            //     if !matches!(inner.kind.as_ref(), ast::ExprKind::Path(path) if Target::is_target_str(path.name.name.as_ref()))
+            //     {
+            //         self.lowerer
+            //             .errors
+            //             .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
+            //     }
+            // } else {
+            //     self.lowerer
+            //         .errors
+            //         .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
+            // }
+            None
+        } else {
             self.lowerer.errors.push(Error::UnknownAttr(
                 attr.name.name.to_string(),
                 attr.name.span,
             ));
-            None
-        } else {
             None
         }
     }

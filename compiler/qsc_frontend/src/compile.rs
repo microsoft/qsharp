@@ -42,9 +42,14 @@ impl Target {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
         match self {
-            Self::Full => "TargetFullProfile",
-            Self::Base => "TargetBaseProfile",
+            Self::Full => "Full",
+            Self::Base => "Base",
         }
+    }
+
+    #[must_use]
+    pub fn is_target_str(s: &str) -> bool {
+        Self::from_str(s).is_ok()
     }
 }
 
@@ -53,8 +58,8 @@ impl FromStr for Target {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "TargetFullProfile" => Ok(Target::Full),
-            "TargetBaseProfile" => Ok(Self::Base),
+            "Full" => Ok(Target::Full),
+            "Base" => Ok(Self::Base),
             _ => Err(()),
         }
     }
@@ -260,12 +265,12 @@ pub fn compile(
     target: Target,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
-    let mut ast_assigner = AstAssigner::new();
-    ast_assigner.visit_package(&mut ast_package);
-    AstValidator::default().visit_package(&ast_package);
 
     preprocess::Conditional { target }.visit_package(&mut ast_package);
 
+    let mut ast_assigner = AstAssigner::new();
+    ast_assigner.visit_package(&mut ast_package);
+    AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &ast_package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
