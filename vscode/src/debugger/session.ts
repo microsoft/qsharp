@@ -169,7 +169,9 @@ export class QscDebugSession extends LoggingDebugSession {
     args: ILaunchRequestArguments
   ): Promise<void> {
     if (this.failed) {
-      log.trace("compilation failed. sending error response");
+      log.info(
+        "compilation failed. sending error response and stopping execution."
+      );
       this.sendErrorResponse(response, {
         id: -1,
         format: ErrorProgramHasErrors,
@@ -200,42 +202,46 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`sending launchRequest response`);
     this.sendResponse(response);
   }
+
   private async runWithDebugging(
     _args: ILaunchRequestArguments
   ): Promise<void> {
-    const bps = this.get_breakpoint_ids();
+    const bps = this.getBreakpointIds();
     this.run(bps);
   }
+
   private async run(bps: number[]): Promise<void> {
     const eventTarget = createDebugConsoleEventTarget();
-    const res = await this.debugService
-      .evalContinue(bps, eventTarget)
-      .catch((e) => {
-        log.info(`ending session due to error: ${e}`);
+    await this.debugService.evalContinue(bps, eventTarget).then(
+      (result) => {
+        if (result) {
+          log.trace(`raising breakpoint event`);
+          const evt = new StoppedEvent(
+            "breakpoint",
+            QscDebugSession.threadID
+          ) as DebugProtocol.StoppedEvent;
+          evt.body.hitBreakpointIds = [result];
+          this.sendEvent(evt);
+
+          this.sendEvent(
+            // mark the breakpoint as 'verified'
+            new BreakpointEvent("changed", {
+              verified: true,
+              id: result,
+            } as DebugProtocol.Breakpoint)
+          );
+        } else {
+          this.endSession(`ending session`);
+        }
+      },
+      (error) => {
+        log.info(`ending session due to error: ${error}`);
         vscode.debug.activeDebugConsole.appendLine("");
         vscode.debug.activeDebugConsole.appendLine(SimulationCompleted);
         this.sendEvent(new TerminatedEvent());
         this.sendEvent(new ExitedEvent(0));
-      });
-
-    if (res) {
-      log.trace(`raising breakpoint event`);
-      const evt = new StoppedEvent(
-        "breakpoint",
-        QscDebugSession.threadID
-      ) as DebugProtocol.StoppedEvent;
-      evt.body.hitBreakpointIds = [res];
-      this.sendEvent(evt);
-
-      this.sendEvent(
-        new BreakpointEvent("changed", {
-          verified: true,
-          id: res,
-        } as DebugProtocol.Breakpoint)
-      );
-    } else {
-      this.endSession(`ending session`);
-    }
+      }
+    );
   }
 
   private endSession(message: string) {
@@ -255,7 +261,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private get_breakpoint_ids(): number[] {
+  private getBreakpointIds(): number[] {
     const bps: number[] = [];
     for (const bp of this.breakpoints.get(this.program) ?? []) {
       if (bp && bp.id) {
@@ -270,7 +276,7 @@ export class QscDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
     log.trace(`continueRequest: %O`, args);
-    const bps = this.get_breakpoint_ids();
+    const bps = this.getBreakpointIds();
 
     log.trace(`sending continue response`);
     this.sendResponse(response);

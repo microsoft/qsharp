@@ -72,7 +72,11 @@ impl DebugService {
             &bps,
         ) {
             Ok(None) => Ok(JsValue::UNDEFINED),
-            Ok(Some(v)) => Ok(JsValue::from(std::convert::Into::<usize>::into(v))),
+            Ok(Some(v)) => {
+                // we've hit a breakpoint
+                // Convert the stmt id to a number
+                Ok(JsValue::from(std::convert::Into::<usize>::into(v)))
+            }
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
     }
