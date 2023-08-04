@@ -153,10 +153,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(): Promise<ILanguageService> {
-  if (!wasmModule) throw "Wasm module must be loaded first";
-  if (!wasmInstancePromise) wasmInstancePromise = initWasm(wasmModule);
-  await wasmInstancePromise;
-
+  await instantiateWasm();
   return new QSharpLanguageService(wasm);
 }
 
