@@ -48,7 +48,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    LsSpan {
+                                    Span {
                                         start: 30,
                                         end: 30,
                                     },
@@ -71,7 +71,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    LsSpan {
+                                    Span {
                                         start: 30,
                                         end: 30,
                                     },
@@ -94,7 +94,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    LsSpan {
+                                    Span {
                                         start: 30,
                                         end: 30,
                                     },
@@ -199,7 +199,7 @@ fn in_block_from_other_namespace() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    LsSpan {
+                                    Span {
                                         start: 30,
                                         end: 30,
                                     },
