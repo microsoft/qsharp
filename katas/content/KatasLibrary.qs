@@ -9,6 +9,8 @@ namespace Microsoft.Quantum.Katas {
     /// # Summary
     /// Given two operations, checks whether they act identically for all input states.
     /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
+    ///
+    /// N.B. Investigate whether this can be done using just 1 control qubit (GitHub issue #535).
     operation CheckOperationsEquivalence(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
