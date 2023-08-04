@@ -3,33 +3,71 @@
 
 use std::f64::consts;
 
+use crate::debug::map_hir_package_to_fir;
 use crate::tests::eval_expr;
 use crate::{
     output::{GenericReceiver, Receiver},
     tests::get_global,
     val::{GlobalId, Value},
-    Error, GlobalLookup,
+    Error, NodeLookup,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
+use qsc_data_structures::index_map::IndexMap;
+use qsc_fir::fir::{BlockId, ExprId, PackageId, PatId, StmtId};
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 struct Lookup<'a> {
-    store: &'a PackageStore,
+    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
 }
 
-impl<'a> GlobalLookup<'a> for Lookup<'a> {
+impl<'a> Lookup<'a> {
+    fn get_package(&self, package: PackageId) -> &qsc_fir::fir::Package {
+        self.fir_store
+            .get(package)
+            .expect("Package should be in FIR store")
+    }
+}
+
+impl<'a> NodeLookup for Lookup<'a> {
     fn get(&self, id: GlobalId) -> Option<crate::Global<'a>> {
-        get_global(self.store, id)
+        get_global(self.fir_store, id)
+    }
+    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
+        self.get_package(package)
+            .blocks
+            .get(id)
+            .expect("BlockId should have been lowered")
+    }
+    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr {
+        self.get_package(package)
+            .exprs
+            .get(id)
+            .expect("ExprId should have been lowered")
+    }
+    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat {
+        self.get_package(package)
+            .pats
+            .get(id)
+            .expect("PatId should have been lowered")
+    }
+    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt {
+        self.get_package(package)
+            .stmts
+            .get(id)
+            .expect("StmtId should have been lowered")
     }
 }
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
+    let mut fir_lowerer = crate::lower::Lowerer::new();
     let mut core = compile::core();
     run_core_passes(&mut core);
+    let core_fir = fir_lowerer.lower_package(&core.package);
     let mut store = PackageStore::new(core);
+
     let mut std = compile::std(&store, TargetProfile::Full);
     assert!(std.errors.is_empty());
     assert!(run_default_passes(
@@ -39,8 +77,9 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         TargetProfile::Full
     )
     .is_empty());
-
+    let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
+
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(&store, &[std_id], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty());
@@ -51,14 +90,23 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         TargetProfile::Full
     )
     .is_empty());
+    let unit_fir = fir_lowerer.lower_package(&unit.package);
+    let entry = unit_fir.entry.expect("package should have entry");
 
     let id = store.insert(unit);
-    let entry = store
-        .get(id)
-        .and_then(|unit| unit.package.entry.as_ref())
-        .expect("package should have entry");
-    let lookup = Lookup { store: &store };
-    eval_expr(entry, &lookup, id, out).map_err(|e| e.0)
+
+    let mut fir_store = IndexMap::new();
+    fir_store.insert(
+        map_hir_package_to_fir(qsc_hir::hir::PackageId::CORE),
+        core_fir,
+    );
+    fir_store.insert(map_hir_package_to_fir(std_id), std_fir);
+    fir_store.insert(map_hir_package_to_fir(id), unit_fir);
+
+    let lookup = Lookup {
+        fir_store: &fir_store,
+    };
+    eval_expr(entry, &lookup, map_hir_package_to_fir(id), out).map_err(|e| e.0)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {

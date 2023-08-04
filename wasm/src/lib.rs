@@ -18,6 +18,7 @@ use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
+mod debug_service;
 mod language_service;
 mod logging;
 
@@ -25,12 +26,6 @@ mod logging;
 pub fn git_hash() -> JsValue {
     let git_hash = env!("QSHARP_GIT_HASH");
     JsValue::from_str(git_hash)
-}
-
-impl VSDiagnostic {
-    pub fn json(&self) -> serde_json::Value {
-        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
-    }
 }
 
 fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {

@@ -83,6 +83,10 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
         let index: usize = key.into();
         self.values.get_mut(index).and_then(Option::as_mut)
     }
+
+    pub fn clear(&mut self) {
+        self.values.clear();
+    }
 }
 
 impl<K, V: Clone> Clone for IndexMap<K, V> {
