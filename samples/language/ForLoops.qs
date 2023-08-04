@@ -2,8 +2,8 @@
 /// For Loops
 ///
 /// # Description
-/// For-loops are a basic looping looping structure in Q# for looping
-/// over `Range` objects, arrays, and slices over arrays.
+/// For-loops are a basic looping structure in Q# for looping
+/// over the elements of `Range` objects, arrays, and array slices.
 /// They can be used in both `operation` and `function` callables.
 namespace MyQuantumApp {
 
