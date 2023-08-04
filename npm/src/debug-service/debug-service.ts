@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 
 import type {
-  BreakpointSpan,
+  IBreakpointSpan,
   DebugService,
-  StackFrame,
+  IStackFrame,
 } from "../../lib/node/qsc_wasm.cjs";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
 import { log } from "../log.js";
+import { mapUtf8UnitsToUtf16Units } from "../vsdiagnostic.js";
 import { IServiceProxy } from "../worker-proxy.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
@@ -16,8 +17,8 @@ type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the debugger in the same thread the result will be synchronous (a resolved promise).
 export interface IDebugService {
   loadSource(path: string, source: string): Promise<boolean>;
-  getBreakpoints(path: string): Promise<BreakpointSpan[]>;
-  getStackFrames(): Promise<StackFrame[]>;
+  getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
+  getStackFrames(): Promise<IStackFrame[]>;
   evalContinue(
     bps: number[],
     eventHandler: IQscEventTarget
@@ -30,18 +31,40 @@ export type IDebugServiceWorker = IDebugService & IServiceProxy;
 export class QSharpDebugService implements IDebugService {
   private debugService: DebugService;
 
+  // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
+  private code: { [uri: string]: string } = {};
+
   constructor(wasm: QscWasm) {
     log.info("Constructing a QSharpDebugService instance");
     this.debugService = new wasm.DebugService();
   }
 
   async loadSource(path: string, source: string): Promise<boolean> {
+    this.code[path] = source;
     return this.debugService.load_source(path, source);
   }
 
-  async getStackFrames(): Promise<StackFrame[]> {
+  async getStackFrames(): Promise<IStackFrame[]> {
     const stack_frame_list = this.debugService.get_stack_frames();
-    const stack_frames: StackFrame[] = stack_frame_list.frames;
+
+    const stack_frames: IStackFrame[] = stack_frame_list.frames.map(
+      (frame: IStackFrame) => {
+        if (frame.path in this.code) {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [frame.lo, frame.hi],
+            this.code[frame.path]
+          );
+          const result = {} as IStackFrame;
+          result.name = frame.name;
+          result.path = frame.path;
+          result.lo = mappedSpan[frame.lo];
+          result.hi = mappedSpan[frame.hi];
+          return result;
+        } else {
+          return frame;
+        }
+      }
+    );
     return stack_frames;
   }
 
@@ -54,9 +77,24 @@ export class QSharpDebugService implements IDebugService {
     return this.debugService.eval_continue(event_cb, ids);
   }
 
-  async getBreakpoints(path: string): Promise<BreakpointSpan[]> {
+  async getBreakpoints(path: string): Promise<IBreakpointSpan[]> {
     const breakpoint_list = this.debugService.get_breakpoints(path);
-    const breakpoint_spans: BreakpointSpan[] = breakpoint_list.spans;
+    // Get a map of the Rust source positions to the JavaScript source positions
+    const positions: number[] = [];
+    breakpoint_list.spans.forEach((span: IBreakpointSpan) => {
+      positions.push(span.lo);
+      positions.push(span.hi);
+    });
+    const positionMap = mapUtf8UnitsToUtf16Units(positions, this.code[path]);
+    const breakpoint_spans: IBreakpointSpan[] = breakpoint_list.spans.map(
+      (span: IBreakpointSpan) => {
+        const result = {} as IBreakpointSpan;
+        result.id = span.id;
+        result.lo = positionMap[span.lo];
+        result.hi = positionMap[span.hi];
+        return result;
+      }
+    );
     return breakpoint_spans;
   }
 

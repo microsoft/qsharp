@@ -143,8 +143,14 @@ impl Default for DebugService {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IBreakpointSpanList: &'static str = r#"
+export interface IBreakpointSpan {
+    id: number;
+    lo: number;
+    hi: number;
+}
+
 export interface IBreakpointSpanList {
-    spans: Array<BreakpointSpan>
+    spans: Array<IBreakpointSpan>
 }
 "#;
 
@@ -163,8 +169,15 @@ pub struct BreakpointSpan {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IStackFrameList: &'static str = r#"
+export interface IStackFrame {
+    name: string;
+    path: string;
+    lo: number;
+    hi: number;
+}
+
 export interface IStackFrameList {
-    frames: Array<StackFrame>
+    frames: Array<IStackFrame>
 }
 "#;
 
