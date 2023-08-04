@@ -12,6 +12,12 @@ use crate::qsc_utils::{map_offset, span_contains, Compilation};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 
+const PRELUDE: [&str; 3] = [
+    "Microsoft.Quantum.Canon",
+    "Microsoft.Quantum.Core",
+    "Microsoft.Quantum.Intrinsic",
+];
+
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
@@ -35,6 +41,11 @@ pub(crate) fn get_completions(
         current_namespace_name: None,
     };
     context_finder.visit_package(&compilation.unit.ast.package);
+
+    // The PRELUDE namespaces are always implicitly opened.
+    context_finder
+        .opens
+        .extend(PRELUDE.into_iter().map(|ns| (Rc::from(ns), None)));
 
     // We don't attempt to be comprehensive or accurate when determining completions,
     // since that's not really possible without more sophisticated error recovery
