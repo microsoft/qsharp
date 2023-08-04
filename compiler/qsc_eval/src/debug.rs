@@ -4,11 +4,13 @@
 use qsc_data_structures::span::Span;
 
 use crate::{val::FunctorApp, GlobalId};
-use qsc_hir::hir::PackageId;
+use qsc_fir::fir;
+use qsc_fir::fir::PackageId;
+use qsc_hir::hir;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Frame {
-    pub span: Option<Span>,
+    pub span: Span,
     pub id: GlobalId,
     pub caller: PackageId,
     pub functor: FunctorApp,
@@ -37,4 +39,14 @@ impl CallStack {
     pub fn pop_frame(&mut self) -> Option<Frame> {
         self.frames.pop()
     }
+}
+
+#[must_use]
+pub fn map_hir_package_to_fir(package: hir::PackageId) -> fir::PackageId {
+    fir::PackageId::from(<hir::PackageId as Into<usize>>::into(package))
+}
+
+#[must_use]
+pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
+    hir::PackageId::from(<fir::PackageId as Into<usize>>::into(package))
 }

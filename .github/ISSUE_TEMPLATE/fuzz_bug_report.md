@@ -29,12 +29,14 @@ The fragment of interest starts with "panicked at".
 
 </details>
 
-<details><summary><b>The commit in <code>main</code> the bug has been found in:</b> Click.</summary>
-If the developers fail to repro the bug in the latest <code>main</code> then the commit info below can help them to make sure
-that they are using the correct way to repro. If the bug is reproducible in the commit below, but not in latest <code>main</code>,
-then the bug is likely fixed already.
+<details><summary><b>The branch/commit the bug has been found in:</b> Click.</summary>
+If the developers fail to repro the bug in the latest <code>main</code> then the branch/commit info below can help them to make sure
+that they are using the correct way to repro. If the bug is reproducible in the branch/commit below, but not in latest <code>main</code>,
+then the bug is likely fixed already or is not in the <code>main</code> branch.
 
 ```log
+Branch: {{ env.BRANCH_INFO }}
+
 {{ env.COMMIT_INFO }}
 ```
 
