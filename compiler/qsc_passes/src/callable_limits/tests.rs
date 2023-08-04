@@ -3,7 +3,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, Target};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use qsc_hir::visit::Visitor;
 
 use crate::callable_limits::CallableLimits;
@@ -11,7 +11,7 @@ use crate::callable_limits::CallableLimits;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let unit = compile(&store, &[], sources, Target::Full);
+    let unit = compile(&store, &[], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let mut call_limits = CallableLimits::default();

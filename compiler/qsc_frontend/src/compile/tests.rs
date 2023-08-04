@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::Target;
+use crate::compile::TargetProfile;
 
 use super::{compile, Error, PackageStore, SourceMap};
 use expect_test::expect;
@@ -69,7 +69,7 @@ fn one_file_no_entry() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
@@ -98,7 +98,7 @@ fn one_file_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     let errors: Vec<_> = unit
         .errors
@@ -141,7 +141,7 @@ fn two_files_dependency() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
@@ -180,7 +180,7 @@ fn two_files_mutual_dependency() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
@@ -217,7 +217,7 @@ fn two_files_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     let errors: Vec<_> = unit
         .errors
@@ -253,7 +253,7 @@ fn entry_call_operation() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
@@ -288,7 +288,7 @@ fn entry_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     assert_eq!(
         ("<entry>", Span { lo: 4, hi: 5 }),
@@ -330,7 +330,7 @@ fn replace_node() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
@@ -407,7 +407,7 @@ fn insert_core_call() {
     );
 
     let store = PackageStore::new(super::core());
-    let mut unit = compile(&store, &[], sources, Target::Full);
+    let mut unit = compile(&store, &[], sources, TargetProfile::Full);
     let mut inserter = Inserter { core: store.core() };
     inserter.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
@@ -452,7 +452,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1, Target::Full));
+    let package1 = store.insert(compile(&store, &[], sources1, TargetProfile::Full));
 
     let sources2 = SourceMap::new(
         [(
@@ -468,7 +468,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, Target::Full);
+    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
 
     let foo_id = LocalItemId::from(1);
     let ItemKind::Callable(callable) = &unit2
@@ -508,7 +508,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1, Target::Full));
+    let package1 = store.insert(compile(&store, &[], sources1, TargetProfile::Full));
 
     let sources2 = SourceMap::new(
         [(
@@ -524,7 +524,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, Target::Full);
+    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
 
     let ItemKind::Callable(callable) = &unit2
         .package
@@ -542,7 +542,7 @@ fn package_dependency_internal() {
 #[test]
 fn std_dependency() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, Target::Full));
+    let std = store.insert(super::std(&store, TargetProfile::Full));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -561,14 +561,14 @@ fn std_dependency() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, Target::Full);
+    let unit = compile(&store, &[std], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
 fn std_dependency_base_profile() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, Target::Base));
+    let std = store.insert(super::std(&store, TargetProfile::Base));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -587,14 +587,14 @@ fn std_dependency_base_profile() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, Target::Base);
+    let unit = compile(&store, &[std], sources, TargetProfile::Base);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
 fn introduce_prelude_ambiguity() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, Target::Full));
+    let std = store.insert(super::std(&store, TargetProfile::Full));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -609,7 +609,7 @@ fn introduce_prelude_ambiguity() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, Target::Full);
+    let unit = compile(&store, &[std], sources, TargetProfile::Full);
     let errors: Vec<Error> = unit.errors;
     assert!(
         errors.len() == 1

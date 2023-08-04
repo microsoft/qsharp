@@ -5,21 +5,26 @@
 
 #[cfg(feature = "do_fuzz")]
 use libfuzzer_sys::fuzz_target;
-use qsc::{hir::PackageId, PackageStore, SourceMap, Target};
+use qsc::{hir::PackageId, PackageStore, SourceMap, TargetProfile};
 
 fn compile(data: &[u8]) {
     if let Ok(fuzzed_code) = std::str::from_utf8(data) {
         thread_local! {
             static STORE_STD: (PackageStore, PackageId) = {
                 let mut store = PackageStore::new(qsc::compile::core());
-                let std = store.insert(qsc::compile::std(&store, Target::Full));
+                let std = store.insert(qsc::compile::std(&store, TargetProfile::Full));
                 (store, std)
             };
         }
         let sources = SourceMap::new([("fuzzed_code".into(), fuzzed_code.into())], None);
         STORE_STD.with(|(store, std)| {
-            let mut _unit =
-                qsc::compile::compile(store, &[*std], sources, qsc::PackageType::Lib, Target::Full);
+            let mut _unit = qsc::compile::compile(
+                store,
+                &[*std],
+                sources,
+                qsc::PackageType::Lib,
+                TargetProfile::Full,
+            );
         });
     }
 }

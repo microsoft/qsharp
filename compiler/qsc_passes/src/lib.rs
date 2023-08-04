@@ -21,7 +21,7 @@ use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
 use qsc_frontend::{
-    compile::{CompileUnit, Target},
+    compile::{CompileUnit, TargetProfile},
     incremental::Fragment,
 };
 use qsc_hir::{
@@ -63,7 +63,7 @@ pub fn run_default_passes(
     core: &Table,
     unit: &mut CompileUnit,
     package_type: PackageType,
-    target: Target,
+    target: TargetProfile,
 ) -> Vec<Error> {
     let mut call_limits = CallableLimits::default();
     call_limits.visit_package(&unit.package);
@@ -97,7 +97,7 @@ pub fn run_default_passes(
     ReplaceQubitAllocation::new(core, &mut unit.assigner).visit_package(&mut unit.package);
     Validator::default().visit_package(&unit.package);
 
-    let base_prof_errors = if target == Target::Base {
+    let base_prof_errors = if target == TargetProfile::Base {
         baseprofck::check_base_profile_compliance(&unit.package)
     } else {
         Vec::new()

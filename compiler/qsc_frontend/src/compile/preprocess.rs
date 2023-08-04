@@ -7,10 +7,10 @@ use qsc_ast::{
     mut_visit::MutVisitor,
 };
 
-use super::Target;
+use super::TargetProfile;
 
 pub(super) struct Conditional {
-    pub(super) target: Target,
+    pub(super) target: TargetProfile,
 }
 
 impl MutVisitor for Conditional {
@@ -30,15 +30,17 @@ impl MutVisitor for Conditional {
     }
 }
 
-fn matches_target(attrs: &[Box<Attr>], target: Target) -> bool {
+fn matches_target(attrs: &[Box<Attr>], target: TargetProfile) -> bool {
     attrs.iter().all(|attr| {
-        if attr.name.name.as_ref() == "TargetProfile" {
+        if attr.name.name.as_ref() == "Target" {
             if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
                 match inner.kind.as_ref() {
-                    ExprKind::Path(path) => match Target::from_str(path.name.name.as_ref()) {
-                        Ok(t) => t == target,
-                        Err(_) => true,
-                    },
+                    ExprKind::Path(path) => {
+                        match TargetProfile::from_str(path.name.name.as_ref()) {
+                            Ok(t) => t == target,
+                            Err(_) => true,
+                        }
+                    }
                     _ => true,
                 }
             } else {

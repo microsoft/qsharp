@@ -33,12 +33,12 @@ use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Target {
+pub enum TargetProfile {
     Full,
     Base,
 }
 
-impl Target {
+impl TargetProfile {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
         match self {
@@ -53,12 +53,12 @@ impl Target {
     }
 }
 
-impl FromStr for Target {
+impl FromStr for TargetProfile {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Full" => Ok(Target::Full),
+            "Full" => Ok(TargetProfile::Full),
             "Base" => Ok(Self::Base),
             _ => Err(()),
         }
@@ -262,7 +262,7 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
-    target: Target,
+    target: TargetProfile,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
 
@@ -330,7 +330,7 @@ pub fn core() -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(&store, &[], sources, Target::Base);
+    let mut unit = compile(&store, &[], sources, TargetProfile::Base);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -341,7 +341,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, target: Target) -> CompileUnit {
+pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
     let sources = SourceMap::new(
         [
             (

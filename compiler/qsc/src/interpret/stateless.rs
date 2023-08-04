@@ -14,7 +14,7 @@ use qsc_eval::{
     val::{GlobalId, Value},
     Env, Global, GlobalLookup, State,
 };
-use qsc_frontend::compile::{PackageStore, Source, SourceMap, Target};
+use qsc_frontend::compile::{PackageStore, Source, SourceMap, TargetProfile};
 use qsc_hir::hir::{Expr, ItemKind, PackageId};
 use qsc_passes::PackageType;
 use thiserror::Error;
@@ -80,7 +80,7 @@ impl Interpreter {
         let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
         if std {
-            dependencies.push(store.insert(compile::std(&store, Target::Full)));
+            dependencies.push(store.insert(compile::std(&store, TargetProfile::Full)));
         }
 
         let (unit, errors) = compile(
@@ -88,7 +88,7 @@ impl Interpreter {
             &dependencies,
             sources,
             PackageType::Exe,
-            Target::Full,
+            TargetProfile::Full,
         );
         if errors.is_empty() {
             let package = store.insert(unit);

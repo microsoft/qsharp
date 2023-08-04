@@ -3,15 +3,15 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, Target};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 
 use crate::baseprofck::check_base_profile_compliance;
 
 fn check(expr: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store, Target::Full));
+    let std = store.insert(compile::std(&store, TargetProfile::Full));
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[std], sources, Target::Full);
+    let unit = compile(&store, &[std], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = check_base_profile_compliance(&unit.package);

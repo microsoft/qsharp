@@ -23,6 +23,6 @@ pub mod ast {
 
 pub use qsc_data_structures::span::Span;
 
-pub use qsc_frontend::compile::Target;
+pub use qsc_frontend::compile::TargetProfile;
 
 pub use qsc_passes::PackageType;

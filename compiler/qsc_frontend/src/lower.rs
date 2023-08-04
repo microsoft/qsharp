@@ -6,7 +6,7 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    compile::Target,
+    compile::TargetProfile,
     resolve::{self, Names},
     typeck::{self, convert},
 };
@@ -25,7 +25,7 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
-    #[diagnostic(help("supported attributes are: EntryPoint, TargetProfile"))]
+    #[diagnostic(help("supported attributes are: EntryPoint, Target"))]
     #[diagnostic(code("Qsc.LowerAst.UnknownAttr"))]
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
@@ -212,10 +212,10 @@ impl With<'_> {
                     None
                 }
             }
-        } else if attr.name.name.as_ref() == "TargetProfile" {
+        } else if attr.name.name.as_ref() == "Target" {
             if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
                 if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                    if Target::is_target_str(path.name.name.as_ref())))
+                    if TargetProfile::is_target_str(path.name.name.as_ref())))
             {
                 self.lowerer
                     .errors

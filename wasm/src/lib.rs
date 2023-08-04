@@ -12,7 +12,7 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, Target,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 use serde_json::json;
 use std::fmt::Write;
@@ -37,15 +37,20 @@ fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
     thread_local! {
         static STORE_STD: (PackageStore, PackageId) = {
             let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store, Target::Full));
+            let std = store.insert(compile::std(&store, TargetProfile::Full));
             (store, std)
         };
     }
 
     STORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (unit, errors) =
-            compile::compile(store, &[*std], sources, PackageType::Exe, Target::Full);
+        let (unit, errors) = compile::compile(
+            store,
+            &[*std],
+            sources,
+            PackageType::Exe,
+            TargetProfile::Full,
+        );
         (
             unit.package,
             errors.into_iter().map(|error| (&error).into()).collect(),

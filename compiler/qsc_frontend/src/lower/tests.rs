@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, PackageStore, SourceMap, Target};
+use crate::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
@@ -11,7 +11,7 @@ fn check_hir(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
     expect.assert_eq(&unit.package.to_string());
 }
@@ -22,7 +22,7 @@ fn check_errors(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        Target::Full,
+        TargetProfile::Full,
     );
 
     let lower_errors: Vec<_> = unit
@@ -89,7 +89,7 @@ fn test_target_profile_base_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @TargetProfile(Base)
+                @Target(Base)
                 operation Foo() : Unit {
                     body ... {}
                 }
@@ -106,7 +106,7 @@ fn test_target_profile_full_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @TargetProfile(Full)
+                @Target(Full)
                 operation Foo() : Unit {
                     body ... {}
                 }
@@ -123,7 +123,7 @@ fn test_target_profile_attr_wrong_args() {
     check_errors(
         indoc! {"
             namespace input {
-                @TargetProfile(Bar)
+                @Target(Bar)
                 operation Foo() : Unit {
                     body ... {}
                 }

@@ -3,7 +3,7 @@
 
 use crate::error::WithSource;
 use miette::{Diagnostic, Report};
-use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap, Target};
+use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap, TargetProfile};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
@@ -22,7 +22,7 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     package_type: PackageType,
-    target: Target,
+    target: TargetProfile,
 ) -> (CompileUnit, Vec<Error>) {
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, target);
     let mut errors = Vec::new();
@@ -66,7 +66,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, target: Target) -> CompileUnit {
+pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
     let mut unit = qsc_frontend::compile::std(store, target);
     let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, target);
     if pass_errors.is_empty() {
