@@ -22,7 +22,7 @@ import {
 
 import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
-import { BreakpointSpan, IDebugServiceWorker, log, Span } from "qsharp";
+import { BreakpointSpan, IDebugServiceWorker, log } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 
@@ -32,6 +32,10 @@ const ConfigurationDelayMS = 1000;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+class Span {
+  constructor(public lo: number, public hi: number) {}
 }
 
 export class QscDebugSession extends LoggingDebugSession {
