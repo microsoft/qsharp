@@ -34,10 +34,6 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-class Span {
-  constructor(public lo: number, public hi: number) {}
-}
-
 export class QscDebugSession extends LoggingDebugSession {
   private static threadID = 1;
 
@@ -410,7 +406,9 @@ export class QscDebugSession extends LoggingDebugSession {
       const locations = this.breakpointLocations.get(fileUri.path) ?? [];
       log.trace(`setBreakPointsRequest: got locations %O`, locations);
       // convert the request line/column to file offset for debugger
-      const bpOffsets = (args.breakpoints ?? []).map((sourceBreakpoint) => {
+      const bpOffsets: [lo: number, hi: number][] = (
+        args.breakpoints ?? []
+      ).map((sourceBreakpoint) => {
         const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
         const lineRange = file.lineAt(line).range;
         const startCol = sourceBreakpoint.column
@@ -420,16 +418,16 @@ export class QscDebugSession extends LoggingDebugSession {
         const startOffset = file.offsetAt(startPos);
         const endOffset = file.offsetAt(lineRange.end);
 
-        return new Span(startOffset, endOffset);
+        return [startOffset, endOffset];
       });
 
       // We should probably ensure we don't return duplicate
       // spans from the debugger, but for now we'll just filter them out
-      const uniqOffsets = [];
+      const uniqOffsets: [lo: number, hi: number][] = [];
       for (const bpOffset of bpOffsets) {
         if (
           uniqOffsets.findIndex(
-            (u) => u.lo == bpOffset.lo && u.hi == bpOffset.hi
+            (u) => u[0] == bpOffset[0] && u[1] == bpOffset[1]
           ) == -1
         ) {
           uniqOffsets.push(bpOffset);
@@ -443,7 +441,7 @@ export class QscDebugSession extends LoggingDebugSession {
           // Check if the location is within the breakpoint span
           // The span from the API is wider than the HIR as it includes
           // the entire line
-          if (bpOffset.lo <= location.lo && location.hi <= bpOffset.hi) {
+          if (bpOffset[0] <= location.lo && location.hi <= bpOffset[1]) {
             const bp = this.createBreakpoint(
               location.id,
               file.positionAt(location.lo),
