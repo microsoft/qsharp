@@ -221,18 +221,6 @@ impl With<'_> {
                     .errors
                     .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
             }
-            // if let ast::ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
-            //     if !matches!(inner.kind.as_ref(), ast::ExprKind::Path(path) if Target::is_target_str(path.name.name.as_ref()))
-            //     {
-            //         self.lowerer
-            //             .errors
-            //             .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
-            //     }
-            // } else {
-            //     self.lowerer
-            //         .errors
-            //         .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
-            // }
             None
         } else {
             self.lowerer.errors.push(Error::UnknownAttr(
