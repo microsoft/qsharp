@@ -222,14 +222,6 @@ export class QscDebugSession extends LoggingDebugSession {
           ) as DebugProtocol.StoppedEvent;
           evt.body.hitBreakpointIds = [result];
           this.sendEvent(evt);
-
-          this.sendEvent(
-            // mark the breakpoint as 'verified'
-            new BreakpointEvent("changed", {
-              verified: true,
-              id: result,
-            } as DebugProtocol.Breakpoint)
-          );
         } else {
           this.endSession(`ending session`);
         }
@@ -288,12 +280,6 @@ export class QscDebugSession extends LoggingDebugSession {
           log.trace(`raising breakpoint event`);
           this.sendEvent(
             new StoppedEvent("breakpoint", QscDebugSession.threadID)
-          );
-          this.sendEvent(
-            new BreakpointEvent("changed", {
-              verified: true,
-              id: res,
-            } as DebugProtocol.Breakpoint)
           );
         } else {
           this.endSession(`ending session`);
