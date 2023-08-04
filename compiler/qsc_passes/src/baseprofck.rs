@@ -38,7 +38,7 @@ pub enum Error {
 
     #[error("intrinsic operations that return types other than Result or Unit are not supported")]
     #[diagnostic(help(
-        "intrinsic operations that return values other than Result or Unit are not supported when performing base profile QIR generation"
+        "intrinsic operations that return types other than Result or Unit are not supported when performing base profile QIR generation"
     ))]
     #[diagnostic(code("Qsc.BaseProfCk.UnsupportedIntrinsic"))]
     UnsupportedIntrinsic(#[label] Span),
