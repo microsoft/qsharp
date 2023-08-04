@@ -4,7 +4,7 @@
 use indenter::{indented, Format, Indented};
 use qsc_data_structures::span::Span;
 
-use crate::hir::{CallableKind, FieldPath, Functor, ItemId, Res};
+use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -217,12 +217,6 @@ impl From<usize> for ParamId {
                 .try_into()
                 .expect("Type Parameter ID does not fit into u32"),
         )
-    }
-}
-
-impl From<ParamId> for usize {
-    fn from(value: ParamId) -> Self {
-        value.0 as usize
     }
 }
 
@@ -485,28 +479,6 @@ impl Udt {
         Some(field)
     }
 
-    /// The field with the given name. Returns [None] if this user-defined type does not
-    /// have a field with the given name.
-    #[must_use]
-    pub fn find_field_by_name(&self, name: &str) -> Option<&UdtField> {
-        Self::find_field_by_name_rec(&self.definition, name)
-    }
-
-    fn find_field_by_name_rec<'a>(def: &'a UdtDef, name: &str) -> Option<&'a UdtField> {
-        match &def.kind {
-            UdtDefKind::Field(field) => field.name.as_ref().and_then(|field_name| {
-                if field_name.as_ref() == name {
-                    Some(field)
-                } else {
-                    None
-                }
-            }),
-            UdtDefKind::Tuple(defs) => defs
-                .iter()
-                .find_map(|def| Self::find_field_by_name_rec(def, name)),
-        }
-    }
-
     /// The type of the field at the given path. Returns [None] if the path is not valid for this
     /// user-defined type.
     #[must_use]
@@ -518,7 +490,8 @@ impl Udt {
     /// have a field with the given name.
     #[must_use]
     pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
-        self.find_field_by_name(name).map(|field| &field.ty)
+        let path = self.field_path(name)?;
+        self.field_ty(&path)
     }
 }
 
@@ -652,14 +625,14 @@ impl Display for InferFunctorId {
     }
 }
 
-impl From<usize> for InferFunctorId {
-    fn from(value: usize) -> Self {
-        InferFunctorId(value)
-    }
-}
-
 impl From<InferFunctorId> for usize {
     fn from(value: InferFunctorId) -> Self {
         value.0
+    }
+}
+
+impl From<usize> for InferFunctorId {
+    fn from(value: usize) -> Self {
+        InferFunctorId(value)
     }
 }

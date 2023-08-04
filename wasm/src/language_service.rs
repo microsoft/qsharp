@@ -192,6 +192,12 @@ pub struct VSDiagnostic {
     pub code: Option<VSDiagnosticCode>,
 }
 
+impl VSDiagnostic {
+    pub fn json(&self) -> serde_json::Value {
+        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
+    }
+}
+
 impl<T> From<&T> for VSDiagnostic
 where
     T: Diagnostic,
