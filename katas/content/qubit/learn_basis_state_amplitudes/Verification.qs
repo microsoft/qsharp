@@ -14,6 +14,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("The solution was incorrect for at least one test case.");
         }
+        ResetAll(target);
         isCorrect
     }
 }
