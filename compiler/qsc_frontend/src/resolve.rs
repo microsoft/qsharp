@@ -332,6 +332,7 @@ impl AstVisitor<'_> for With<'_> {
         });
     }
 
+    // We do not perform name resolution on attributes, as those are checking during lowering.
     fn visit_attr(&mut self, _: &ast::Attr) {}
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
