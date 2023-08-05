@@ -810,6 +810,7 @@ dependencies = [
  "qsc_codegen",
  "qsc_data_structures",
  "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
@@ -834,7 +835,9 @@ dependencies = [
  "indoc 2.0.0",
  "num-bigint",
  "num-complex",
+ "qsc_data_structures",
  "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
@@ -858,12 +861,22 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "qsc_data_structures",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
  "quantum-sparse-sim",
  "rand",
  "thiserror",
+]
+
+[[package]]
+name = "qsc_fir"
+version = "0.0.0"
+dependencies = [
+ "indenter",
+ "num-bigint",
+ "qsc_data_structures",
 ]
 
 [[package]]

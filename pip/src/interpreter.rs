@@ -7,13 +7,13 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{create_exception, exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
 use qsc::{
-    hir,
+    fir,
     interpret::{
         output::{Error, Receiver},
         stateful::{self, LineError},
         Value,
     },
-    SourceMap,
+    PackageType, SourceMap,
 };
 use std::{fmt::Write, sync::Arc};
 
@@ -39,7 +39,7 @@ impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        match stateful::Interpreter::new(true, SourceMap::default()) {
+        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => {
                 let mut message = String::new();
@@ -154,10 +154,10 @@ impl IntoPy<PyObject> for ValueWrapper {
             }
             .into_py(py),
             Value::Pauli(val) => match val {
-                hir::Pauli::I => Pauli::I.into_py(py),
-                hir::Pauli::X => Pauli::X.into_py(py),
-                hir::Pauli::Y => Pauli::Y.into_py(py),
-                hir::Pauli::Z => Pauli::Z.into_py(py),
+                fir::Pauli::I => Pauli::I.into_py(py),
+                fir::Pauli::X => Pauli::X.into_py(py),
+                fir::Pauli::Y => Pauli::Y.into_py(py),
+                fir::Pauli::Z => Pauli::Z.into_py(py),
             },
             Value::Tuple(val) => {
                 if val.is_empty() {

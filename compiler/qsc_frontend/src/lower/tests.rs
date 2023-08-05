@@ -1931,3 +1931,41 @@ fn nested_params() {
                         ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn lambda_with_invalid_free_variable() {
+    check_hir(
+        "namespace Test{ operation T(): Unit {body fakelocal{() => fakelocal;}}}",
+        &expect![[r#"
+            Package:
+                Item 0 [0-71] (Public):
+                    Namespace (Ident 17 [10-14] "Test"): Item 1
+                Item 1 [16-70] (Public):
+                    Parent: 0
+                    Callable 0 [16-70] (operation):
+                        name: Ident 1 [26-27] "T"
+                        input: Pat 2 [27-29] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [37-69]: Impl:
+                            Block 4 [51-69] [Type Unit]:
+                                Stmt 5 [52-68]: Semi: Expr 6 [52-67] [Type (Unit => Unit)]: Closure([9], 2)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [52-67] (Internal):
+                    Parent: 1
+                    Callable 12 [52-67] (operation):
+                        name: Ident 13 [0-0] "lambda"
+                        input: Pat 11 [52-67] [Type (Unit,)]: Tuple:
+                            Pat 7 [52-54] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 14 [58-67]: Impl:
+                            Block 15 [58-67] [Type Unit]:
+                                Stmt 16 [58-67]: Expr: Expr 8 [58-67] [Type Unit]: Var: Local 10
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}

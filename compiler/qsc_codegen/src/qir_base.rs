@@ -6,16 +6,18 @@ mod tests;
 
 use num_bigint::BigUint;
 use num_complex::Complex;
+use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
-    debug::CallStack,
+    debug::{map_hir_package_to_fir, Frame},
     eval_expr,
     output::GenericReceiver,
     val::{self, GlobalId, Value},
-    Env, Error, Global, GlobalLookup, State,
+    Env, Error, Global, NodeLookup, State,
 };
+use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
 use qsc_frontend::compile::PackageStore;
-use qsc_hir::hir::{ItemKind, PackageId};
+use qsc_hir::hir::{self};
 use quantum_sparse_sim::QuantumSim;
 use std::fmt::Write;
 
@@ -27,22 +29,32 @@ const POSTFIX: &str = include_str!("./qir_base/postfix.ll");
 /// This function will return an error if execution was unable to complete.
 pub fn generate_qir(
     store: &PackageStore,
-    package: PackageId,
-) -> Result<String, (Error, CallStack)> {
+    package: hir::PackageId,
+) -> Result<String, (Error, Vec<Frame>)> {
+    let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
+    let mut fir_store = IndexMap::new();
+    let package = map_hir_package_to_fir(package);
     let mut sim = BaseProfSim::default();
     write!(&mut sim.instrs, "{PREFIX}").expect("writing to string should succeed");
-    let unit = store.get(package).expect("store should have package");
-    let entry_expr = unit
-        .package
-        .entry
-        .as_ref()
-        .expect("entry should be present");
+
+    for (id, unit) in store.iter() {
+        fir_store.insert(
+            map_hir_package_to_fir(id),
+            fir_lowerer.lower_package(&unit.package),
+        );
+    }
+
+    let unit = fir_store.get(package).expect("store should have package");
+    let entry_expr = unit.entry.expect("package should have entry");
+
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     let result = eval_expr(
         &mut State::new(package),
         entry_expr,
-        &Lookup { store },
+        &Lookup {
+            fir_store: &fir_store,
+        },
         &mut Env::with_empty_scope(),
         &mut sim,
         &mut out,
@@ -58,19 +70,58 @@ pub fn generate_qir(
 }
 
 struct Lookup<'a> {
-    store: &'a PackageStore,
+    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
 }
 
-impl<'a> GlobalLookup<'a> for Lookup<'a> {
-    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
-        self.store
-            .get(id.package)
-            .and_then(|unit| match &unit.package.items.get(id.item)?.kind {
-                ItemKind::Callable(callable) => Some(Global::Callable(callable)),
-                ItemKind::Namespace(..) => None,
-                ItemKind::Ty(..) => Some(Global::Udt),
-            })
+impl<'a> Lookup<'a> {
+    fn get_package(&self, package: PackageId) -> &qsc_fir::fir::Package {
+        self.fir_store
+            .get(package)
+            .expect("Package should be in FIR store")
     }
+}
+
+impl<'a> NodeLookup for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
+        get_global(self.fir_store, id)
+    }
+    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
+        self.get_package(package)
+            .blocks
+            .get(id)
+            .expect("BlockId should have been lowered")
+    }
+    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr {
+        self.get_package(package)
+            .exprs
+            .get(id)
+            .expect("ExprId should have been lowered")
+    }
+    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat {
+        self.get_package(package)
+            .pats
+            .get(id)
+            .expect("PatId should have been lowered")
+    }
+    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt {
+        self.get_package(package)
+            .stmts
+            .get(id)
+            .expect("StmtId should have been lowered")
+    }
+}
+
+pub(super) fn get_global(
+    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
+    id: GlobalId,
+) -> Option<Global> {
+    fir_store
+        .get(id.package)
+        .and_then(|package| match &package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
 }
 
 #[derive(Default)]

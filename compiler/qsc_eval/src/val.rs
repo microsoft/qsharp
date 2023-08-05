@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use num_bigint::BigInt;
-use qsc_hir::hir::{LocalItemId, PackageId, Pauli};
+use qsc_fir::fir::{LocalItemId, PackageId, Pauli};
 use std::{
     fmt::{self, Display, Formatter},
     iter,

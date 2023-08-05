@@ -9,6 +9,7 @@ mod tests;
 pub mod backend;
 pub mod debug;
 mod intrinsic;
+pub mod lower;
 pub mod output;
 pub mod val;
 
@@ -19,14 +20,13 @@ use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{
-    self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
-    NodeId, PackageId, Pat, PatKind, PrimField, Res, SpecBody, SpecGen, Stmt, StmtKind,
-    StringComponent, UnOp,
+use qsc_fir::fir::{
+    self, BinOp, CallableDecl, ExprKind, Field, Functor, Lit, LocalItemId, Mutability, NodeId,
+    PackageId, PatKind, PrimField, Res, SpecBody, SpecGen, StmtKind, StringComponent, UnOp,
 };
+use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
 use std::{
     collections::{hash_map::Entry, HashMap},
-    convert::AsRef,
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
@@ -128,33 +128,52 @@ impl Display for Spec {
 /// Evaluates the given stmt with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_stmt<'a>(
-    stmt: &'a Stmt,
-    globals: &impl GlobalLookup<'a>,
+pub fn eval_stmt(
+    stmt: StmtId,
+    globals: &impl NodeLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     package: PackageId,
     receiver: &mut impl Receiver,
-) -> Result<Value, (Error, CallStack)> {
+) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
-    state.eval(globals, env, sim, receiver)
+    state.resume(globals, env, sim, receiver, &[])?;
+    Ok(state.pop_val())
 }
 
 /// Evaluates the given expr with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr<'a, 'receiver>(
-    state: &mut State<'a>,
-    expr: &'a Expr,
-    globals: &impl GlobalLookup<'a>,
+pub fn eval_expr(
+    state: &mut State,
+    expr: ExprId,
+    globals: &impl NodeLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-
-    out: &'receiver mut impl Receiver,
-) -> Result<Value, (Error, CallStack)> {
+    out: &mut impl Receiver,
+) -> Result<Value, (Error, Vec<Frame>)> {
     state.push_expr(expr);
-    state.eval(globals, env, sim, out)
+    state.resume(globals, env, sim, out, &[])?;
+    Ok(state.pop_val())
+}
+
+pub fn eval_push_expr(state: &mut State, expr: ExprId) {
+    state.push_expr(expr);
+}
+
+/// Continues evaluation given current state with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn eval_resume(
+    state: &mut State,
+    globals: &impl NodeLookup,
+    env: &mut Env,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    out: &mut impl Receiver,
+    breakpoints: &[StmtId],
+) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
+    state.resume(globals, env, sim, out, breakpoints)
 }
 
 trait AsIndex {
@@ -221,8 +240,12 @@ pub enum Global<'a> {
     Udt,
 }
 
-pub trait GlobalLookup<'a> {
-    fn get(&self, id: GlobalId) -> Option<Global<'a>>;
+pub trait NodeLookup {
+    fn get(&self, id: GlobalId) -> Option<Global>;
+    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block;
+    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr;
+    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat;
+    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt;
 }
 
 #[derive(Default)]
@@ -267,46 +290,47 @@ impl Env {
     }
 }
 
-enum Cont<'a> {
-    Action(Action<'a>),
-    Expr(&'a Expr),
+enum Cont {
+    Action(Action),
+    Expr(ExprId),
     Frame(usize),
     Scope,
-    Stmt(&'a Stmt),
+    Stmt(StmtId),
 }
 
-#[derive(Copy, Clone)]
-enum Action<'a> {
+#[derive(Clone)]
+enum Action {
     Array(usize),
     ArrayRepeat(Span),
-    Assign(&'a Expr),
-    Bind(&'a Pat, Mutability),
-    BinOp(BinOp, Span, Option<&'a Expr>),
+    Assign(ExprId),
+    Bind(PatId, Mutability),
+    BinOp(BinOp, Span, Option<ExprId>),
     Call(Span, Span),
     Consume,
     Fail(Span),
-    Field(&'a Field),
-    If(&'a Expr, Option<&'a Expr>),
+    Field(Field),
+    If(ExprId, Option<ExprId>),
     Index(Span),
     Range(bool, bool, bool),
     Return,
     StringConcat(usize),
-    StringLit(&'a Rc<str>),
+    StringLit(Rc<str>),
     UpdateIndex(Span),
     Tuple(usize),
     UnOp(UnOp),
-    UpdateField(&'a Field),
-    While(&'a Expr, &'a Block),
+    UpdateField(Field),
+    While(ExprId, BlockId),
 }
 
-pub struct State<'a> {
-    stack: Vec<Cont<'a>>,
+pub struct State {
+    stack: Vec<Cont>,
     vals: Vec<Value>,
     package: PackageId,
     call_stack: CallStack,
+    current_span: Span,
 }
 
-impl<'a> State<'a> {
+impl State {
     #[must_use]
     pub fn new(package: PackageId) -> Self {
         Self {
@@ -314,24 +338,25 @@ impl<'a> State<'a> {
             vals: Vec::new(),
             package,
             call_stack: CallStack::default(),
+            current_span: Span::default(),
         }
     }
 
-    fn pop_cont(&mut self) -> Option<Cont<'a>> {
+    fn pop_cont(&mut self) -> Option<Cont> {
         self.stack.pop()
     }
 
-    fn push_action(&mut self, action: Action<'a>) {
+    fn push_action(&mut self, action: Action) {
         self.stack.push(Cont::Action(action));
     }
 
-    fn push_expr(&mut self, expr: &'a Expr) {
+    fn push_expr(&mut self, expr: ExprId) {
         self.stack.push(Cont::Expr(expr));
     }
 
-    fn push_frame(&mut self, span: Option<Span>, id: GlobalId, functor: FunctorApp) {
+    fn push_frame(&mut self, id: GlobalId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
-            span,
+            span: self.current_span,
             id,
             caller: self.package,
             functor,
@@ -356,14 +381,15 @@ impl<'a> State<'a> {
         self.stack.push(Cont::Scope);
     }
 
-    fn push_stmt(&mut self, stmt: &'a Stmt) {
+    fn push_stmt(&mut self, stmt: StmtId) {
         self.stack.push(Cont::Stmt(stmt));
     }
 
-    fn push_block(&mut self, env: &mut Env, block: &'a Block) {
+    fn push_block(&mut self, env: &mut Env, globals: &impl NodeLookup, block: BlockId) {
+        let block = globals.get_block(self.package, block);
         self.push_scope(env);
         for stmt in block.stmts.iter().rev() {
-            self.push_stmt(stmt);
+            self.push_stmt(*stmt);
             self.push_action(Action::Consume);
         }
         if block.stmts.is_empty() {
@@ -385,164 +411,198 @@ impl<'a> State<'a> {
         self.vals.push(val);
     }
 
+    #[must_use]
+    pub fn get_stack_frames(&self) -> Vec<Frame> {
+        let mut frames = self.call_stack.clone().into_frames();
+
+        let mut span = self.current_span;
+        for frame in frames.iter_mut().rev() {
+            std::mem::swap(&mut frame.span, &mut span);
+        }
+        frames
+    }
+
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn eval(
+    pub fn resume(
         &mut self,
-        globals: &impl GlobalLookup<'a>,
+        globals: &impl NodeLookup,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
-    ) -> Result<Value, (Error, CallStack)> {
+        breakpoints: &[StmtId],
+    ) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
-                Cont::Action(action) => self.cont_action(env, sim, globals, action, out),
-                Cont::Expr(expr) => self.cont_expr(env, expr),
+                Cont::Action(action) => self
+                    .cont_action(env, sim, globals, action, out)
+                    .map(|_| None),
+                Cont::Expr(expr) => self.cont_expr(env, globals, expr).map(|_| None),
                 Cont::Frame(len) => {
                     self.leave_frame(len);
-                    Ok(())
+                    Ok(None)
                 }
                 Cont::Scope => {
                     env.leave_scope();
-                    Ok(())
+                    Ok(None)
                 }
                 Cont::Stmt(stmt) => {
-                    self.cont_stmt(stmt);
-                    Ok(())
+                    self.cont_stmt(globals, stmt);
+                    match breakpoints.iter().find(|&bp| *bp == stmt) {
+                        Some(bp) => Ok(Some(bp)),
+                        None => Ok(None),
+                    }
                 }
             };
-            if let Err(e) = res {
-                return Err((e, self.call_stack.clone()));
+            match res {
+                Ok(Some(bp)) => return Ok(Some(*bp)),
+                Ok(None) => {}
+                Err(e) => return Err((e, self.get_stack_frames())),
             }
         }
 
-        Ok(self.pop_val())
+        Ok(None)
+    }
+
+    pub fn get_result(&mut self) -> Value {
+        self.pop_val()
     }
 
     #[allow(clippy::similar_names)]
-    fn cont_expr(&mut self, env: &mut Env, expr: &'a Expr) -> Result<(), Error> {
+    fn cont_expr(
+        &mut self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        expr: ExprId,
+    ) -> Result<(), Error> {
+        let expr = globals.get_expr(self.package, expr);
+        self.current_span = expr.span;
+
         match &expr.kind {
             ExprKind::Array(arr) => self.cont_arr(arr),
-            ExprKind::ArrayRepeat(item, size) => self.cont_arr_repeat(item, size),
-            ExprKind::Assign(lhs, rhs) => self.cont_assign(lhs, rhs),
-            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(*op, lhs, rhs),
+            ExprKind::ArrayRepeat(item, size) => self.cont_arr_repeat(globals, *item, *size),
+            ExprKind::Assign(lhs, rhs) => self.cont_assign(*lhs, *rhs),
+            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(globals, *op, *lhs, *rhs),
             ExprKind::AssignField(record, field, replace) => {
-                self.cont_assign_field(record, field, replace);
+                self.cont_assign_field(*record, field, *replace);
             }
-            ExprKind::AssignIndex(lhs, mid, rhs) => self.cont_assign_index(lhs, mid, rhs),
-            ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(*op, rhs, lhs),
-            ExprKind::Block(block) => self.push_block(env, block),
-            ExprKind::Call(callee_expr, args_expr) => self.cont_call(callee_expr, args_expr),
+            ExprKind::AssignIndex(lhs, mid, rhs) => {
+                self.cont_assign_index(globals, *lhs, *mid, *rhs);
+            }
+            ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(globals, *op, *rhs, *lhs),
+            ExprKind::Block(block) => self.push_block(env, globals, *block),
+            ExprKind::Call(callee_expr, args_expr) => {
+                self.cont_call(globals, *callee_expr, *args_expr);
+            }
             ExprKind::Closure(args, callable) => {
                 let closure = resolve_closure(env, self.package, expr.span, args, *callable)?;
                 self.push_val(closure);
             }
-            ExprKind::Conjugate(..) => panic!("conjugate should be eliminated by passes"),
-            ExprKind::Err => panic!("error expr should not be present"),
-            ExprKind::Fail(fail_expr) => self.cont_fail(expr.span, fail_expr),
-            ExprKind::Field(expr, field) => self.cont_field(expr, field),
-            ExprKind::For(..) => panic!("for-loop should be eliminated by passes"),
+            ExprKind::Fail(fail_expr) => self.cont_fail(expr.span, *fail_expr),
+            ExprKind::Field(expr, field) => self.cont_field(*expr, field),
             ExprKind::Hole => panic!("hole expr should be disallowed by passes"),
             ExprKind::If(cond_expr, then_expr, else_expr) => {
-                self.cont_if(cond_expr, then_expr, else_expr.as_ref().map(AsRef::as_ref));
+                self.cont_if(*cond_expr, *then_expr, *else_expr);
             }
-            ExprKind::Index(arr, index) => self.cont_index(arr, index),
+            ExprKind::Index(arr, index) => self.cont_index(globals, *arr, *index),
             ExprKind::Lit(lit) => self.push_val(lit_to_val(lit)),
-            ExprKind::Range(start, step, end) => self.cont_range(start, step, end),
-            ExprKind::Repeat(..) => panic!("repeat-loop should be eliminated by passes"),
-            ExprKind::Return(expr) => self.cont_ret(expr),
+            ExprKind::Range(start, step, end) => self.cont_range(*start, *step, *end),
+            ExprKind::Return(expr) => self.cont_ret(*expr),
             ExprKind::String(components) => self.cont_string(components),
-            ExprKind::UpdateIndex(lhs, mid, rhs) => self.update_index(lhs, mid, rhs),
+            ExprKind::UpdateIndex(lhs, mid, rhs) => self.update_index(globals, *lhs, *mid, *rhs),
             ExprKind::Tuple(tup) => self.cont_tup(tup),
-            ExprKind::UnOp(op, expr) => self.cont_unop(*op, expr),
+            ExprKind::UnOp(op, expr) => self.cont_unop(*op, *expr),
             ExprKind::UpdateField(record, field, replace) => {
-                self.cont_update_field(record, field, replace);
+                self.cont_update_field(*record, field, *replace);
             }
             ExprKind::Var(res, _) => {
                 self.push_val(resolve_binding(env, self.package, *res, expr.span)?);
             }
-            ExprKind::While(cond_expr, block) => self.cont_while(cond_expr, block),
+            ExprKind::While(cond_expr, block) => self.cont_while(*cond_expr, *block),
         }
 
         Ok(())
     }
 
-    fn cont_tup(&mut self, tup: &'a Vec<Expr>) {
+    fn cont_tup(&mut self, tup: &Vec<ExprId>) {
         self.push_action(Action::Tuple(tup.len()));
         for tup_expr in tup.iter().rev() {
-            self.push_expr(tup_expr);
+            self.push_expr(*tup_expr);
         }
     }
 
-    fn cont_arr(&mut self, arr: &'a Vec<Expr>) {
+    fn cont_arr(&mut self, arr: &Vec<ExprId>) {
         self.push_action(Action::Array(arr.len()));
         for entry in arr.iter().rev() {
-            self.push_expr(entry);
+            self.push_expr(*entry);
         }
     }
 
-    fn cont_arr_repeat(&mut self, item: &'a Expr, size: &'a Expr) {
-        self.push_action(Action::ArrayRepeat(size.span));
+    fn cont_arr_repeat(&mut self, globals: &impl NodeLookup, item: ExprId, size: ExprId) {
+        let size_expr = globals.get_expr(self.package, size);
+        self.push_action(Action::ArrayRepeat(size_expr.span));
         self.push_expr(size);
         self.push_expr(item);
     }
 
-    fn cont_ret(&mut self, expr: &'a Expr) {
+    fn cont_ret(&mut self, expr: ExprId) {
         self.push_action(Action::Return);
         self.push_expr(expr);
     }
 
-    fn cont_if(&mut self, cond_expr: &'a Expr, then_expr: &'a Expr, else_expr: Option<&'a Expr>) {
+    fn cont_if(&mut self, cond_expr: ExprId, then_expr: ExprId, else_expr: Option<ExprId>) {
         self.push_action(Action::If(then_expr, else_expr));
         self.push_expr(cond_expr);
     }
 
-    fn cont_fail(&mut self, span: Span, fail_expr: &'a Expr) {
+    fn cont_fail(&mut self, span: Span, fail_expr: ExprId) {
         self.push_action(Action::Fail(span));
         self.push_expr(fail_expr);
     }
 
-    fn cont_assign(&mut self, lhs: &'a Expr, rhs: &'a Expr) {
+    fn cont_assign(&mut self, lhs: ExprId, rhs: ExprId) {
         self.push_action(Action::Assign(lhs));
         self.push_expr(rhs);
         self.push_val(Value::unit());
     }
 
-    fn cont_assign_op(&mut self, op: BinOp, lhs: &'a Expr, rhs: &'a Expr) {
+    fn cont_assign_op(&mut self, globals: &impl NodeLookup, op: BinOp, lhs: ExprId, rhs: ExprId) {
         self.push_action(Action::Assign(lhs));
-        self.cont_binop(op, rhs, lhs);
+        self.cont_binop(globals, op, rhs, lhs);
         self.push_val(Value::unit());
     }
 
-    fn cont_assign_field(&mut self, record: &'a Expr, field: &'a Field, replace: &'a Expr) {
+    fn cont_assign_field(&mut self, record: ExprId, field: &Field, replace: ExprId) {
         self.push_action(Action::Assign(record));
         self.cont_update_field(record, field, replace);
         self.push_val(Value::unit());
     }
 
-    fn cont_assign_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
+    fn cont_assign_index(
+        &mut self,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+        mid: ExprId,
+        rhs: ExprId,
+    ) {
         self.push_action(Action::Assign(lhs));
-        self.update_index(lhs, mid, rhs);
+        self.update_index(globals, lhs, mid, rhs);
         self.push_val(Value::unit());
     }
 
-    fn cont_field(&mut self, expr: &'a Expr, field: &'a Field) {
-        self.push_action(Action::Field(field));
+    fn cont_field(&mut self, expr: ExprId, field: &Field) {
+        self.push_action(Action::Field(field.clone()));
         self.push_expr(expr);
     }
 
-    fn cont_index(&mut self, arr: &'a Expr, index: &'a Expr) {
-        self.push_action(Action::Index(index.span));
+    fn cont_index(&mut self, globals: &impl NodeLookup, arr: ExprId, index: ExprId) {
+        let index_expr = globals.get_expr(self.package, index);
+        self.push_action(Action::Index(index_expr.span));
         self.push_expr(index);
         self.push_expr(arr);
     }
 
-    fn cont_range(
-        &mut self,
-        start: &'a Option<Box<Expr>>,
-        step: &'a Option<Box<Expr>>,
-        end: &'a Option<Box<Expr>>,
-    ) {
+    fn cont_range(&mut self, start: Option<ExprId>, step: Option<ExprId>, end: Option<ExprId>) {
         self.push_action(Action::Range(
             start.is_some(),
             step.is_some(),
@@ -559,7 +619,7 @@ impl<'a> State<'a> {
         }
     }
 
-    fn cont_string(&mut self, components: &'a [StringComponent]) {
+    fn cont_string(&mut self, components: &[StringComponent]) {
         if let [StringComponent::Lit(str)] = components {
             self.push_val(Value::String(Rc::clone(str)));
             return;
@@ -568,24 +628,27 @@ impl<'a> State<'a> {
         self.push_action(Action::StringConcat(components.len()));
         for component in components.iter().rev() {
             match component {
-                StringComponent::Expr(expr) => self.push_expr(expr),
-                StringComponent::Lit(lit) => self.push_action(Action::StringLit(lit)),
+                StringComponent::Expr(expr) => self.push_expr(*expr),
+                StringComponent::Lit(lit) => self.push_action(Action::StringLit(lit.clone())),
             }
         }
     }
 
-    fn cont_while(&mut self, cond_expr: &'a Expr, block: &'a Block) {
+    fn cont_while(&mut self, cond_expr: ExprId, block: BlockId) {
         self.push_action(Action::While(cond_expr, block));
         self.push_expr(cond_expr);
     }
 
-    fn cont_call(&mut self, callee: &'a Expr, args: &'a Expr) {
-        self.push_action(Action::Call(callee.span, args.span));
+    fn cont_call(&mut self, globals: &impl NodeLookup, callee: ExprId, args: ExprId) {
+        let callee_expr = globals.get_expr(self.package, callee);
+        let args_expr = globals.get_expr(self.package, args);
+        self.push_action(Action::Call(callee_expr.span, args_expr.span));
         self.push_expr(args);
         self.push_expr(callee);
     }
 
-    fn cont_binop(&mut self, op: BinOp, rhs: &'a Expr, lhs: &'a Expr) {
+    fn cont_binop(&mut self, globals: &impl NodeLookup, op: BinOp, rhs: ExprId, lhs: ExprId) {
+        let rhs_expr = globals.get_expr(self.package, rhs);
         match op {
             BinOp::Add
             | BinOp::AndB
@@ -604,48 +667,52 @@ impl<'a> State<'a> {
             | BinOp::Shr
             | BinOp::Sub
             | BinOp::XorB => {
-                self.push_action(Action::BinOp(op, rhs.span, None));
+                self.push_action(Action::BinOp(op, rhs_expr.span, None));
                 self.push_expr(rhs);
                 self.push_expr(lhs);
             }
             BinOp::AndL | BinOp::OrL => {
-                self.push_action(Action::BinOp(op, rhs.span, Some(rhs)));
+                self.push_action(Action::BinOp(op, rhs_expr.span, Some(rhs)));
                 self.push_expr(lhs);
             }
         }
     }
 
-    fn update_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
-        self.push_action(Action::UpdateIndex(mid.span));
+    fn update_index(&mut self, globals: &impl NodeLookup, lhs: ExprId, mid: ExprId, rhs: ExprId) {
+        let mid_expr = globals.get_expr(self.package, mid);
+        self.push_action(Action::UpdateIndex(mid_expr.span));
         self.push_expr(lhs);
         self.push_expr(rhs);
         self.push_expr(mid);
     }
 
-    fn cont_unop(&mut self, op: UnOp, expr: &'a Expr) {
+    fn cont_unop(&mut self, op: UnOp, expr: ExprId) {
         self.push_action(Action::UnOp(op));
         self.push_expr(expr);
     }
 
-    fn cont_update_field(&mut self, record: &'a Expr, field: &'a Field, replace: &'a Expr) {
-        self.push_action(Action::UpdateField(field));
+    fn cont_update_field(&mut self, record: ExprId, field: &Field, replace: ExprId) {
+        self.push_action(Action::UpdateField(field.clone()));
         self.push_expr(replace);
         self.push_expr(record);
     }
 
-    fn cont_stmt(&mut self, stmt: &'a Stmt) {
+    fn cont_stmt(&mut self, globals: &impl NodeLookup, stmt: StmtId) {
+        let stmt = globals.get_stmt(self.package, stmt);
+        self.current_span = stmt.span;
+
         match &stmt.kind {
-            StmtKind::Expr(expr) => self.push_expr(expr),
+            StmtKind::Expr(expr) => self.push_expr(*expr),
             StmtKind::Item(..) => self.push_val(Value::unit()),
             StmtKind::Local(mutability, pat, expr) => {
-                self.push_action(Action::Bind(pat, *mutability));
-                self.push_expr(expr);
+                self.push_action(Action::Bind(*pat, *mutability));
+                self.push_expr(*expr);
                 self.push_val(Value::unit());
             }
             StmtKind::Qubit(..) => panic!("qubit use-stmt should be eliminated by passes"),
             StmtKind::Semi(expr) => {
                 self.push_action(Action::Consume);
-                self.push_expr(expr);
+                self.push_expr(*expr);
                 self.push_val(Value::unit());
             }
         }
@@ -655,16 +722,16 @@ impl<'a> State<'a> {
         &mut self,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-        globals: &impl GlobalLookup<'a>,
-        action: Action<'a>,
+        globals: &impl NodeLookup,
+        action: Action,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
         match action {
             Action::Array(len) => self.eval_arr(len),
             Action::ArrayRepeat(span) => self.eval_arr_repeat(span)?,
-            Action::Assign(lhs) => self.eval_assign(env, lhs)?,
+            Action::Assign(lhs) => self.eval_assign(env, globals, lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
-            Action::Bind(pat, mutability) => self.eval_bind(env, pat, mutability),
+            Action::Bind(pat, mutability) => self.eval_bind(env, globals, pat, mutability),
             Action::Call(callee_span, args_span) => {
                 self.eval_call(env, sim, globals, callee_span, args_span, out)?;
             }
@@ -685,12 +752,12 @@ impl<'a> State<'a> {
             }
             Action::Return => self.eval_ret(env),
             Action::StringConcat(len) => self.eval_string_concat(len),
-            Action::StringLit(str) => self.push_val(Value::String(Rc::clone(str))),
+            Action::StringLit(str) => self.push_val(Value::String(str)),
             Action::UpdateIndex(span) => self.eval_update_index(span)?,
             Action::Tuple(len) => self.eval_tup(len),
             Action::UnOp(op) => self.eval_unop(op),
             Action::UpdateField(field) => self.eval_update_field(field),
-            Action::While(cond_expr, block) => self.eval_while(env, cond_expr, block),
+            Action::While(cond_expr, block) => self.eval_while(env, globals, cond_expr, block),
         }
         Ok(())
     }
@@ -711,17 +778,28 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn eval_assign(&mut self, env: &mut Env, lhs: &'a Expr) -> Result<(), Error> {
+    fn eval_assign(
+        &mut self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+    ) -> Result<(), Error> {
         let rhs = self.pop_val();
-        update_binding(env, lhs, rhs)
+        self.update_binding(env, globals, lhs, rhs)
     }
 
-    fn eval_bind(&mut self, env: &mut Env, pat: &'a Pat, mutability: Mutability) {
+    fn eval_bind(
+        &mut self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        pat: PatId,
+        mutability: Mutability,
+    ) {
         let val = self.pop_val();
-        bind_value(env, pat, val, mutability);
+        self.bind_value(env, globals, pat, val, mutability);
     }
 
-    fn eval_binop(&mut self, op: BinOp, span: Span, rhs: Option<&'a Expr>) -> Result<(), Error> {
+    fn eval_binop(&mut self, op: BinOp, span: Span, rhs: Option<ExprId>) -> Result<(), Error> {
         match op {
             BinOp::Add => self.eval_binop_simple(eval_binop_add),
             BinOp::AndB => self.eval_binop_simple(eval_binop_andb),
@@ -787,7 +865,7 @@ impl<'a> State<'a> {
         &mut self,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-        globals: &impl GlobalLookup<'a>,
+        globals: &impl NodeLookup,
         callee_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
@@ -809,7 +887,7 @@ impl<'a> State<'a> {
         };
 
         let spec = spec_from_functor_app(functor);
-        self.push_frame(Some(callee_span), callee_id, functor);
+        self.push_frame(callee_id, functor);
         self.push_scope(env);
         let block_body = &match spec {
             Spec::Body => Some(&callee.body),
@@ -821,15 +899,16 @@ impl<'a> State<'a> {
         .body;
         match block_body {
             SpecBody::Impl(input, body_block) => {
-                bind_args_for_spec(
+                self.bind_args_for_spec(
                     env,
-                    &callee.input,
-                    input,
+                    globals,
+                    callee.input,
+                    *input,
                     arg,
                     functor.controlled,
                     fixed_args,
                 );
-                self.push_block(env, body_block);
+                self.push_block(env, globals, *body_block);
                 Ok(())
             }
             SpecBody::Gen(SpecGen::Intrinsic) => {
@@ -842,7 +921,7 @@ impl<'a> State<'a> {
         }
     }
 
-    fn eval_field(&mut self, field: &'a Field) {
+    fn eval_field(&mut self, field: Field) {
         let record = self.pop_val();
         let val = match (record, field) {
             (Value::Range(Some(start), _, _), Field::Prim(PrimField::Start)) => Value::Int(start),
@@ -856,7 +935,7 @@ impl<'a> State<'a> {
         self.push_val(val);
     }
 
-    fn eval_if(&mut self, then_expr: &'a Expr, else_expr: Option<&'a Expr>) {
+    fn eval_if(&mut self, then_expr: ExprId, else_expr: Option<ExprId>) {
         if self.pop_val().unwrap_bool() {
             self.push_expr(then_expr);
         } else if let Some(else_expr) = else_expr {
@@ -978,7 +1057,7 @@ impl<'a> State<'a> {
         }
     }
 
-    fn eval_update_field(&mut self, field: &'a Field) {
+    fn eval_update_field(&mut self, field: Field) {
         let value = self.pop_val();
         let record = self.pop_val();
         let update = match (record, field) {
@@ -998,14 +1077,131 @@ impl<'a> State<'a> {
         self.push_val(update);
     }
 
-    fn eval_while(&mut self, env: &mut Env, cond_expr: &'a Expr, block: &'a Block) {
+    fn eval_while(
+        &mut self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        cond_expr: ExprId,
+        block: BlockId,
+    ) {
         if self.pop_val().unwrap_bool() {
             self.cont_while(cond_expr, block);
             self.push_action(Action::Consume);
             self.push_val(Value::unit());
-            self.push_block(env, block);
+            self.push_block(env, globals, block);
         } else {
             self.push_val(Value::unit());
+        }
+    }
+
+    fn bind_value(
+        &self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        pat: PatId,
+        val: Value,
+        mutability: Mutability,
+    ) {
+        let pat = globals.get_pat(self.package, pat);
+        match &pat.kind {
+            PatKind::Bind(variable) => {
+                let scope = env.0.last_mut().expect("binding should have a scope");
+                match scope.bindings.entry(variable.id) {
+                    Entry::Vacant(entry) => entry.insert(Variable {
+                        value: val,
+                        mutability,
+                    }),
+                    Entry::Occupied(_) => panic!("duplicate binding"),
+                };
+            }
+            PatKind::Discard => {}
+            PatKind::Tuple(tup) => {
+                let val_tup = val.unwrap_tuple();
+                for (pat, val) in tup.iter().zip(val_tup.iter()) {
+                    self.bind_value(env, globals, *pat, val.clone(), mutability);
+                }
+            }
+        }
+    }
+
+    #[allow(clippy::similar_names)]
+    fn update_binding(
+        &self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+        rhs: Value,
+    ) -> Result<(), Error> {
+        let lhs = globals.get_expr(self.package, lhs);
+        match (&lhs.kind, rhs) {
+            (ExprKind::Hole, _) => {}
+            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+                Some(var) if var.is_mutable() => {
+                    var.value = rhs;
+                }
+                Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
+                None => return Err(Error::UnboundName(lhs.span)),
+            },
+            (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
+                for (expr, val) in var_tup.iter().zip(tup.iter()) {
+                    self.update_binding(env, globals, *expr, val.clone())?;
+                }
+            }
+            _ => panic!("unassignable pattern should be disallowed by compiler"),
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn bind_args_for_spec(
+        &self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        decl_pat: PatId,
+        spec_pat: Option<PatId>,
+        args_val: Value,
+        ctl_count: u8,
+        fixed_args: Option<Rc<[Value]>>,
+    ) {
+        match spec_pat {
+            Some(spec_pat) => {
+                assert!(
+                    ctl_count > 0,
+                    "spec pattern tuple used without controlled functor"
+                );
+
+                let mut tup = args_val;
+                let mut ctls = vec![];
+                for _ in 0..ctl_count {
+                    let [c, rest] = &*tup.unwrap_tuple() else {
+                        panic!("tuple should be arity 2");
+                    };
+                    ctls.extend_from_slice(&c.clone().unwrap_array());
+                    tup = rest.clone();
+                }
+
+                self.bind_value(
+                    env,
+                    globals,
+                    spec_pat,
+                    Value::Array(ctls.into()),
+                    Mutability::Immutable,
+                );
+                self.bind_value(
+                    env,
+                    globals,
+                    decl_pat,
+                    merge_fixed_args(fixed_args, tup),
+                    Mutability::Immutable,
+                );
+            }
+            None => self.bind_value(
+                env,
+                globals,
+                decl_pat,
+                merge_fixed_args(fixed_args, args_val),
+                Mutability::Immutable,
+            ),
         }
     }
 }
@@ -1015,28 +1211,6 @@ fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
         Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
     } else {
         arg
-    }
-}
-
-fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
-    match &pat.kind {
-        PatKind::Bind(variable) => {
-            let scope = env.0.last_mut().expect("binding should have a scope");
-            match scope.bindings.entry(variable.id) {
-                Entry::Vacant(entry) => entry.insert(Variable {
-                    value: val,
-                    mutability,
-                }),
-                Entry::Occupied(_) => panic!("duplicate binding"),
-            };
-        }
-        PatKind::Discard => {}
-        PatKind::Tuple(tup) => {
-            let val_tup = val.unwrap_tuple();
-            for (pat, val) in tup.iter().zip(val_tup.iter()) {
-                bind_value(env, pat, val.clone(), mutability);
-            }
-        }
     }
 }
 
@@ -1052,74 +1226,6 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
         ),
         Res::Local(node) => env.get(node).ok_or(Error::UnboundName(span))?.value.clone(),
     })
-}
-
-#[allow(clippy::similar_names)]
-fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
-    match (&lhs.kind, rhs) {
-        (ExprKind::Hole, _) => {}
-        (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
-            Some(var) if var.is_mutable() => {
-                var.value = rhs;
-            }
-            Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
-            None => return Err(Error::UnboundName(lhs.span)),
-        },
-        (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
-            for (expr, val) in var_tup.iter().zip(tup.iter()) {
-                update_binding(env, expr, val.clone())?;
-            }
-        }
-        _ => panic!("unassignable pattern should be disallowed by compiler"),
-    }
-    Ok(())
-}
-
-fn bind_args_for_spec(
-    env: &mut Env,
-    decl_pat: &Pat,
-    spec_pat: &Option<Pat>,
-    args_val: Value,
-    ctl_count: u8,
-    fixed_args: Option<Rc<[Value]>>,
-) {
-    match spec_pat {
-        Some(spec_pat) => {
-            assert!(
-                ctl_count > 0,
-                "spec pattern tuple used without controlled functor"
-            );
-
-            let mut tup = args_val;
-            let mut ctls = vec![];
-            for _ in 0..ctl_count {
-                let [c, rest] = &*tup.unwrap_tuple() else {
-                        panic!("tuple should be arity 2");
-                    };
-                ctls.extend_from_slice(&c.clone().unwrap_array());
-                tup = rest.clone();
-            }
-
-            bind_value(
-                env,
-                spec_pat,
-                Value::Array(ctls.into()),
-                Mutability::Immutable,
-            );
-            bind_value(
-                env,
-                decl_pat,
-                merge_fixed_args(fixed_args, tup),
-                Mutability::Immutable,
-            );
-        }
-        None => bind_value(
-            env,
-            decl_pat,
-            merge_fixed_args(fixed_args, args_val),
-            Mutability::Immutable,
-        ),
-    }
 }
 
 fn spec_from_functor_app(functor: FunctorApp) -> Spec {
@@ -1157,8 +1263,8 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Double(v) => Value::Double(*v),
         Lit::Int(v) => Value::Int(*v),
         Lit::Pauli(v) => Value::Pauli(*v),
-        Lit::Result(hir::Result::Zero) => val::RESULT_ZERO,
-        Lit::Result(hir::Result::One) => val::RESULT_ONE,
+        Lit::Result(fir::Result::Zero) => val::RESULT_ZERO,
+        Lit::Result(fir::Result::One) => val::RESULT_ONE,
     }
 }
 
