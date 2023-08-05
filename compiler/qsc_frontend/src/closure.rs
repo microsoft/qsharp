@@ -108,15 +108,13 @@ pub(super) fn lift(
     }
     .visit_expr(&mut lambda.body);
 
-    let substituted_vars = free_vars.iter().map(|&id| {
+    let substituted_vars = free_vars.iter().filter_map(|&id| {
         let &new_id = substitutions
             .get(&id)
             .expect("free variable should have substitution");
-        let original_ident = locals
+        locals
             .get(id)
-            .expect("free variable should be a local")
-            .clone();
-        (new_id, original_ident)
+            .map(|original_ident| (new_id, original_ident.clone()))
     });
 
     let mut input = closure_input(substituted_vars, lambda.input, span);
