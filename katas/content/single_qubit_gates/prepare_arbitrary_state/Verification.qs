@@ -16,16 +16,17 @@ namespace Kata.Verification {
             let alpha = Cos(i);
             let beta = Sin(i);
             let theta = Sin(i);
-            let op = (qubit) => Kata.PrepareArbitraryState(alpha, beta, theta, qubit);
-            let reference = (qubit) => PrepareArbitraryState(alpha, beta, theta, qubit);
-            let isCorrect = VerifySingleQubitOperation(op, reference);
+            let solution = register => Kata.PrepareArbitraryState(alpha, beta, theta, register[0]);
+            let reference = register => PrepareArbitraryState(alpha, beta, theta, register[0]);
+            let isCorrect = CheckOperationsEquivalenceOnZeroStateStrict(solution, reference, 1);
             if not isCorrect {
                 Message("Incorrect.");
                 Message("The solution was incorrect for at least one test case.");
-                use target = Qubit[1];
-                let opOnRegister = register => op(register[0]);
-                let referenceOnRegister = register => reference(register[0]);
-                ShowQuantumStateComparison(target, opOnRegister, referenceOnRegister);
+                Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect " +
+                    "it is expected to have.");
+                use target = Qubit[1]; // |0〉
+                ShowQuantumStateComparison(target, solution, reference);
+                ResetAll(target);
                 return false;
             }
         }

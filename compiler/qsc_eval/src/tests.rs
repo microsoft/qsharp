@@ -3,54 +3,103 @@
 
 use crate::{
     backend::SparseSim,
-    debug::CallStack,
+    debug::{map_hir_package_to_fir, Frame},
     output::{GenericReceiver, Receiver},
     val::GlobalId,
-    Env, Error, Global, GlobalLookup, State, Value,
+    Env, Error, Global, NodeLookup, State, Value,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::index_map::IndexMap;
+
+use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::hir::Expr;
-use qsc_hir::hir::ItemKind;
-use qsc_hir::hir::PackageId;
 
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Evaluates the given expression with the given context.
 /// Creates a new environment and simulator.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub(super) fn eval_expr<'a>(
-    expr: &'a Expr,
-    globals: &impl GlobalLookup<'a>,
+pub(super) fn eval_expr(
+    expr: ExprId,
+    globals: &impl NodeLookup,
     package: PackageId,
     out: &mut impl Receiver,
-) -> Result<Value, (Error, CallStack)> {
+) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
-    state.push_expr(expr);
     let mut env = Env::with_empty_scope();
     let mut sim = SparseSim::new();
-    state.eval(globals, &mut env, &mut sim, out)
+    state.push_expr(expr);
+    state.resume(globals, &mut env, &mut sim, out, &[])?;
+    Ok(state.pop_val())
 }
 
 struct Lookup<'a> {
-    store: &'a PackageStore,
+    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
 }
 
-impl<'a> GlobalLookup<'a> for Lookup<'a> {
-    fn get(&self, id: GlobalId) -> Option<crate::Global<'a>> {
-        get_global(self.store, id)
+impl<'a> Lookup<'a> {
+    fn get_package(&self, package: PackageId) -> &qsc_fir::fir::Package {
+        self.fir_store
+            .get(package)
+            .expect("Package should be in FIR store")
     }
 }
 
+impl<'a> NodeLookup for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
+        get_global(self.fir_store, id)
+    }
+    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
+        self.get_package(package)
+            .blocks
+            .get(id)
+            .expect("BlockId should have been lowered")
+    }
+    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr {
+        self.get_package(package)
+            .exprs
+            .get(id)
+            .expect("ExprId should have been lowered")
+    }
+    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat {
+        self.get_package(package)
+            .pats
+            .get(id)
+            .expect("PatId should have been lowered")
+    }
+    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt {
+        self.get_package(package)
+            .stmts
+            .get(id)
+            .expect("StmtId should have been lowered")
+    }
+}
+
+pub(super) fn get_global(
+    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
+    id: GlobalId,
+) -> Option<Global> {
+    fir_store
+        .get(id.package)
+        .and_then(|package| match &package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
+}
+
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
+    let mut fir_lowerer = crate::lower::Lowerer::new();
     let mut core = compile::core();
     run_core_passes(&mut core);
+    let core_fir = fir_lowerer.lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store);
     assert!(std.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
+    let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -58,29 +107,31 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
+    let unit_fir = fir_lowerer.lower_package(&unit.package);
+    let entry = unit_fir.entry.expect("package should have entry");
     let id = store.insert(unit);
 
-    let entry = store
-        .get(id)
-        .and_then(|unit| unit.package.entry.as_ref())
-        .expect("package should have entry");
+    let mut fir_store = IndexMap::new();
+    fir_store.insert(
+        map_hir_package_to_fir(qsc_hir::hir::PackageId::CORE),
+        core_fir,
+    );
+    fir_store.insert(map_hir_package_to_fir(std_id), std_fir);
+    fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
     let mut out = Vec::new();
-    let lookup = Lookup { store: &store };
-    match eval_expr(entry, &lookup, id, &mut GenericReceiver::new(&mut out)) {
+    let lookup = Lookup {
+        fir_store: &fir_store,
+    };
+    match eval_expr(
+        entry,
+        &lookup,
+        map_hir_package_to_fir(id),
+        &mut GenericReceiver::new(&mut out),
+    ) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
     }
-}
-
-pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {
-    store
-        .get(id.package)
-        .and_then(|unit| match &unit.package.items.get(id.item)?.kind {
-            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
-            ItemKind::Namespace(..) => None,
-            ItemKind::Ty(..) => Some(Global::Udt),
-        })
 }
 
 #[test]
@@ -332,33 +383,29 @@ fn block_qubit_use_array_invalid_count_expr() {
                         hi: 1623,
                     },
                 ),
-                CallStack {
-                    frames: [
-                        Frame {
-                            span: Some(
-                                Span {
-                                    lo: 10,
-                                    hi: 11,
-                                },
-                            ),
-                            id: GlobalId {
-                                package: PackageId(
-                                    0,
-                                ),
-                                item: LocalItemId(
-                                    6,
-                                ),
-                            },
-                            caller: PackageId(
-                                2,
-                            ),
-                            functor: FunctorApp {
-                                adjoint: false,
-                                controlled: 0,
-                            },
+                [
+                    Frame {
+                        span: Span {
+                            lo: 1571,
+                            hi: 1623,
                         },
-                    ],
-                },
+                        id: GlobalId {
+                            package: PackageId(
+                                0,
+                            ),
+                            item: LocalItemId(
+                                6,
+                            ),
+                        },
+                        caller: PackageId(
+                            2,
+                        ),
+                        functor: FunctorApp {
+                            adjoint: false,
+                            controlled: 0,
+                        },
+                    },
+                ],
             )
         "#]],
     );
@@ -451,9 +498,7 @@ fn binop_andl_no_shortcut() {
                         hi: 28,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -477,9 +522,7 @@ fn binop_div_bigint_zero() {
                         hi: 8,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -503,9 +546,7 @@ fn binop_div_int_zero() {
                         hi: 6,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -529,9 +570,7 @@ fn binop_div_double_zero() {
                         hi: 9,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -676,9 +715,7 @@ fn binop_exp_bigint_negative_exp() {
                         hi: 5,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -698,9 +735,7 @@ fn binop_exp_bigint_too_large() {
                         hi: 28,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -745,9 +780,7 @@ fn binop_exp_int_negative_exp() {
                         hi: 4,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1191,9 +1224,7 @@ fn fail_expr() {
                         hi: 24,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1213,9 +1244,7 @@ fn fail_shortcut_expr() {
                         hi: 18,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1369,9 +1398,7 @@ fn array_slice_step_zero_expr() {
                         hi: 23,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1391,9 +1418,7 @@ fn array_slice_out_of_range_expr() {
                         hi: 20,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1413,9 +1438,7 @@ fn array_index_negative_expr() {
                         hi: 12,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1435,9 +1458,7 @@ fn array_index_out_of_range_expr() {
                         hi: 11,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1704,9 +1725,7 @@ fn update_invalid_index_range_expr() {
                         hi: 14,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -1726,9 +1745,7 @@ fn update_invalid_index_negative_expr() {
                         hi: 15,
                     },
                 ),
-                CallStack {
-                    frames: [],
-                },
+                [],
             )
         "#]],
     );
@@ -2215,33 +2232,29 @@ fn call_adjoint_expr() {
                         hi: 195,
                     },
                 ),
-                CallStack {
-                    frames: [
-                        Frame {
-                            span: Some(
-                                Span {
-                                    lo: 409,
-                                    hi: 425,
-                                },
-                            ),
-                            id: GlobalId {
-                                package: PackageId(
-                                    2,
-                                ),
-                                item: LocalItemId(
-                                    1,
-                                ),
-                            },
-                            caller: PackageId(
+                [
+                    Frame {
+                        span: Span {
+                            lo: 171,
+                            hi: 195,
+                        },
+                        id: GlobalId {
+                            package: PackageId(
                                 2,
                             ),
-                            functor: FunctorApp {
-                                adjoint: true,
-                                controlled: 0,
-                            },
+                            item: LocalItemId(
+                                1,
+                            ),
                         },
-                    ],
-                },
+                        caller: PackageId(
+                            2,
+                        ),
+                        functor: FunctorApp {
+                            adjoint: true,
+                            controlled: 0,
+                        },
+                    },
+                ],
             )
         "#]],
     );
@@ -2278,33 +2291,29 @@ fn call_adjoint_adjoint_expr() {
                         hi: 118,
                     },
                 ),
-                CallStack {
-                    frames: [
-                        Frame {
-                            span: Some(
-                                Span {
-                                    lo: 409,
-                                    hi: 433,
-                                },
-                            ),
-                            id: GlobalId {
-                                package: PackageId(
-                                    2,
-                                ),
-                                item: LocalItemId(
-                                    1,
-                                ),
-                            },
-                            caller: PackageId(
+                [
+                    Frame {
+                        span: Span {
+                            lo: 97,
+                            hi: 118,
+                        },
+                        id: GlobalId {
+                            package: PackageId(
                                 2,
                             ),
-                            functor: FunctorApp {
-                                adjoint: false,
-                                controlled: 0,
-                            },
+                            item: LocalItemId(
+                                1,
+                            ),
                         },
-                    ],
-                },
+                        caller: PackageId(
+                            2,
+                        ),
+                        functor: FunctorApp {
+                            adjoint: false,
+                            controlled: 0,
+                        },
+                    },
+                ],
             )
         "#]],
     );
@@ -2336,33 +2345,29 @@ fn call_adjoint_self_expr() {
                         hi: 118,
                     },
                 ),
-                CallStack {
-                    frames: [
-                        Frame {
-                            span: Some(
-                                Span {
-                                    lo: 249,
-                                    hi: 265,
-                                },
-                            ),
-                            id: GlobalId {
-                                package: PackageId(
-                                    2,
-                                ),
-                                item: LocalItemId(
-                                    1,
-                                ),
-                            },
-                            caller: PackageId(
+                [
+                    Frame {
+                        span: Span {
+                            lo: 97,
+                            hi: 118,
+                        },
+                        id: GlobalId {
+                            package: PackageId(
                                 2,
                             ),
-                            functor: FunctorApp {
-                                adjoint: true,
-                                controlled: 0,
-                            },
+                            item: LocalItemId(
+                                1,
+                            ),
                         },
-                    ],
-                },
+                        caller: PackageId(
+                            2,
+                        ),
+                        functor: FunctorApp {
+                            adjoint: true,
+                            controlled: 0,
+                        },
+                    },
+                ],
             )
         "#]],
     );
