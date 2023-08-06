@@ -79,7 +79,7 @@ namespace Sample {
     ///     Quantum Computation and Quantum Information ]
     /// (http://doi.org/10.1017/CBO9780511976667)
     operation DeutschJozsa(Uf : ((Qubit[], Qubit) => Unit), n : Int) : Bool {
-        // We allocate n + 1 clean qubits. Note that the function Uf is defined
+        // We allocate n + 1 clean qubits. Note that the function `Uf` is defined
         // on inputs of the form (x, y), where x has n bits and y has 1 bit.
         use queryRegister = Qubit[n];
         use target = Qubit();
