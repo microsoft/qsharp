@@ -1,9 +1,8 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Math;
 
-    // ------------------------------------------------------
-    // Exercise 7. Measure state in {|A❭, |B❭} basis
-    // ------------------------------------------------------
-    
+    // Measure state in {|A❭, |B❭} basis
     // |A⟩ =   cos(alpha) * |0⟩ - i sin(alpha) * |1⟩,
     // |B⟩ = - i sin(alpha) * |0⟩ + cos(alpha) * |1⟩.
 
@@ -19,7 +18,7 @@ namespace Kata.Verification {
     }
 
     // We can use the StatePrep_IsQubitA operation for the testing
-    operation CheckSolution(): Unit {
+    operation CheckSolution(): Bool {
         for i in 0 .. 10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
             let isCorrect = DistinguishTwoStates(

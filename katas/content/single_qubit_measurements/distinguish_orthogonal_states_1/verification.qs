@@ -1,8 +1,7 @@
 namespace Kata.Verification {
-    // ------------------------------------------------------
-    // Exercise 5. Distinguish specific orthogonal states
-    // ------------------------------------------------------
+    open Microsoft.Quantum.Math;
 
+    // Distinguish specific orthogonal states
     // |ψ₊⟩ =   0.6 * |0⟩ + 0.8 * |1⟩,
     // |ψ₋⟩ =  -0.8 * |0⟩ + 0.6 * |1⟩.
     operation StatePrep_IsQubitPsiPlus(q: Qubit, state: Int): Unit is Adj {

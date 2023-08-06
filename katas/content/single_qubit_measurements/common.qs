@@ -1,6 +1,7 @@
-namespace Kata.Reference {
+namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Random;
 
     // "Framework" operation for testing single-qubit tasks for distinguishing states of one qubit
     // with Bool return
@@ -33,7 +34,7 @@ namespace Kata.Reference {
             // If the final state is to be verified, check if it matches the measurement outcome
             if checkFinalState {
                 Adjoint statePrep(q, state);
-                AssertQubit(Zero, q);
+                Fact(CheckZero(q), "Returned Bool value does not match the expected qubit state.");
             } else {
                 Reset(q);
             }

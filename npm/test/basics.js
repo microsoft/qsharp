@@ -163,7 +163,7 @@ async function validateExercise(
     // Check that there are no compilation or runtime errors.
     assert(
       placeholderResult.errorCount === 0,
-      `Placeholder for exercise "${exercise.id}" has compilation or runtime errors` +
+      `Exercise "${exercise.id}" has compilation or runtime errors when using the placeholder as solution. ` +
         `Compilation and runtime errors:\n${placeholderResult.errorMsg}`
     );
 
@@ -255,7 +255,7 @@ test("multi_qubit_gates kata is valid", async () => {
 
 test("single_qubit_measurements is valid", async () => {
   const kata = await getKata("single_qubit_measurements");
-  await validateKata(kata, false, false);
+  await validateKata(kata, true, false);
 });
 
 test("random_numbers kata is valid", async () => {

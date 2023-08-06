@@ -1,9 +1,8 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Math;
 
-    // ------------------------------------------------------
-    // Exercise 6. Distinguish states |A❭ and |B❭
-    // ------------------------------------------------------
-    
+    // Distinguish states |A❭ and |B❭
     // |A⟩ =   cos(alpha) * |0⟩ - i sin(alpha) * |1⟩,
     // |B⟩ = - i sin(alpha) * |0⟩ + cos(alpha) * |1⟩.
     operation StatePrep_IsQubitA(alpha: Double, q: Qubit, state: Int): Unit is Adj {

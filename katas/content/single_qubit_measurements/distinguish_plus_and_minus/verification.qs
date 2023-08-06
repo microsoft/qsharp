@@ -15,7 +15,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Unit {
+    operation CheckSolution(): Bool {
         let isCorrect = DistinguishTwoStates(
             StatePrep_IsQubitMinus,
             Kata.IsQubitMinus,
