@@ -1,8 +1,6 @@
 namespace Kata.Verification {
 
-    // ------------------------------------------------------
-    // Exercise 3. Distinguish |+❭ and |-❭ using Measure operation
-    // ------------------------------------------------------
+    // Distinguish |+❭ and |-❭ using Measure operation
     operation StatePrep_IsQubitMinus (q : Qubit, state : Int) : Unit is Adj {
         if state == 1 {
             // convert |0⟩ to |-⟩
