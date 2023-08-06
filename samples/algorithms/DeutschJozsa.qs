@@ -3,10 +3,9 @@
 ///
 /// # Description
 /// Deutsch–Jozsa is a quantum algorithm that determines whether a given Boolean
-/// function 𝑓 that is promised to either be constant or to be balanced — i.e.,
-/// taking the values 0 and 1 the exact same number of times — is actually
-/// constant or balanced.
-/// 
+/// function 𝑓 is constant (0 on all inputs or 1 on all inputs) or balanced
+/// (1 for exactly half of the input domain and 0 for the other half).
+///
 /// This Q# program implements the Deutsch–Jozsa algorithm.
 namespace Sample {
     open Microsoft.Quantum.Canon;
