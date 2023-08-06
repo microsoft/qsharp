@@ -1,4 +1,3 @@
-### Solution
 While it is possible to prepare the state $\ket \psi$ directly using unitary rotations, it is simpler to use post-selection for preparing it. Here, we describe the procedure in more detail below.
 
 Initially we will prepare an equal superposition of all basis states corresponding to the first two qubits by applying the **H** gate to each of them: 

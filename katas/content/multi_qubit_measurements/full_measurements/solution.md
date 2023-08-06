@@ -1,5 +1,3 @@
-### Solution
-
 First, we measure both qubits in the input array and store the result in `m1` and `m2`. We can decode these results like this:  
 - `m1` is $|0\rangle$ and `m2` is $|0\rangle$: we return $0\cdot2+0 = 0$
 - `m1` is $|0\rangle$ and `m2` is $|1\rangle$: we return $0\cdot2+1 = 1$

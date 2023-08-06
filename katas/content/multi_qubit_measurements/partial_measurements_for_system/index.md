@@ -1,5 +1,3 @@
-### <span style="color:blue">Exercise 5</span>: Distinguish orthogonal states using partial measurements
-
 **Input**: A 3-qubit system which is guaranteed to be in either the $\ket{++-}$ state, or the $\ket{---}$ state.
 
 **Output**: 

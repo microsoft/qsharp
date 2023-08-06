@@ -1,5 +1,3 @@
-### <span style="color:blue">Exercise 7</span>: State selection using partial measurements 
-
 **Input**: 
 1. A 2-qubit system in the state
 $$

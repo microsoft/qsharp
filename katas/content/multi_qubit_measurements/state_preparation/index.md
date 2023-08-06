@@ -1,5 +1,3 @@
-### <span style="color:blue">Exercise 8</span>: State preparation using partial measurements
-
 **Input:** Two qubits (in an array) which are in the state $\ket{00}$.
 
 **Goal:**  Modify the qubits to the state $\frac{1}{\sqrt{3}} \big(|00\rangle + |01\rangle + |10\rangle\big)$ using post-selection.

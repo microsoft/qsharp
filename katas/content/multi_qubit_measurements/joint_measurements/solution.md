@@ -1,5 +1,3 @@
-### Solution
-
 If we were not asked to maintain the state of the qubits, one approach would be to measure both the qubits separately in the computational basis, and check if the result is the same for both the measurements. If the measurement results are equal, the input state must have been a superposition of $\ket{00}$ and $\ket{11}$, while different measurement outcomes will imply that the input state must have been a superposition of $\ket{01}$ and $\ket{10}$. However, in these measurements we will lose the information about the original superposition states: a state $\alpha |00\rangle + \beta |11\rangle$ will collapse to either $|00\rangle$ or $|11\rangle$, and we won't be able to recover the information about the coefficients $\alpha$ and $\beta$.
 
 We need to measure the *parity* of the state without collapsing it all the way to the basis states. [Pauli measurements](https://docs.microsoft.com/en-us/quantum/concepts/pauli-measurements) can be used for joint measurements involving multiple qubits. For this task we apply the $Z \otimes Z$ measurement on both qubits.

@@ -1,10 +1,15 @@
 # Measurements in systems with multiple qubits
 
-In the previous tutorial, we discussed the concept of measurements done on single-qubit systems.
-Building upon those ideas, this tutorial will introduce you to measurements done on multi-qubit systems, and how to implement such measurements in Q#.
+@[section]({
+    "id": "multi_qubit_measurements_overview",
+    "title": "Overview"
+})
+
+In the previous kata, we discussed the concept of measurements done on single-qubit systems.
+Building upon those ideas, this kata will introduce you to measurements done on multi-qubit systems, and how to implement such measurements in Q#.
 This will include measuring a single qubit in a multi-qubit system, as well as measuring multiple qubits simultaneously.
 
-We recommend to go through the [tutorial that introduces single-qubit system measurements](../SingleQubitSystemMeasurements/SingleQubitSystemMeasurements.ipynb) before starting this one.
+We recommend to go through the kata that introduces single-qubit system measurements before starting this one.
 $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
@@ -16,7 +21,10 @@ You should be familiar with the following concepts before tackling the Single-Qu
    $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
    $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
-## Types of measurements on multi-qubit systems
+@[section]({
+    "id": "multi_qubit_measurements_types_of_measurements",
+    "title": "Types of measurements"
+})
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
 
@@ -43,19 +51,16 @@ In line with the usual convention, we choose the wave function to be normalized,
 
 This can be summarized in the following table:
 
-<table style="border:1px solid">
-    <col width=150>
-    <col width=150>
-    <col width=150>
+<table>
     <tr>
-        <th style="text-align:center; border:1px solid">Measurement outcome</th>
-        <th style="text-align:center; border:1px solid">Probability of outcome</th>
-        <th style="text-align:center; border:1px solid">State after measurement</th>
+        <th>Measurement outcome</th>
+        <th>Probability of outcome</th>
+        <th>State after measurement</th>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$b_i$</td>
-        <td style="text-align:center; border:1px solid">$|c_i|^2$</td>
-        <td style="text-align:center; border:1px solid">$\ket{b_i}$</td>
+        <td>$b_i$</td>
+        <td>$|c_i|^2$</td>
+        <td>$\ket{b_i}$</td>
     </tr>    
 </table>
  
@@ -63,9 +68,9 @@ This can be summarized in the following table:
 > Similar to measurements in single-qubit systems, the assumption of normalization of the original wave function is required in order to ensure that the sum of all the outcome probabilities is 1.
 
 @[question]({
-"id": "multi_qubit_probabilities_1",
-"descriptionPath": "./multi_qubit_probabilities_1/index.md",
-"answerPath": "./multi_qubit_probabilities_1/solution.md"
+    "id": "multi_qubit_probabilities_1",
+    "descriptionPath": "./multi_qubit_probabilities_1/index.md",
+    "answerPath": "./multi_qubit_probabilities_1/solution.md"
 })
 
 ## Measuring each qubit in a system one after another
@@ -84,15 +89,18 @@ For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{-
 >
 > If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this tutorial.
 
+@[section]({
+    "id": "multi_qubit_measurements_measurement_statistics",
+    "title": "Measurement statistics for  qubit-by-qubit full measurement"
+})
 
-### <span style="color:blue">Demo: Measurement statistics for  qubit-by-qubit full measurement</span>
 This demo illustrates the equivalence of the measurement probabilities for simultaneous measurement on all qubits, and measurements on each of the qubits executed one after another. Using the wave function from exercise 1 above as an example, we show that the measurement probabilities obtained using the `M` operation in Q# are the same as those expected theoretically for exercise 1. 
 
 The simulated probabilities will be different for each run of `DemoBasisMeasurement`. The simulated and theoretical probabilities are not expected to be identical, since measurements are probabilistic. However, we expect the values to be similar, and the simulated probabilities to approach the theoretical probabilities as the parameter `numRuns` is increased.
 
 @[example]({
-"id": "measuring_one_at_a_time",
-"codePath": "./measuring_one_at_a_time.qs"
+    "id": "measuring_one_at_a_time",
+    "codePath": "./measuring_one_at_a_time.qs"
 })
 
 ## Using full measurements to identify the state of the system
@@ -100,22 +108,26 @@ The simulated probabilities will be different for each run of `DemoBasisMeasurem
 Full measurements can also be used to identify the state of the system, if it is guaranteed to be in one of several possible orthogonal states.
 
 @[exercise]({
-"id": "full_measurements",
-"descriptionPath": "./full_measurements/index.md",
-"placeholderSourcePath": "./full_measurements/placeholder.qs",
-"solutionPath": "./full_measurements/solution.md",
-"codePaths": [
-    "./full_measurements/verify.qs",
-    "./common.qs",
-    "../KatasLibrary.qs"
-]
+    "id": "full_measurements",
+    "title":  "Distinguish four basis states",
+    "descriptionPath": "./full_measurements/index.md",
+    "placeholderSourcePath": "./full_measurements/placeholder.qs",
+    "solutionPath": "./full_measurements/solution.md",
+    "codePaths": [
+        "./full_measurements/verify.qs",
+        "./common.qs",
+        "../KatasLibrary.qs"
+    ]
 })
 
-## Partial Measurements
+@[section]({
+    "id": "multi_qubit_measurements_partial_measurements",
+    "title": "Partial Measurements"
+})
 
 For a system with $n>1$ qubits, it is possible to measure $m<n$ qubits one after another. The number of measurement outcomes is then $2^m$ instead of $2^n$. The probabilities of each of the outcomes and the post-measurement states of the qubits can be found using the projection formalism for measurements.
 
-First, we recall the concept of [projection operators](../SingleQubitSystemMeasurements/SingleQubitSystemMeasurements.ipynb#Measurements-as-projection-operations) introduced in the single-qubit systems measurements tutorial. Measurements are modeled by orthogonal projection operators - matrices that satisfy
+First, we recall the concept of projection operators introduced in the single-qubit systems measurements kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
 $$
 P^2 = P^\dagger = P.
 $$
@@ -156,19 +168,23 @@ Clearly, we have $\big|P_0 \ket \psi\big| = \big|P_1 \ket \psi\big| = \frac{1}{2
 > Similar to the case of single-qubit system measurements, the applicability of the formalism above requires the state of the multi-qubit system, $\ket \psi$, to be normalized. This is required to ensure that all the probabilities of individual outcomes add up to 1.
 
 @[question]({
-"id": "partial_measurements",
-"descriptionPath": "./partial_measurements/index.md",
-"answerPath": "./partial_measurements/solution.md"
+    "id": "partial_measurements",
+    "descriptionPath": "./partial_measurements/index.md",
+    "answerPath": "./partial_measurements/solution.md"
 })
 
-### <span style="color:blue">Demo: Measurement statistics for  partial measurement</span>
+@[section]({
+    "id": "multi_qubit_measurements_measurement_statistics_for_partial_measurements",
+    "title": "Measurement statistics for  partial measurement"
+})
+
 Using the `M` operation in Q#, we demonstrate that the simulated outcome probabilities and post-measurement outcomes match the theoretical values obtained using the projection operators as described above. We use the Hardy state from Exercise 4 with a computational basis measurement on the first qubit for this purpose.
 
 The simulated and theoretical measurement probabilities are not expected to match exactly, but should be close to each other, since measurement is probabilistic. However, the post-measurement states from the simulation should match the expected states for Exercise 4 precisely, since partial state collapse is not a probabilistic process.
 
 @[example]({
-"id": "partial_measurements_demo",
-"codePath": "./partial_measurements_demo.qs"
+    "id": "partial_measurements_demo",
+    "codePath": "./partial_measurements_demo.qs"
 })
 
 ## Using partial measurements to identify the state of the system
@@ -176,22 +192,26 @@ The simulated and theoretical measurement probabilities are not expected to matc
 In certain situations, it is possible to distinguish between orthogonal states of multi-qubit systems using partial measurements, as illustrated in the next exercise.
 
 @[exercise]({
-"id": "partial_measurements_for_system",
-"descriptionPath": "./partial_measurements_for_system/index.md",
-"placeholderSourcePath": "./partial_measurements_for_system/placeholder.qs",
-"solutionPath": "./partial_measurements_for_system/solution.md",
-"codePaths": [
-    "./partial_measurements_for_system/verify.qs",
-    "./common.qs",
-    "../KatasLibrary.qs"
-]
+    "id": "partial_measurements_for_system",
+    "title": "Distinguish orthogonal states using partial measurements",
+    "descriptionPath": "./partial_measurements_for_system/index.md",
+    "placeholderSourcePath": "./partial_measurements_for_system/placeholder.qs",
+    "solutionPath": "./partial_measurements_for_system/solution.md",
+    "codePaths": [
+        "./partial_measurements_for_system/verify.qs",
+        "./common.qs",
+        "../KatasLibrary.qs"
+    ]
 })
 
-## Measurements and entanglement
+@[section]({
+    "id": "multi_qubit_measurements_measurements_and_entanglement",
+    "title": "Measurements and entanglement"
+})
 
 Qubits entanglement has an effect on the measurement statistics of the system. If two qubits are entangled, then their measurement outcomes will be correlated, while separable states (which are by definition not entangled) have uncorrelated measurement outcomes.
 
-> It is useful to revisit the concepts of entanglement and separable states, which were introduced in the [tutorial on multi-qubit systems](../MultiQubitSystems/MultiQubitSystems.ipynb#Entanglement). Consider a system of $n>1$ number of qubits, which we divide into two parts: A, consisting of $m$ qubits, and B, consisting of the remaining $n-m$ qubits. We say that the state $\ket \psi$ of the entire system is separable if it can be expressed as a tensor product of the states of parts A and B: 
+> It is useful to revisit the concepts of entanglement and separable states, which were introduced in the kata on multi-qubit systems. Consider a system of $n>1$ number of qubits, which we divide into two parts: A, consisting of $m$ qubits, and B, consisting of the remaining $n-m$ qubits. We say that the state $\ket \psi$ of the entire system is separable if it can be expressed as a tensor product of the states of parts A and B: 
 $$
 \ket \psi = \ket {\phi_A} \otimes \ket{\phi_B}
 $$
@@ -210,9 +230,9 @@ Thus, the state of subsystem $B$ after the measurement is $\ket{\phi_B}$ indepen
 On the other hand, if the system is entangled, then the measurement outcomes will be correlated, in a manner dictated by the bases chosen for the measurements on the two subsystems. The following exercise illustrates this phenomenon.
 
 @[question]({
-"id": "measurements_and_entanglement",
-"descriptionPath": "./measurements_and_entanglement/index.md",
-"answerPath": "./measurements_and_entanglement/solution.md"
+    "id": "measurements_and_entanglement",
+    "descriptionPath": "./measurements_and_entanglement/index.md",
+    "answerPath": "./measurements_and_entanglement/solution.md"
 })
 
 ## State modification using partial measurements
@@ -220,15 +240,21 @@ On the other hand, if the system is entangled, then the measurement outcomes wil
 For certain multi-qubit systems prepared in a superposition state, it is possible to use partial measurements to collapse a part of the system to some desired state.
 
 @[exercise]({
-"id": "state_modification",
-"descriptionPath": "./state_modification/index.md",
-"placeholderSourcePath": "./state_modification/placeholder.qs",
-"solutionPath": "./state_modification/solution.md",
-"codePaths": [
-    "./state_modification/verify.qs",
-    "./common.qs",
-    "../KatasLibrary.qs"
-]
+    "id": "state_modification",
+    "title": "State selection using partial measurements",
+    "descriptionPath": "./state_modification/index.md",
+    "placeholderSourcePath": "./state_modification/placeholder.qs",
+    "solutionPath": "./state_modification/solution.md",
+    "codePaths": [
+        "./state_modification/verify.qs",
+        "./common.qs",
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[section]({
+    "id": "multi_qubit_measurements_state_preparation",
+    "title": "State preparation"
 })
 
 Any multi-qubit state can be prepared from the $|0...0\rangle$ state using an appropriate combination of quantum gates. 
@@ -236,22 +262,26 @@ However, sometimes it is easier and more efficient to prepare a state using part
 You could prepare a simpler state involving additional qubits, which, when measured, result in a collapse of the remaining qubits to the desired state with a high probability. This is called **post-selection**, and is particularly useful if it is easier to prepare the pre-measurement state with the extra qubits than to prepare the desired state directly using unitary gates alone. This is demonstrated by the following exercise.
 
 @[exercise]({
-"id": "state_preparation",
-"descriptionPath": "./state_preparation/index.md",
-"placeholderSourcePath": "./state_preparation/placeholder.qs",
-"solutionPath": "./state_preparation/solution.md",
-"codePaths": [
-    "./state_preparation/verify.qs",
-    "./common.qs",
-    "../KatasLibrary.qs"
-]
+    "id": "state_preparation",
+    "title": "State preparation using partial measurements",
+    "descriptionPath": "./state_preparation/index.md",
+    "placeholderSourcePath": "./state_preparation/placeholder.qs",
+    "solutionPath": "./state_preparation/solution.md",
+    "codePaths": [
+        "./state_preparation/verify.qs",
+        "./common.qs",
+        "../KatasLibrary.qs"
+    ]
 })
 
-## Joint measurements
+@[section]({
+    "id": "multi_qubit_measurements_joint_measurements",
+    "title": "Joint measurements"
+})
 
 Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the [Measure](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) operation. Let's review single-qubit measurements in a different light before discussing joint measurements. 
 
-### Single-qubit Pauli measurement
+## Single-qubit Pauli measurement
 For single-qubit systems, any measurement corresponding to an orthogonal basis can be associated with a Hermitian matrix with eigenvalues $\pm 1$. The possible measurement outcomes (represented as `Result` in Q#) are the eigenvalues of the Hermitian matrix, and the corresponding projection matrices for the measurement are the projection operators onto the *eigenspaces* corresponding to the eigenvalues. 
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by 
@@ -261,51 +291,46 @@ $$
 The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\{\ket{0},\ket{1}\}$ basis, with the measurement outcomes being $1$ and $-1$ respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
 Similarly, one can implement measurements corresponding to the Pauli X and Y operators. We summarize the various properties below:
-<table style="border:1px solid">
-    <col width=200>
-    <col width=50>
-    <col width=100>
-    <col width=150>
-    <col width=150>
+<table>
     <tr>
-        <th style="text-align:center; border:1px solid">Pauli Operator</th>
-        <th style="text-align:center; border:1px solid">Matrix</th>
-        <th style="text-align:center; border:1px solid">Eigenvalue</th>
-        <th style="text-align:center; border:1px solid">Eigenvector/post-measurement state</th>
-        <th style="text-align:center; border:1px solid">Measurement Result in Q#</th>
+        <th>Pauli Operator</th>
+        <th>Matrix</th>
+        <th>Eigenvalue</th>
+        <th>Eigenvector/post-measurement state</th>
+        <th>Measurement Result in Q#</th>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid" rowspan="2">$X$</td>
-        <td style="text-align:center; border:1px solid" rowspan="2">$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$</td>
-        <td style="text-align:center; border:1px solid">+1</td>
-        <td style="text-align:center; border:1px solid">$\ket{+}$</td>
-        <td style="text-align:center; border:1px solid">Zero</td>
+        <td rowspan="2">$X$</td>
+        <td rowspan="2">$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$</td>
+        <td>+1</td>
+        <td>$\ket{+}$</td>
+        <td>Zero</td>
     </tr><tr>
-        <td style="text-align:center; border:1px solid">-1</td>
-        <td style="text-align:center; border:1px solid">$\ket{-}$</td>
-        <td style="text-align:center; border:1px solid">One</td>
+        <td>-1</td>
+        <td>$\ket{-}$</td>
+        <td>One</td>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid" rowspan="2">$Y$</td>
-        <td style="text-align:center; border:1px solid" rowspan="2">$\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}$</td>
-        <td style="text-align:center; border:1px solid">+1</td>
-        <td style="text-align:center; border:1px solid">$\ket{i}$</td>
-        <td style="text-align:center; border:1px solid">Zero</td>
+        <td rowspan="2">$Y$</td>
+        <td rowspan="2">$\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}$</td>
+        <td>+1</td>
+        <td>$\ket{i}$</td>
+        <td>Zero</td>
     </tr><tr>
-        <td style="text-align:center; border:1px solid">-1</td>
-        <td style="text-align:center; border:1px solid">$\ket{-i}$</td>
-        <td style="text-align:center; border:1px solid">One</td>
+        <td>-1</td>
+        <td>$\ket{-i}$</td>
+        <td>One</td>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid" rowspan="2">$Z$</td>
-        <td style="text-align:center; border:1px solid" rowspan="2">$\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$</td>
-        <td style="text-align:center; border:1px solid">+1</td>
-        <td style="text-align:center; border:1px solid">$\ket{0}$</td>
-        <td style="text-align:center; border:1px solid">Zero</td>
+        <td rowspan="2">$Z$</td>
+        <td rowspan="2">$\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$</td>
+        <td>+1</td>
+        <td>$\ket{0}$</td>
+        <td>Zero</td>
     </tr><tr>
-        <td style="text-align:center; border:1px solid">-1</td>
-        <td style="text-align:center; border:1px solid">$\ket{1}$</td>
-        <td style="text-align:center; border:1px solid">One</td>
+        <td>-1</td>
+        <td>$\ket{1}$</td>
+        <td>One</td>
     </tr>
 </table>
 
@@ -313,8 +338,7 @@ In general, any measurement on a single qubit which results in two outcomes corr
 
 Joint measurements are a generalization of this principle for multi-qubit matrices.
 
-
-### Parity measurements
+## Parity measurements
 The simplest joint measurement is a parity measurement. A parity measurement treats computational basis vectors differently depending on whether the number of 1's in the basis vector is even or odd. 
 
 For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\{ |00\rangle, |11\rangle \}$ and $\{ |01\rangle, |10\rangle \}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e. the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of $1$'s. On the other hand, a result of `One` corresponds to a post-measurement state with only odd parity computational basis vectors.
@@ -361,55 +385,56 @@ it is easy to see that $|00\rangle$ belongs to the $+1$ eigenspace, hence the $Z
 Similarly, a parity measurement on a higher number of qubits can be implemented using a $Z \otimes \dotsc \otimes Z$ measurement.
 
 @[exercise]({
-"id": "joint_measurements",
-"descriptionPath": "./joint_measurements/index.md",
-"placeholderSourcePath": "./joint_measurements/placeholder.qs",
-"solutionPath": "./joint_measurements/solution.md",
-"codePaths": [
-    "./joint_measurements/verify.qs",
-    "./common.qs",
-    "../KatasLibrary.qs"
-]
+    "id": "joint_measurements",
+    "title": "Two-qubit parity measurement",
+    "descriptionPath": "./joint_measurements/index.md",
+    "placeholderSourcePath": "./joint_measurements/placeholder.qs",
+    "solutionPath": "./joint_measurements/solution.md",
+    "codePaths": [
+        "./joint_measurements/verify.qs",
+        "./common.qs",
+        "../KatasLibrary.qs"
+    ]
 })
 
-### Multi-qubit Pauli measurements
+@[section]({
+    "id": "multi_qubit_measurements_pauli_measurements",
+    "title": "Multi-qubit Pauli measurements"
+})
+
 Joint measurement is a generalization of the measurement in the computational basis. 
 Pauli measurements can also be generalized to a larger number of qubits. A multi-qubit Pauli measurement corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_i$ being from the set of gates $\{X,Y,Z,I\}$. If at least one of the operators is not the identity matrix, then the measurement can result in two outcomes: a `Result` of `Zero` corresponding to eigenvalue $+1$ and a `Result` of `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces.
 
 For example, a Pauli/joint measurement corresponding to the $X\otimes Z$ operator can be characterized as follows:
-<table style="border:1px solid">
-    <col width=50>
-    <col width=50>
-    <col width=150>
-    <col width=250>
+<table>
     <tr>
-        <th style="text-align:center; border:1px solid">Eigenvalue</th>
-        <th style="text-align:center; border:1px solid">Measurement Result in Q#</th>
-        <th style="text-align:center; border:1px solid">Eigenbasis</th>
-        <th style="text-align:center; border:1px solid">Measurement Projector</th>
+        <th>Eigenvalue</th>
+        <th>Measurement Result in Q#</th>
+        <th>Eigenbasis</th>
+        <th>Measurement Projector</th>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$+1$</td>
-        <td style="text-align:center; border:1px solid">Zero</td>
-        <td style="text-align:center; border:1px solid">$\{ \ket{0,+}, \ket{1,-} \}$</td>
-        <td style="text-align:center; border:1px solid">$P_{+1} = \ket{0,+}\bra{0,+} +  \ket{1,-} \bra{1,-}$</td>
+        <td>$+1$</td>
+        <td>Zero</td>
+        <td>$\{ \ket{0,+}, \ket{1,-} \}$</td>
+        <td>$P_{+1} = \ket{0,+}\bra{0,+} +  \ket{1,-} \bra{1,-}$</td>
      </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$-1$</td>
-        <td style="text-align:center; border:1px solid">One</td>
-        <td style="text-align:center; border:1px solid">$\{ \ket{0,-}, \ket{1,+} \}$</td>
-        <td style="text-align:center; border:1px solid">$P_{-1} = \ket{0,-}\bra{0,-} +  \ket{1,+} \bra{1,+}$</td>
+        <td>$-1$</td>
+        <td>One</td>
+        <td>$\{ \ket{0,-}, \ket{1,+} \}$</td>
+        <td>$P_{-1} = \ket{0,-}\bra{0,-} +  \ket{1,+} \bra{1,+}$</td>
      </tr>
- </table>   
+ </table>
  
- The rules for measurements are then the same as those outlined in the [partial measurements section](#Partial-Measurements), with the projection operators in the table.
+ The rules for measurements are then the same as those outlined in the partial measurements section, with the projection operators in the table.
 
  @[question]({
-"id": "multi_qubit_measurements",
-"descriptionPath": "./multi_qubit_measurements/index.md",
-"answerPath": "./multi_qubit_measurements/solution.md"
+    "id": "multi_qubit_measurements",
+    "descriptionPath": "./multi_qubit_measurements/index.md",
+    "answerPath": "./multi_qubit_measurements/solution.md"
 })
 
 ## Conclusion
 
-Congratulations! You have learned enough to solve problems from the [Measurements kata](../../Measurements/Measurements.ipynb) and the [Joint Measurements kata](../../JointMeasurements/JointMeasurements.ipynb).
+Congratulations!
