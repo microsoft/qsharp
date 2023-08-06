@@ -1,23 +1,31 @@
 ﻿# Multi-Qubit Systems
 
-This tutorial introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
+@[section]({
+    "id": "multi_qubit_systems_overview",
+    "title": "Overview"
+})
 
-If you are not familiar with the [single-qubit systems](../Qubit/Qubit.ipynb), we recommend that you complete that tutorial first.
+This kata introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
 
-**This tutorial covers the following topics:**
+If you are not familiar with single-qubit systems, we recommend that you complete the qubit kata first.
+
+**This kata covers the following topics:**
 
 * Vector representation of multi-qubit systems
 * Entangled and separable states
 * Dirac notation
 
-**What you should know for this workbook**
+**What you should know to start working on this kata**
 
 1. Basic single-qubit gates.
 2. The concept of tensor product.
 
-# Multi-Qubit Systems
+@[section]({
+    "id": "multi_qubit_systems_introduction",
+    "title": "Multi-Qubit Systems"
+})
 
-In the previous tutorial we discussed the concept of a qubit - the basic building block of a quantum computer. 
+In a previous kata we discussed the concept of a qubit - the basic building block of a quantum computer. 
 A multi-qubit system is a collection of multiple qubits, treated as a single system.
 
 Let's start by examining a system of two classical bits. Each bit can be in two states: $0$ and $1$. Therefore, a system of two bits can be in four different states: $00$, $01$, $10$, and $11$. Generally, a system of $N$ classical bits can be in any of the $2^N$ states.
@@ -42,18 +50,14 @@ $$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}\text{, }
 It is easy to see that these vectors form an orthonormal basis. Note that each of these basis states can be represented as a tensor product of some combination of single-qubit basis states:
 
 <table>
-    <col width=200>
-    <col width=200>
-    <col width=200>
-    <col width=200>
     <tr>
-        <td style="text-align:center; background-color:white">$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} =
+        <td>$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
-        <td style="text-align:center; background-color:white">$\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} =
+        <td>$\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
-        <td style="text-align:center; background-color:white">$\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} =
+        <td>$\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 0 \\ 1 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
-        <td style="text-align:center; background-color:white">$\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} =
+        <td>$\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} =
 \begin{bmatrix} 0 \\ 1 \end{bmatrix} \otimes \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
     </tr>
 </table>
@@ -78,10 +82,13 @@ The coefficients of the basis vectors define how "close" is the system state to 
 >
 > You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors.  The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
 
-# Separable states
+@[section]({
+    "id": "multi_qubit_systems_separable_states",
+    "title": "Separable States"
+})
 
 Sometimes the state of a multi-qubit system can be separated into the states of individual qubits or smaller subsystems. 
-To do this, you would express the vector state of the system as a [tensor product](../LinearAlgebra/LinearAlgebra.ipynb#Tensor-Product) of the vectors representing each individual qubit/subsystem. 
+To do this, you would express the vector state of the system as a tensor product of the vectors representing each individual qubit/subsystem. 
 Here is an example for two qubits:
 
 $$\begin{bmatrix} \frac{1}{\sqrt{2}} \\ 0 \\ \frac{1}{\sqrt{2}} \\ 0 \end{bmatrix} =
@@ -102,7 +109,10 @@ The states that allow such representation are known as **separable states**.
 "answerPath": "./is_it_separable/solution.md"
 })
 
-# Entanglement
+@[section]({
+    "id": "multi_qubit_systems_entanglement",
+    "title": "Entanglement"
+})
 
 As we've just seen, some quantum states are impossible to factor into individual qubit states or even into states of larger subsystems. The states of these qubits are inseparable from one another and must always be considered as part of a larger system - they are **entangled**.
 
@@ -114,9 +124,12 @@ In entangled systems, measuring one of the qubits modifies the state of the othe
 In the example above, when one of the qubits is measured, we know that the second qubit will end up in the same state. 
 This property is used extensively in many quantum algorithms.
 
-# Dirac Notation
+@[section]({
+    "id": "multi_qubit_systems_dirac_notation",
+    "title": "Dirac Notation"
+})
 
-Just like with single qubits, [Dirac notation](../Qubit/Qubit.ipynb#Dirac-Notation) provides a useful shorthand for writing down states of multi-qubit systems.
+Just like with single qubits, Dirac notation provides a useful shorthand for writing down states of multi-qubit systems.
 
 As we've seen earlier, multi-qubit systems have their own canonical bases, and the basis states can be represented as tensor products of single-qubit basis states. Any multi-qubit system can be represented as a linear combination of these basis states:
 
@@ -155,11 +168,9 @@ Whether a ket represents a single qubit or an entire system depends on the conte
 Some ket symbols have a commonly accepted usage, such as the symbols for the Bell basis:
 
 <table>
-    <col width=300>
-    <col width=300>
     <tr>
-        <td style="text-align:center; background-color:white">$|\Phi^+\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle + |11\rangle\big) \\ |\Phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$</td>
-        <td style="text-align:center; background-color:white">$|\Psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big) \\ |\Psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$</td>
+        <td>$|\Phi^+\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle + |11\rangle\big) \\ |\Phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$</td>
+        <td>$|\Psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big) \\ |\Psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$</td>
     </tr>
 </table>
 
@@ -175,50 +186,53 @@ Some ket symbols have a commonly accepted usage, such as the symbols for the Bel
 >
 > <table>
 >    <tr>
->        <th style="text-align:center; border:1px solid">Integer Ket</th>
->        <td style="text-align:center; border:1px solid">$|0\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|1\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|2\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|3\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|4\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|5\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|6\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|7\rangle$</td>
+>        <th>Integer Ket</th>
+>        <td>$|0\rangle$</td>
+>        <td>$|1\rangle$</td>
+>        <td>$|2\rangle$</td>
+>        <td>$|3\rangle$</td>
+>        <td>$|4\rangle$</td>
+>        <td>$|5\rangle$</td>
+>        <td>$|6\rangle$</td>
+>        <td>$|7\rangle$</td>
 >    </tr>
 >    <tr>
->        <th style="text-align:center; border:1px solid">Big-endian</th>
->        <td style="text-align:center; border:1px solid">$|000\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|001\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|010\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|011\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|100\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|101\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|110\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|111\rangle$</td>
+>        <th>Big-endian</th>
+>        <td>$|000\rangle$</td>
+>        <td>$|001\rangle$</td>
+>        <td>$|010\rangle$</td>
+>        <td>$|011\rangle$</td>
+>        <td>$|100\rangle$</td>
+>        <td>$|101\rangle$</td>
+>        <td>$|110\rangle$</td>
+>        <td>$|111\rangle$</td>
 >    </tr>
 >    <tr>
->        <th style="text-align:center; border:1px solid">Little-endian</th>
->        <td style="text-align:center; border:1px solid">$|000\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|100\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|010\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|110\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|001\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|101\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|011\rangle$</td>
->        <td style="text-align:center; border:1px solid">$|111\rangle$</td>
+>        <th>Little-endian</th>
+>        <td>$|000\rangle$</td>
+>        <td>$|100\rangle$</td>
+>        <td>$|010\rangle$</td>
+>        <td>$|110\rangle$</td>
+>        <td>$|001\rangle$</td>
+>        <td>$|101\rangle$</td>
+>        <td>$|011\rangle$</td>
+>        <td>$|111\rangle$</td>
 >    </tr>
 ></table>
 >
 > Multi-qubit quantum systems that store superpositions of numbers are often referred to as **quantum registers**.
 
-### <span style="color:blue">Demo: Multi-qubit systems</span>
+@[section]({
+    "id": "multi_qubit_systems_in_qsharp",
+    "title": "Multi-qubit systems in Q#"
+})
 
-This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please see the [corresponding tutorial](../SingleQubitGates/SingleQubitGates.ipynb).
+This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates kata.
 
 These demos use the function `DumpMachine` to print the state of the quantum simulator. 
-If you aren't familiar with the output of this function for single qubits, you should revisit the tutorial on [the concept of a qubit](../Qubit/Qubit.ipynb#Demo:-Examining-Qubit-States-in-Q#). 
+If you aren't familiar with the output of this function for single qubits, you should revisit the qubit kata. 
 When printing the state of multi-qubit systems, this function outputs the same information for each multi-qubit basis state.
-[This tutorial](../VisualizationTools/VisualizationTools.ipynb#Demo:-DumpMachine-for-multi-qubit-systems) explains how `DumpMachine` works for multiple qubits in more detail. 
+The qubit kata explains how `DumpMachine` works for multiple qubits in more detail. 
 
 @[example]({"id": "multiqubit_system", "codePath": "./multiqubit_system.qs"})
 
@@ -232,64 +246,71 @@ If they are not in zero state by that time, they can potentially be still entang
 >
 > The requirement that the qubits should be in zero state before they can be released aims to remind the developer to double-check that all necessary information has been properly extracted from the qubits, and that they are not entangled with unreleased qubits any more.
 >
-> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in [this tutorial](../SingleQubitSystemMeasurements/SingleQubitSystemMeasurements.ipynb).)
+> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in the qubit kata.)
 
 In the following exercises you will learn to prepare separable quantum states by manipulating individual qubits. 
-You will only need [single-qubit gates](../SingleQubitGates/SingleQubitGates.ipynb) for that.
+You will only need knowledge from the single-qubit gates kata for that.
 
 > In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`. 
 Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({
-"id": "prepare_basis_state",
-"descriptionPath": "./prepare_basis_state/index.md",
-"placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
-"solutionPath": "./prepare_basis_state/solution.md",
-"codeDependenciesPaths": [
-"../KatasLibrary.qs",
-"./Common.qs",
-"./prepare_basis_state/verification.qs"
-]
+    "id": "prepare_basis_state",
+    "title": "Prepare a basis state",
+    "descriptionPath": "./prepare_basis_state/index.md",
+    "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
+    "solutionPath": "./prepare_basis_state/solution.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./Common.qs",
+        "./prepare_basis_state/verification.qs"
+    ]
 })
 
 @[exercise]({
-"id": "prepare_superposition",
-"descriptionPath": "./prepare_superposition/index.md",
-"placeholderSourcePath": "./prepare_superposition/placeholder.qs",
-"solutionPath": "./prepare_superposition/solution.md",
-"codeDependenciesPaths": [
-"../KatasLibrary.qs",
-"./Common.qs",
-"./prepare_superposition/verification.qs"
-]
+    "id": "prepare_superposition",
+    "title": "Prepare a superposition of two basis states",
+    "descriptionPath": "./prepare_superposition/index.md",
+    "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
+    "solutionPath": "./prepare_superposition/solution.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./Common.qs",
+        "./prepare_superposition/verification.qs"
+    ]
 })
 
 @[exercise]({
-"id": "prepare_with_real",
-"descriptionPath": "./prepare_with_real/index.md",
-"placeholderSourcePath": "./prepare_with_real/placeholder.qs",
-"solutionPath": "./prepare_with_real/solution.md",
-"codeDependenciesPaths": [
-"../KatasLibrary.qs",
-"./Common.qs",
-"./prepare_with_real/verification.qs"
-]
+    "id": "prepare_with_real",
+    "title": " Prepare a superposition with real amplitudes",
+    "descriptionPath": "./prepare_with_real/index.md",
+    "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
+    "solutionPath": "./prepare_with_real/solution.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./Common.qs",
+        "./prepare_with_real/verification.qs"
+    ]
 })
 
 @[exercise]({
-"id": "prepare_with_complex",
-"codeDependenciesPaths": [
-"../KatasLibrary.qs",
-"./Common.qs"
-],
-"verificationSourcePath": "./prepare_with_complex/verification.qs",
-"placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
-"solutionSourcePath": "./prepare_with_complex/solution.qs",
-"solutionDescriptionPath": "./prepare_with_complex/solution.md"
+    "id": "prepare_with_complex",
+    "title": "Prepare a superposition with complex amplitudes",
+    "descriptionPath": "./prepare_with_complex/index.md",
+    "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
+    "solutionPath": "./prepare_with_complex/solution.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./Common.qs",
+        "./prepare_with_complex/verification.qs"
+    ]
 })
 
-## Conclusion
+@[section]({
+    "id": "multi_qubit_systems_conclusion",
+    "title": "Conclusion"
+})
 
 As you've seen in the exercises, you can prepare separable multi-qubit states using only single-qubit gates. 
 However, to prepare and manipulate entangled states you'll need more powerful tools. 
-In the [next tutorial](../MultiQubitGates/MultiQubitGates.ipynb) you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.
+In the next kata, multi-qubit gates, you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.
