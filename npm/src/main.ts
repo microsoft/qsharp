@@ -18,6 +18,12 @@ import {
   QSharpLanguageService,
 } from "./language-service/language-service.js";
 import { createLanguageServiceProxy } from "./language-service/worker-proxy.js";
+import {
+  IDebugService,
+  IDebugServiceWorker,
+  QSharpDebugService,
+} from "./debug-service/debug-service.js";
+import { createDebugServiceProxy } from "./debug-service/worker-proxy.js";
 
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
 // and not in the main thread.
@@ -43,6 +49,30 @@ export function getCompilerWorker(): ICompilerWorker {
 
   // Create the proxy which will forward method calls to the worker
   const proxy = createCompilerProxy(
+    // If you lose the 'this' binding, some environments have issues.
+    worker.postMessage.bind(worker),
+    () => worker.terminate()
+  );
+
+  // Let proxy handle response and event messages from the worker
+  worker.addListener("message", proxy.onMsgFromWorker);
+
+  return proxy;
+}
+
+export function getDebugService(): IDebugService {
+  if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+  return new QSharpDebugService(wasm);
+}
+
+export function getDebugServiceWorker(): IDebugServiceWorker {
+  const thisDir = dirname(fileURLToPath(import.meta.url));
+  const worker = new Worker(join(thisDir, "./debug-service/worker-node.js"), {
+    workerData: { qscLogLevel: log.getLogLevel() },
+  });
+
+  // Create the proxy which will forward method calls to the worker
+  const proxy = createDebugServiceProxy(
     // If you lose the 'this' binding, some environments have issues.
     worker.postMessage.bind(worker),
     () => worker.terminate()
