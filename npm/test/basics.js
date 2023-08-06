@@ -11,6 +11,7 @@ import {
   getCompilerWorker,
   getLanguageService,
   getLanguageServiceWorker,
+  getDebugServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
@@ -163,7 +164,7 @@ async function validateExercise(
     // Check that there are no compilation or runtime errors.
     assert(
       placeholderResult.errorCount === 0,
-      `Placeholder for exercise "${exercise.id}" has compilation or runtime errors` +
+      `Exercise "${exercise.id}" has compilation or runtime errors when using the placeholder as solution. ` +
         `Compilation and runtime errors:\n${placeholderResult.errorMsg}`
     );
 
@@ -230,7 +231,7 @@ async function validateKata(
 test("all katas work", async () => {
   const katas = await getAllKatas();
   // N.B. If you update the expected katas count, make sure to add a validation test for your newly added kata.
-  const expectedKatasCount = 3;
+  const expectedKatasCount = 5;
   assert.equal(
     katas.length,
     expectedKatasCount,
@@ -250,6 +251,16 @@ test("single_qubit_gates kata is valid", async () => {
 
 test("multi_qubit_gates kata is valid", async () => {
   const kata = await getKata("multi_qubit_gates");
+  await validateKata(kata, true, true);
+});
+
+test("single_qubit_measurements is valid", async () => {
+  const kata = await getKata("single_qubit_measurements");
+  await validateKata(kata, true, true);
+});
+
+test("random_numbers kata is valid", async () => {
+  const kata = await getKata("random_numbers");
   await validateKata(kata, true, true);
 });
 
@@ -465,3 +476,93 @@ async function testCompilerError(useWorker) {
 
 test("compiler error on run", () => testCompilerError(false));
 test("compiler error on run - worker", () => testCompilerError(true));
+
+test("debug service get breakpoints without service loaded returns empty - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const emptyBps = await debugService.getBreakpoints("test.qs");
+    assert.equal(0, emptyBps.length);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source without entry point attr fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Y(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+    );
+    assert.equal(false, result);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with syntax error fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    operation main() : Result[]
+    }
+}`
+    );
+    assert.equal(false, result);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with entry point attr succeeds - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    @EntryPoint()
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Y(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+    );
+    assert.equal(true, result);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service getting breakpoints after loaded source succeeds when file names match - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    @EntryPoint()
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Y(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+    );
+    assert.equal(true, result);
+    const bps = await debugService.getBreakpoints("test.qs");
+    assert.equal(bps.length, 8);
+  } finally {
+    debugService.terminate();
+  }
+});
