@@ -2,8 +2,8 @@
 /// Hidden shift
 ///
 /// # Description
-/// There is a family of problems known as hidden shift problems, in which one
-/// is given two Boolean functions 𝑓 and 𝑔 with the promise that they satisfy
+/// There is a family of problems known as hidden shift problems, in which it
+/// is given that two Boolean functions 𝑓 and 𝑔 satisfy
 /// the relation
 ///     𝑔(𝑥) = 𝑓(𝑥 ⊕ 𝑠) for all 𝑥
 /// where 𝑠 is a hidden bit string that we would like to find.
