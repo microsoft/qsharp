@@ -11,6 +11,7 @@ import {
   getCompilerWorker,
   getLanguageService,
   getLanguageServiceWorker,
+  getDebugServiceWorker,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
@@ -475,3 +476,93 @@ async function testCompilerError(useWorker) {
 
 test("compiler error on run", () => testCompilerError(false));
 test("compiler error on run - worker", () => testCompilerError(true));
+
+test("debug service get breakpoints without service loaded returns empty - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const emptyBps = await debugService.getBreakpoints("test.qs");
+    assert.equal(0, emptyBps.length);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source without entry point attr fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Y(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+    );
+    assert.equal(false, result);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with syntax error fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    operation main() : Result[]
+    }
+}`
+    );
+    assert.equal(false, result);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with entry point attr succeeds - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    @EntryPoint()
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Y(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+    );
+    assert.equal(true, result);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service getting breakpoints after loaded source succeeds when file names match - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample {
+    @EntryPoint()
+    operation main() : Result[] {
+        use q1 = Qubit();
+        Y(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`
+    );
+    assert.equal(true, result);
+    const bps = await debugService.getBreakpoints("test.qs");
+    assert.equal(bps.length, 8);
+  } finally {
+    debugService.terminate();
+  }
+});

@@ -4,21 +4,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as vscode from "vscode";
-import { ICompiler, getCompilerWorker } from "qsharp";
+import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp";
 import { FileAccessor, qsharpExtensionId } from "../common";
 import { QscDebugSession } from "./session";
 
-let compiler: ICompiler;
+let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
 export async function activateDebugger(
   context: vscode.ExtensionContext
 ): Promise<void> {
-  const workerScriptPath = vscode.Uri.joinPath(
+  const debugWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
-    "./out/compilerWorker.js"
+    "./out/debugger/debug-service-worker.js"
   );
-  compiler = getCompilerWorker(workerScriptPath.toString()) as ICompiler;
 
+  debugServiceWorkerFactory = () =>
+    getDebugServiceWorker(
+      debugWorkerScriptPath.toString()
+    ) as IDebugServiceWorker;
   registerCommands(context);
 
   const provider = new QsDebugConfigProvider();
@@ -49,7 +52,7 @@ function registerCommands(context: vscode.ExtensionContext) {
               type: "qsharp",
               name: "Run Q# File",
               request: "launch",
-              program: targetResource,
+              program: targetResource.toString(),
               shots: 1,
               stopOnEntry: false,
             },
@@ -71,7 +74,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             type: "qsharp",
             name: "Debug Q# File",
             request: "launch",
-            program: targetResource,
+            program: targetResource.toString(),
             shots: 1,
             stopOnEntry: true,
           });
@@ -94,7 +97,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         config.type = "qsharp";
         config.name = "Launch";
         config.request = "launch";
-        config.program = editor.document.uri;
+        config.program = editor.document.uri.toString();
         config.shots = 1;
         config.stopOnEntry = true;
         config.noDebug = "noDebug" in config ? config.noDebug : false;
@@ -115,15 +118,15 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
 }
 
 export const workspaceFileAccessor: FileAccessor = {
-  async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    return await vscode.workspace.fs.readFile(uri);
+  async readFile(uri: string): Promise<Uint8Array> {
+    return await vscode.workspace.fs.readFile(vscode.Uri.parse(uri));
   },
-  async readFileAsString(uri: vscode.Uri): Promise<string> {
+  async readFileAsString(uri: string): Promise<string> {
     const contents = await this.readFile(uri);
     return new TextDecoder().decode(contents);
   },
-  async writeFile(uri: vscode.Uri, contents: Uint8Array) {
-    await vscode.workspace.fs.writeFile(uri, contents);
+  async writeFile(uri: string, contents: Uint8Array) {
+    await vscode.workspace.fs.writeFile(vscode.Uri.parse(uri), contents);
   },
 };
 
@@ -131,11 +134,17 @@ class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
   createDebugAdapterDescriptor(
-    _session: vscode.DebugSession,
+    session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-    return new vscode.DebugAdapterInlineImplementation(
-      new QscDebugSession(workspaceFileAccessor, compiler)
+    const worker = debugServiceWorkerFactory();
+    const qscSession = new QscDebugSession(
+      workspaceFileAccessor,
+      worker,
+      session.configuration
     );
+    return qscSession.init().then(() => {
+      return new vscode.DebugAdapterInlineImplementation(qscSession);
+    });
   }
 }

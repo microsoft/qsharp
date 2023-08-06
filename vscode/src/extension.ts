@@ -68,6 +68,29 @@ function initializeLogger() {
   log.info = output.info;
   log.debug = output.debug;
   log.trace = output.trace;
+
+  // The numerical log levels for VS Code and qsharp don't match.
+  function mapLogLevel(logLevel: vscode.LogLevel) {
+    switch (logLevel) {
+      case vscode.LogLevel.Off:
+        return "off";
+      case vscode.LogLevel.Trace:
+        return "trace";
+      case vscode.LogLevel.Debug:
+        return "debug";
+      case vscode.LogLevel.Info:
+        return "info";
+      case vscode.LogLevel.Warning:
+        return "warn";
+      case vscode.LogLevel.Error:
+        return "error";
+    }
+  }
+
+  log.setLogLevel(mapLogLevel(output.logLevel));
+  output.onDidChangeLogLevel((level) => {
+    log.setLogLevel(mapLogLevel(level));
+  });
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
