@@ -125,7 +125,7 @@ namespace Sample {
     /// IP(y, z) = y_0 z_0 + y_1 z_1 + ... y_{u-1} z_{u-1} where
     /// y = (y_0, ..., y_{u-1}) and z =  (z_0, ..., z_{u-1}) are two bit vectors
     /// of length u. Notice that the function IP is a Boolean function on n = 2u
-    /// bits. IP is a special case of a bent function. These are functions for
+    /// bits. IP is a special case of bent function. These are functions for
     /// which the Walsh-Hadamard transform is perfectly flat (in absolute
     /// value).
     /// Because of this flatness, the Walsh-Hadamard spectrum of any bent
