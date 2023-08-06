@@ -1,8 +1,8 @@
 namespace Kata {
 
-    operation BasisStateMeasurement(qs: Qubit[]): Int {
-        // Type your answer below
+    operation BasisStateMeasurement(qs : Qubit[]) : Int {
         // ...
+        return -1;
     }
 
 }
