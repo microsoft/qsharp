@@ -105,15 +105,15 @@ $$
 The states that allow such representation are known as **separable states**. 
 
 @[question]({
-"id": "separable_state",
-"descriptionPath": "./separable_state/index.md",
-"answerPath": "./separable_state/solution.md"
+    "id": "separable_state",
+    "descriptionPath": "./separable_state/index.md",
+    "answerPath": "./separable_state/solution.md"
 })
 
 @[question]({
-"id": "is_it_separable",
-"descriptionPath": "./is_it_separable/index.md",
-"answerPath": "./is_it_separable/solution.md"
+    "id": "is_it_separable",
+    "descriptionPath": "./is_it_separable/index.md",
+    "answerPath": "./is_it_separable/solution.md"
 })
 
 @[section]({

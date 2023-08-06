@@ -1,6 +1,4 @@
-﻿### Solution
-
-The starting state can be represented as follows:
+﻿The starting state can be represented as follows:
 $$ \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} = |0\rangle \otimes |0\rangle $$
 
 The goal state can be represented as follows:

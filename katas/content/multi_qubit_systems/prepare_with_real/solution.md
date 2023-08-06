@@ -1,6 +1,4 @@
-﻿### Solution
-
-Again, to start we will represent the goal state as a tensor product of single-qubit states; this gives us the following representation:
+﻿Again, to start we will represent the goal state as a tensor product of single-qubit states; this gives us the following representation:
 
 $$ \frac{1}{2}\big(|00\rangle - |01\rangle + |10\rangle - |11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\\ -1 \\\ 1 \\\ -1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\\ -1 \end{bmatrix} = \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big)  $$
 

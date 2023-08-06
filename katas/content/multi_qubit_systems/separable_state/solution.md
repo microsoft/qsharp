@@ -1,5 +1,3 @@
-### Solution
-
 To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
 
 $$
