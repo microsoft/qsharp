@@ -1,5 +1,3 @@
-## Solution
-
 The first step towards identifying the outcomes and their probabilities for joint measurements is to identify the eigenvectors corresponding to eigenvalues $\pm1$ of the Pauli operator. We note that since $X\ket{\pm}= \pm\ket{\pm}$, we have 
 \begin{align}
 XX \ket{++} &= \ket{++}, &XX \ket{--} &= \ket{--};\\

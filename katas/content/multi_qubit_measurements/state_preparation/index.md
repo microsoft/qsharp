@@ -4,7 +4,7 @@
 
 <br/>
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
   Consider a 3-qubit state $\frac{1}{2}(|00\rangle + |01\rangle + |11\rangle) \otimes |0\rangle + \frac{1}{2} |11\rangle \otimes |1\rangle$.
   What happens when one measures the third qubit?
 </details>
