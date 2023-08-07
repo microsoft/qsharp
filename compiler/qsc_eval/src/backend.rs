@@ -5,8 +5,6 @@ use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
 
-use crate::val;
-
 /// The trait that must be implemented by a quantum backend, whose functions will be invoked when
 /// quantum intrinsics are called.
 pub trait Backend {
@@ -60,23 +58,8 @@ impl SparseSim {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct SparseSimResult(bool);
-
-impl From<val::Result> for SparseSimResult {
-    fn from(r: val::Result) -> Self {
-        Self(r.into())
-    }
-}
-
-impl From<SparseSimResult> for val::Result {
-    fn from(r: SparseSimResult) -> Self {
-        r.0.into()
-    }
-}
-
 impl Backend for SparseSim {
-    type ResultType = SparseSimResult;
+    type ResultType = bool;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.mcx(&[ctl0, ctl1], q);
@@ -99,7 +82,7 @@ impl Backend for SparseSim {
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
-        SparseSimResult(self.sim.measure(q))
+        self.sim.measure(q)
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
@@ -107,7 +90,7 @@ impl Backend for SparseSim {
         if res {
             self.sim.x(q);
         }
-        SparseSimResult(res)
+        res
     }
 
     fn reset(&mut self, q: usize) {
