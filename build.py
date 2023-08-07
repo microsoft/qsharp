@@ -190,6 +190,7 @@ if build_pip:
             "-m",
             "pip",
             "install",
+            "--force-reinstall",
             "--no-index",
             "--find-links=" + wheels_dir,
             "qsharp",
