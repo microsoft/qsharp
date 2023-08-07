@@ -28,7 +28,7 @@ pub enum Value {
     Tuple(Rc<[Value]>),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub enum Result {
     Val(bool),
     Id(usize),
@@ -72,6 +72,15 @@ impl From<Result> for usize {
         match val {
             Result::Val(..) => panic!("cannot convert Result::Val to usize"),
             Result::Id(v) => v,
+        }
+    }
+}
+
+impl PartialEq for Result {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Result::Val(a), Result::Val(b)) => a == b,
+            (Result::Id(_), _) | (_, Result::Id(_)) => panic!("cannot compare Result::Id"),
         }
     }
 }
