@@ -366,7 +366,7 @@ impl Backend for BaseProfSim {
     }
 
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
-        true
+        panic!("calling qubit_is_zero during base profile simulation is not supported")
     }
 }
 
