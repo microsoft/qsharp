@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::test_expression;
-use qsc::interpret::{Value, RESULT_ONE, RESULT_ZERO};
+use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.Convert namespace
 
@@ -72,14 +72,17 @@ fn check_result_array_as_bool_array() {
 
 #[test]
 fn check_bool_true_as_result() {
-    test_expression("Microsoft.Quantum.Convert.BoolAsResult(true)", &RESULT_ONE);
+    test_expression(
+        "Microsoft.Quantum.Convert.BoolAsResult(true)",
+        &Value::result_one(),
+    );
 }
 
 #[test]
 fn check_bool_false_as_result() {
     test_expression(
         "Microsoft.Quantum.Convert.BoolAsResult(false)",
-        &RESULT_ZERO,
+        &Value::result_zero(),
     );
 }
 
@@ -87,6 +90,14 @@ fn check_bool_false_as_result() {
 fn check_bool_array_as_result_array() {
     test_expression(
         "Microsoft.Quantum.Convert.BoolArrayAsResultArray([true, false, true, false])",
-        &Value::Array(vec![RESULT_ONE, RESULT_ZERO, RESULT_ONE, RESULT_ZERO].into()),
+        &Value::Array(
+            vec![
+                Value::result_one(),
+                Value::result_zero(),
+                Value::result_one(),
+                Value::result_zero(),
+            ]
+            .into(),
+        ),
     );
 }

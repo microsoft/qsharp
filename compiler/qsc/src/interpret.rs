@@ -7,5 +7,5 @@ pub mod stateless;
 
 pub use qsc_eval::{
     output::{self, GenericReceiver},
-    val::{Value, RESULT_ONE, RESULT_ZERO},
+    val::Value,
 };

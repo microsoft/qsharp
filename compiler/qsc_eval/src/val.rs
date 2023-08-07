@@ -34,9 +34,6 @@ pub enum Result {
     Id(usize),
 }
 
-pub const RESULT_ZERO: Value = Value::Result(Result::Val(false));
-pub const RESULT_ONE: Value = Value::Result(Result::Val(true));
-
 impl From<Result> for bool {
     fn from(val: Result) -> Self {
         match val {
@@ -183,6 +180,16 @@ impl Value {
     #[must_use]
     pub fn unit() -> Self {
         Self::Tuple([].as_slice().into())
+    }
+
+    #[must_use]
+    pub const fn result_zero() -> Self {
+        Self::Result(Result::Val(false))
+    }
+
+    #[must_use]
+    pub const fn result_one() -> Self {
+        Self::Result(Result::Val(true))
     }
 
     /// Convert the [Value] into an array of [Value]
