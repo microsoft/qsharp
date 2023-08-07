@@ -274,7 +274,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "codePaths": [
         "../KatasLibrary.qs",
         "./common.qs",
-        "./prepare_basis_state/Verification.qs"
+        "./prepare_basis_state/verification.qs"
     ]
 })
 
