@@ -3,21 +3,23 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+use std::collections::HashMap;
+
+use log::trace;
+use protocol::{CompletionList, Definition, Hover};
+use qsc::PackageType;
+use qsc_utils::Compilation;
+
+use crate::qsc_utils::compile_document;
+
 pub mod completion;
 pub mod definition;
 mod display;
 pub mod hover;
+pub mod protocol;
 mod qsc_utils;
 #[cfg(test)]
 mod test_utils;
-
-use crate::{
-    completion::CompletionList, definition::Definition, hover::Hover, qsc_utils::compile_document,
-};
-use log::trace;
-use qsc::PackageType;
-use qsc_utils::Compilation;
-use std::collections::HashMap;
 
 pub struct LanguageService<'a> {
     /// Associate each known document with a separate compilation.
