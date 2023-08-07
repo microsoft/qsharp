@@ -74,7 +74,7 @@ fn check_result_array_as_bool_array() {
 fn check_bool_true_as_result() {
     test_expression(
         "Microsoft.Quantum.Convert.BoolAsResult(true)",
-        &Value::result_one(),
+        &Value::RESULT_ONE,
     );
 }
 
@@ -82,7 +82,7 @@ fn check_bool_true_as_result() {
 fn check_bool_false_as_result() {
     test_expression(
         "Microsoft.Quantum.Convert.BoolAsResult(false)",
-        &Value::result_zero(),
+        &Value::RESULT_ZERO,
     );
 }
 
@@ -92,10 +92,10 @@ fn check_bool_array_as_result_array() {
         "Microsoft.Quantum.Convert.BoolArrayAsResultArray([true, false, true, false])",
         &Value::Array(
             vec![
-                Value::result_one(),
-                Value::result_zero(),
-                Value::result_one(),
-                Value::result_zero(),
+                Value::RESULT_ONE,
+                Value::RESULT_ZERO,
+                Value::RESULT_ONE,
+                Value::RESULT_ZERO,
             ]
             .into(),
         ),

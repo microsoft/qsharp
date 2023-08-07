@@ -16,7 +16,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::result_zero(),
+        &Value::RESULT_ZERO,
     );
     test_expression(
         indoc! {r#"{
@@ -26,7 +26,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::result_zero(),
+        &Value::RESULT_ZERO,
     );
     test_expression(
         indoc! {r#"{
@@ -36,7 +36,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::result_one(),
+        &Value::RESULT_ONE,
     );
     test_expression(
         indoc! {r#"{
@@ -46,7 +46,7 @@ fn check_measure_all_z() {
             ResetAll(register);
             result
         }"#},
-        &Value::result_one(),
+        &Value::RESULT_ONE,
     );
 }
 
@@ -61,14 +61,7 @@ fn check_measure_each_z() {
             ResetAll(register);
             results
         }"#},
-        &Value::Array(
-            vec![
-                Value::result_one(),
-                Value::result_zero(),
-                Value::result_one(),
-            ]
-            .into(),
-        ),
+        &Value::Array(vec![Value::RESULT_ONE, Value::RESULT_ZERO, Value::RESULT_ONE].into()),
     );
 }
 
@@ -85,21 +78,9 @@ fn check_mreset_each_z() {
         }"#},
         &Value::Tuple(
             vec![
+                Value::Array(vec![Value::RESULT_ONE, Value::RESULT_ZERO, Value::RESULT_ONE].into()),
                 Value::Array(
-                    vec![
-                        Value::result_one(),
-                        Value::result_zero(),
-                        Value::result_one(),
-                    ]
-                    .into(),
-                ),
-                Value::Array(
-                    vec![
-                        Value::result_zero(),
-                        Value::result_zero(),
-                        Value::result_zero(),
-                    ]
-                    .into(),
+                    vec![Value::RESULT_ZERO, Value::RESULT_ZERO, Value::RESULT_ZERO].into(),
                 ),
             ]
             .into(),
@@ -118,7 +99,7 @@ fn check_mreset_x() {
             let r1 = Microsoft.Quantum.Measurement.MResetX(register[1]);
             [r0, r1]
         }"#},
-        &Value::Array(vec![Value::result_zero(), Value::result_one()].into()),
+        &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),
     );
 }
 
@@ -134,7 +115,7 @@ fn check_mreset_y() {
             let r1 = Microsoft.Quantum.Measurement.MResetY(register[1]);
             [r0, r1]
         }"#},
-        &Value::Array(vec![Value::result_zero(), Value::result_one()].into()),
+        &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),
     );
 }
 
@@ -148,6 +129,6 @@ fn check_mreset_z() {
             let r1 = Microsoft.Quantum.Measurement.MResetZ(register[1]);
             [r0, r1]
         }"#},
-        &Value::Array(vec![Value::result_zero(), Value::result_one()].into()),
+        &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),
     );
 }

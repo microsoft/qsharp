@@ -177,19 +177,12 @@ impl Display for Value {
 }
 
 impl Value {
+    pub const RESULT_ZERO: Self = Self::Result(Result::Val(false));
+    pub const RESULT_ONE: Self = Self::Result(Result::Val(true));
+
     #[must_use]
     pub fn unit() -> Self {
         Self::Tuple([].as_slice().into())
-    }
-
-    #[must_use]
-    pub const fn result_zero() -> Self {
-        Self::Result(Result::Val(false))
-    }
-
-    #[must_use]
-    pub const fn result_one() -> Self {
-        Self::Result(Result::Val(true))
     }
 
     /// Convert the [Value] into an array of [Value]
