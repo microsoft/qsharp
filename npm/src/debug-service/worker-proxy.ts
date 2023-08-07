@@ -17,6 +17,9 @@ const requests: MethodMap<IDebugService> = {
   getBreakpoints: "request",
   getStackFrames: "request",
   evalContinue: "requestWithProgress",
+  evalNext: "requestWithProgress",
+  evalStepIn: "requestWithProgress",
+  evalStepOut: "requestWithProgress",
   dispose: "request",
 };
 

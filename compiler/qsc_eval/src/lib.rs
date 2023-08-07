@@ -138,8 +138,27 @@ pub fn eval_stmt(
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
-    state.resume(globals, env, sim, receiver, &[])?;
-    Ok(state.pop_val())
+    let res = state.resume(globals, env, sim, receiver, &[], &StepAction::Continue)?;
+    match res {
+        StepResult::Return(value) => Ok(value),
+        _ => unreachable!("eval_stmt should always return a value"),
+    }
+}
+pub enum StepAction {
+    Next,
+    In,
+    Out,
+    Continue,
+}
+
+#[derive(Clone, Debug)]
+pub enum StepResult {
+    BreakpointHit(StmtId),
+    Next,
+    StepIn,
+    StepOut,
+    Continue,
+    Return(Value),
 }
 
 /// Evaluates the given expr with the given context.
@@ -154,26 +173,15 @@ pub fn eval_expr(
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     state.push_expr(expr);
-    state.resume(globals, env, sim, out, &[])?;
-    Ok(state.pop_val())
+    let res = state.resume(globals, env, sim, out, &[], &StepAction::Continue)?;
+    match res {
+        StepResult::Return(value) => Ok(value),
+        _ => unreachable!("eval_expr should always return a value"),
+    }
 }
 
 pub fn eval_push_expr(state: &mut State, expr: ExprId) {
     state.push_expr(expr);
-}
-
-/// Continues evaluation given current state with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-pub fn eval_resume(
-    state: &mut State,
-    globals: &impl NodeLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-    breakpoints: &[StmtId],
-) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
-    state.resume(globals, env, sim, out, breakpoints)
 }
 
 trait AsIndex {
@@ -328,6 +336,7 @@ pub struct State {
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
+    source_package: PackageId,
 }
 
 impl State {
@@ -339,6 +348,7 @@ impl State {
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
+            source_package: package,
         }
     }
 
@@ -424,6 +434,8 @@ impl State {
 
     /// # Errors
     /// Returns the first error encountered during execution.
+    /// # Panics
+    /// When returning a value in the middle of execution.
     pub fn resume(
         &mut self,
         globals: &impl NodeLookup,
@@ -431,37 +443,67 @@ impl State {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
         breakpoints: &[StmtId],
-    ) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
+        step: &StepAction,
+    ) -> Result<StepResult, (Error, Vec<Frame>)> {
+        let current_frame = self.call_stack.len();
+
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
                 Cont::Action(action) => self
                     .cont_action(env, sim, globals, action, out)
-                    .map(|_| None),
-                Cont::Expr(expr) => self.cont_expr(env, globals, expr).map(|_| None),
+                    .map(|_| StepResult::Continue),
+                Cont::Expr(expr) => self
+                    .cont_expr(env, globals, expr)
+                    .map(|_| StepResult::Continue),
                 Cont::Frame(len) => {
                     self.leave_frame(len);
-                    Ok(None)
+                    Ok(StepResult::Continue)
                 }
                 Cont::Scope => {
                     env.leave_scope();
-                    Ok(None)
+                    Ok(StepResult::Continue)
                 }
                 Cont::Stmt(stmt) => {
                     self.cont_stmt(globals, stmt);
-                    match breakpoints.iter().find(|&bp| *bp == stmt) {
-                        Some(bp) => Ok(Some(bp)),
-                        None => Ok(None),
+                    if let Some(bp) = breakpoints.iter().find(|&bp| *bp == stmt) {
+                        Ok(StepResult::BreakpointHit(*bp))
+                    } else {
+                        // no breakpoint, but we may stop here
+                        if matches!(step, StepAction::In) {
+                            Ok(StepResult::StepIn)
+                        } else if matches!(step, StepAction::Next)
+                            && current_frame == self.call_stack.len()
+                        {
+                            Ok(StepResult::Next)
+                        } else if matches!(step, StepAction::Out)
+                            && current_frame > self.call_stack.len()
+                        {
+                            Ok(StepResult::StepOut)
+                        } else {
+                            Ok(StepResult::Continue)
+                        }
                     }
                 }
             };
             match res {
-                Ok(Some(bp)) => return Ok(Some(*bp)),
-                Ok(None) => {}
+                Ok(result) => match result {
+                    StepResult::Continue => {}
+                    StepResult::Return(_) => panic!("unexpected return"),
+                    _ => {
+                        // If we are in the source package, we are done.
+                        // If we are in another package, we are in core or std
+                        // rather than make the user step through all of that,
+                        // we just return when running user code.
+                        if self.package == self.source_package {
+                            return Ok(result);
+                        }
+                    }
+                },
                 Err(e) => return Err((e, self.get_stack_frames())),
             }
         }
 
-        Ok(None)
+        Ok(StepResult::Return(self.get_result()))
     }
 
     pub fn get_result(&mut self) -> Value {

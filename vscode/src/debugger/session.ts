@@ -21,7 +21,14 @@ import {
 
 import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
-import { IBreakpointSpan, IDebugServiceWorker, log } from "qsharp";
+import {
+  IBreakpointSpan,
+  IDebugServiceWorker,
+  log,
+  StepResultId,
+  IStructStepResult,
+  QscEventTarget,
+} from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 
@@ -40,6 +47,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private failed: boolean;
   private program: string;
+  private eventTarget: QscEventTarget;
 
   public constructor(
     private fileAccessor: FileAccessor,
@@ -50,6 +58,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
     this.program = vscode.Uri.parse(this.config.program).path;
     this.failed = false;
+    this.eventTarget = createDebugConsoleEventTarget();
     this.breakpointLocations = new Map<string, IBreakpointSpan[]>();
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
@@ -190,56 +199,80 @@ export class QscDebugSession extends LoggingDebugSession {
     });
     await Promise.race([configurationDone, delay(ConfigurationDelayMS)]);
 
+    // This needs to be done before we start executing below
+    // in order to ensure that the eventTarget is ready to receive
+    // events from the debug service. Otherwise, we may miss events
+    // that are sent before the active debug session is set.
+    log.trace(`sending launchRequest response`);
+    this.sendResponse(response);
+
     if (args.noDebug) {
       log.trace(`Running without debugging`);
       await this.runWithoutDebugging(args);
     } else {
       log.trace(`Running with debugging`);
-      await this.runWithDebugging(args);
+      await this.continue();
     }
-    log.trace(`sending launchRequest response`);
-    this.sendResponse(response);
   }
 
-  private async runWithDebugging(
-    _args: ILaunchRequestArguments
-  ): Promise<void> {
-    const bps = this.getBreakpointIds();
-    this.run(bps);
-  }
-
-  private async run(bps: number[]): Promise<void> {
-    const eventTarget = createDebugConsoleEventTarget();
-    await this.debugService.evalContinue(bps, eventTarget).then(
-      (result) => {
-        if (result) {
-          log.trace(`raising breakpoint event`);
+  private async eval_step(step: () => Promise<IStructStepResult>) {
+    await step().then(
+      async (result) => {
+        if (result.id == StepResultId.BreakpointHit) {
           const evt = new StoppedEvent(
             "breakpoint",
             QscDebugSession.threadID
           ) as DebugProtocol.StoppedEvent;
-          evt.body.hitBreakpointIds = [result];
+          evt.body.hitBreakpointIds = [result.value];
+          log.trace(`raising breakpoint event`);
           this.sendEvent(evt);
+        } else if (result.id == StepResultId.Return) {
+          await this.endSession(`ending session`, 0);
         } else {
-          this.endSession(`ending session`);
+          log.trace(`step result: ${result.id} ${result.value}`);
+          this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
         }
       },
       (error) => {
-        log.info(`ending session due to error: ${error}`);
-        vscode.debug.activeDebugConsole.appendLine("");
-        vscode.debug.activeDebugConsole.appendLine(SimulationCompleted);
-        this.sendEvent(new TerminatedEvent());
-        this.sendEvent(new ExitedEvent(0));
+        this.endSession(`ending session due to error: ${error}`, 1);
       }
     );
   }
 
-  private endSession(message: string) {
+  private async continue(): Promise<void> {
+    const bps = this.getBreakpointIds();
+    await this.eval_step(
+      async () => await this.debugService.evalContinue(bps, this.eventTarget)
+    );
+  }
+
+  private async next(): Promise<void> {
+    const bps = this.getBreakpointIds();
+    await this.eval_step(
+      async () => await this.debugService.evalNext(bps, this.eventTarget)
+    );
+  }
+
+  private async stepIn(): Promise<void> {
+    const bps = this.getBreakpointIds();
+    await this.eval_step(
+      async () => await this.debugService.evalStepIn(bps, this.eventTarget)
+    );
+  }
+
+  private async stepOut(): Promise<void> {
+    const bps = this.getBreakpointIds();
+    await this.eval_step(
+      async () => await this.debugService.evalStepOut(bps, this.eventTarget)
+    );
+  }
+
+  private async endSession(message: string, exitCode: number): Promise<void> {
     log.trace(message);
     vscode.debug.activeDebugConsole.appendLine("");
     vscode.debug.activeDebugConsole.appendLine(SimulationCompleted);
     this.sendEvent(new TerminatedEvent());
-    this.sendEvent(new ExitedEvent(0));
+    this.sendEvent(new ExitedEvent(exitCode));
   }
 
   private async runWithoutDebugging(
@@ -247,7 +280,9 @@ export class QscDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     const bps: number[] = [];
     for (let i = 0; i < args.shots; i++) {
-      this.run(bps);
+      await this.eval_step(
+        async () => await this.debugService.evalContinue(bps, this.eventTarget)
+      );
     }
   }
 
@@ -266,28 +301,44 @@ export class QscDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
     log.trace(`continueRequest: %O`, args);
-    const bps = this.getBreakpointIds();
 
     log.trace(`sending continue response`);
     this.sendResponse(response);
 
-    const eventTarget = createDebugConsoleEventTarget();
-    await this.debugService.evalContinue(bps, eventTarget).then(
-      (res) => {
-        if (res) {
-          log.trace(`raising breakpoint event`);
-          this.sendEvent(
-            new StoppedEvent("breakpoint", QscDebugSession.threadID)
-          );
-        } else {
-          this.endSession(`ending session`);
-        }
-      },
-      (e) => {
-        log.info(`Runtime error: ${e}`);
-        this.endSession(`ending session`);
-      }
-    );
+    await this.continue();
+  }
+
+  protected async nextRequest(
+    response: DebugProtocol.NextResponse,
+    args: DebugProtocol.NextArguments,
+    request?: DebugProtocol.Request
+  ): Promise<void> {
+    log.trace(`nextRequest: %O`, args);
+
+    this.sendResponse(response);
+    await this.next();
+  }
+
+  protected async stepInRequest(
+    response: DebugProtocol.StepInResponse,
+    args: DebugProtocol.StepInArguments,
+    request?: DebugProtocol.Request
+  ): Promise<void> {
+    log.trace(`stepInRequest: %O`, args);
+    this.sendResponse(response);
+
+    await this.stepIn();
+  }
+
+  protected async stepOutRequest(
+    response: DebugProtocol.StepOutResponse,
+    args: DebugProtocol.StepOutArguments,
+    request?: DebugProtocol.Request
+  ): Promise<void> {
+    log.trace(`stepOutRequest: %O`, args);
+    this.sendResponse(response);
+
+    await this.stepOut();
   }
 
   protected async breakpointLocationsRequest(
@@ -312,9 +363,11 @@ export class QscDebugSession extends LoggingDebugSession {
       }
       log.trace("breakpointLocationsRequest: target file" + fileUri.path);
     }
-    if (fileUri && file) {
+    const targetLineNumber = this.convertClientLineToDebugger(args.line);
+    if (fileUri && file && targetLineNumber < file.lineCount) {
       // Map request start/end line/column to file offset for debugger
-      const lineRange = file.lineAt(args.line).range;
+      const line = file.lineAt(targetLineNumber);
+      const lineRange = line.range;
       const startLine = lineRange.start.line;
       const startCol = args.column
         ? this.convertClientColumnToDebugger(args.column)
@@ -339,11 +392,11 @@ export class QscDebugSession extends LoggingDebugSession {
       // This currently has issues with breakpoints that span multiple lines
       // stmt for example may have a span that only includes the identifier
       // where the rest of the statement is on the next line(s)
-      /*const bps =
-        this._breakpointLocations
+      const bps =
+        this.breakpointLocations
           .get(fileUri.path)
-          ?.filter((bp) => startOffset <= bp.lo && bp.hi <= endOffset) ?? [];*/
-      const bps = this.breakpointLocations.get(fileUri.path) ?? [];
+          ?.filter((bp) => startOffset <= bp.lo && bp.hi <= endOffset) ?? [];
+
       log.trace(`breakpointLocationsRequest: candidates %O`, bps);
 
       // must map the debugger breakpoints back to the client breakpoint locations
@@ -351,9 +404,9 @@ export class QscDebugSession extends LoggingDebugSession {
         const startPos = file.positionAt(bps.lo);
         const endPos = file.positionAt(bps.hi);
         const bp: DebugProtocol.BreakpointLocation = {
-          line: this.convertDebuggerLineToClient(startPos.line),
+          line: startPos.line,
           column: this.convertDebuggerColumnToClient(startPos.character),
-          endLine: this.convertDebuggerLineToClient(endPos.line),
+          endLine: endPos.line,
           endColumn: this.convertDebuggerColumnToClient(endPos.character),
         };
         return bp;
@@ -396,20 +449,24 @@ export class QscDebugSession extends LoggingDebugSession {
       const locations = this.breakpointLocations.get(fileUri.path) ?? [];
       log.trace(`setBreakPointsRequest: got locations %O`, locations);
       // convert the request line/column to file offset for debugger
-      const bpOffsets: [lo: number, hi: number][] = (
-        args.breakpoints ?? []
-      ).map((sourceBreakpoint) => {
-        const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
-        const lineRange = file.lineAt(line).range;
-        const startCol = sourceBreakpoint.column
-          ? this.convertClientColumnToDebugger(sourceBreakpoint.column)
-          : lineRange.start.character;
-        const startPos = new vscode.Position(line, startCol);
-        const startOffset = file.offsetAt(startPos);
-        const endOffset = file.offsetAt(lineRange.end);
+      const bpOffsets: [lo: number, hi: number][] = (args.breakpoints ?? [])
+        .filter(
+          (sourceBreakpoint) =>
+            this.convertClientLineToDebugger(sourceBreakpoint.line) <
+            file.lineCount
+        )
+        .map((sourceBreakpoint) => {
+          const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
+          const lineRange = file.lineAt(line).range;
+          const startCol = sourceBreakpoint.column
+            ? this.convertClientColumnToDebugger(sourceBreakpoint.column)
+            : lineRange.start.character;
+          const startPos = new vscode.Position(line, startCol);
+          const startOffset = file.offsetAt(startPos);
+          const endOffset = file.offsetAt(lineRange.end);
 
-        return [startOffset, endOffset];
-      });
+          return [startOffset, endOffset];
+        });
 
       // We should probably ensure we don't return duplicate
       // spans from the debugger, but for now we'll just filter them out

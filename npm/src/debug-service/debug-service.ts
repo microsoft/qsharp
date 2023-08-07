@@ -6,6 +6,7 @@ import type {
   DebugService,
   IStackFrame,
 } from "../../lib/node/qsc_wasm.cjs";
+import { type IStructStepResult } from "../../lib/node/qsc_wasm.cjs";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
 import { log } from "../log.js";
@@ -22,7 +23,19 @@ export interface IDebugService {
   evalContinue(
     bps: number[],
     eventHandler: IQscEventTarget
-  ): Promise<number | undefined>;
+  ): Promise<IStructStepResult>;
+  evalNext(
+    bps: number[],
+    eventHandler: IQscEventTarget
+  ): Promise<IStructStepResult>;
+  evalStepIn(
+    bps: number[],
+    eventHandler: IQscEventTarget
+  ): Promise<IStructStepResult>;
+  evalStepOut(
+    bps: number[],
+    eventHandler: IQscEventTarget
+  ): Promise<IStructStepResult>;
   dispose(): Promise<void>;
 }
 
@@ -68,13 +81,53 @@ export class QSharpDebugService implements IDebugService {
     return stack_frames;
   }
 
+  async evalNext(
+    bps: number[],
+    eventHandler: IQscEventTarget
+  ): Promise<IStructStepResult> {
+    const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
+    const ids = new Uint32Array(bps);
+    const result = this.debugService.eval_next(
+      event_cb,
+      ids
+    ) as IStructStepResult;
+    return { id: result.id, value: result.value } as IStructStepResult;
+  }
+
+  async evalStepIn(
+    bps: number[],
+    eventHandler: IQscEventTarget
+  ): Promise<IStructStepResult> {
+    const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
+    const ids = new Uint32Array(bps);
+    const result = this.debugService.eval_step_in(
+      event_cb,
+      ids
+    ) as IStructStepResult;
+    return { id: result.id, value: result.value } as IStructStepResult;
+  }
+
+  async evalStepOut(
+    bps: number[],
+    eventHandler: IQscEventTarget
+  ): Promise<IStructStepResult> {
+    const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
+    const ids = new Uint32Array(bps);
+    const result = this.debugService.eval_step_out(event_cb, ids);
+    return { id: result.id, value: result.value } as IStructStepResult;
+  }
+
   async evalContinue(
     bps: number[],
     eventHandler: IQscEventTarget
-  ): Promise<number | undefined> {
+  ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
-    return this.debugService.eval_continue(event_cb, ids);
+    const result = this.debugService.eval_continue(
+      event_cb,
+      ids
+    ) as IStructStepResult;
+    return { id: result.id, value: result.value } as IStructStepResult;
   }
 
   async getBreakpoints(path: string): Promise<IBreakpointSpan[]> {

@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use qsc::fir::StmtId;
-use qsc::interpret::stateful;
-use qsc::interpret::{stateful::Interpreter, Value};
+use qsc::interpret::stateful::Interpreter;
+use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{PackageType, SourceMap};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -54,10 +54,43 @@ impl DebugService {
         serde_wasm_bindgen::to_value(&list).expect("failed to serialize stack frame list")
     }
 
+    pub fn eval_next(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, &StepAction::Next)
+    }
+
     pub fn eval_continue(
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, &StepAction::Continue)
+    }
+
+    pub fn eval_step_in(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, &StepAction::In)
+    }
+
+    pub fn eval_step_out(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, &StepAction::Out)
+    }
+
+    fn eval(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+        step: &StepAction,
     ) -> Result<JsValue, JsValue> {
         if !event_cb.is_function() {
             return Err(JsError::new("Events callback function must be provided").into());
@@ -70,13 +103,11 @@ impl DebugService {
                 let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
             },
             &bps,
+            step,
         ) {
-            Ok(None) => Ok(JsValue::UNDEFINED),
-            Ok(Some(v)) => {
-                // we've hit a breakpoint
-                // Convert the stmt id to a number
-                Ok(JsValue::from(std::convert::Into::<usize>::into(v)))
-            }
+            Ok(value) => Ok(JsValue::from(std::convert::Into::<StructStepResult>::into(
+                value,
+            ))),
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
     }
@@ -85,35 +116,37 @@ impl DebugService {
         &mut self,
         event_cb: F,
         bps: &[StmtId],
-    ) -> Result<Option<StmtId>, Vec<stateful::Error>>
+        step: &StepAction,
+    ) -> Result<StepResult, Vec<stateful::Error>>
     where
         F: Fn(&str),
     {
         let mut out = CallbackReceiver { event_cb };
-        let result = self.interpreter.eval_continue(&mut out, bps);
+        let result = self.interpreter.eval_step(&mut out, bps, step);
         let mut success = true;
-        let mut return_value = None;
-        let msg: serde_json::Value = match &result {
-            Ok(None) => {
-                let value = self.interpreter.get_result();
-                serde_json::Value::String(value.to_string())
-            }
-            Ok(value) => {
-                return_value = *value;
-                serde_json::Value::String(Value::unit().to_string())
-            }
+
+        let msg: Option<serde_json::Value> = match &result {
+            Ok(value) => match value {
+                qsc::interpret::StepResult::Return(value) => {
+                    Some(serde_json::Value::String(value.to_string()))
+                }
+                _ => None,
+            },
             Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from(&errors[0]).json()
+                Some(VSDiagnostic::from(&errors[0]).json())
             }
         };
+        if let Some(value) = msg {
+            let msg_string =
+                json!({"type": "Result", "success": success, "result": value}).to_string();
+            (out.event_cb)(&msg_string);
+        }
 
-        let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
-        (out.event_cb)(&msg_string);
-        match &result {
-            Ok(_) => Ok(return_value),
+        match result {
+            Ok(value) => Ok(value),
             Err(errors) => Err(Vec::from_iter(errors.iter().cloned())),
         }
     }
@@ -140,6 +173,69 @@ impl Default for DebugService {
         Self::new()
     }
 }
+
+impl From<StepResult> for StructStepResult {
+    fn from(value: StepResult) -> Self {
+        match value {
+            StepResult::BreakpointHit(value) => StructStepResult {
+                id: StepResultId::BreakpointHit.into(),
+                value: Into::<usize>::into(value),
+            },
+            StepResult::Next => StructStepResult {
+                id: StepResultId::Next.into(),
+                value: 0,
+            },
+            StepResult::StepIn => StructStepResult {
+                id: StepResultId::StepIn.into(),
+                value: 0,
+            },
+            StepResult::StepOut => StructStepResult {
+                id: StepResultId::StepOut.into(),
+                value: 0,
+            },
+            StepResult::Continue => StructStepResult {
+                id: StepResultId::Continue.into(),
+                value: 0,
+            },
+            StepResult::Return(_) => StructStepResult {
+                id: StepResultId::Return.into(),
+                value: 0,
+            },
+        }
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum StepResultId {
+    BreakpointHit = 0,
+    Next = 1,
+    StepIn = 2,
+    StepOut = 3,
+    Continue = 4,
+    Return = 5,
+}
+
+impl From<StepResultId> for usize {
+    fn from(val: StepResultId) -> Self {
+        val as usize
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
+struct StructStepResult {
+    pub id: usize,
+    pub value: usize,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const IStructStepResult: &'static str = r#"
+export interface IStructStepResult {
+    id: number;
+    value: number;
+}
+"#;
 
 #[wasm_bindgen(typescript_custom_section)]
 const IBreakpointSpanList: &'static str = r#"

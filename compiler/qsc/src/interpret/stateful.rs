@@ -4,6 +4,9 @@
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod stepping_tests;
+
 use crate::{
     compile::{self, compile},
     error::WithSource,
@@ -16,7 +19,7 @@ use qsc_eval::{
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global, NodeLookup, State,
+    Env, Global, NodeLookup, State, StepAction, StepResult,
 };
 
 use qsc_fir::{
@@ -24,7 +27,7 @@ use qsc_fir::{
         Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
         Stmt, StmtId,
     },
-    visit::{self, Visitor},
+    visit::Visitor,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
@@ -230,7 +233,6 @@ impl Interpreter {
     pub fn get_result(&mut self) -> Value {
         self.state.get_result()
     }
-
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
@@ -238,7 +240,19 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         breakpoints: &[StmtId],
-    ) -> Result<Option<StmtId>, Vec<Error>> {
+    ) -> Result<StepResult, Vec<Error>> {
+        self.eval_step(receiver, breakpoints, &StepAction::Continue)
+    }
+
+    /// # Errors
+    ///
+    /// Returns a vector of errors if evaluating the entry point fails.
+    pub fn eval_step(
+        &mut self,
+        receiver: &mut impl Receiver,
+        breakpoints: &[StmtId],
+        step: &StepAction,
+    ) -> Result<StepResult, Vec<Error>> {
         let globals = Lookup {
             fir_store: &self.fir_store,
             package: self.package,
@@ -246,32 +260,33 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        qsc_eval::eval_resume(
-            &mut self.state,
-            &globals,
-            &mut self.env,
-            &mut self.sim,
-            receiver,
-            breakpoints,
-        )
-        .map_err(|(error, call_stack)| {
-            let package = self
-                .store
-                .get(map_fir_package_to_hir(self.package))
-                .expect("package should be in store");
+        self.state
+            .resume(
+                &globals,
+                &mut self.env,
+                &mut self.sim,
+                receiver,
+                breakpoints,
+                step,
+            )
+            .map_err(|(error, call_stack)| {
+                let package = self
+                    .store
+                    .get(map_fir_package_to_hir(self.package))
+                    .expect("package should be in store");
 
-            let stack_trace = if call_stack.is_empty() {
-                None
-            } else {
-                Some(self.render_call_stack(call_stack, &error))
-            };
+                let stack_trace = if call_stack.is_empty() {
+                    None
+                } else {
+                    Some(self.render_call_stack(call_stack, &error))
+                };
 
-            vec![Error(WithSource::from_map(
-                &package.sources,
-                error.into(),
-                stack_trace,
-            ))]
-        })
+                vec![Error(WithSource::from_map(
+                    &package.sources,
+                    error.into(),
+                    stack_trace,
+                ))]
+            })
     }
 
     /// # Errors
@@ -513,9 +528,9 @@ impl Interpreter {
                 .fir_store
                 .get(self.source_package)
                 .expect("package should have been lowered");
-            let mut colllector = BreakpointCollector::new(&unit.sources, source.offset, package);
-            colllector.visit_package(package);
-            colllector
+            let mut collector = BreakpointCollector::new(&unit.sources, source.offset, package);
+            collector.visit_package(package);
+            let mut spans: Vec<_> = collector
                 .statements
                 .iter()
                 .map(|bps| BreakpointSpan {
@@ -523,7 +538,9 @@ impl Interpreter {
                     lo: bps.lo - source.offset,
                     hi: bps.hi - source.offset,
                 })
-                .collect()
+                .collect();
+            spans.sort_by_key(|s| s.lo);
+            spans
         } else {
             Vec::new()
         }
@@ -600,8 +617,6 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
     fn visit_stmt(&mut self, stmt: StmtId) {
         let stmt_res = self.get_stmt(stmt);
         self.add_stmt(stmt_res);
-
-        visit::walk_stmt(self, stmt);
     }
 
     fn get_block(&mut self, id: BlockId) -> &'a Block {
