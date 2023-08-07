@@ -1,12 +1,10 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
 
-    // ------------------------------------------------------
-    // Exercise 8: State preparation using partial measurements
-    // ------------------------------------------------------
-
+    // State preparation using partial measurements
     operation RefImpl_T4(qs: Qubit[]): Unit is Adj {
-        // Rotate first qubit to (sqrt(2) |0⟩ + |1⟩) / sqrt(3) (task 1.4 from BasicGates kata)
+        // Rotate first qubit to (sqrt(2) |0⟩ + |1⟩) / sqrt(3)
         let theta = ArcSin(1.0 / Sqrt(3.0));
         Ry(2.0 * theta, qs[0]);
 
@@ -24,7 +22,9 @@ namespace Kata.Verification {
 
         // apply adjoint reference operation and check that the result is |0⟩
         Adjoint RefImpl_T4(qs);
-        return CheckAllZero(qs);
+        let isCorrect = CheckAllZero(qs);
+        ResetAll(qs);
+        isCorrect
     }
 
 }

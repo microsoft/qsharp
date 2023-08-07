@@ -1,8 +1,6 @@
 namespace Kata.Verification {
 
-    // ------------------------------------------------------
-    // Exercise 5: Distinguish orthogonal states using partial measurements
-    // ------------------------------------------------------
+    // Distinguish orthogonal states using partial measurements
     operation StatePrep_IsPlusPlusMinus(qs: Qubit[], state: Int, dummyVar: Double): Unit is Adj {
         if state == 0 {
             // prepare the state |++-⟩

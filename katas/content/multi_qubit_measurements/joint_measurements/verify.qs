@@ -1,10 +1,6 @@
 namespace Kata.Verification {
 
-    // ------------------------------------------------------
-    // Exercise 9: Two qubit parity Measurement
-    // ------------------------------------------------------
-
-    // ------------------------------------------------------
+    // Two qubit parity Measurement
     operation StatePrep_ParityMeasurement(qs: Qubit[], state: Int, alpha: Double): Unit is Adj {
         // prep cos(alpha) * |0..0⟩ + sin(alpha) * |1..1⟩
         Ry(2.0 * alpha, qs[0]);
@@ -20,9 +16,8 @@ namespace Kata.Verification {
         }
     }
 
-    // ------------------------------------------------------
     @EntryPoint()
-    operation VerifySolution(): Bool {
+    operation CheckSolution() : Bool {
         return DistinguishStates_MultiQubit(
             2,
             2,

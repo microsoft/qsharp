@@ -1,8 +1,9 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
 
-    // ------------------------------------------------------
-    // Exercise 7: State selection using partial measurements
-    // ------------------------------------------------------
+    // State selection using partial measurements
     operation stateInitialize_StateSelction(alpha: Double, qs: Qubit[]): Unit {
         // Prepare the state to be input to the testImplementation
         // set the second qubit in a superposition a |0⟩ + b|1⟩
@@ -26,13 +27,12 @@ namespace Kata.Verification {
         }
     }
 
-
     @EntryPoint()
     operation CheckSolution(): Bool {
         use qs = Qubit[2];
         for i in 0 .. 5 {
             let alpha = (PI() * IntAsDouble(i)) / 5.0;
-            
+
             //for Choice = 0 and 1,
             for Choice in 0 .. 1 {
                 // Prepare the state to be input to the testImplementation
@@ -47,12 +47,14 @@ namespace Kata.Verification {
                 Adjoint statePrepare_StateSelction(alpha, Choice, qs);
                 
                 if not CheckAllZero(qs) {
+                    ResetAll(qs);
                     return false;
                 }
                 ResetAll(qs);
-            }           
+            }
         }
-        return true;
+        ResetAll(qs);
+        true
     }
 
 }

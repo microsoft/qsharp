@@ -8,7 +8,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Random;
 
-    // ------------------------------------------------------
     // "Framework" operation for testing multi-qubit tasks for distinguishing states of an array of qubits
     // with Int return
     operation DistinguishStates_MultiQubit(
@@ -62,7 +61,8 @@ namespace Kata.Verification {
                 ResetAll(qs);
             }
         }
-        
+        ResetAll(qs);
+
         mutable totalMisclassifications = 0;
         for i in 0 .. nStates - 1 {
             for j in 0 .. nStates - 1 {
@@ -76,6 +76,6 @@ namespace Kata.Verification {
                 Message($"Misclassified {stateNames[i]} as Unknown State in {unknownClassifications[i]} test runs.");
             }
         }
-        return totalMisclassifications == 0;
+        totalMisclassifications == 0
     }
 }
