@@ -155,13 +155,12 @@ export interface IBreakpointSpanList {
 "#;
 
 #[derive(Serialize, Deserialize)]
-pub struct BreakpointSpanList {
+struct BreakpointSpanList {
     pub spans: Vec<BreakpointSpan>,
 }
 
-#[wasm_bindgen]
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, Hash, PartialEq)]
-pub struct BreakpointSpan {
+struct BreakpointSpan {
     pub id: u32,
     pub lo: u32,
     pub hi: u32,
@@ -182,16 +181,15 @@ export interface IStackFrameList {
 "#;
 
 #[derive(Serialize, Deserialize)]
-pub struct StackFrameList {
+struct StackFrameList {
     pub frames: Vec<StackFrame>,
 }
 
 // Public fields implementing Copy have automatically generated getters/setters.
 // To generate getters/setters for non-Copy public fields, we must
 // use #[wasm_bindgen(getter_with_clone)] for the struct
-#[wasm_bindgen(getter_with_clone)]
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
-pub struct StackFrame {
+struct StackFrame {
     pub name: String,
     pub path: String,
     pub lo: u32,
