@@ -14,7 +14,6 @@ import {
   logger,
   Breakpoint,
   StoppedEvent,
-  BreakpointEvent,
   Thread,
   StackFrame,
   Source,
@@ -22,7 +21,7 @@ import {
 
 import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
-import { BreakpointSpan, IDebugServiceWorker, log } from "qsharp";
+import { IBreakpointSpan, IDebugServiceWorker, log } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 
@@ -37,7 +36,7 @@ function delay(ms: number): Promise<void> {
 export class QscDebugSession extends LoggingDebugSession {
   private static threadID = 1;
 
-  private breakpointLocations: Map<string, BreakpointSpan[]>;
+  private breakpointLocations: Map<string, IBreakpointSpan[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private failed: boolean;
   private program: string;
@@ -51,7 +50,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
     this.program = vscode.Uri.parse(this.config.program).path;
     this.failed = false;
-    this.breakpointLocations = new Map<string, BreakpointSpan[]>();
+    this.breakpointLocations = new Map<string, IBreakpointSpan[]>();
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
@@ -61,7 +60,6 @@ export class QscDebugSession extends LoggingDebugSession {
     const programText = await this.fileAccessor.readFileAsString(
       this.config.program
     );
-
     const loaded = await this.debugService.loadSource(
       this.program,
       programText

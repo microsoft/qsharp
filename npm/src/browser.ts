@@ -212,5 +212,5 @@ export { log, type LogLevel };
 export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export type { IDebugServiceWorker, IDebugService };
-export { BreakpointSpan, StackFrame } from "../lib/web/qsc_wasm.js";
+export type { IBreakpointSpan, IStackFrame } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";
