@@ -6,8 +6,8 @@ use qsc::interpret::stateless;
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;
 
-const TELEPORT: &str = include_str!("../../../samples/Teleportation.qs");
-const DEUTSCHJOZSA: &str = include_str!("../../../samples/DeutschJozsa.qs");
+const TELEPORT: &str = include_str!("../../../samples/algorithms/Teleportation.qs");
+const DEUTSCHJOZSA: &str = include_str!("../../../samples/algorithms/DeutschJozsa.qs");
 const LARGE: &str = include_str!("./large.qs");
 
 pub fn teleport(c: &mut Criterion) {
