@@ -147,7 +147,10 @@ impl IntoPy<PyObject> for ValueWrapper {
             Value::Double(val) => val.into_py(py),
             Value::Bool(val) => val.into_py(py),
             Value::String(val) => val.into_py(py),
-            Value::Result(val) => if val.into() {
+            Value::Result(val) => if val
+                .try_into()
+                .expect("should be able to convert Result into bool")
+            {
                 Result::One
             } else {
                 Result::Zero

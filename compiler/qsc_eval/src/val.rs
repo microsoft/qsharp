@@ -34,20 +34,24 @@ pub enum Result {
     Id(usize),
 }
 
-impl From<Result> for bool {
-    fn from(val: Result) -> Self {
-        match val {
-            Result::Val(v) => v,
-            Result::Id(_) => panic!("cannot convert Result::Id to bool"),
+impl TryFrom<Result> for bool {
+    type Error = ();
+
+    fn try_from(value: Result) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Result::Val(v) => Ok(v),
+            Result::Id(_) => Err(()),
         }
     }
 }
 
-impl From<&Result> for bool {
-    fn from(val: &Result) -> Self {
-        match val {
-            Result::Val(v) => *v,
-            Result::Id(_) => panic!("cannot convert Result::Id to bool"),
+impl TryFrom<&Result> for bool {
+    type Error = ();
+
+    fn try_from(value: &Result) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Result::Val(v) => Ok(*v),
+            Result::Id(_) => Err(()),
         }
     }
 }
@@ -64,11 +68,24 @@ impl From<usize> for Result {
     }
 }
 
-impl From<Result> for usize {
-    fn from(val: Result) -> Self {
-        match val {
-            Result::Val(..) => panic!("cannot convert Result::Val to usize"),
-            Result::Id(v) => v,
+impl TryFrom<Result> for usize {
+    type Error = ();
+
+    fn try_from(value: Result) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Result::Val(_) => Err(()),
+            Result::Id(v) => Ok(v),
+        }
+    }
+}
+
+impl TryFrom<&Result> for usize {
+    type Error = ();
+
+    fn try_from(value: &Result) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Result::Val(_) => Err(()),
+            Result::Id(v) => Ok(*v),
         }
     }
 }
@@ -157,7 +174,9 @@ impl Display for Value {
                 (None, step, None) => write!(f, "...{step}..."),
             },
             Value::Result(v) => {
-                if v.into() {
+                if v.try_into()
+                    .expect("should only display bool compatible Result types")
+                {
                     write!(f, "One")
                 } else {
                     write!(f, "Zero")
@@ -292,7 +311,8 @@ impl Value {
         let Value::Result(v) = self else {
             panic!("value should be Result, got {}", self.type_name());
         };
-        v.into()
+        v.try_into()
+            .expect("should only unwrap bool compatible Result types")
     }
 
     /// Convert the [Value] into a string

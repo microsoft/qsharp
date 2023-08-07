@@ -134,11 +134,11 @@ struct BaseProfSim {
 #[derive(Debug, PartialEq, Copy, Clone)]
 struct StaticResultId(usize);
 
-impl From<val::Result> for StaticResultId {
-    fn from(r: val::Result) -> Self {
-        Self(r.into())
-    }
-}
+// impl From<val::Result> for StaticResultId {
+//     fn from(r: val::Result) -> Self {
+//         Self(r.into())
+//     }
+// }
 
 impl From<StaticResultId> for val::Result {
     fn from(r: StaticResultId) -> Self {
@@ -390,8 +390,11 @@ fn write_output_recording(val: &Value, f: &mut impl Write) {
             }
         }
         Value::Result(r) => {
-            let r = StaticResultId::from(*r);
-            write_result_recording(r.0, f);
+            write_result_recording(
+                r.try_into()
+                    .expect("should only perform output recording on ID compatible Result types"),
+                f,
+            );
         }
         Value::Tuple(tup) => {
             write_tuple_recording(tup.len(), f);
