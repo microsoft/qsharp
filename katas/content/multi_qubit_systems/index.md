@@ -269,7 +269,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "id": "prepare_basis_state",
     "title": "Prepare a basis state",
     "descriptionPath": "./prepare_basis_state/index.md",
-    "placeholderSourcePath": "./prepare_basis_state/Placeholder.qs",
+    "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
     "solutionPath": "./prepare_basis_state/solution.md",
     "codePaths": [
         "../KatasLibrary.qs",
