@@ -54,13 +54,13 @@ export class QSharpDebugService implements IDebugService {
             [frame.lo, frame.hi],
             this.code[frame.path]
           );
-          const result = {} as IStackFrame;
-          result.name = frame.name;
-          result.path = frame.path;
-          result.lo = mappedSpan[frame.lo];
-          result.hi = mappedSpan[frame.hi];
-          return result;
+          return {
+            ...frame,
+            lo: mappedSpan[frame.lo],
+            hi: mappedSpan[frame.hi],
+          };
         } else {
+          // We don't have a source file for this frame, so just return it as-is
           return frame;
         }
       }
