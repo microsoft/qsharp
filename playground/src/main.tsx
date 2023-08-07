@@ -227,6 +227,20 @@ function registerMonacoLanguageServiceProviders(
             insertText: i.label,
             sortText: i.sortText,
             detail: i.detail,
+            additionalTextEdits: i.additionalTextEdits?.map((edit) => {
+              const start = model.getPositionAt(edit.range.start);
+              const end = model.getPositionAt(edit.range.end);
+              const textEdit: monaco.languages.TextEdit = {
+                range: new monaco.Range(
+                  start.lineNumber,
+                  start.column,
+                  end.lineNumber,
+                  end.column
+                ),
+                text: edit.newText,
+              };
+              return textEdit;
+            }),
             range: undefined,
           };
         }),

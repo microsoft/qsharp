@@ -220,6 +220,12 @@ impl From<usize> for ParamId {
     }
 }
 
+impl From<ParamId> for usize {
+    fn from(value: ParamId) -> Self {
+        value.0 as usize
+    }
+}
+
 impl Display for ParamId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         Display::fmt(&self.0, f)
@@ -643,6 +649,12 @@ impl InferFunctorId {
 impl Display for InferFunctorId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "f?{}", self.0)
+    }
+}
+
+impl From<usize> for InferFunctorId {
+    fn from(value: usize) -> Self {
+        InferFunctorId(value)
     }
 }
 

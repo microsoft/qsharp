@@ -13,7 +13,6 @@
     "Notebooks"
   ],
   "browser": "./out/extension.js",
-  "main": "./out/extension.js",
   "virtualWorkspaces": true,
   "activationEvents": [
     "onNotebook:jupyter",
