@@ -21,7 +21,7 @@ declare void @__quantum__qis__y__body(%Qubit*)
 declare void @__quantum__qis__z__body(%Qubit*)
 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
 declare void @__quantum__qis__reset__body(%Qubit*)
-declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 declare void @__quantum__rt__array_record_output(i64, i8*)
 declare void @__quantum__rt__tuple_record_output(i64, i8*)

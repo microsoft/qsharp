@@ -209,8 +209,8 @@ impl Backend for BaseProfSim {
             .expect("writing to string should succeed");
         write_qubit(q, &mut self.instrs);
         write!(self.instrs, ", ").expect("writing to string should succeed");
-        write_result(id, &mut self.instrs);
-        writeln!(&mut self.instrs, ")").expect("writing to string should succeed");
+        write_result(id, "writeonly ", &mut self.instrs);
+        writeln!(&mut self.instrs, ") #1").expect("writing to string should succeed");
         StaticResultId(id)
     }
 
@@ -220,8 +220,8 @@ impl Backend for BaseProfSim {
             .expect("writing to string should succeed");
         write_qubit(q, &mut self.instrs);
         write!(self.instrs, ", ").expect("writing to string should succeed");
-        write_result(id, &mut self.instrs);
-        writeln!(&mut self.instrs, ")").expect("writing to string should succeed");
+        write_result(id, "writeonly ", &mut self.instrs);
+        writeln!(&mut self.instrs, ") #1").expect("writing to string should succeed");
         self.reset(q);
         StaticResultId(id)
     }
@@ -366,6 +366,8 @@ impl Backend for BaseProfSim {
     }
 
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        // Because `qubit_is_zero` is called on every qubit release, this must return
+        // true to avoid a panic.
         true
     }
 }
@@ -374,8 +376,9 @@ fn write_qubit(q: usize, f: &mut impl Write) {
     write!(f, "%Qubit* inttoptr (i64 {q} to %Qubit*)").expect("writing to string should succeed");
 }
 
-fn write_result(r: usize, f: &mut impl Write) {
-    write!(f, "%Result* inttoptr (i64 {r} to %Result*)").expect("writing to string should succeed");
+fn write_result(r: usize, attrs: &str, f: &mut impl Write) {
+    write!(f, "%Result* {attrs}inttoptr (i64 {r} to %Result*)",)
+        .expect("writing to string should succeed");
 }
 
 fn write_output_recording(val: &Value, f: &mut impl Write) {
@@ -403,7 +406,7 @@ fn write_output_recording(val: &Value, f: &mut impl Write) {
 fn write_result_recording(r: usize, f: &mut impl Write) {
     write!(f, "  call void @__quantum__rt__result_record_output(")
         .expect("writing to string should succeed");
-    write_result(r, f);
+    write_result(r, "", f);
     writeln!(f, ", i8* null)").expect("writing to string should succeed");
 }
 
