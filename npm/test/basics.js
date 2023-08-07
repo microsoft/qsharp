@@ -264,6 +264,11 @@ test("single_qubit_measurements is valid", async () => {
   await validateKata(kata, true, true);
 });
 
+test("multi_qubit_measurements is valid", async () => {
+  const kata = await getKata("multi_qubit_measurements");
+  await validateKata(kata, true, true);
+});
+
 test("random_numbers kata is valid", async () => {
   const kata = await getKata("random_numbers");
   await validateKata(kata, true, true);
