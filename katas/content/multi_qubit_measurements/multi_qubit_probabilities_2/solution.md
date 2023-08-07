@@ -22,28 +22,26 @@ $$+ (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--} = $$
 
 $$= \frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--} ;$$
 After this, the probabilities of measuring each of the four basis vectors is given by the square of the absolute value of its amplitude in the superposition:
-<table style="border:1px solid">
-    <col width=150>
-    <col width=150>
+<table>
     <tr>
-        <th style="text-align:center; border:1px solid">Measurement outcome</th>
-        <th style="text-align:center; border:1px solid">Probability of outcome</th>
+        <th>Measurement outcome</th>
+        <th>Probability of outcome</th>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$++$</td>
-        <td style="text-align:center; border:1px solid">$\left( \frac{5}{6}\right)^2 = \frac{25}{36}$</td>
+        <td>$++$</td>
+        <td>$\left( \frac{5}{6}\right)^2 = \frac{25}{36}$</td>
     </tr> 
     <tr>
-        <td style="text-align:center; border:1px solid">$+-$</td>
-        <td style="text-align:center; border:1px solid">$\left( -\frac{1}{6}\right)^2 = \frac{1}{36}$</td>
+        <td>$+-$</td>
+        <td>$\left( -\frac{1}{6}\right)^2 = \frac{1}{36}$</td>
     </tr> 
     <tr>
-        <td style="text-align:center; border:1px solid">$-+$</td>
-        <td style="text-align:center; border:1px solid">$\left( \frac{1}{6}\right)^2 = \frac{1}{36}$</td>
-    </tr>     
+        <td>$-+$</td>
+        <td>$\left( \frac{1}{6}\right)^2 = \frac{1}{36}$</td>
+    </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$--$</td>
-        <td style="text-align:center; border:1px solid">$\left( \frac{1}{2}\right)^2 = \frac{1}{4}$</td>
+        <td>$--$</td>
+        <td>$\left( \frac{1}{2}\right)^2 = \frac{1}{4}$</td>
     </tr> 
 </table>
 
@@ -54,28 +52,26 @@ We can also use Q# to solve this problem. It can be achieved in three steps:
 2. Apply a transformation that maps the 2-qubit Pauli X basis into the 2-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
 3. View probabilities of each basis state with `DumpMachine` function. Thanks to the previous step the following state equivalence holds:
 
-<table style="border:1px solid">
-    <col width=150>
-    <col width=150>
+<table>
     <tr>
-        <th style="text-align:center; border:1px solid">Before basis transformation</th>
-        <th style="text-align:center; border:1px solid">After basis transformation</th>
+        <th>Before basis transformation</th>
+        <th>After basis transformation</th>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$\ket {++}$</td>
-        <td style="text-align:center; border:1px solid">$\ket {00}$</td>
+        <td>$\ket {++}$</td>
+        <td>$\ket {00}$</td>
     </tr> 
     <tr>
-        <td style="text-align:center; border:1px solid">$\ket {+-}$</td>
-        <td style="text-align:center; border:1px solid">$\ket {01}$</td>
+        <td>$\ket {+-}$</td>
+        <td>$\ket {01}$</td>
     </tr> 
     <tr>
-        <td style="text-align:center; border:1px solid">$\ket {-+}$</td>
-        <td style="text-align:center; border:1px solid">$\ket {10}$</td>
-    </tr>     
+        <td>$\ket {-+}$</td>
+        <td>$\ket {10}$</td>
+    </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$\ket {--}$</td>
-        <td style="text-align:center; border:1px solid">$\ket {11}$</td>
+        <td>$\ket {--}$</td>
+        <td>$\ket {11}$</td>
     </tr> 
 </table>
 
@@ -88,6 +84,6 @@ So the amplitudes of the computational basis states after the transformation are
 > Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
 
 @[example]({
-"id": "multi_qubit_probabilities_2_example",
-"codePath": "solution.qs"
+    "id": "multi_qubit_probabilities_2_example",
+    "codePath": "solution.qs"
 })
