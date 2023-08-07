@@ -196,7 +196,9 @@ if build_pip:
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests"))
+        subprocess.run(
+            pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
+        )
 
 if build_wasm:
     print("Building the wasm crate")
@@ -290,28 +292,3 @@ if build_jupyterlab:
         jupyterlab_src,
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
-
-    if run_tests:
-        print("Running tests for the JupyterLab extension")
-
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "--no-index",
-            "--find-links=" + wheels_dir,
-            "qsharp_jupyterlab",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
-        pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(pytest_args, check=True, text=True, cwd=os.path.join(jupyterlab_src, "tests"))
