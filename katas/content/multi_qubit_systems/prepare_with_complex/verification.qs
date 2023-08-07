@@ -1,5 +1,4 @@
-﻿namespace Kata.Verification {
-
+namespace Kata.Verification {
     operation PrepareState4_Reference(qs: Qubit[]): Unit is Adj+Ctl {
         H(qs[0]);
         H(qs[1]);
@@ -15,5 +14,4 @@
         }
         return isCorrect;
     }
-
 }
