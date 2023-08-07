@@ -251,7 +251,7 @@ test("single_qubit_gates kata is valid", async () => {
 
 test("multi_qubit_systems kata is valid", async () => {
   const kata = await getKata("multi_qubit_systems");
-  await validateKata(kata, true, false);
+  await validateKata(kata, true, true);
 });
 
 test("multi_qubit_gates kata is valid", async () => {
