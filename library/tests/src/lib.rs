@@ -14,7 +14,7 @@ mod tests;
 
 use qsc::{
     interpret::{stateless, GenericReceiver, Value},
-    SourceMap,
+    SourceMap, SparseSim,
 };
 
 /// # Panics
@@ -27,7 +27,7 @@ pub fn test_expression(expr: &str, expected: &Value) {
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
 
     let interpreter = stateless::Interpreter::new(true, sources).expect("test should compile");
-    let mut eval_ctx = interpreter.new_eval_context();
+    let mut eval_ctx = interpreter.new_eval_context(SparseSim::new());
     let result = eval_ctx
         .eval_entry(&mut out)
         .expect("test should run successfully");

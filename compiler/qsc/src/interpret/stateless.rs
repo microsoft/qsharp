@@ -8,7 +8,7 @@ use crate::{
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
-    backend::{Backend, SparseSim},
+    backend::Backend,
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_expr,
     output::Receiver,
@@ -152,23 +152,10 @@ impl Interpreter {
     }
 
     #[must_use]
-    pub fn new_eval_context(&self) -> EvalContext<SparseSim> {
-        EvalContext {
-            interpreter: self,
-            env: Env::with_empty_scope(),
-            sim: SparseSim::new(),
-            lookup: Lookup {
-                fir_store: &self.fir_store,
-            },
-            state: State::new(self.package),
-        }
-    }
-
-    #[must_use]
-    pub fn new_eval_context_from_sim(
+    pub fn new_eval_context<S: Backend<ResultType = impl Into<val::Result>>>(
         &self,
-        sim: impl Backend<ResultType = impl Into<val::Result>>,
-    ) -> EvalContext<impl Backend<ResultType = impl Into<val::Result>>> {
+        sim: S,
+    ) -> EvalContext<S> {
         EvalContext {
             interpreter: self,
             env: Env::with_empty_scope(),
