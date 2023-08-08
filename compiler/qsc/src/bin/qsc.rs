@@ -8,7 +8,7 @@ use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
-use qsc_hir::hir::Package;
+use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use std::{
     concat, fs,
@@ -76,6 +76,8 @@ fn main() -> miette::Result<ExitCode> {
         PackageType::Lib
     };
     let (unit, errors) = compile(&store, &dependencies, sources, package_type);
+    let package_id = store.insert(unit);
+    let unit = store.get(package_id).expect("package should be in store");
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
@@ -83,32 +85,7 @@ fn main() -> miette::Result<ExitCode> {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
             Emit::Qir => {
                 if errors.is_empty() {
-                    let package_id = store.insert(unit);
-                    let result = qsc_codegen::qir_base::generate_qir(&store, package_id);
-                    let qir = match result {
-                        Ok(qir) => qir,
-                        Err((error, _)) => {
-                            let unit = store.get(package_id).expect("package should be in store");
-                            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
-                                eprintln!(
-                                    "{:?}",
-                                    Report::new(error).with_source_code(source.clone())
-                                );
-                            } else {
-                                eprintln!("{:?}", Report::new(error));
-                            }
-                            return Ok(ExitCode::FAILURE);
-                        }
-                    };
-                    let path = out_dir.join("qir.ll");
-                    info!(
-                        "Writing qir output file to: {}",
-                        path.to_str().unwrap_or_default()
-                    );
-                    fs::write(path, qir)
-                        .into_diagnostic()
-                        .context("could not emit QIR")?;
-                    return Ok(ExitCode::SUCCESS);
+                    emit_qir(out_dir, &store, package_id)?;
                 }
             }
         }
@@ -157,4 +134,29 @@ fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     fs::write(path, package.to_string())
         .into_diagnostic()
         .context("could not emit HIR")
+}
+
+fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Result<(), Report> {
+    let path = out_dir.join("qir.ll");
+    let result = qsc_codegen::qir_base::generate_qir(store, package_id);
+    match result {
+        Ok(qir) => {
+            info!(
+                "Writing qir output file to: {}",
+                path.to_str().unwrap_or_default()
+            );
+            fs::write(path, qir)
+                .into_diagnostic()
+                .context("could not emit QIR")?;
+            Ok(())
+        }
+        Err((error, _)) => {
+            let unit = store.get(package_id).expect("package should be in store");
+            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
+                Err(Report::new(error).with_source_code(source.clone()))
+            } else {
+                Err(Report::new(error))
+            }
+        }
+    }
 }
