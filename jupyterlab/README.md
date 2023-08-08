@@ -52,10 +52,6 @@ pip uninstall qsharp_jupyterlab
 You will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions` folder is located. Then you can remove the symlink named `qsharp_jupyterlab` within that folder.
 
-## Testing
-
-Run `pytest` from the `jupyterlab` folder to run the extension tests.
-
 ## Releasing
 
 The extension can be published to `PyPI` and `npm` manually or using the [Jupyter Releaser](https://github.com/jupyter-server/jupyter_releaser).
