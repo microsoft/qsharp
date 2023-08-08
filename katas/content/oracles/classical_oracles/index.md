@@ -1,4 +1,3 @@
-### <span style="color:blue">Task 1.1</span>: Implement a classical oracle
 **Input:** 
   A bit vector of length 3 represented as a `Bool[]` - a binary representation of a number.
 

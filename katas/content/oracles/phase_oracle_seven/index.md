@@ -1,5 +1,3 @@
-### <span style="color:blue">Task 1.2</span>: Implement a phase oracle
-
 **Input:**
   3 qubits in an arbitrary state $|x\rangle$ (input/query register).
 
@@ -15,6 +13,6 @@ Don't allocate extra qubits to perform this operation.
 * If the query register is in the state $|010\rangle$ or $|101\rangle$, do nothing.
 
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
   To solve this problem, you need to find a gate that will only flip the sign of the $|111\rangle$ basis state.  Which single-qubit gate flips the sign of the basis state $|1\rangle$ but not $|0\rangle$? How can you modify this gate to solve this problem?
 </details>

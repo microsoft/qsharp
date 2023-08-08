@@ -1,5 +1,3 @@
-### <span style="color:blue">Task 4.2</span>: Implement the arbitrary bit pattern oracle (challenge version)
-
 **Inputs:**
 
   1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).

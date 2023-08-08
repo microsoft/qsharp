@@ -231,7 +231,7 @@ async function validateKata(
 test("all katas work", async () => {
   const katas = await getAllKatas();
   // N.B. If you update the expected katas count, make sure to add a validation test for your newly added kata.
-  const expectedKatasCount = 7;
+  const expectedKatasCount = 8;
   assert.equal(
     katas.length,
     expectedKatasCount,

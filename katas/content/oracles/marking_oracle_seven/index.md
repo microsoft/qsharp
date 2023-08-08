@@ -1,5 +1,3 @@
-### <span style="color:blue">Task 1.3</span>: Implement a marking oracle
-
 **Inputs:**
 
   1. 3 qubits in an arbitrary state $|x\rangle$ (input/query register)

@@ -1,5 +1,3 @@
-### <span style="color:blue">Task 3.3</span>: Implement the OR oracle of all bits except the $k$-th
-
 **Inputs:**
 
   1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
@@ -16,15 +14,13 @@ Feel free to explore implementing this operation with or without auxiliary qubit
 * If the query register is in the state $|010\rangle$ and $k=0$, flip the sign of the register.
 * If the query register is in the state $|010\rangle$ and $k=1$, do nothing.
 
-<br/>
 <details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
+  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
     This is a phase oracle, because we are changing the phase of the input state $|x\rangle$ based on the value of the function $f(x)$.
 </details>
 
-<br/>
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
   You can reuse the previously implemented oracles and operations, same as how you would use library operations.
   <br/>
   You can use <a href="https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/itemaccessexpressions">array slicing</a> to get parts of the array before and after the $k$-th element.

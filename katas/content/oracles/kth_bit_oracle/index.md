@@ -1,5 +1,3 @@
-### <span style="color:blue">Task 3.2</span>: Implement the $k$-th bit oracle
-
 **Inputs:**
 
   1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).

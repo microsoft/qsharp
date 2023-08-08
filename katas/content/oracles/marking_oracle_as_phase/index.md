@@ -1,4 +1,3 @@
-### <span style="color:blue">Task 2.1</span>: Apply the marking oracle as a phase oracle
 **Inputs:**
 
   1. A marking oracle implementing an unknown $N$-bit function $f(x)$.

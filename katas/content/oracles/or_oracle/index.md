@@ -1,5 +1,3 @@
-### <span style="color:blue">Task 3.1</span>: Implement the OR oracle
-
 **Inputs:**
 
   1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
