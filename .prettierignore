@@ -3,11 +3,11 @@ __pycache__/
 .ado/
 .cargo/
 .github/
+.pytest_cache/
 .vscode/
 .vscode-test-web/
 .venv/
 /compiler/
-/jupyterlab/.pytest_cache/
 /jupyterlab/lib/
 /jupyterlab/qsharp_jupyterlab/labextension/
 /katas/**/*.md
@@ -15,7 +15,6 @@ __pycache__/
 /npm/dist/
 /npm/lib/
 /npm/src/*.generated.ts
-/pip/.pytest_cache/
 /pip/src/**/*.html
 /playground/public/libs/
 /samples/

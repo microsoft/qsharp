@@ -1,8 +1,10 @@
 [
   "qubit",
   "single_qubit_gates",
+  "multi_qubit_systems",
   "multi_qubit_gates",
   "single_qubit_measurements",
   "multi_qubit_measurements",
-  "random_numbers"
+  "random_numbers",
+  "oracles"
 ]
