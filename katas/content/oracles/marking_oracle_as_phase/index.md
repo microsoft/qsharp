@@ -9,6 +9,6 @@ Flip the phase of each basis state $|x\rangle$ for which $f(x) = 1$. You can onl
 
 <br/>
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
     Recall that you can allocate extra qubits to assist in this operation.  Is there a state that you could prepare with an auxiliary qubit which would help you to convert the marking oracle to a phase oracle?
 </details>

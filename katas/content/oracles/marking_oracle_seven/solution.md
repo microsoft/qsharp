@@ -1,12 +1,7 @@
-### Solution
-
 @[solution]({
-"id": "marking_oracle_seven_solution",
-"codePath": "solution.qs"
+    "id": "marking_oracle_seven_solution",
+    "codePath": "solution.qs"
 })
-
-<details>
-    <summary><b>For a closer look at the mathematical properties of this oracle, click here</b></summary>
 
 Consider how the oracle from task 1.3 acts on two input basis states and two "output" basis states:
 
@@ -35,12 +30,11 @@ $$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|00\rangle + |11\rangle\big) = |1
 
 We have entangled the states of qubits $|x\rangle$ and $|y\rangle$!  This is a common occurrence for marking oracles when the input is a superposition of basis states: after applying the oracle, the input $|x\rangle$ will often become entangled with $|y\rangle$. Thus, while applying the marking oracle to a basis state will leave the input array unchanged, applying the marking oracle to a superposition state will change the state of both the input array and the output qubit.
 
+
+
 >As an exercise, what entangled state would we get in the previous example if $|y\rangle = |1\rangle$ instead of $|y\rangle = |0\rangle$?
 >
-> <br/>
 > <details>
->   <summary><b>Click here for the answer!</b></summary>
+>   <summary><b>Answer</b></summary>
 > $$U_{7,mark} |11+\rangle |1\rangle = |11\rangle \otimes \frac1{\sqrt2}\big(|01\rangle + |10\rangle\big) = |11\rangle |\Psi^+\rangle$$
 > </details>
-
-</details>

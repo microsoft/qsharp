@@ -15,12 +15,12 @@ except for $|00...0\rangle$ (the all zero state).
 
 <br/>
 <details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
+  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
     This is a marking oracle, because we are flipping the state of the target qubit $|y\rangle$ based on the state of the input $|x\rangle$.
 </details>
 
 <br/>
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
   You need to flip the state of $|y\rangle$ for every input except $|00...0\rangle$, or, alternatively, flip it unconditionally and then flip it for the $|00...0\rangle$ state.   You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonint">ControlledOnInt</a> useful in your implementation.
 </details>

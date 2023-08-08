@@ -1,8 +1,6 @@
-### Solution
-
 @[solution]({
-"id": "or_oracle_solution",
-"codePath": "solution.qs"
+    "id": "or_oracle_solution",
+    "codePath": "solution.qs"
 })
 
 > Notice that you can modify the state of the input register during your computations (this is what `ControlledOnInt` function does under the hood). 

@@ -21,6 +21,6 @@ Flip the state of $|y\rangle$ if you and Jasmine are both free on the same day f
     
 <br/>
 <details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
+  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
     This is a marking oracle, because we are flipping the state of the target qubit $|y\rangle$ based on the state of the inputs $|x\rangle$ and $|jasmine\rangle$. Notice that even though we do not have the typical single-input-register situation that we saw earlier, this is still a marking oracle.
 </details>

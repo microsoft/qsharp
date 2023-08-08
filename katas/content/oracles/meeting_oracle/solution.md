@@ -1,6 +1,4 @@
-### Solution
-
 @[solution]({
-"id": "meeting_oracle_solution",
-"codePath": "solution.qs"
+    "id": "meeting_oracle_solution",
+    "codePath": "solution.qs"
 })

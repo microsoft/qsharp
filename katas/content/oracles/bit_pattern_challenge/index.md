@@ -16,12 +16,12 @@ represented by `pattern`.
   
 <br/>
 <details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
+  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
     This is a phase oracle, because we are changing the phase of the input state $|x\rangle$ based on the value of the function $f(x)$.
 </details>
 
 <br/>
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
   Can you transform the state of the input register based on the <code>pattern</code> value so as to have to flip the phase only for the $|1...1\rangle$ state?
 </details>

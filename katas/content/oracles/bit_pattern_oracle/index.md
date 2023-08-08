@@ -16,12 +16,12 @@ represented by `pattern`.
     
 <br/>
 <details>
-  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?  Click here for the answer!</b></summary>
+  <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
     This is a marking oracle, because we are flipping the state of the target qubit $|y\rangle$ based on the state of the input $|x\rangle$.
 </details>
 
 <br/>
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
   You need to flip the state of $|y\rangle$ if $|x\rangle$ matches the given pattern.  You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring">ControlledOnBitString</a> useful in your implementation.
 </details>
