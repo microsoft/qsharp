@@ -4,16 +4,11 @@
 #[cfg(test)]
 mod tests;
 
+use crate::protocol::Definition;
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::SourceMap;
 use qsc::{ast, hir, resolve};
-
-#[derive(Debug, PartialEq)]
-pub struct Definition {
-    pub source: String,
-    pub offset: u32,
-}
 
 pub(crate) fn get_definition(
     compilation: &Compilation,
