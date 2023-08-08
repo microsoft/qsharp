@@ -89,7 +89,7 @@ fn test_target_profile_base_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @Target(Base)
+                @Config(Base)
                 operation Foo() : Unit {
                     body ... {}
                 }
@@ -106,7 +106,7 @@ fn test_target_profile_full_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @Target(Full)
+                @Config(Full)
                 operation Foo() : Unit {
                     body ... {}
                 }
@@ -123,7 +123,7 @@ fn test_target_profile_attr_wrong_args() {
     check_errors(
         indoc! {"
             namespace input {
-                @Target(Bar)
+                @Config(Bar)
                 operation Foo() : Unit {
                     body ... {}
                 }

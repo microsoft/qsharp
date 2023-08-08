@@ -25,7 +25,7 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
-    #[diagnostic(help("supported attributes are: EntryPoint, Target"))]
+    #[diagnostic(help("supported attributes are: EntryPoint, Config"))]
     #[diagnostic(code("Qsc.LowerAst.UnknownAttr"))]
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
@@ -212,7 +212,7 @@ impl With<'_> {
                     None
                 }
             }
-        } else if attr.name.name.as_ref() == "Target" {
+        } else if attr.name.name.as_ref() == "Config" {
             if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
                 if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
                     if TargetProfile::is_target_str(path.name.name.as_ref())))

@@ -32,7 +32,7 @@ impl MutVisitor for Conditional {
 
 fn matches_target(attrs: &[Box<Attr>], target: TargetProfile) -> bool {
     attrs.iter().all(|attr| {
-        if attr.name.name.as_ref() == "Target" {
+        if attr.name.name.as_ref() == "Config" {
             if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
                 match inner.kind.as_ref() {
                     ExprKind::Path(path) => {
