@@ -390,11 +390,7 @@ fn write_output_recording(val: &Value, f: &mut impl Write) {
             }
         }
         Value::Result(r) => {
-            write_result_recording(
-                r.try_into()
-                    .expect("should only perform output recording on ID compatible Result types"),
-                f,
-            );
+            write_result_recording(r.unwrap_id(), f);
         }
         Value::Tuple(tup) => {
             write_tuple_recording(tup.len(), f);
