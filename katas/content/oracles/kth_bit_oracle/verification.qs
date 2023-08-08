@@ -13,7 +13,7 @@ namespace Kata.Verification {
                 let isCorrect = CheckOperationsEqualReferenced(
                     N,
                     Kata.KthBit_Oracle(_, k),
-                    KthBit_OracleReference(_, k));
+                    KthBit_Oracle_Reference(_, k));
                 if not isCorrect {
                     Message($"Failed on test case for NumberOfQubits = {N}, k = {k}.");
                     return false;
