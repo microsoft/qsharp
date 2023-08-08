@@ -276,7 +276,7 @@ test("random_numbers kata is valid", async () => {
 
 test("oracles kata is valid", async () => {
   const kata = await getKata("oracles");
-  await validateKata(kata, true, false);
+  await validateKata(kata, true, true);
 });
 
 test("worker 100 shots", async () => {
