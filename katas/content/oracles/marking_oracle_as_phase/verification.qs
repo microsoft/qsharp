@@ -1,7 +1,6 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
 
-    // Task 2.1.
     operation ApplyMarkingOracleAsPhaseOracle_Reference(
         markingOracle: ((Qubit[], Qubit) => Unit is Adj + Ctl),
         qubits: Qubit[]) : Unit is Adj + Ctl {
@@ -15,7 +14,6 @@ namespace Kata.Verification {
         }
     }
 
-    // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution(): Bool {
         for N in 1..5 {

@@ -7,7 +7,6 @@ namespace Kata.Verification {
         ApplyControlledOnInt(0, X, x, y);
     }
 
-    // Task 4.3.
     operation Meeting_Oracle_Reference(x: Qubit[], jasmine: Qubit[], z: Qubit): Unit is Adj + Ctl {
         use q = Qubit[Length(x)];
         within {
@@ -22,7 +21,6 @@ namespace Kata.Verification {
         }
     }
 
-    // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution(): Bool {
         for N in 1..4 {

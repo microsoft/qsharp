@@ -6,7 +6,6 @@ namespace Kata {
         ApplyControlledOnInt(0, X, x, y);
     }
 
-    // Task 4.3.
     operation Meeting_Oracle(x: Qubit[], jasmine: Qubit[], z: Qubit): Unit is Adj + Ctl {
         use q = Qubit[Length(x)];
         within {
@@ -20,5 +19,4 @@ namespace Kata {
             Or_Oracle(q, z);
         }
     }
-
 }

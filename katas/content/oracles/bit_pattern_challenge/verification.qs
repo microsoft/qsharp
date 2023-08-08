@@ -2,7 +2,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Arrays;
 
-    // Task 4.2.
     operation ArbitraryBitPattern_Oracle_Challenge_Reference(x: Qubit[], pattern: Bool[]): Unit is Adj + Ctl {
         within {
             for i in IndexRange(x) {
@@ -15,7 +14,6 @@ namespace Kata.Verification {
         }
     }
 
-    // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution(): Bool {
         for N in 1..4 {

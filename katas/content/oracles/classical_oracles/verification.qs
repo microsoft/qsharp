@@ -1,13 +1,10 @@
 namespace Kata.Verification {
-
     open Microsoft.Quantum.Convert;
 
-    // Task 1.1.
     function IsSeven_Reference(x: Bool[]): Bool {
         return BoolArrayAsInt(x) == 7;
     }
 
-    // ------------------------------------------------------
     @EntryPoint()
     function CheckSolution(): Bool {
         let N = 3;
@@ -25,5 +22,4 @@ namespace Kata.Verification {
         Message("All tests passed.");
         true
     }
-
 }
