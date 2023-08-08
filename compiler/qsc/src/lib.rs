@@ -13,6 +13,10 @@ pub mod resolve {
     pub use qsc_frontend::resolve::Res;
 }
 
+pub mod fir {
+    pub use qsc_fir::{fir::*, *};
+}
+
 pub mod hir {
     pub use qsc_hir::{hir::*, *};
 }

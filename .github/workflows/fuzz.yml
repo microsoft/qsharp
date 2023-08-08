@@ -164,6 +164,11 @@ jobs:
           echo "WF_AGENT_SYS_INFO=$WF_AGENT_SYS_INFO" >> "$GITHUB_ENV"
           echo "WF_AGENT_OS=${{ matrix.os }}" >> "$GITHUB_ENV"
 
+          # Get the branch info:
+          BRANCH_INFO=`git branch | grep '*'`
+          echo "BRANCH_INFO: '$BRANCH_INFO'"
+          echo "BRANCH_INFO=$BRANCH_INFO" >> "$GITHUB_ENV"
+
           # Get the commit info:
           COMMIT_INFO=`git log -1 | tr "\n" "\r"`
           echo "COMMIT_INFO: '$COMMIT_INFO'"

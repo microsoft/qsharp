@@ -5,6 +5,7 @@ mod given_interpreter {
     use crate::interpret::stateful::{Interpreter, LineError};
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::SourceMap;
+    use qsc_passes::PackageType;
     use std::{error::Error, fmt::Write, io::Cursor, iter};
 
     fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
@@ -16,16 +17,31 @@ mod given_interpreter {
         )
     }
 
+    fn entry(
+        interpreter: &mut Interpreter,
+    ) -> (
+        Result<Value, Vec<crate::interpret::stateful::Error>>,
+        String,
+    ) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        (interpreter.eval_entry(&mut receiver), receiver.dump())
+    }
+
     mod without_sources {
         use super::*;
 
         mod without_stdlib {
+            use qsc_frontend::compile::SourceMap;
+            use qsc_passes::PackageType;
+
             use super::*;
 
             #[test]
             fn stdlib_members_should_be_unavailable() {
-                let mut interpreter = Interpreter::new(false, SourceMap::default())
-                    .expect("interpreter should be created");
+                let mut interpreter =
+                    Interpreter::new(false, SourceMap::default(), PackageType::Lib)
+                        .expect("interpreter should be created");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
                 is_only_error(&result, &output, "name error: `Message` not found");
@@ -304,6 +320,25 @@ mod given_interpreter {
         use super::*;
         use indoc::indoc;
         use qsc_frontend::compile::SourceMap;
+        use qsc_passes::PackageType;
+
+        #[test]
+        fn entry_expr_is_executed() {
+            let source = indoc! { r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    Message("hello there...")
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut interpreter = Interpreter::new(true, sources, PackageType::Exe)
+                .expect("interpreter should be created");
+
+            let (result, output) = entry(&mut interpreter);
+            is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
 
         #[test]
         fn stdlib_members_can_be_accessed_from_sources() {
@@ -315,8 +350,9 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources).expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(true, sources, PackageType::Lib)
+                .expect("interpreter should be created");
+
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(&result, &output, "hello there...");
         }
@@ -335,8 +371,9 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources).expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(true, sources, PackageType::Lib)
+                .expect("interpreter should be created");
+
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
@@ -359,8 +396,8 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources).expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(true, sources, PackageType::Lib)
+                .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
@@ -369,7 +406,8 @@ mod given_interpreter {
     }
 
     fn get_interpreter() -> Interpreter {
-        Interpreter::new(true, SourceMap::default()).expect("interpreter should be created")
+        Interpreter::new(true, SourceMap::default(), PackageType::Lib)
+            .expect("interpreter should be created")
     }
 
     fn is_only_value(result: &Result<Value, Vec<LineError>>, output: &str, value: &Value) {
@@ -377,6 +415,19 @@ mod given_interpreter {
 
         match result {
             Ok(v) => assert_eq!(value, v),
+            Err(e) => panic!("Expected unit value, got {e:?}"),
+        }
+    }
+
+    fn is_unit_with_output_eval_entry(
+        result: &Result<Value, Vec<crate::interpret::stateful::Error>>,
+        output: &str,
+        expected_output: &str,
+    ) {
+        assert_eq!(expected_output, output);
+
+        match result {
+            Ok(value) => assert_eq!(Value::unit(), *value),
             Err(e) => panic!("Expected unit value, got {e:?}"),
         }
     }

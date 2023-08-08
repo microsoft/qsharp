@@ -15,6 +15,7 @@ const buildOptions = {
   entryPoints: [
     join(thisDir, "src", "extension.ts"),
     join(thisDir, "src", "compilerWorker.ts"),
+    join(thisDir, "src", "debugger/debug-service-worker.ts"),
   ],
   outdir: join(thisDir, "out"),
   bundle: true,

@@ -9,20 +9,20 @@ namespace Kata.Verification {
     }
 
     operation CheckSolution() : Bool {
-        let isCorrect = VerifySingleQubitOperation(Kata.GlobalPhaseI, GlobalPhaseI);
-
-        // Output different feedback to the user depending on whether the exercise was correct.
-        use target = Qubit[1];
-        let op = register => Kata.GlobalPhaseI(register[0]);
+        let solution = register => Kata.GlobalPhaseI(register[0]);
         let reference = register => GlobalPhaseI(register[0]);
+        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+
+        // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
             Message("Correct!");
-            Message("The solution was correct for all test cases.");
-            ShowEffectOnQuantumState(target, op);
         } else {
             Message("Incorrect.");
-            Message("The solution was incorrect for at least one test case.");
-            ShowQuantumStateComparison(target, op, reference);
+            Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect it " +
+                "is expected to have.");
+            use target = Qubit[1]; // |0〉
+            ShowQuantumStateComparison(target, solution, reference);
+            ResetAll(target);
         }
         isCorrect
     }
