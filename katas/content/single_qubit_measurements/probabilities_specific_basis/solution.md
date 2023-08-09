@@ -1,4 +1,4 @@
-1. To find the probabilities of measuring $+$ and $-$, we first need to express the state $\ket 0$ in terms of $\ket +$ and $\ket -$. Using the fact that $\ket{\pm} = \frac{1}{\sqrt{2}}  (\ket{0} \pm \ket{1})$, we can show that 
+1. To find the probabilities of measuring $+$ and $-$, we first need to express the state $\ket 0$ in terms of $\ket +$ and $\ket -$. Using the fact that $\ket{\pm} = \frac{1}{\sqrt{2}}  (\ket{0} \pm \ket{1})$, we can show that
 $$
 \ket 0 = \frac{1}{\sqrt{2}} \ket{+} + \frac{1}{\sqrt{2}} \ket{-}.
 $$

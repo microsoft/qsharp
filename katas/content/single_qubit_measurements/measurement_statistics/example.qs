@@ -16,17 +16,17 @@ namespace Kata {
             // Measure in the computational basis, and update the counts according to the outcomes
             if M(q) == Zero {
                 set countZero += 1;
-            } 
+            }
             // Reset the qubit for use in the next iteration
             Reset(q);
         }
         let countOne = numRuns - countZero;
-        
+
         Message($"Simulated probability of measuring 0 is 0.{countZero}.");
         Message($"Theoretical probability of measuring 0 is 0.36.");
-        
+
         Message($"Simulated probability of measuring 1 is 0.{countOne}.");
-        Message($"Theoretical probability of measuring 0 is 0.64.");
+        Message($"Theoretical probability of measuring 1 is 0.64.");
     }
 
 }
