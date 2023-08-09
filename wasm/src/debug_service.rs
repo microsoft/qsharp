@@ -193,10 +193,6 @@ impl From<StepResult> for StructStepResult {
                 id: StepResultId::StepOut.into(),
                 value: 0,
             },
-            StepResult::Continue => StructStepResult {
-                id: StepResultId::Continue.into(),
-                value: 0,
-            },
             StepResult::Return(_) => StructStepResult {
                 id: StepResultId::Return.into(),
                 value: 0,
@@ -212,8 +208,7 @@ pub enum StepResultId {
     Next = 1,
     StepIn = 2,
     StepOut = 3,
-    Continue = 4,
-    Return = 5,
+    Return = 4,
 }
 
 impl From<StepResultId> for usize {

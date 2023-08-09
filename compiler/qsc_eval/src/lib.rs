@@ -157,7 +157,6 @@ pub enum StepResult {
     Next,
     StepIn,
     StepOut,
-    Continue,
     Return(Value),
 }
 
@@ -449,57 +448,57 @@ impl State {
 
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
-                Cont::Action(action) => self
-                    .cont_action(env, sim, globals, action, out)
-                    .map(|_| StepResult::Continue),
-                Cont::Expr(expr) => self
-                    .cont_expr(env, globals, expr)
-                    .map(|_| StepResult::Continue),
+                Cont::Action(action) => {
+                    self.cont_action(env, sim, globals, action, out)
+                        .map_err(|e| (e, self.get_stack_frames()))?;
+                    continue;
+                }
+                Cont::Expr(expr) => {
+                    self.cont_expr(env, globals, expr)
+                        .map_err(|e| (e, self.get_stack_frames()))?;
+                    continue;
+                }
                 Cont::Frame(len) => {
                     self.leave_frame(len);
-                    Ok(StepResult::Continue)
+                    continue;
                 }
                 Cont::Scope => {
                     env.leave_scope();
-                    Ok(StepResult::Continue)
+                    continue;
                 }
                 Cont::Stmt(stmt) => {
                     self.cont_stmt(globals, stmt);
                     if let Some(bp) = breakpoints.iter().find(|&bp| *bp == stmt) {
-                        Ok(StepResult::BreakpointHit(*bp))
+                        StepResult::BreakpointHit(*bp)
                     } else {
                         // no breakpoint, but we may stop here
                         if matches!(step, StepAction::In) {
-                            Ok(StepResult::StepIn)
+                            StepResult::StepIn
                         } else if matches!(step, StepAction::Next)
                             && current_frame == self.call_stack.len()
                         {
-                            Ok(StepResult::Next)
+                            StepResult::Next
                         } else if matches!(step, StepAction::Out)
                             && current_frame > self.call_stack.len()
                         {
-                            Ok(StepResult::StepOut)
+                            StepResult::StepOut
                         } else {
-                            Ok(StepResult::Continue)
+                            continue;
                         }
                     }
                 }
             };
-            match res {
-                Ok(result) => match result {
-                    StepResult::Continue => {}
-                    StepResult::Return(_) => panic!("unexpected return"),
-                    _ => {
-                        // If we are in the source package, we are done.
-                        // If we are in another package, we are in core or std
-                        // rather than make the user step through all of that,
-                        // we just return when running user code.
-                        if self.package == self.source_package {
-                            return Ok(result);
-                        }
-                    }
-                },
-                Err(e) => return Err((e, self.get_stack_frames())),
+
+            if let StepResult::Return(_) = res {
+                panic!("unexpected return");
+            }
+
+            // If we are in the source package, we are done.
+            // If we are in another package, we are in core or std
+            // rather than make the user step through all of that,
+            // we just return when running user code.
+            if self.package == self.source_package {
+                return Ok(res);
             }
         }
 
