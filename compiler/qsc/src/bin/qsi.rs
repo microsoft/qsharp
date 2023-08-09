@@ -12,7 +12,6 @@ use qsc::interpret::{
     stateless,
 };
 use qsc_eval::{
-    backend::SparseSim,
     output::{self, Receiver},
     val::Value,
 };
@@ -92,7 +91,7 @@ fn main() -> miette::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
         };
-        let mut eval_ctx = interpreter.new_eval_context(SparseSim::new());
+        let mut eval_ctx = interpreter.new_eval_context();
         return Ok(print_exec_result(
             eval_ctx.eval_entry(&mut TerminalReceiver),
         ));

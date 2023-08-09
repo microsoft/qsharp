@@ -3,7 +3,7 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::interpret::stateless;
-use qsc_eval::{backend::SparseSim, output::GenericReceiver};
+use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;
 
 const TELEPORT: &str = include_str!("../../../samples/algorithms/Teleportation.qs");
@@ -17,7 +17,7 @@ pub fn teleport(c: &mut Criterion) {
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.new_eval_context(SparseSim::new());
+            let mut eval_ctx = evaluator.new_eval_context();
             assert!(eval_ctx.eval_entry(&mut rec).is_ok());
         })
     });
@@ -30,7 +30,7 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.new_eval_context(SparseSim::new());
+            let mut eval_ctx = evaluator.new_eval_context();
             assert!(eval_ctx.eval_entry(&mut rec).is_ok());
         })
     });
@@ -43,7 +43,7 @@ pub fn large_file(c: &mut Criterion) {
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.new_eval_context(SparseSim::new());
+            let mut eval_ctx = evaluator.new_eval_context();
             assert!(eval_ctx.eval_entry(&mut rec).is_ok());
         })
     });

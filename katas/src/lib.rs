@@ -12,7 +12,7 @@ use qsc::{
         stateless::{self, Interpreter},
         Value,
     },
-    SourceContents, SourceMap, SourceName, SparseSim,
+    SourceContents, SourceMap, SourceName,
 };
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
@@ -32,7 +32,7 @@ pub fn check_solution(
 ) -> Result<bool, Vec<stateless::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
     let interpreter: Interpreter = Interpreter::new(true, source_map)?;
-    let mut eval_ctx = interpreter.new_eval_context(SparseSim::new());
+    let mut eval_ctx = interpreter.new_eval_context();
     eval_ctx.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success

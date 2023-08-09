@@ -3,7 +3,7 @@
 
 use indoc::indoc;
 use miette::Result;
-use qsc_eval::{backend::SparseSim, output::CursorReceiver, val::Value};
+use qsc_eval::{output::CursorReceiver, val::Value};
 use qsc_frontend::compile::SourceMap;
 use qsc_passes::PackageType;
 use std::io::Cursor;
@@ -28,7 +28,7 @@ fn line(
 fn eval(interpreter: &stateless::Interpreter) -> (Result<Value, Vec<stateless::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    let mut eval_ctx = interpreter.new_eval_context(SparseSim::new());
+    let mut eval_ctx = interpreter.new_eval_context();
     (eval_ctx.eval_entry(&mut receiver), receiver.dump())
 }
 
