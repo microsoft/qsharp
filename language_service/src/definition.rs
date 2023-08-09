@@ -19,6 +19,35 @@ pub(crate) fn get_definition(
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
     let ast_package = &compilation.unit.ast;
 
+    let first_unit = &compilation
+        .package_store
+        .units
+        .values
+        .get(0)
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .sources
+        .sources;
+    let second_unit = &compilation
+        .package_store
+        .units
+        .values
+        .get(1)
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .sources
+        .sources;
+
+    let temp1 = format!("{}", first_unit[0].contents);
+    let temp2 = format!("{}", second_unit[0].contents);
+
+    let core_name = format!("{}", first_unit[0].name);
+    let runtime_name = format!("{}", first_unit[1].name);
+    let std_name = format!("{}", second_unit[0].name);
+    let source_name = format!("{}", compilation.unit.sources.sources[0].name);
+
     let mut definition_finder = DefinitionFinder {
         compilation,
         source_map: &compilation.unit.sources,

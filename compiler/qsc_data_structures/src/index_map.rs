@@ -11,7 +11,7 @@ use std::{
 
 pub struct IndexMap<K, V> {
     _keys: PhantomData<K>,
-    values: Vec<Option<V>>,
+    pub values: Vec<Option<V>>,
 }
 
 impl<K, V> IndexMap<K, V> {
