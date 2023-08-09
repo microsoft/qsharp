@@ -7,8 +7,9 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
+use qsc_codegen::qir_base;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile};
-use qsc_hir::hir::Package;
+use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use std::{
     concat, fs,
@@ -59,10 +60,10 @@ fn main() -> miette::Result<ExitCode> {
     let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
 
-    let target = if cli.emit.contains(&Emit::Qir) {
-        TargetProfile::Base
+    let (package_type, target) = if cli.emit.contains(&Emit::Qir) {
+        (PackageType::Exe, TargetProfile::Base)
     } else {
-        TargetProfile::Full
+        (PackageType::Lib, TargetProfile::Full)
     };
 
     if !cli.nostdlib {
@@ -77,13 +78,19 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Lib, target);
+    let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
+    let package_id = store.insert(unit);
+    let unit = store.get(package_id).expect("package should be in store");
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
-            Emit::Qir => {}
+            Emit::Qir => {
+                if errors.is_empty() {
+                    emit_qir(out_dir, &store, package_id)?;
+                }
+            }
         }
     }
 
@@ -130,4 +137,29 @@ fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     fs::write(path, package.to_string())
         .into_diagnostic()
         .context("could not emit HIR")
+}
+
+fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Result<(), Report> {
+    let path = out_dir.join("qir.ll");
+    let result = qir_base::generate_qir(store, package_id);
+    match result {
+        Ok(qir) => {
+            info!(
+                "Writing qir output file to: {}",
+                path.to_str().unwrap_or_default()
+            );
+            fs::write(path, qir)
+                .into_diagnostic()
+                .context("could not emit QIR")?;
+            Ok(())
+        }
+        Err((error, _)) => {
+            let unit = store.get(package_id).expect("package should be in store");
+            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
+                Err(Report::new(error).with_source_code(source.clone()))
+            } else {
+                Err(Report::new(error))
+            }
+        }
+    }
 }

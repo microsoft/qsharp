@@ -831,8 +831,17 @@ dependencies = [
 name = "qsc_codegen"
 version = "0.0.0"
 dependencies = [
- "qsc_ast",
+ "expect-test",
+ "indoc 2.0.0",
+ "num-bigint",
+ "num-complex",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
+ "qsc_hir",
+ "qsc_passes",
+ "quantum-sparse-sim",
 ]
 
 [[package]]

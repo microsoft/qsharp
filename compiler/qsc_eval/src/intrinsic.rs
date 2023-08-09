@@ -7,7 +7,7 @@ mod tests;
 use crate::{
     backend::Backend,
     output::Receiver,
-    val::{Qubit, Value},
+    val::{self, Qubit, Value},
     Error,
 };
 use num_bigint::BigInt;
@@ -15,12 +15,13 @@ use qsc_data_structures::span::Span;
 use rand::Rng;
 use std::array;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn call(
     name: &str,
     name_span: Span,
     arg: Value,
     arg_span: Span,
-    sim: &mut dyn Backend,
+    sim: &mut dyn Backend<ResultType = impl Into<val::Result>>,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {
     match name {
@@ -118,8 +119,10 @@ pub(crate) fn call(
         "__quantum__qis__z__body" => Ok(one_qubit_gate(|q| sim.z(q), arg)),
         "__quantum__qis__swap__body" => two_qubit_gate(|q0, q1| sim.swap(q0, q1), arg, arg_span),
         "__quantum__qis__reset__body" => Ok(one_qubit_gate(|q| sim.reset(q), arg)),
-        "__quantum__qis__m__body" => Ok(Value::Result(sim.m(arg.unwrap_qubit().0))),
-        "__quantum__qis__mresetz__body" => Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0))),
+        "__quantum__qis__m__body" => Ok(Value::Result(sim.m(arg.unwrap_qubit().0).into())),
+        "__quantum__qis__mresetz__body" => {
+            Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0).into()))
+        }
         _ => Err(Error::UnknownIntrinsic(name.to_string(), name_span)),
     }
 }

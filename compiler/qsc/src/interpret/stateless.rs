@@ -8,11 +8,11 @@ use crate::{
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
-    backend::SparseSim,
+    backend::{Backend, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_expr,
     output::Receiver,
-    val::{GlobalId, Value},
+    val::{self, GlobalId, Value},
     Env, Global, NodeLookup, State,
 };
 use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
@@ -57,10 +57,10 @@ pub struct Interpreter {
     package: PackageId,
 }
 
-pub struct EvalContext<'a> {
+pub struct EvalContext<'a, Sim> {
     interpreter: &'a Interpreter,
     env: Env,
-    sim: SparseSim,
+    sim: Sim,
     lookup: Lookup<'a>,
     state: State,
 }
@@ -158,7 +158,7 @@ impl Interpreter {
     }
 
     #[must_use]
-    pub fn new_eval_context(&self) -> EvalContext {
+    pub fn new_eval_context(&self) -> EvalContext<SparseSim> {
         EvalContext {
             interpreter: self,
             env: Env::with_empty_scope(),
@@ -171,7 +171,11 @@ impl Interpreter {
     }
 }
 
-impl<'a> EvalContext<'a> {
+impl<'a, Sim, ResultType> EvalContext<'a, Sim>
+where
+    Sim: Backend<ResultType = ResultType>,
+    ResultType: PartialEq + Into<val::Result>,
+{
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.

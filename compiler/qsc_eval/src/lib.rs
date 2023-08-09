@@ -132,7 +132,7 @@ pub fn eval_stmt(
     stmt: StmtId,
     globals: &impl NodeLookup,
     env: &mut Env,
-    sim: &mut impl Backend,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     package: PackageId,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
@@ -150,7 +150,7 @@ pub fn eval_expr(
     expr: ExprId,
     globals: &impl NodeLookup,
     env: &mut Env,
-    sim: &mut impl Backend,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     state.push_expr(expr);
@@ -169,7 +169,7 @@ pub fn eval_resume(
     state: &mut State,
     globals: &impl NodeLookup,
     env: &mut Env,
-    sim: &mut impl Backend,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     out: &mut impl Receiver,
     breakpoints: &[StmtId],
 ) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
@@ -428,7 +428,7 @@ impl State {
         &mut self,
         globals: &impl NodeLookup,
         env: &mut Env,
-        sim: &mut impl Backend,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
         breakpoints: &[StmtId],
     ) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
@@ -721,7 +721,7 @@ impl State {
     fn cont_action(
         &mut self,
         env: &mut Env,
-        sim: &mut impl Backend,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl NodeLookup,
         action: Action,
         out: &mut impl Receiver,
@@ -864,7 +864,7 @@ impl State {
     fn eval_call(
         &mut self,
         env: &mut Env,
-        sim: &mut impl Backend,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl NodeLookup,
         callee_span: Span,
         arg_span: Span,
@@ -1263,8 +1263,8 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Double(v) => Value::Double(*v),
         Lit::Int(v) => Value::Int(*v),
         Lit::Pauli(v) => Value::Pauli(*v),
-        Lit::Result(fir::Result::Zero) => Value::Result(false),
-        Lit::Result(fir::Result::One) => Value::Result(true),
+        Lit::Result(fir::Result::Zero) => Value::RESULT_ZERO,
+        Lit::Result(fir::Result::One) => Value::RESULT_ONE,
     }
 }
 
