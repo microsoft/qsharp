@@ -7,6 +7,7 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
+use qsc_codegen::qir_base;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
@@ -138,7 +139,7 @@ fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
 
 fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Result<(), Report> {
     let path = out_dir.join("qir.ll");
-    let result = qsc_codegen::qir_base::generate_qir(store, package_id);
+    let result = qir_base::generate_qir(store, package_id);
     match result {
         Ok(qir) => {
             info!(

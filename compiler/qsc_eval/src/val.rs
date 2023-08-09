@@ -35,9 +35,9 @@ pub enum Result {
 }
 
 impl Result {
-    /// Convert the [Result] into a bool
+    /// Convert the `Result` into a bool
     /// # Panics
-    /// This will panic if the [Result] is not a [`Result::Val`].
+    /// This will panic if the `Result` is not a `Result::Val`.
     #[must_use]
     pub fn unwrap_bool(self) -> bool {
         match self {
@@ -46,9 +46,9 @@ impl Result {
         }
     }
 
-    /// Convert the [Result] into an id
+    /// Convert the `Result` into an id
     /// # Panics
-    /// This will panic if the [Result] is not a [`Result::Id`].
+    /// This will panic if the `Result` is not a `Result::Id`.
     #[must_use]
     pub fn unwrap_id(self) -> usize {
         match self {

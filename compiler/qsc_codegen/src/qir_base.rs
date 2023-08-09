@@ -144,8 +144,8 @@ impl BaseProfSim {
         match val {
             Value::Array(arr) => {
                 self.write_array_recording(arr.len())?;
-                for v in arr.iter() {
-                    self.write_output_recording(v)?;
+                for val in arr.iter() {
+                    self.write_output_recording(val)?;
                 }
             }
             Value::Result(r) => {
@@ -153,8 +153,8 @@ impl BaseProfSim {
             }
             Value::Tuple(tup) => {
                 self.write_tuple_recording(tup.len())?;
-                for v in tup.iter() {
-                    self.write_output_recording(v)?;
+                for val in tup.iter() {
+                    self.write_output_recording(val)?;
                 }
             }
             _ => panic!("unexpected value type: {val:?}"),
@@ -162,26 +162,26 @@ impl BaseProfSim {
         Ok(())
     }
 
-    fn write_result_recording(&mut self, r: usize) {
+    fn write_result_recording(&mut self, res: usize) {
         writeln!(
             self.instrs,
             "  call void @__quantum__rt__result_record_output({}, i8* null)",
-            Result(r),
+            Result(res),
         )
         .expect("writing to string should succeed");
     }
 
-    fn write_tuple_recording(&mut self, s: usize) -> std::fmt::Result {
+    fn write_tuple_recording(&mut self, size: usize) -> std::fmt::Result {
         writeln!(
             self.instrs,
-            "  call void @__quantum__rt__tuple_record_output(i64 {s}, i8* null)"
+            "  call void @__quantum__rt__tuple_record_output(i64 {size}, i8* null)"
         )
     }
 
-    fn write_array_recording(&mut self, s: usize) -> std::fmt::Result {
+    fn write_array_recording(&mut self, size: usize) -> std::fmt::Result {
         writeln!(
             self.instrs,
-            "  call void @__quantum__rt__array_record_output(i64 {s}, i8* null)"
+            "  call void @__quantum__rt__array_record_output(i64 {size}, i8* null)"
         )
     }
 }
