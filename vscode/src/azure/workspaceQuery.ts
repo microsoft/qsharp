@@ -139,16 +139,20 @@ export async function queryWorkspaces(): Promise<
   return result;
 }
 
-// Reference for existing queries in Python SDK and Azure schema:
-// - https://github.com/microsoft/qdk-python/blob/main/azure-quantum/azure/quantum/_client/aio/operations/_operations.py
-// - https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/data-plane/Microsoft.Quantum/preview/2022-09-12-preview/quantum.json
-export async function queryWorkspace(workspace: WorkspaceConnection) {
+export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
   const workspaceAuth = await vscode.authentication.getSession(
     "microsoft",
     [scopes.quantum, `VSCODE_TENANT:${workspace.tenantId}`],
     { createIfNone: true }
   );
-  const token = workspaceAuth.accessToken;
+  return workspaceAuth.accessToken;
+}
+
+// Reference for existing queries in Python SDK and Azure schema:
+// - https://github.com/microsoft/qdk-python/blob/main/azure-quantum/azure/quantum/_client/aio/operations/_operations.py
+// - https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/data-plane/Microsoft.Quantum/preview/2022-09-12-preview/quantum.json
+export async function queryWorkspace(workspace: WorkspaceConnection) {
+  const token = await getTokenForWorkspace(workspace);
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
@@ -208,8 +212,10 @@ export async function getJobFiles(
     const file = await storageRequest(sasUri, "GET");
     if (!file) throw "No file returned";
     const blob = await file.text();
+    return blob;
     log.debug(`Got file of length ${blob.length}`);
   } catch (e) {
     log.error(`Failed to get file: ${e}`);
+    return "";
   }
 }

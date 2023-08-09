@@ -61,7 +61,7 @@ type Target = {
   queueTime?: number;
 };
 
-type Job = {
+export type Job = {
   id: string;
   name: string;
   target: string;
@@ -86,7 +86,7 @@ export type WorkspaceConnection = {
   jobs: Job[];
 };
 
-class WorkspaceTreeItem extends vscode.TreeItem {
+export class WorkspaceTreeItem extends vscode.TreeItem {
   constructor(
     label: string,
     public workspace: WorkspaceConnection,

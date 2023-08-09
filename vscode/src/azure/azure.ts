@@ -7,6 +7,7 @@ const publicMgmtEndpoint = "https://management.azure.com";
 
 // TODO: Remove once cors on quantum endpoint is fixed
 const proxy = ""; // "http://localhost:5555";
+const storageProxy = "http://localhost:3000";
 
 export async function azureRequest(
   uri: string,
@@ -47,10 +48,10 @@ export async function storageRequest(uri: string, method: string, body?: any) {
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
   ];
-  if (proxy) {
+  if (storageProxy) {
     // Replace the host with the proxy, and put the original host in a header
     const url = new URL(uri);
-    uri = `${proxy}${url.pathname}${url.search}`;
+    uri = `${storageProxy}${url.pathname}${url.search}`;
     headers.push(["x-proxy-to", url.origin]);
   }
   try {

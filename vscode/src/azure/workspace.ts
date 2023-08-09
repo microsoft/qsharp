@@ -6,9 +6,14 @@
 import * as vscode from "vscode";
 import { log } from "qsharp";
 
-import { WorkspaceTreeProvider } from "./workspaceTree";
-import { queryWorkspaces } from "./workspaceQuery";
+import { Job, WorkspaceTreeItem, WorkspaceTreeProvider } from "./workspaceTree";
+import {
+  getJobFiles,
+  getTokenForWorkspace,
+  queryWorkspaces,
+} from "./workspaceQuery";
 import { sampleResult, sampleWorkspace } from "./sampleData";
+import { QuantumUris } from "./azure";
 
 let workspaceTreeProvider: WorkspaceTreeProvider;
 
@@ -112,11 +117,30 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
     // TODO: Open a webview with a histogram similar to playground
     vscode.window.showInformationMessage("TODO");
   });
-  vscode.commands.registerCommand("quantum-result-download", async () => {
-    const doc = await vscode.workspace.openTextDocument({
-      content: sampleResult,
-      language: "plaintext",
-    });
-    vscode.window.showTextDocument(doc);
-  });
+  vscode.commands.registerCommand(
+    "quantum-result-download",
+    async (arg: WorkspaceTreeItem) => {
+      const job = arg.itemData as Job;
+
+      if (!job.outputDataUri) return;
+
+      const fileUri = vscode.Uri.parse(job.outputDataUri);
+      const [_, container, blob] = fileUri.path.split("/");
+
+      const token = await getTokenForWorkspace(arg.workspace);
+      const quantumUris = new QuantumUris(
+        arg.workspace.endpointUri,
+        arg.workspace.id
+      );
+
+      const file = await getJobFiles(container, blob, token, quantumUris);
+      if (file) {
+        const doc = await vscode.workspace.openTextDocument({
+          content: file,
+          language: "plaintext",
+        });
+        vscode.window.showTextDocument(doc);
+      }
+    }
+  );
 }
