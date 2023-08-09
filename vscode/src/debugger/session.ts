@@ -241,8 +241,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.sendEvent(new TerminatedEvent());
     this.sendEvent(new ExitedEvent(0));
   }
-  private async runWithDebugging(
-    _args: ILaunchRequestArguments
+  private async runWithoutDebugging(
+    args: ILaunchRequestArguments
   ): Promise<void> {
     const bps: number[] = [];
     for (let i = 0; i < args.shots; i++) {
