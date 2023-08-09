@@ -8,13 +8,15 @@ use quantum_sparse_sim::QuantumSim;
 /// The trait that must be implemented by a quantum backend, whose functions will be invoked when
 /// quantum intrinsics are called.
 pub trait Backend {
+    type ResultType;
+
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize);
     fn cx(&mut self, ctl: usize, q: usize);
     fn cy(&mut self, ctl: usize, q: usize);
     fn cz(&mut self, ctl: usize, q: usize);
     fn h(&mut self, q: usize);
-    fn m(&mut self, q: usize) -> bool;
-    fn mresetz(&mut self, q: usize) -> bool;
+    fn m(&mut self, q: usize) -> Self::ResultType;
+    fn mresetz(&mut self, q: usize) -> Self::ResultType;
     fn reset(&mut self, q: usize);
     fn rx(&mut self, theta: f64, q: usize);
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize);
@@ -57,6 +59,8 @@ impl SparseSim {
 }
 
 impl Backend for SparseSim {
+    type ResultType = bool;
+
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.mcx(&[ctl0, ctl1], q);
     }
@@ -77,11 +81,11 @@ impl Backend for SparseSim {
         self.sim.h(q);
     }
 
-    fn m(&mut self, q: usize) -> bool {
+    fn m(&mut self, q: usize) -> Self::ResultType {
         self.sim.measure(q)
     }
 
-    fn mresetz(&mut self, q: usize) -> bool {
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
         let res = self.sim.measure(q);
         if res {
             self.sim.x(q);
