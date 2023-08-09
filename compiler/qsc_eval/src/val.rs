@@ -23,9 +23,51 @@ pub enum Value {
     Pauli(Pauli),
     Qubit(Qubit),
     Range(Option<i64>, i64, Option<i64>),
-    Result(bool),
+    Result(Result),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Result {
+    Val(bool),
+    Id(usize),
+}
+
+impl Result {
+    /// Convert the `Result` into a bool
+    /// # Panics
+    /// This will panic if the `Result` is not a `Result::Val`.
+    #[must_use]
+    pub fn unwrap_bool(self) -> bool {
+        match self {
+            Self::Val(v) => v,
+            Self::Id(_) => panic!("cannot unwrap Result::Id as bool"),
+        }
+    }
+
+    /// Convert the `Result` into an id
+    /// # Panics
+    /// This will panic if the `Result` is not a `Result::Id`.
+    #[must_use]
+    pub fn unwrap_id(self) -> usize {
+        match self {
+            Self::Val(_) => panic!("cannot unwrap Result::Val as id"),
+            Self::Id(v) => v,
+        }
+    }
+}
+
+impl From<bool> for Result {
+    fn from(val: bool) -> Self {
+        Self::Val(val)
+    }
+}
+
+impl From<usize> for Result {
+    fn from(val: usize) -> Self {
+        Self::Id(val)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -103,7 +145,7 @@ impl Display for Value {
                 (None, step, None) => write!(f, "...{step}..."),
             },
             Value::Result(v) => {
-                if *v {
+                if v.unwrap_bool() {
                     write!(f, "One")
                 } else {
                     write!(f, "Zero")
@@ -123,6 +165,9 @@ impl Display for Value {
 }
 
 impl Value {
+    pub const RESULT_ZERO: Self = Self::Result(Result::Val(false));
+    pub const RESULT_ONE: Self = Self::Result(Result::Val(true));
+
     #[must_use]
     pub fn unit() -> Self {
         Self::Tuple([].as_slice().into())
@@ -235,7 +280,7 @@ impl Value {
         let Value::Result(v) = self else {
             panic!("value should be Result, got {}", self.type_name());
         };
-        v
+        v.unwrap_bool()
     }
 
     /// Convert the [Value] into a string
