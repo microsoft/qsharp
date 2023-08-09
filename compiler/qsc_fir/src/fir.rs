@@ -313,6 +313,15 @@ impl Display for Res {
 }
 
 /// The root node of the FIR.
+/// ### Notes
+/// We maintain a dense map of ids within the package.
+/// `BlockId`, `ExprId`, `PatId`, `StmtId`, and `NodeId`s are all assigned
+/// from a type specific counter in the assigner.
+///
+/// `BlockId`, `ExprId`, `PatId`, `StmtId` ids don't leak and are only used
+/// within the containing node. Node ids are used to identify nodes within
+/// the package and require mapping from the HIR node id to the new FIR node id.
+/// `PackageId`s and `LocalItemId`s are 1:1 from the HIR and are not remapped.
 #[derive(Clone, Debug, Default)]
 pub struct Package {
     /// The items in the package.
