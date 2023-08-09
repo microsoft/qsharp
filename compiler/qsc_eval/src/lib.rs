@@ -144,6 +144,7 @@ pub fn eval_stmt(
         _ => unreachable!("eval_stmt should always return a value"),
     }
 }
+
 pub enum StepAction {
     Next,
     In,
