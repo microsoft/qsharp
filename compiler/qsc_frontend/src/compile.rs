@@ -49,7 +49,7 @@ pub struct AstPackage {
 
 #[derive(Debug, Default)]
 pub struct SourceMap {
-    pub sources: Vec<Source>,
+    sources: Vec<Source>,
     entry: Option<Source>,
 }
 
@@ -164,7 +164,7 @@ pub(super) enum ErrorKind {
 
 pub struct PackageStore {
     core: global::Table,
-    pub units: IndexMap<PackageId, CompileUnit>,
+    units: IndexMap<PackageId, CompileUnit>,
     next_id: PackageId,
 }
 
