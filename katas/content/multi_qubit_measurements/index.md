@@ -9,18 +9,22 @@ In the previous kata, we discussed the concept of measurements done on single-qu
 Building upon those ideas, this kata will introduce you to measurements done on multi-qubit systems, and how to implement such measurements in Q#.
 This will include measuring a single qubit in a multi-qubit system, as well as measuring multiple qubits simultaneously.
 
-We recommend to go through the kata that introduces single-qubit system measurements before starting this one.
+**This tutorial covers the following topics:**
+
+- Measuring a single qubit in a multi-qubit system
+- Measuring multiple qubits simultaneously
+- how to implement such measurements in Q#
+
+**What you should know to start working on this tutorial:**
+
+- Basic linear algebra
+- Single and multi-qubit systems
+- Single and multi-qubit gates
+- Single-qubit system measurements
+
 $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
-
-You should be familiar with the following concepts before tackling the Single-Qubit System Measurements tutorial (and this workbook):
-
-1. Basic linear algebra
-2. Single and multi-qubit systems
-3. Single and multi-qubit gates
-   $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
-   $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
-
+ 
 @[section]({
     "id": "multi_qubit_measurements_types_of_measurements",
     "title": "Types of measurements"
