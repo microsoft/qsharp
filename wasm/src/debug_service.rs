@@ -72,7 +72,11 @@ impl DebugService {
             &bps,
         ) {
             Ok(None) => Ok(JsValue::UNDEFINED),
-            Ok(Some(v)) => Ok(JsValue::from(std::convert::Into::<usize>::into(v))),
+            Ok(Some(v)) => {
+                // we've hit a breakpoint
+                // Convert the stmt id to a number
+                Ok(JsValue::from(std::convert::Into::<usize>::into(v)))
+            }
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
     }
@@ -139,19 +143,24 @@ impl Default for DebugService {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IBreakpointSpanList: &'static str = r#"
+export interface IBreakpointSpan {
+    id: number;
+    lo: number;
+    hi: number;
+}
+
 export interface IBreakpointSpanList {
-    spans: Array<BreakpointSpan>
+    spans: Array<IBreakpointSpan>
 }
 "#;
 
 #[derive(Serialize, Deserialize)]
-pub struct BreakpointSpanList {
+struct BreakpointSpanList {
     pub spans: Vec<BreakpointSpan>,
 }
 
-#[wasm_bindgen]
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, Hash, PartialEq)]
-pub struct BreakpointSpan {
+struct BreakpointSpan {
     pub id: u32,
     pub lo: u32,
     pub hi: u32,
@@ -159,22 +168,28 @@ pub struct BreakpointSpan {
 
 #[wasm_bindgen(typescript_custom_section)]
 const IStackFrameList: &'static str = r#"
+export interface IStackFrame {
+    name: string;
+    path: string;
+    lo: number;
+    hi: number;
+}
+
 export interface IStackFrameList {
-    frames: Array<StackFrame>
+    frames: Array<IStackFrame>
 }
 "#;
 
 #[derive(Serialize, Deserialize)]
-pub struct StackFrameList {
+struct StackFrameList {
     pub frames: Vec<StackFrame>,
 }
 
 // Public fields implementing Copy have automatically generated getters/setters.
 // To generate getters/setters for non-Copy public fields, we must
 // use #[wasm_bindgen(getter_with_clone)] for the struct
-#[wasm_bindgen(getter_with_clone)]
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
-pub struct StackFrame {
+struct StackFrame {
     pub name: String,
     pub path: String,
     pub lo: u32,

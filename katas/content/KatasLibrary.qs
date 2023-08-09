@@ -2,8 +2,94 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Katas {
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
+
+    /// # Summary
+    /// Given two operations, checks whether they act identically for all input states.
+    /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
+    ///
+    /// N.B. Investigate whether this can be done using just 1 control qubit (GitHub issue #535).
+    operation CheckOperationsEquivalence(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
+        within {
+            // N.B. The order in which quantum registers are passed to this operation is important.
+            EntangleRegisters(control, target);
+        }
+        apply {
+            op(target);
+            Adjoint reference(target);
+        }
+
+        let areEquivalent = CheckAllZero(control + target);
+        ResetAll(control + target);
+        areEquivalent
+    }
+
+    /// # Summary
+    /// Given two operations, checks whether they act identically (including global phase) for all input states.
+    /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
+    /// into a relative phase that can be detected.
+    operation CheckOperationsEquivalenceStrict(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        let controlledOp = register => Controlled op(register[...0], register[1...]);
+        let controlledReference = register => Controlled reference(register[...0], register[1...]);
+        let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
+        areEquivalent
+    }
+
+    /// # Summary
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits.
+    operation CheckOperationsEquivalenceOnZeroState(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        use target = Qubit[inputSize];
+        op(target);
+        Adjoint reference(target);
+        let isCorrect = CheckAllZero(target);
+        ResetAll(target);
+        isCorrect
+    }
+
+    /// # Summary
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
+    /// it.
+    operation CheckOperationsEquivalenceOnZeroStateStrict(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize: Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        use control = Qubit();
+        use target = Qubit[inputSize];
+        within {
+            H(control);
+        }
+        apply {
+            Controlled op([control], target);
+            Adjoint Controlled reference([control], target);
+        }
+
+        let isCorrect = CheckAllZero([control] + target);
+        ResetAll([control] + target);
+        isCorrect
+    }
 
     /// # Summary
     /// Shows the effect a quantum operation has on the quantum state.
@@ -41,37 +127,16 @@ namespace Microsoft.Quantum.Katas {
         Adjoint op(targetRegister);
     }
 
-    /// # Summary
-    /// Verifies that an operation is equivalent to a reference operation.
-    operation VerifyMultiQubitOperation(
-        unitary : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl))
-    : Bool {
-        use targetRegister = Qubit[2];
-        unitary(targetRegister);
-        Adjoint reference(targetRegister);
-        let isCorrect = CheckAllZero(targetRegister);
-        ResetAll(targetRegister);
-        isCorrect
-    }
+    internal operation EntangleRegisters(
+        control : Qubit[],
+        target : Qubit[]) : Unit is Adj + Ctl {
+        Fact(
+            Length(control) == Length(target),
+            $"The length of qubit registers must be the same.");
 
-    /// # Summary
-    /// Verifies that an operation is equivalent to a reference operation.
-    operation VerifySingleQubitOperation(
-        op : (Qubit => Unit is Adj + Ctl),
-        reference : (Qubit => Unit is Adj + Ctl))
-    : Bool {
-        use (control, target) = (Qubit(), Qubit());
-        within {
-            H(control);
+        for index in IndexRange(control) {
+            H(control[index]);
+            CNOT(control[index], target[index]);
         }
-        apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
-        }
-        let isCorrect = CheckAllZero([control, target]);
-        ResetAll([control, target]);
-
-        isCorrect
     }
 }

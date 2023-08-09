@@ -153,10 +153,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(): Promise<ILanguageService> {
-  if (!wasmModule) throw "Wasm module must be loaded first";
-  if (!wasmInstancePromise) wasmInstancePromise = initWasm(wasmModule);
-  await wasmInstancePromise;
-
+  await instantiateWasm();
   return new QSharpLanguageService(wasm);
 }
 
@@ -215,5 +212,5 @@ export { log, type LogLevel };
 export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export type { IDebugServiceWorker, IDebugService };
-export { BreakpointSpan, StackFrame } from "../lib/web/qsc_wasm.js";
+export type { IBreakpointSpan, IStackFrame } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";

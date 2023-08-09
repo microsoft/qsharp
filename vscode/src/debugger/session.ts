@@ -14,7 +14,6 @@ import {
   logger,
   Breakpoint,
   StoppedEvent,
-  BreakpointEvent,
   Thread,
   StackFrame,
   Source,
@@ -22,7 +21,7 @@ import {
 
 import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
-import { BreakpointSpan, IDebugServiceWorker, log } from "qsharp";
+import { IBreakpointSpan, IDebugServiceWorker, log } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 
@@ -37,7 +36,7 @@ function delay(ms: number): Promise<void> {
 export class QscDebugSession extends LoggingDebugSession {
   private static threadID = 1;
 
-  private breakpointLocations: Map<string, BreakpointSpan[]>;
+  private breakpointLocations: Map<string, IBreakpointSpan[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private failed: boolean;
   private program: string;
@@ -51,7 +50,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
     this.program = vscode.Uri.parse(this.config.program).path;
     this.failed = false;
-    this.breakpointLocations = new Map<string, BreakpointSpan[]>();
+    this.breakpointLocations = new Map<string, IBreakpointSpan[]>();
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
@@ -61,7 +60,6 @@ export class QscDebugSession extends LoggingDebugSession {
     const programText = await this.fileAccessor.readFileAsString(
       this.config.program
     );
-
     const loaded = await this.debugService.loadSource(
       this.program,
       programText
@@ -169,7 +167,9 @@ export class QscDebugSession extends LoggingDebugSession {
     args: ILaunchRequestArguments
   ): Promise<void> {
     if (this.failed) {
-      log.trace("compilation failed. sending error response");
+      log.info(
+        "compilation failed. sending error response and stopping execution."
+      );
       this.sendErrorResponse(response, {
         id: -1,
         format: ErrorProgramHasErrors,
@@ -200,42 +200,38 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`sending launchRequest response`);
     this.sendResponse(response);
   }
+
   private async runWithDebugging(
     _args: ILaunchRequestArguments
   ): Promise<void> {
-    const bps = this.get_breakpoint_ids();
+    const bps = this.getBreakpointIds();
     this.run(bps);
   }
+
   private async run(bps: number[]): Promise<void> {
     const eventTarget = createDebugConsoleEventTarget();
-    const res = await this.debugService
-      .evalContinue(bps, eventTarget)
-      .catch((e) => {
-        log.info(`ending session due to error: ${e}`);
+    await this.debugService.evalContinue(bps, eventTarget).then(
+      (result) => {
+        if (result) {
+          log.trace(`raising breakpoint event`);
+          const evt = new StoppedEvent(
+            "breakpoint",
+            QscDebugSession.threadID
+          ) as DebugProtocol.StoppedEvent;
+          evt.body.hitBreakpointIds = [result];
+          this.sendEvent(evt);
+        } else {
+          this.endSession(`ending session`);
+        }
+      },
+      (error) => {
+        log.info(`ending session due to error: ${error}`);
         vscode.debug.activeDebugConsole.appendLine("");
         vscode.debug.activeDebugConsole.appendLine(SimulationCompleted);
         this.sendEvent(new TerminatedEvent());
         this.sendEvent(new ExitedEvent(0));
-      });
-
-    if (res) {
-      log.trace(`raising breakpoint event`);
-      const evt = new StoppedEvent(
-        "breakpoint",
-        QscDebugSession.threadID
-      ) as DebugProtocol.StoppedEvent;
-      evt.body.hitBreakpointIds = [res];
-      this.sendEvent(evt);
-
-      this.sendEvent(
-        new BreakpointEvent("changed", {
-          verified: true,
-          id: res,
-        } as DebugProtocol.Breakpoint)
-      );
-    } else {
-      this.endSession(`ending session`);
-    }
+      }
+    );
   }
 
   private endSession(message: string) {
@@ -245,9 +241,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.sendEvent(new TerminatedEvent());
     this.sendEvent(new ExitedEvent(0));
   }
-
-  private async runWithoutDebugging(
-    args: ILaunchRequestArguments
+  private async runWithDebugging(
+    _args: ILaunchRequestArguments
   ): Promise<void> {
     const bps: number[] = [];
     for (let i = 0; i < args.shots; i++) {
@@ -255,7 +250,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private get_breakpoint_ids(): number[] {
+  private getBreakpointIds(): number[] {
     const bps: number[] = [];
     for (const bp of this.breakpoints.get(this.program) ?? []) {
       if (bp && bp.id) {
@@ -270,7 +265,7 @@ export class QscDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
     log.trace(`continueRequest: %O`, args);
-    const bps = this.get_breakpoint_ids();
+    const bps = this.getBreakpointIds();
 
     log.trace(`sending continue response`);
     this.sendResponse(response);
@@ -282,12 +277,6 @@ export class QscDebugSession extends LoggingDebugSession {
           log.trace(`raising breakpoint event`);
           this.sendEvent(
             new StoppedEvent("breakpoint", QscDebugSession.threadID)
-          );
-          this.sendEvent(
-            new BreakpointEvent("changed", {
-              verified: true,
-              id: res,
-            } as DebugProtocol.Breakpoint)
           );
         } else {
           this.endSession(`ending session`);

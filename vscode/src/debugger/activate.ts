@@ -13,10 +13,6 @@ let debugServiceWorkerFactory: () => IDebugServiceWorker;
 export async function activateDebugger(
   context: vscode.ExtensionContext
 ): Promise<void> {
-  const compilerWorkerScriptPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "./out/compilerWorker.js"
-  );
   const debugWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
     "./out/debugger/debug-service-worker.js"
