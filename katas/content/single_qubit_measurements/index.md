@@ -184,8 +184,8 @@ This can be summarized in the following table:
 As before, the assumption of $\ket \psi$ being normalized is important, since it guarantees that the two probabilities add to $1$.
 
 > As you may recall, a [global phase](qubit_global_phase) is said to be hidden or unobservable.
-This is explained by the fact that global phases have no impact on quantum measurements. For example, consider two isolated qubits which are in (normalized) states $\ket \psi$ and $e^{i\theta}\ket \psi$. 
-If both are measured in an orthogonal basis $\{ \ket{b_0},\ket{b_1}\}$, the probabilities of measuring $b_0$ or $b_1$ are identical in both cases, since $|\bra{b_i}\ket{\psi}|^2 = |\bra{b_i}e^{i\theta}\ket{\psi}|^2  $. 
+This is explained by the fact that global phases have no impact on quantum measurements. For example, consider two isolated qubits which are in (normalized) states $\ket \psi$ and $e^{i\theta}\ket \psi$.
+If both are measured in an orthogonal basis $\{ \ket{b_0},\ket{b_1}\}$, the probabilities of measuring $b_0$ or $b_1$ are identical in both cases, since $|\bra{b_i}\ket{\psi}|^2 = |\bra{b_i}e^{i\theta}\ket{\psi}|^2  $.
 Similarly, for either qubit, if $b_i$ is the measurement outcome, the post-measurement state of the qubit is $\ket{b_i}$ for both qubits. Hence, the measurements are independent of the global phase $\theta$.
 
 > ## Measurements as projection operations
@@ -221,10 +221,10 @@ $$
 >
 >Thus, as before, the probability of measuring $b_0$ is $|P_0\ket\psi|^2 = |c_0|^2$, and the probability of measuring $b_1$ is $|P_1\ket\psi|^2 = |c_1|^2$. Similarly, one can verify that the post-measurement outcomes are also $\ket{b_0}$ and $\ket{b_1}$ respectively (up to unobservable global phases).
 >
->Although the projector formalism for single-qubit systems may seem superfluous, its importance will become clear later, while considering measurements for multi-qubit systems.
+>Although the projector formalism for single-qubit systems may seem superfluous, its importance will become clear later while considering measurements for multi-qubit systems.
 
 ## Arbitrary basis measurements implementation
-In the previous section, we discussed measurements in Pauli bases using the built-in `Measure` operation. We will now show that using just unitary rotation matrices and computation basis measurements it is always possible to measure a qubit in any orthogonal basis. 
+In the previous section, we discussed measurements in Pauli bases using the built-in `Measure` operation. We will now show that it is always possible to measure a qubit in any orthogonal basis using just unitary rotation matrices and computation basis measurements.
 
 Consider a state $ \ket \psi = c_0 \ket {b_0} + c_1 \ket {b_1} $ which we would like to measure in an orthonormal basis $\{ \ket{b_0}, \ket{b_1}\}$. First, we construct the following unitary matrix:
 $$
