@@ -63,9 +63,9 @@ The outcomes of computational basis measurements and their probabilities are sum
     </tr>
 </table>
 
-Unlike quantum gates which are unitary and reversible operations, measurements are neither unitary nor reversible. Since the outcomes of a measurement are probabilistic, any two isolated qubits which are initially prepared in identical superposition states are in general not guaranteed to have the same measurement outcomes after each qubit has been measured separately. As we will see below, measurements are modeled by projection operators instead of unitary operators.
-
-Additionally, the assumption of the wave function being **normalized** is important, since the probability outcomes must sum up to $1$. If the wave function is not normalized, it is important to normalize it first in order to obtain the correct measurement probabilities.
+>Unlike quantum gates which are unitary and reversible operations, measurements are neither unitary nor reversible. Since the outcomes of a measurement are probabilistic, any two isolated qubits which are initially prepared in identical superposition states are in general not guaranteed to have the same measurement outcomes after each qubit has been measured separately. As we will see below, measurements are modeled by projection operators instead of unitary operators.
+>
+>Additionally, the assumption of the wave function being **normalized** is important, since the probability outcomes must sum up to $1$. If the wave function is not normalized, it is important to normalize it first in order to obtain the correct measurement probabilities.
 
 @[question]({
     "id": "probabilities_specific_state",
