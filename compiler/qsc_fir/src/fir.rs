@@ -40,8 +40,6 @@ fn set_indentation<'a, 'b>(
 pub struct NodeId(u32);
 
 impl NodeId {
-    const DEFAULT_VALUE: u32 = u32::MAX;
-
     /// The ID of the first node.
     pub const FIRST: Self = Self(0);
 
@@ -50,33 +48,16 @@ impl NodeId {
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
-
-    /// True if this is the default ID.
-    #[must_use]
-    pub fn is_default(self) -> bool {
-        self.0 == Self::DEFAULT_VALUE
-    }
-}
-
-impl Default for NodeId {
-    fn default() -> Self {
-        Self(Self::DEFAULT_VALUE)
-    }
 }
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if self.is_default() {
-            f.write_str("_id_")
-        } else {
-            Display::fmt(&self.0, f)
-        }
+        Display::fmt(&self.0, f)
     }
 }
 
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
-        assert!(!value.is_default(), "default node ID should be replaced");
         value.0 as usize
     }
 }
@@ -93,7 +74,6 @@ impl From<usize> for NodeId {
 
 impl From<NodeId> for u32 {
     fn from(value: NodeId) -> Self {
-        assert!(!value.is_default(), "default node ID should be replaced");
         value.0
     }
 }
@@ -106,7 +86,6 @@ impl From<u32> for NodeId {
 
 impl PartialEq for NodeId {
     fn eq(&self, other: &Self) -> bool {
-        assert!(!self.is_default(), "default node ID should be replaced");
         self.0 == other.0
     }
 }
@@ -115,14 +94,12 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be replaced");
         self.0.partial_cmp(&other.0)
     }
 }
 
 impl Ord for NodeId {
     fn cmp(&self, other: &Self) -> Ordering {
-        assert!(!self.is_default(), "default node ID should be replaced");
         self.0.cmp(&other.0)
     }
 }
@@ -140,21 +117,16 @@ macro_rules! fir_id {
         pub struct $id(pub u32);
 
         impl $id {
-            const DEFAULT_VALUE: u32 = u32::MAX;
-
-            /// The ID of the first node.
-            pub const FIRST: Self = Self(0);
-
             /// The successor of this ID.
             #[must_use]
             pub fn successor(self) -> Self {
                 Self(self.0 + 1)
             }
+        }
 
-            /// True if this is the default ID.
-            #[must_use]
-            pub fn is_default(self) -> bool {
-                self.0 == Self::DEFAULT_VALUE
+        impl Default for $id {
+            fn default() -> Self {
+                Self(0)
             }
         }
 

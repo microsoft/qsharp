@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::fir::{BlockId, ExprId, LocalItemId, NodeId, PatId, StmtId};
+use crate::fir::{BlockId, ExprId, NodeId, PatId, StmtId};
 
 #[derive(Debug)]
 pub struct Assigner {
@@ -10,7 +10,6 @@ pub struct Assigner {
     next_expr: ExprId,
     next_pat: PatId,
     next_stmt: StmtId,
-    next_item: LocalItemId,
 }
 
 impl Assigner {
@@ -18,11 +17,10 @@ impl Assigner {
     pub fn new() -> Self {
         Self {
             next_node: NodeId::FIRST,
-            next_block: BlockId::FIRST,
-            next_expr: ExprId::FIRST,
-            next_pat: PatId::FIRST,
-            next_stmt: StmtId::FIRST,
-            next_item: LocalItemId::default(),
+            next_block: BlockId::default(),
+            next_expr: ExprId::default(),
+            next_pat: PatId::default(),
+            next_stmt: StmtId::default(),
         }
     }
 
@@ -53,12 +51,6 @@ impl Assigner {
     pub fn next_stmt(&mut self) -> StmtId {
         let id = self.next_stmt;
         self.next_stmt = id.successor();
-        id
-    }
-
-    pub fn next_item(&mut self) -> LocalItemId {
-        let id = self.next_item;
-        self.next_item = id.successor();
         id
     }
 }
