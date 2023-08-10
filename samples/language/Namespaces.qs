@@ -13,8 +13,8 @@ namespace MyQuantumApp {
 	
     @EntryPoint()
     operation Main() : Result[] {
-        // `Message` is in the Microsoft.Quantum.Diagnostics namespace
-        Message("Hello World!");
+        // `DumpMachine` is in the Microsoft.Quantum.Diagnostics namespace
+        DumpMachine();
         return [];
     }
 }
