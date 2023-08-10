@@ -336,7 +336,6 @@ pub struct State {
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
-    source_package: PackageId,
 }
 
 impl State {
@@ -348,7 +347,6 @@ impl State {
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
-            source_package: package,
         }
     }
 
@@ -494,13 +492,7 @@ impl State {
                 panic!("unexpected return");
             }
 
-            // If we are in the source package, we are done.
-            // If we are in another package, we are in core or std
-            // rather than make the user step through all of that,
-            // we just return when running user code.
-            if self.package == self.source_package {
-                return Ok(res);
-            }
+            return Ok(res);
         }
 
         Ok(StepResult::Return(self.get_result()))
