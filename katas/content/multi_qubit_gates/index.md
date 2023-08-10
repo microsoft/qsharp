@@ -233,4 +233,44 @@ $$|00\rangle\langle00| + |01\rangle\langle01| + 1\rangle \otimes |+\rangle\langl
 $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big[\big(|10\rangle + |11\rangle\big)\big(\langle10| + \langle11|\big) - \big(|10\rangle - |11\rangle\big)\big(\langle10| - \langle11|\big)\big] =$$
 $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(|10\rangle\langle10| + |10\rangle\langle11| + |11\rangle\langle10| + |11\rangle\langle11| - |10\rangle\langle10| + |10\rangle\langle11| + |11\rangle\langle10| - |11\rangle\langle11|\big) =$$
 $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(2|10\rangle\langle11| + 2|11\rangle\langle10|\big) =$$
-$$|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|$$"
+$$|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|$$
+
+@[section]({
+    "id": "multi_qubit_gates_swap_gate",
+    "title": "SWAP Gate"
+})
+
+The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantum states.
+
+<table>
+    <tr>
+        <th>Gate</th>
+        <th>Matrix</th>
+        <th>Applying to $|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \gamma|10\rangle + \delta|11\rangle$</th>
+        <th>Applying to basis states</th>
+        <th>Q# Documentation</th>
+    </tr>
+    <tr>
+        <td>$\text{SWAP}$</td>
+        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \end{bmatrix}$</td>
+        <td>$\text{SWAP}|\psi\rangle = \alpha|00\rangle + \gamma|01\rangle + \beta|10\rangle + \delta|11\rangle$</td>
+        <td>
+            $$\text{SWAP}|00\rangle = |00\rangle$$
+            $$\text{SWAP}|01\rangle = |10\rangle$$
+            $$\text{SWAP}|10\rangle = |01\rangle$$
+            $$\text{SWAP}|11\rangle = |11\rangle$$
+        <td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap\">SWAP</a></td>
+    </tr>
+</table>
+
+@[exercise]({
+    "id": "qubit_swap",
+    "title": "Qubit SWAP",
+    "descriptionPath": "./qubit_swap/index.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./qubit_swap/Verification.qs"
+    ],
+    "placeholderSourcePath": "./qubit_swap/Placeholder.qs",
+    "solutionPath": "./qubit_swap/solution.md"
+})

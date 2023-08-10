@@ -12,7 +12,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata.CompoundGate;
         let reference = CompoundGate;
-        let isCorrect = CheckOperationsEquivalenceOnZeroState(solution, reference, 3);
+        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 3);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
