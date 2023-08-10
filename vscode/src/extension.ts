@@ -155,6 +155,7 @@ export class QsTextDocumentContentProvider
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
   provideTextDocumentContent(
     uri: vscode.Uri,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken
   ): vscode.ProviderResult<string> {
     const contents = provideTextDocumentContent(uri.path);
