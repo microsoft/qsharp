@@ -304,4 +304,4 @@ if compile_samples:
     if build_type == "release":
         args.append("--release")
     for file in files:
-        subprocess.run((args + [file]), check=True, text=True, cwd=root_dir)
+        subprocess.run((args + ["--", file]), check=True, text=True, cwd=root_dir)
