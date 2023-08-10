@@ -5,8 +5,8 @@ import type {
   IBreakpointSpan,
   DebugService,
   IStackFrame,
+  IStructStepResult,
 } from "../../lib/node/qsc_wasm.cjs";
-import { type IStructStepResult } from "../../lib/node/qsc_wasm.cjs";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
 import { log } from "../log.js";
@@ -42,6 +42,7 @@ export interface IDebugService {
 export type IDebugServiceWorker = IDebugService & IServiceProxy;
 
 export class QSharpDebugService implements IDebugService {
+  private wasm: QscWasm;
   private debugService: DebugService;
 
   // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
@@ -49,6 +50,7 @@ export class QSharpDebugService implements IDebugService {
 
   constructor(wasm: QscWasm) {
     log.info("Constructing a QSharpDebugService instance");
+    this.wasm = wasm;
     this.debugService = new wasm.DebugService();
   }
 
@@ -60,8 +62,17 @@ export class QSharpDebugService implements IDebugService {
   async getStackFrames(): Promise<IStackFrame[]> {
     const stack_frame_list = this.debugService.get_stack_frames();
 
-    const stack_frames: IStackFrame[] = stack_frame_list.frames.map(
-      (frame: IStackFrame) => {
+    const stack_frames: IStackFrame[] = await Promise.all(
+      stack_frame_list.frames.map(async (frame: IStackFrame) => {
+        // get any missing sources if possible
+        if (!(frame.path in this.code)) {
+          const content = await this.wasm.provide_text_document_content(
+            frame.path
+          );
+          if (content) {
+            this.code[frame.path] = content;
+          }
+        }
         if (frame.path in this.code) {
           const mappedSpan = mapUtf8UnitsToUtf16Units(
             [frame.lo, frame.hi],
@@ -73,10 +84,11 @@ export class QSharpDebugService implements IDebugService {
             hi: mappedSpan[frame.hi],
           };
         } else {
-          // We don't have a source file for this frame, so just return it as-is
+          // We don't have a source file for this frame,
+          // and we couldn't load it, so just return it as-is
           return frame;
         }
-      }
+      })
     );
     return stack_frames;
   }
