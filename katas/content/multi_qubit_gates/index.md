@@ -77,6 +77,50 @@ It can be less straightforward if a multi-qubit gate is applied to a subset of q
     "solutionPath": "./compound_gate/solution.md"
 })
 
+@[section]({
+    "id": "multi_qubit_gates_cnot_gate",
+    "title": "CNOT Gate"
+})
+
+Our first proper multi-qubit gate is the `CNOT` ("controlled NOT") gate.
+The `CNOT` gate is a two-qubit gate, the first qubit is referred to as the **control** qubit, and the second as the **target** qubit.
+`CNOT` acts as a conditional gate of sorts: if the control qubit is in state $|1\\rangle$, it applies the `X` gate to the target qubit, otherwise it does nothing.
+
+> If the system is in a superposition of several basis states, the effects of the gate will be a linear combination of the effects of it acting separately on each of the basis states.
+> This will be the case for all quantum gates you'll encounter later that are specified in terms of basis states: since all unitary gates are linear, it is sufficient to define their effect on the basis states, and use linearity to figure out their effect on any state.
+
+<table>
+    <tr>
+        <th>Gate</th>
+        <th>Matrix</th>
+        <th>Applying to $|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \gamma|10\rangle + \delta|11\rangle$</th>
+        <th>Applying to basis states</th>
+        <th>Q# Documentation</th>
+    </tr>
+    <tr>
+        <td>$\text{CNOT}</td>
+        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
+        <td>$\text{CNOT}|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \delta|10\rangle + \gamma|11\rangle$</td>
+        <td>
+            $$\text{CNOT}|00\rangle = |00\rangle$$
+            $$\text{CNOT}|01\rangle = |01\rangle$$
+            $$\text{CNOT}|10\rangle = |11\rangle$$
+            $$\text{CNOT}|11\rangle = |10\rangle$$
+        </td>
+        <td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot\">CNOT</a></td>
+    </tr>
+</table>
+
+The `CNOT` gate is particularly useful for preparing entangled states. Consider the following separable state:
+
+$$\big(\alpha|0\rangle + \beta|1\rangle\big) \otimes |0\rangle = \alpha|00\rangle + \beta|10\rangle$$
+
+If we apply the $\\text{CNOT}$ gate to it, with the first qubit as the control, and the second as the target, we get the following state, which is not separable any longer:
+
+$$\alpha|00\rangle + \beta|11\rangle$$
+
+The `CNOT` gate is self-adjoint: applying it for the second time reverses its effect.
+
 @[exercise]({
     "id": "preparing_bell_state",
     "title": "Preparing a Bell state",
@@ -88,3 +132,70 @@ It can be less straightforward if a multi-qubit gate is applied to a subset of q
     "placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",
     "solutionPath": "./preparing_bell_state/solution.md"
 })
+
+@[section]({
+    "id": "multi_qubit_gates_ket_bra_representation",
+    "title": "Ket-bra Representation"
+})
+
+Same as in the case of single-qubit gates, we can represent multi-qubit gates using Dirac notation.
+
+> Recall that kets represent column vectors and bras represent row vectors. For any ket $|\psi\rangle$, the corresponding bra is its adjoint (conjugate transpose): $\langle\psi| = |\psi\rangle^\dagger$.
+>
+> Kets and bras are used to express inner and outer products. The inner product of $|\phi\rangle$ and $|\psi\rangle$ is the matrix product of $\langle\phi|$ and $|\psi\rangle$, denoted as $\langle\phi|\psi\rangle$, and their outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
+>
+> As we've seen in the single-qubit gates tutorial, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
+
+Let's consider ket-bra representation of the $\\text{CNOT}$ gate:
+
+$$\text{CNOT} =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10| =$$
+$$
+\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}\begin{bmatrix} 1 & 0 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix} +
+\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}\begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix} =
+$$ 
+$$
+\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} + 
+\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} + 
+\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} + 
+\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 1 & 0 \\\ \end{bmatrix} =
+$$
+$$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \\\ \end{bmatrix}$$
+
+This representation can be used to carry out calculations in Dirac notation without ever switching back to matrix representation:
+
+$$
+\text{CNOT}|10\rangle = 
+\big(|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|\big)|10\rangle =$$
+$$|00\rangle\langle00|10\rangle + |01\rangle\langle01|10\rangle + |10\rangle\langle11|10\rangle + |11\rangle\langle10|10\rangle =$$
+$$|00\rangle\big(\langle00|10\rangle\big) + |01\rangle\big(\langle01|10\rangle\big) + |10\rangle\big(\langle11|10\rangle\big) + |11\rangle\big(\langle10|10\rangle\big) =$$
+$$|00\rangle(0) + |01\rangle(0) + |10\rangle(0) + |11\rangle(1) = |11\rangle$$
+
+> Notice how a lot of the inner product terms turn out to equal 0, and our expression is easily simplified. We have expressed the CNOT gate in terms of outer product of computational basis states, which are orthonormal, and apply it to another computational basis state, so the individual inner products are going to always be 0 or 1.
+
+In general case, a $4\\times4$ matrix that describes a 2-qubit gate
+$$A =
+\begin{bmatrix}
+    a_{00} & a_{01} & a_{02} & a_{03} \\\ 
+    a_{10} & a_{11} & a_{12} & a_{13} \\\ 
+    a_{20} & a_{21} & a_{22} & a_{23} \\\ 
+    a_{30} & a_{31} & a_{32} & a_{33} \\\ 
+\end{bmatrix}
+$$
+
+will have the following ket-bra representation:
+$$A =$$
+$$a_{00} |00\rangle\langle00| + a_{01} |00\rangle\langle01| + a_{02} |00\rangle\langle10| + a_{03} |00\rangle\langle11| +$$
+$$a_{10} |01\rangle\langle00| + a_{11} |01\rangle\langle01| + a_{12} |01\rangle\langle10| + a_{13} |01\rangle\langle11| +$$
+$$a_{20} |10\rangle\langle00| + a_{21} |10\rangle\langle01| + a_{22} |10\rangle\langle10| + a_{23} |10\rangle\langle11| +$$
+$$a_{30} |11\rangle\langle00| + a_{31} |11\rangle\langle01| + a_{32} |11\rangle\langle10| + a_{33} |11\rangle\langle11|$$
+
+A similar expression can be extended for matrices that describe $N$-qubit gates, where $N > 2$:
+
+$$A = \sum_{i=0}^{2^N-1} \sum_{j=0}^{2^N-1} a_{ij} |i\rangle\langle j|$$
+
+Dirac notation is particularly useful for expressing sparse matrices - matrices that have few non-zero elements. Indeed, consider the `CNOT` gate again: it is a $4 \times 4$ matrix described with 16 elements, but its Dirac notation has only 4 terms, one for each non-zero element of the matrix.
+
+With enough practice you'll be able to perform computations in Dirac notation without spelling out all the bra-ket terms explicitly!
