@@ -13,7 +13,7 @@ use qsc::{
         stateful::{self, LineError},
         Value,
     },
-    PackageType, SourceMap,
+    PackageType, SourceMap, TargetProfile,
 };
 use std::{fmt::Write, sync::Arc};
 
@@ -39,7 +39,12 @@ impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib) {
+        match stateful::Interpreter::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            TargetProfile::Full,
+        ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => {
                 let mut message = String::new();

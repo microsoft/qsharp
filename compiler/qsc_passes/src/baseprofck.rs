@@ -7,7 +7,10 @@ mod tests;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{BinOp, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody, SpecGen},
+    hir::{
+        BinOp, CallableDecl, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody,
+        SpecGen, Stmt,
+    },
     ty::{Prim, Ty},
     visit::{walk_expr, walk_item, Visitor},
 };
@@ -53,6 +56,22 @@ pub fn check_base_profile_compliance(package: &Package) -> Vec<Error> {
         }
     }
     checker.visit_package(package);
+
+    checker.errors
+}
+
+#[must_use]
+pub fn check_base_profile_compliance_for_stmt(stmt: &Stmt) -> Vec<Error> {
+    let mut checker = Checker { errors: Vec::new() };
+    checker.visit_stmt(stmt);
+
+    checker.errors
+}
+
+#[must_use]
+pub fn check_base_profile_compliance_for_callable(decl: &CallableDecl) -> Vec<Error> {
+    let mut checker = Checker { errors: Vec::new() };
+    checker.visit_callable_decl(decl);
 
     checker.errors
 }

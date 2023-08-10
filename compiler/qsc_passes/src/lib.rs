@@ -53,8 +53,8 @@ pub enum PackageType {
     Lib,
 }
 
-#[derive(Default)]
 pub struct PassContext {
+    target: TargetProfile,
     borrow_check: borrowck::Checker,
 }
 
@@ -140,6 +140,14 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
 }
 
 impl PassContext {
+    #[must_use]
+    pub fn new(target: TargetProfile) -> Self {
+        Self {
+            target,
+            borrow_check: borrowck::Checker::default(),
+        }
+    }
+
     pub fn run(
         &mut self,
         core: &Table,
@@ -160,6 +168,14 @@ impl PassContext {
                 );
                 LoopUni { core, assigner }.visit_stmt(stmt);
                 ReplaceQubitAllocation::new(core, assigner).visit_stmt(stmt);
+
+                if self.target == TargetProfile::Base {
+                    errors.extend(
+                        baseprofck::check_base_profile_compliance_for_stmt(stmt)
+                            .into_iter()
+                            .map(Error::BaseProfCk),
+                    );
+                }
             }
             Fragment::Item(Item {
                 kind: ItemKind::Callable(decl),
@@ -185,6 +201,14 @@ impl PassContext {
                 );
                 LoopUni { core, assigner }.visit_callable_decl(decl);
                 ReplaceQubitAllocation::new(core, assigner).visit_callable_decl(decl);
+
+                if self.target == TargetProfile::Base {
+                    errors.extend(
+                        baseprofck::check_base_profile_compliance_for_callable(decl)
+                            .into_iter()
+                            .map(Error::BaseProfCk),
+                    );
+                }
             }
             Fragment::Item(_) => {}
         }

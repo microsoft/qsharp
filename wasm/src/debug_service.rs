@@ -4,7 +4,7 @@
 use qsc::fir::StmtId;
 use qsc::interpret::stateful;
 use qsc::interpret::{stateful::Interpreter, Value};
-use qsc::{PackageType, SourceMap};
+use qsc::{PackageType, SourceMap, TargetProfile};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -21,14 +21,19 @@ impl DebugService {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            interpreter: Interpreter::new(false, SourceMap::default(), PackageType::Lib)
-                .expect("Couldn't create interpreter"),
+            interpreter: Interpreter::new(
+                false,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Full,
+            )
+            .expect("Couldn't create interpreter"),
         }
     }
 
     pub fn load_source(&mut self, path: &str, source: &str) -> bool {
         let source_map = SourceMap::new([(path.into(), source.into())], None);
-        match Interpreter::new(true, source_map, qsc::PackageType::Exe) {
+        match Interpreter::new(true, source_map, qsc::PackageType::Exe, TargetProfile::Full) {
             Ok(interpreter) => {
                 self.interpreter = interpreter;
                 self.interpreter.set_entry().is_ok()
