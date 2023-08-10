@@ -221,8 +221,10 @@ impl Interpreter {
         })
     }
 
+    /// Loads the entry expression to the top of the evaluation stack.
+    /// This is needed for debugging so that when begging to debug with
+    /// a step action the system is already in the correct state.
     /// # Errors
-    ///
     /// Returns a vector of errors if loading the entry point fails.
     pub fn set_entry(&mut self) -> Result<(), Vec<Error>> {
         let expr = self.get_entry_expr()?;
@@ -230,22 +232,8 @@ impl Interpreter {
         Ok(())
     }
 
-    pub fn get_result(&mut self) -> Value {
-        self.state.get_result()
-    }
+    /// Resumes execution with specified `StepAction`.
     /// # Errors
-    ///
-    /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval_continue(
-        &mut self,
-        receiver: &mut impl Receiver,
-        breakpoints: &[StmtId],
-    ) -> Result<StepResult, Vec<Error>> {
-        self.eval_step(receiver, breakpoints, &StepAction::Continue)
-    }
-
-    /// # Errors
-    ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval_step(
         &mut self,
@@ -261,7 +249,7 @@ impl Interpreter {
         };
 
         self.state
-            .resume(
+            .eval(
                 &globals,
                 &mut self.env,
                 &mut self.sim,
@@ -289,8 +277,8 @@ impl Interpreter {
             })
     }
 
+    /// Executes the entry expression until the end of execution.
     /// # Errors
-    ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
@@ -535,8 +523,8 @@ impl Interpreter {
                 .iter()
                 .map(|bps| BreakpointSpan {
                     id: bps.id,
-                    lo: bps.lo - source.offset,
-                    hi: bps.hi - source.offset,
+                    lo: bps.lo,
+                    hi: bps.hi,
                 })
                 .collect();
             spans.sort_by_key(|s| s.lo);
@@ -547,11 +535,17 @@ impl Interpreter {
     }
 }
 
+/// Represents a stack frame for debugging.
 pub struct StackFrame {
+    /// The name of the callable.
     pub name: String,
+    /// The functor of the callable.
     pub functor: String,
+    /// The path of the source file.
     pub path: String,
+    /// The start of the call site span in utf8 characters.
     pub lo: u32,
+    /// The end of the call site span in utf8 characters.
     pub hi: u32,
 }
 
@@ -573,8 +567,11 @@ fn get_global<'a>(
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BreakpointSpan {
+    /// The id of the statement representing the breakpoint location.
     pub id: u32,
+    /// The start of the call site span in utf8 characters.
     pub lo: u32,
+    /// The end of the call site span in utf8 characters.
     pub hi: u32,
 }
 
@@ -606,8 +603,8 @@ impl<'a> BreakpointCollector<'a> {
         if source.offset == self.offset {
             self.statements.insert(BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo,
-                hi: stmt.span.hi,
+                lo: stmt.span.lo - source.offset,
+                hi: stmt.span.hi - source.offset,
             });
         }
     }

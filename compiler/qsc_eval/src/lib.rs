@@ -125,9 +125,32 @@ impl Display for Spec {
     }
 }
 
+/// Evaluates the given expr with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+/// # Panics
+/// On internal error where no result is returned.
+pub fn eval_expr(
+    state: &mut State,
+    expr: ExprId,
+    globals: &impl NodeLookup,
+    env: &mut Env,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    out: &mut impl Receiver,
+) -> Result<Value, (Error, Vec<Frame>)> {
+    state.push_expr(expr);
+    let res = state.eval(globals, env, sim, out, &[], &StepAction::Continue)?;
+    let StepResult::Return(value) = res else {
+        panic!("eval_expr should always return a value");
+    };
+    Ok(value)
+}
+
 /// Evaluates the given stmt with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
+/// # Panics
+/// On internal error where no result is returned.
 pub fn eval_stmt(
     stmt: StmtId,
     globals: &impl NodeLookup,
@@ -138,13 +161,14 @@ pub fn eval_stmt(
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
-    let res = state.resume(globals, env, sim, receiver, &[], &StepAction::Continue)?;
-    match res {
-        StepResult::Return(value) => Ok(value),
-        _ => unreachable!("eval_stmt should always return a value"),
-    }
+    let res = state.eval(globals, env, sim, receiver, &[], &StepAction::Continue)?;
+    let StepResult::Return(value) = res else {
+        panic!("eval_stmt should always return a value");
+    };
+    Ok(value)
 }
 
+/// The type of step action to take during evaluation
 pub enum StepAction {
     Next,
     In,
@@ -152,6 +176,7 @@ pub enum StepAction {
     Continue,
 }
 
+// The result of an evaluation step.
 #[derive(Clone, Debug)]
 pub enum StepResult {
     BreakpointHit(StmtId),
@@ -159,25 +184,6 @@ pub enum StepResult {
     StepIn,
     StepOut,
     Return(Value),
-}
-
-/// Evaluates the given expr with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-pub fn eval_expr(
-    state: &mut State,
-    expr: ExprId,
-    globals: &impl NodeLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-) -> Result<Value, (Error, Vec<Frame>)> {
-    state.push_expr(expr);
-    let res = state.resume(globals, env, sim, out, &[], &StepAction::Continue)?;
-    match res {
-        StepResult::Return(value) => Ok(value),
-        _ => unreachable!("eval_expr should always return a value"),
-    }
 }
 
 pub fn eval_push_expr(state: &mut State, expr: ExprId) {
@@ -434,7 +440,7 @@ impl State {
     /// Returns the first error encountered during execution.
     /// # Panics
     /// When returning a value in the middle of execution.
-    pub fn resume(
+    pub fn eval(
         &mut self,
         globals: &impl NodeLookup,
         env: &mut Env,

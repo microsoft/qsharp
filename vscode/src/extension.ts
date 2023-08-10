@@ -158,11 +158,6 @@ export class QsTextDocumentContentProvider
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken
   ): vscode.ProviderResult<string> {
-    const contents = provideTextDocumentContent(uri.path);
-    if (contents) {
-      return contents;
-    } else {
-      return Promise.reject();
-    }
+    return provideTextDocumentContent(uri.path);
   }
 }
