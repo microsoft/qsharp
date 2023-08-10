@@ -28,6 +28,31 @@ pub fn git_hash() -> JsValue {
     JsValue::from_str(git_hash)
 }
 
+#[wasm_bindgen]
+pub fn provide_text_document_content(name: &str) -> JsValue {
+    thread_local! {
+        static STORE_CORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new(compile::core());
+            let std = store.insert(compile::std(&store));
+            (store, std)
+        };
+    }
+    STORE_CORE_STD.with(|(store, std)| {
+        for id in [PackageId::CORE, *std] {
+            if let Some(source) = store
+                .get(id)
+                .expect("package should be in store")
+                .sources
+                .find_by_name(name)
+            {
+                return JsValue::from_str(source.contents.as_ref());
+            }
+        }
+
+        JsValue::undefined()
+    })
+}
+
 fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
     thread_local! {
         static STORE_STD: (PackageStore, PackageId) = {

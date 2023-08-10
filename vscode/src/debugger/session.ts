@@ -529,52 +529,67 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`frames: %O`, debuggerStackFrames);
     const filterUndefined = <V>(value: V | undefined): value is V =>
       value != null;
-    const mappedStackFrames: StackFrame[] = debuggerStackFrames
-      .map((f, id) => {
-        const fileUri = vscode.Uri.parse(f.path, false);
-        log.trace(`frames: fileUri %O`, fileUri);
-        const file = vscode.workspace.textDocuments.find(
-          (td) => td.uri.path === fileUri.path
-        );
-        if (!file) {
-          // This file isn't part of the workspace, so we'll
-          // create a dummy source for it. In the future, we
-          // can use source id to load the file from the compiler
-          // if it is part of the std lib.
-          const source = new Source(
-            f.name,
-            undefined,
-            0,
-            undefined,
-            "qsharp-adapter-data"
-          ) as DebugProtocol.Source;
-          source.presentationHint = "deemphasize";
+    const mappedStackFrames = await Promise.all(
+      debuggerStackFrames
+        .map(async (f, id) => {
+          const fileUri = vscode.Uri.parse(f.path, false);
+          log.trace(`frames: fileUri %O`, fileUri);
+          const file = vscode.workspace.textDocuments.find(
+            (td) => td.uri.path === fileUri.path
+          );
+          if (!file) {
+            const uri = vscode.Uri.parse("qsharp-source-request:" + f.path);
+            // This file isn't part of the workspace, so we'll
+            // create a URI which can try to load it from the core and std lib
+            const source = new Source(
+              f.path,
+              uri.toString(),
+              0,
+              undefined,
+              "qsharp-adapter-data"
+            ) as DebugProtocol.Source;
+            const file = await vscode.workspace.openTextDocument(uri);
+            const start_pos = file.positionAt(f.lo);
+            const end_pos = file.positionAt(f.hi);
+            const sf = new StackFrame(
+              id,
+              f.name,
+              source as Source,
+              this.convertDebuggerLineToClient(start_pos.line),
+              this.convertDebuggerColumnToClient(start_pos.character)
+            );
+            sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
+            sf.endColumn = this.convertDebuggerColumnToClient(
+              end_pos.character
+            );
 
-          const sf = new StackFrame(id, f.name, source as Source);
-
-          return sf as DebugProtocol.StackFrame;
-        }
-        log.trace(`frames: file %O`, file);
-        const start_pos = file.positionAt(f.lo);
-        const end_pos = file.positionAt(f.hi);
-        const sf: DebugProtocol.StackFrame = new StackFrame(
-          id,
-          f.name,
-          new Source(
-            file.uri.toString(true),
-            file.uri.toString(true),
-            undefined,
-            undefined,
-            "qsharp-adapter-data"
-          ),
-          this.convertDebuggerLineToClient(start_pos.line),
-          this.convertDebuggerColumnToClient(start_pos.character)
-        );
-        sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
-        sf.endColumn = this.convertDebuggerColumnToClient(end_pos.character);
-        return sf;
-      })
-      .filter(filterUndefined);
+            return sf as DebugProtocol.StackFrame;
+          } else {
+            log.trace(`frames: file %O`, file);
+            const start_pos = file.positionAt(f.lo);
+            const end_pos = file.positionAt(f.hi);
+            const sf: DebugProtocol.StackFrame = new StackFrame(
+              id,
+              f.name,
+              new Source(
+                file.uri.path,
+                file.uri.toString(true),
+                undefined,
+                undefined,
+                "qsharp-adapter-data"
+              ),
+              this.convertDebuggerLineToClient(start_pos.line),
+              this.convertDebuggerColumnToClient(start_pos.character)
+            );
+            sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
+            sf.endColumn = this.convertDebuggerColumnToClient(
+              end_pos.character
+            );
+            return sf;
+          }
+        })
+        .filter(filterUndefined)
+    );
     const stackFrames = mappedStackFrames.reverse();
     stackFrames.push(
       new StackFrame(0, "entry", undefined) as DebugProtocol.StackFrame

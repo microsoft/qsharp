@@ -6,6 +6,7 @@ import {
   getLanguageService,
   loadWasmModule,
   log,
+  provideTextDocumentContent,
 } from "qsharp";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
@@ -18,6 +19,11 @@ import { activateDebugger } from "./debugger/activate.js";
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
+
+  vscode.workspace.registerTextDocumentContentProvider(
+    "qsharp-source-request",
+    new QsTextDocumentContentProvider()
+  );
 
   const languageService = await loadLanguageService(context.extensionUri);
 
@@ -141,4 +147,21 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   return await getLanguageService();
+}
+
+export class QsTextDocumentContentProvider
+  implements vscode.TextDocumentContentProvider
+{
+  onDidChange?: vscode.Event<vscode.Uri> | undefined;
+  provideTextDocumentContent(
+    uri: vscode.Uri,
+    token: vscode.CancellationToken
+  ): vscode.ProviderResult<string> {
+    const contents = provideTextDocumentContent(uri.path);
+    if (contents) {
+      return contents;
+    } else {
+      return Promise.reject();
+    }
+  }
 }

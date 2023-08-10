@@ -508,8 +508,8 @@ impl Interpreter {
                     name,
                     functor,
                     path,
-                    lo: frame.span.lo,
-                    hi: frame.span.hi,
+                    lo: frame.span.lo - source.offset,
+                    hi: frame.span.hi - source.offset,
                 }
             })
             .collect();
