@@ -34,11 +34,11 @@ If you want to apply an $X$ gate to the first qubit of the system and do nothing
 
 $$
 X \otimes I =
-\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\\ 0 & 1 \end{bmatrix} =
 \begin{bmatrix}
-    0 & 0 & 1 & 0 \\
-    0 & 0 & 0 & 1 \\
-    1 & 0 & 0 & 0 \\
+    0 & 0 & 1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\\ 
     0 & 1 & 0 & 0
 \end{bmatrix}
 $$
@@ -48,22 +48,34 @@ For example, applying the $X$ gate to the first qubit and the $H$ gate to the se
 
 $$
 X \otimes H =
-\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} =
 \frac{1}{\sqrt{2}}\begin{bmatrix}
-    0 & 0 & 1 & 1 \\
-    0 & 0 & 1 & -1 \\
-    1 & 1 & 0 & 0 \\
+    0 & 0 & 1 & 1 \\\ 
+    0 & 0 & 1 & -1 \\\ 
+    1 & 1 & 0 & 0 \\\ 
     1 & -1 & 0 & 0
 \end{bmatrix}
 $$
 
-> Note that we can use mixed-multiplication property of tensor product to see that this is equivalent to applying $X$ gate to the first qubit and applying $H$ gate to the second qubit, in either order:\n",
+> Note that we can use mixed-multiplication property of tensor product to see that this is equivalent to applying $X$ gate to the first qubit and applying $H$ gate to the second qubit, in either order:
 >
 > $$X \otimes H = (I X) \otimes (H I) = (I \otimes H) (X \otimes I)$$
 > $$X \otimes H = (X I) \otimes (I H) = (X \otimes I) (I \otimes H)$$
 
 This approach can be generalized to larger systems and gates that act on multiple qubits as well.
-It can be less straightforward if a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this tutorial."
+It can be less straightforward if a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this kata.
+
+@[exercise]({
+    "id": "compound_gate",
+    "title": "Compound Gate",
+    "descriptionPath": "./compound_gate/index.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./compound_gate/Verification.qs"
+    ],
+    "placeholderSourcePath": "./compound_gate/Placeholder.qs",
+    "solutionPath": "./compound_gate/solution.md"
+})
 
 @[exercise]({
     "id": "preparing_bell_state",
