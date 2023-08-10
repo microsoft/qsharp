@@ -1,9 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._qsharp import interpret, interpret_file
-
-from ._native import Result, Pauli, QSharpError
+from ._qsharp import init, interpret, interpret_file, compile
+from ._native import Result, Pauli, QSharpError, Target
 
 # IPython notebook specific features
 try:
@@ -16,4 +15,13 @@ except NameError:
     pass
 
 
-__all__ = ["interpret", "interpret_file", "Result", "Pauli", "QSharpError"]
+__all__ = [
+    "compile",
+    "init",
+    "interpret",
+    "interpret_file",
+    "Result",
+    "Pauli",
+    "QSharpError",
+    "Target",
+]

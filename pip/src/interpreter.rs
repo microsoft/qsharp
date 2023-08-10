@@ -19,6 +19,7 @@ use std::{fmt::Write, sync::Arc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<Target>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
@@ -28,9 +29,21 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+#[pyclass(unsendable)]
+/// A Q# measurement result.
+pub(crate) enum Target {
+    Full,
+    Base,
+}
+
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
     pub(crate) interpreter: stateful::Interpreter,
+    // TODO: Smoke and mirrors.
+    // Accumulate Q# source code so we can pass it to compile_to_qir later.
+    code: String,
+    // target: TargetProfile,
 }
 
 #[pymethods]
@@ -38,14 +51,17 @@ pub(crate) struct Interpreter {
 impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
-    pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        match stateful::Interpreter::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            TargetProfile::Full,
-        ) {
-            Ok(interpreter) => Ok(Self { interpreter }),
+    pub(crate) fn new(_py: Python, target: Target) -> PyResult<Self> {
+        let target = match target {
+            Target::Full => TargetProfile::Full,
+            Target::Base => TargetProfile::Base,
+        };
+        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
+            Ok(interpreter) => Ok(Self {
+                interpreter,
+                code: String::new(),
+                // target,
+            }),
             Err(errors) => {
                 let mut message = String::new();
                 for error in errors {
@@ -70,11 +86,24 @@ impl Interpreter {
         input: &str,
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
+        match writeln!(self.code, "{input}") {
+            Ok(_) => (),
+            Err(_) => return Err(QSharpError::new_err("Failed to write to code buffer")),
+        }
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.interpret_line(&mut receiver, input) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(input, errors))),
         }
+    }
+
+    #[allow(clippy::unused_self)]
+    fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
+        match self.interpreter.qirgen_line(entry_expr) {
+            Ok(qir) => Ok(qir),
+            Err(err) => Err(QSharpError::new_err(format!("{err:?}"))),
+        }
+        // qsc::compile_to_qir(&self.code, entry_expr, self.target)
     }
 }
 
