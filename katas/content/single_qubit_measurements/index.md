@@ -13,20 +13,17 @@ We recommend to go through the [tutorial that introduces single-qubit gates](sin
 
 **This tutorial covers the following topics:**
 
-* Computational basis measurements
-* Pauli basis measurements
-* Measurements in arbitrary orthogonal bases
-* Representing measurements as projector operators
-  $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
-  $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
+- Computational basis measurements
+- Pauli basis measurements
+- Measurements in arbitrary orthogonal bases
+- Representing measurements as projector operators
 
-**What you should know before starting this tutorial:**
+**What you should know to start working on this tutorial:**
 
-You should be familiar with the following concepts before tackling the Single-Qubit System Measurements tutorial:
+- Basic linear algebra
+- The concept of a qubit
+- Single-qubit gates
 
-* Basic linear algebra
-* The concept of a qubit
-* Single-qubit gates
 $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
