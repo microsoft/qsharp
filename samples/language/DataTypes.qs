@@ -13,15 +13,15 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation MeasureOneQubit() : Unit {
         // Notably, Qubits are allocated with the `use` keyword instead of declared with the `let`
-		// keyword.
+        // keyword.
         // The resulting value represents an opaque identifier by which virtual quantum memory
-		// can be addressed. Values of type Qubit are instantiated via allocation.
+        // can be addressed. Values of type Qubit are instantiated via allocation.
         use q: Qubit = Qubit();  
 
-		// A 64-bit signed integer.
+        // A 64-bit signed integer.
         let integer: Int = 42;
 
-		// The singleton type whose only value is ().
+        // The singleton type whose only value is ().
         let unit: Unit = ();
 
         // BigInt literals are always suffixed with an L, and can be declared in
@@ -31,41 +31,41 @@ namespace MyQuantumApp {
         let decimalBigInt: BigInt = 42L;
         let hexadecimalBigInt: BigInt = 0x2aL;
 
-		// A double-precision 64-bit floating-point number.
+        // A double-precision 64-bit floating-point number.
         let double: Double = 42.0;
 
-		// Boolean values. Possible values are `true` or `false`.
+        // Boolean values. Possible values are `true` or `false`.
         let bool: Bool = true;
 
-		// Text as values that consist of a sequence of UTF-16 code units.
+        // Text as values that consist of a sequence of UTF-16 code units.
         let string: String = "";
 
-		// Represents the result of a projective measurement onto the eigenspaces
-		// of a quantum operator with eigenvalues ±1. Possible values are `Zero` or `One`.
+        // Represents the result of a projective measurement onto the eigenspaces
+        // of a quantum operator with eigenvalues ±1. Possible values are `Zero` or `One`.
         let result: Result = One;
 
-		// A single-qubit Pauli matrix. Possible values are PauliI, PauliX, PauliY, or PauliZ.
+        // A single-qubit Pauli matrix. Possible values are PauliI, PauliX, PauliY, or PauliZ.
         let pauli: Pauli[] = [PauliX, PauliY, PauliZ];
 
-		// Represents an ordered sequence of equally spaced Int values.
-		// Values may represent sequences in ascending or descending order.
+        // Represents an ordered sequence of equally spaced Int values.
+        // Values may represent sequences in ascending or descending order.
         let range: Range = 1..100;
 
-		// A collection that contains a sequence of values of the same type.
+        // A collection that contains a sequence of values of the same type.
         let array_of_ints: Int[] = [1, 2, 3];
 
-		// A tuple contains a fixed number of items of potentially different types. 
-		// Tuples containing a single element are equivalent to the element they contain.
+        // A tuple contains a fixed number of items of potentially different types. 
+        // Tuples containing a single element are equivalent to the element they contain.
         let tuple: (Int, String, Result) = (1, "one", One);
 
-		// A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
-		// and one anonymous parameter of Boolean type.
+        // A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
+        // and one anonymous parameter of Boolean type.
         newtype ComplexBool = (Real: Double, Imaginary : Double, Bool);
-		// Instantiation of the above UDT.
+        // Instantiation of the above UDT.
         let complex: ComplexBool = ComplexBool(42.0, 0.0, false);
 
-		// A function that takes an integer and returns a boolean. This variable declaration
-		// uses a Lambda function as its right hand side.
+        // A function that takes an integer and returns a boolean. This variable declaration
+        // uses a Lambda function as its right hand side.
         let function_type: Int => Bool = (int) => int == 0;
     }
 
