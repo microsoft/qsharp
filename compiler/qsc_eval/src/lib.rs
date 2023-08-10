@@ -207,10 +207,22 @@ impl AsIndex for i64 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Variable {
+    name: Rc<str>,
     value: Value,
     mutability: Mutability,
+    span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct VariableInfo {
+    pub value: Value,
+    pub name: Rc<str>,
+    pub type_name: String,
+    pub id: NodeId,
+    pub mutability: Mutability,
+    pub span: Span,
 }
 
 impl Variable {
@@ -281,8 +293,12 @@ impl Env {
             .find_map(|scope| scope.bindings.get_mut(&id))
     }
 
-    fn push_scope(&mut self) {
-        self.0.push(Scope::default());
+    fn push_scope(&mut self, frame_id: usize) {
+        let scope = Scope {
+            frame_id,
+            ..Default::default()
+        };
+        self.0.push(scope);
     }
 
     fn leave_scope(&mut self) {
@@ -290,11 +306,48 @@ impl Env {
             .pop()
             .expect("scope should be entered first before leaving");
     }
+
+    #[must_use]
+    pub fn get_variables_in_top_frame(&self) -> Vec<VariableInfo> {
+        if let Some(scope) = self.0.last() {
+            self.get_variables_in_frame(scope.frame_id)
+        } else {
+            vec![]
+        }
+    }
+
+    #[must_use]
+    pub fn get_variables_in_frame(&self, frame_id: usize) -> Vec<VariableInfo> {
+        let candidate_scopes: Vec<_> = self
+            .0
+            .iter()
+            .filter(|scope| scope.frame_id == frame_id)
+            .map(|scope| scope.bindings.iter())
+            .collect();
+
+        let variables_by_scope: Vec<Vec<VariableInfo>> = candidate_scopes
+            .into_iter()
+            .map(|bindings| {
+                bindings
+                    .map(|(id, var)| VariableInfo {
+                        id: *id,
+                        name: var.name.clone(),
+                        type_name: var.value.type_name().to_string(),
+                        value: var.value.clone(),
+                        mutability: var.mutability,
+                        span: var.span,
+                    })
+                    .collect()
+            })
+            .collect();
+        variables_by_scope.into_iter().flatten().collect::<Vec<_>>()
+    }
 }
 
 #[derive(Default)]
 struct Scope {
     bindings: HashMap<NodeId, Variable>,
+    frame_id: usize,
 }
 
 impl Env {
@@ -391,7 +444,7 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        env.push_scope();
+        env.push_scope(self.call_stack.len());
         self.stack.push(Cont::Scope);
     }
 
@@ -1148,8 +1201,10 @@ impl State {
                 let scope = env.0.last_mut().expect("binding should have a scope");
                 match scope.bindings.entry(variable.id) {
                     Entry::Vacant(entry) => entry.insert(Variable {
+                        name: variable.name.clone(),
                         value: val,
                         mutability,
+                        span: variable.span,
                     }),
                     Entry::Occupied(_) => panic!("duplicate binding"),
                 };

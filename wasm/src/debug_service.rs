@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 use qsc::fir::StmtId;
+use qsc::interpret::output::Receiver;
 use qsc::interpret::stateful::Interpreter;
-use qsc::interpret::{stateful, StepAction, StepResult};
+use qsc::interpret::{stateful, GenericReceiver, StepAction, StepResult};
 use qsc::{PackageType, SourceMap};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -34,6 +35,18 @@ impl DebugService {
                 self.interpreter.set_entry().is_ok()
             }
             Err(_) => false,
+        }
+    }
+
+    pub fn capture_quantum_state(&mut self) -> JsValue {
+        let state = self.interpreter.capture_quantum_state();
+        let mut out = Vec::new();
+        let mut receiver = GenericReceiver::new(&mut out);
+        if receiver.state(state.0, state.1).is_ok() {
+            let output = std::str::from_utf8(out.as_slice()).unwrap().to_string();
+            JsValue::from_str(&output)
+        } else {
+            JsValue::undefined()
         }
     }
 
@@ -166,6 +179,20 @@ impl DebugService {
         };
         serde_wasm_bindgen::to_value(&spans).expect("failed to serialize breakpoint location list")
     }
+
+    pub fn get_locals(&self) -> JsValue {
+        let locals = self.interpreter.get_locals();
+        let variables: Vec<_> = locals
+            .into_iter()
+            .map(|local| Variable {
+                name: (*local.name).to_string(),
+                value: local.value.to_string(),
+                var_type: local.type_name,
+            })
+            .collect();
+        let variables = VariableList { variables };
+        serde_wasm_bindgen::to_value(&variables).expect("failed to serialize variable list")
+    }
 }
 
 impl Default for DebugService {
@@ -285,4 +312,44 @@ struct StackFrame {
     pub path: String,
     pub lo: u32,
     pub hi: u32,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const IVariableList: &'static str = r#"
+export interface IVariable {
+    name: string;
+    value: string;
+    var_type: "Array"
+        | "BigInt"
+        | "Bool"
+        | "Closure"
+        | "Double"
+        | "Global"
+        | "Int"
+        | "Pauli"
+        | "Qubit"
+        | "Range"
+        | "Result"
+        | "String"
+        | "Tuple";
+}
+
+export interface IVariableList {
+    variables: Array<IVariable>
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+struct VariableList {
+    pub variables: Vec<Variable>,
+}
+
+// Public fields implementing Copy have automatically generated getters/setters.
+// To generate getters/setters for non-Copy public fields, we must
+// use #[wasm_bindgen(getter_with_clone)] for the struct
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
+struct Variable {
+    pub name: String,
+    pub value: String,
+    pub var_type: String,
 }

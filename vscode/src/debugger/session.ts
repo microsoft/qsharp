@@ -18,6 +18,8 @@ import {
   StackFrame,
   Source,
   OutputEvent,
+  Handles,
+  Scope,
 } from "@vscode/debugadapter";
 
 import { FileAccessor } from "../common";
@@ -46,9 +48,11 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private breakpointLocations: Map<string, IBreakpointSpan[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
+  private variableHandles = new Handles<"locals" | "quantum">();
   private failed: boolean;
   private program: string;
   private eventTarget: QscEventTarget;
+  private supportsVariableType: boolean = false;
 
   public constructor(
     private fileAccessor: FileAccessor,
@@ -93,8 +97,10 @@ export class QscDebugSession extends LoggingDebugSession {
    */
   protected initializeRequest(
     response: DebugProtocol.InitializeResponse,
-    _args: DebugProtocol.InitializeRequestArguments
+    args: DebugProtocol.InitializeRequestArguments
   ): void {
+    this.supportsVariableType = args.supportsVariableType ?? false;
+
     // build and return the capabilities of this debug adapter:
     response.body = response.body || {};
 
@@ -300,6 +306,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
     return bps;
   }
+
   protected async continueRequest(
     response: DebugProtocol.ContinueResponse,
     args: DebugProtocol.ContinueArguments
@@ -624,9 +631,53 @@ export class QscDebugSession extends LoggingDebugSession {
   ): void {
     log.trace(`scopesRequest: %O`, args);
     response.body = {
-      scopes: [],
+      scopes: [
+        new Scope(
+          "Quantum State",
+          this.variableHandles.create("quantum"),
+          true
+        ),
+        new Scope("Locals", this.variableHandles.create("locals"), false),
+      ],
     };
     log.trace(`scopesResponse: %O`, response);
+    this.sendResponse(response);
+  }
+
+  protected async variablesRequest(
+    response: DebugProtocol.VariablesResponse,
+    args: DebugProtocol.VariablesArguments,
+    request?: DebugProtocol.Request
+  ): Promise<void> {
+    log.trace(`variablesRequest: ${JSON.stringify(args, null, 2)}`);
+
+    response.body = {
+      variables: [],
+    };
+
+    const handle = this.variableHandles.get(args.variablesReference);
+    if (handle === "locals") {
+      const locals = await this.debugService.getLocalVariables();
+      const variables = locals.map((local) => {
+        let variable: DebugProtocol.Variable = {
+          name: local.name,
+          value: local.value,
+          variablesReference: 0,
+        };
+        if (this.supportsVariableType) {
+          variable.type = local.var_type;
+        }
+        return variable;
+      });
+      response.body = {
+        variables: variables,
+      };
+    } else if (handle === "quantum") {
+      const state = await this.debugService.captureQuantumState();
+      this.writeToDebugConsole(state);
+    }
+
+    log.trace(`variablesResponse: %O`, response);
     this.sendResponse(response);
   }
 
@@ -649,6 +700,14 @@ export class QscDebugSession extends LoggingDebugSession {
     const evt: DebugProtocol.OutputEvent = new OutputEvent(
       `${message}\n`,
       "stdout"
+    );
+    this.sendEvent(evt);
+  }
+
+  private writeToDebugConsole(message: string): void {
+    const evt: DebugProtocol.OutputEvent = new OutputEvent(
+      `${message}\n`,
+      "console"
     );
     this.sendEvent(evt);
   }

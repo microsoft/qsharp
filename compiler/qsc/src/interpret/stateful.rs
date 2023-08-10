@@ -12,16 +12,18 @@ use crate::{
     error::WithSource,
 };
 use miette::Diagnostic;
+use num_bigint::BigUint;
+use num_complex::Complex;
 use qsc_data_structures::index_map::IndexMap;
+use qsc_eval::backend::Backend;
 use qsc_eval::{
     backend::SparseSim,
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global, NodeLookup, State, StepAction, StepResult,
+    Env, Global, NodeLookup, State, StepAction, StepResult, VariableInfo,
 };
-
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
@@ -504,6 +506,10 @@ impl Interpreter {
         stack_frames
     }
 
+    pub fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+        self.sim.capture_quantum_state()
+    }
+
     #[must_use]
     pub fn get_breakpoints(&self, path: &str) -> Vec<BreakpointSpan> {
         let unit = self
@@ -532,6 +538,11 @@ impl Interpreter {
         } else {
             Vec::new()
         }
+    }
+
+    #[must_use]
+    pub fn get_locals(&self) -> Vec<VariableInfo> {
+        self.env.get_variables_in_top_frame()
     }
 }
 
