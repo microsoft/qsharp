@@ -17,6 +17,7 @@ import {
   Thread,
   StackFrame,
   Source,
+  OutputEvent,
 } from "@vscode/debugadapter";
 
 import { FileAccessor } from "../common";
@@ -58,7 +59,10 @@ export class QscDebugSession extends LoggingDebugSession {
 
     this.program = vscode.Uri.parse(this.config.program).path;
     this.failed = false;
-    this.eventTarget = createDebugConsoleEventTarget();
+    this.eventTarget = createDebugConsoleEventTarget((message) => {
+      this.writeToStdOut(message);
+    });
+
     this.breakpointLocations = new Map<string, IBreakpointSpan[]>();
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
@@ -269,8 +273,8 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private async endSession(message: string, exitCode: number): Promise<void> {
     log.trace(message);
-    vscode.debug.activeDebugConsole.appendLine("");
-    vscode.debug.activeDebugConsole.appendLine(SimulationCompleted);
+    this.writeToStdOut("");
+    this.writeToStdOut(SimulationCompleted);
     this.sendEvent(new TerminatedEvent());
     this.sendEvent(new ExitedEvent(exitCode));
   }
@@ -639,5 +643,13 @@ export class QscDebugSession extends LoggingDebugSession {
     bp.endLine = this.convertDebuggerLineToClient(endPos.line);
     bp.endColumn = this.convertDebuggerColumnToClient(endPos.character);
     return bp;
+  }
+
+  private writeToStdOut(message: string): void {
+    const evt: DebugProtocol.OutputEvent = new OutputEvent(
+      `${message}\n`,
+      "stdout"
+    );
+    this.sendEvent(evt);
   }
 }
