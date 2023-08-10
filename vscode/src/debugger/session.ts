@@ -241,6 +241,7 @@ export class QscDebugSession extends LoggingDebugSession {
     this.sendEvent(new TerminatedEvent());
     this.sendEvent(new ExitedEvent(0));
   }
+
   private async runWithoutDebugging(
     args: ILaunchRequestArguments
   ): Promise<void> {
