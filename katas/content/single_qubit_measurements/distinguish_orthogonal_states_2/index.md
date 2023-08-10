@@ -1,4 +1,5 @@
-**Inputs:** 
+**Inputs:**
+
 1. Angle $\alpha$, in radians, represented as a `Double`.
 2. A qubit which is guaranteed to be in either the $|A\rangle$ or the $|B\rangle$ state, where $|A\rangle = \cos \alpha |0\rangle - i \sin \alpha |1\rangle$ and $|B\rangle = - i \sin \alpha |0\rangle + \cos \alpha |1\rangle$.
 
