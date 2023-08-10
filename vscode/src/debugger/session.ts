@@ -52,7 +52,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private failed: boolean;
   private program: string;
   private eventTarget: QscEventTarget;
-  private supportsVariableType: boolean = false;
+  private supportsVariableType = false;
 
   public constructor(
     private fileAccessor: FileAccessor,
@@ -659,7 +659,7 @@ export class QscDebugSession extends LoggingDebugSession {
     if (handle === "locals") {
       const locals = await this.debugService.getLocalVariables();
       const variables = locals.map((local) => {
-        let variable: DebugProtocol.Variable = {
+        const variable: DebugProtocol.Variable = {
           name: local.name,
           value: local.value,
           variablesReference: 0,
