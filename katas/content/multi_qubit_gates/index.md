@@ -199,3 +199,38 @@ $$A = \sum_{i=0}^{2^N-1} \sum_{j=0}^{2^N-1} a_{ij} |i\rangle\langle j|$$
 Dirac notation is particularly useful for expressing sparse matrices - matrices that have few non-zero elements. Indeed, consider the `CNOT` gate again: it is a $4 \times 4$ matrix described with 16 elements, but its Dirac notation has only 4 terms, one for each non-zero element of the matrix.
 
 With enough practice you'll be able to perform computations in Dirac notation without spelling out all the bra-ket terms explicitly!
+
+@[section]({
+    "id": "multi_qubit_gates_ket_bra_decomposition",
+    "title": "Ket-bra Decomposition"
+})
+
+This section describes a more formal process of finding the ket-bra decompositions of multi-qubit quantum gates.
+This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
+
+You can use the properties of eigenvalues and eigenvectors to find the ket-bra decomposition of any gate. Consider an $N$-qubit gate $A$; the matrix representation of the gate is a square matrix of size $2^N$. Therefore it also has $2^N$ orthogonal eigenvectors $|\psi_i\rangle$
+
+$$A|\psi_i\rangle = x_i|\psi_i\rangle, 0 \leq i \leq 2^N -1$$
+
+Then its ket-bra decomposition is:
+
+$$A = \sum_{i=0}^{2^N-1} x_i|\psi_i\rangle\langle\psi_i|$$
+
+Let's use our `CNOT` gate as a simple example.
+The $\\text{CNOT}$ gate has four eigenvectors.
+ * Two, as we can clearly see, are computational basis states $|00\rangle$ and $|01\rangle$ with eigen values $1$ and $1$, respectively (the basis states that are not affected by the gate).
+ * The other two are $|1\rangle \otimes |+\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle + |11\rangle\big)$ and $|1\rangle \otimes |-\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle - |11\rangle\big)$ with eigenvalues $1$ and $-1$, respectively:
+
+$$\text{CNOT}|0\rangle \otimes |0\rangle = |0\rangle \otimes |0\rangle$$
+$$\text{CNOT}|0\rangle \otimes |1\rangle = |0\rangle \otimes |1\rangle$$
+$$\text{CNOT}|1\rangle \otimes |+\rangle = |1\rangle \otimes |+\rangle$$
+$$\text{CNOT}|1\rangle \otimes |-\rangle = -|1\rangle \otimes |-\rangle$$
+
+Here's what the decomposition looks like:
+
+$$\text{CNOT} =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + 1\rangle \otimes |+\rangle\langle1| \otimes \langle +| - |1\rangle \otimes| -\rangle\langle1| \otimes \langle -| =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big[\big(|10\rangle + |11\rangle\big)\big(\langle10| + \langle11|\big) - \big(|10\rangle - |11\rangle\big)\big(\langle10| - \langle11|\big)\big] =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(|10\rangle\langle10| + |10\rangle\langle11| + |11\rangle\langle10| + |11\rangle\langle11| - |10\rangle\langle10| + |10\rangle\langle11| + |11\rangle\langle10| - |11\rangle\langle11|\big) =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(2|10\rangle\langle11| + 2|11\rangle\langle10|\big) =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|$$"
