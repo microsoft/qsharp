@@ -55,17 +55,15 @@ impl DefinitionFinder<'_> {
             }
             None => &self.compilation.unit.sources,
         };
-        let source_name = source_map
+        let source = source_map
             .find_by_offset(lo)
-            .expect("source should exist for offset")
-            .name
-            .clone();
-        let source = match package_id {
-            Some(_) => format!("qsharp-source-request:{source_name}"),
-            None => source_name.to_string(),
+            .expect("source should exist for offset");
+        let source_name = match package_id {
+            Some(_) => format!("qsharp-source-request:{}", source.name),
+            None => source.name.to_string(),
         };
 
-        self.definition = Some((source, lo));
+        self.definition = Some((source_name, lo - source.offset));
     }
 }
 

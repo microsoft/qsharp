@@ -512,8 +512,8 @@ impl Interpreter {
                     name,
                     functor,
                     path,
-                    lo: frame.span.lo - source.offset,
-                    hi: frame.span.hi - source.offset,
+                    lo: frame.span.lo,
+                    hi: frame.span.hi,
                 }
             })
             .collect();
@@ -532,19 +532,17 @@ impl Interpreter {
                 .fir_store
                 .get(self.source_package)
                 .expect("package should have been lowered");
-            let mut collector = BreakpointCollector::new(&unit.sources, source.offset, package);
-            collector.visit_package(package);
-            let mut spans: Vec<_> = collector
+            let mut colllector = BreakpointCollector::new(&unit.sources, source.offset, package);
+            colllector.visit_package(package);
+            colllector
                 .statements
                 .iter()
                 .map(|bps| BreakpointSpan {
                     id: bps.id,
-                    lo: bps.lo,
-                    hi: bps.hi,
+                    lo: bps.lo - source.offset,
+                    hi: bps.hi - source.offset,
                 })
-                .collect();
-            spans.sort_by_key(|s| s.lo);
-            spans
+                .collect()
         } else {
             Vec::new()
         }
@@ -610,8 +608,8 @@ impl<'a> BreakpointCollector<'a> {
         if source.offset == self.offset {
             self.statements.insert(BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo - source.offset,
-                hi: stmt.span.hi - source.offset,
+                lo: stmt.span.lo,
+                hi: stmt.span.hi,
             });
         }
     }
