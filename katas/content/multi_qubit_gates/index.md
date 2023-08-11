@@ -471,3 +471,105 @@ In other cases, you'll need to define the controlled version of an operation man
     "placeholderSourcePath": "./controlled_rotation/Placeholder.qs",
     "solutionPath": "./controlled_rotation/solution.md"
 })
+
+@[section]({
+    "id": "multi_qubit_gates_multi_controlled_gates",
+    "title": "Multi-controlled Gates"
+})
+
+Controlled gates can have multiple control qubits; in this case the gate $U$ is applied only if all control qubits are in the $|1\rangle$ states.
+You can think of it as constructing a controlled version of a gate that is already controlled.
+
+The simplest example of this is the **Toffoli gate**, or `CCNOT` (controlled controlled `NOT`) gate, which applies the `X` gate to the last qubit only if the first two qubits are in $|11\rangle$ state:
+
+$$
+\begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+\end{bmatrix}
+$$
+
+To construct a multi-controlled version of an operation in Q#, you can use the Controlled functor as well, passing all control qubits as an array that is the first parameter.
+
+@[section]({
+    "id": "multi_qubit_gates_other_controlled_gates",
+    "title": "Other Types of Controlled Gates"
+})
+
+Typically the term "controlled `U` gate" refers to the type of gate we've described previously, which applies the gate `U` only if the control qubit(s) are in the $|1\rangle$ state.
+
+It is possible, however, to define variants of controlled gates that use different states as control states.
+For example, an **anti-controlled** `U` gate (sometimes called **zero-controlled**) applies a gate only if the control qubit is in the $|0\rangle$ state.
+It is also possible to define control conditions in other bases, for example, applying the gate if the control qubit is in the $|+\rangle$ state.
+
+All the variants of controlled gates can be expressed in terms of the controls described in previous sections, using the following sequence of steps:
+* First, apply a transformation on control qubits that will transform the state you want to use as control into the $|1...1\rangle$ state.
+* Apply the regular controlled version of the gate.
+* Finally, undo the transformation on control qubits from the first step using the adjoint version of it.
+
+> Why do we need this last step? Remember that controlled gates are defined in terms of their effect on the basis states:
+> we apply the gate on the target qubit if and only if the control qubit is in the state we want to control on, and we don't change the state of the control qubit at all.
+> If we don't undo the transformation we did on the first step, applying our gate to a basis state will modify not only the state of the target qubit but also the state of the control qubit, which is not what we're looking for.
+>
+> For example, consider an anti-controlled `X` gate - a gate that should apply an $X$ gate to the second qubit if the first qubit is in the $|0\rangle$ state.
+> Here is the effect we expect this gate to have on each of the 2-qubit basis states:
+>
+> <table>
+  <tr>
+    <th>Input state</th>
+    <th>Output state</th>
+  </tr>
+  <tr>
+    <td>$|00\rangle$</td>
+    <td>$|01\rangle$</td>
+  </tr>
+  <tr>
+    <td>$|01\rangle$</td>
+    <td>$|00\rangle$</td>
+  </tr>
+  <tr>
+    <td>$|10\rangle$</td>
+    <td>$|10\rangle$</td>
+  </tr>
+  <tr>
+    <td>$|11\rangle$</td>
+    <td>$|11\rangle$</td>
+  </tr>
+</table>
+
+> Let's apply the anti-controlled `X` gate to the $|00\rangle$ state step by step:
+> 1. Transform the state of the control qubit to $|1\rangle$: we can do that by applying the $X$ gate to the first qubit:
+> $$|00\rangle \rightarrow |10\rangle$$
+> 2. Apply the regular `CNOT` gate:
+> $$|10\rangle \rightarrow |11\rangle$$
+> 3. Now, if we don't undo the change we did on the first step, we'll end up with a gate that transforms $|00\rangle$ into $|11\rangle$, which is not the transformation we're trying to implement.
+> However, if we undo it by applying the `X` gate to the first qubit again, we'll get the correct state:
+> $$|11\rangle \rightarrow |01\rangle$$
+>
+> You can check that getting the right behavior of the operation on the rest of the basis states also requires that last step.
+
+Finally, let's take a look at a very useful operation [ControlledOnBitString](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring) provided by the Q# Standard library.
+It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
+
+The sequence of steps that implement this variant are:
+1. Apply the `X` gate to each control qubit that corresponds to a `false` element of the bit mask (in the example, that's just the second qubit). After this, if the control qubits started in the $|10\rangle$ state, they'll end up in the $|11\rangle$ state, and if they started in any other state, they'll end up in any state but $|11\rangle$.
+2. Apply the regular controlled version of the gate.
+3. Apply the $X$ gate to the same qubits to return them to their original state.
+
+@[exercise]({
+    "id": "arbitrary_controls",
+    "title": "Arbitrary Controls",
+    "descriptionPath": "./arbitrary_controls/index.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./arbitrary_controls/Verification.qs"
+    ],
+    "placeholderSourcePath": "./arbitrary_controls/Placeholder.qs",
+    "solutionPath": "./arbitrary_controls/solution.md"
+})
