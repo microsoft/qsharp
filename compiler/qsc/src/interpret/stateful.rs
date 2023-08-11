@@ -410,42 +410,23 @@ impl Interpreter {
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
         let callable = self.lowerer.lower_callable_decl(callable);
-        self.update_fir();
+        self.update_fir_package();
         callable
     }
 
     fn lower_stmt(&mut self, stmt: &qsc_hir::hir::Stmt) -> StmtId {
         let stmt_id = self.lowerer.lower_stmt(stmt);
-        self.update_fir();
+        self.update_fir_package();
         stmt_id
     }
 
-    fn update_fir(&mut self) {
+    fn update_fir_package(&mut self) {
         let package = self
             .fir_store
             .get_mut(self.package)
             .expect("package should be in store");
 
-        for (id, value) in self.lowerer.blocks.drain() {
-            if !package.blocks.contains_key(id) {
-                package.blocks.insert(id, value.clone());
-            }
-        }
-        for (id, value) in self.lowerer.exprs.drain() {
-            if !package.exprs.contains_key(id) {
-                package.exprs.insert(id, value.clone());
-            }
-        }
-        for (id, value) in self.lowerer.pats.drain() {
-            if !package.pats.contains_key(id) {
-                package.pats.insert(id, value.clone());
-            }
-        }
-        for (id, value) in self.lowerer.stmts.drain() {
-            if !package.stmts.contains_key(id) {
-                package.stmts.insert(id, value.clone());
-            }
-        }
+        self.lowerer.update_package(package);
     }
 
     fn eval_stmt(

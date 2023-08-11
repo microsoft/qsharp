@@ -13,7 +13,9 @@ This tutorial introduces you to one of the core concepts in quantum computing - 
 - Superposition
 - Vector representation of qubit states
 - Dirac notation
+- Relative and Global Phase
 - `Qubit` data type in Q#
+- Visualizing Quantum State using `DumpMachine`
 
 **What you should know to start working on this tutorial:**
 
@@ -128,6 +130,20 @@ Several ket symbols have a generally accepted use, such as:
 
 We will learn more about Dirac notation in the next tutorials, as we introduce quantum gates and multi-qubit systems.
 
+
+@[section]({
+    "id": "qubit_relative_and_global_phase",
+    "title": "Relative and Global Phase"
+})
+
+You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
+
+The phase of a basis state is the complex phase of the amplitude of that state. For example, a system in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$, the phase of $|0\rangle$ is $\frac{\pi}{4}$, and the phase of $|1\rangle$ is $-\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
+
+Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha|0\rangle + \beta|1\rangle$ has the same relative phase as $e^{i\theta}\big(\alpha|0\rangle + \beta|1\rangle\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
+
+The state of a qubit (or, more generally, the state of a quantum system) is defined by its relative phase - global phase arises as a consequence of using linear algebra to represent qubits, and has no physical meaning. That is, applying a phase to the entire state of a system (multiplying the entire vector by $e^{i\theta}$ for any real $\theta$) doesn't actually affect the state of the system. Because of this, global phase is sometimes known as **unobservable phase** or **hidden phase**.
+
 @[section]({
     "id": "qubit_qsharp_data_type",
     "title": "Q# Qubit data type"
@@ -151,8 +167,6 @@ Let's start with a simple scenario: a program that acts on a single qubit.
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
 
 $$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
-
-> If you need a refresher on single-qubit quantum systems and their states, please see the tutorial on [the concept of a qubit](../Qubit/Qubit.ipynb).
 
 If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation. 
 You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.
@@ -183,7 +197,7 @@ Note that each row has the following format:
 
 For example, the state $|0\rangle$ would be represented as follows:
 
-<table class="state-table"><tbody><tr><td style="text-align: center;">|0⟩</td><td style="text-align: right;">1.0000+0.0000𝑖</td><td style="display: flex; justify-content: space-between; padding: 8px 20px;"><progress max="100" value="100" style="width: 40%;"></progress><span>100.0000%</span></td><td style="transform: rotate(0rad);">↑</td><td style="text-align: right;">0.0000</td></tr></tbody></table>
+<table class="state-table"><tbody><tr><td style="text-align: center;">|0⟩</td><td style="text-align: right;">1.0000+0.0000𝑖</td><td style="text-align: center;">100.0000%</td><td style="transform: rotate(0rad);">↑</td><td style="text-align: right;">0.0000</td></tr></tbody></table>
 
 > It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see [Q# documentation on quantum states](https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states).
 
@@ -211,13 +225,13 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 Now let's take a look at the general case: a program that acts on $N$ qubits. 
 The state of the quantum system used by this program can be represented as a complex vector of length $2^N$, or, using Dirac notation,
 
-$$\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_{2^N-1}\end{bmatrix} = \sum_{k = 0}^{2^N-1} x_k |k\rangle$$
+$$\begin{bmatrix} x_0 \\\ x_1 \\\ \vdots \\\ x_{2^N-1}\end{bmatrix} = \sum_{k = 0}^{2^N-1} x_k |k\rangle$$
 
 Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes $x_k$ for all basis states $|k\rangle$ directly.
 
 > Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
-By default, `DumpMachine` uses little-endian to convert bit strings to integers in the ket notation.
-For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQubitSystems/MultiQubitSystems.ipynb#Endianness).
+`DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
+We will learn more details on endiannes in the Multi-qubit Systems Tutorial.
 
 ## Demo: DumpMachine for multi-qubit systems
 
@@ -235,211 +249,9 @@ For more details on endiannes, see [the multi-qubit systems tutorial](../MultiQu
     "solutionPath": "./learn_basis_state_amplitudes/solution.md"
 })
 
-
 @[section]({
-    "id": "configure_dumpmachine_output",
-    "title": "Configure DumpMachine Output"
+    "id": "qubit_conclusion",
+    "title": "Conclusion"
 })
-
-Sometimes you want to focus on certain properties of the quantum state, such as the relative phases of individual basis states, or on certain parts of the state, such as the basis states with larger amplitudes associated with them. 
-[%config](https://docs.microsoft.com/qsharp/api/iqsharp-magic/config) magic command allows you to tweak the format of `DumpMachine` output (available in Q# Jupyter Notebooks only). 
-Here are some useful options that help you extract the right information:
-
-* `dump.basisStateLabelingConvention` sets the way the basis states are labeled in the output. Here is how the basis state $|10\rangle$ will look like with different settings:
-
-  <table>
-    <tr>
-        <th style="text-align:center; border:1px solid">dump.basisStateLabelingConvention value</th>
-        <th style="text-align:center; border:1px solid">DumpMachine output (first two columns)</th>
-    </tr>
-    <tr>
-        <td style="text-align:left; border:1px solid"><tt>"LittleEndian"</tt> (default)</td>
-        <td style="text-align:center; border:1px solid">
-            <table>
-                <tr>
-                    <td>
-                        $|0\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|1\rangle$
-                    </td>
-                    <td>
-                        $1.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|2\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|3\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-    <tr>
-        <td style="text-align:left; border:1px solid"><tt>"BigEndian"</tt></td>
-        <td style="text-align:center; border:1px solid"> 
-            <table>
-                <tr>
-                    <td>
-                        $|0\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|1\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|2\rangle$
-                    </td>
-                    <td>
-                        $1.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|3\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-            </table> 
-        </td>
-    </tr>
-    <tr>
-        <td style="text-align:left; border:1px solid"><tt>"Bitstring"</tt></td>
-        <td style="text-align:center; border:1px solid"> 
-            <table>
-                <tr>
-                    <td>
-                        $|00\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|01\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|10\rangle$
-                    </td>
-                    <td>
-                        $1.0000 + 0.0000i$
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        $|11\rangle$
-                    </td>
-                    <td>
-                        $0.0000 + 0.0000i$
-                    </td>
-                </tr>
-            </table> 
-        </td>
-    </tr>
-  </table>
-  
-* `dump.truncateSmallAmplitudes`, when set to `true`, removes basis states with measurement probabilities less than a certain threshold from the output. 
-By default the measurement probability has to be less than $10^{-10}$ for the state to be truncated; you can change that threshold using the `dump.truncationThreshold` setting.
-* `dump.measurementDisplayStyle` and `dump.phaseDisplayStyle` set the style of display for "Measurement Probability" and "Phase" columns; you can choose between bar/arrow, number, both, or none for each of the columns. 
-If you choose to display the numeric value of measurement probability, you can configure its probability using `dump.measurementDisplayPrecision`.
-
-@[exercise]({
-    "id": "high_probability_basis_states",
-    "title": "High Probability Basis States",
-    "descriptionPath": "./high_probability_basis_states/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./high_probability_basis_states/Verification.qs"
-    ],
-    "placeholderSourcePath": "./high_probability_basis_states/Placeholder.qs",
-    "solutionPath": "./high_probability_basis_states/solution.md"
-})
-
-@[section]({
-    "id": "display_the_matrix",
-    "title": "Display the matrix implemented by the operation"
-})
-
-Let's consider a more complex scenario: you've written a Q# operation and want to check that it implements exactly the matrix you're looking for. 
-An example of such cases could be quantum oracle implementation and unitary gate synthesis.
-
-You could do this semi-manually, by applying the operation to each basis state in turn and checking the amplitudes of the resulting states. 
-However, [DumpOperation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpoperation) library operation offers you a shorter and more elegant way to do this.
-
-> `DumpOperation` is available both in standalone Q# applications as well, but the outputs it produces differs slightly: in plain text mode it is printed with the real and the imaginary components separated into two matrices.
-
-Similarly to `DumpMachine`, the output of `DumpOperation` is accurate up to a global phase.
-
-### Demo: Using DumpOperation
-
-`DumpOperation` requires an operation that acts on an array of qubits. 
-If your operation acts on a single qubit, such as most intrinsic gates, or on a mix of individual qubits and qubit arrays, you'll need to write a wrapper for it that takes a single array of qubits as an argument and applies the operation to the right qubits of that array.
-
-@[example]({"id": "dump_operation_demo", "codePath": "./examples/DumpOperationDemo.qs"})
-
-> Note that the matrix of the CNOT gate produced by `DumpOperation` in this demo might differ from the one you are used to seeing in quantum computing resources, such as the [multi-qubit gates tutorial](multi_qubit_gates):
-> $$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$$
->
-> Similarly to `DumpMachine`, the way `DumpOperation` evaluates the matrix depends on the conventions used by the simulator. 
-> Q# full state simulator tends to use little-endian encoding for converting basis states to integers, and `DumpOperation` uses the same convention for converting basis states to the indices of matrix elements.
-> Thus, the second column of the CNOT matrix corresponds to the input state $|1\rangle_{LE} = |10\rangle$, which the CNOT gate converts to $|11\rangle = |3\rangle_{LE}$, meaning that the last element is going to be $1$.
->
-> A lot of resources on quantum computing use big-endian encoding, so in them the second column of the CNOT matrix corresponds to the input state $|1\rangle_{BE} = |01\rangle$, which should be left unchanged by the CNOT gate.
-
-## Display the circuit performed by the operation
-
-[Quantum circuits](https://en.wikipedia.org/wiki/Quantum_circuit) are a very common way of visualizing quantum programs; you'll see them in a lot of tutorials, papers and books on quantum computing.
-Quantum circuits are a less powerful way of expressing the quantum computation compared to a quantum program. 
-They don't offer a good way to show the values of classical variables and their evolution, the decisions made based on the classical parameters or the measurement results, or even flow control structures such as loops or conditional statements.
-At the same time, they can be convenient to get a quick idea of what the program did, or to compare your implementation to the one offered in a book.
-
-
-@[section]({
-    "id": "qubit_relative_and_global_phase",
-    "title": "Relative and Global Phase"
-})
-
-You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
-
-The phase of a basis state is the complex phase of the amplitude of that state. For example, a system in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$, the phase of $|0\rangle$ is $\frac{\pi}{4}$, and the phase of $|1\rangle$ is $-\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
-
-Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha|0\rangle + \beta|1\rangle$ has the same relative phase as $e^{i\theta}\big(\alpha|0\rangle + \beta|1\rangle\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
-
-The state of a qubit (or, more generally, the state of a quantum system) is defined by its relative phase - global phase arises as a consequence of using linear algebra to represent qubits, and has no physical meaning. That is, applying a phase to the entire state of a system (multiplying the entire vector by $e^{i\theta}$ for any real $\theta$) doesn't actually affect the state of the system. Because of this, global phase is sometimes known as **unobservable phase** or **hidden phase**.
-
-## Conclusion
 
 This should be enough for you to gain a basic understanding of qubits and qubit states. Next, you will learn how to manipulate those states in the single-qubit gates tutorial.
