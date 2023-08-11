@@ -5,16 +5,16 @@
     "title": "Overview"
 })
 
-Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.  This tutorial dives deeper into the definition of different types of quantum oracles, their properties, and the basic ways to implement the oracles.
+Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.  This kata dives deeper into the definition of different types of quantum oracles, their properties, and the basic ways to implement the oracles.
 
-**This tutorial covers the following topics:**
+**This kata covers the following topics:**
 
 - Quantum oracles and how they relate to classical oracles
 - Two types of quantum oracles - phase oracles and marking oracles
 - Phase kickback and its uses for oracles implementation
 - Implementation and testing of quantum oracles in Q#
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this kata:**
 
 - Fundamental quantum concepts
 - Multi-qubit gates (especially controlled gates)
@@ -56,16 +56,16 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 
 An oracle in the quantum world is a "black box" operation that is used as input to an algorithm (such as Deutsch-Jozsa algorithm or Grover's search algorithm, which you'll learn later). 
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
-In this tutorial you will learn the properties of quantum oracles and how to implement them.
+In this kata you will learn the properties of quantum oracles and how to implement them.
 
 A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where $x$ is an $n$-bit input state
-of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, i.e., the function can return values $0$ or $1$; in this tutorial we will focus on this class of functions.
+of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, i.e., the function can return values $0$ or $1$; in this kata we will focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
 $$|x\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$ 
 where $|x_i\rangle$ represents the state of the $i$-th qubit.  
 
-Oracles must be unitary transformations, and follow the same rules of linear algebra as other quantum operations. (See the [linear algebra tutorial](../LinearAlgebra/LinearAlgebra.ipynb) if you need a refresher.)
+Oracles must be unitary transformations, and follow the same rules of linear algebra as other quantum operations.
 This allows us to define quantum oracles based on their effect on the basis states - tensor products of single-qubit basis states $|0\rangle$ and $|1\rangle$. 
 
 > For example, an oracle that implements a function that takes 2 bits of input will be defined using its effect on basis states $|00\rangle$, $|01\rangle$, $|10\rangle$, and $|11\rangle$.  
@@ -93,7 +93,7 @@ The phase oracle that implements this function will take an array of 3 qubits as
 
 @[example]({"id": "phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
 
-We introduced the function [ControlledOnBitString](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring) provided by the Q# Standard library.
+We introduced the function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) provided by the Q# Standard library.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
  
 The sequence of steps that implement this variant are:
@@ -101,7 +101,7 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits. To learn its internal implementation (and the very similar [ControlledOnInt](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonint)), please refer to the [Q# source code](https://github.com/microsoft/QuantumLibraries/blob/c0b851735542117cf6d73f8946ab6eef8c84384d/Standard/src/Canon/Utils/ControlledOnBitString.qs#L107).
+Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits. To learn its internal implementation (and the very similar [ApplyControlledOnInt](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonint)), please refer to the [Q# source code](https://github.com/microsoft/qsharp/blob/7d72e789b084ea5ecc50a9298517bc19cd0c1c88/library/std/canon.qs#L463).
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
