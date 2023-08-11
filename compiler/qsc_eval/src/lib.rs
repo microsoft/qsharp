@@ -530,13 +530,13 @@ impl State {
                         StepResult::BreakpointHit(*bp)
                     } else {
                         // no breakpoint, but we may stop here
-                        if matches!(step, StepAction::In) {
+                        if step == StepAction::In {
                             StepResult::StepIn
-                        } else if matches!(step, StepAction::Next)
+                        } else if step == StepAction::Next
                             && current_frame == self.call_stack.len()
                         {
                             StepResult::Next
-                        } else if matches!(step, StepAction::Out)
+                        } else if step == StepAction::Out
                             && current_frame > self.call_stack.len()
                         {
                             StepResult::StepOut
