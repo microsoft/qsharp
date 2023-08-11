@@ -15,6 +15,8 @@ declare void @__quantum__qis__x__body(%Qubit*)
 declare void @__quantum__qis__y__body(%Qubit*)
 declare void @__quantum__qis__z__body(%Qubit*)
 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+declare void @__quantum__qis__reset__body(%Qubit*)
+declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #0
 
 define void @__quantum__qis__ccx__body(%Qubit* %c1, %Qubit* %c2, %Qubit* %q) alwaysinline {
     call void @__quantum__qis__h__body(%Qubit* %q)
@@ -80,3 +82,15 @@ define void @__quantum__qis__rzz__body(double %theta, %Qubit* %q1, %Qubit* %q2) 
     ret void
 }
 
+define void @__quantum__qis__m__body(%Qubit* %q, %Result* writeonly %r) alwaysinline #0 {
+    call void @__quantum__qis__mz__body(%Qubit* %q, %Result* writeonly %r) #0
+    ret void
+}
+
+define void @__quantum__qis__mresetz__body(%Qubit* %q, %Result* writeonly %r) alwaysinline #0 {
+    call void @__quantum__qis__mz__body(%Qubit* %q, %Result* writeonly %r) #0
+    call void @__quantum__qis__reset__body(%Qubit* %q)
+    ret void
+}
+
+attributes #0 = { "irreversible" }
