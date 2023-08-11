@@ -169,6 +169,7 @@ pub fn eval_stmt(
 }
 
 /// The type of step action to take during evaluation
+#[derive(PartialEq)]
 pub enum StepAction {
     Next,
     In,
