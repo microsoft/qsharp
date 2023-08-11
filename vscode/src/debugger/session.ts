@@ -577,7 +577,7 @@ export class QscDebugSession extends LoggingDebugSession {
               // There is a custom content provider subscribed to this scheme.
               // Opening the text document by that uri will use the content
               // provider to look for the source code.
-              const uri = vscode.Uri.parse(QsLibraryUriScheme + ":" + f.path);
+              const uri = vscode.Uri.from({ scheme: qsharpLibraryUriScheme, path: f.path });
               const file = await vscode.workspace.openTextDocument(uri);
               const start_pos = file.positionAt(f.lo);
               const end_pos = file.positionAt(f.hi);
