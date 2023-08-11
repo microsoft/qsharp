@@ -241,7 +241,7 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         breakpoints: &[StmtId],
-        step: &StepAction,
+        step: StepAction,
     ) -> Result<StepResult, Vec<Error>> {
         let globals = Lookup {
             fir_store: &self.fir_store,

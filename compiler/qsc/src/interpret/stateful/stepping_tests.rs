@@ -141,7 +141,7 @@ fn step_in(
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,
 ) {
-    step(interpreter, breakpoints, &qsc_eval::StepAction::In)
+    step(interpreter, breakpoints, qsc_eval::StepAction::In)
 }
 
 fn step_next(
@@ -151,7 +151,7 @@ fn step_next(
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,
 ) {
-    step(interpreter, breakpoints, &qsc_eval::StepAction::Next)
+    step(interpreter, breakpoints, qsc_eval::StepAction::Next)
 }
 
 fn step_out(
@@ -161,13 +161,13 @@ fn step_out(
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,
 ) {
-    step(interpreter, breakpoints, &qsc_eval::StepAction::Out)
+    step(interpreter, breakpoints, qsc_eval::StepAction::Out)
 }
 
 fn step(
     interpreter: &mut Interpreter,
     breakpoints: &[StmtId],
-    step: &StepAction,
+    step: StepAction,
 ) -> (
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,

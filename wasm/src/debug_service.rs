@@ -72,7 +72,7 @@ impl DebugService {
         event_cb: &js_sys::Function,
         ids: &[u32],
     ) -> Result<JsValue, JsValue> {
-        self.eval(event_cb, ids, &StepAction::Next)
+        self.eval(event_cb, ids, StepAction::Next)
     }
 
     pub fn eval_continue(
@@ -80,7 +80,7 @@ impl DebugService {
         event_cb: &js_sys::Function,
         ids: &[u32],
     ) -> Result<JsValue, JsValue> {
-        self.eval(event_cb, ids, &StepAction::Continue)
+        self.eval(event_cb, ids, StepAction::Continue)
     }
 
     pub fn eval_step_in(
@@ -88,7 +88,7 @@ impl DebugService {
         event_cb: &js_sys::Function,
         ids: &[u32],
     ) -> Result<JsValue, JsValue> {
-        self.eval(event_cb, ids, &StepAction::In)
+        self.eval(event_cb, ids, StepAction::In)
     }
 
     pub fn eval_step_out(
@@ -96,14 +96,14 @@ impl DebugService {
         event_cb: &js_sys::Function,
         ids: &[u32],
     ) -> Result<JsValue, JsValue> {
-        self.eval(event_cb, ids, &StepAction::Out)
+        self.eval(event_cb, ids, StepAction::Out)
     }
 
     fn eval(
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
-        step: &StepAction,
+        step: StepAction,
     ) -> Result<JsValue, JsValue> {
         if !event_cb.is_function() {
             return Err(JsError::new("Events callback function must be provided").into());
@@ -129,7 +129,7 @@ impl DebugService {
         &mut self,
         event_cb: F,
         bps: &[StmtId],
-        step: &StepAction,
+        step: StepAction,
     ) -> Result<StepResult, Vec<stateful::Error>>
     where
         F: Fn(&str),

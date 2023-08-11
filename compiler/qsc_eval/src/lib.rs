@@ -139,7 +139,7 @@ pub fn eval_expr(
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     state.push_expr(expr);
-    let res = state.eval(globals, env, sim, out, &[], &StepAction::Continue)?;
+    let res = state.eval(globals, env, sim, out, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval_expr should always return a value");
     };
@@ -161,7 +161,7 @@ pub fn eval_stmt(
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
-    let res = state.eval(globals, env, sim, receiver, &[], &StepAction::Continue)?;
+    let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval_stmt should always return a value");
     };
@@ -169,7 +169,7 @@ pub fn eval_stmt(
 }
 
 /// The type of step action to take during evaluation
-#[derive(PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum StepAction {
     Next,
     In,
@@ -501,7 +501,7 @@ impl State {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
         breakpoints: &[StmtId],
-        step: &StepAction,
+        step: StepAction,
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
         let current_frame = self.call_stack.len();
 
@@ -533,13 +533,10 @@ impl State {
                         // no breakpoint, but we may stop here
                         if step == StepAction::In {
                             StepResult::StepIn
-                        } else if step == StepAction::Next
-                            && current_frame == self.call_stack.len()
+                        } else if step == StepAction::Next && current_frame == self.call_stack.len()
                         {
                             StepResult::Next
-                        } else if step == StepAction::Out
-                            && current_frame > self.call_stack.len()
-                        {
+                        } else if step == StepAction::Out && current_frame > self.call_stack.len() {
                             StepResult::StepOut
                         } else {
                             continue;
