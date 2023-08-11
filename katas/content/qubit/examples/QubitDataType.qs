@@ -3,7 +3,7 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
 
     @EntryPoint()
-    operation RunExample() : Unit {
+    operation RunExample(): Unit {
         // This line allocates a qubit in state |0⟩
         use q = Qubit();
         Message("State |0⟩:");
