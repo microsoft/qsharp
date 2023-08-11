@@ -8,13 +8,13 @@
 namespace MyQuantumApp {
 
     // The following `open` directive is used to import all types and callables declared in the
-    // Microsoft.Quantum.Arrays namespace.
-    open Microsoft.Quantum.Arrays;
+    // Microsoft.Quantum.Diagnostics namespace.
+    open Microsoft.Quantum.Diagnostics;
 	
     @EntryPoint()
     operation Main() : Result[] {
-        // `ConstantArray` is in the Microsoft.Quantum.Arrays namespace
-        let array = ConstantArray(3, true);
+        // `DumpMachine` is in the Microsoft.Quantum.Diagnostics namespace
+        DumpMachine();
         return [];
     }
 }
