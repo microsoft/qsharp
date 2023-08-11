@@ -69,7 +69,7 @@ export class QSharpDebugService implements IDebugService {
       stack_frame_list.frames.map(async (frame: IStackFrame) => {
         // get any missing sources if possible
         if (!(frame.path in this.code)) {
-          const content = await this.wasm.provide_text_document_content(
+          const content = await this.wasm.get_library_source_content(
             frame.path
           );
           if (content) {

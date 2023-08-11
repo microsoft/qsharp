@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor, QsLibraryUriScheme } from "../common";
+import { FileAccessor, qsharpLibraryUriScheme } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -279,8 +279,8 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private async endSession(message: string, exitCode: number): Promise<void> {
     log.trace(message);
-    this.writeToStdOut("");
-    this.writeToStdOut(SimulationCompleted);
+    this.writeToDebugConsole("");
+    this.writeToDebugConsole(SimulationCompleted);
     this.sendEvent(new TerminatedEvent());
     this.sendEvent(new ExitedEvent(exitCode));
   }
@@ -577,7 +577,10 @@ export class QscDebugSession extends LoggingDebugSession {
               // There is a custom content provider subscribed to this scheme.
               // Opening the text document by that uri will use the content
               // provider to look for the source code.
-              const uri = vscode.Uri.from({ scheme: qsharpLibraryUriScheme, path: f.path });
+              const uri = vscode.Uri.from({
+                scheme: qsharpLibraryUriScheme,
+                path: f.path,
+              });
               const file = await vscode.workspace.openTextDocument(uri);
               const start_pos = file.positionAt(f.lo);
               const end_pos = file.positionAt(f.hi);

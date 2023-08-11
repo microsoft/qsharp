@@ -22,6 +22,14 @@ mod debug_service;
 mod language_service;
 mod logging;
 
+thread_local! {
+    static STORE_CORE_STD: (PackageStore, PackageId) = {
+        let mut store = PackageStore::new(compile::core());
+        let std = store.insert(compile::std(&store));
+        (store, std)
+    };
+}
+
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
     let git_hash = env!("QSHARP_GIT_HASH");
@@ -29,14 +37,7 @@ pub fn git_hash() -> JsValue {
 }
 
 #[wasm_bindgen]
-pub fn provide_text_document_content(name: &str) -> JsValue {
-    thread_local! {
-        static STORE_CORE_STD: (PackageStore, PackageId) = {
-            let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store));
-            (store, std)
-        };
-    }
+pub fn get_library_source_content(name: &str) -> JsValue {
     STORE_CORE_STD.with(|(store, std)| {
         for id in [PackageId::CORE, *std] {
             if let Some(source) = store
@@ -53,16 +54,15 @@ pub fn provide_text_document_content(name: &str) -> JsValue {
     })
 }
 
-fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
-    thread_local! {
-        static STORE_STD: (PackageStore, PackageId) = {
-            let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store));
-            (store, std)
-        };
-    }
+#[wasm_bindgen]
+pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
+    let (package, _) = compile(code);
+    let hir = package.to_string();
+    Ok(serde_wasm_bindgen::to_value(&hir)?)
+}
 
-    STORE_STD.with(|(store, std)| {
+fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
+    STORE_CORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
         let (unit, errors) = compile::compile(store, &[*std], sources, PackageType::Exe);
         (
@@ -70,13 +70,6 @@ fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
             errors.into_iter().map(|error| (&error).into()).collect(),
         )
     })
-}
-
-#[wasm_bindgen]
-pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
-    let (package, _) = compile(code);
-    let hir = package.to_string();
-    Ok(serde_wasm_bindgen::to_value(&hir)?)
 }
 
 struct CallbackReceiver<F>

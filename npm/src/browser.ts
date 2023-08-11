@@ -82,11 +82,11 @@ async function instantiateWasm() {
   log.onLevelChanged = (level) => wasm.setLogLevel(level);
 }
 
-export async function provideTextDocumentContent(
+export async function getLibrarySourceContent(
   path: string
 ): Promise<string | undefined> {
   await instantiateWasm();
-  return wasm.provide_text_document_content(path);
+  return wasm.get_library_source_content(path);
 }
 
 export async function getDebugService(): Promise<IDebugService> {
