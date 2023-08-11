@@ -7,14 +7,18 @@
 
 This kata continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
 
-It covers the following topics:
-
+**This kata covers the following topics:**
 - Applying quantum gates to a part of the system
 - `CNOT` and `SWAP` gates
 - Controlled gates
 
+**What you should know to start working on this kata:**
+- Basic linear algebra
+- The concept of qubit and multi-qubit systems
+- Single-qubit and multi-qubit quantum gates
+
 @[section]({
-    "id": "multi_qubit_gates_overview",
+    "id": "multi_qubit_gates_the_basics",
     "title": "The Basics"
 })
 
