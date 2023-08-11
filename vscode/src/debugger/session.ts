@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor } from "../common";
+import { FileAccessor, QsLibraryUriScheme } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -548,34 +548,7 @@ export class QscDebugSession extends LoggingDebugSession {
           const file = vscode.workspace.textDocuments.find(
             (td) => td.uri.path === fileUri.path
           );
-          if (!file) {
-            const uri = vscode.Uri.parse("qsharp-source-request:" + f.path);
-            // This file isn't part of the workspace, so we'll
-            // create a URI which can try to load it from the core and std lib
-            const source = new Source(
-              f.path,
-              uri.toString(),
-              0,
-              undefined,
-              "qsharp-adapter-data"
-            ) as DebugProtocol.Source;
-            const file = await vscode.workspace.openTextDocument(uri);
-            const start_pos = file.positionAt(f.lo);
-            const end_pos = file.positionAt(f.hi);
-            const sf = new StackFrame(
-              id,
-              f.name,
-              source as Source,
-              this.convertDebuggerLineToClient(start_pos.line),
-              this.convertDebuggerColumnToClient(start_pos.character)
-            );
-            sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
-            sf.endColumn = this.convertDebuggerColumnToClient(
-              end_pos.character
-            );
-
-            return sf as DebugProtocol.StackFrame;
-          } else {
+          if (file) {
             log.trace(`frames: file %O`, file);
             const start_pos = file.positionAt(f.lo);
             const end_pos = file.positionAt(f.hi);
@@ -597,6 +570,48 @@ export class QscDebugSession extends LoggingDebugSession {
               end_pos.character
             );
             return sf;
+          } else {
+            try {
+              // This file isn't part of the workspace, so we'll
+              // create a URI which can try to load it from the core and std lib
+              // There is a custom content provider subscribed to this scheme.
+              // Opening the text document by that uri will use the content
+              // provider to look for the source code.
+              const uri = vscode.Uri.parse(QsLibraryUriScheme + ":" + f.path);
+              const file = await vscode.workspace.openTextDocument(uri);
+              const start_pos = file.positionAt(f.lo);
+              const end_pos = file.positionAt(f.hi);
+              const source = new Source(
+                f.path,
+                uri.toString(),
+                0,
+                undefined,
+                "qsharp-adapter-data"
+              ) as DebugProtocol.Source;
+              source.origin = "internal core/std library";
+              const sf = new StackFrame(
+                id,
+                f.name,
+                source as Source,
+                this.convertDebuggerLineToClient(start_pos.line),
+                this.convertDebuggerColumnToClient(start_pos.character)
+              );
+              sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
+              sf.endColumn = this.convertDebuggerColumnToClient(
+                end_pos.character
+              );
+
+              return sf as DebugProtocol.StackFrame;
+            } catch (e: any) {
+              log.warn(e.message);
+              return new StackFrame(
+                id,
+                f.name,
+                undefined,
+                undefined,
+                undefined
+              );
+            }
           }
         })
         .filter(filterUndefined)

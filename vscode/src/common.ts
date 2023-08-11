@@ -3,6 +3,7 @@
 
 export const qsharpLanguageId = "qsharp";
 export const qsharpExtensionId = "qsharp-vscode";
+export const QsLibraryUriScheme = "qsharp-source-request";
 
 export interface FileAccessor {
   readFile(uri: string): Promise<Uint8Array>;

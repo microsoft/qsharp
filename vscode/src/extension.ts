@@ -9,6 +9,7 @@ import {
   provideTextDocumentContent,
 } from "qsharp";
 import * as vscode from "vscode";
+import { QsLibraryUriScheme } from "./common";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
@@ -21,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext) {
   log.info("Q# extension activating.");
 
   vscode.workspace.registerTextDocumentContentProvider(
-    "qsharp-source-request",
+    QsLibraryUriScheme,
     new QsTextDocumentContentProvider()
   );
 
