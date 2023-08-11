@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc_data_structures::index_map::IndexMap;
+use qsc_fir::assigner::Assigner;
 use qsc_fir::fir::{Block, Expr, Pat, Stmt};
 use qsc_fir::{
     fir::{self, BlockId, ExprId, LocalItemId, PatId, StmtId},
@@ -11,10 +12,12 @@ use qsc_hir::hir;
 use std::{clone::Clone, rc::Rc};
 
 pub struct Lowerer {
-    pub exprs: IndexMap<ExprId, Expr>,
-    pub pats: IndexMap<PatId, Pat>,
-    pub stmts: IndexMap<StmtId, Stmt>,
-    pub blocks: IndexMap<BlockId, Block>,
+    nodes: IndexMap<hir::NodeId, fir::NodeId>,
+    exprs: IndexMap<ExprId, Expr>,
+    pats: IndexMap<PatId, Pat>,
+    stmts: IndexMap<StmtId, Stmt>,
+    blocks: IndexMap<BlockId, Block>,
+    assigner: Assigner,
 }
 
 impl Default for Lowerer {
@@ -27,10 +30,33 @@ impl Lowerer {
     #[must_use]
     pub fn new() -> Self {
         Self {
+            nodes: IndexMap::new(),
             exprs: IndexMap::new(),
             pats: IndexMap::new(),
             stmts: IndexMap::new(),
             blocks: IndexMap::new(),
+            assigner: Assigner::new(),
+        }
+    }
+
+    /// Used to update the package with the lowered items.
+    /// Incremental compilation requires that we update the package
+    /// instead of returning a new one.
+    pub fn update_package(&mut self, package: &mut fir::Package) {
+        for (id, value) in self.blocks.drain() {
+            package.blocks.insert(id, value);
+        }
+
+        for (id, value) in self.exprs.drain() {
+            package.exprs.insert(id, value);
+        }
+
+        for (id, value) in self.pats.drain() {
+            package.pats.insert(id, value);
+        }
+
+        for (id, value) in self.stmts.drain() {
+            package.stmts.insert(id, value);
         }
     }
 
@@ -63,7 +89,7 @@ impl Lowerer {
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
-                let name = lower_ident(name);
+                let name = self.lower_ident(name);
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)
             }
@@ -73,8 +99,8 @@ impl Lowerer {
                 fir::ItemKind::Callable(callable)
             }
             hir::ItemKind::Ty(name, udt) => {
-                let name = lower_ident(name);
-                let udt = lower_udt(udt);
+                let name = self.lower_ident(name);
+                let udt = self.lower_udt(udt);
 
                 fir::ItemKind::Ty(name, udt)
             }
@@ -92,13 +118,13 @@ impl Lowerer {
     }
 
     pub fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
-        let id = lower_id(decl.id);
+        let id = self.lower_id(decl.id);
         let kind = lower_callable_kind(decl.kind);
-        let name = lower_ident(&decl.name);
+        let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
 
         let generics = lower_generics(&decl.generics);
-        let output = lower_ty(&decl.output);
+        let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
         let body = self.lower_spec_decl(&decl.body);
         let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
@@ -123,7 +149,7 @@ impl Lowerer {
 
     fn lower_spec_decl(&mut self, decl: &hir::SpecDecl) -> fir::SpecDecl {
         fir::SpecDecl {
-            id: lower_id(decl.id),
+            id: self.lower_id(decl.id),
             span: decl.span,
             body: match &decl.body {
                 hir::SpecBody::Gen(gen) => fir::SpecBody::Gen(match gen {
@@ -142,12 +168,12 @@ impl Lowerer {
     }
 
     fn lower_spec_decl_pat(&mut self, pat: &hir::Pat) -> PatId {
-        let id = lower_id(pat.id);
+        let id = self.assigner.next_pat();
         let span = pat.span;
-        let ty = lower_ty(&pat.ty);
+        let ty = self.lower_ty(&pat.ty);
 
         let kind = match &pat.kind {
-            hir::PatKind::Bind(ident) => fir::PatKind::Bind(lower_ident(ident)),
+            hir::PatKind::Bind(ident) => fir::PatKind::Bind(self.lower_ident(ident)),
             hir::PatKind::Discard => fir::PatKind::Discard,
             hir::PatKind::Tuple(elems) => {
                 fir::PatKind::Tuple(elems.iter().map(|pat| self.lower_pat(pat)).collect())
@@ -155,26 +181,24 @@ impl Lowerer {
         };
 
         let pat = fir::Pat { id, span, ty, kind };
-        let pat_id = id.into();
-        self.pats.insert(pat_id, pat);
-        pat_id
+        self.pats.insert(id, pat);
+        id
     }
 
     fn lower_block(&mut self, block: &hir::Block) -> BlockId {
-        let id = lower_id(block.id);
+        let id = self.assigner.next_block();
         let block = fir::Block {
-            id: lower_id(block.id),
+            id,
             span: block.span,
-            ty: lower_ty(&block.ty),
+            ty: self.lower_ty(&block.ty),
             stmts: block.stmts.iter().map(|s| self.lower_stmt(s)).collect(),
         };
-        let block_id = id.into();
-        self.blocks.insert(block_id, block);
-        block_id
+        self.blocks.insert(id, block);
+        id
     }
 
     pub fn lower_stmt(&mut self, stmt: &hir::Stmt) -> fir::StmtId {
-        let id = lower_id(stmt.id);
+        let id = self.assigner.next_stmt();
         let kind = match &stmt.kind {
             hir::StmtKind::Expr(expr) => fir::StmtKind::Expr(self.lower_expr(expr)),
             hir::StmtKind::Item(item) => fir::StmtKind::Item(lower_local_item_id(*item)),
@@ -196,15 +220,14 @@ impl Lowerer {
             span: stmt.span,
             kind,
         };
-        let stmt_id = id.into();
-        self.stmts.insert(stmt_id, stmt);
-        stmt_id
+        self.stmts.insert(id, stmt);
+        id
     }
 
     #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &hir::Expr) -> ExprId {
-        let id = lower_id(expr.id);
-        let ty = lower_ty(&expr.ty);
+        let id = self.assigner.next_expr();
+        let ty = self.lower_ty(&expr.ty);
 
         let kind = match &expr.kind {
             hir::ExprKind::Array(items) => {
@@ -270,7 +293,7 @@ impl Lowerer {
                 fir::ExprKind::While(self.lower_expr(cond), self.lower_block(body))
             }
             hir::ExprKind::Closure(ids, id) => {
-                let ids = ids.iter().map(|id| lower_id(*id)).collect();
+                let ids = ids.iter().map(|id| self.lower_id(*id)).collect();
                 fir::ExprKind::Closure(ids, lower_local_item_id(*id))
             }
             hir::ExprKind::String(components) => fir::ExprKind::String(
@@ -291,8 +314,8 @@ impl Lowerer {
                 fir::ExprKind::UpdateField(record, field, replace)
             }
             hir::ExprKind::Var(res, args) => {
-                let res = lower_res(res);
-                let args = args.iter().map(lower_generic_arg).collect();
+                let res = self.lower_res(res);
+                let args = args.iter().map(|arg| self.lower_generic_arg(arg)).collect();
                 fir::ExprKind::Var(res, args)
             }
             hir::ExprKind::Conjugate(..) => panic!("conjugate should be eliminated by passes"),
@@ -308,9 +331,8 @@ impl Lowerer {
             ty,
             kind,
         };
-        let expr_id = id.into();
-        self.exprs.insert(expr_id, expr);
-        expr_id
+        self.exprs.insert(id, expr);
+        id
     }
 
     fn lower_string_component(&mut self, component: &hir::StringComponent) -> fir::StringComponent {
@@ -321,11 +343,11 @@ impl Lowerer {
     }
 
     fn lower_pat(&mut self, pat: &hir::Pat) -> PatId {
-        let id = lower_id(pat.id);
-        let ty = lower_ty(&pat.ty);
+        let id = self.assigner.next_pat();
+        let ty = self.lower_ty(&pat.ty);
         let kind = match &pat.kind {
             hir::PatKind::Bind(name) => {
-                let name = lower_ident(name);
+                let name = self.lower_ident(name);
                 fir::PatKind::Bind(name)
             }
             hir::PatKind::Discard => fir::PatKind::Discard,
@@ -340,14 +362,13 @@ impl Lowerer {
             ty,
             kind,
         };
-        let pat_id = id.into();
-        self.pats.insert(pat_id, pat);
-        pat_id
+        self.pats.insert(id, pat);
+        id
     }
 
     fn lower_qubit_init(&mut self, init: &hir::QubitInit) -> fir::QubitInit {
-        let id = lower_id(init.id);
-        let ty = lower_ty(&init.ty);
+        let id = self.lower_id(init.id);
+        let ty = self.lower_ty(&init.ty);
         let kind = match &init.kind {
             hir::QubitInitKind::Array(length) => fir::QubitInitKind::Array(self.lower_expr(length)),
             hir::QubitInitKind::Single => fir::QubitInitKind::Single,
@@ -363,64 +384,100 @@ impl Lowerer {
             kind,
         }
     }
-}
 
-fn lower_udt(udt: &qsc_hir::ty::Udt) -> qsc_fir::ty::Udt {
-    let span = udt.span;
-    let name = udt.name.clone();
-    let definition = lower_udt_defn(&udt.definition);
-    qsc_fir::ty::Udt {
-        span,
-        name,
-        definition,
+    fn lower_id(&mut self, id: hir::NodeId) -> fir::NodeId {
+        self.nodes.get(id).copied().unwrap_or_else(|| {
+            let new_id = self.assigner.next_node();
+            self.nodes.insert(id, new_id);
+            new_id
+        })
     }
-}
 
-fn lower_generic_arg(arg: &qsc_hir::ty::GenericArg) -> qsc_fir::ty::GenericArg {
-    match &arg {
-        qsc_hir::ty::GenericArg::Ty(ty) => qsc_fir::ty::GenericArg::Ty(lower_ty(ty)),
-        qsc_hir::ty::GenericArg::Functor(functors) => {
-            qsc_fir::ty::GenericArg::Functor(lower_functor_set(functors))
+    fn lower_res(&mut self, res: &hir::Res) -> fir::Res {
+        match res {
+            hir::Res::Item(item) => fir::Res::Item(lower_item_id(item)),
+            hir::Res::Local(node) => fir::Res::Local(self.lower_id(*node)),
+            hir::Res::Err => fir::Res::Err,
         }
     }
-}
 
-fn lower_udt_defn(definition: &qsc_hir::ty::UdtDef) -> qsc_fir::ty::UdtDef {
-    let span = definition.span;
-    let kind = match &definition.kind {
-        qsc_hir::ty::UdtDefKind::Field(field) => {
-            qsc_fir::ty::UdtDefKind::Field(lower_udt_field(field))
+    fn lower_ident(&mut self, ident: &hir::Ident) -> fir::Ident {
+        fir::Ident {
+            id: self.lower_id(ident.id),
+            span: ident.span,
+            name: ident.name.clone(),
         }
-        qsc_hir::ty::UdtDefKind::Tuple(tup) => {
-            qsc_fir::ty::UdtDefKind::Tuple(tup.iter().map(lower_udt_defn).collect())
-        }
-    };
-    qsc_fir::ty::UdtDef { span, kind }
-}
-
-fn lower_arrow(arrow: &qsc_hir::ty::Arrow) -> Arrow {
-    Arrow {
-        kind: lower_callable_kind(arrow.kind),
-        input: Box::new(lower_ty(&arrow.input)),
-        output: Box::new(lower_ty(&arrow.output)),
-        functors: lower_functor_set(&arrow.functors),
     }
-}
 
-fn lower_ty(ty: &qsc_hir::ty::Ty) -> Ty {
-    match ty {
-        qsc_hir::ty::Ty::Array(array) => qsc_fir::ty::Ty::Array(Box::new(lower_ty(array))),
-        qsc_hir::ty::Ty::Arrow(arrow) => qsc_fir::ty::Ty::Arrow(Box::new(lower_arrow(arrow))),
-        qsc_hir::ty::Ty::Infer(id) => {
-            qsc_fir::ty::Ty::Infer(qsc_fir::ty::InferTyId::from(usize::from(*id)))
+    fn lower_udt(&mut self, udt: &qsc_hir::ty::Udt) -> qsc_fir::ty::Udt {
+        let span = udt.span;
+        let name = udt.name.clone();
+        let definition = self.lower_udt_defn(&udt.definition);
+        qsc_fir::ty::Udt {
+            span,
+            name,
+            definition,
         }
-        qsc_hir::ty::Ty::Param(id) => {
-            qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*id)))
+    }
+
+    fn lower_generic_arg(&mut self, arg: &qsc_hir::ty::GenericArg) -> qsc_fir::ty::GenericArg {
+        match &arg {
+            qsc_hir::ty::GenericArg::Ty(ty) => qsc_fir::ty::GenericArg::Ty(self.lower_ty(ty)),
+            qsc_hir::ty::GenericArg::Functor(functors) => {
+                qsc_fir::ty::GenericArg::Functor(lower_functor_set(functors))
+            }
         }
-        qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),
-        qsc_hir::ty::Ty::Tuple(tys) => qsc_fir::ty::Ty::Tuple(tys.iter().map(lower_ty).collect()),
-        qsc_hir::ty::Ty::Udt(res) => qsc_fir::ty::Ty::Udt(lower_res(res)),
-        qsc_hir::ty::Ty::Err => qsc_fir::ty::Ty::Err,
+    }
+
+    fn lower_udt_defn(&mut self, definition: &qsc_hir::ty::UdtDef) -> qsc_fir::ty::UdtDef {
+        let span = definition.span;
+        let kind = match &definition.kind {
+            qsc_hir::ty::UdtDefKind::Field(field) => {
+                qsc_fir::ty::UdtDefKind::Field(self.lower_udt_field(field))
+            }
+            qsc_hir::ty::UdtDefKind::Tuple(tup) => qsc_fir::ty::UdtDefKind::Tuple(
+                tup.iter().map(|def| self.lower_udt_defn(def)).collect(),
+            ),
+        };
+        qsc_fir::ty::UdtDef { span, kind }
+    }
+
+    fn lower_arrow(&mut self, arrow: &qsc_hir::ty::Arrow) -> Arrow {
+        Arrow {
+            kind: lower_callable_kind(arrow.kind),
+            input: Box::new(self.lower_ty(&arrow.input)),
+            output: Box::new(self.lower_ty(&arrow.output)),
+            functors: lower_functor_set(&arrow.functors),
+        }
+    }
+
+    fn lower_ty(&mut self, ty: &qsc_hir::ty::Ty) -> Ty {
+        match ty {
+            qsc_hir::ty::Ty::Array(array) => qsc_fir::ty::Ty::Array(Box::new(self.lower_ty(array))),
+            qsc_hir::ty::Ty::Arrow(arrow) => {
+                qsc_fir::ty::Ty::Arrow(Box::new(self.lower_arrow(arrow)))
+            }
+            qsc_hir::ty::Ty::Infer(id) => {
+                qsc_fir::ty::Ty::Infer(qsc_fir::ty::InferTyId::from(usize::from(*id)))
+            }
+            qsc_hir::ty::Ty::Param(id) => {
+                qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*id)))
+            }
+            qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),
+            qsc_hir::ty::Ty::Tuple(tys) => {
+                qsc_fir::ty::Ty::Tuple(tys.iter().map(|ty| self.lower_ty(ty)).collect())
+            }
+            qsc_hir::ty::Ty::Udt(res) => qsc_fir::ty::Ty::Udt(self.lower_res(res)),
+            qsc_hir::ty::Ty::Err => qsc_fir::ty::Ty::Err,
+        }
+    }
+
+    fn lower_udt_field(&mut self, field: &qsc_hir::ty::UdtField) -> qsc_fir::ty::UdtField {
+        qsc_fir::ty::UdtField {
+            ty: self.lower_ty(&field.ty),
+            name: field.name.clone(),
+            name_span: field.name_span,
+        }
     }
 }
 
@@ -436,36 +493,12 @@ fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::Functo
     lower_functor_set_value(functors)
 }
 
-fn lower_udt_field(field: &qsc_hir::ty::UdtField) -> qsc_fir::ty::UdtField {
-    qsc_fir::ty::UdtField {
-        ty: lower_ty(&field.ty),
-        name: field.name.clone(),
-        name_span: field.name_span,
-    }
-}
-
 fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
     match g {
         qsc_hir::ty::GenericParam::Ty => qsc_fir::ty::GenericParam::Ty,
         qsc_hir::ty::GenericParam::Functor(value) => {
             qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
         }
-    }
-}
-
-fn lower_res(res: &hir::Res) -> fir::Res {
-    match res {
-        hir::Res::Item(item) => fir::Res::Item(lower_item_id(item)),
-        hir::Res::Local(node) => fir::Res::Local(lower_id(*node)),
-        hir::Res::Err => fir::Res::Err,
-    }
-}
-
-fn lower_ident(ident: &hir::Ident) -> fir::Ident {
-    fir::Ident {
-        id: lower_id(ident.id),
-        span: ident.span,
-        name: ident.name.clone(),
     }
 }
 
@@ -499,10 +532,6 @@ fn lower_prim_field(field: hir::PrimField) -> fir::PrimField {
         hir::PrimField::Step => fir::PrimField::Step,
         hir::PrimField::End => fir::PrimField::End,
     }
-}
-
-fn lower_id(id: hir::NodeId) -> fir::NodeId {
-    fir::NodeId::from(usize::from(id))
 }
 
 fn lower_item_id(id: &hir::ItemId) -> fir::ItemId {
