@@ -16,6 +16,10 @@ import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
 import { activateDebugger } from "./debugger/activate.js";
+import {
+  qsharpDocumentFilter,
+  qsharpNotebookCellDocumentFilter,
+} from "./common.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -39,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // completions
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createCompletionItemProvider(languageService),
       "."
     )
@@ -48,7 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // hover
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createHoverProvider(languageService)
     )
   );
@@ -120,14 +124,22 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (vscode.languages.match("qsharp", document)) {
+      if (
+        vscode.languages.match(qsharpDocumentFilter, document) &&
+        !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
+      ) {
+        // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
     })
   );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (vscode.languages.match("qsharp", document)) {
+    if (
+      vscode.languages.match(qsharpDocumentFilter, document) &&
+      !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
+    ) {
+      // Notebook cells don't currently support the language service.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
