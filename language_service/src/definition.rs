@@ -7,7 +7,7 @@ mod tests;
 use crate::protocol::Definition;
 use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
-use qsc::SourceMap;
+use qsc::hir::PackageId;
 use qsc::{ast, hir, resolve};
 
 pub(crate) fn get_definition(
@@ -21,7 +21,6 @@ pub(crate) fn get_definition(
 
     let mut definition_finder = DefinitionFinder {
         compilation,
-        source_map: &compilation.unit.sources,
         offset,
         definition: None,
         curr_callable: None,
@@ -38,22 +37,35 @@ pub(crate) fn get_definition(
 
 struct DefinitionFinder<'a> {
     compilation: &'a Compilation,
-    source_map: &'a SourceMap,
     offset: u32,
     definition: Option<(String, u32)>,
     curr_callable: Option<&'a ast::CallableDecl>,
 }
 
 impl DefinitionFinder<'_> {
-    fn set_definition_from_position(&mut self, lo: u32) {
-        self.definition = Some((
-            self.source_map
-                .find_by_offset(lo)
-                .expect("source should exist for offset")
-                .name
-                .to_string(),
-            lo,
-        ));
+    fn set_definition_from_position(&mut self, lo: u32, package_id: Option<PackageId>) {
+        let source_map = match package_id {
+            Some(id) => {
+                &self
+                    .compilation
+                    .package_store
+                    .get(id)
+                    .unwrap_or_else(|| panic!("package should exist for id {id}"))
+                    .sources
+            }
+            None => &self.compilation.unit.sources,
+        };
+        let source_name = source_map
+            .find_by_offset(lo)
+            .expect("source should exist for offset")
+            .name
+            .clone();
+        let source = match package_id {
+            Some(_) => format!("qsharp-source-request:{source_name}"),
+            None => source_name.to_string(),
+        };
+
+        self.definition = Some((source, lo));
     }
 }
 
@@ -64,7 +76,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_contains(decl.name.span, self.offset) {
-                        self.set_definition_from_position(decl.name.span.lo);
+                        self.set_definition_from_position(decl.name.span.lo, None);
                     } else if span_contains(decl.span, self.offset) {
                         self.curr_callable = Some(decl);
                         walk_callable_decl(self, decl);
@@ -80,7 +92,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if span_contains(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo);
+                        self.set_definition_from_position(ident.span.lo, None);
                     } else {
                         self.visit_ty_def(def);
                     }
@@ -96,7 +108,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo);
+                        self.set_definition_from_position(ident.span.lo, None);
                     } else {
                         self.visit_ty(ty);
                     }
@@ -115,7 +127,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo);
+                        self.set_definition_from_position(ident.span.lo, None);
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
                     }
@@ -143,7 +155,10 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                                                 let span = field.name_span.expect(
                                                     "field found via name should have a name",
                                                 );
-                                                self.set_definition_from_position(span.lo);
+                                                self.set_definition_from_position(
+                                                    span.lo,
+                                                    item_id.package,
+                                                );
                                             }
                                         }
                                         _ => panic!("UDT has invalid resolution."),
@@ -166,21 +181,19 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if item_id.package.is_none() {
-                            if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                let lo = match &item.kind {
-                                    hir::ItemKind::Callable(decl) => decl.name.span.lo,
-                                    hir::ItemKind::Namespace(_, _) => {
-                                        panic!(
-                                            "Reference node should not refer to a namespace: {}",
-                                            path.id
-                                        )
-                                    }
-                                    hir::ItemKind::Ty(ident, _) => ident.span.lo,
-                                };
-                                self.set_definition_from_position(lo);
+                        if let (Some(item), _) = find_item(self.compilation, item_id) {
+                            let lo = match &item.kind {
+                                hir::ItemKind::Callable(decl) => decl.name.span.lo,
+                                hir::ItemKind::Namespace(_, _) => {
+                                    panic!(
+                                        "Reference node should not refer to a namespace: {}",
+                                        path.id
+                                    )
+                                }
+                                hir::ItemKind::Ty(ident, _) => ident.span.lo,
                             };
-                        }
+                            self.set_definition_from_position(lo, item_id.package);
+                        };
                     }
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {
@@ -191,7 +204,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                                 };
                                 finder.visit_callable_decl(curr);
                                 if let Some(lo) = finder.result {
-                                    self.set_definition_from_position(lo);
+                                    self.set_definition_from_position(lo, None);
                                 }
                             }
                         }
