@@ -274,3 +274,117 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
     "placeholderSourcePath": "./qubit_swap/Placeholder.qs",
     "solutionPath": "./qubit_swap/solution.md"
 })
+
+@[section]({
+    "id": "multi_qubit_gates_acting_on_non_adjacent_qubits",
+    "title": "Multi-Qubit Gates Acting on Non-Adjacent Qubits"
+})
+
+In the above examples the `CNOT` gate acted on two adjacent qubits. However, multi-qubit gates can act on non-adjacent qubits as well. Let's see how to work out the math of the system state change in this case.
+
+Take 3 qubits in an arbitrary state $|\psi\rangle = x_{000} |000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle + x_{100}|100\rangle + x_{101}|101\rangle + x_{110}|110\rangle + x_{111}|111\rangle $.
+
+We can apply the `CNOT` gate on 1st and 3rd qubits, with the 1st qubit as control and the 3rd qubit as target. Let's label the 3-qubit gate that describes the effect of this on the whole system as `CNOT`. The `CINOT` ignores the 2nd qubit (leaves it unchanged) and applies the `CNOT` gate as specified above.
+
+## Q#
+
+In Q# we describe the operation as the sequence of gates that are applied to the qubits, regardless of whether the qubits are adjacent or not.
+
+```C#
+operation CINOT (qs: Qubit[]) : Unit {
+    CNOT(qs[0], qs[2]); // Length of qs is assumed to be 3
+}
+```
+
+## Dirac notation
+
+In Dirac notation we can consider the effect of the gate on each basis vector separately: each basis vector $|a_1a_2a_3\rangle$ remains unchanged if $a_1 = 0$, and becomes $|a_1a_2(\neg a_3)\rangle$ if $a_1 = 1$. The full effect on the state becomes:
+
+$$\text{CINOT}|\psi\rangle = x_{000} \text{CINOT}|000\rangle + x_{001} \text{CINOT}|001\rangle + x_{010} \text{CINOT}|010\rangle + x_{011} \text{CINOT}|011\rangle+$$
+$$x_{100} \text{CINOT}|100\rangle + x_{101} \text{CINOT}|101\rangle + x_{110} \text{CINOT}|110\rangle + x_{111} \text{CINOT}|111\rangle =$$
+$$x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle + x_{101}|100\rangle + x_{100}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle $$
+
+## Matrix form
+
+$\text{CINOT}$ can also be represented in matrix form as a $2^3 \times 2^3$ matrix:
+$$
+\begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+\end{bmatrix}
+$$
+
+Applying $\text{CINOT}$ to $|\psi\rangle$ gives us
+$$
+\text{CINOT} \begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+\end{bmatrix}
+\begin{bmatrix}
+    x_{000} \\\ x_{001} \\\ x_{010} \\\ x_{011} \\\ x_{100} \\\ x_{101} \\\ x_{110} \\\ x_{111}
+\end{bmatrix} =
+\begin{bmatrix}
+    x_{000} \\\ x_{001} \\\ x_{010} \\\ x_{011} \\\ x_{101} \\\ x_{100} \\\ x_{111} \\\ x_{110}
+\end{bmatrix}
+$$
+
+However, as $N$ gets larger, creating a full size matrix can be extremely unwieldy. To express the matrix without spelling out its elements, we can use the following trick:
+
+1. Apply the `SWAP` gate on the 1st and 2nd qubits.
+   This will bring the qubits on which the `CNOT` gate acts next to each other, without any extra qubits between them.
+2. Apply the `CNOT` on 2nd and 3rd qubits.
+   Since now the gate acts on adjacent qubits, this can be represented as a tensor product of the gate we're applying and `I` gates.
+3. Apply the `SWAP` gate on the 1st and 2nd qubits again.
+
+These can be represented as applying the following gates on the 3 qubits.
+
+1. $\text{SWAP} \otimes I$
+$$
+x_{000}|000\rangle + x_{001}|001\rangle + x_{100}|010\rangle + x_{101}|011\rangle +
+x_{010}|100\rangle + x_{011}|101\rangle + x_{110}|110\rangle + x_{111}|111\rangle
+$$
+
+2. $I \otimes \text{CNOT}$
+$$
+x_{000}|000\rangle + x_{001}|001\rangle + x_{101}|010\rangle + x_{100}|011\rangle +
+x_{010}|100\\rangle + x_{011}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
+$$
+
+3. $\text{SWAP} \otimes I$
+$$
+x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle +
+x_{101}|100\rangle + x_{100}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
+$$
+
+The result is the the $\text{CINOT}$ gate as we intended; so we can write
+
+$$\text{CINOT} = (\text{SWAP} \otimes I)(I \otimes \text{CNOT})(\text{SWAP} \otimes I)$$
+
+> Note that in matrix notation we always apply a gate to the complete system, so we must apply $\text{SWAP} \otimes I$, spelling the identity gate explicitly.
+> However, when implementing the unitary $\text{SWAP} \otimes I$ in Q#, we need only to call `SWAP(qs[0], qs[1])` - the remaining qubit `qs[2]` will not change, which is equivalent to applying an implicit identity gate.
+>
+> We can also spell out all gates applied explicitly (this makes for a much longer code, though):
+> ```C#
+operation CINOT (qs: Qubit[]) : Unit {
+    // First step
+    SWAP(qs[0], qs[1]);
+    I(qs[2]);
+    // Second step
+    I(qs[0]);
+    CNOT(qs[1], qs[2]);
+    // Third step
+    SWAP(qs[0], qs[1]);
+    I(qs[2]);
+}```
