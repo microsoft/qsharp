@@ -294,7 +294,7 @@ We can apply the `CNOT` gate on 1st and 3rd qubits, with the 1st qubit as contro
 
 In Q# we describe the operation as the sequence of gates that are applied to the qubits, regardless of whether the qubits are adjacent or not.
 
-```C#
+```qsharp
 operation CINOT (qs: Qubit[]) : Unit {
     CNOT(qs[0], qs[2]); // Length of qs is assumed to be 3
 }
@@ -380,7 +380,7 @@ $$\text{CINOT} = (\text{SWAP} \otimes I)(I \otimes \text{CNOT})(\text{SWAP} \oti
 > However, when implementing the unitary $\text{SWAP} \otimes I$ in Q#, we need only to call `SWAP(qs[0], qs[1])` - the remaining qubit `qs[2]` will not change, which is equivalent to applying an implicit identity gate.
 >
 > We can also spell out all gates applied explicitly (this makes for a much longer code, though):
-> ```C#
+> ```qsharp
 operation CINOT (qs: Qubit[]) : Unit {
     // First step
     SWAP(qs[0], qs[1]);
@@ -449,14 +449,14 @@ In Q#, controlled gates are applied using the [`Controlled`](https://docs.micros
 The controlled version of a gate accepts an array of control qubits (in this case an array of a single qubit), followed by the arguments to the original gate.
 For example, these two lines are equivalent:
 
-```C#
+```qsharp
 Controlled X([control], target);
 CNOT(control, target);
 ```
 
 If the original gate was implemented as an operation with multiple parameters, the controlled version of this gate will take those parameters as a tuple. For example, to apply Fredkin gate, you'd have to call:
 
-```C#
+```qsharp
 Controlled SWAP([control], (q1, q2));
 ```
 
