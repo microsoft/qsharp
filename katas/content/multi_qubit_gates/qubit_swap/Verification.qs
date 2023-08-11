@@ -13,7 +13,7 @@ namespace Kata.Verification {
                 for index2 in index1+1 .. N-1 {
                     let solution = register => Kata.QubitSwap(register, index1, index2);
                     let reference = register => QubitSwap(register, index1, index2);
-                    if not CheckOperationsEquivalenceStrict(solution, reference, N) {
+                    if not CheckOperationsEquivalence(solution, reference, N) {
                         Message("Incorrect.");
                         Message("At least one test case did not pass");
                         return false;

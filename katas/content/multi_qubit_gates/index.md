@@ -387,4 +387,87 @@ operation CINOT (qs: Qubit[]) : Unit {
     // Third step
     SWAP(qs[0], qs[1]);
     I(qs[2]);
-}```
+}
+```
+
+@[section]({
+    "id": "multi_qubit_gates_controlled_gates",
+    "title": "Controlled Gates"
+})
+
+**Controlled gates** are a class of gates derived from other gates as follows: they act on a control qubit and a target qubit, just like the `CNOT` gate.
+A controlled-`U` gate applies the `U` gate to the target qubit if the control qubit is in state $|1\rangle$, and does nothing otherwise.
+
+Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatrix}$, its controlled version looks like this:
+
+<table>
+    <tr>
+        <th>Gate</th>
+        <th>Matrix</th>
+        <th>Q# Documentation</th>
+    </tr>
+    <tr>
+        <td>$\text{Controlled U}$</td>
+        <td>
+            $$
+            \begin{bmatrix}
+                1 & 0 & 0 & 0 \\\ 
+                0 & 1 & 0 & 0 \\\ 
+                0 & 0 & \alpha & \beta \\\ 
+                0 & 0 & \gamma & \delta
+            \end{bmatrix}
+            $$
+        </td>
+        <td><a href=\"https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor\">Controlled functor</a></td>
+    </tr>
+</table>
+
+> The CNOT gate is en example of a controlled gate, which is why it is also known as the controlled NOT or controlled `X` gate.
+
+The concept of controlled gates can be generalized beyond controlling single-qubit gates.
+For any multi-qubit gate, its controlled version will have an identity matrix in the top left quadrant, the gate itself in the bottom right, and $0$ everywhere else.
+Here, for example, is the `Controlled SWAP`, or **Fredkin gate**:
+
+$$
+\begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+In Q#, controlled gates are applied using the [`Controlled`](https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor) functor.
+The controlled version of a gate accepts an array of control qubits (in this case an array of a single qubit), followed by the arguments to the original gate.
+For example, these two lines are equivalent:
+
+```C#
+Controlled X([control], target);
+CNOT(control, target);
+```
+
+If the original gate was implemented as an operation with multiple parameters, the controlled version of this gate will take those parameters as a tuple. For example, to apply Fredkin gate, you'd have to call:
+
+```C#
+Controlled SWAP([control], (q1, q2));
+```
+
+You can use the controlled version of a Q# operation only if that operation has a controlled version defined.
+The Q# compiler will often be able to generate a controlled version of the operation automatically if you put `is Ctl` after the operation's return type.
+In other cases, you'll need to define the controlled version of an operation manually.
+
+@[exercise]({
+    "id": "controlled_rotation",
+    "title": "Controlled Rotation",
+    "descriptionPath": "./controlled_rotation/index.md",
+    "codePaths": [
+        "../KatasLibrary.qs",
+        "./controlled_rotation/Verification.qs"
+    ],
+    "placeholderSourcePath": "./controlled_rotation/Placeholder.qs",
+    "solutionPath": "./controlled_rotation/solution.md"
+})
