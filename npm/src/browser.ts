@@ -82,11 +82,11 @@ async function instantiateWasm() {
   log.onLevelChanged = (level) => wasm.setLogLevel(level);
 }
 
-export async function provideTextDocumentContent(
+export async function getLibrarySourceContent(
   path: string
 ): Promise<string | undefined> {
   await instantiateWasm();
-  return wasm.provide_text_document_content(path);
+  return wasm.get_library_source_content(path);
 }
 
 export async function getDebugService(): Promise<IDebugService> {
@@ -220,4 +220,5 @@ export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export type { IDebugServiceWorker, IDebugService };
 export type { IBreakpointSpan, IStackFrame } from "../lib/web/qsc_wasm.js";
+export { type IStructStepResult, StepResultId } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";

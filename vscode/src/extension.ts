@@ -6,9 +6,10 @@ import {
   getLanguageService,
   loadWasmModule,
   log,
-  provideTextDocumentContent,
+  getLibrarySourceContent,
 } from "qsharp";
 import * as vscode from "vscode";
+import { qsharpLibraryUriScheme } from "./common";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
@@ -21,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext) {
   log.info("Q# extension activating.");
 
   vscode.workspace.registerTextDocumentContentProvider(
-    "qsharp-source-request",
+    qsharpLibraryUriScheme,
     new QsTextDocumentContentProvider()
   );
 
@@ -158,11 +159,6 @@ export class QsTextDocumentContentProvider
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken
   ): vscode.ProviderResult<string> {
-    const contents = provideTextDocumentContent(uri.path);
-    if (contents) {
-      return contents;
-    } else {
-      return Promise.reject();
-    }
+    return getLibrarySourceContent(uri.path);
   }
 }

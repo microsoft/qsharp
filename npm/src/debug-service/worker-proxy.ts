@@ -15,8 +15,13 @@ import { IDebugService } from "./debug-service.js";
 const requests: MethodMap<IDebugService> = {
   loadSource: "request",
   getBreakpoints: "request",
+  getLocalVariables: "request",
+  captureQuantumState: "request",
   getStackFrames: "request",
   evalContinue: "requestWithProgress",
+  evalNext: "requestWithProgress",
+  evalStepIn: "requestWithProgress",
+  evalStepOut: "requestWithProgress",
   dispose: "request",
 };
 

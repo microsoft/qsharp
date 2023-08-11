@@ -29,6 +29,7 @@ parser.add_argument("--pip", action="store_true", help="Build the pip wheel")
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
+parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -81,6 +82,8 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
+
+compile_samples = args.test or args.samples
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "wasm")
@@ -293,3 +296,12 @@ if build_jupyterlab:
         jupyterlab_src,
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
+
+if compile_samples:
+    print("Compiling qsharp samples")
+    files = [os.path.join(dp, f) for dp, dn, filenames in os.walk("samples") for f in filenames if os.path.splitext(f)[1] == '.qs']
+    args = ["cargo", "run", "--bin", "qsc"]
+    if build_type == "release":
+        args.append("--release")
+    for file in files:
+        subprocess.run((args + ["--", file]), check=True, text=True, cwd=root_dir)

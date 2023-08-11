@@ -7,19 +7,16 @@ True random number generation is a notoriously difficult problem. Many "random" 
 
 Quantum random number generators (QRNGs) are truly random. The quantum algorithm for random number generation is one of the simplest applications of quantum computing principles, requiring very few qubits to run.
 
-**In this tutorial you will:**
-* learn about quantum random number generation and the principles behind it,
-* implement a variety of QRNGs with equal probability of any given number,
-* implement a single-bit QRNG with weighted probabilities of generated bits.
+**This tutorial covers the following topics:**
 
-**What you should know for this workbook**
+- Quantum random number generation and the principles behind it
+- Implementation of a variety of QRNGs with equal probability of any given number
+- Implementation a single-bit QRNG with weighted probabilities of generated bits
 
-You should be familiar with the following concepts before tackling the Quantum Random Number Generation Tutorial (and this workbook):
+**What you should know to start working on this tutorial:**
 
-1. The concept of qubit and measurement
-2. Single-qubit gates
-
-Let's go!
+- The concept of qubit and measurement
+- Single-qubit gates
 
 @[section]({"id": "random_numbers_introduction", "title": "Introduction"})
 

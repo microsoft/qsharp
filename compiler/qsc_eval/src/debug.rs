@@ -28,6 +28,11 @@ impl CallStack {
     }
 
     #[must_use]
+    pub fn len(&self) -> usize {
+        self.frames.len()
+    }
+
+    #[must_use]
     pub fn into_frames(self) -> Vec<Frame> {
         self.frames
     }

@@ -7,15 +7,17 @@
 
 Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.  This tutorial dives deeper into the definition of different types of quantum oracles, their properties, and the basic ways to implement the oracles.
 
-This kata will:
-* introduce you to quantum oracles and how they relate to classical oracles,
-* explain two types of quantum oracles - phase oracles and marking oracles,
-* introduce phase kickback and its uses for oracles implementation,
-* teach you to implement quantum oracles in Q# and to test your implementations.
+**This tutorial covers the following topics:**
 
-Before diving into the material, we recommend you to make sure you're comfortable with the fundamental quantum concepts, in particular multi-qubit gates (especially controlled gates).
+- Quantum oracles and how they relate to classical oracles
+- Two types of quantum oracles - phase oracles and marking oracles
+- Phase kickback and its uses for oracles implementation
+- Implementation and testing of quantum oracles in Q#
 
-Let's get started!
+**What you should know to start working on this tutorial:**
+
+- Fundamental quantum concepts
+- Multi-qubit gates (especially controlled gates)
 
 @[section]({
     "id": "oracles_classical_oracles",
