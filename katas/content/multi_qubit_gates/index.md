@@ -573,3 +573,10 @@ The sequence of steps that implement this variant are:
     "placeholderSourcePath": "./arbitrary_controls/Placeholder.qs",
     "solutionPath": "./arbitrary_controls/solution.md"
 })
+
+@[section]({
+    "id": "multi_qubit_gates_conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! You have completed the series of introductory tutorials.
