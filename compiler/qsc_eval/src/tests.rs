@@ -6,7 +6,7 @@ use crate::{
     debug::{map_hir_package_to_fir, Frame},
     output::{GenericReceiver, Receiver},
     val::GlobalId,
-    Env, Error, Global, NodeLookup, State, Value,
+    Env, Error, Global, NodeLookup, State, StepAction, StepResult, Value,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -30,8 +30,10 @@ pub(super) fn eval_expr(
     let mut env = Env::with_empty_scope();
     let mut sim = SparseSim::new();
     state.push_expr(expr);
-    state.resume(globals, &mut env, &mut sim, out, &[])?;
-    Ok(state.pop_val())
+    let StepResult::Return(value) = state.eval(globals, &mut env, &mut sim, out, &[], StepAction::Continue)? else{
+        unreachable!("eval_expr should always return a value");
+    };
+    Ok(value)
 }
 
 struct Lookup<'a> {

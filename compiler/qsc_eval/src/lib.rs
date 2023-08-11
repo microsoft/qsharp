@@ -125,9 +125,32 @@ impl Display for Spec {
     }
 }
 
+/// Evaluates the given expr with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+/// # Panics
+/// On internal error where no result is returned.
+pub fn eval_expr(
+    state: &mut State,
+    expr: ExprId,
+    globals: &impl NodeLookup,
+    env: &mut Env,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    out: &mut impl Receiver,
+) -> Result<Value, (Error, Vec<Frame>)> {
+    state.push_expr(expr);
+    let res = state.eval(globals, env, sim, out, &[], StepAction::Continue)?;
+    let StepResult::Return(value) = res else {
+        panic!("eval_expr should always return a value");
+    };
+    Ok(value)
+}
+
 /// Evaluates the given stmt with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
+/// # Panics
+/// On internal error where no result is returned.
 pub fn eval_stmt(
     stmt: StmtId,
     globals: &impl NodeLookup,
@@ -138,42 +161,34 @@ pub fn eval_stmt(
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     state.push_stmt(stmt);
-    state.resume(globals, env, sim, receiver, &[])?;
-    Ok(state.pop_val())
+    let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
+    let StepResult::Return(value) = res else {
+        panic!("eval_stmt should always return a value");
+    };
+    Ok(value)
 }
 
-/// Evaluates the given expr with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-pub fn eval_expr(
-    state: &mut State,
-    expr: ExprId,
-    globals: &impl NodeLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-) -> Result<Value, (Error, Vec<Frame>)> {
-    state.push_expr(expr);
-    state.resume(globals, env, sim, out, &[])?;
-    Ok(state.pop_val())
+/// The type of step action to take during evaluation
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum StepAction {
+    Next,
+    In,
+    Out,
+    Continue,
+}
+
+// The result of an evaluation step.
+#[derive(Clone, Debug)]
+pub enum StepResult {
+    BreakpointHit(StmtId),
+    Next,
+    StepIn,
+    StepOut,
+    Return(Value),
 }
 
 pub fn eval_push_expr(state: &mut State, expr: ExprId) {
     state.push_expr(expr);
-}
-
-/// Continues evaluation given current state with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-pub fn eval_resume(
-    state: &mut State,
-    globals: &impl NodeLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-    breakpoints: &[StmtId],
-) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
-    state.resume(globals, env, sim, out, breakpoints)
 }
 
 trait AsIndex {
@@ -193,10 +208,22 @@ impl AsIndex for i64 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Variable {
+    name: Rc<str>,
     value: Value,
     mutability: Mutability,
+    span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct VariableInfo {
+    pub value: Value,
+    pub name: Rc<str>,
+    pub type_name: String,
+    pub id: NodeId,
+    pub mutability: Mutability,
+    pub span: Span,
 }
 
 impl Variable {
@@ -267,8 +294,12 @@ impl Env {
             .find_map(|scope| scope.bindings.get_mut(&id))
     }
 
-    fn push_scope(&mut self) {
-        self.0.push(Scope::default());
+    fn push_scope(&mut self, frame_id: usize) {
+        let scope = Scope {
+            frame_id,
+            ..Default::default()
+        };
+        self.0.push(scope);
     }
 
     fn leave_scope(&mut self) {
@@ -276,11 +307,48 @@ impl Env {
             .pop()
             .expect("scope should be entered first before leaving");
     }
+
+    #[must_use]
+    pub fn get_variables_in_top_frame(&self) -> Vec<VariableInfo> {
+        if let Some(scope) = self.0.last() {
+            self.get_variables_in_frame(scope.frame_id)
+        } else {
+            vec![]
+        }
+    }
+
+    #[must_use]
+    pub fn get_variables_in_frame(&self, frame_id: usize) -> Vec<VariableInfo> {
+        let candidate_scopes: Vec<_> = self
+            .0
+            .iter()
+            .filter(|scope| scope.frame_id == frame_id)
+            .map(|scope| scope.bindings.iter())
+            .collect();
+
+        let variables_by_scope: Vec<Vec<VariableInfo>> = candidate_scopes
+            .into_iter()
+            .map(|bindings| {
+                bindings
+                    .map(|(id, var)| VariableInfo {
+                        id: *id,
+                        name: var.name.clone(),
+                        type_name: var.value.type_name().to_string(),
+                        value: var.value.clone(),
+                        mutability: var.mutability,
+                        span: var.span,
+                    })
+                    .collect()
+            })
+            .collect();
+        variables_by_scope.into_iter().flatten().collect::<Vec<_>>()
+    }
 }
 
 #[derive(Default)]
 struct Scope {
     bindings: HashMap<NodeId, Variable>,
+    frame_id: usize,
 }
 
 impl Env {
@@ -377,7 +445,7 @@ impl State {
     }
 
     fn push_scope(&mut self, env: &mut Env) {
-        env.push_scope();
+        env.push_scope(self.call_stack.len());
         self.stack.push(Cont::Scope);
     }
 
@@ -424,44 +492,67 @@ impl State {
 
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn resume(
+    /// # Panics
+    /// When returning a value in the middle of execution.
+    pub fn eval(
         &mut self,
         globals: &impl NodeLookup,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
         breakpoints: &[StmtId],
-    ) -> Result<Option<StmtId>, (Error, Vec<Frame>)> {
+        step: StepAction,
+    ) -> Result<StepResult, (Error, Vec<Frame>)> {
+        let current_frame = self.call_stack.len();
+
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
-                Cont::Action(action) => self
-                    .cont_action(env, sim, globals, action, out)
-                    .map(|_| None),
-                Cont::Expr(expr) => self.cont_expr(env, globals, expr).map(|_| None),
+                Cont::Action(action) => {
+                    self.cont_action(env, sim, globals, action, out)
+                        .map_err(|e| (e, self.get_stack_frames()))?;
+                    continue;
+                }
+                Cont::Expr(expr) => {
+                    self.cont_expr(env, globals, expr)
+                        .map_err(|e| (e, self.get_stack_frames()))?;
+                    continue;
+                }
                 Cont::Frame(len) => {
                     self.leave_frame(len);
-                    Ok(None)
+                    continue;
                 }
                 Cont::Scope => {
                     env.leave_scope();
-                    Ok(None)
+                    continue;
                 }
                 Cont::Stmt(stmt) => {
                     self.cont_stmt(globals, stmt);
-                    match breakpoints.iter().find(|&bp| *bp == stmt) {
-                        Some(bp) => Ok(Some(bp)),
-                        None => Ok(None),
+                    if let Some(bp) = breakpoints.iter().find(|&bp| *bp == stmt) {
+                        StepResult::BreakpointHit(*bp)
+                    } else {
+                        // no breakpoint, but we may stop here
+                        if step == StepAction::In {
+                            StepResult::StepIn
+                        } else if step == StepAction::Next && current_frame == self.call_stack.len()
+                        {
+                            StepResult::Next
+                        } else if step == StepAction::Out && current_frame > self.call_stack.len() {
+                            StepResult::StepOut
+                        } else {
+                            continue;
+                        }
                     }
                 }
             };
-            match res {
-                Ok(Some(bp)) => return Ok(Some(*bp)),
-                Ok(None) => {}
-                Err(e) => return Err((e, self.get_stack_frames())),
+
+            if let StepResult::Return(_) = res {
+                panic!("unexpected return");
             }
+
+            return Ok(res);
         }
 
-        Ok(None)
+        Ok(StepResult::Return(self.get_result()))
     }
 
     pub fn get_result(&mut self) -> Value {
@@ -1108,8 +1199,10 @@ impl State {
                 let scope = env.0.last_mut().expect("binding should have a scope");
                 match scope.bindings.entry(variable.id) {
                     Entry::Vacant(entry) => entry.insert(Variable {
+                        name: variable.name.clone(),
                         value: val,
                         mutability,
+                        span: variable.span,
                     }),
                     Entry::Occupied(_) => panic!("duplicate binding"),
                 };

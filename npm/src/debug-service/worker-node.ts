@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// This module supports running the qsharp compiler in a Node.js worker thread. It should be
+// This module supports running the qsharp debugger in a Node.js worker thread. It should be
 // used in a Node.js module in a manner similar to the below to create it with the right log level:
 //
 //     const worker = new Worker(join(thisDir,"worker-node.js"), {

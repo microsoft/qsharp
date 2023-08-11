@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 use qsc::fir::StmtId;
-use qsc::interpret::stateful;
-use qsc::interpret::{stateful::Interpreter, Value};
+use qsc::interpret::output::Receiver;
+use qsc::interpret::stateful::Interpreter;
+use qsc::interpret::{stateful, GenericReceiver, StepAction, StepResult};
 use qsc::{PackageType, SourceMap};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -37,6 +38,18 @@ impl DebugService {
         }
     }
 
+    pub fn capture_quantum_state(&mut self) -> JsValue {
+        let state = self.interpreter.capture_quantum_state();
+        let mut out = Vec::new();
+        let mut receiver = GenericReceiver::new(&mut out);
+        if receiver.state(state.0, state.1).is_ok() {
+            let output = std::str::from_utf8(out.as_slice()).unwrap().to_string();
+            JsValue::from_str(&output)
+        } else {
+            JsValue::undefined()
+        }
+    }
+
     pub fn get_stack_frames(&self) -> JsValue {
         let frames = self.interpreter.get_stack_frames();
 
@@ -54,10 +67,43 @@ impl DebugService {
         serde_wasm_bindgen::to_value(&list).expect("failed to serialize stack frame list")
     }
 
+    pub fn eval_next(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, StepAction::Next)
+    }
+
     pub fn eval_continue(
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, StepAction::Continue)
+    }
+
+    pub fn eval_step_in(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, StepAction::In)
+    }
+
+    pub fn eval_step_out(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+    ) -> Result<JsValue, JsValue> {
+        self.eval(event_cb, ids, StepAction::Out)
+    }
+
+    fn eval(
+        &mut self,
+        event_cb: &js_sys::Function,
+        ids: &[u32],
+        step: StepAction,
     ) -> Result<JsValue, JsValue> {
         if !event_cb.is_function() {
             return Err(JsError::new("Events callback function must be provided").into());
@@ -70,13 +116,11 @@ impl DebugService {
                 let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
             },
             &bps,
+            step,
         ) {
-            Ok(None) => Ok(JsValue::UNDEFINED),
-            Ok(Some(v)) => {
-                // we've hit a breakpoint
-                // Convert the stmt id to a number
-                Ok(JsValue::from(std::convert::Into::<usize>::into(v)))
-            }
+            Ok(value) => Ok(JsValue::from(std::convert::Into::<StructStepResult>::into(
+                value,
+            ))),
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
     }
@@ -85,35 +129,37 @@ impl DebugService {
         &mut self,
         event_cb: F,
         bps: &[StmtId],
-    ) -> Result<Option<StmtId>, Vec<stateful::Error>>
+        step: StepAction,
+    ) -> Result<StepResult, Vec<stateful::Error>>
     where
         F: Fn(&str),
     {
         let mut out = CallbackReceiver { event_cb };
-        let result = self.interpreter.eval_continue(&mut out, bps);
+        let result = self.interpreter.eval_step(&mut out, bps, step);
         let mut success = true;
-        let mut return_value = None;
-        let msg: serde_json::Value = match &result {
-            Ok(None) => {
-                let value = self.interpreter.get_result();
-                serde_json::Value::String(value.to_string())
-            }
-            Ok(value) => {
-                return_value = *value;
-                serde_json::Value::String(Value::unit().to_string())
-            }
+
+        let msg: Option<serde_json::Value> = match &result {
+            Ok(value) => match value {
+                qsc::interpret::StepResult::Return(value) => {
+                    Some(serde_json::Value::String(value.to_string()))
+                }
+                _ => None,
+            },
             Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from(&errors[0]).json()
+                Some(VSDiagnostic::from(&errors[0]).json())
             }
         };
+        if let Some(value) = msg {
+            let msg_string =
+                json!({"type": "Result", "success": success, "result": value}).to_string();
+            (out.event_cb)(&msg_string);
+        }
 
-        let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
-        (out.event_cb)(&msg_string);
-        match &result {
-            Ok(_) => Ok(return_value),
+        match result {
+            Ok(value) => Ok(value),
             Err(errors) => Err(Vec::from_iter(errors.iter().cloned())),
         }
     }
@@ -133,6 +179,20 @@ impl DebugService {
         };
         serde_wasm_bindgen::to_value(&spans).expect("failed to serialize breakpoint location list")
     }
+
+    pub fn get_locals(&self) -> JsValue {
+        let locals = self.interpreter.get_locals();
+        let variables: Vec<_> = locals
+            .into_iter()
+            .map(|local| Variable {
+                name: (*local.name).to_string(),
+                value: local.value.to_string(),
+                var_type: local.type_name,
+            })
+            .collect();
+        let variables = VariableList { variables };
+        serde_wasm_bindgen::to_value(&variables).expect("failed to serialize variable list")
+    }
 }
 
 impl Default for DebugService {
@@ -140,6 +200,64 @@ impl Default for DebugService {
         Self::new()
     }
 }
+
+impl From<StepResult> for StructStepResult {
+    fn from(value: StepResult) -> Self {
+        match value {
+            StepResult::BreakpointHit(value) => StructStepResult {
+                id: StepResultId::BreakpointHit.into(),
+                value: Into::<usize>::into(value),
+            },
+            StepResult::Next => StructStepResult {
+                id: StepResultId::Next.into(),
+                value: 0,
+            },
+            StepResult::StepIn => StructStepResult {
+                id: StepResultId::StepIn.into(),
+                value: 0,
+            },
+            StepResult::StepOut => StructStepResult {
+                id: StepResultId::StepOut.into(),
+                value: 0,
+            },
+            StepResult::Return(_) => StructStepResult {
+                id: StepResultId::Return.into(),
+                value: 0,
+            },
+        }
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum StepResultId {
+    BreakpointHit = 0,
+    Next = 1,
+    StepIn = 2,
+    StepOut = 3,
+    Return = 4,
+}
+
+impl From<StepResultId> for usize {
+    fn from(val: StepResultId) -> Self {
+        val as usize
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
+struct StructStepResult {
+    pub id: usize,
+    pub value: usize,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const IStructStepResult: &'static str = r#"
+export interface IStructStepResult {
+    id: number;
+    value: number;
+}
+"#;
 
 #[wasm_bindgen(typescript_custom_section)]
 const IBreakpointSpanList: &'static str = r#"
@@ -194,4 +312,44 @@ struct StackFrame {
     pub path: String,
     pub lo: u32,
     pub hi: u32,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const IVariableList: &'static str = r#"
+export interface IVariable {
+    name: string;
+    value: string;
+    var_type: "Array"
+        | "BigInt"
+        | "Bool"
+        | "Closure"
+        | "Double"
+        | "Global"
+        | "Int"
+        | "Pauli"
+        | "Qubit"
+        | "Range"
+        | "Result"
+        | "String"
+        | "Tuple";
+}
+
+export interface IVariableList {
+    variables: Array<IVariable>
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+struct VariableList {
+    pub variables: Vec<Variable>,
+}
+
+// Public fields implementing Copy have automatically generated getters/setters.
+// To generate getters/setters for non-Copy public fields, we must
+// use #[wasm_bindgen(getter_with_clone)] for the struct
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
+struct Variable {
+    pub name: String,
+    pub value: String,
+    pub var_type: String,
 }
