@@ -7,14 +7,12 @@
 ///
 /// This Q# program implements a Bell state.
 namespace Sample {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
     operation BellState() : (Result, Result) {
         // Allocate the two qubits that will be used to create a Bell state.
-        use q1 = Qubit();
-        use q2 = Qubit();
+        use (q1, q2) = (Qubit(), Qubit());
 
         // Set the first qubit in superposition by calling the `H` operation, 
         // which applies a Hadamard transformation to the qubit.
@@ -27,8 +25,7 @@ namespace Sample {
 
         // Measure the two qubits and reset them before they are released at the
         // end of the block.
-        let m1 = M(q1);
-        let m2 = M(q2);
+        let (m1, m2) = (M(q1), M(q2));
         Reset(q1);
         Reset(q2);
 

@@ -1,14 +1,13 @@
 /// # Sample
-/// Random Bit
+/// Superposition
 ///
 /// # Description
-/// This Q# program generates a random bit by setting a qubit in a superposition
-/// of the computational basis states |0〉 and |1〉, and returning the measurement
-/// result.
+/// This Q# program sets a qubit in a superposition of the computational basis
+/// states |0〉 and |1〉 by applying a Hadamard transformation.
 namespace Sample {
 
     @EntryPoint()
-    operation RandomBit() : Result {
+    operation Superposition() : Result {
         // Qubits are only accesible for the duration of the scope where they
         // are allocated and are automatically released at the end of the scope.
         use qubit = Qubit();
