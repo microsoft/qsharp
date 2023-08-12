@@ -147,7 +147,12 @@ impl IntoPy<PyObject> for ValueWrapper {
             Value::Double(val) => val.into_py(py),
             Value::Bool(val) => val.into_py(py),
             Value::String(val) => val.into_py(py),
-            Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
+            Value::Result(val) => if val.unwrap_bool() {
+                Result::One
+            } else {
+                Result::Zero
+            }
+            .into_py(py),
             Value::Pauli(val) => match val {
                 fir::Pauli::I => Pauli::I.into_py(py),
                 fir::Pauli::X => Pauli::X.into_py(py),

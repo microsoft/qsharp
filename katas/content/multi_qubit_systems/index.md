@@ -9,16 +9,16 @@ This kata introduces you to multi-qubit systems - their representation in mathem
 
 If you are not familiar with single-qubit systems, we recommend that you complete the qubit kata first.
 
-**This kata covers the following topics:**
+**This tutorial covers the following topics:**
 
-* Vector representation of multi-qubit systems
-* Entangled and separable states
-* Dirac notation
+- Vector representation of multi-qubit systems
+- Entangled and separable states
+- Dirac notation
 
-**What you should know to start working on this kata**
+**What you should know to start working on this tutorial:**
 
-1. Basic single-qubit gates.
-2. The concept of tensor product.
+- Basic single-qubit gates
+- The concept of tensor product
 
 @[section]({
     "id": "multi_qubit_systems_introduction",
