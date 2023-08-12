@@ -4,27 +4,32 @@
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod stepping_tests;
+
 use crate::{
     compile::{self, compile},
     error::WithSource,
 };
 use miette::Diagnostic;
+use num_bigint::BigUint;
+use num_complex::Complex;
 use qsc_data_structures::index_map::IndexMap;
+use qsc_eval::backend::Backend;
 use qsc_eval::{
     backend::SparseSim,
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
-    Env, Global, NodeLookup, State,
+    Env, Global, NodeLookup, State, StepAction, StepResult, VariableInfo,
 };
-
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
         Stmt, StmtId,
     },
-    visit::{self, Visitor},
+    visit::Visitor,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
@@ -218,8 +223,10 @@ impl Interpreter {
         })
     }
 
+    /// Loads the entry expression to the top of the evaluation stack.
+    /// This is needed for debugging so that when begging to debug with
+    /// a step action the system is already in the correct state.
     /// # Errors
-    ///
     /// Returns a vector of errors if loading the entry point fails.
     pub fn set_entry(&mut self) -> Result<(), Vec<Error>> {
         let expr = self.get_entry_expr()?;
@@ -227,18 +234,15 @@ impl Interpreter {
         Ok(())
     }
 
-    pub fn get_result(&mut self) -> Value {
-        self.state.get_result()
-    }
-
+    /// Resumes execution with specified `StepAction`.
     /// # Errors
-    ///
     /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval_continue(
+    pub fn eval_step(
         &mut self,
         receiver: &mut impl Receiver,
         breakpoints: &[StmtId],
-    ) -> Result<Option<StmtId>, Vec<Error>> {
+        step: StepAction,
+    ) -> Result<StepResult, Vec<Error>> {
         let globals = Lookup {
             fir_store: &self.fir_store,
             package: self.package,
@@ -246,36 +250,37 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        qsc_eval::eval_resume(
-            &mut self.state,
-            &globals,
-            &mut self.env,
-            &mut self.sim,
-            receiver,
-            breakpoints,
-        )
-        .map_err(|(error, call_stack)| {
-            let package = self
-                .store
-                .get(map_fir_package_to_hir(self.package))
-                .expect("package should be in store");
+        self.state
+            .eval(
+                &globals,
+                &mut self.env,
+                &mut self.sim,
+                receiver,
+                breakpoints,
+                step,
+            )
+            .map_err(|(error, call_stack)| {
+                let package = self
+                    .store
+                    .get(map_fir_package_to_hir(self.package))
+                    .expect("package should be in store");
 
-            let stack_trace = if call_stack.is_empty() {
-                None
-            } else {
-                Some(self.render_call_stack(call_stack, &error))
-            };
+                let stack_trace = if call_stack.is_empty() {
+                    None
+                } else {
+                    Some(self.render_call_stack(call_stack, &error))
+                };
 
-            vec![Error(WithSource::from_map(
-                &package.sources,
-                error.into(),
-                stack_trace,
-            ))]
-        })
+                vec![Error(WithSource::from_map(
+                    &package.sources,
+                    error.into(),
+                    stack_trace,
+                ))]
+            })
     }
 
+    /// Executes the entry expression until the end of execution.
     /// # Errors
-    ///
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
@@ -493,12 +498,16 @@ impl Interpreter {
                     name,
                     functor,
                     path,
-                    lo: frame.span.lo,
-                    hi: frame.span.hi,
+                    lo: frame.span.lo - source.offset,
+                    hi: frame.span.hi - source.offset,
                 }
             })
             .collect();
         stack_frames
+    }
+
+    pub fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+        self.sim.capture_quantum_state()
     }
 
     #[must_use]
@@ -513,28 +522,41 @@ impl Interpreter {
                 .fir_store
                 .get(self.source_package)
                 .expect("package should have been lowered");
-            let mut colllector = BreakpointCollector::new(&unit.sources, source.offset, package);
-            colllector.visit_package(package);
-            colllector
+            let mut collector = BreakpointCollector::new(&unit.sources, source.offset, package);
+            collector.visit_package(package);
+            let mut spans: Vec<_> = collector
                 .statements
                 .iter()
                 .map(|bps| BreakpointSpan {
                     id: bps.id,
-                    lo: bps.lo - source.offset,
-                    hi: bps.hi - source.offset,
+                    lo: bps.lo,
+                    hi: bps.hi,
                 })
-                .collect()
+                .collect();
+            spans.sort_by_key(|s| s.lo);
+            spans
         } else {
             Vec::new()
         }
     }
+
+    #[must_use]
+    pub fn get_locals(&self) -> Vec<VariableInfo> {
+        self.env.get_variables_in_top_frame()
+    }
 }
 
+/// Represents a stack frame for debugging.
 pub struct StackFrame {
+    /// The name of the callable.
     pub name: String,
+    /// The functor of the callable.
     pub functor: String,
+    /// The path of the source file.
     pub path: String,
+    /// The start of the call site span in utf8 characters.
     pub lo: u32,
+    /// The end of the call site span in utf8 characters.
     pub hi: u32,
 }
 
@@ -556,8 +578,11 @@ fn get_global<'a>(
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BreakpointSpan {
+    /// The id of the statement representing the breakpoint location.
     pub id: u32,
+    /// The start of the call site span in utf8 characters.
     pub lo: u32,
+    /// The end of the call site span in utf8 characters.
     pub hi: u32,
 }
 
@@ -589,8 +614,8 @@ impl<'a> BreakpointCollector<'a> {
         if source.offset == self.offset {
             self.statements.insert(BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo,
-                hi: stmt.span.hi,
+                lo: stmt.span.lo - source.offset,
+                hi: stmt.span.hi - source.offset,
             });
         }
     }
@@ -600,8 +625,6 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
     fn visit_stmt(&mut self, stmt: StmtId) {
         let stmt_res = self.get_stmt(stmt);
         self.add_stmt(stmt_res);
-
-        visit::walk_stmt(self, stmt);
     }
 
     fn get_block(&mut self, id: BlockId) -> &'a Block {

@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
-
 import { QscEventTarget } from "qsharp";
 
-export function createDebugConsoleEventTarget() {
+export function createDebugConsoleEventTarget(out: (message: string) => void) {
   const eventTarget = new QscEventTarget(false);
 
   eventTarget.addEventListener("Message", (evt) => {
-    vscode.debug.activeDebugConsole.appendLine(`Message: ${evt.detail}`);
+    out(`Message: ${evt.detail}`);
   });
 
   eventTarget.addEventListener("DumpMachine", (evt) => {
@@ -27,34 +25,30 @@ export function createDebugConsoleEventTarget() {
     }
 
     const dump = evt.detail;
-    vscode.debug.activeDebugConsole.appendLine("");
-    vscode.debug.activeDebugConsole.appendLine("DumpMachine:");
-    vscode.debug.activeDebugConsole.appendLine("");
-    vscode.debug.activeDebugConsole.appendLine(
-      "  Basis | Amplitude     | Probability   | Phase"
-    );
-    vscode.debug.activeDebugConsole.appendLine(
-      "  ---------------------------------------------"
-    );
+    out("");
+    out("DumpMachine:");
+    out("");
+    out("  Basis | Amplitude     | Probability   | Phase");
+    out("  ---------------------------------------------");
     Object.keys(dump).map((basis) => {
       const [real, imag] = dump[basis];
       const complex = formatComplex(real, imag);
       const probabilityPercent = probability(real, imag) * 100;
       const phase = Math.atan2(imag, real);
 
-      vscode.debug.activeDebugConsole.appendLine(
+      out(
         `  ${basis}  | ${complex} | ${probabilityPercent.toFixed(
           4
         )}%     | ${phase.toFixed(4)}`
       );
     });
-    vscode.debug.activeDebugConsole.appendLine("");
-    vscode.debug.activeDebugConsole.appendLine("");
+    out("");
+    out("");
   });
 
   eventTarget.addEventListener("Result", (evt) => {
     const resultJson = JSON.stringify(evt.detail.value, null, 2);
-    vscode.debug.activeDebugConsole.appendLine(`Result: ${resultJson}`);
+    out(`Result: ${resultJson}`);
   });
   return eventTarget;
 }

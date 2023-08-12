@@ -6,8 +6,10 @@ import {
   getLanguageService,
   loadWasmModule,
   log,
+  getLibrarySourceContent,
 } from "qsharp";
 import * as vscode from "vscode";
+import { qsharpLibraryUriScheme } from "./common";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
@@ -15,10 +17,19 @@ import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
 import { setupWorkspaces } from "./azure/workspace.js";
 import { activateDebugger } from "./debugger/activate.js";
+import {
+  qsharpDocumentFilter,
+  qsharpNotebookCellDocumentFilter,
+} from "./common.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
+
+  vscode.workspace.registerTextDocumentContentProvider(
+    qsharpLibraryUriScheme,
+    new QsTextDocumentContentProvider()
+  );
 
   const languageService = await loadLanguageService(context.extensionUri);
 
@@ -33,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // completions
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createCompletionItemProvider(languageService),
       "."
     )
@@ -42,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // hover
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createHoverProvider(languageService)
     )
   );
@@ -115,14 +126,22 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (vscode.languages.match("qsharp", document)) {
+      if (
+        vscode.languages.match(qsharpDocumentFilter, document) &&
+        !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
+      ) {
+        // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
     })
   );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (vscode.languages.match("qsharp", document)) {
+    if (
+      vscode.languages.match(qsharpDocumentFilter, document) &&
+      !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
+    ) {
+      // Notebook cells don't currently support the language service.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
@@ -143,4 +162,17 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   return await getLanguageService();
+}
+
+export class QsTextDocumentContentProvider
+  implements vscode.TextDocumentContentProvider
+{
+  onDidChange?: vscode.Event<vscode.Uri> | undefined;
+  provideTextDocumentContent(
+    uri: vscode.Uri,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    token: vscode.CancellationToken
+  ): vscode.ProviderResult<string> {
+    return getLibrarySourceContent(uri.path);
+  }
 }
