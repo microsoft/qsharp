@@ -59,7 +59,7 @@ impl DefinitionFinder<'_> {
             .find_by_offset(lo)
             .expect("source should exist for offset");
         let source_name = match package_id {
-            Some(_) => format!("qsharp-source-request:{}", source.name),
+            Some(_) => format!("qsharp-library-source:{}", source.name),
             None => source.name.to_string(),
         };
 
