@@ -31,6 +31,15 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 let wasm: Wasm | null = null;
 const require = createRequire(import.meta.url);
 
+export async function getLibrarySourceContent(
+  path: string
+): Promise<string | undefined> {
+  if (!wasm) {
+    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+    return wasm.get_library_source_content(path);
+  }
+}
+
 export function getCompiler(): ICompiler {
   if (!wasm) {
     wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;

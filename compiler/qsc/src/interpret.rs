@@ -8,4 +8,5 @@ pub mod stateless;
 pub use qsc_eval::{
     output::{self, GenericReceiver},
     val::Value,
+    StepAction, StepResult,
 };
