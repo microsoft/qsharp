@@ -93,7 +93,7 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, vec!["Dropped".into()]);
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -1779,6 +1779,28 @@ fn resolve_local_generic() {
                     local9
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_callable() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", Span { lo: 48, hi: 55 })
         "#]],
     );
 }

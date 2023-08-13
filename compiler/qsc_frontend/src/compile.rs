@@ -29,7 +29,7 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, str::FromStr, sync::Arc};
+use std::{fmt::Debug, rc::Rc, str::FromStr, sync::Arc};
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -73,6 +73,7 @@ pub struct CompileUnit {
     pub assigner: HirAssigner,
     pub sources: SourceMap,
     pub errors: Vec<Error>,
+    pub dropped_names: Vec<Rc<str>>,
 }
 
 #[derive(Debug, Default)]
@@ -266,13 +267,21 @@ pub fn compile(
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
 
-    preprocess::Conditional { target }.visit_package(&mut ast_package);
+    let mut cond_compile = preprocess::Conditional::new(target);
+    cond_compile.visit_package(&mut ast_package);
+    let dropped_names = cond_compile.into_names();
 
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &ast_package);
+    let (names, name_errors) = resolve_all(
+        store,
+        dependencies,
+        &mut hir_assigner,
+        &ast_package,
+        dropped_names.clone(),
+    );
     let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
     let mut lowerer = Lowerer::new();
     let package = lowerer
@@ -300,6 +309,7 @@ pub fn compile(
         assigner: hir_assigner,
         sources,
         errors,
+        dropped_names,
     }
 }
 
@@ -439,10 +449,12 @@ fn resolve_all(
     dependencies: &[PackageId],
     assigner: &mut HirAssigner,
     package: &ast::Package,
+    mut dropped_names: Vec<Rc<str>>,
 ) -> (Names, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
+        dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
     for &id in dependencies {
@@ -450,10 +462,11 @@ fn resolve_all(
             .get(id)
             .expect("dependency should be in package store before compilation");
         globals.add_external_package(id, &unit.package);
+        dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
     let mut errors = globals.add_local_package(assigner, package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
     let (names, mut resolver_errors) = resolver.into_names();
     errors.append(&mut resolver_errors);

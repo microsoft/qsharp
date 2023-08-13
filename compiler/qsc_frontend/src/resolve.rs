@@ -82,6 +82,13 @@ pub(super) enum Error {
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
+
+    #[error("`{0}` not available")]
+    #[diagnostic(help(
+        "this name matches an item that is not available for the current compilation target"
+    ))]
+    #[diagnostic(code("Qsc.Resolve.NotAvailable"))]
+    NotAvailable(String, #[label] Span),
 }
 
 struct Scope {
@@ -150,24 +157,30 @@ struct Open {
 
 pub(super) struct Resolver {
     names: Names,
+    dropped_names: Vec<Rc<str>>,
     globals: GlobalScope,
     scopes: Vec<Scope>,
     errors: Vec<Error>,
 }
 
 impl Resolver {
-    pub(super) fn new(globals: GlobalTable) -> Self {
+    pub(super) fn new(globals: GlobalTable, dropped_names: Vec<Rc<str>>) -> Self {
         Self {
             names: globals.names,
+            dropped_names,
             globals: globals.scope,
             scopes: Vec::new(),
             errors: Vec::new(),
         }
     }
 
-    pub(super) fn with_persistent_local_scope(globals: GlobalTable) -> Self {
+    pub(super) fn with_persistent_local_scope(
+        globals: GlobalTable,
+        dropped_names: Vec<Rc<str>>,
+    ) -> Self {
         Self {
             names: globals.names,
+            dropped_names,
             globals: globals.scope,
             scopes: vec![Scope::new(ScopeKind::Block)],
             errors: Vec::new(),
@@ -207,7 +220,14 @@ impl Resolver {
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
             Ok(id) => self.names.insert(path.id, id),
-            Err(err) => self.errors.push(err),
+            Err(err) => match err {
+                Error::NotFound(name, span)
+                    if self.dropped_names.iter().any(|n| n.as_ref() == name) =>
+                {
+                    self.errors.push(Error::NotAvailable(name, span));
+                }
+                _ => self.errors.push(err),
+            },
         }
     }
 

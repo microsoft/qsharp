@@ -50,9 +50,11 @@ impl Compiler {
     pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
+        let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
             resolve_globals.add_external_package(PackageId::CORE, &unit.package);
             typeck_globals.add_external_package(PackageId::CORE, &unit.package);
+            dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
         for id in dependencies {
@@ -61,12 +63,13 @@ impl Compiler {
                 .expect("dependency should be added to package store before compilation");
             resolve_globals.add_external_package(id, &unit.package);
             typeck_globals.add_external_package(id, &unit.package);
+            dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
         Self {
             ast_assigner: AstAssigner::new(),
             hir_assigner: HirAssigner::new(),
-            resolver: Resolver::with_persistent_local_scope(resolve_globals),
+            resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
         }

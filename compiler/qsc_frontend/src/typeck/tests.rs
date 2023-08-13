@@ -84,7 +84,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, Vec::new());
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -3206,24 +3206,24 @@ fn instantiate_duplicate_ty_param_names() {
 #[test]
 fn ambiguous_generic() {
     check(
-        "namespace Test { 
+        "namespace Test {
             function Foo<'T>(x: 'T) : 'T { x }
-            function Bar() : () { let x = Foo([]); } 
+            function Bar() : () { let x = Foo([]); }
         }",
         "",
         &expect![[r##"
-            #7 46-53 "(x: 'T)" : 0
-            #8 47-52 "x: 'T" : 0
-            #14 59-64 "{ x }" : 0
-            #16 61-62 "x" : 0
-            #22 89-91 "()" : Unit
-            #24 97-117 "{ let x = Foo([]); }" : Unit
-            #26 103-104 "x" : (?2)[]
-            #28 107-114 "Foo([])" : (?2)[]
-            #29 107-110 "Foo" : ((?2)[] -> (?2)[])
-            #32 110-114 "([])" : (?2)[]
-            #33 111-113 "[]" : (?2)[]
-            Error(Type(Error(AmbiguousTy(Span { lo: 111, hi: 113 }))))
+            #7 45-52 "(x: 'T)" : 0
+            #8 46-51 "x: 'T" : 0
+            #14 58-63 "{ x }" : 0
+            #16 60-61 "x" : 0
+            #22 88-90 "()" : Unit
+            #24 96-116 "{ let x = Foo([]); }" : Unit
+            #26 102-103 "x" : (?2)[]
+            #28 106-113 "Foo([])" : (?2)[]
+            #29 106-109 "Foo" : ((?2)[] -> (?2)[])
+            #32 109-113 "([])" : (?2)[]
+            #33 110-112 "[]" : (?2)[]
+            Error(Type(Error(AmbiguousTy(Span { lo: 110, hi: 112 }))))
         "##]],
     );
 }
