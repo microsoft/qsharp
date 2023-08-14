@@ -10,7 +10,7 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     debug::{map_hir_package_to_fir, Frame},
-    eval_expr,
+    eval_expr, eval_stmt,
     output::GenericReceiver,
     val::{GlobalId, Value},
     Env, Error, Global, NodeLookup, State,
@@ -67,6 +67,60 @@ pub fn generate_qir(
             Ok(sim.instrs)
         }
         Err((err, stack)) => Err((err, stack)),
+    }
+}
+
+pub struct BaseProfGen {
+    sim: BaseProfSim,
+    last_val: Option<Value>,
+}
+
+impl BaseProfGen {
+    #[must_use]
+    pub fn new() -> Self {
+        let mut sim = BaseProfSim::default();
+        sim.instrs.push_str(PREFIX);
+        Self {
+            sim,
+            last_val: None,
+        }
+    }
+
+    #[must_use]
+    pub fn to_qir(mut self) -> String {
+        self.sim
+            .write_output_recording(&self.last_val.expect("last_val should be set"))
+            .expect("writing to string should succeed");
+        self.sim.instrs.push_str(POSTFIX);
+        self.sim.instrs
+    }
+
+    /// # Errors
+    ///
+    /// This function will return an error if execution was unable to complete.
+    pub fn stmt(
+        &mut self,
+        stmt: StmtId,
+        globals: &impl NodeLookup,
+        env: &mut Env,
+        package: PackageId,
+    ) -> std::result::Result<(), (Error, Vec<Frame>)> {
+        let mut stdout = vec![];
+        let mut out = GenericReceiver::new(&mut stdout);
+        let result = eval_stmt(stmt, globals, env, &mut self.sim, package, &mut out);
+        match result {
+            Ok(val) => {
+                self.last_val = Some(val);
+                Ok(())
+            }
+            Err((err, stack)) => Err((err, stack)),
+        }
+    }
+}
+
+impl Default for BaseProfGen {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

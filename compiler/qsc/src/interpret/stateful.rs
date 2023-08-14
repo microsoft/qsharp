@@ -14,6 +14,7 @@ use crate::{
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
+use qsc_codegen::qir_base::BaseProfGen;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::backend::Backend;
 use qsc_eval::{
@@ -92,14 +93,19 @@ impl LineError {
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
 pub enum LineErrorKind {
     #[error(transparent)]
+    #[diagnostic(transparent)]
     Compile(#[from] incremental::Error),
     #[error(transparent)]
+    #[diagnostic(transparent)]
     Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
+    #[diagnostic(transparent)]
     Eval(#[from] qsc_eval::Error),
+    #[error("code generation target mismatch")]
+    #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
+    TargetMismatch,
 }
 
 struct Lookup<'a> {
@@ -160,6 +166,7 @@ pub struct Interpreter {
     fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
     state: State,
     source_package: PackageId,
+    target: TargetProfile,
 }
 
 impl Interpreter {
@@ -221,6 +228,7 @@ impl Interpreter {
             state: State::new(map_hir_package_to_fir(package)),
             lowerer,
             fir_store,
+            target,
         })
     }
 
@@ -412,6 +420,90 @@ impl Interpreter {
         }
 
         Ok(result)
+    }
+
+    /// # Errors
+    /// If the parsing of the line fails, an error is returned.
+    /// If the compilation of the line fails, an error is returned.
+    /// If there is a runtime error when generating code for the line, an error is returned.
+    pub fn qirgen_line(&mut self, line: &str) -> Result<String, Vec<LineError>> {
+        if self.target != TargetProfile::Base {
+            return Err(vec![LineError(WithSource::new(
+                line.into(),
+                LineErrorKind::TargetMismatch,
+                None,
+            ))]);
+        }
+
+        let mut codegen = BaseProfGen::new();
+
+        let mut fragments = self.compiler.compile_fragments(line).map_err(|errors| {
+            let source = line.into();
+            errors
+                .into_iter()
+                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .collect::<Vec<_>>()
+        })?;
+
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
+            })
+            .collect::<Vec<_>>();
+        if !pass_errors.is_empty() {
+            let source = line.into();
+            return Err(pass_errors
+                .into_iter()
+                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .collect());
+        }
+
+        for fragment in fragments {
+            match fragment {
+                Fragment::Item(item) => match item.kind {
+                    qsc_hir::hir::ItemKind::Callable(callable) => {
+                        let callable = self.lower_callable_decl(&callable);
+
+                        self.callables
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                    }
+                    qsc_hir::hir::ItemKind::Namespace(..) => {}
+                    qsc_hir::hir::ItemKind::Ty(..) => {
+                        self.udts
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                    }
+                },
+                Fragment::Stmt(stmt) => {
+                    let stmt_id = self.lower_stmt(&stmt);
+                    let globals = Lookup {
+                        fir_store: &self.fir_store,
+                        package: self.package,
+                        udts: &self.udts,
+                        callables: &self.callables,
+                    };
+
+                    if let Err((error, call_stack)) =
+                        codegen.stmt(stmt_id, &globals, &mut self.env, self.package)
+                    {
+                        let stack_trace = if call_stack.is_empty() {
+                            None
+                        } else {
+                            Some(self.render_call_stack(call_stack, &error))
+                        };
+
+                        return Err(vec![LineError(WithSource::new(
+                            line.into(),
+                            error.into(),
+                            stack_trace,
+                        ))]);
+                    }
+                }
+            }
+        }
+
+        Ok(codegen.to_qir())
     }
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {

@@ -8,6 +8,8 @@ import io
 
 # Tests for the Python library for Q#
 
+qsharp.init(qsharp.Target.Full)
+
 
 def test_stdout() -> None:
     f = io.StringIO()
