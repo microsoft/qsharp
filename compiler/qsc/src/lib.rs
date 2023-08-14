@@ -31,4 +31,7 @@ pub use qsc_frontend::compile::TargetProfile;
 
 pub use qsc_passes::PackageType;
 
-pub use qsc_eval::backend::{Backend, SparseSim};
+pub use qsc_eval::{
+    backend::{Backend, SparseSim},
+    output::format_state_id,
+};
