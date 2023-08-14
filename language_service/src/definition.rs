@@ -5,7 +5,9 @@
 mod tests;
 
 use crate::protocol::Definition;
-use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
+use crate::qsc_utils::{
+    find_item, map_offset, span_contains, Compilation, QSHARP_LIBRARY_URI_SCHEME,
+};
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::hir::PackageId;
 use qsc::{ast, hir, resolve};
@@ -59,7 +61,7 @@ impl DefinitionFinder<'_> {
             .find_by_offset(lo)
             .expect("source should exist for offset");
         let source_name = match package_id {
-            Some(_) => format!("qsharp-library-source:{}", source.name),
+            Some(_) => format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name),
             None => source.name.to_string(),
         };
 

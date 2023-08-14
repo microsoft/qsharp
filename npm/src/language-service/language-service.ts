@@ -61,6 +61,7 @@ export interface ILanguageService {
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
 export class QSharpLanguageService implements ILanguageService {
+  private qsharpLibraryUriScheme = "qsharp-library-source";
   private languageService: LanguageService;
   private eventHandler =
     new EventTarget() as IServiceEventTarget<LanguageServiceEvent>;
@@ -143,7 +144,7 @@ export class QSharpLanguageService implements ILanguageService {
     ) as IDefinition | null;
     if (result) {
       const url = new URL(result.source);
-      if (url.protocol === "qsharp-library-source" + ":") {
+      if (url.protocol === this.qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
       }
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
