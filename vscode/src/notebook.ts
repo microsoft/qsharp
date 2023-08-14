@@ -11,6 +11,12 @@ export function registerQSharpNotebookHandlers() {
   const qsharpCellMagic = "%%qsharp";
   const jupyterNotebookType = "jupyter-notebook";
 
+  vscode.workspace.notebookDocuments.forEach((notebookDocument) => {
+    if (notebookDocument.notebookType === jupyterNotebookType) {
+      updateQSharpCellLanguages(notebookDocument.getCells());
+    }
+  });
+
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenNotebookDocument((notebookDocument) => {
