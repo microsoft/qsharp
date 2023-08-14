@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::qsc_utils::Compilation;
-use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap};
+use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap, TargetProfile};
 
 pub(crate) fn get_source_and_marker_offsets(
     source_with_markers: &str,
@@ -47,6 +47,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         &[PackageId::CORE],
         std_source_map,
         PackageType::Lib,
+        TargetProfile::Full,
     );
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);
@@ -56,6 +57,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         &[std_package_id],
         source_map,
         PackageType::Exe,
+        TargetProfile::Full,
     );
     Compilation {
         package_store,

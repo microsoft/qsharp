@@ -32,7 +32,7 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_passes::{PackageType, PassContext};
@@ -170,6 +170,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
+        target: TargetProfile,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let core = compile::core();
@@ -182,14 +183,14 @@ impl Interpreter {
         let mut store = PackageStore::new(core);
         let mut dependencies = Vec::new();
         if std {
-            let std = compile::std(&store);
+            let std = compile::std(&store, target);
             let std_fir = lowerer.lower_package(&std.package);
             let id = store.insert(std);
             fir_store.insert(map_hir_package_to_fir(id), std_fir);
             dependencies.push(id);
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, package_type);
+        let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
@@ -214,7 +215,7 @@ impl Interpreter {
             compiler,
             udts: HashSet::new(),
             callables: IndexMap::new(),
-            passes: PassContext::default(),
+            passes: PassContext::new(target),
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
             state: State::new(map_hir_package_to_fir(package)),
