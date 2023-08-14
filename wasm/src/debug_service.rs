@@ -4,7 +4,7 @@
 use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
-use qsc::{PackageType, SourceMap, TargetProfile};
+use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -50,13 +50,7 @@ impl DebugService {
             .iter()
             .map(|(id, value)| QuantumState {
                 name: qsc::format_state_id(id, state.1),
-                value: format!(
-                    "{}{:.4}{}{:.4}𝑖",
-                    if value.re <= -0.00005 { "−" } else { "" },
-                    value.re.abs(),
-                    if value.im <= -0.00005 { "−" } else { "+" },
-                    value.im.abs()
-                ),
+                value: fmt_complex(value),
             })
             .collect::<Vec<_>>();
 

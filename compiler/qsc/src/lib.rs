@@ -33,5 +33,5 @@ pub use qsc_passes::PackageType;
 
 pub use qsc_eval::{
     backend::{Backend, SparseSim},
-    output::format_state_id,
+    output::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase},
 };
