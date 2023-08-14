@@ -1,5 +1,5 @@
 /// # Sample
-/// Bell State
+/// Bell States
 ///
 /// # Description
 /// Bell states or EPR pairs are specific quantum states of two qubits
