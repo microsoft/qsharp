@@ -247,6 +247,9 @@ impl Visitor<'_> for ItemCollector<'_> {
 
         visit::walk_item(self, item);
     }
+
+    // We do not typecheck attributes, as they are verified during lowering.
+    fn visit_attr(&mut self, _: &ast::Attr) {}
 }
 
 struct ItemChecker<'a> {

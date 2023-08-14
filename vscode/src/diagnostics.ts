@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, VSDiagnostic } from "qsharp";
+import { ILanguageService, VSDiagnostic, qsharpLibraryUriScheme } from "qsharp";
 import * as vscode from "vscode";
-import { qsharpLanguageId, qsharpLibraryUriScheme } from "./common.js";
+import { qsharpLanguageId } from "./common.js";
 
 export function startCheckingQSharp(languageService: ILanguageService) {
   const diagCollection =

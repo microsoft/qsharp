@@ -5,7 +5,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use qsc_hir::{validate::Validator, visit::Visitor};
 
 use crate::spec_gen::generate_specs;
@@ -13,7 +13,7 @@ use crate::spec_gen::generate_specs;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources);
+    let mut unit = compile(&store, &[], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = generate_specs(store.core(), &mut unit);

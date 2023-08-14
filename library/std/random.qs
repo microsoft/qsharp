@@ -24,6 +24,7 @@ namespace Microsoft.Quantum.Random {
     /// ```qsharp
     /// let roll = DrawRandomInt(1, 6);
     /// ```
+    @Config(Full)
     operation DrawRandomInt(min : Int, max : Int) : Int {
         body intrinsic;
     }
@@ -49,6 +50,7 @@ namespace Microsoft.Quantum.Random {
     /// ```qsharp
     /// let angle = DrawRandomDouble(0.0, 2.0 * PI());
     /// ```
+    @Config(Full)
     operation DrawRandomDouble(min : Double, max : Double) : Double {
         body intrinsic;
     }

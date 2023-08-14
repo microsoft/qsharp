@@ -17,7 +17,7 @@ use qsc_eval::{
 };
 use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
 use qsc_fir::fir::{ItemKind, PackageId};
-use qsc_frontend::compile::{PackageStore, Source, SourceMap};
+use qsc_frontend::compile::{PackageStore, Source, SourceMap, TargetProfile};
 use qsc_passes::PackageType;
 use thiserror::Error;
 
@@ -126,14 +126,20 @@ impl Interpreter {
         let mut dependencies = Vec::new();
 
         if std {
-            let std = compile::std(&store);
+            let std = compile::std(&store, TargetProfile::Full);
             let std_fir = fir_lowerer.lower_package(&std.package);
             let id = store.insert(std);
             fir_store.insert(map_hir_package_to_fir(id), std_fir);
             dependencies.push(id);
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, PackageType::Exe);
+        let (unit, errors) = compile(
+            &store,
+            &dependencies,
+            sources,
+            PackageType::Exe,
+            TargetProfile::Full,
+        );
         if errors.is_empty() {
             let user_fir = fir_lowerer.lower_package(&unit.package);
             let package = store.insert(unit);
