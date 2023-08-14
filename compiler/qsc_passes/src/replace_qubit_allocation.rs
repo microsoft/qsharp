@@ -14,9 +14,9 @@ use qsc_hir::{
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
     ty::{Prim, Ty},
 };
-use std::{mem::take, rc::Rc};
+use std::mem::take;
 
-use crate::common::{create_gen_core_ref, IdentTemplate};
+use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
 
 #[derive(Debug, Clone)]
 struct QubitIdent {
@@ -186,7 +186,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
         IdentTemplate {
             id,
             span,
-            name: Rc::from(format!("generated_ident_{id}")),
+            name: generated_name(&format!("generated_ident_{id}")),
             ty,
         }
     }

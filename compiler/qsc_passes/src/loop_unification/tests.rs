@@ -51,10 +51,10 @@ fn convert_for_array() {
                             Block 5 [56-131] [Type Unit]:
                                 Stmt 6 [66-125]: Expr: Expr 43 [66-125] [Type Unit]: Expr Block: Block 44 [66-125] [Type Unit]:
                                     Stmt 18 [75-78]: Local (Immutable):
-                                        Pat 19 [75-78] [Type (Int)[]]: Bind: Ident 17 [75-78] "array_id_17"
+                                        Pat 19 [75-78] [Type (Int)[]]: Bind: Ident 17 [75-78] "@array_id_17"
                                         Expr 10 [75-78] [Type (Int)[]]: Var: Local 3
                                     Stmt 24 [75-78]: Local (Immutable):
-                                        Pat 25 [75-78] [Type Int]: Bind: Ident 21 [75-78] "len_id_21"
+                                        Pat 25 [75-78] [Type Int]: Bind: Ident 21 [75-78] "@len_id_21"
                                         Expr 22 [75-78] [Type (Int)[]]: Call:
                                             Expr 20 [75-78] [Type ((Int)[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
@@ -62,7 +62,7 @@ fn convert_for_array() {
                                                     Int
                                             Expr 23 [75-78] [Type (Int)[]]: Var: Local 17
                                     Stmt 28 [75-78]: Local (Mutable):
-                                        Pat 29 [75-78] [Type Int]: Bind: Ident 26 [75-78] "index_id_26"
+                                        Pat 29 [75-78] [Type Int]: Bind: Ident 26 [75-78] "@index_id_26"
                                         Expr 27 [75-78] [Type Int]: Lit: Int(0)
                                     Stmt 41 [66-125]: Expr: Expr 42 [66-125] [Type Unit]: While:
                                         Expr 38 [75-78] [Type Bool]: BinOp (Lt):
@@ -114,10 +114,10 @@ fn convert_for_array_deconstruct() {
                             Block 5 [66-146] [Type Unit]:
                                 Stmt 6 [76-140]: Expr: Expr 46 [76-140] [Type Unit]: Expr Block: Block 47 [76-140] [Type Unit]:
                                     Stmt 21 [90-93]: Local (Immutable):
-                                        Pat 22 [90-93] [Type ((Int, Double))[]]: Bind: Ident 20 [90-93] "array_id_20"
+                                        Pat 22 [90-93] [Type ((Int, Double))[]]: Bind: Ident 20 [90-93] "@array_id_20"
                                         Expr 13 [90-93] [Type ((Int, Double))[]]: Var: Local 3
                                     Stmt 27 [90-93]: Local (Immutable):
-                                        Pat 28 [90-93] [Type Int]: Bind: Ident 24 [90-93] "len_id_24"
+                                        Pat 28 [90-93] [Type Int]: Bind: Ident 24 [90-93] "@len_id_24"
                                         Expr 25 [90-93] [Type ((Int, Double))[]]: Call:
                                             Expr 23 [90-93] [Type (((Int, Double))[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
@@ -125,7 +125,7 @@ fn convert_for_array_deconstruct() {
                                                     (Int, Double)
                                             Expr 26 [90-93] [Type ((Int, Double))[]]: Var: Local 20
                                     Stmt 31 [90-93]: Local (Mutable):
-                                        Pat 32 [90-93] [Type Int]: Bind: Ident 29 [90-93] "index_id_29"
+                                        Pat 32 [90-93] [Type Int]: Bind: Ident 29 [90-93] "@index_id_29"
                                         Expr 30 [90-93] [Type Int]: Lit: Int(0)
                                     Stmt 44 [76-140]: Expr: Expr 45 [76-140] [Type Unit]: While:
                                         Expr 41 [90-93] [Type Bool]: BinOp (Lt):
@@ -179,7 +179,7 @@ fn convert_for_slice() {
                             Block 5 [56-141] [Type Unit]:
                                 Stmt 6 [66-135]: Expr: Expr 49 [66-135] [Type Unit]: Expr Block: Block 50 [66-135] [Type Unit]:
                                     Stmt 24 [75-88]: Local (Immutable):
-                                        Pat 25 [75-88] [Type (Int)[]]: Bind: Ident 23 [75-88] "array_id_23"
+                                        Pat 25 [75-88] [Type (Int)[]]: Bind: Ident 23 [75-88] "@array_id_23"
                                         Expr 10 [75-88] [Type (Int)[]]: Index:
                                             Expr 11 [75-78] [Type (Int)[]]: Var: Local 3
                                             Expr 12 [79-87] [Type Range]: Range:
@@ -188,7 +188,7 @@ fn convert_for_slice() {
                                                     Expr 15 [83-84] [Type Int]: Lit: Int(2)
                                                 Expr 16 [86-87] [Type Int]: Lit: Int(2)
                                     Stmt 30 [75-88]: Local (Immutable):
-                                        Pat 31 [75-88] [Type Int]: Bind: Ident 27 [75-88] "len_id_27"
+                                        Pat 31 [75-88] [Type Int]: Bind: Ident 27 [75-88] "@len_id_27"
                                         Expr 28 [75-88] [Type (Int)[]]: Call:
                                             Expr 26 [75-88] [Type ((Int)[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
@@ -196,7 +196,7 @@ fn convert_for_slice() {
                                                     Int
                                             Expr 29 [75-88] [Type (Int)[]]: Var: Local 23
                                     Stmt 34 [75-88]: Local (Mutable):
-                                        Pat 35 [75-88] [Type Int]: Bind: Ident 32 [75-88] "index_id_32"
+                                        Pat 35 [75-88] [Type Int]: Bind: Ident 32 [75-88] "@index_id_32"
                                         Expr 33 [75-88] [Type Int]: Lit: Int(0)
                                     Stmt 47 [66-135]: Expr: Expr 48 [66-135] [Type Unit]: While:
                                         Expr 44 [75-88] [Type Bool]: BinOp (Lt):
@@ -248,23 +248,23 @@ fn convert_for_range() {
                             Block 4 [45-121] [Type Unit]:
                                 Stmt 5 [55-115]: Expr: Expr 59 [55-115] [Type Unit]: Expr Block: Block 60 [55-115] [Type Unit]:
                                     Stmt 19 [64-68]: Local (Immutable):
-                                        Pat 20 [64-68] [Type Range]: Bind: Ident 18 [64-68] "range_id_18"
+                                        Pat 20 [64-68] [Type Range]: Bind: Ident 18 [64-68] "@range_id_18"
                                         Expr 9 [64-68] [Type Range]: Range:
                                             Expr 10 [64-65] [Type Int]: Lit: Int(0)
                                             <no step>
                                             Expr 11 [67-68] [Type Int]: Lit: Int(4)
                                     Stmt 24 [64-68]: Local (Mutable):
-                                        Pat 25 [64-68] [Type Int]: Bind: Ident 21 [64-68] "index_id_21"
+                                        Pat 25 [64-68] [Type Int]: Bind: Ident 21 [64-68] "@index_id_21"
                                         Expr 22 [64-68] [Type Int]: Field:
                                             Expr 23 [64-68] [Type Range]: Var: Local 18
                                             Prim(Start)
                                     Stmt 29 [64-68]: Local (Immutable):
-                                        Pat 30 [64-68] [Type Int]: Bind: Ident 26 [64-68] "step_id_26"
+                                        Pat 30 [64-68] [Type Int]: Bind: Ident 26 [64-68] "@step_id_26"
                                         Expr 27 [64-68] [Type Int]: Field:
                                             Expr 28 [64-68] [Type Range]: Var: Local 18
                                             Prim(Step)
                                     Stmt 34 [64-68]: Local (Immutable):
-                                        Pat 35 [64-68] [Type Int]: Bind: Ident 31 [64-68] "end_id_31"
+                                        Pat 35 [64-68] [Type Int]: Bind: Ident 31 [64-68] "@end_id_31"
                                         Expr 32 [64-68] [Type Int]: Field:
                                             Expr 33 [64-68] [Type Range]: Var: Local 18
                                             Prim(End)
@@ -328,24 +328,24 @@ fn convert_for_reverse_range() {
                             Block 4 [45-125] [Type Unit]:
                                 Stmt 5 [55-119]: Expr: Expr 61 [55-119] [Type Unit]: Expr Block: Block 62 [55-119] [Type Unit]:
                                     Stmt 21 [64-72]: Local (Immutable):
-                                        Pat 22 [64-72] [Type Range]: Bind: Ident 20 [64-72] "range_id_20"
+                                        Pat 22 [64-72] [Type Range]: Bind: Ident 20 [64-72] "@range_id_20"
                                         Expr 9 [64-72] [Type Range]: Range:
                                             Expr 10 [64-65] [Type Int]: Lit: Int(4)
                                             Expr 11 [67-69] [Type Int]: UnOp (Neg):
                                                 Expr 12 [68-69] [Type Int]: Lit: Int(1)
                                             Expr 13 [71-72] [Type Int]: Lit: Int(0)
                                     Stmt 26 [64-72]: Local (Mutable):
-                                        Pat 27 [64-72] [Type Int]: Bind: Ident 23 [64-72] "index_id_23"
+                                        Pat 27 [64-72] [Type Int]: Bind: Ident 23 [64-72] "@index_id_23"
                                         Expr 24 [64-72] [Type Int]: Field:
                                             Expr 25 [64-72] [Type Range]: Var: Local 20
                                             Prim(Start)
                                     Stmt 31 [64-72]: Local (Immutable):
-                                        Pat 32 [64-72] [Type Int]: Bind: Ident 28 [64-72] "step_id_28"
+                                        Pat 32 [64-72] [Type Int]: Bind: Ident 28 [64-72] "@step_id_28"
                                         Expr 29 [64-72] [Type Int]: Field:
                                             Expr 30 [64-72] [Type Range]: Var: Local 20
                                             Prim(Step)
                                     Stmt 36 [64-72]: Local (Immutable):
-                                        Pat 37 [64-72] [Type Int]: Bind: Ident 33 [64-72] "end_id_33"
+                                        Pat 37 [64-72] [Type Int]: Bind: Ident 33 [64-72] "@end_id_33"
                                         Expr 34 [64-72] [Type Int]: Field:
                                             Expr 35 [64-72] [Type Range]: Var: Local 20
                                             Prim(End)
@@ -409,7 +409,7 @@ fn convert_repeat() {
                             Block 4 [45-126] [Type Unit]:
                                 Stmt 5 [55-120]: Semi: Expr 26 [55-119] [Type Unit]: Expr Block: Block 22 [55-119] [Type Unit]:
                                     Stmt 16 [115-119]: Local (Mutable):
-                                        Pat 17 [115-119] [Type Bool]: Bind: Ident 14 [115-119] "continue_cond_14"
+                                        Pat 17 [115-119] [Type Bool]: Bind: Ident 14 [115-119] "@continue_cond_14"
                                         Expr 15 [115-119] [Type Bool]: Lit: Bool(true)
                                     Stmt 23 [55-119]: Expr: Expr 24 [55-119] [Type Unit]: While:
                                         Expr 25 [115-119] [Type Bool]: Var: Local 14
@@ -458,7 +458,7 @@ fn convert_repeat_fixup() {
                             Block 4 [45-180] [Type Unit]:
                                 Stmt 5 [55-174]: Expr: Expr 35 [55-174] [Type Unit]: Expr Block: Block 31 [55-174] [Type Unit]:
                                     Stmt 21 [115-119]: Local (Mutable):
-                                        Pat 22 [115-119] [Type Bool]: Bind: Ident 19 [115-119] "continue_cond_19"
+                                        Pat 22 [115-119] [Type Bool]: Bind: Ident 19 [115-119] "@continue_cond_19"
                                         Expr 20 [115-119] [Type Bool]: Lit: Bool(true)
                                     Stmt 32 [55-174]: Expr: Expr 33 [55-174] [Type Unit]: While:
                                         Expr 34 [115-119] [Type Bool]: Var: Local 19
@@ -533,14 +533,14 @@ fn convert_repeat_nested() {
                                     Expr 16 [108-112] [Type Bool]: Lit: Bool(true)
                                 Stmt 17 [122-395]: Expr: Expr 90 [122-395] [Type Unit]: Expr Block: Block 86 [122-395] [Type Unit]:
                                     Stmt 76 [291-292]: Local (Mutable):
-                                        Pat 77 [291-292] [Type Bool]: Bind: Ident 74 [291-292] "continue_cond_74"
+                                        Pat 77 [291-292] [Type Bool]: Bind: Ident 74 [291-292] "@continue_cond_74"
                                         Expr 75 [291-292] [Type Bool]: Lit: Bool(true)
                                     Stmt 87 [122-395]: Expr: Expr 88 [122-395] [Type Unit]: While:
                                         Expr 89 [291-292] [Type Bool]: Var: Local 74
                                         Block 19 [129-284] [Type Unit]:
                                             Stmt 20 [143-274]: Expr: Expr 60 [143-274] [Type Unit]: Expr Block: Block 56 [143-274] [Type Unit]:
                                                 Stmt 46 [205-206]: Local (Mutable):
-                                                    Pat 47 [205-206] [Type Bool]: Bind: Ident 44 [205-206] "continue_cond_44"
+                                                    Pat 47 [205-206] [Type Bool]: Bind: Ident 44 [205-206] "@continue_cond_44"
                                                     Expr 45 [205-206] [Type Bool]: Lit: Bool(true)
                                                 Stmt 57 [143-274]: Expr: Expr 58 [143-274] [Type Unit]: While:
                                                     Expr 59 [205-206] [Type Bool]: Var: Local 44
@@ -569,7 +569,7 @@ fn convert_repeat_nested() {
                                                 Expr 85 [307-395] [Type Unit]: Expr Block: Block 34 [307-395] [Type Unit]:
                                                     Stmt 35 [321-385]: Semi: Expr 73 [321-384] [Type Unit]: Expr Block: Block 69 [321-384] [Type Unit]:
                                                         Stmt 63 [383-384]: Local (Mutable):
-                                                            Pat 64 [383-384] [Type Bool]: Bind: Ident 61 [383-384] "continue_cond_61"
+                                                            Pat 64 [383-384] [Type Bool]: Bind: Ident 61 [383-384] "@continue_cond_61"
                                                             Expr 62 [383-384] [Type Bool]: Lit: Bool(true)
                                                         Stmt 70 [321-384]: Expr: Expr 71 [321-384] [Type Unit]: While:
                                                             Expr 72 [383-384] [Type Bool]: Var: Local 61
