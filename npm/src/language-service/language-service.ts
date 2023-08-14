@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
   IDiagnostic,
   ICompletionList,
@@ -56,6 +57,8 @@ export interface ILanguageService {
     listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
   ): void;
 }
+
+export const qsharpLibraryUriScheme = "qsharp-library-source";
 
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
@@ -134,13 +137,20 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number
   ): Promise<IDefinition | null> {
-    const code = this.code[documentUri];
+    let code = this.code[documentUri];
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_definition(
       documentUri,
       convertedOffset
     ) as IDefinition | null;
     if (result) {
+      // Inspect the URL protocol (equivalent to the URI scheme + ":").
+      // If the scheme is our library scheme, we need to call the wasm to
+      // provide the library file's contents to do the utf8->utf16 mapping.
+      const url = new URL(result.source);
+      if (url.protocol === qsharpLibraryUriScheme + ":") {
+        code = wasm.get_library_source_content(url.pathname);
+      }
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
         result.offset
       ];

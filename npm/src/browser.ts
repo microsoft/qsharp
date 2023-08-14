@@ -17,9 +17,12 @@ import {
   ILanguageService,
   ILanguageServiceWorker,
   QSharpLanguageService,
+  qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { createLanguageServiceProxy } from "./language-service/worker-proxy.js";
 import { LogLevel, log } from "./log.js";
+
+export { qsharpLibraryUriScheme };
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;

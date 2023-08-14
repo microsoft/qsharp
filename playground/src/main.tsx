@@ -285,13 +285,10 @@ function registerMonacoLanguageServiceProviders(
         model.uri.toString(),
         model.getOffsetAt(position)
       );
-
       if (!definition) return null;
       const uri = monaco.Uri.parse(definition.source);
-      const definitionPosition =
-        uri.toString() === model.uri.toString()
-          ? model.getPositionAt(definition.offset)
-          : { lineNumber: 1, column: 1 };
+      if (uri.toString() !== model.uri.toString()) return null;
+      const definitionPosition = model.getPositionAt(definition.offset);
       return {
         uri,
         range: {

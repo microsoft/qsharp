@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor, qsharpLibraryUriScheme } from "../common";
+import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -31,6 +31,7 @@ import {
   StepResultId,
   IStructStepResult,
   QscEventTarget,
+  qsharpLibraryUriScheme,
 } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";

@@ -7,6 +7,8 @@ use qsc::{
     CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
 };
 
+pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
+
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
 pub(crate) struct Compilation {
