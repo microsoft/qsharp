@@ -20,13 +20,13 @@ namespace MyQuantumApp {
         // Put qubit in superposition of |0> and |1> by applying the H gate to it.
         H(q);
 
-		// Measure the qubit.
-		let measurement = M(q);
-		
+        // Measure the qubit.
+        let measurement = M(q);
+        
         // Reset the qubit.
-		Reset(q);
+        Reset(q);
 
-		// Return the measurement.
-		return measurement;
+        // Return the measurement.
+        return measurement;
     }
 }

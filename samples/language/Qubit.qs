@@ -34,8 +34,11 @@ namespace MyQuantumApp {
         // Display the quantum state of the qubits.
         DumpMachine();
 
-        // Free the allocated qubits.
+        // Reset the allocated qubits.
         ResetAll(qs);
+
+        // Reset the single qubit.
+        Reset(qubit);
 
     }
 }
