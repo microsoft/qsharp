@@ -143,6 +143,9 @@ export class QSharpLanguageService implements ILanguageService {
       convertedOffset
     ) as IDefinition | null;
     if (result) {
+      // Inspect the URL protocol (equivalent to the URI scheme + ":").
+      // If the scheme is our library scheme, we need to call the wasm to
+      // provide the library file's contents to do the utf8->utf16 mapping.
       const url = new URL(result.source);
       if (url.protocol === this.qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);

@@ -60,6 +60,9 @@ impl DefinitionFinder<'_> {
         let source = source_map
             .find_by_offset(lo)
             .expect("source should exist for offset");
+        // Note: Having a package_id means the position references a foreign package.
+        // Currently the only supported foreign packages are our library packages,
+        // URI's to which need to include our custom library scheme.
         let source_name = match package_id {
             Some(_) => format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name),
             None => source.name.to_string(),
