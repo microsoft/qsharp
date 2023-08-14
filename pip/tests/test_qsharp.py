@@ -12,7 +12,7 @@ import io
 def test_stdout() -> None:
     f = io.StringIO()
     with redirect_stdout(f):
-        result = qsharp.interpret('Message("Hello, world!")')
+        result = qsharp.eval('Message("Hello, world!")')
 
     assert result is None
     assert f.getvalue() == "Hello, world!\n"
@@ -21,7 +21,7 @@ def test_stdout() -> None:
 def test_stdout_multiple_lines() -> None:
     f = io.StringIO()
     with redirect_stdout(f):
-        qsharp.interpret(
+        qsharp.eval(
             """
         use q = Qubit();
         Microsoft.Quantum.Diagnostics.DumpMachine();
