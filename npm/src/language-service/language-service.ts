@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
   IDiagnostic,
   ICompletionList,
@@ -134,13 +135,17 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number
   ): Promise<IDefinition | null> {
-    const code = this.code[documentUri];
+    let code = this.code[documentUri];
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_definition(
       documentUri,
       convertedOffset
     ) as IDefinition | null;
     if (result) {
+      const url = new URL(result.source);
+      if (url.protocol === "qsharp-library-source" + ":") {
+        code = wasm.get_library_source_content(url.pathname);
+      }
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
         result.offset
       ];
