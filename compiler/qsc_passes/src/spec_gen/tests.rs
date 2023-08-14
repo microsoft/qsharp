@@ -959,7 +959,7 @@ fn generate_adj_invert_with_range_loop() {
                             Block 35 [104-181] [Type Unit]:
                                 Stmt 36 [114-175]: Expr: Expr 37 [0-0] [Type Unit]: Expr Block: Block 38 [0-0] [Type Unit]:
                                     Stmt 39 [0-0]: Local (Immutable):
-                                        Pat 40 [0-0] [Type Range]: Bind: Ident 41 [0-0] "generated_range"
+                                        Pat 40 [0-0] [Type Range]: Bind: Ident 41 [0-0] "@range"
                                         Expr 42 [123-127] [Type Range]: Range:
                                             Expr 43 [123-124] [Type Int]: Lit: Int(0)
                                             <no step>
@@ -1064,13 +1064,13 @@ fn generate_adj_invert_with_array_loop() {
                             Block 37 [104-188] [Type Unit]:
                                 Stmt 38 [114-182]: Expr: Expr 39 [0-0] [Type Unit]: Expr Block: Block 40 [0-0] [Type Unit]:
                                     Stmt 41 [0-0]: Local (Immutable):
-                                        Pat 42 [0-0] [Type (Int)[]]: Bind: Ident 43 [0-0] "generated_array"
+                                        Pat 42 [0-0] [Type (Int)[]]: Bind: Ident 43 [0-0] "@array"
                                         Expr 44 [125-134] [Type (Int)[]]: Array:
                                             Expr 45 [126-127] [Type Int]: Lit: Int(0)
                                             Expr 46 [129-130] [Type Int]: Lit: Int(1)
                                             Expr 47 [132-133] [Type Int]: Lit: Int(2)
                                     Stmt 48 [0-0]: Expr: Expr 49 [0-0] [Type Unit]: For:
-                                        Pat 50 [0-0] [Type Int]: Bind: Ident 51 [0-0] "generated_index"
+                                        Pat 50 [0-0] [Type Int]: Bind: Ident 51 [0-0] "@index"
                                         Expr 52 [0-0] [Type Range]: Range:
                                             Expr 53 [0-0] [Type Int]: BinOp (Sub):
                                                 Expr 54 [0-0] [Type Int]: Call:
@@ -1179,13 +1179,13 @@ fn generate_adj_invert_with_nested_loops() {
                             Block 60 [104-318] [Type Unit]:
                                 Stmt 61 [114-312]: Expr: Expr 62 [0-0] [Type Unit]: Expr Block: Block 63 [0-0] [Type Unit]:
                                     Stmt 64 [0-0]: Local (Immutable):
-                                        Pat 65 [0-0] [Type (Int)[]]: Bind: Ident 66 [0-0] "generated_array"
+                                        Pat 65 [0-0] [Type (Int)[]]: Bind: Ident 66 [0-0] "@array"
                                         Expr 67 [125-134] [Type (Int)[]]: Array:
                                             Expr 68 [126-127] [Type Int]: Lit: Int(0)
                                             Expr 69 [129-130] [Type Int]: Lit: Int(1)
                                             Expr 70 [132-133] [Type Int]: Lit: Int(2)
                                     Stmt 71 [0-0]: Expr: Expr 72 [0-0] [Type Unit]: For:
-                                        Pat 73 [0-0] [Type Int]: Bind: Ident 74 [0-0] "generated_index"
+                                        Pat 73 [0-0] [Type Int]: Bind: Ident 74 [0-0] "@index"
                                         Expr 75 [0-0] [Type Range]: Range:
                                             Expr 76 [0-0] [Type Int]: BinOp (Sub):
                                                 Expr 77 [0-0] [Type Int]: Call:
@@ -1215,10 +1215,10 @@ fn generate_adj_invert_with_nested_loops() {
                                                 Expr 101 [299-300] [Type Int]: Lit: Int(4)
                                             Stmt 102 [210-284]: Expr: Expr 103 [0-0] [Type Unit]: Expr Block: Block 104 [0-0] [Type Unit]:
                                                 Stmt 105 [0-0]: Local (Immutable):
-                                                    Pat 106 [0-0] [Type (Bool)[]]: Bind: Ident 107 [0-0] "generated_array"
+                                                    Pat 106 [0-0] [Type (Bool)[]]: Bind: Ident 107 [0-0] "@array"
                                                     Expr 108 [221-224] [Type (Bool)[]]: Var: Local 92
                                                 Stmt 109 [0-0]: Expr: Expr 110 [0-0] [Type Unit]: For:
-                                                    Pat 111 [0-0] [Type Int]: Bind: Ident 112 [0-0] "generated_index"
+                                                    Pat 111 [0-0] [Type Int]: Bind: Ident 112 [0-0] "@index"
                                                     Expr 113 [0-0] [Type Range]: Range:
                                                         Expr 114 [0-0] [Type Int]: BinOp (Sub):
                                                             Expr 115 [0-0] [Type Int]: Call:
