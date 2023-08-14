@@ -58,10 +58,11 @@ export interface ILanguageService {
   ): void;
 }
 
+export const qsharpLibraryUriScheme = "qsharp-library-source";
+
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
 export class QSharpLanguageService implements ILanguageService {
-  private qsharpLibraryUriScheme = "qsharp-library-source";
   private languageService: LanguageService;
   private eventHandler =
     new EventTarget() as IServiceEventTarget<LanguageServiceEvent>;
@@ -147,7 +148,7 @@ export class QSharpLanguageService implements ILanguageService {
       // If the scheme is our library scheme, we need to call the wasm to
       // provide the library file's contents to do the utf8->utf16 mapping.
       const url = new URL(result.source);
-      if (url.protocol === this.qsharpLibraryUriScheme + ":") {
+      if (url.protocol === qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
       }
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
