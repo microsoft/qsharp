@@ -530,6 +530,10 @@ impl State {
                     if let Some(bp) = breakpoints.iter().find(|&bp| *bp == stmt) {
                         StepResult::BreakpointHit(*bp)
                     } else {
+                        if self.current_span == Span::default() {
+                            // if there is no span, we are in generated code, so we should skip
+                            continue;
+                        }
                         // no breakpoint, but we may stop here
                         if step == StepAction::In {
                             StepResult::StepIn
