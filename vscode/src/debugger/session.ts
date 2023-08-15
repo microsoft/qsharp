@@ -368,7 +368,7 @@ export class QscDebugSession extends LoggingDebugSession {
     };
 
     const file = await this.fileAccessor
-      .openFile(args.source.path ?? "")
+      .openPath(args.source.path ?? "")
       .catch((e) => {
         log.error(`Failed to open file: ${e}`);
         const fileUri = this.fileAccessor.resolvePathToUri(
@@ -444,7 +444,7 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`setBreakPointsRequest: %O`, args);
 
     const file = await this.fileAccessor
-      .openFile(args.source.path ?? "")
+      .openPath(args.source.path ?? "")
       .catch((e) => {
         log.error(`setBreakPointsRequest - Failed to open file: ${e}`);
         const fileUri = this.fileAccessor.resolvePathToUri(
@@ -549,7 +549,7 @@ export class QscDebugSession extends LoggingDebugSession {
           log.trace(`frames: path %O`, f.path);
 
           const file = await this.fileAccessor
-            .openFile(f.path ?? "")
+            .openPath(f.path ?? "")
             .catch((e) => {
               log.error(`stackTraceRequest - Failed to open file: ${e}`);
               const fileUri = this.fileAccessor.resolvePathToUri(f.path ?? "");

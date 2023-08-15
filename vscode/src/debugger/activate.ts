@@ -128,11 +128,14 @@ export const workspaceFileAccessor: FileAccessor = {
   normalizePath(path: string): string {
     return path.replace(/\\/g, "/");
   },
+  convertToWindowsPathSeparator(path: string): string {
+    return path.replace(/\//g, "\\");
+  },
   resolvePathToUri(path: string): vscode.Uri {
     const normalizedPath = this.normalizePath(path);
     return vscode.Uri.parse(normalizedPath, false);
   },
-  async openFile(path: string): Promise<vscode.TextDocument> {
+  async openPath(path: string): Promise<vscode.TextDocument> {
     const uri: vscode.Uri = this.resolvePathToUri(path);
     return this.openUri(uri);
   },
@@ -140,20 +143,9 @@ export const workspaceFileAccessor: FileAccessor = {
     try {
       return await vscode.workspace.openTextDocument(uri);
     } catch {
-      const path = uri.toString().replace(/\//g, "\\");
+      const path = this.convertToWindowsPathSeparator(uri.toString());
       return await vscode.workspace.openTextDocument(vscode.Uri.file(path));
     }
-  },
-  async readFile(path: string): Promise<Uint8Array> {
-    let uri: vscode.Uri = this.resolvePathToUri(path);
-    return await vscode.workspace.fs.readFile(uri);
-  },
-  async readFileAsString(path: string): Promise<string> {
-    const contents = await this.readFile(path);
-    return new TextDecoder().decode(contents);
-  },
-  async writeFile(path: string, contents: Uint8Array) {
-    await vscode.workspace.fs.writeFile(this.resolvePathToUri(path), contents);
   },
 };
 
