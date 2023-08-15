@@ -6,7 +6,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation MeasureSuperposition() : Result {
+    operation Main() : Result {
         use q = Qubit();
         
         // A `Pauli` can be declared as a literal.
