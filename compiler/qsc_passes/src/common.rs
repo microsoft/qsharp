@@ -13,6 +13,10 @@ use qsc_hir::{
 };
 use std::rc::Rc;
 
+pub(crate) fn generated_name(name: &str) -> Rc<str> {
+    Rc::from(format!("@{name}"))
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct IdentTemplate {
     pub id: NodeId,
