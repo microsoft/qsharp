@@ -5,9 +5,9 @@ import { log } from "qsharp";
 
 const publicMgmtEndpoint = "https://management.azure.com";
 
-// TODO: Remove once cors on quantum endpoint is fixed
+// TODO: Remove once cors on quantum endpoint and storage accounts is fixed
 const proxy = ""; // "http://localhost:5555";
-const storageProxy = "http://localhost:3000";
+const storageProxy = ""; // "http://localhost:3000";
 
 export async function azureRequest(
   uri: string,
@@ -60,6 +60,7 @@ export async function storageRequest(uri: string, method: string, body?: any) {
     return response;
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
+    throw e;
   }
 }
 

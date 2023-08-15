@@ -178,18 +178,6 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     .map((job) => ({ ...job }));
 
   return;
-  // const job =
-  //   jobs.value.length === 1
-  //     ? jobs.value[0]
-  //     : jobs.value.find(
-  //         (job) => job.id === "073064ed-2a47-11ee-b8e7-010101010000"
-  //       );
-
-  // // TODO: Get a SAS token for this job container
-  // if (!job) return;
-  // const fileUri = vscode.Uri.parse(job.outputDataUri);
-  // const [_, container, blob] = fileUri.path.split("/");
-  // getJobFiles(container, blob, token, quantumUris);
 }
 
 export async function getJobFiles(
@@ -213,8 +201,14 @@ export async function getJobFiles(
     if (!file) throw "No file returned";
     const blob = await file.text();
     return blob;
-    log.debug(`Got file of length ${blob.length}`);
   } catch (e) {
+    if ((e as any).name === "TypeError") {
+      vscode.window.showErrorMessage(
+        "Unable to download the file. This could be due to cors issues on the storage account. " +
+          "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
+          "See https://go.microsoft.com/fwlink/?LinkId=2221130 for more info."
+      );
+    }
     log.error(`Failed to get file: ${e}`);
     return "";
   }
