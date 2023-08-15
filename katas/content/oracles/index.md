@@ -5,16 +5,16 @@
     "title": "Overview"
 })
 
-Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.  This tutorial dives deeper into the definition of different types of quantum oracles, their properties, and the basic ways to implement the oracles.
+Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.  This kata dives deeper into the definition of different types of quantum oracles, their properties, and the basic ways to implement the oracles.
 
-**This tutorial covers the following topics:**
+**This kata covers the following topics:**
 
 - Quantum oracles and how they relate to classical oracles
 - Two types of quantum oracles - phase oracles and marking oracles
 - Phase kickback and its uses for oracles implementation
 - Implementation and testing of quantum oracles in Q#
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this kata:**
 
 - Fundamental quantum concepts
 - Multi-qubit gates (especially controlled gates)
@@ -54,18 +54,17 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
     "title": "Quantum Oracles"
 })
 
-An oracle in the quantum world is a "black box" operation that is used as input to an algorithm (such as Deutsch-Jozsa algorithm or Grover's search algorithm, which you'll learn later). 
+An oracle in the quantum world is a "black box" operation that is used as input to an algorithm (such as Deutsch-Jozsa algorithm or Grover's search algorithm). 
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
-In this tutorial you will learn the properties of quantum oracles and how to implement them.
+In this kata, you will learn the properties of quantum oracles and how to implement them.
 
-A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where $x$ is an $n$-bit input state
-of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, i.e., the function can return values $0$ or $1$; in this tutorial we will focus on this class of functions.
+A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where $x$ is an $n$-bit input state of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, i.e., the function can return values $0$ or $1$; in this kata, we will focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
 $$|x\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$ 
 where $|x_i\rangle$ represents the state of the $i$-th qubit.  
 
-Oracles must be unitary transformations, and follow the same rules of linear algebra as other quantum operations. (See the [linear algebra tutorial](../LinearAlgebra/LinearAlgebra.ipynb) if you need a refresher.)
+Oracles must be unitary transformations, and follow the same rules of linear algebra as other quantum operations.
 This allows us to define quantum oracles based on their effect on the basis states - tensor products of single-qubit basis states $|0\rangle$ and $|1\rangle$. 
 
 > For example, an oracle that implements a function that takes 2 bits of input will be defined using its effect on basis states $|00\rangle$, $|01\rangle$, $|10\rangle$, and $|11\rangle$.  
@@ -93,7 +92,7 @@ The phase oracle that implements this function will take an array of 3 qubits as
 
 @[example]({"id": "phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
 
-We introduced the function [ControlledOnBitString](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring) provided by the Q# Standard library.
+We introduced the function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) provided by the Q# Standard library.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
  
 The sequence of steps that implement this variant are:
@@ -101,7 +100,7 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits. To learn its internal implementation (and the very similar [ControlledOnInt](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonint)), please refer to the [Q# source code](https://github.com/microsoft/QuantumLibraries/blob/c0b851735542117cf6d73f8946ab6eef8c84384d/Standard/src/Canon/Utils/ControlledOnBitString.qs#L107).
+Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits. To learn its internal implementation (and the very similar [ApplyControlledOnInt](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonint)), please refer to the [Q# source code](https://github.com/microsoft/qsharp/blob/7d72e789b084ea5ecc50a9298517bc19cd0c1c88/library/std/canon.qs#L463).
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
@@ -145,7 +144,7 @@ The marking oracle that implements this function will take an array of 3 qubits 
 
 > Let's compare the initial state to the final state from the above demo. 
 In the initial state we had a tensor product of an equal superposition of all 3-qubit basis states and the state $|0\rangle$.  In the final state, this is no longer the case. 
-The basis states $|010\rangle \otimes |0\rangle$ and $|101\rangle \otimes |0\rangle$ no longer have non-zero amplitudes, and instead $|010\rangle \otimes |1\rangle$ and $|101\rangle \otimes |1\rangle$ has non-zero amplitudes.
+The basis states $|010\rangle \otimes |0\rangle$ and $|101\rangle \otimes |0\rangle$ no longer have non-zero amplitudes, and instead $|010\rangle \otimes |1\rangle$ and $|101\rangle \otimes |1\rangle$ have non-zero amplitudes.
 >
 > This is exactly the result that we expect.  Recall our function $f(x)$: $f(x)=1$ if and only if $x=010$ or $x=101$.  The first three qubits (variable `x`) represent the input state $|x\rangle$, and the last qubit (variable `y`) represents the output state $|y\rangle$.  Thus when we have the two basis states, $|x\rangle=|010\rangle$ or $|x\rangle=|101\rangle$, we will flip the state of the qubit $|y\rangle$, causing these two initial states to be tensored with $|1\rangle$ in the final state where originally they were tensored with $|0\rangle$.
 >
@@ -250,9 +249,7 @@ We can see that these two equations are identical, except for the $-1$ phase tha
     "title": "Oracle conversion"
 })
 
-In this demo we will use your implementation from task 2.1 to convert the marking oracle from task 1.3 to a phase oracle.  Then we will compare this converted oracle to the phase oracle that you implemented in task 1.2.
-
-> *You must have tasks 1.2, 1.3, and 2.1 solved correctly for this demo to work!*
+In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
 
 @[example]({"id": "oracle_converter_demo", "codePath": "./oracle_converter_demo.qs"})
 
@@ -359,6 +356,6 @@ However, if you're designing an oracle for a new problem, you do not have a refe
 
 A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a lot of the inputs if you are constrained by runtime) to ensure that they match.
 
-Here we will test your implementation from task 4.3 by comparing it to the classical code implementing the same function. 
+Here we will compare the reference implementation of `Meeting_Classical` oracle to the classical code implementing the same function.
 
 @[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
