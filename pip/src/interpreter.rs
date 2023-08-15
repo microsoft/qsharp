@@ -40,10 +40,6 @@ pub(crate) enum Target {
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
     pub(crate) interpreter: stateful::Interpreter,
-    // TODO: Smoke and mirrors.
-    // Accumulate Q# source code so we can pass it to compile_to_qir later.
-    code: String,
-    // target: TargetProfile,
 }
 
 #[pymethods]
@@ -57,11 +53,7 @@ impl Interpreter {
             Target::Base => TargetProfile::Base,
         };
         match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
-            Ok(interpreter) => Ok(Self {
-                interpreter,
-                code: String::new(),
-                // target,
-            }),
+            Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => {
                 let mut message = String::new();
                 for error in errors {
@@ -86,10 +78,6 @@ impl Interpreter {
         input: &str,
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
-        match writeln!(self.code, "{input}") {
-            Ok(_) => (),
-            Err(_) => return Err(QSharpError::new_err("Failed to write to code buffer")),
-        }
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.interpret_line(&mut receiver, input) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
