@@ -12,7 +12,7 @@ namespace Kata {
         Message("The equal superposition state:");
         DumpMachine();
 
-        // Apply the `IsSeven_PhaseOracle` from task on implementing a phase oracle
+        // Apply the `IsSeven_PhaseOracle` from the task on implementing a phase oracle
         IsSeven_PhaseOracle(register);
 
         // Dump the state after application of the oracle
@@ -25,7 +25,7 @@ namespace Kata {
         // Prepare an equal superposition state again
         ApplyToEachA(H, register);
 
-        // Apply the `IsSeven_MarkingOracle` from task on implementing a marking oracle
+        // Apply the `IsSeven_MarkingOracle` from the task on implementing a marking oracle
         // as a phase oracle
         ApplyMarkingOracleAsPhaseOracle(IsSeven_MarkingOracle, register);
 
