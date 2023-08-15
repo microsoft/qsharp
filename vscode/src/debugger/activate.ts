@@ -125,15 +125,30 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
 }
 
 export const workspaceFileAccessor: FileAccessor = {
-  async readFile(uri: string): Promise<Uint8Array> {
-    return await vscode.workspace.fs.readFile(vscode.Uri.parse(uri));
+  normalizePath(path: string): string {
+    return path.replace(/\\/g, "/");
   },
-  async readFileAsString(uri: string): Promise<string> {
-    const contents = await this.readFile(uri);
+  resolvePathToUri(path: string): vscode.Uri {
+    const normalizedPath = this.normalizePath(path);
+    return vscode.Uri.parse(normalizedPath, false);
+  },
+  async openFile(path: string): Promise<vscode.TextDocument> {
+    const uri: vscode.Uri = this.resolvePathToUri(path);
+    return await vscode.workspace.openTextDocument(uri);
+  },
+  async openUri(uri: vscode.Uri): Promise<vscode.TextDocument> {
+    return await vscode.workspace.openTextDocument(uri);
+  },
+  async readFile(path: string): Promise<Uint8Array> {
+    let uri: vscode.Uri = this.resolvePathToUri(path);
+    return await vscode.workspace.fs.readFile(uri);
+  },
+  async readFileAsString(path: string): Promise<string> {
+    const contents = await this.readFile(path);
     return new TextDecoder().decode(contents);
   },
-  async writeFile(uri: string, contents: Uint8Array) {
-    await vscode.workspace.fs.writeFile(vscode.Uri.parse(uri), contents);
+  async writeFile(path: string, contents: Uint8Array) {
+    await vscode.workspace.fs.writeFile(this.resolvePathToUri(path), contents);
   },
 };
 
