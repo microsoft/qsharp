@@ -250,9 +250,7 @@ We can see that these two equations are identical, except for the $-1$ phase tha
     "title": "Oracle conversion"
 })
 
-In this demo we will use your implementation from task 2.1 to convert the marking oracle from task 1.3 to a phase oracle.  Then we will compare this converted oracle to the phase oracle that you implemented in task 1.2.
-
-> *You must have tasks 1.2, 1.3, and 2.1 solved correctly for this demo to work!*
+In this demo we will use reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
 
 @[example]({"id": "oracle_converter_demo", "codePath": "./oracle_converter_demo.qs"})
 
@@ -359,6 +357,6 @@ However, if you're designing an oracle for a new problem, you do not have a refe
 
 A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a lot of the inputs if you are constrained by runtime) to ensure that they match.
 
-Here we will test your implementation from task 4.3 by comparing it to the classical code implementing the same function. 
+Here we will compare reference implementation of `Meeting_Classical` to the classical code implementing the same function. 
 
 @[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
