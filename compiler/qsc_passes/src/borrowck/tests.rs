@@ -3,7 +3,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use qsc_hir::visit::Visitor;
 
 use crate::borrowck::Checker;
@@ -11,7 +11,7 @@ use crate::borrowck::Checker;
 fn check(expr: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[], sources);
+    let unit = compile(&store, &[], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let mut borrow_check = Checker::default();
