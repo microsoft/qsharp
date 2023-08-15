@@ -17,10 +17,8 @@ export const qsharpExtensionId = "qsharp-vscode";
 
 export interface FileAccessor {
   normalizePath(path: string): string;
+  convertToWindowsPathSeparator(path: string): string;
   resolvePathToUri(path: string): Uri;
-  openFile(path: string): Promise<TextDocument>;
+  openPath(path: string): Promise<TextDocument>;
   openUri(uri: Uri): Promise<TextDocument>;
-  readFile(path: string): Promise<Uint8Array>;
-  readFileAsString(path: string): Promise<string>;
-  writeFile(path: string, contents: Uint8Array): Promise<void>;
 }
