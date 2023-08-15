@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use expect_test::{expect, Expect};
+
 use super::{get_definition, Definition};
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 
@@ -21,6 +23,13 @@ fn assert_definition(source_with_markers: &str) {
         })
     };
     assert_eq!(&expected_definition, &actual_definition);
+}
+
+fn check(source_with_markers: &str, expect: &Expect) {
+    let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
+    let compilation = compile_with_fake_stdlib("<source>", &source);
+    let actual_definition = get_definition(&compilation, "<source>", cursor_offsets[0]);
+    expect.assert_debug_eq(&actual_definition);
 }
 
 #[test]
@@ -255,8 +264,8 @@ fn lambda_closure_ref() {
 }
 
 #[test]
-fn std_call_no_goto() {
-    assert_definition(
+fn std_call() {
+    check(
         r#"
     namespace Test {
         open FakeStdLib;
@@ -265,6 +274,14 @@ fn std_call_no_goto() {
         }
     }
     "#,
+        &expect![[r#"
+            Some(
+                Definition {
+                    source: "qsharp-library-source:<std>",
+                    offset: 49,
+                },
+            )
+        "#]],
     );
 }
 

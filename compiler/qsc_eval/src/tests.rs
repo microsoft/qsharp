@@ -13,7 +13,7 @@ use indoc::indoc;
 use qsc_data_structures::index_map::IndexMap;
 
 use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Evaluates the given expression with the given context.
@@ -98,16 +98,27 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let core_fir = fir_lowerer.lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
-    let mut std = compile::std(&store);
+    let mut std = compile::std(&store, TargetProfile::Full);
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
+    assert!(run_default_passes(
+        store.core(),
+        &mut std,
+        PackageType::Lib,
+        TargetProfile::Full
+    )
+    .is_empty());
     let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources);
+    let mut unit = compile(&store, &[std_id], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
+    let pass_errors = run_default_passes(
+        store.core(),
+        &mut unit,
+        PackageType::Lib,
+        TargetProfile::Full,
+    );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
     let entry = unit_fir.entry.expect("package should have entry");

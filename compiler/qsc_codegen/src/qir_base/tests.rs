@@ -5,7 +5,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 use crate::qir_base::generate_qir;
@@ -14,14 +14,26 @@ fn check(expr: &str, expect: &Expect) {
     let mut core = compile::core();
     assert!(run_core_passes(&mut core).is_empty());
     let mut store = PackageStore::new(core);
-    let mut std = compile::std(&store);
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
+    let mut std = compile::std(&store, TargetProfile::Base);
+    assert!(run_default_passes(
+        store.core(),
+        &mut std,
+        PackageType::Lib,
+        TargetProfile::Base
+    )
+    .is_empty());
     let std = store.insert(std);
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
 
-    let mut unit = compile(&store, &[std], sources);
+    let mut unit = compile(&store, &[std], sources, TargetProfile::Base);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    assert!(run_default_passes(store.core(), &mut unit, PackageType::Exe).is_empty());
+    assert!(run_default_passes(
+        store.core(),
+        &mut unit,
+        PackageType::Exe,
+        TargetProfile::Base
+    )
+    .is_empty());
     let package = store.insert(unit);
 
     let qir = generate_qir(&store, package);

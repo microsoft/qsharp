@@ -12,7 +12,7 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 use serde_json::json;
 use std::fmt::Write;
@@ -25,7 +25,7 @@ mod logging;
 thread_local! {
     static STORE_CORE_STD: (PackageStore, PackageId) = {
         let mut store = PackageStore::new(compile::core());
-        let std = store.insert(compile::std(&store));
+        let std = store.insert(compile::std(&store, TargetProfile::Full));
         (store, std)
     };
 }
@@ -64,7 +64,13 @@ pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
 fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
     STORE_CORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (unit, errors) = compile::compile(store, &[*std], sources, PackageType::Exe);
+        let (unit, errors) = compile::compile(
+            store,
+            &[*std],
+            sources,
+            PackageType::Exe,
+            TargetProfile::Full,
+        );
         (
             unit.package,
             errors.into_iter().map(|error| (&error).into()).collect(),

@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor, qsharpLibraryUriScheme } from "../common";
+import { FileAccessor } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -31,6 +31,7 @@ import {
   StepResultId,
   IStructStepResult,
   QscEventTarget,
+  qsharpLibraryUriScheme,
 } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
@@ -692,7 +693,18 @@ export class QscDebugSession extends LoggingDebugSession {
       };
     } else if (handle === "quantum") {
       const state = await this.debugService.captureQuantumState();
-      this.writeToDebugConsole(state);
+      const variables: DebugProtocol.Variable[] = state.map((entry) => {
+        const variable: DebugProtocol.Variable = {
+          name: entry.name,
+          value: entry.value,
+          variablesReference: 0,
+          type: "Complex",
+        };
+        return variable;
+      });
+      response.body = {
+        variables: variables,
+      };
     }
 
     log.trace(`variablesResponse: %O`, response);

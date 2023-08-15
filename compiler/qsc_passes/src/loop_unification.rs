@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use core::panic;
-use std::{mem::take, rc::Rc};
+use std::mem::take;
 
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -13,7 +13,7 @@ use qsc_hir::{
     ty::{GenericArg, Prim, Ty},
 };
 
-use crate::common::{create_gen_core_ref, IdentTemplate};
+use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
 
 #[cfg(test)]
 mod tests;
@@ -312,7 +312,7 @@ impl LoopUni<'_> {
             id,
             span,
             ty,
-            name: Rc::from(format!("{label}_{id}")),
+            name: generated_name(&format!("{label}_{id}")),
         }
     }
 }
