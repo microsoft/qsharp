@@ -1,4 +1,4 @@
-﻿namespace Kata {
+namespace Kata {
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
@@ -41,5 +41,4 @@
         // This returns the system into state |00⟩
         ResetAll(qs);
     }
-
 }
