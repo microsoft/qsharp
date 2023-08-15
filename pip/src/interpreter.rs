@@ -99,7 +99,7 @@ impl Interpreter {
 
     #[allow(clippy::unused_self)]
     fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
-        match self.interpreter.qirgen_line(entry_expr) {
+        match self.interpreter.qirgen(entry_expr) {
             Ok(qir) => Ok(qir),
             Err(err) => Err(QSharpError::new_err(format!("{err:?}"))),
         }

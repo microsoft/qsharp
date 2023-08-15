@@ -423,13 +423,16 @@ impl Interpreter {
     }
 
     /// # Errors
-    /// If the parsing of the line fails, an error is returned.
-    /// If the compilation of the line fails, an error is returned.
-    /// If there is a runtime error when generating code for the line, an error is returned.
-    pub fn qirgen_line(&mut self, line: &str) -> Result<String, Vec<LineError>> {
+    /// If the currently configured target profile is not `TargetProfile::Base`, an error is returned.
+    /// If the parsing of the expr fails, an error is returned.
+    /// If the compilation of the expr fails, an error is returned.
+    /// If there is a runtime error when generating code for the expr, an error is returned.
+    /// # Panics
+    /// If internal compiler state is inconsistent, a panic may occur.
+    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<LineError>> {
         if self.target != TargetProfile::Base {
             return Err(vec![LineError(WithSource::new(
-                line.into(),
+                expr.into(),
                 LineErrorKind::TargetMismatch,
                 None,
             ))]);
@@ -437,70 +440,53 @@ impl Interpreter {
 
         let mut codegen = BaseProfGen::new();
 
-        let mut fragments = self.compiler.compile_fragments(line).map_err(|errors| {
-            let source = line.into();
+        let mut fragment = self.compiler.compile_expr(expr).map_err(|errors| {
+            let source = expr.into();
             errors
                 .into_iter()
                 .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
                 .collect::<Vec<_>>()
         })?;
 
-        let pass_errors = fragments
-            .iter_mut()
-            .flat_map(|fragment| {
-                self.passes
-                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
-            })
-            .collect::<Vec<_>>();
+        let pass_errors = self.passes.run(
+            self.store.core(),
+            self.compiler.assigner_mut(),
+            &mut fragment,
+        );
         if !pass_errors.is_empty() {
-            let source = line.into();
+            let source = expr.into();
             return Err(pass_errors
                 .into_iter()
                 .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
                 .collect());
         }
 
-        for fragment in fragments {
-            match fragment {
-                Fragment::Item(item) => match item.kind {
-                    qsc_hir::hir::ItemKind::Callable(callable) => {
-                        let callable = self.lower_callable_decl(&callable);
+        let Fragment::Stmt(stmt) = fragment else {
+            panic!("only a stmt fragment should reach here.")
+        };
 
-                        self.callables
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
-                    }
-                    qsc_hir::hir::ItemKind::Namespace(..) => {}
-                    qsc_hir::hir::ItemKind::Ty(..) => {
-                        self.udts
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
-                    }
-                },
-                Fragment::Stmt(stmt) => {
-                    let stmt_id = self.lower_stmt(&stmt);
-                    let globals = Lookup {
-                        fir_store: &self.fir_store,
-                        package: self.package,
-                        udts: &self.udts,
-                        callables: &self.callables,
-                    };
+        let stmt_id = self.lower_stmt(&stmt);
+        let globals = Lookup {
+            fir_store: &self.fir_store,
+            package: self.package,
+            udts: &self.udts,
+            callables: &self.callables,
+        };
 
-                    if let Err((error, call_stack)) =
-                        codegen.stmt(stmt_id, &globals, &mut self.env, self.package)
-                    {
-                        let stack_trace = if call_stack.is_empty() {
-                            None
-                        } else {
-                            Some(self.render_call_stack(call_stack, &error))
-                        };
+        if let Err((error, call_stack)) =
+            codegen.stmt(stmt_id, &globals, &mut self.env, self.package)
+        {
+            let stack_trace = if call_stack.is_empty() {
+                None
+            } else {
+                Some(self.render_call_stack(call_stack, &error))
+            };
 
-                        return Err(vec![LineError(WithSource::new(
-                            line.into(),
-                            error.into(),
-                            stack_trace,
-                        ))]);
-                    }
-                }
-            }
+            return Err(vec![LineError(WithSource::new(
+                expr.into(),
+                error.into(),
+                stack_trace,
+            ))]);
         }
 
         Ok(codegen.to_qir())
