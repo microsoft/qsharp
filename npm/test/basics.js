@@ -252,8 +252,13 @@ async function validateKata(
 
   if (validateExamples) {
     const examples = await getAllKataExamples(kata);
-    console.log("Total examples");
-    console.log(examples.length);
+    for (const example of examples) {
+      const result = await runSingleShot(example.code, "", false);
+      assert(
+        result.success,
+        `Example "${example.id}" in "${kata.id}" kata failed to run`
+      );
+    }
   }
 }
 
