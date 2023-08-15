@@ -23,6 +23,7 @@ use qsc_hir::{
 use thiserror::Error;
 
 use crate::{
+    common::generated_name,
     id_update::NodeIdRefresher,
     invert_block::adj_invert_block,
     spec_gen::adj_gen::{self, AdjDistrib},
@@ -192,7 +193,7 @@ impl ConjugateElim<'_> {
                         kind: PatKind::Bind(Ident {
                             id: bind_id,
                             span: Span::default(),
-                            name: "apply_res".into(),
+                            name: generated_name("apply_res"),
                         }),
                     },
                     self.block_as_expr(block, ty),

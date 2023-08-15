@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+mod preprocess;
+
 use crate::{
     lower::{self, Lowerer},
     resolve::{self, Names, Resolver},
@@ -27,8 +29,41 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TargetProfile {
+    Full,
+    Base,
+}
+
+impl TargetProfile {
+    #[must_use]
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::Full => "Full",
+            Self::Base => "Base",
+        }
+    }
+
+    #[must_use]
+    pub fn is_target_str(s: &str) -> bool {
+        Self::from_str(s).is_ok()
+    }
+}
+
+impl FromStr for TargetProfile {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Full" => Ok(TargetProfile::Full),
+            "Base" => Ok(Self::Base),
+            _ => Err(()),
+        }
+    }
+}
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
@@ -227,12 +262,15 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
+    target: TargetProfile,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
+
+    preprocess::Conditional { target }.visit_package(&mut ast_package);
+
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
-
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &ast_package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
@@ -292,7 +330,7 @@ pub fn core() -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(&store, &[], sources);
+    let mut unit = compile(&store, &[], sources, TargetProfile::Base);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -303,7 +341,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore) -> CompileUnit {
+pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
@@ -358,7 +396,7 @@ pub fn std(store: &PackageStore) -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(store, &[PackageId::CORE], sources);
+    let mut unit = compile(store, &[PackageId::CORE], sources, target);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }

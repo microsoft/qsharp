@@ -27,6 +27,11 @@ pub mod ast {
 
 pub use qsc_data_structures::span::Span;
 
+pub use qsc_frontend::compile::TargetProfile;
+
 pub use qsc_passes::PackageType;
 
-pub use qsc_eval::backend::{Backend, SparseSim};
+pub use qsc_eval::{
+    backend::{Backend, SparseSim},
+    output::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase},
+};
