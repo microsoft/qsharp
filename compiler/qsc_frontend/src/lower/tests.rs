@@ -1,19 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, PackageStore, SourceMap};
+use crate::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
 fn check_hir(input: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), input.into())], None);
-    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(compile::core()),
+        &[],
+        sources,
+        TargetProfile::Full,
+    );
     expect.assert_eq(&unit.package.to_string());
 }
 
 fn check_errors(input: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), input.into())], None);
-    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let unit = compile(
+        &PackageStore::new(compile::core()),
+        &[],
+        sources,
+        TargetProfile::Full,
+    );
 
     let lower_errors: Vec<_> = unit
         .errors
@@ -67,6 +77,65 @@ fn test_entrypoint_attr_wrong_args() {
                     Span {
                         lo: 33,
                         hi: 40,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_target_profile_base_attr_allowed() {
+    check_errors(
+        indoc! {"
+            namespace input {
+                @Config(Base)
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn test_target_profile_full_attr_allowed() {
+    check_errors(
+        indoc! {"
+            namespace input {
+                @Config(Full)
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn test_target_profile_attr_wrong_args() {
+    check_errors(
+        indoc! {"
+            namespace input {
+                @Config(Bar)
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                InvalidAttrArgs(
+                    "Full or Base",
+                    Span {
+                        lo: 29,
+                        hi: 34,
                     },
                 ),
             ]

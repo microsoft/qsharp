@@ -7,9 +7,12 @@ use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::interpret::{
-    stateful::{Interpreter, LineError},
-    stateless,
+use qsc::{
+    interpret::{
+        stateful::{Interpreter, LineError},
+        stateless,
+    },
+    TargetProfile,
 };
 use qsc_eval::{
     output::{self, Receiver},
@@ -101,6 +104,7 @@ fn main() -> miette::Result<ExitCode> {
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
+        TargetProfile::Full,
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
