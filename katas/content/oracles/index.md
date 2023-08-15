@@ -356,6 +356,6 @@ However, if you're designing an oracle for a new problem, you do not have a refe
 
 A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a lot of the inputs if you are constrained by runtime) to ensure that they match.
 
-Here we will compare a reference implementation of `Meeting_Classical` to the classical code implementing the same function. 
+Here we will compare the reference implementation of `Meeting_Classical` oracle to the classical code implementing the same function.
 
 @[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
