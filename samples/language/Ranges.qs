@@ -20,7 +20,7 @@ namespace MyQuantumApp {
         // Ranges are used in for loop expressions. They must be closed
         // ranges.
         // Here we build an array of the squares of the numbers 0 through 10.
-        mutable array = [0, size=10];
+        mutable array = [0, size=11];
         for i in 0..10 {
             set array w/= i <- i*i;
         }
