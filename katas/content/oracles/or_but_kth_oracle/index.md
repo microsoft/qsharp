@@ -21,7 +21,7 @@ Feel free to explore implementing this operation with or without auxiliary qubit
 
 <details>
   <summary><b>Need a hint?</b></summary>
-  You can reuse the previously implemented oracles and operations, same as how you would use library operations.
+  You can use the previously implemented oracles if needed by copying the code.
   <br/>
   You can use <a href="https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/itemaccessexpressions">array slicing</a> to get parts of the array before and after the $k$-th element.
 </details>
