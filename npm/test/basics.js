@@ -253,11 +253,19 @@ async function validateKata(
   if (validateExamples) {
     const examples = await getAllKataExamples(kata);
     for (const example of examples) {
-      const result = await runSingleShot(example.code, "", false);
-      assert(
-        result.success,
-        `Example "${example.id}" in "${kata.id}" kata failed to run`
-      );
+      try {
+        const result = await runSingleShot(example.code, "", false);
+        assert(
+          result.success,
+          `Example "${example.id}" in "${kata.id}" kata failed to run`
+        );
+      } catch (error) {
+        assert(
+          false,
+          `Example "${example.id}" in "${kata.id}" kata failed to run:\n` +
+            `${error}`
+        );
+      }
     }
   }
 }
@@ -280,12 +288,12 @@ test("qubit kata is valid", async () => {
 
 test("single_qubit_gates kata is valid", async () => {
   const kata = await getKata("single_qubit_gates");
-  await validateKata(kata, false, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("multi_qubit_systems kata is valid", async () => {
   const kata = await getKata("multi_qubit_systems");
-  await validateKata(kata, false, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("multi_qubit_gates kata is valid", async () => {

@@ -1,5 +1,5 @@
-﻿namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
+namespace Kata {
+open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
     operation MultiQubitSystemsDemo () : Unit {
@@ -41,5 +41,4 @@
         // This returns the system into state |00⟩
         ResetAll(qs);
     }
-
 }
