@@ -10,21 +10,26 @@ use std::rc::Rc;
 
 use super::TargetProfile;
 
-pub(super) struct Conditional {
+pub(crate) struct Conditional {
     target: TargetProfile,
-    names: Vec<Rc<str>>,
+    dropped_names: Vec<Rc<str>>,
+    included_names: Vec<Rc<str>>,
 }
 
 impl Conditional {
-    pub(super) fn new(target: TargetProfile) -> Self {
+    pub(crate) fn new(target: TargetProfile) -> Self {
         Self {
             target,
-            names: Vec::new(),
+            dropped_names: Vec::new(),
+            included_names: Vec::new(),
         }
     }
 
-    pub(super) fn into_names(self) -> Vec<Rc<str>> {
-        self.names
+    pub(crate) fn into_names(self) -> Vec<Rc<str>> {
+        self.dropped_names
+            .into_iter()
+            .filter(|n| !self.included_names.contains(n))
+            .collect()
     }
 }
 
@@ -37,16 +42,18 @@ impl MutVisitor for Conditional {
                 if matches_target(&item.attrs, self.target) {
                     match item.kind.as_ref() {
                         ItemKind::Callable(callable) => {
-                            self.names.retain(|n| n != &callable.name.name);
+                            self.included_names.push(callable.name.name.clone());
                         }
-                        ItemKind::Ty(ident, _) => self.names.retain(|n| n != &ident.name),
+                        ItemKind::Ty(ident, _) => self.included_names.push(ident.name.clone()),
                         _ => {}
                     }
                     Some(item.clone())
                 } else {
                     match item.kind.as_ref() {
-                        ItemKind::Callable(callable) => self.names.push(callable.name.name.clone()),
-                        ItemKind::Ty(ident, _) => self.names.push(ident.name.clone()),
+                        ItemKind::Callable(callable) => {
+                            self.dropped_names.push(callable.name.name.clone());
+                        }
+                        ItemKind::Ty(ident, _) => self.dropped_names.push(ident.name.clone()),
                         _ => {}
                     }
                     None

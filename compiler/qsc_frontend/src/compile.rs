@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-mod preprocess;
+pub(crate) mod preprocess;
 
 use crate::{
     lower::{self, Lowerer},

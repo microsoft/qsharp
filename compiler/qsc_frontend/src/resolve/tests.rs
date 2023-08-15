@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{Error, Names, Res};
-use crate::resolve::Resolver;
+use crate::{compile, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -90,10 +90,15 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     };
 
     AstAssigner::new().visit_package(&mut package);
+
+    let mut cond_compile = compile::preprocess::Conditional::new(compile::TargetProfile::Full);
+    cond_compile.visit_package(&mut package);
+    let dropped_names = cond_compile.into_names();
+
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals, vec!["Dropped".into()]);
+    let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -1788,6 +1793,9 @@ fn dropped_callable() {
     check(
         indoc! {"
             namespace A {
+                @Config(Base)
+                function Dropped() : Unit {}
+
                 function B() : Unit {
                     Dropped();
                 }
@@ -1795,12 +1803,70 @@ fn dropped_callable() {
         "},
         &expect![[r#"
             namespace item0 {
+                @Config(Base)
+                function Dropped() : Unit {}
+
                 function item1() : Unit {
                     Dropped();
                 }
             }
 
-            // NotAvailable("Dropped", Span { lo: 48, hi: 55 })
+            // NotAvailable("Dropped", Span { lo: 100, hi: 107 })
+        "#]],
+    );
+}
+
+#[test]
+fn multiple_definition_dropped_is_not_found() {
+    check(
+        indoc! {"
+            namespace A {
+                @Config(Full)
+                operation B() : Unit {}
+                @Config(Base)
+                operation B() : Unit {}
+                @Config(Base)
+                operation C() : Unit {}
+                @Config(Full)
+                operation C() : Unit {}
+            }
+            namespace D {
+                operation E() : Unit {
+                    B();
+                    C();
+                }
+                operation F() : Unit {
+                    open A;
+                    B();
+                    C();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                @Config(Full)
+                operation item1() : Unit {}
+                @Config(Base)
+                operation B() : Unit {}
+                @Config(Base)
+                operation C() : Unit {}
+                @Config(Full)
+                operation item2() : Unit {}
+            }
+            namespace item3 {
+                operation item4() : Unit {
+                    B();
+                    C();
+                }
+                operation item5() : Unit {
+                    open A;
+                    item1();
+                    item2();
+                }
+            }
+
+            // NotFound("B", Span { lo: 249, hi: 250 })
+            // NotFound("C", Span { lo: 262, hi: 263 })
         "#]],
     );
 }
