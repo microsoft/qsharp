@@ -13,9 +13,9 @@ def eval(source):
 
     Output is printed to console.
 
-    :param input: The Q# source code to evaluate.
-    :returns value: The value returned by the last statement in the input.
-    :raises QSharpError: If there is an error evaluating the input.
+    :param source: The Q# source code to evaluate.
+    :returns value: The value returned by the last statement in the source code.
+    :raises QSharpError: If there is an error evaluating the source code.
     """
 
     def callback(output):
@@ -29,7 +29,7 @@ def eval_file(path) -> None:
     Reads Q# source code from a file and evaluates it.
 
     :param path: The path to the Q# source file.
-    :returns: The value returned by the last statement in the line.
+    :returns: The value returned by the last statement in the file.
     :raises: QSharpError
     """
     f = open(path, mode="r", encoding="utf-8")
