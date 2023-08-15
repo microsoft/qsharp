@@ -2,7 +2,7 @@
 
 @[section]({"id": "random_numbers_overview", "title": "Overview"})
 
-True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawning seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generations are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. 
+True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawn seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generators are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. 
 (You can read more about it [here]( https://en.wikipedia.org/wiki/Random_number_generation).) 
 
 Quantum random number generators (QRNGs) are truly random. The quantum algorithm for random number generation is one of the simplest applications of quantum computing principles, requiring very few qubits to run.
@@ -31,7 +31,7 @@ When $|\psi\rangle$ is measured in the $\{|0\rangle, |1\rangle\}$ basis (the com
 
 > For example, a qubit in state $\begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix}$ will yield measurement results $0$ or $1$ with equal probability, while a qubit in state $\begin{bmatrix} \frac{1}{2} \\\ \frac{\sqrt3}{2} \end{bmatrix}$ will yield measurement result $0$ only 25% of the time, and $1$ 75% of the time.
 
-This is sufficient to implement a simple random number generator!
+This knowledge is sufficient to implement a simple random number generator!
 
 > Remember that you can refer to the [Single Qubit Gates tutorial](single_qubit_gates) if you need a refresher on the various quantum gates and their usage in Q#.
 

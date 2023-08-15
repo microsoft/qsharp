@@ -1,15 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::{
-    fir::StmtId,
-    interpret::{
-        output::Receiver,
-        stateful::{self, Interpreter},
-        GenericReceiver, StepAction, StepResult,
-    },
-    PackageType, SourceMap, TargetProfile,
-};
+use qsc::fir::StmtId;
+use qsc::interpret::stateful::Interpreter;
+use qsc::interpret::{stateful, StepAction, StepResult};
+use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -49,14 +45,17 @@ impl DebugService {
 
     pub fn capture_quantum_state(&mut self) -> JsValue {
         let state = self.interpreter.capture_quantum_state();
-        let mut out = Vec::new();
-        let mut receiver = GenericReceiver::new(&mut out);
-        if receiver.state(state.0, state.1).is_ok() {
-            let output = std::str::from_utf8(out.as_slice()).unwrap().to_string();
-            JsValue::from_str(&output)
-        } else {
-            JsValue::undefined()
-        }
+        let entries = state
+            .0
+            .iter()
+            .map(|(id, value)| QuantumState {
+                name: qsc::format_state_id(id, state.1),
+                value: fmt_complex(value),
+            })
+            .collect::<Vec<_>>();
+
+        let list = QuantumStateList { entries };
+        serde_wasm_bindgen::to_value(&list).expect("failed to serialize quantum state list")
     }
 
     pub fn get_stack_frames(&self) -> JsValue {
@@ -361,4 +360,29 @@ struct Variable {
     pub name: String,
     pub value: String,
     pub var_type: String,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const IQuantumState: &'static str = r#"
+export interface IQuantumState {
+    name: string;
+    value: string;
+}
+export interface IQuantumStateList {
+    entries: Array<IQuantumState>
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+struct QuantumStateList {
+    pub entries: Vec<QuantumState>,
+}
+
+// Public fields implementing Copy have automatically generated getters/setters.
+// To generate getters/setters for non-Copy public fields, we must
+// use #[wasm_bindgen(getter_with_clone)] for the struct
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
+struct QuantumState {
+    pub name: String,
+    pub value: String,
 }

@@ -543,7 +543,11 @@ impl Interpreter {
 
     #[must_use]
     pub fn get_locals(&self) -> Vec<VariableInfo> {
-        self.env.get_variables_in_top_frame()
+        self.env
+            .get_variables_in_top_frame()
+            .into_iter()
+            .filter(|v| !v.name.starts_with('@'))
+            .collect()
     }
 }
 
