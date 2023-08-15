@@ -4,14 +4,40 @@
 use std::io::{Cursor, Write};
 
 use num_bigint::BigUint;
-use num_complex::Complex64;
+use num_complex::{Complex, Complex64};
 
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Error;
 
 #[must_use]
 pub fn format_state_id(id: &BigUint, qubit_count: usize) -> String {
-    format!("|{:0>qubit_count$}⟩", id.to_str_radix(2))
+    format!("|{}⟩", fmt_basis_state_label(id, qubit_count))
+}
+
+#[must_use]
+pub fn get_phase(c: &Complex<f64>) -> f64 {
+    f64::atan2(c.im, c.re)
+}
+
+#[must_use]
+pub fn fmt_complex(c: &Complex<f64>) -> String {
+    // Format -0 as 0
+    // Also using Unicode Minus Sign instead of ASCII Hyphen-Minus
+    // and Unicode Mathematical Italic Small I instead of ASCII i.
+    format!(
+        "{}{:.4}{}{:.4}𝑖",
+        if c.re <= -0.00005 { "−" } else { "" },
+        c.re.abs(),
+        if c.im <= -0.00005 { "−" } else { "+" },
+        c.im.abs()
+    )
+}
+
+#[must_use]
+pub fn fmt_basis_state_label(id: &BigUint, qubit_count: usize) -> String {
+    // This will generate a bit string that shows the qubits in the order
+    // of allocation, left to right.
+    format!("{:0>qubit_count$}", id.to_str_radix(2))
 }
 
 pub trait Receiver {

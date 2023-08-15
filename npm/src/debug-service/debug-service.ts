@@ -7,6 +7,7 @@ import type {
   IStackFrame,
   IStructStepResult,
   IVariable,
+  IQuantumState,
 } from "../../lib/node/qsc_wasm.cjs";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
@@ -21,7 +22,7 @@ export interface IDebugService {
   loadSource(path: string, source: string): Promise<boolean>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
-  captureQuantumState(): Promise<string>;
+  captureQuantumState(): Promise<Array<IQuantumState>>;
   getStackFrames(): Promise<IStackFrame[]>;
   evalContinue(
     bps: number[],
@@ -166,8 +167,17 @@ export class QSharpDebugService implements IDebugService {
     return breakpoint_spans;
   }
 
-  async captureQuantumState(): Promise<string> {
-    return this.debugService.capture_quantum_state();
+  async captureQuantumState(): Promise<Array<IQuantumState>> {
+    const state = this.debugService.capture_quantum_state();
+    const entries: IQuantumState[] = state.entries.map(
+      (entry: IQuantumState) => {
+        const result = {} as IQuantumState;
+        result.name = entry.name;
+        result.value = entry.value;
+        return result;
+      }
+    );
+    return entries;
   }
 
   async getLocalVariables(): Promise<Array<IVariable>> {

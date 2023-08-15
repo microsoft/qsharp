@@ -14,7 +14,6 @@ export const qsharpNotebookCellDocumentFilter: DocumentFilter = {
   notebookType: "jupyter-notebook",
 };
 export const qsharpExtensionId = "qsharp-vscode";
-export const qsharpLibraryUriScheme = "qsharp-library-source";
 
 export interface FileAccessor {
   readFile(uri: string): Promise<Uint8Array>;

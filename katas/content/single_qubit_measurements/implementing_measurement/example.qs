@@ -18,5 +18,6 @@ namespace Kata {
         Message($"The measurement outcome is {outcome}.");
         Message("Post-measurement state of the qubit:");
         DumpMachine();
+        Reset(q);
     }
 }

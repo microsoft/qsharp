@@ -62,6 +62,7 @@ build_all = (
     not args.cli
     and not args.pip
     and not args.wasm
+    and not args.samples
     and not args.npm
     and not args.play
     and not args.vscode
@@ -70,6 +71,7 @@ build_all = (
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_wasm = build_all or args.wasm
+build_samples = build_all or args.samples
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -83,11 +85,10 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
 
-compile_samples = args.test or args.samples
-
 root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
+samples_src = os.path.join(root_dir, "samples")
 npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
 pip_src = os.path.join(root_dir, "pip")
@@ -223,6 +224,15 @@ if build_wasm:
         wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
     )
 
+if build_samples:
+    print("Building qsharp samples")
+    files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if os.path.splitext(f)[1] == '.qs']
+    args = ["cargo", "run", "--bin", "qsc"]
+    if build_type == "release":
+        args.append("--release")
+    for file in files:
+        subprocess.run((args + ["--", file]), check=True, text=True, cwd=root_dir)
+
 if build_npm:
     print("Building the npm package")
     # Copy the wasm build files over for web and node targets
@@ -296,12 +306,3 @@ if build_jupyterlab:
         jupyterlab_src,
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
-
-if compile_samples:
-    print("Compiling qsharp samples")
-    files = [os.path.join(dp, f) for dp, dn, filenames in os.walk("samples") for f in filenames if os.path.splitext(f)[1] == '.qs']
-    args = ["cargo", "run", "--bin", "qsc"]
-    if build_type == "release":
-        args.append("--release")
-    for file in files:
-        subprocess.run((args + ["--", file]), check=True, text=True, cwd=root_dir)
