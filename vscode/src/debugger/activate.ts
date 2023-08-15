@@ -134,10 +134,15 @@ export const workspaceFileAccessor: FileAccessor = {
   },
   async openFile(path: string): Promise<vscode.TextDocument> {
     const uri: vscode.Uri = this.resolvePathToUri(path);
-    return await vscode.workspace.openTextDocument(uri);
+    return this.openUri(uri);
   },
   async openUri(uri: vscode.Uri): Promise<vscode.TextDocument> {
-    return await vscode.workspace.openTextDocument(uri);
+    try {
+      return await vscode.workspace.openTextDocument(uri);
+    } catch {
+      const path = uri.toString().replace(/\//g, "\\");
+      return await vscode.workspace.openTextDocument(vscode.Uri.file(path));
+    }
   },
   async readFile(path: string): Promise<Uint8Array> {
     let uri: vscode.Uri = this.resolvePathToUri(path);
