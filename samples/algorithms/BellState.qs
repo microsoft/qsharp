@@ -1,38 +1,67 @@
 /// # Sample
-/// Bell State
+/// Bell States
 ///
 /// # Description
 /// Bell states or EPR pairs are specific quantum states of two qubits
 /// that represent the simplest (and maximal) examples of quantum entanglement.
 ///
-/// This Q# program implements a Bell state.
+/// This Q# program implements the four different Bell states.
 namespace Sample {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
-    operation BellState() : (Result, Result) {
+    operation BellStates() : (Result, Result)[] {
         // Allocate the two qubits that will be used to create a Bell state.
-        use q1 = Qubit();
-        use q2 = Qubit();
+        use register = Qubit[2];
 
-        // Set the first qubit in superposition by calling the `H` operation, 
-        // which applies a Hadamard transformation to the qubit.
-        // Then, entangle the two qubits using the `CNOT` operation.
-        H(q1);
-        CNOT(q1, q2);
+        // This array contains a label and a preparation operation for each one
+        // of the four Bell states.
+        let bellStateTuples = [
+            ("|Φ+〉", PreparePhiPlus),
+            ("|Φ-〉", PreparePhiMinus),
+            ("|Ψ+〉", PreparePsiPlus),
+            ("|Ψ-〉", PreparePsiMinus)
+        ];
 
-        // Show the state of the two qubits using the `DumpMachine` function.
-        DumpMachine();
+        // Prepare all Bell states, show them using the `DumpMachine` operation
+        // and measure the Bell state qubits.
+        mutable measurements = [];
+        for (label, prepare) in bellStateTuples {
+            prepare(register);
+            Message($"Bell state {label}:");
+            DumpMachine();
+            set measurements += [(M(register[0]), M(register[1]))];
+            ResetAll(register);
+        }
+        return measurements;
+    }
 
-        // Measure the two qubits and reset them before they are released at the
-        // end of the block.
-        let m1 = M(q1);
-        let m2 = M(q2);
-        Reset(q1);
-        Reset(q2);
+    operation PreparePhiPlus(register : Qubit[]) : Unit {
+        ResetAll(register);             // |00〉
+        H(register[0]);                 // |+0〉
+        CNOT(register[0], register[1]); // 1/sqrt(2)(|00〉 + |11〉)
+    }
 
-        // Return the measurement results.
-        return (m1, m2);
+    operation PreparePhiMinus(register : Qubit[]) : Unit {
+        ResetAll(register);             // |00〉
+        H(register[0]);                 // |+0〉
+        Z(register[0]);                 // |-0〉
+        CNOT(register[0], register[1]); // 1/sqrt(2)(|00〉 - |11〉)
+    }
+
+    operation PreparePsiPlus(register : Qubit[]) : Unit {
+        ResetAll(register);             // |00〉
+        H(register[0]);                 // |+0〉
+        X(register[1]);                 // |+1〉
+        CNOT(register[0], register[1]); // 1/sqrt(2)(|01〉 + |10〉)
+    }
+
+    operation PreparePsiMinus(register : Qubit[]) : Unit {
+        ResetAll(register);             // |00〉
+        H(register[0]);                 // |+0〉
+        Z(register[0]);                 // |-0〉
+        X(register[1]);                 // |-1〉
+        CNOT(register[0], register[1]); // 1/sqrt(2)(|01〉 - |10〉)
     }
 }

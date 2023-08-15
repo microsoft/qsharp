@@ -16,6 +16,7 @@ import {
   ILanguageService,
   ILanguageServiceWorker,
   QSharpLanguageService,
+  qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { createLanguageServiceProxy } from "./language-service/worker-proxy.js";
 import {
@@ -24,6 +25,8 @@ import {
   QSharpDebugService,
 } from "./debug-service/debug-service.js";
 import { createDebugServiceProxy } from "./debug-service/worker-proxy.js";
+
+export { qsharpLibraryUriScheme };
 
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
 // and not in the main thread.

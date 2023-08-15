@@ -7,9 +7,9 @@ import {
   loadWasmModule,
   log,
   getLibrarySourceContent,
+  qsharpLibraryUriScheme,
 } from "qsharp";
 import * as vscode from "vscode";
-import { qsharpLibraryUriScheme } from "./common";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
