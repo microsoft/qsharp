@@ -257,13 +257,12 @@ async function validateKata(
         const result = await runSingleShot(example.code, "", false);
         assert(
           result.success,
-          `Example "${example.id}" in "${kata.id}" kata failed to run`
+          `Example "${example.id}" in "${kata.id}" kata failed to run.`
         );
       } catch (error) {
         assert(
           false,
-          `Example "${example.id}" in "${kata.id}" kata failed to run:\n` +
-            `${error}`
+          `Example "${example.id}" in "${kata.id}" kata failed to build:\n${error}`
         );
       }
     }

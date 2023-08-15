@@ -1,5 +1,5 @@
 namespace Kata {
-open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
     operation MultiQubitSystemsDemo () : Unit {
