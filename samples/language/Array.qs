@@ -24,7 +24,7 @@ namespace MyQuantumApp {
         // A basic Int Array literal
         let intArray: Int[] = [1, 2, 3, 4];
         // A basic String Array literal
-        let stringArray: String[] = ["a", "string", "array"];
+        let stringArray = ["a", "string", "array"];
 
         // A new array expression creating the array `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]`
         let intArray = Repeated(0, 10);

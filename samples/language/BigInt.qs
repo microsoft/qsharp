@@ -10,10 +10,10 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : BigInt {
         // Numbers can be declared in hex, octal, decimal, or binary.
-        let foo: BigInt = 0x42L;
-        let foo: BigInt = 0o42L;
-        let foo: BigInt = 42L;
-        let foo: BigInt = 0b101010L;
+        let foo = 0x42L;
+        let foo = 0o42L;
+        let foo = 42L;
+        let foo = 0b101010L;
 
         // Numbers can be operated upon in the usual ways, with addition (+), subtraction (-),
         // multiplication (*), division (/), modulo (%), and exponentiation (^).

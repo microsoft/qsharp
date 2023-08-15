@@ -9,10 +9,10 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Int {
         // Numbers can be declared in hex, octal, decimal, or binary.
-        let foo: Int = 0x42;
-        let foo: Int = 0o42;
-        let foo: Int = 42;
-        let foo: Int = 0b101010;
+        let foo = 0x42;
+        let foo = 0o42;
+        let foo = 42;
+        let foo = 0b101010;
 
         // Numbers can be operated upon in the usual ways, with addition (+), subtraction (-),
         // multiplication (*), division (/), modulo (%), and exponentiation (^).

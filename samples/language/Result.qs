@@ -8,8 +8,8 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Result {
         // A `Result` can be declared with `Result` literals:
-        let resultOne: Result = One;
-        let resultZero: Result = Zero;
+        let resultOne = One;
+        let resultZero = Zero;
 
         // Or, it can be returned as the result of some quantum measurement, as
         // seen below:

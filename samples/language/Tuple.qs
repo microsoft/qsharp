@@ -13,9 +13,10 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : (Int, String) {
         // A tuple of type `String`, `Int`, and `Double`
-        let myTuple: (String, Int, Double) = ("Id", 0, 1.);
+        let myTuple = ("Id", 0, 1.);
 
         // A tuple of type `Pauli`, and a nested tuple of type `(Int, Int)`.
+        // The type annotation is provided for clarity, but not necessary.
         let myTuple: (Pauli, (Int, Int)) = (PauliX, (3, 1));
 
         return (0, "Foo");

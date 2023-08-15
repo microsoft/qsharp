@@ -13,7 +13,7 @@ namespace MyQuantumApp {
         let pauliDimension = PauliX;
         
         // Measuring along a dimension returns a `Result`:
-        let result: Result = Measure([pauliDimension], [q]);
+        let result = Measure([pauliDimension], [q]);
 
         return result;
     }

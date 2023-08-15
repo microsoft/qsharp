@@ -27,46 +27,47 @@ namespace MyQuantumApp {
         // BigInt literals are always suffixed with an L, and can be declared in
         // binary, octal, decimal, or hexadecimal.
         let binaryBigInt: BigInt = 0b101010L;
-        let octalBigInt: BigInt = 0o52L;
-        let decimalBigInt: BigInt = 42L;
-        let hexadecimalBigInt: BigInt = 0x2aL;
+        let octalBigInt = 0o52L;
+        let decimalBigInt = 42L;
+        let hexadecimalBigInt = 0x2aL;
 
         // A double-precision 64-bit floating-point number.
-        let double: Double = 42.0;
+        let double = 42.0;
 
         // Boolean values. Possible values are `true` or `false`.
-        let bool: Bool = true;
+        let bool = true;
 
         // Text as values that consist of a sequence of UTF-16 code units.
-        let string: String = "";
+        let string = "";
 
         // Represents the result of a projective measurement onto the eigenspaces
         // of a quantum operator with eigenvalues ±1. Possible values are `Zero` or `One`.
-        let result: Result = One;
+        let result = One;
 
         // A single-qubit Pauli matrix. Possible values are PauliI, PauliX, PauliY, or PauliZ.
-        let pauli: Pauli[] = [PauliX, PauliY, PauliZ];
+        let pauli = [PauliX, PauliY, PauliZ];
 
         // Represents an ordered sequence of equally spaced Int values.
         // Values may represent sequences in ascending or descending order.
-        let range: Range = 1..100;
+        let range = 1..100;
 
         // A collection that contains a sequence of values of the same type.
-        let array_of_ints: Int[] = [1, 2, 3];
+        let array_of_ints = [1, 2, 3];
 
         // A tuple contains a fixed number of items of potentially different types. 
         // Tuples containing a single element are equivalent to the element they contain.
-        let tuple: (Int, String, Result) = (1, "one", One);
+        let tuple = (1, "one", One);
 
         // A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
         // and one anonymous parameter of Boolean type.
         newtype ComplexBool = (Real: Double, Imaginary : Double, Bool);
         // Instantiation of the above UDT.
-        let complex: ComplexBool = ComplexBool(42.0, 0.0, false);
+        let complex = ComplexBool(42.0, 0.0, false);
 
         // A function that takes an integer and returns a boolean. This variable declaration
         // uses a Lambda function as its right hand side.
-        let function_type: Int => Bool = (int) => int == 0;
+        // The function signature is provided as an annotation here, for clarity.
+        let functionType: Int => Bool = (int) => int == 0;
     }
 
 }
