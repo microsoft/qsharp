@@ -313,12 +313,12 @@ test("multi_qubit_measurements is valid", async () => {
 
 test("random_numbers kata is valid", async () => {
   const kata = await getKata("random_numbers");
-  await validateKata(kata, false, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("oracles kata is valid", async () => {
   const kata = await getKata("oracles");
-  await validateKata(kata, false, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("worker 100 shots", async () => {
