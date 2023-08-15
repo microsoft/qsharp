@@ -14,6 +14,7 @@ import {
   storageRequest,
 } from "./azure";
 import { WorkspaceConnection } from "./workspaceTree";
+import { getResourcePath } from "../extension";
 
 export async function queryWorkspaces(): Promise<
   WorkspaceConnection | undefined
@@ -212,4 +213,122 @@ export async function getJobFiles(
     log.error(`Failed to get file: ${e}`);
     return "";
   }
+}
+
+export async function submitJob(token: string, quantumUris: QuantumUris) {
+  // Generate a unique container id of the form "job-<uuid>"
+  const id = crypto.getRandomValues(new Uint8Array(16));
+  const idChars = Array.from(id)
+    .map((b) => b.toString(16))
+    .join("");
+  // Guid format such as "job-00000000-1111-2222-3333-444444444444"
+  const containerName =
+    "job-" +
+    idChars.substring(0, 8) +
+    "-" +
+    idChars.substring(8, 12) +
+    "-" +
+    idChars.substring(12, 16) +
+    "-" +
+    idChars.substring(16, 20) +
+    "-" +
+    idChars.substring(20, 32);
+
+  // Get a sasUri for the container
+  const body = JSON.stringify({ containerName });
+  const sasResponse: ResponseTypes.SasUri = await azureRequest(
+    quantumUris.sasUri(),
+    token,
+    "POST",
+    body
+  );
+  const sasUri = decodeURI(sasResponse.sasUri);
+
+  // Parse the Uri to get the storage account and sasToken
+  const sasUriObj = vscode.Uri.parse(sasUri);
+  const storageAccount = sasUriObj.scheme + "://" + sasUriObj.authority;
+
+  // Get the raw value to append to other query strings
+  const sasTokenRaw = sasResponse.sasUri.substring(
+    sasResponse.sasUri.indexOf("?") + 1
+  );
+
+  // Create the container
+  /*
+PUT https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}?restype=container&{{BLOB_SASPARAMS}}
+x-ms-version: 2023-01-03
+x-ms-date: {{$datetime rfc1123}}
+  */
+  const containerPutUri = `${storageAccount}/${containerName}?restype=container&${sasTokenRaw}`;
+  const containerPutResponse = await storageRequest(containerPutUri, "PUT");
+  // TODO: Check for success
+
+  // Write the input data
+  /*
+// PUT {{InputSasUri.response.body.$.sasUri}}
+https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}/inputData?{{BLOB_SASPARAMS}}
+x-ms-version: 2023-01-03
+x-ms-date: {{$datetime rfc1123}}
+x-ms-blob-type: BlockBlob
+Content-Type: application/octet-stream
+  */
+  // Get the QIR file
+  // Get extension path
+  const qirFilePath = getResourcePath("inputData-quantinuum.h1-2.bc");
+  const qirFile = await vscode.workspace.fs.readFile(qirFilePath);
+
+  const inputDataUri = `${storageAccount}/${containerName}/inputData?${sasTokenRaw}`;
+  // TODO: Extra headers on below and file body
+  const inputDataResponse = await storageRequest(
+    inputDataUri,
+    "PUT",
+    [
+      ["x-ms-blob-type", "BlockBlob"],
+      ["Content-Type", "application/octet-stream"],
+    ],
+    qirFile
+  );
+
+  // PUT the job data
+  /*
+PUT https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/jobs/{{JOB_ID}}?api-version=2022-09-12-preview
+Content-Type: application/json
+Authorization: Bearer {{QUANTUM_TOKEN}}
+
+{
+    "id": "{{JOB_ID}}}", "name": "{{JOB_NAME}}",
+    "providerId": "quantinuum", "target": "quantinuum.sim.h1-2e", "itemType": "Job",
+    "containerUri": "{{ContainerSasUri.response.body.$.sasUri}}",
+    "inputDataUri": "{{InputSasUri.response.body.$.sasUri}}",
+    "inputDataFormat": "qir.v1", "outputDataFormat": "microsoft.quantum-results.v1",
+    "inputParams": { "entryPoint": "program__main", "arguments": [], "count": 100 }
+}
+  */
+  const putJobUri = quantumUris.jobs(containerName);
+
+  const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
+
+  // TODO: See if putting the Uris without the sas tokens works
+  const payload = {
+    id: containerName,
+    name: jobName,
+    providerId: "quantinuum",
+    target: "quantinuum.sim.h1-2e",
+    itemType: "Job",
+    containerUri: sasResponse.sasUri,
+    inputDataUri: `${storageAccount}/${containerName}/inputData`,
+    inputDataFormat: "qir.v1",
+    outputDataFormat: "microsoft.quantum-results.v1",
+    inputParams: {
+      entryPoint: "program__main",
+      arguments: [],
+      count: 100,
+    },
+  };
+  const jobResponse = await azureRequest(
+    putJobUri,
+    token,
+    "PUT",
+    JSON.stringify(payload)
+  );
 }

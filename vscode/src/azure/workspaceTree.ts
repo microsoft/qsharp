@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
+import { queryWorkspace } from "./workspaceQuery";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
@@ -23,10 +24,15 @@ export class WorkspaceTreeProvider
 
   async updateWorkspace(workspace: WorkspaceConnection) {
     this.treeState.set(workspace.id, workspace);
-    this.refresh();
   }
 
   async refresh() {
+    this.treeState.forEach(async (workspace) => {
+      if (workspace.connection !== "PAT") {
+        await queryWorkspace(workspace);
+        await this.updateWorkspace(workspace);
+      }
+    });
     this._onDidChangeData.fire(undefined);
   }
 
@@ -54,7 +60,7 @@ export class WorkspaceTreeProvider
   }
 }
 
-type Target = {
+export type Target = {
   providerId: string;
   provisioningState: string;
   status?: "Online" | "Offline";

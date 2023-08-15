@@ -6,11 +6,18 @@
 import * as vscode from "vscode";
 import { log } from "qsharp";
 
-import { Job, WorkspaceTreeItem, WorkspaceTreeProvider } from "./workspaceTree";
+import {
+  Job,
+  Target,
+  WorkspaceTreeItem,
+  WorkspaceTreeProvider,
+} from "./workspaceTree";
 import {
   getJobFiles,
   getTokenForWorkspace,
+  queryWorkspace,
   queryWorkspaces,
+  submitJob,
 } from "./workspaceQuery";
 import { sampleResult, sampleWorkspace } from "./sampleData";
 import { QuantumUris } from "./azure";
@@ -30,16 +37,25 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     }
   });
 
-  vscode.commands.registerCommand("quantum-target-submit", () => {
-    vscode.window.showErrorMessage(
-      `The current target does not support all features required by this program.
-  Please resolve the error messages for the current project and try again.`,
-      {
-        modal: true,
-        detail: "For more details, see https://aka.ms/qir-profiles",
-      }
-    );
-  });
+  vscode.commands.registerCommand(
+    "quantum-target-submit",
+    async (arg: WorkspaceTreeItem) => {
+      const target = arg.itemData as Target;
+      if (target.providerId !== "quantinuum") return;
+
+      const token = await getTokenForWorkspace(arg.workspace);
+      const quantumUris = new QuantumUris(
+        arg.workspace.endpointUri,
+        arg.workspace.id
+      );
+
+      await submitJob(token, quantumUris);
+      setTimeout(async () => {
+        await queryWorkspace(arg.workspace);
+        workspaceTreeProvider.updateWorkspace(arg.workspace);
+      }, 1000);
+    }
+  );
 
   vscode.commands.registerCommand("quantum-workspaces-refresh", () => {
     workspaceTreeProvider.refresh();
@@ -95,6 +111,7 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
     const workspace = await queryWorkspaces();
     if (workspace) {
       workspaceTreeProvider.updateWorkspace(workspace);
+      workspaceTreeProvider.refresh();
     }
   });
 
@@ -103,6 +120,7 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
       title: "Enter the workspace access token",
     });
     workspaceTreeProvider.updateWorkspace(sampleWorkspace);
+    workspaceTreeProvider.refresh();
   });
 
   vscode.commands.registerCommand("quantum-target-view", async () => {

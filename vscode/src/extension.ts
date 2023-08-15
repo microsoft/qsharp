@@ -22,9 +22,17 @@ import {
   qsharpNotebookCellDocumentFilter,
 } from "./common.js";
 
+let extensionPath: vscode.Uri;
+
+export function getResourcePath(...parts: string[]) {
+  return vscode.Uri.joinPath(extensionPath, "resources", ...parts);
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
+
+  extensionPath = context.extensionUri;
 
   vscode.workspace.registerTextDocumentContentProvider(
     qsharpLibraryUriScheme,

@@ -43,11 +43,17 @@ export async function azureRequest(
 }
 
 // Different enough to above to warrant it's own function
-export async function storageRequest(uri: string, method: string, body?: any) {
+export async function storageRequest(
+  uri: string,
+  method: string,
+  extraHeaders?: [string, string][],
+  body?: string | Uint8Array
+) {
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
   ];
+  if (extraHeaders?.length) headers.push(...extraHeaders);
   if (storageProxy) {
     // Replace the host with the proxy, and put the original host in a header
     const url = new URL(uri);
@@ -101,8 +107,10 @@ export class QuantumUris {
     return `${this.endpoint}${this.id}/providerStatus?api-version=${this.apiVersion}`;
   }
 
-  jobs() {
-    return `${this.endpoint}${this.id}/jobs?api-version=${this.apiVersion}`;
+  jobs(jobId?: string) {
+    return !jobId
+      ? `${this.endpoint}${this.id}/jobs?api-version=${this.apiVersion}`
+      : `${this.endpoint}${this.id}/jobs/${jobId}?api-version=${this.apiVersion}`;
   }
 
   // Needs to POST an application/json payload such as: {"containerName": "job-073064ed-2a47-11ee-b8e7-010101010000","blobName":"outputData"}
