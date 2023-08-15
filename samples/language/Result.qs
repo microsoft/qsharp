@@ -6,7 +6,7 @@
 /// of a quantum operator with eigenvalues ±1. Possible values are `Zero` or `One`.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation MeasureSuperposition() : Result {
+    operation Main() : Result {
         // A `Result` can be declared with `Result` literals:
         let resultOne: Result = One;
         let resultZero: Result = Zero;
