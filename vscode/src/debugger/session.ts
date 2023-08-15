@@ -363,7 +363,7 @@ export class QscDebugSession extends LoggingDebugSession {
       breakpoints: [],
     };
 
-    const fileUri = vscode.Uri.parse(args.source.path ?? "", false);
+    const fileUri = vscode.Uri.file(args.source.path ?? "");
 
     const file = vscode.workspace.textDocuments.find(
       (td) => td.uri.path === fileUri.path
@@ -438,7 +438,7 @@ export class QscDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     log.trace(`setBreakPointsRequest: %O`, args);
 
-    const fileUri = vscode.Uri.parse(args.source.path ?? "", false);
+    const fileUri = vscode.Uri.file(args.source.path ?? "");
 
     const file = vscode.workspace.textDocuments.find(
       (td) => td.uri.path === fileUri.path
@@ -543,7 +543,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const mappedStackFrames = await Promise.all(
       debuggerStackFrames
         .map(async (f, id) => {
-          const fileUri = vscode.Uri.parse(f.path, false);
+          const fileUri = vscode.Uri.file(f.path);
           log.trace(`frames: fileUri %O`, fileUri);
           const file = vscode.workspace.textDocuments.find(
             (td) => td.uri.path === fileUri.path

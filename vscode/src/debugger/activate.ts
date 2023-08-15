@@ -5,7 +5,11 @@
 
 import * as vscode from "vscode";
 import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp";
-import { FileAccessor, qsharpExtensionId } from "../common";
+import {
+  FileAccessor,
+  qsharpExtensionId,
+  qsharpDocumentFilter,
+} from "../common";
 import { QscDebugSession } from "./session";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
@@ -93,7 +97,10 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     // if launch.json is missing or empty
     if (!config.type && !config.request && !config.name) {
       const editor = vscode.window.activeTextEditor;
-      if (editor && editor.document.languageId === "qsharp") {
+      if (
+        editor &&
+        vscode.languages.match(qsharpDocumentFilter, editor.document)
+      ) {
         config.type = "qsharp";
         config.name = "Launch";
         config.request = "launch";
