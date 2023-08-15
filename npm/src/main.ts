@@ -16,6 +16,7 @@ import {
   ILanguageService,
   ILanguageServiceWorker,
   QSharpLanguageService,
+  qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { createLanguageServiceProxy } from "./language-service/worker-proxy.js";
 import {
@@ -25,11 +26,22 @@ import {
 } from "./debug-service/debug-service.js";
 import { createDebugServiceProxy } from "./debug-service/worker-proxy.js";
 
+export { qsharpLibraryUriScheme };
+
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
 // and not in the main thread.
 type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 let wasm: Wasm | null = null;
 const require = createRequire(import.meta.url);
+
+export async function getLibrarySourceContent(
+  path: string
+): Promise<string | undefined> {
+  if (!wasm) {
+    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+    return wasm.get_library_source_content(path);
+  }
+}
 
 export function getCompiler(): ICompiler {
   if (!wasm) {

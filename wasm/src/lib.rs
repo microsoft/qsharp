@@ -12,7 +12,7 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 use serde_json::json;
 use std::fmt::Write;
@@ -22,28 +22,35 @@ mod debug_service;
 mod language_service;
 mod logging;
 
+thread_local! {
+    static STORE_CORE_STD: (PackageStore, PackageId) = {
+        let mut store = PackageStore::new(compile::core());
+        let std = store.insert(compile::std(&store, TargetProfile::Full));
+        (store, std)
+    };
+}
+
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
     let git_hash = env!("QSHARP_GIT_HASH");
     JsValue::from_str(git_hash)
 }
 
-fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
-    thread_local! {
-        static STORE_STD: (PackageStore, PackageId) = {
-            let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store));
-            (store, std)
-        };
-    }
+#[wasm_bindgen]
+pub fn get_library_source_content(name: &str) -> JsValue {
+    STORE_CORE_STD.with(|(store, std)| {
+        for id in [PackageId::CORE, *std] {
+            if let Some(source) = store
+                .get(id)
+                .expect("package should be in store")
+                .sources
+                .find_by_name(name)
+            {
+                return JsValue::from_str(source.contents.as_ref());
+            }
+        }
 
-    STORE_STD.with(|(store, std)| {
-        let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (unit, errors) = compile::compile(store, &[*std], sources, PackageType::Exe);
-        (
-            unit.package,
-            errors.into_iter().map(|error| (&error).into()).collect(),
-        )
+        JsValue::undefined()
     })
 }
 
@@ -52,6 +59,23 @@ pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
     let (package, _) = compile(code);
     let hir = package.to_string();
     Ok(serde_wasm_bindgen::to_value(&hir)?)
+}
+
+fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
+    STORE_CORE_STD.with(|(store, std)| {
+        let sources = SourceMap::new([("code".into(), code.into())], None);
+        let (unit, errors) = compile::compile(
+            store,
+            &[*std],
+            sources,
+            PackageType::Exe,
+            TargetProfile::Full,
+        );
+        (
+            unit.package,
+            errors.into_iter().map(|error| (&error).into()).collect(),
+        )
+    })
 }
 
 struct CallbackReceiver<F>

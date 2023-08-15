@@ -16,7 +16,7 @@ use qsc_hir::{
 };
 
 use crate::{
-    common::create_gen_core_ref,
+    common::{create_gen_core_ref, generated_name},
     logic_sep::{find_quantum_stmts, Error},
 };
 
@@ -134,7 +134,7 @@ impl<'a> BlockInverter<'a> {
                     kind: PatKind::Bind(Ident {
                         id: new_arr_id,
                         span: Span::default(),
-                        name: "generated_array".into(),
+                        name: generated_name("array"),
                     }),
                 },
                 iterable,
@@ -150,7 +150,7 @@ impl<'a> BlockInverter<'a> {
             kind: PatKind::Bind(Ident {
                 id: index_id,
                 span: Span::default(),
-                name: "generated_index".into(),
+                name: generated_name("index"),
             }),
         };
 
@@ -228,7 +228,7 @@ impl<'a> BlockInverter<'a> {
                     kind: PatKind::Bind(Ident {
                         id: new_range_id,
                         span: Span::default(),
-                        name: "generated_range".into(),
+                        name: generated_name("range"),
                     }),
                 },
                 iterable.clone(),

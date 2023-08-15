@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, VSDiagnostic } from "qsharp";
+import { ILanguageService, VSDiagnostic, qsharpLibraryUriScheme } from "qsharp";
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 
@@ -17,6 +17,12 @@ export function startCheckingQSharp(languageService: ILanguageService) {
     };
   }) {
     const diagnostics = evt.detail;
+    const uri = vscode.Uri.parse(diagnostics.uri);
+
+    if (uri.scheme === qsharpLibraryUriScheme) {
+      // Don't report diagnostics for library files.
+      return;
+    }
 
     const getPosition = (offset: number) => {
       // We need the document here to be able to map offsets to line/column positions.
@@ -30,7 +36,7 @@ export function startCheckingQSharp(languageService: ILanguageService) {
     };
 
     diagCollection.set(
-      vscode.Uri.parse(evt.detail.uri),
+      uri,
       diagnostics.diagnostics.map((d) => {
         let severity;
         switch (d.severity) {

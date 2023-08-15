@@ -17,9 +17,12 @@ import {
   ILanguageService,
   ILanguageServiceWorker,
   QSharpLanguageService,
+  qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { createLanguageServiceProxy } from "./language-service/worker-proxy.js";
 import { LogLevel, log } from "./log.js";
+
+export { qsharpLibraryUriScheme };
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -80,6 +83,13 @@ async function instantiateWasm() {
   // Once ready, set up logging and telemetry as soon as possible after instantiating
   wasm.initLogging(log.logWithLevel, log.getLogLevel());
   log.onLevelChanged = (level) => wasm.setLogLevel(level);
+}
+
+export async function getLibrarySourceContent(
+  path: string
+): Promise<string | undefined> {
+  await instantiateWasm();
+  return wasm.get_library_source_content(path);
 }
 
 export async function getDebugService(): Promise<IDebugService> {
@@ -213,4 +223,5 @@ export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export type { IDebugServiceWorker, IDebugService };
 export type { IBreakpointSpan, IStackFrame } from "../lib/web/qsc_wasm.js";
+export { type IStructStepResult, StepResultId } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";

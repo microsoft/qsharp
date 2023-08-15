@@ -4,11 +4,16 @@
 use crate::entry_point::generate_entry_expr;
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let mut unit = compile(
+        &PackageStore::new(compile::core()),
+        &[],
+        sources,
+        TargetProfile::Full,
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = generate_entry_expr(&mut unit);

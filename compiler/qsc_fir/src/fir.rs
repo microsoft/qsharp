@@ -40,8 +40,6 @@ fn set_indentation<'a, 'b>(
 pub struct NodeId(u32);
 
 impl NodeId {
-    const DEFAULT_VALUE: u32 = u32::MAX;
-
     /// The ID of the first node.
     pub const FIRST: Self = Self(0);
 
@@ -50,33 +48,16 @@ impl NodeId {
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
-
-    /// True if this is the default ID.
-    #[must_use]
-    pub fn is_default(self) -> bool {
-        self.0 == Self::DEFAULT_VALUE
-    }
-}
-
-impl Default for NodeId {
-    fn default() -> Self {
-        Self(Self::DEFAULT_VALUE)
-    }
 }
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if self.is_default() {
-            f.write_str("_id_")
-        } else {
-            Display::fmt(&self.0, f)
-        }
+        Display::fmt(&self.0, f)
     }
 }
 
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
-        assert!(!value.is_default(), "default node ID should be replaced");
         value.0 as usize
     }
 }
@@ -93,7 +74,6 @@ impl From<usize> for NodeId {
 
 impl From<NodeId> for u32 {
     fn from(value: NodeId) -> Self {
-        assert!(!value.is_default(), "default node ID should be replaced");
         value.0
     }
 }
@@ -106,7 +86,6 @@ impl From<u32> for NodeId {
 
 impl PartialEq for NodeId {
     fn eq(&self, other: &Self) -> bool {
-        assert!(!self.is_default(), "default node ID should be replaced");
         self.0 == other.0
     }
 }
@@ -115,14 +94,12 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be replaced");
         self.0.partial_cmp(&other.0)
     }
 }
 
 impl Ord for NodeId {
     fn cmp(&self, other: &Self) -> Ordering {
-        assert!(!self.is_default(), "default node ID should be replaced");
         self.0.cmp(&other.0)
     }
 }
@@ -138,6 +115,20 @@ macro_rules! fir_id {
         /// A unique identifier for an FIR node.
         #[derive(Debug, Clone, Copy)]
         pub struct $id(pub u32);
+
+        impl $id {
+            /// The successor of this ID.
+            #[must_use]
+            pub fn successor(self) -> Self {
+                Self(self.0 + 1)
+            }
+        }
+
+        impl Default for $id {
+            fn default() -> Self {
+                Self(0)
+            }
+        }
 
         impl From<NodeId> for $id {
             fn from(val: NodeId) -> Self {
@@ -322,6 +313,15 @@ impl Display for Res {
 }
 
 /// The root node of the FIR.
+/// ### Notes
+/// We maintain a dense map of ids within the package.
+/// `BlockId`, `ExprId`, `PatId`, `StmtId`, and `NodeId`s are all assigned
+/// from a type specific counter in the assigner.
+///
+/// `BlockId`, `ExprId`, `PatId`, `StmtId` ids don't leak and are only used
+/// within the containing node. Node ids are used to identify nodes within
+/// the package and require mapping from the HIR node id to the new FIR node id.
+/// `PackageId`s and `LocalItemId`s are 1:1 from the HIR and are not remapped.
 #[derive(Clone, Debug, Default)]
 pub struct Package {
     /// The items in the package.
@@ -566,7 +566,7 @@ impl Display for SpecBody {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
     /// The node ID.
-    pub id: NodeId,
+    pub id: BlockId,
     /// The span.
     pub span: Span,
     /// The block type.
@@ -598,8 +598,8 @@ impl Display for Block {
 /// A statement.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Stmt {
-    /// The node ID.
-    pub id: NodeId,
+    /// The stmt ID.
+    pub id: StmtId,
     /// The span.
     pub span: Span,
     /// The statement kind.
@@ -657,8 +657,8 @@ impl Display for StmtKind {
 /// An expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
-    /// The node ID.
-    pub id: NodeId,
+    /// The expr ID.
+    pub id: ExprId,
     /// The span.
     pub span: Span,
     /// The expression type.
@@ -1034,7 +1034,7 @@ pub enum StringComponent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pat {
     /// The node ID.
-    pub id: NodeId,
+    pub id: PatId,
     /// The span.
     pub span: Span,
     /// The pattern type.
