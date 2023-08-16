@@ -1,19 +1,21 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, Target
+from ._native import Interpreter, TargetProfile
 
 _interpreter = None
 
 
-def init(target: Target = Target.Full) -> None:
+def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
     """
     Initializes the Q# interpreter.
 
-    :param target: The target to use for the Q# interpreter.
+    :param target_profile: Setting the target profile allows the Q#
+        interpreter to generate programs that are compatible
+        with a specific target. See :py:class: `qsharp.TargetProfile`.
     """
     global _interpreter
-    _interpreter = Interpreter(target)
+    _interpreter = Interpreter(target_profile)
 
 
 def get_interpreter() -> Interpreter:
@@ -61,20 +63,31 @@ def eval_file(path) -> None:
 
 def compile(entry_expr):
     """
-    Compiles Q# into a job for submission to Azure
+    Compiles the Q# source code into a program that can be submitted to a target.
+
+    :param entry_expr: The Q# expression that will be used as the entrypoint
+        for the program.
     """
     ll_str = get_interpreter().qir(entry_expr)
-    return QirWrapper("main", ll_str)
+    return QirInputData("main", ll_str)
 
 
-class QirWrapper:
-    # Signature important for azure quantum
+# Class that wraps generated QIR, which can be used by
+# azure-quantum as input data.
+#
+# This class must implement the QirRepresentable protocol
+# that is defined by the azure-quantum package.
+# See: https://github.com/microsoft/qdk-python/blob/fcd63c04aa871e49206703bbaa792329ffed13c4/azure-quantum/azure/quantum/target/target.py#L21
+class QirInputData:
+    # The name of this variable is defined
+    # by the protocol and must remain unchanged.
     _name: str
 
     def __init__(self, name: str, ll_str: str):
         self._name = name
         self._ll_str = ll_str
 
-    # Signature important for azure quantum
+    # The name of this method is defined
+    # by the protocol and must remain unchanged.
     def _repr_qir_(self, **kwargs) -> bytes:
         return self._ll_str.encode("utf-8")

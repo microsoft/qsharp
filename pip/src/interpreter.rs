@@ -13,13 +13,13 @@ use qsc::{
         stateful::{self, LineError},
         Value,
     },
-    PackageType, SourceMap, TargetProfile,
+    PackageType, SourceMap,
 };
 use std::{fmt::Write, sync::Arc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Target>()?;
+    m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
@@ -31,9 +31,18 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
 
 #[derive(Clone, Copy)]
 #[pyclass(unsendable)]
-/// A Q# measurement result.
-pub(crate) enum Target {
+/// A Q# target profile.
+///
+/// A target profile describes the capabilities of the hardware or simulator
+/// which will be used to run the Q# program.
+pub(crate) enum TargetProfile {
+    /// Target supports the full set of capabilities required to run any Q# program.
+    ///
+    /// This option maps to the Full Profile as defined by the QIR specification.
     Full,
+    /// Target supports the minimal set of capabilities required to run a quantum program.
+    ///
+    /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
 }
 
@@ -47,10 +56,10 @@ pub(crate) struct Interpreter {
 impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
-    pub(crate) fn new(_py: Python, target: Target) -> PyResult<Self> {
+    pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
         let target = match target {
-            Target::Full => TargetProfile::Full,
-            Target::Base => TargetProfile::Base,
+            TargetProfile::Full => qsc::TargetProfile::Full,
+            TargetProfile::Base => qsc::TargetProfile::Base,
         };
         match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
             Ok(interpreter) => Ok(Self { interpreter }),

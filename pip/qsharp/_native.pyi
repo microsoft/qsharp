@@ -2,21 +2,40 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 
-class Target(Enum):
+class TargetProfile:
     """
-    A Q# target.
+    A Q# target profile.
+
+    The target is the hardware or simulator which will be used to run the Q# program.
+    The target profile is a description of a target's capabilities.
     """
 
-    Full: int
-    Base: int
+    Full: ClassVar[Any]
+    """
+    Describes the full set of capabilities required to run any Q# program.
+
+    This option maps to the Full Profile as defined by the QIR specification.
+    """
+
+    Base: ClassVar[Any]
+    """
+    Target supports the minimal set of capabilities required to run a quantum
+    program.
+
+    This option maps to the Base Profile as defined by the QIR specification.
+    """
 
 class Interpreter:
     """A Q# interpreter."""
 
-    def __init__(self, target: Target) -> None:
-        """Initializes a new Q# interpreter."""
+    def __init__(self, target_profile: TargetProfile) -> None:
+        """
+        Initializes the Q# interpreter.
+
+        :param target_profile: The target profile to use for the interpreter.
+        """
         ...
     def interpret(self, input: str, output_fn: Callable[[Output], None]) -> Any:
         """
@@ -32,7 +51,11 @@ class Interpreter:
         ...
     def qir(self, entry_expr: str) -> str:
         """
-        Generates QIR from the provided Q# source code.
+        Generates QIR from Q# source code.
+
+        :param entry_expr: The entry expression.
+
+        :returns qir: The QIR string.
         """
         ...
 
