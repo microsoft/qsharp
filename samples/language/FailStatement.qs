@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
-        if 0 / 0 {
+        if 0 / 0 == 0 {
             // Fail statements are useful when representing control flow
             // for unreachable lines
             fail "Division by zero is impossible, how did we get here?"
