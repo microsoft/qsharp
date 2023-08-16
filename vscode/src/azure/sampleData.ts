@@ -10,24 +10,38 @@ export const sampleWorkspace: WorkspaceConnection = {
   tenantId: "",
   connection: "PAT",
   storageAccount: "",
-  targets: [
+  providers: [
     {
-      providerId: "IonQ Aria",
-      provisioningState: "Succeeded",
-      status: "Online",
-      queueTime: 23,
+      providerId: "ionq",
+      currentAvailability: "Available",
+      targets: [
+        {
+          id: "ionq.simulator",
+          currentAvailability: "Available",
+          averageQueueTime: 5,
+        },
+        {
+          id: "ionq.qpu.aria-1",
+          currentAvailability: "Available",
+          averageQueueTime: 123,
+        },
+      ],
     },
     {
-      providerId: "Quantinuum H2-1",
-      provisioningState: "Succeeded",
-      status: "Online",
-      queueTime: 183,
-    },
-    {
-      providerId: "Rigetti Aspen M-3",
-      provisioningState: "Succeeded",
-      status: "Online",
-      queueTime: 5,
+      providerId: "quantinuum",
+      currentAvailability: "Available",
+      targets: [
+        {
+          id: "quantinuum.sim.h1-2e",
+          currentAvailability: "Available",
+          averageQueueTime: 2,
+        },
+        {
+          id: "quantinuum.qpu.h1-2",
+          currentAvailability: "Available",
+          averageQueueTime: 620,
+        },
+      ],
     },
   ],
   jobs: [

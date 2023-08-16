@@ -28,7 +28,7 @@ export async function azureRequest(
   }
 
   try {
-    log.debug(`Fetching ${uri}`);
+    log.debug(`Fetching ${uri} with method ${method}`);
     const response = await fetch(uri, {
       headers,
       method,
@@ -36,6 +36,7 @@ export async function azureRequest(
     });
 
     if (!response.ok) throw "Failed"; // TODO: Proper error propogation
+    log.debug(`Got response ${response.status} ${response.statusText}`);
     return await response.json();
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
@@ -61,8 +62,12 @@ export async function storageRequest(
     headers.push(["x-proxy-to", url.origin]);
   }
   try {
+    log.debug(`Fetching ${uri} with method ${method}`);
     const response = await fetch(uri, { method, headers, body });
-    if (!response.ok) throw "Failed"; // TODO: Proper error propogation
+    if (!response.ok) {
+      throw "Failed"; // TODO: Proper error propogation
+    }
+    log.debug(`Got response ${response.status} ${response.statusText}`);
     return response;
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
@@ -189,19 +194,20 @@ export namespace ResponseTypes {
       location: string;
       properties: {
         providers: Array<{
-          providerId: string;
+          providerId: string; // e.g., 'ionq', 'quantinuum', 'rigetti'
           providerSku: string;
-          provisioningState: string;
+          provisioningState: string; // e.g. 'Succeeded'
           resourceUsageId: string;
         }>;
         provisioningState: string;
-        storageAccount: string; // "/subscriptions/02e0a16f-334e-47a5-8672-d94e1ebee1b1/resourceGroups/AzureQuantum/providers/Microsoft.Storage/storageAccounts/aq8cf1612dd26f4d90b8e931"
-        endpointUri: string;
+        storageAccount: string; // e.g. "/subscriptions/<guid>/resourceGroups/<name>/providers/Microsoft.Storage/storageAccounts/<id>"
+        endpointUri: string; // e.g. "https://<workspace-name>.westus.quantum.azure.com". Note: workspace-name should be removed.
       };
     }>;
   };
 
   export type Quotas = {
+    nextLink: string | null;
     value: Array<{
       scope: string;
       providerId: string;
@@ -212,8 +218,22 @@ export namespace ResponseTypes {
     }>;
   };
 
+  export type ProviderStatus = {
+    nextLink: string | null;
+    value: Array<{
+      id: string; // ionq, quantinuum, rigetti, etc.
+      currentAvailability: "Available" | "Degraded" | "Unavailable";
+      targets: Array<{
+        id: string; // ionq.qpu, ionq.simulator, rigetti.sim.qvm, quantinuum.sim.h1-2e, etc.
+        currentAvailability: "Available" | "Degraded" | "Unavailable";
+        averageQueueTime: number; // minutes
+        statusPage: string; // url
+      }>;
+    }>;
+  };
+
   export type Jobs = {
-    nextLink: string;
+    nextLink: string | null;
     value: Array<{
       id: string;
       name: string;

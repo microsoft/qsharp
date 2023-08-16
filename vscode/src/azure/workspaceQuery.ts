@@ -19,6 +19,7 @@ import { getResourcePath } from "../extension";
 export async function queryWorkspaces(): Promise<
   WorkspaceConnection | undefined
 > {
+  log.debug("Querying for account workspaces");
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
 
   // For the MSA case, you need to query the tenants first and get the underlying AzureAD
@@ -28,7 +29,7 @@ export async function queryWorkspaces(): Promise<
     [scopes.armMgmt],
     { createIfNone: true }
   );
-  log.debug(`Got first token: ${JSON.stringify(firstAuth, null, 2)}`);
+  log.trace(`Got first token: ${JSON.stringify(firstAuth, null, 2)}`);
   const firstToken = firstAuth.accessToken;
 
   const azureUris = new AzureUris();
@@ -37,6 +38,7 @@ export async function queryWorkspaces(): Promise<
     azureUris.tenants(),
     firstToken
   );
+  log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
   if (!tenants?.value?.length) throw "No tenants returned";
 
   // Quick-pick if more than one
@@ -65,7 +67,7 @@ export async function queryWorkspaces(): Promise<
       [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
       { createIfNone: true }
     );
-    log.debug(`Got tenant token: ${JSON.stringify(tenantAuth, null, 2)}`);
+    log.trace(`Got tenant token: ${JSON.stringify(tenantAuth, null, 2)}`);
   }
   const tenantToken = tenantAuth.accessToken;
 
@@ -73,6 +75,7 @@ export async function queryWorkspaces(): Promise<
     azureUris.subscriptions(),
     tenantToken
   );
+  log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
   if (!subs?.value?.length) throw "No subscriptions returned";
 
   // Quick-pick if more than one
@@ -94,6 +97,9 @@ export async function queryWorkspaces(): Promise<
     azureUris.workspaces(subId),
     tenantToken
   );
+  if (log.getLogLevel() >= 5) {
+    log.trace(`Got workspaces: ${JSON.stringify(workspaces, null, 2)}`);
+  }
   if (!workspaces.value.length) throw "Failed to get any workspaces";
 
   // id will be similar to: "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
@@ -128,15 +134,20 @@ export async function queryWorkspaces(): Promise<
     tenantId,
     connection: "AAD", // TODO
     storageAccount: workspace.properties.storageAccount,
-    targets: workspace.properties.providers.map((provider) => ({
+    providers: workspace.properties.providers.map((provider) => ({
       providerId: provider.providerId,
-      provisioningState: provider.provisioningState,
+      currentAvailability:
+        provider.provisioningState === "Succeeded"
+          ? "Available"
+          : "Unavailable",
+      targets: [], // Will be populated by a later query
     })),
     jobs: [],
   };
+  if (log.getLogLevel() >= 5) {
+    log.trace(`Workspace object: ${JSON.stringify(result, null, 2)}`);
+  }
 
-  // *** Query the workspace for its properties ***
-  await queryWorkspace(result);
   return result;
 }
 
@@ -146,6 +157,7 @@ export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
     [scopes.quantum, `VSCODE_TENANT:${workspace.tenantId}`],
     { createIfNone: true }
   );
+  log.trace(`Got workspace token: ${JSON.stringify(workspaceAuth, null, 2)}`);
   return workspaceAuth.accessToken;
 }
 
@@ -162,10 +174,52 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     token
   );
 
+  const providerStatus: ResponseTypes.ProviderStatus = await azureRequest(
+    quantumUris.providerStatus(),
+    token
+  );
+  if (log.getLogLevel() >= 5) {
+    log.trace(
+      `Got provider status: ${JSON.stringify(providerStatus, null, 2)}`
+    );
+  }
+
+  const supportedTargets = [
+    "quantinuum.sim.h1-1sc",
+    "quantinuum.sim.h1-1e",
+    "quantinuum.qpu.h1-1",
+    "quantinuum.sim.h1-2sc",
+    "quantinuum.sim.h1-2e",
+    "quantinuum.qpu.h1-2",
+    "quantinuum.sim.h2-1sc",
+    "quantinuum.sim.h2-1e",
+    "quantinuum.qpu.h2-1",
+    "rigetti.sim.qvm",
+    "rigetti.qpu.aspen-m-3",
+  ];
+
+  // Update the providers with the target list
+  workspace.providers = providerStatus.value.map((provider) => {
+    return {
+      providerId: provider.id,
+      currentAvailability: provider.currentAvailability,
+      targets: provider.targets.filter((target) =>
+        supportedTargets.includes(target.id)
+      ),
+    };
+  });
+
+  workspace.providers = workspace.providers.filter(
+    (provider) => provider.targets.length > 0
+  );
+
   const jobs: ResponseTypes.Jobs = await azureRequest(
     quantumUris.jobs(),
     token
   );
+  if (log.getLogLevel() >= 5) {
+    log.trace(`Got jobs: ${JSON.stringify(jobs, null, 2)}`);
+  }
 
   if (jobs.nextLink) {
     log.error("TODO: Handle pagination");
@@ -187,6 +241,8 @@ export async function getJobFiles(
   token: string,
   quantumUris: QuantumUris
 ) {
+  log.debug(`Fetching job file from ${containerName}/${blobName}`);
+
   const body = JSON.stringify({ containerName, blobName });
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
@@ -195,7 +251,7 @@ export async function getJobFiles(
     body
   );
   const sasUri = decodeURI(sasResponse.sasUri);
-  log.debug(`Got SAS URI: ${sasUri}`);
+  log.trace(`Got SAS URI: ${sasUri}`);
 
   try {
     const file = await storageRequest(sasUri, "GET");
@@ -215,7 +271,13 @@ export async function getJobFiles(
   }
 }
 
-export async function submitJob(token: string, quantumUris: QuantumUris) {
+export async function submitJob(
+  token: string,
+  quantumUris: QuantumUris,
+  qirFile: Uint8Array,
+  providerId: string,
+  target: string
+) {
   // Generate a unique container id of the form "job-<uuid>"
   const id = crypto.getRandomValues(new Uint8Array(16));
   const idChars = Array.from(id)
@@ -272,20 +334,13 @@ x-ms-date: {{$datetime rfc1123}}
 x-ms-blob-type: BlockBlob
 Content-Type: application/octet-stream
   */
-  // Get the QIR file
-  // Get extension path
-  const qirFilePath = getResourcePath("inputData-quantinuum.h1-2.bc");
-  const qirFile = await vscode.workspace.fs.readFile(qirFilePath);
 
   const inputDataUri = `${storageAccount}/${containerName}/inputData?${sasTokenRaw}`;
   // TODO: Extra headers on below and file body
   const inputDataResponse = await storageRequest(
     inputDataUri,
     "PUT",
-    [
-      ["x-ms-blob-type", "BlockBlob"],
-      ["Content-Type", "application/octet-stream"],
-    ],
+    [["x-ms-blob-type", "BlockBlob"]],
     qirFile
   );
 
@@ -312,8 +367,8 @@ Authorization: Bearer {{QUANTUM_TOKEN}}
   const payload = {
     id: containerName,
     name: jobName,
-    providerId: "quantinuum",
-    target: "quantinuum.sim.h1-2e",
+    providerId,
+    target,
     itemType: "Job",
     containerUri: sasResponse.sasUri,
     inputDataUri: `${storageAccount}/${containerName}/inputData`,

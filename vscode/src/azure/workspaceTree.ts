@@ -3,6 +3,7 @@
 
 import * as vscode from "vscode";
 import { queryWorkspace } from "./workspaceQuery";
+import { log } from "qsharp";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
@@ -27,6 +28,7 @@ export class WorkspaceTreeProvider
   }
 
   async refresh() {
+    log.debug("Refreshing workspace tree");
     this.treeState.forEach(async (workspace) => {
       if (workspace.connection !== "PAT") {
         await queryWorkspace(workspace);
@@ -60,26 +62,6 @@ export class WorkspaceTreeProvider
   }
 }
 
-export type Target = {
-  providerId: string;
-  provisioningState: string;
-  status?: "Online" | "Offline";
-  queueTime?: number;
-};
-
-export type Job = {
-  id: string;
-  name: string;
-  target: string;
-  status: "Waiting" | "Executing" | "Succeeded" | "Failed" | "Cancelled";
-  outputDataUri?: string;
-  creationTime: string;
-  beginExecutionTime?: string;
-  endExecutionTime?: string;
-  cancellationTime?: string;
-  costEstimate?: any;
-};
-
 export type WorkspaceConnection = {
   connection: any;
   id: string;
@@ -88,16 +70,65 @@ export type WorkspaceConnection = {
   endpointUri: string;
   tenantId: string;
   quota?: any;
-  targets: Target[];
+  providers: Provider[];
   jobs: Job[];
 };
+
+export type Provider = {
+  providerId: string; // ionq, quantinuum, rigetti, etc.
+  currentAvailability: "Available" | "Degraded" | "Unavailable";
+  targets: Target[];
+};
+
+export type Target = {
+  id: string; // ionq.qpu, ionq.simulator, rigetti.sim.qvm, quantinuum.sim.h1-2e, etc.
+  currentAvailability: "Available" | "Degraded" | "Unavailable";
+  averageQueueTime: number; // minutes
+};
+
+export type Job = {
+  id: string;
+  name: string;
+  target: string;
+  status:
+    | "Waiting"
+    | "Executing"
+    | "Succeeded"
+    | "Failed"
+    | "Finishing"
+    | "Cancelled";
+  outputDataUri?: string;
+  creationTime: string;
+  beginExecutionTime?: string;
+  endExecutionTime?: string;
+  cancellationTime?: string;
+  costEstimate?: any;
+};
+
+// A workspace has an array in properties.providers, each of which has a 'providerId' property,
+// e.g. 'ionq', and a 'provisioningState' property, e.g. 'Succeeded'. Filter the list to only
+// include those that have succeeded. Then, when querying the providerStatus, only add the targets
+// for the providers that are present. (Also, filter out providers that have no targets).
 
 export class WorkspaceTreeItem extends vscode.TreeItem {
   constructor(
     label: string,
     public workspace: WorkspaceConnection,
-    public type: "workspace" | "targetHeader" | "target" | "jobHeader" | "job",
-    public itemData: WorkspaceConnection | Target[] | Target | Job[] | Job
+    public type:
+      | "workspace"
+      | "providerHeader"
+      | "provider"
+      | "target"
+      | "jobHeader"
+      | "job",
+    public itemData:
+      | WorkspaceConnection
+      | Provider[]
+      | Provider
+      | Target[]
+      | Target
+      | Job[]
+      | Job
   ) {
     super(label, vscode.TreeItemCollapsibleState.Collapsed);
 
@@ -107,16 +138,27 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
       case "workspace":
         this.iconPath = new vscode.ThemeIcon("notebook");
         break;
+      case "providerHeader": {
+        break;
+      }
+      case "provider": {
+        this.iconPath = new vscode.ThemeIcon("layers");
+        break;
+      }
       case "target": {
         const target = itemData as Target;
         this.iconPath = new vscode.ThemeIcon("package");
         this.collapsibleState = vscode.TreeItemCollapsibleState.None;
-        if (target.status || target.queueTime) {
+        if (target.currentAvailability || target.averageQueueTime) {
           const hover = new vscode.MarkdownString(
-            `${target.status ? `__Status__: ${target.status}<br>` : ""}
+            `${
+              target.currentAvailability
+                ? `__Status__: ${target.currentAvailability}<br>`
+                : ""
+            }
             ${
-              target.queueTime
-                ? `__Queue time__: ${target.queueTime}mins<br>`
+              target.averageQueueTime
+                ? `__Queue time__: ${target.averageQueueTime}mins<br>`
                 : ""
             }`
           );
@@ -130,11 +172,10 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
         this.collapsibleState = vscode.TreeItemCollapsibleState.None;
         switch (job.status) {
           case "Executing":
-            // this.iconPath = new vscode.ThemeIcon("debug-line-by-line");
+          case "Finishing":
             this.iconPath = new vscode.ThemeIcon("run-all");
             break;
           case "Waiting":
-            // this.iconPath = new vscode.ThemeIcon("watch");
             this.iconPath = new vscode.ThemeIcon("loading~spin");
             break;
           case "Cancelled":
@@ -185,10 +226,10 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
       case "workspace":
         return [
           new WorkspaceTreeItem(
-            "Targets",
+            "Providers",
             this.workspace,
-            "targetHeader",
-            this.workspace.targets
+            "providerHeader",
+            this.workspace.providers
           ),
           new WorkspaceTreeItem(
             "Jobs",
@@ -198,15 +239,20 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
           ),
         ];
 
-      case "targetHeader":
-        return (this.itemData as Target[]).map(
-          (target) =>
+      case "providerHeader":
+        return (this.itemData as Provider[]).map(
+          (provider) =>
             new WorkspaceTreeItem(
-              target.providerId,
+              provider.providerId,
               this.workspace,
-              "target",
-              target
+              "provider",
+              provider
             )
+        );
+      case "provider":
+        return (this.itemData as Provider).targets.map(
+          (target) =>
+            new WorkspaceTreeItem(target.id, this.workspace, "target", target)
         );
       case "jobHeader":
         return (this.itemData as Job[]).map(
@@ -225,37 +271,3 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
     }
   }
 }
-
-//     if (this.label === "IonQ") {
-//       const status = new vscode.MarkdownString(`
-// __Status__: Online<br>
-// __Queue time__: 2 hours
-//       `);
-//       status.supportHtml = true;
-//       this.tooltip = status;
-//     }
-//     if (this.label === "Chemistry") {
-//       const hover = new vscode.MarkdownString(`
-// __Quota remaining__: $500.00
-//   `);
-//       hover.supportHtml = true;
-//       this.tooltip = hover;
-//     }
-//     if (type === "job") {
-//       const hover = new vscode.MarkdownString(
-//         `__Submitted__: 2023-06-25, 15:34 UTC`
-//       );
-//       hover.supportHtml = true;
-//       this.tooltip = hover;
-//     }
-//     if (type === "result") {
-//       const hover = new vscode.MarkdownString(
-//         `__Submitted__: 2023-06-25, 15:34 UTC<br>
-// __Completed__: 2023-06-25, 15:45 UTC<br>
-// __Result__: Success<br>
-// __Size__: 10kb
-//         `
-//       );
-//       hover.supportHtml = true;
-//       this.tooltip = hover;
-//     }

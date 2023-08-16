@@ -19,8 +19,9 @@ import {
   queryWorkspaces,
   submitJob,
 } from "./workspaceQuery";
-import { sampleResult, sampleWorkspace } from "./sampleData";
+import { sampleWorkspace } from "./sampleData";
 import { QuantumUris } from "./azure";
+import { getResourcePath } from "../extension";
 
 let workspaceTreeProvider: WorkspaceTreeProvider;
 
@@ -41,7 +42,18 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     "quantum-target-submit",
     async (arg: WorkspaceTreeItem) => {
       const target = arg.itemData as Target;
-      if (target.providerId !== "quantinuum") return;
+      let qirFilePath: vscode.Uri;
+      let providerId: string;
+
+      if (target.id.startsWith("quantinuum")) {
+        providerId = "quantinuum";
+        qirFilePath = getResourcePath("inputData-quantinuum.h1-2.bc");
+      } else if (target.id.startsWith("rigetti")) {
+        providerId = "rigetti";
+        qirFilePath = getResourcePath("inputData-rigetti.sim.qvm.bc");
+      } else {
+        return;
+      }
 
       const token = await getTokenForWorkspace(arg.workspace);
       const quantumUris = new QuantumUris(
@@ -49,7 +61,8 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
         arg.workspace.id
       );
 
-      await submitJob(token, quantumUris);
+      const qirFile = await vscode.workspace.fs.readFile(qirFilePath);
+      await submitJob(token, quantumUris, qirFile, providerId, target.id);
       setTimeout(async () => {
         await queryWorkspace(arg.workspace);
         workspaceTreeProvider.updateWorkspace(arg.workspace);
