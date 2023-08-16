@@ -2,8 +2,8 @@
 /// Ranges
 ///
 /// # Description
-/// Ranges are a way of expressin a range of integer values in Q#.
-/// Range expressions can be either closed ranges with definate start
+/// Ranges are a way of expression a range of integer values in Q#.
+/// Range expressions can be either closed ranges with definite start
 /// and end values, such as 1..10 which contains all the integers from
 /// 1 to 10 inclusively, or they can be open ranges that have
 /// indeterminate start, end, or both. Ranges can also optionally specify

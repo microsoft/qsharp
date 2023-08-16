@@ -10,7 +10,7 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
 
-        // `==` tests if the first value is equivilant to the second value.
+        // `==` tests if the first value is equivalent to the second value.
 
         // The Boolean value `true`.
         let boolean = 4 == 4;
@@ -18,7 +18,7 @@ namespace MyQuantumApp {
         // The Boolean value `false`.
         let boolean = 4 == 6;
 
-        // `!=` tests if the first value is not equivilant to the second value.
+        // `!=` tests if the first value is not equivalent to the second value.
         // It is the opposite of `==`.
 
         // The Boolean value `false`.

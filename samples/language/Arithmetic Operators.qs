@@ -37,7 +37,7 @@ namespace MyQuantumApp {
         let integer = 10 * 32;
 
         // `/` divides the left-hand value by the right-hand value.
-        // When the opperands are both integers, the result is truncated to an integer.
+        // When the operands are both integers, the result is truncated to an integer.
 
         // The integer value `3`.
         let integer = 32 / 10;
@@ -63,7 +63,7 @@ namespace MyQuantumApp {
         let integer = -32 % -10;
 
         // `^` gives the exponent of the left-hand value raised to the power of the right-hand value.
-        // When the opperands are both integers, the right-hand value cannot be negative. This is
+        // When the operands are both integers, the right-hand value cannot be negative. This is
         // checked at runtime.
 
         // The integer value `81`.
