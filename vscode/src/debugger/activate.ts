@@ -124,16 +124,32 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
   }
 }
 
+// The path normalization, fallbacks, and uri resolution are necessary
+// due to https://github.com/microsoft/vscode-debugadapter-node/issues/298
+// We can't specify that the debug adapter should use Uri for paths and can't
+// use the DebugSession conversion functions because they don't work in the web.
 export const workspaceFileAccessor: FileAccessor = {
-  async readFile(uri: string): Promise<Uint8Array> {
-    return await vscode.workspace.fs.readFile(vscode.Uri.parse(uri));
+  normalizePath(path: string): string {
+    return path.replace(/\\/g, "/");
   },
-  async readFileAsString(uri: string): Promise<string> {
-    const contents = await this.readFile(uri);
-    return new TextDecoder().decode(contents);
+  convertToWindowsPathSeparator(path: string): string {
+    return path.replace(/\//g, "\\");
   },
-  async writeFile(uri: string, contents: Uint8Array) {
-    await vscode.workspace.fs.writeFile(vscode.Uri.parse(uri), contents);
+  resolvePathToUri(path: string): vscode.Uri {
+    const normalizedPath = this.normalizePath(path);
+    return vscode.Uri.parse(normalizedPath, false);
+  },
+  async openPath(path: string): Promise<vscode.TextDocument> {
+    const uri: vscode.Uri = this.resolvePathToUri(path);
+    return this.openUri(uri);
+  },
+  async openUri(uri: vscode.Uri): Promise<vscode.TextDocument> {
+    try {
+      return await vscode.workspace.openTextDocument(uri);
+    } catch {
+      const path = this.convertToWindowsPathSeparator(uri.toString());
+      return await vscode.workspace.openTextDocument(vscode.Uri.file(path));
+    }
   },
 };
 
