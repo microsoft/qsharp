@@ -47,7 +47,7 @@ pub fn generate_qir(
     let unit = fir_store.get(package).expect("store should have package");
     let entry_expr = unit.entry.expect("package should have entry");
 
-    let mut stdout = vec![];
+    let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
     let result = eval_expr(
         &mut State::new(package),
@@ -80,7 +80,7 @@ pub fn generate_qir_for_stmt(
 ) -> std::result::Result<String, (Error, Vec<Frame>)> {
     let mut sim = BaseProfSim::default();
     sim.instrs.push_str(PREFIX);
-    let mut stdout = vec![];
+    let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
     match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
         Ok(val) => {
