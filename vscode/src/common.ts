@@ -20,3 +20,7 @@ export interface FileAccessor {
   readFileAsString(uri: string): Promise<string>;
   writeFile(uri: string, contents: Uint8Array): Promise<void>;
 }
+
+export function basename(path: string): string | undefined {
+  return path.replace(/\/+$/, "").split("/").pop();
+}
