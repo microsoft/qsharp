@@ -70,57 +70,26 @@ pub fn generate_qir(
     }
 }
 
-pub struct BaseProfGen {
-    sim: BaseProfSim,
-    last_val: Option<Value>,
-}
-
-impl BaseProfGen {
-    #[must_use]
-    pub fn new() -> Self {
-        let mut sim = BaseProfSim::default();
-        sim.instrs.push_str(PREFIX);
-        Self {
-            sim,
-            last_val: None,
+/// # Errors
+/// This function will return an error if execution was unable to complete.
+pub fn generate_qir_for_stmt(
+    stmt: StmtId,
+    globals: &impl NodeLookup,
+    env: &mut Env,
+    package: PackageId,
+) -> std::result::Result<String, (Error, Vec<Frame>)> {
+    let mut sim = BaseProfSim::default();
+    sim.instrs.push_str(PREFIX);
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+    match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
+        Ok(val) => {
+            sim.write_output_recording(&val)
+                .expect("writing to string should succeed");
+            sim.instrs.push_str(POSTFIX);
+            Ok(sim.instrs)
         }
-    }
-
-    #[must_use]
-    pub fn to_qir(mut self) -> String {
-        self.sim
-            .write_output_recording(&self.last_val.expect("last_val should be set"))
-            .expect("writing to string should succeed");
-        self.sim.instrs.push_str(POSTFIX);
-        self.sim.instrs
-    }
-
-    /// # Errors
-    ///
-    /// This function will return an error if execution was unable to complete.
-    pub fn stmt(
-        &mut self,
-        stmt: StmtId,
-        globals: &impl NodeLookup,
-        env: &mut Env,
-        package: PackageId,
-    ) -> std::result::Result<(), (Error, Vec<Frame>)> {
-        let mut stdout = vec![];
-        let mut out = GenericReceiver::new(&mut stdout);
-        let result = eval_stmt(stmt, globals, env, &mut self.sim, package, &mut out);
-        match result {
-            Ok(val) => {
-                self.last_val = Some(val);
-                Ok(())
-            }
-            Err((err, stack)) => Err((err, stack)),
-        }
-    }
-}
-
-impl Default for BaseProfGen {
-    fn default() -> Self {
-        Self::new()
+        Err((err, stack)) => Err((err, stack)),
     }
 }
 

@@ -14,7 +14,7 @@ use crate::{
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
-use qsc_codegen::qir_base::BaseProfGen;
+use qsc_codegen::qir_base::generate_qir_for_stmt;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::backend::Backend;
 use qsc_eval::{
@@ -438,8 +438,6 @@ impl Interpreter {
             ))]);
         }
 
-        let mut codegen = BaseProfGen::new();
-
         let mut fragment = self.compiler.compile_expr(expr).map_err(|errors| {
             let source = expr.into();
             errors
@@ -473,23 +471,21 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        if let Err((error, call_stack)) =
-            codegen.stmt(stmt_id, &globals, &mut self.env, self.package)
-        {
-            let stack_trace = if call_stack.is_empty() {
-                None
-            } else {
-                Some(self.render_call_stack(call_stack, &error))
-            };
+        generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
+            |(error, call_stack)| {
+                let stack_trace = if call_stack.is_empty() {
+                    None
+                } else {
+                    Some(self.render_call_stack(call_stack, &error))
+                };
 
-            return Err(vec![LineError(WithSource::new(
-                expr.into(),
-                error.into(),
-                stack_trace,
-            ))]);
-        }
-
-        Ok(codegen.to_qir())
+                vec![LineError(WithSource::new(
+                    expr.into(),
+                    error.into(),
+                    stack_trace,
+                ))]
+            },
+        )
     }
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
