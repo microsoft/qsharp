@@ -124,6 +124,10 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
   }
 }
 
+// The path normalization, fallbacks, and uri resolution are necessary
+// due to https://github.com/microsoft/vscode-debugadapter-node/issues/298
+// We can't specify that the debug adapter should use Uri for paths and can't
+// use the DebugSession conversion functions because they don't work in the web.
 export const workspaceFileAccessor: FileAccessor = {
   normalizePath(path: string): string {
     return path.replace(/\\/g, "/");
