@@ -89,7 +89,7 @@ impl Interpreter {
     fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
         match self.interpreter.qirgen(entry_expr) {
             Ok(qir) => Ok(qir),
-            Err(err) => Err(QSharpError::new_err(format!("{err:?}"))),
+            Err(errors) => Err(QSharpError::new_err(format_errors(entry_expr, errors))),
         }
     }
 }
