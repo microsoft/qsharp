@@ -22,3 +22,7 @@ export interface FileAccessor {
   openPath(path: string): Promise<TextDocument>;
   openUri(uri: Uri): Promise<TextDocument>;
 }
+
+export function basename(path: string): string | undefined {
+  return path.replace(/\/+$/, "").split("/").pop();
+}

@@ -30,7 +30,6 @@
     "marked": "^4.3.0",
     "mathjax": "^3.2.2",
     "monaco-editor": "^0.36.1",
-    "path-browserify": "^1.0.1",
     "preact": "^10.13.1",
     "prettier": "2.8.8",
     "typescript": "^5.0.2",

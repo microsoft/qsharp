@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor } from "../common";
+import { FileAccessor, basename } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -35,7 +35,6 @@ import {
 } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-import path from "path-browserify";
 const ErrorProgramHasErrors = "program contains compile errors(s): cannot run.";
 const SimulationCompleted = "Q# simulation completed.";
 const ConfigurationDelayMS = 1000;
@@ -565,7 +564,7 @@ export class QscDebugSession extends LoggingDebugSession {
               id,
               f.name,
               new Source(
-                path.basename(f.path),
+                basename(f.path) ?? f.path,
                 file.uri.toString(true),
                 undefined,
                 undefined,
@@ -594,7 +593,7 @@ export class QscDebugSession extends LoggingDebugSession {
               const start_pos = file.positionAt(f.lo);
               const end_pos = file.positionAt(f.hi);
               const source = new Source(
-                path.basename(f.path),
+                basename(f.path) ?? f.path,
                 uri.toString(),
                 0,
                 "internal core/std library",
