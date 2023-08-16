@@ -149,6 +149,28 @@ async function runExerciseSolutionCheck(exercise, solution) {
   };
 }
 
+async function getAllKataExamples(kata) {
+  let examples = [];
+
+  // Get all the examples conatined in solution explanations.
+  const exerciseExamples = kata.sections
+    .filter((section) => section.type === "exercise")
+    .map((exercise) =>
+      exercise.explainedSolution.items.filter((item) => item.type === "example")
+    )
+    .flat();
+  examples = examples.concat(exerciseExamples);
+
+  // Get all the examples in lessons.
+  const lessonExamples = kata.sections
+    .filter((section) => section.type === "lesson")
+    .map((lesson) => lesson.items.filter((item) => item.type === "example"))
+    .flat();
+  examples = examples.concat(lessonExamples);
+
+  return examples;
+}
+
 async function validateExercise(
   exercise,
   validatePlaceholder,
@@ -212,6 +234,7 @@ async function validateExercise(
 
 async function validateKata(
   kata,
+  validateExamples,
   validateExercisePlaceholder,
   validateExerciseSolutions
 ) {
@@ -225,6 +248,24 @@ async function validateKata(
       validateExercisePlaceholder,
       validateExerciseSolutions
     );
+  }
+
+  if (validateExamples) {
+    const examples = await getAllKataExamples(kata);
+    for (const example of examples) {
+      try {
+        const result = await runSingleShot(example.code, "", false);
+        assert(
+          result.success,
+          `Example "${example.id}" in "${kata.id}" kata failed to run.`
+        );
+      } catch (error) {
+        assert(
+          false,
+          `Example "${example.id}" in "${kata.id}" kata failed to build:\n${error}`
+        );
+      }
+    }
   }
 }
 
@@ -241,42 +282,42 @@ test("all katas work", async () => {
 
 test("qubit kata is valid", async () => {
   const kata = await getKata("qubit");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("single_qubit_gates kata is valid", async () => {
   const kata = await getKata("single_qubit_gates");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("multi_qubit_systems kata is valid", async () => {
   const kata = await getKata("multi_qubit_systems");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("multi_qubit_gates kata is valid", async () => {
   const kata = await getKata("multi_qubit_gates");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("single_qubit_measurements is valid", async () => {
   const kata = await getKata("single_qubit_measurements");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("multi_qubit_measurements is valid", async () => {
   const kata = await getKata("multi_qubit_measurements");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("random_numbers kata is valid", async () => {
   const kata = await getKata("random_numbers");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("oracles kata is valid", async () => {
   const kata = await getKata("oracles");
-  await validateKata(kata, true, true);
+  await validateKata(kata, true, true, true);
 });
 
 test("worker 100 shots", async () => {

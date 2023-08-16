@@ -3,7 +3,7 @@
     "codePath": "solution.qs"
 })
 
-Consider how the oracle from task 1.3 acts on two input basis states and two "output" basis states:
+Consider how the oracle from this exercise acts on two input basis states and two "output" basis states:
 
 $$U_{7,mark} |111\rangle |0\rangle = |111\rangle |0 \oplus f(111)\rangle = |111\rangle |0 \oplus 1\rangle = |111\rangle |1\rangle$$
 $$U_{7,mark} |111\rangle |1\rangle = |111\rangle |1 \oplus f(111)\rangle = |111\rangle |1 \oplus 1\rangle = |111\rangle |0\rangle$$
