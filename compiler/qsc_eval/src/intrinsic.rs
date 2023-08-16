@@ -88,7 +88,7 @@ pub(crate) fn call(
                 sim.qubit_release(qubit);
                 Ok(Value::unit())
             } else {
-                Err(Error::ReleasedQubitNotZero(qubit))
+                Err(Error::ReleasedQubitNotZero(qubit, arg_span))
             }
         }
         "__quantum__qis__ccx__body" => {

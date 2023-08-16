@@ -87,7 +87,7 @@ pub enum Error {
 
     #[error("Qubit{0} released while not in |0⟩ state")]
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
-    ReleasedQubitNotZero(usize),
+    ReleasedQubitNotZero(usize, #[label("Qubit{0}")] Span),
 
     #[error("name is not bound")]
     #[diagnostic(code("Qsc.Eval.UnboundName"))]
