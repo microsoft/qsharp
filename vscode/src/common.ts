@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { DocumentFilter } from "vscode";
+import { DocumentFilter, TextDocument, Uri } from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 // Matches all Q# documents, including unsaved files, notebook cells, etc.
@@ -16,7 +16,13 @@ export const qsharpNotebookCellDocumentFilter: DocumentFilter = {
 export const qsharpExtensionId = "qsharp-vscode";
 
 export interface FileAccessor {
-  readFile(uri: string): Promise<Uint8Array>;
-  readFileAsString(uri: string): Promise<string>;
-  writeFile(uri: string, contents: Uint8Array): Promise<void>;
+  normalizePath(path: string): string;
+  convertToWindowsPathSeparator(path: string): string;
+  resolvePathToUri(path: string): Uri;
+  openPath(path: string): Promise<TextDocument>;
+  openUri(uri: Uri): Promise<TextDocument>;
+}
+
+export function basename(path: string): string | undefined {
+  return path.replace(/\/+$/, "").split("/").pop();
 }

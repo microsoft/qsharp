@@ -60,6 +60,19 @@ impl IdentTemplate {
     pub fn gen_id_init(&self, mutability: Mutability, expr: Expr, assigner: &mut Assigner) -> Stmt {
         Stmt {
             id: assigner.next_node(),
+            span: Span::default(),
+            kind: StmtKind::Local(mutability, self.gen_pat(assigner), expr),
+        }
+    }
+
+    pub fn gen_steppable_id_init(
+        &self,
+        mutability: Mutability,
+        expr: Expr,
+        assigner: &mut Assigner,
+    ) -> Stmt {
+        Stmt {
+            id: assigner.next_node(),
             span: self.span,
             kind: StmtKind::Local(mutability, self.gen_pat(assigner), expr),
         }

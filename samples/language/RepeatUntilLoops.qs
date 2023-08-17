@@ -15,7 +15,7 @@ namespace MyQuantumApp {
         mutable x = 0;
         repeat {
             set x += 1;
-        } until x < 3;
+        } until x > 3;
 
         // Repeat-Until loop with fixup
         use qubit = Qubit();
