@@ -32,7 +32,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_bit",
-    "title": "Generate a single random bit",
+    "title": "Generate A Single Random Bit",
     "descriptionPath": "./random_bit/index.md",
     "placeholderSourcePath": "./random_bit/placeholder.qs",
     "solutionPath": "./random_bit/solution.md",
@@ -45,7 +45,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_two_bits",
-    "title": "Generate a random two-bit number",
+    "title": "Generate A Random Two-Bit Number",
     "descriptionPath": "./random_two_bits/index.md",
     "placeholderSourcePath": "./random_two_bits/placeholder.qs",
     "solutionPath": "./random_two_bits/solution.md",
@@ -58,7 +58,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_n_bits",
-    "title": "Generate a number of arbitrary size",
+    "title": "Generate A Number Of Arbitrary Size",
     "descriptionPath": "./random_n_bits/index.md",
     "placeholderSourcePath": "./random_n_bits/placeholder.qs",
     "solutionPath": "./random_n_bits/solution.md",
@@ -71,7 +71,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "weighted_random_bit",
-    "title": "Generate a weighted bit",
+    "title": "Generate A Weighted Bit",
     "descriptionPath": "./weighted_random_bit/index.md",
     "placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
     "solutionPath": "./weighted_random_bit/solution.md",
@@ -84,7 +84,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_number",
-    "title": "Generate a random number between min and max",
+    "title": "Generate A Random Number Between Min And Max",
     "descriptionPath": "./random_number/index.md",
     "placeholderSourcePath": "./random_number/placeholder.qs",
     "solutionPath": "./random_number/solution.md",
@@ -95,7 +95,7 @@ This knowledge is sufficient to implement a simple random number generator!
     ]
 })
 
-@[section]({"id": "random_numbers_introduction", "title": "What's next?"})
+@[section]({"id": "random_numbers_introduction", "title": "What's Next?"})
 
 We hope you enjoyed this Kata on quantum random number generation! If you're looking to learn more about quantum computing and Q#, here are some suggestions:
 * For another look at quantum random number generation, you can check out the [Microsoft Learn module "Create your first Q# program by using the Quantum Development Kit"](https://docs.microsoft.com/learn/modules/qsharp-create-first-quantum-development-kit/1-introduction).
