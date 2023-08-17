@@ -21,6 +21,7 @@ import {
   qsharpDocumentFilter,
   qsharpNotebookCellDocumentFilter,
 } from "./common.js";
+import { initCodegen } from "./qirGeneration.js";
 
 let extensionPath: vscode.Uri;
 
@@ -75,6 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   setupWorkspaces(context);
+  initCodegen(context);
   activateDebugger(context);
 
   log.info("Q# extension activated.");

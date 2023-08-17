@@ -175,6 +175,11 @@
         "command": "quantum-target-view",
         "title": "View provider details",
         "icon": "$(info)"
+      },
+      {
+        "command": "quantum-set-target",
+        "title": "Q#: Set the QIR target profile",
+        "enablement": "resourceLangId == qsharp"
       }
     ],
     "breakpoints": [
