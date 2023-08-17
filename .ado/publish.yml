@@ -6,7 +6,7 @@
 
 variables:
   VSCodeExtensionBuildPlatform: 'Linux'
-  PlatfIndepPyPackBuildPlatf: 'Windows_NT'
+  PlatfIndepPyPackBuildPlatf: 'Linux'
 
 name: $(BuildId)
 
