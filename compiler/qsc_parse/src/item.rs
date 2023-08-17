@@ -21,8 +21,8 @@ use crate::{
 };
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind,
-    TyKind, Visibility, VisibilityKind,
+    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, Ty, TyDef,
+    TyDefKind, TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -98,10 +98,22 @@ pub(super) fn parse_fragments(s: &mut Scanner) -> Result<Vec<Fragment>> {
 }
 
 fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
-    if let Some(namespace) = opt(s, parse_namespace)? {
+    let doc = parse_doc(s);
+    if let Some(mut namespace) = opt(s, parse_namespace)? {
+        namespace.doc = doc.into();
         Ok(Fragment::Namespace(namespace))
     } else {
-        stmt::parse(s).map(Fragment::Stmt)
+        let kind = s.peek().kind;
+        let span = s.peek().span;
+        let mut fragment = stmt::parse(s).map(Fragment::Stmt)?;
+        if let Fragment::Stmt(stmt) = &mut fragment {
+            if let StmtKind::Item(item) = &mut *stmt.kind {
+                item.doc = doc.into();
+            } else if !doc.is_empty() {
+                return Err(Error(ErrorKind::Rule("item", kind, span)));
+            }
+        }
+        Ok(fragment)
     }
 }
 
