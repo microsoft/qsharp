@@ -53,3 +53,7 @@ quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev =
 
 [profile.release]
 debug = 1
+opt-level = 'z'
+lto = true
+codegen-units = 1
+strip = true

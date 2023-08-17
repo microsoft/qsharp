@@ -53,9 +53,17 @@ parser.add_argument(
     help="Run the linting and formatting checks (default is --check)",
 )
 
+parser.add_argument(
+    "--check-prereqs",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="Run the prerequisites check (default is --check-prereqs)",
+)
+
 args = parser.parse_args()
 
-check_prereqs()
+if args.check_prereqs:
+    check_prereqs()
 
 # If no specific project given then build all
 build_all = (
@@ -197,7 +205,7 @@ if build_pip:
             "--force-reinstall",
             "--no-index",
             "--find-links=" + wheels_dir,
-            "qsharp",
+            "qsharp-preview",
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.4.0", "jupyterlab==4.0.0", "hatch-nodejs-version"]
 build-backend = "hatchling.build"
 
 [project]
-name = "qsharp_jupyterlab"
+name = "qsharp-jupyterlab"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -32,21 +32,21 @@ source = "nodejs"
 fields = ["description", "authors", "urls"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["qsharp_jupyterlab/labextension"]
+artifacts = ["qsharp-jupyterlab/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"qsharp_jupyterlab/labextension" = "share/jupyter/labextensions/qsharp_jupyterlab"
-"install.json" = "share/jupyter/labextensions/qsharp_jupyterlab/install.json"
+"qsharp-jupyterlab/labextension" = "share/jupyter/labextensions/qsharp-jupyterlab"
+"install.json" = "share/jupyter/labextensions/qsharp-jupyterlab/install.json"
 
 [tool.hatch.build.hooks.version]
-path = "qsharp_jupyterlab/_version.py"
+path = "qsharp-jupyterlab/_version.py"
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "qsharp_jupyterlab/labextension/package.json",
+    "qsharp-jupyterlab/labextension/package.json",
 ]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
@@ -57,7 +57,7 @@ npm = ["jlpm"]
 build_cmd = "build:dev"
 npm = ["jlpm"]
 source_dir = "src"
-build_dir = "qsharp_jupyterlab/labextension"
+build_dir = "qsharp-jupyterlab/labextension"
 
 [tool.check-wheel-contents]
 ignore = ["W002"]

@@ -2,7 +2,7 @@
   "name": "qsharp-vscode",
   "displayName": "Q# (preview)",
   "description": "Q# Language Support",
-  "version": "0.0.0",
+  "version": "0.0.11",
   "publisher": "quantum",
   "type": "commonjs",
   "engines": {

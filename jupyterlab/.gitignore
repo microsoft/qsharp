@@ -39,6 +39,6 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 tsconfig.tsbuildinfo
-qsharp_jupyterlab/labextension
-qsharp_jupyterlab/_version.py
+qsharp-jupyterlab/labextension
+qsharp-jupyterlab/_version.py
 .yarn
