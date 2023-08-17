@@ -1,4 +1,12 @@
 namespace Kata {
+    operation RandomNBits(N: Int): Int {
+        mutable result = 0;
+        for i in 0..(N - 1) {
+            set result = result * 2 + RandomBit();
+        }
+        return result;
+    }
+
     operation RandomBit() : Int {
         // Allocate single qubit.
         use q = Qubit();
@@ -16,13 +24,4 @@ namespace Kata {
         }
         return 0;
     }
-
-    operation RandomNBits(N: Int): Int {
-        mutable result = 0;
-        for i in 0..(N - 1) {
-            set result = result * 2 + RandomBit();
-        }
-        return result;
-    }
-
 }

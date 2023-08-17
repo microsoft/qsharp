@@ -23,5 +23,4 @@ namespace Kata {
         }
         return 0;
     }
-
 }
