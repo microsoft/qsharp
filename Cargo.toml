@@ -13,6 +13,7 @@ members = [
     "fuzz",
     "katas",
     "language_service",
+    "library",
     "library/tests",
     "pip",
     "wasm",

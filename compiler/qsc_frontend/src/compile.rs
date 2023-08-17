@@ -308,19 +308,11 @@ pub fn core() -> CompileUnit {
         next_id: PackageId::CORE,
     };
 
-    let sources = SourceMap::new(
-        [
-            (
-                "core.qs".into(),
-                include_str!("../../../library/core/core.qs").into(),
-            ),
-            (
-                "qir.qs".into(),
-                include_str!("../../../library/core/qir.qs").into(),
-            ),
-        ],
-        None,
-    );
+    let core: Vec<(SourceName, SourceContents)> = qsc_library::CORE_LIB
+        .iter()
+        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .collect();
+    let sources = SourceMap::new(core, None);
 
     let mut unit = compile(&store, &[], sources, TargetProfile::Base);
     assert_no_errors(&unit.sources, &mut unit.errors);
@@ -334,59 +326,11 @@ pub fn core() -> CompileUnit {
 /// Panics if the standard library does not compile without errors.
 #[must_use]
 pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
-    let sources = SourceMap::new(
-        [
-            (
-                "arithmetic.qs".into(),
-                include_str!("../../../library/std/arithmetic.qs").into(),
-            ),
-            (
-                "arrays.qs".into(),
-                include_str!("../../../library/std/arrays.qs").into(),
-            ),
-            (
-                "canon.qs".into(),
-                include_str!("../../../library/std/canon.qs").into(),
-            ),
-            (
-                "convert.qs".into(),
-                include_str!("../../../library/std/convert.qs").into(),
-            ),
-            (
-                "core.qs".into(),
-                include_str!("../../../library/std/core.qs").into(),
-            ),
-            (
-                "diagnostics.qs".into(),
-                include_str!("../../../library/std/diagnostics.qs").into(),
-            ),
-            (
-                "internal.qs".into(),
-                include_str!("../../../library/std/internal.qs").into(),
-            ),
-            (
-                "intrinsic.qs".into(),
-                include_str!("../../../library/std/intrinsic.qs").into(),
-            ),
-            (
-                "math.qs".into(),
-                include_str!("../../../library/std/math.qs").into(),
-            ),
-            (
-                "measurement.qs".into(),
-                include_str!("../../../library/std/measurement.qs").into(),
-            ),
-            (
-                "qir.qs".into(),
-                include_str!("../../../library/std/qir.qs").into(),
-            ),
-            (
-                "random.qs".into(),
-                include_str!("../../../library/std/random.qs").into(),
-            ),
-        ],
-        None,
-    );
+    let std: Vec<(SourceName, SourceContents)> = qsc_library::STD_LIB
+        .iter()
+        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .collect();
+    let sources = SourceMap::new(std, None);
 
     let mut unit = compile(store, &[PackageId::CORE], sources, target);
     assert_no_errors(&unit.sources, &mut unit.errors);

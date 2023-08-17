@@ -831,6 +831,7 @@ dependencies = [
  "qsc_ast",
  "qsc_data_structures",
  "qsc_hir",
+ "qsc_library",
  "qsc_parse",
  "thiserror",
 ]
@@ -843,6 +844,10 @@ dependencies = [
  "num-bigint",
  "qsc_data_structures",
 ]
+
+[[package]]
+name = "qsc_library"
+version = "0.0.0"
 
 [[package]]
 name = "qsc_parse"

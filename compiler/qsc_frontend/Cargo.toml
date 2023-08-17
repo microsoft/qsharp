@@ -16,6 +16,7 @@ num-traits = { workspace = true }
 qsc_ast = { path = "../qsc_ast" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_hir = { path = "../qsc_hir" }
+qsc_library = { path = "../../library" }
 qsc_parse = { path = "../qsc_parse" }
 thiserror = { workspace = true }
 
