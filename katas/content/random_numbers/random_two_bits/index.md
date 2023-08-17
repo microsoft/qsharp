@@ -8,5 +8,5 @@ Now that you can generate a single random bit, you can use that logic to create 
 **Stretch goal:** Can you do this without allocating qubits in this operation?
 <details>
   <summary><b>Need a hint?</b></summary>
-  Remember that you can use the previously defined operations, which for convenience is already available for you to use in this exercise.
+  Remember that you can use previously defined operations to implement your solution. For convenience, the <b>RandomBit</b> operation is already available for you to use in this exercise.
 </details>
