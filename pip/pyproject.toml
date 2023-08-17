@@ -1,6 +1,6 @@
 [project]
 name = "qsharp-preview"
-version = "0.0.11"
+version = "0.0.12"
 requires-python = ">= 3.7"
 classifiers = [
     "License :: OSI Approved :: MIT License",
