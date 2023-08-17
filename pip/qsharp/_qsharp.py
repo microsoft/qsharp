@@ -26,9 +26,7 @@ def get_interpreter() -> Interpreter:
     """
     global _interpreter
     if _interpreter is None:
-        raise RuntimeError(
-            "Q# interpreter not initialized. Call qsharp.init() with any desired configuration settings first."
-        )
+        init()
     return _interpreter
 
 
