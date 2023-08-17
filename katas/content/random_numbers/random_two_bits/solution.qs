@@ -1,4 +1,8 @@
 namespace Kata {
+    operation RandomTwoBits(): Int {
+        return 2 * RandomBit() + RandomBit();
+    }
+
     operation RandomBit() : Int {
         // Allocate single qubit.
         use q = Qubit();
@@ -16,9 +20,4 @@ namespace Kata {
         }
         return 0;
     }
-
-    operation RandomTwoBits(): Int {
-        return 2 * RandomBit() + RandomBit();
-    }
-
 }
