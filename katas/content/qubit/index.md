@@ -5,9 +5,9 @@
     "title": "Overview"
 })
 
-This tutorial introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
+This Kata introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
 
-**This tutorial covers the following topics:**
+**This Kata covers the following topics:**
 
 - The concept of a qubit
 - Superposition
@@ -17,7 +17,7 @@ This tutorial introduces you to one of the core concepts in quantum computing - 
 - `Qubit` data type in Q#
 - Visualizing Quantum State using `DumpMachine`
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this Kata:**
 
 - Complex arithmetic
 - Linear algebra
@@ -128,7 +128,7 @@ Several ket symbols have a generally accepted use, such as:
     </tr>
 </table>
 
-We will learn more about Dirac notation in the next tutorials, as we introduce quantum gates and multi-qubit systems.
+We will learn more about Dirac notation in the next Katas, as we introduce quantum gates and multi-qubit systems.
 
 
 @[section]({
@@ -201,7 +201,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 
 > It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see [Q# documentation on quantum states](https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states).
 
-This demo shows how to allocate a qubit and examine its state in Q#. This demo uses quantum gates to manipulate the state of the qubit - we will explain how they work in the next tutorial, so do not worry about them for now. Run the next example to see the output:
+This demo shows how to allocate a qubit and examine its state in Q#. This demo uses quantum gates to manipulate the state of the qubit - we will explain how they work in the next Kata, so do not worry about them for now. Run the next example to see the output:
 
 @[example]({"id": "qubit_data_type", "codePath": "./examples/QubitDataType.qs"})
 
@@ -231,7 +231,7 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 
 > Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
 `DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
-We will learn more details on endiannes in the Multi-qubit Systems Tutorial.
+We will learn more details on endiannes in the "Multi-qubit Systems" Kata.
 
 ## Demo: DumpMachine for multi-qubit systems
 
@@ -254,4 +254,4 @@ We will learn more details on endiannes in the Multi-qubit Systems Tutorial.
     "title": "Conclusion"
 })
 
-This should be enough for you to gain a basic understanding of qubits and qubit states. Next, you will learn how to manipulate those states in the single-qubit gates tutorial.
+This should be enough for you to gain a basic understanding of qubits and qubit states. Next, you will learn how to manipulate those states in the single-qubit gates Kata.
