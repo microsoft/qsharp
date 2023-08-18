@@ -5,15 +5,15 @@
     "title": "Overview"
 })
 
-This tutorial introduces you to single-qubit gates. Quantum gates are the quantum counterpart to classical logic gates, acting as the building blocks of quantum algorithms. Quantum gates transform qubit states in various ways, and can be applied sequentially to perform complex quantum calculations. Single-qubit gates, as their name implies, act on individual qubits. You can learn more at [Wikipedia](https://en.wikipedia.org/wiki/Quantum_logic_gate).
+This Kata introduces you to single-qubit gates. Quantum gates are the quantum counterpart to classical logic gates, acting as the building blocks of quantum algorithms. Quantum gates transform qubit states in various ways, and can be applied sequentially to perform complex quantum calculations. Single-qubit gates, as their name implies, act on individual qubits. You can learn more at [Wikipedia](https://en.wikipedia.org/wiki/Quantum_logic_gate).
 
-**This tutorial covers the following topics:**
+**This Kata covers the following topics:**
 
 - Matrix representation
 - Ket-bra representation
 - The most important single-qubit gates
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this Kata:**
 
 - Basic linear algebra
 - The concept of qubit
@@ -64,9 +64,9 @@ X|\psi\rangle =
 \begin{bmatrix} \beta \\\ \alpha \end{bmatrix}
 $$
 
-> If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in the [Qubit](qubit) tutorial.
+> If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in the [Qubit](qubit) Kata.
 
-Because this is the most common way to represent quantum gates, the terms "gate" and "gate matrix" will be used interchangeably in this tutorial.
+Because this is the most common way to represent quantum gates, the terms "gate" and "gate matrix" will be used interchangeably in this Kata.
 
 Applying several quantum gates in sequence is equivalent to performing several of these multiplications. 
 For example, if you have gates $A$ and $B$ and a qubit in state $|\psi\rangle$, the result of applying $A$ followed by $B$ to that qubit would be $B\big(A|\psi\rangle\big)$ (the gates closest to the qubit state get applied first). 
@@ -315,7 +315,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
-In the previous tutorial we discussed that the qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to the quantum gates: applying a gate to a qubit modifies the internal state of that qubit but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
+In the previous Kata we discussed that the qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to the quantum gates: applying a gate to a qubit modifies the internal state of that qubit but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
 
 Applying several gates in a row follows the same principle. In the mathematical notation applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
 
@@ -324,7 +324,7 @@ X(q);
 Z(q);
 ```
 
-All the basic gates we will be covering in this tutorial are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
+All the basic gates we will be covering in this Kata are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
 
 @[example]({"id": "pauli_gates_in_qsharp", "codePath": "./examples/PauliGates.qs"})
 
@@ -445,7 +445,7 @@ These gates are the $X$ rotation gate $R_x(\theta)$, $Y$ rotation gate $R_y(\the
 Note that for the first three gates the parameter $\theta$ is multiplied by $\frac{1}{2}$ within the gate's matrix.
 
 > These gates are known as rotation gates, because they represent rotations around various axes on the Bloch sphere. The Bloch sphere is a way of representing the qubit states visually, mapping them onto the surface of a sphere. 
-> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this tutorial series. 
+> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this Kata.
 > If you are curious about it, you can learn more in [this slide deck](http://www.vcpc.univie.ac.at/~ian/hotlist/qc/talks/bloch-sphere.pdf) or in [Wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere).
 
 <table>
