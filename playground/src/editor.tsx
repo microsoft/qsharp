@@ -127,6 +127,10 @@ export function Editor(props: {
 
     try {
       if (props.kataExercise) {
+        // Clear any shot errors before running verification
+        errMarks.current.shotDiags = [];
+        markErrors();
+
         // This is for a kata exercise. Provide the sources that implement the solution verification.
         const sources = await getExerciseSources(props.kataExercise);
         await props.compiler.checkExerciseSolution(
@@ -134,6 +138,26 @@ export function Editor(props: {
           sources,
           props.evtTarget
         );
+
+        // Display a shot error if it was a program failure (such as `fail` keyword)
+        if (props.evtTarget.getResults().length < 1) {
+          // This shouldn't happen.
+          errMarks.current.shotDiags = [
+            {
+              message: "Program failed to execute.",
+              start_pos: 0,
+              end_pos: 0,
+              severity: "error",
+            },
+          ];
+          markErrors();
+        } else if (!props.evtTarget.getResults()[0].success) {
+          // This is what happens on a normal failure.
+          errMarks.current.shotDiags = [
+            props.evtTarget.getResults()[0].result as VSDiagnostic,
+          ];
+          markErrors();
+        }
       } else {
         performance.mark("compiler-run-start");
         await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
