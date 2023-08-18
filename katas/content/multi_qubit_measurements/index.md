@@ -27,7 +27,7 @@ $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
  
 @[section]({
     "id": "multi_qubit_measurements_types_of_measurements",
-    "title": "Types of measurements"
+    "title": "Types Of Measurements"
 })
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
@@ -38,7 +38,7 @@ There are several types of measurements you can perform on an $n$-qubit system (
 
 We will discuss these concepts in the same order as in the list above.
 
-## Full measurements: measurements in multi-qubit bases
+## Full Measurements: Measurements In Multi-Qubit Bases
 
 Consider a system consisting of $n\geq1$ qubits. The wave function of such a system belongs to a vector space of dimension $2^n$. Thus, the vector space is spanned by an orthogonal basis, such as the computational basis which consists of the vectors $|0\dotsc0\rangle, \dotsc, |1\dotsc 1\rangle$. For generality, we consider an arbitrary orthonormal basis, which we denote by $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$.
 
@@ -108,7 +108,8 @@ The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^
 </table>
 </details>
 
-## Measuring each qubit in a system one after another
+## Measuring Each Qubit In A System One After Another
+
 As described in the previous sections, in theory it is possible to measure all the qubits in an $n$-qubit system simultaneously in an orthogonal basis. The post-measurement state of the qubits is then exactly one of the $2^n$ possible basis states.
 
 In practice, this is implemented by measuring all the qubits one after another. For example, if one wants to measure a two-qubit system in the computational basis, one can implement this by first measuring the first qubit in the computational basis to obtain $0$ or $1$, and then measuring the second qubit in the computational basis. This can result in one of the four possible outcomes: $00, 01, 10, 11$.
@@ -125,7 +126,7 @@ For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{-
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics",
-    "title": "Measurement statistics for  qubit-by-qubit full measurement"
+    "title": "Measurement Statistics For Qubit-By-Qubit Full Measurement"
 })
 
 This demo illustrates the equivalence of the measurement probabilities for simultaneous measurement on all qubits, and measurements on each of the qubits executed one after another. Using the wave function from exercise 1 above as an example, we show that the measurement probabilities obtained using the `M` operation in Q# are the same as those expected theoretically for exercise 1.
@@ -137,13 +138,13 @@ The simulated probabilities will be different for each run of `DemoBasisMeasurem
     "codePath": "./measuring_one.qs"
 })
 
-## Using full measurements to identify the state of the system
+## Using Full Measurements To Identify The State Of The System
 
 Full measurements can also be used to identify the state of the system, if it is guaranteed to be in one of several possible orthogonal states.
 
 @[exercise]({
     "id": "full_measurements",
-    "title":  "Distinguish four basis states",
+    "title":  "Distinguish Four Basis States",
     "descriptionPath": "./full_measurements/index.md",
     "placeholderSourcePath": "./full_measurements/placeholder.qs",
     "solutionPath": "./full_measurements/solution.md",
@@ -241,7 +242,7 @@ $$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ke
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics_for_partial_measurements",
-    "title": "Measurement statistics for  partial measurement"
+    "title": "Measurement Statistics For Partial Measurement"
 })
 
 Using the `M` operation in Q#, we demonstrate that the simulated outcome probabilities and post-measurement outcomes match the theoretical values obtained using the projection operators as described above. We use the Hardy state from Exercise 4 with a computational basis measurement on the first qubit for this purpose.
@@ -253,13 +254,13 @@ The simulated and theoretical measurement probabilities are not expected to matc
     "codePath": "./partial_measurements_demo.qs"
 })
 
-## Using partial measurements to identify the state of the system
+## Using Partial Measurements To identify The State Of The System
 
 In certain situations, it is possible to distinguish between orthogonal states of multi-qubit systems using partial measurements, as illustrated in the next exercise.
 
 @[exercise]({
     "id": "partial_measurements_for_system",
-    "title": "Distinguish orthogonal states using partial measurements",
+    "title": "Distinguish Orthogonal States Using Partial Measurements",
     "descriptionPath": "./partial_measurements_for_system/index.md",
     "placeholderSourcePath": "./partial_measurements_for_system/placeholder.qs",
     "solutionPath": "./partial_measurements_for_system/solution.md",
@@ -272,7 +273,7 @@ In certain situations, it is possible to distinguish between orthogonal states o
 
 @[section]({
     "id": "multi_qubit_measurements_measurements_and_entanglement",
-    "title": "Measurements and entanglement"
+    "title": "Measurements And Entanglement"
 })
 
 Qubits entanglement has an effect on the measurement statistics of the system. If two qubits are entangled, then their measurement outcomes will be correlated, while separable states (which are by definition not entangled) have uncorrelated measurement outcomes.
@@ -314,13 +315,13 @@ For both states, consider a measurement on the first qubit, followed by a measur
 <p>This aligns with the fact that the Bell state is entangled, while the $\ket{\theta}$ is separable and can be expressed as $\ket \theta = \ket + \otimes \ket +$.</p>
 </details>
 
-## State modification using partial measurements
+## State Modification Using Partial Measurements
 
 For certain multi-qubit systems prepared in a superposition state, it is possible to use partial measurements to collapse a part of the system to some desired state.
 
 @[exercise]({
     "id": "state_modification",
-    "title": "State selection using partial measurements",
+    "title": "State Selection Using Partial Measurements",
     "descriptionPath": "./state_modification/index.md",
     "placeholderSourcePath": "./state_modification/placeholder.qs",
     "solutionPath": "./state_modification/solution.md",
@@ -333,7 +334,7 @@ For certain multi-qubit systems prepared in a superposition state, it is possibl
 
 @[section]({
     "id": "multi_qubit_measurements_state_preparation",
-    "title": "State preparation"
+    "title": "State Preparation"
 })
 
 Any multi-qubit state can be prepared from the $|0...0\rangle$ state using an appropriate combination of quantum gates.
@@ -342,7 +343,7 @@ You could prepare a simpler state involving additional qubits, which, when measu
 
 @[exercise]({
     "id": "state_preparation",
-    "title": "State preparation using partial measurements",
+    "title": "State Preparation Using Partial Measurements",
     "descriptionPath": "./state_preparation/index.md",
     "placeholderSourcePath": "./state_preparation/placeholder.qs",
     "solutionPath": "./state_preparation/solution.md",
@@ -355,12 +356,12 @@ You could prepare a simpler state involving additional qubits, which, when measu
 
 @[section]({
     "id": "multi_qubit_measurements_joint_measurements",
-    "title": "Joint measurements"
+    "title": "Joint Measurements"
 })
 
 Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the [Measure](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
 
-## Single-qubit Pauli measurement
+## Single-Qubit Pauli Measurement
 For single-qubit systems, any measurement corresponding to an orthogonal basis can be associated with a Hermitian matrix with eigenvalues $\pm 1$. The possible measurement outcomes (represented as `Result` in Q#) are the eigenvalues of the Hermitian matrix, and the corresponding projection matrices for the measurement are the projection operators onto the *eigenspaces* corresponding to the eigenvalues.
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by
@@ -417,7 +418,7 @@ In general, any measurement on a single qubit which results in two outcomes corr
 
 Joint measurements are a generalization of this principle for multi-qubit matrices.
 
-## Parity measurements
+## Parity Measurements
 The simplest joint measurement is a parity measurement. A parity measurement treats computational basis vectors differently depending on whether the number of 1's in the basis vector is even or odd.
 
 For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\{ |00\rangle, |11\rangle \}$ and $\{ |01\rangle, |10\rangle \}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e. the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of $1$'s. On the other hand, a result of `One` corresponds to a post-measurement state with only odd parity computational basis vectors.
@@ -465,7 +466,7 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 
 @[exercise]({
     "id": "joint_measurements",
-    "title": "Two-qubit parity measurement",
+    "title": "Two-qubit Parity Measurement",
     "descriptionPath": "./joint_measurements/index.md",
     "placeholderSourcePath": "./joint_measurements/placeholder.qs",
     "solutionPath": "./joint_measurements/solution.md",
@@ -478,7 +479,7 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 
 @[section]({
     "id": "multi_qubit_measurements_pauli_measurements",
-    "title": "Multi-qubit Pauli measurements"
+    "title": "Multi-Qubit Pauli Measurements"
 })
 
 Joint measurement is a generalization of the measurement in the computational basis.
