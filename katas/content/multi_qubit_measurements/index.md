@@ -71,11 +71,42 @@ This can be summarized in the following table:
 
 > Similar to measurements in single-qubit systems, the assumption of normalization of the original wave function is required in order to ensure that the sum of all the outcome probabilities is 1.
 
-@[question]({
-    "id": "multi_qubit_probabilities_1",
-    "descriptionPath": "./multi_qubit_probabilities_1/index.md",
-    "answerPath": "./multi_qubit_probabilities_1/solution.md"
-})
+## 🔎 Analyze
+
+**Multi-qubit measurement outcome probabilities I**
+
+Suppose that a two-qubit system is known to be in the following state:
+$$\ket \psi =  \frac{1}{3}\ket {00} + \frac{2}{3} \ket {01} + \frac{2}{3}\ket {11}$$
+
+If all the qubits are measured simultaneously in the computational basis, what are the outcome probabilities?
+
+<details>
+<summary><b>Solution</b></summary>
+The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^2 + \left(\frac{2}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = 1$. Hence, the probabilities of measuring each of the computational basis states is simply the square of the absolute value of the corresponding coefficients. That is, the probabilities of measuring $00$, $01$ and $11$ are $\frac{1}{9}$, $\frac{4}{9}$ and $\frac{4}{9}$, respectively, and the probability of measuring the basis state $10$ that is not part of the superposition is $0$:
+
+<table>
+    <tr>
+        <th>Measurement outcome</th>
+        <th>Probability of outcome</th>
+    </tr>
+    <tr>
+        <td>$00$</td>
+        <td>$\left( \frac{1}{3}\right)^2 = \frac{1}{9}$</td>
+    </tr> 
+    <tr>
+        <td>$01$</td>
+        <td>$\left( \frac{2}{3}\right)^2 = \frac{4}{9}$</td>
+    </tr> 
+    <tr>
+        <td>$10$</td>
+        <td>$\left( 0\right)^2 = 0$</td>
+    </tr>     
+    <tr>
+        <td>$11$</td>
+        <td>$\left( \frac{2}{3}\right)^2 = \frac{4}{9}$</td>
+    </tr> 
+</table>
+</details>
 
 ## Measuring each qubit in a system one after another
 As described in the previous sections, in theory it is possible to measure all the qubits in an $n$-qubit system simultaneously in an orthogonal basis. The post-measurement state of the qubits is then exactly one of the $2^n$ possible basis states.
@@ -171,11 +202,43 @@ Clearly, we have $\big|P_0 \ket \psi\big| = \big|P_1 \ket \psi\big| = \frac{1}{2
 
 > Similar to the case of single-qubit system measurements, the applicability of the formalism above requires the state of the multi-qubit system, $\ket \psi$, to be normalized. This is required to ensure that all the probabilities of individual outcomes add up to 1.
 
-@[question]({
-    "id": "partial_measurements",
-    "descriptionPath": "./partial_measurements/index.md",
-    "answerPath": "./partial_measurements/solution.md"
-})
+## 🔎 Analyze
+
+**Partial measurement probabilities for the Hardy state**
+
+Consider a 2-qubit system in the state $\ket \psi = \frac{1}{\sqrt{12}} \big(3|00\rangle + |01\rangle + |10\rangle + |11\rangle\big)$.
+
+If only the first qubit is measured in the computational basis, what are the probabilities of the outcomes, and the post-measurement states of the system?
+
+<details>
+<summary><b>Solution</b></summary>
+A measurement outcome of $0$ on the first qubit corresponds to the projection operator $P_0 = |0\rangle\langle 0| \otimes \mathbb{1}$. Applying it to the state $\ket \psi$ gives us 
+$$\big|P_0 \ket{\psi}\big|^2 = \big|\frac{1}{\sqrt{12}} \left(3\ket {00} + \ket{01}\right) \big|^2 = \frac{5}{6}$$
+and 
+$$\frac{P_0 \ket{\psi}}{\big|P_0 \ket{\psi}\big|} = \frac{1}{\sqrt{10}} \left( 3\ket{00} + \ket{01}\right)$$
+
+Similarly, $P_1 = |1\rangle \langle 1 | \otimes \mathbb{1}$ is the projector corresponding to a measurement outcome of $1$ on the first qubit. Applying $P_1$ on $\ket{\psi}$ gives us $\big|P_1 \ket{\psi}\big|^2 = \frac{1}{6}$ and 
+
+$$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ket{10} + \ket{11}\right)$$
+
+<table>
+    <tr>
+        <th>Measurement outcome</th>
+        <th>Probability of outcome</th>
+        <th>Post-measurement state</th>
+    </tr>
+    <tr>
+        <td>$0$</td>
+        <td>$\frac{5}{6}$</td>
+        <td>$\frac{1}{\sqrt{10}} \left( 3\ket{00} + \ket{01}\right)$</td>
+    </tr> 
+    <tr>
+        <td>$1$</td>
+        <td>$\frac{1}{6}$</td>
+        <td>$\frac{1}{\sqrt{2}} \left(\ket{10} + \ket{11}\right)$</td>
+    </tr> 
+</table>
+</details>
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics_for_partial_measurements",
@@ -233,11 +296,24 @@ Thus, the state of subsystem $B$ after the measurement is $\ket{\phi_B}$ indepen
 
 On the other hand, if the system is entangled, then the measurement outcomes will be correlated, in a manner dictated by the bases chosen for the measurements on the two subsystems. The following exercise illustrates this phenomenon.
 
-@[question]({
-    "id": "measurements_and_entanglement",
-    "descriptionPath": "./measurements_and_entanglement/index.md",
-    "answerPath": "./measurements_and_entanglement/solution.md"
-})
+## 🔎 Analyze
+
+**Sequential measurements on an entangled state and a separable state**
+
+Consider two two-qubit states:
+- The Bell state $|\Phi^{+}\rangle = \frac{1}{\sqrt{2}} \big (|00\rangle + |11\rangle\big)$.
+- A state $\ket \Theta = \frac{1}{2} \big( \ket{00} + \ket{01} + \ket{10} + \ket{11} \big)$.
+
+For both states, consider a measurement on the first qubit, followed by a measurement on the second qubit, both done in the computational basis. For which state can we expect the measurement outcomes to be correlated? Verify by calculating the sequential measurement probabilities explicitly for both states. 
+
+<details>
+<summary><b>Solution</b></summary>
+<p><b>The Bell state</b>: If the measurement outcome on the first qubit is $0$, a subsequent measurement on the second qubit *always* results in an outcome of $0$, with probability $1$. Similarly, if the measurement outcome on the first qubit is $1$, then the second qubit measurement always results in $1$. Thus, sequential measurements are perfectly *correlated*.</p>
+
+<p><b>Separable state $\ket \theta$</b>: Irrespective of whether the first qubit measurement outcome is $0$ of $1$ (each of which occurs with a probability of $0.5$), a subsequent measurement on the second qubit results in an outcome of $0$ or $1$ (both with a probability of $0.5$). Thus, sequential measurements are perfectly <b>uncorrelated</b>.</p>
+
+<p>This aligns with the fact that the Bell state is entangled, while the $\ket{\theta}$ is separable and can be expressed as $\ket \theta = \ket + \otimes \ket +$.</p>
+</details>
 
 ## State modification using partial measurements
 
@@ -433,11 +509,39 @@ For example, a Pauli/joint measurement corresponding to the $X\otimes Z$ operato
 
  The rules for measurements are then the same as those outlined in the partial measurements section, with the projection operators in the table.
 
- @[question]({
-    "id": "multi_qubit_measurements",
-    "descriptionPath": "./multi_qubit_measurements/index.md",
-    "answerPath": "./multi_qubit_measurements/solution.md"
-})
+## 🔎 Analyze
+
+**Parity measurement in different basis**
+
+Consider a system which is in a state $\alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle$.
+
+What are the possible outcomes and their associated probabilities, if a measurement in an $XX$ Pauli measurement is done?
+
+<details>
+<summary><b>Solution</b></summary>
+The first step towards identifying the outcomes and their probabilities for joint measurements is to identify the eigenvectors corresponding to eigenvalues $\pm1$ of the Pauli operator. We note that since $X\ket{\pm}= \pm\ket{\pm}$, we have 
+\begin{align}
+XX \ket{++} &= \ket{++}, &XX \ket{--} &= \ket{--};\\
+XX \ket{+-} &= -\ket{+-}, &XX \ket{-+} &= -\ket{-+}.
+\end{align}
+Thus, the $XX$ operator measures the parity in the Hadamard, or the $\ket{\pm}$ basis. That is, it distinguishes basis states with an even number of $+$'s from basis states which have an odd number of $+$'s.
+
+The projector corresponding to a result of `Zero` is given by $P_{+1} = \ket{++}\bra{++} + \ket{--}\bra{--}$, while the projector corresponding to a result of `One` is given by $P_{-1} = \ket{+-}\bra{+-} + \ket{-+}\bra{-+}$. Then, we note that $P_{+1}$ annihilates states with odd parity, while leaving states with even parity unaffected. That is, for any values of the constants 
+\begin{align}
+P_{+1} ( \gamma \ket{++} + \delta \ket{--} ) &= ( \gamma \ket{++} + \delta \ket{--} )\\
+P_{+1} ( \mu \ket{-+} + \nu \ket{+-} ) &= 0.
+\end{align}
+Similarly, $P_{-1}$ annihilates states with even parity, while leaving states with odd parity unaffected.
+
+
+Now we express the given state in the Hadamard basis. We note that it is possible to go from the computational basis to the Hadamard basis using the following relations:
+$$\ket{0} = \frac{1}{\sqrt{2}} \left( \ket{+} + \ket{-} \right)$$
+$$\ket{1} = \frac{1}{\sqrt{2}} \left( \ket{+} - \ket{-} \right)$$
+
+Using these, we obtain
+$$ \alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle = (\alpha + \beta) |++\rangle + (\alpha - \beta) |--\rangle.$$
+Thus, this state has an even parity in the Hadamard basis. It follows that an $XX$ Pauli measurement will result in the outcome `Zero` with probability 1, leaving the state unchanged after the measurement.
+</details>
 
 ## Conclusion
 
