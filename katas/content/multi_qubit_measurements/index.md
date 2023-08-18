@@ -1,4 +1,4 @@
-# Measurements in systems with multiple qubits
+# Measurements In Multi-Qubit Systems
 
 @[section]({
     "id": "multi_qubit_measurements_overview",
@@ -9,13 +9,13 @@ In the previous kata, we discussed the concept of measurements done on single-qu
 Building upon those ideas, this kata will introduce you to measurements done on multi-qubit systems, and how to implement such measurements in Q#.
 This will include measuring a single qubit in a multi-qubit system, as well as measuring multiple qubits simultaneously.
 
-**This tutorial covers the following topics:**
+**This Kata covers the following topics:**
 
 - Measuring a single qubit in a multi-qubit system
 - Measuring multiple qubits simultaneously
 - how to implement such measurements in Q#
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this Kata:**
 
 - Basic linear algebra
 - Single and multi-qubit systems
@@ -32,7 +32,7 @@ $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
 
-- Measuring all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes). As we shall see below, this is a direct generalization of orthogonal basis measurements done in single-qubit systems introduced in the previous tutorial.
+- Measuring all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes). As we shall see below, this is a direct generalization of orthogonal basis measurements done in single-qubit systems introduced in the previous Kata.
 - Partial measurement: measuring $m$ qubits out of $n$, for $m<n$ ($2^m$ possible outcomes). Partial measurements involve a partial collapse of the system's wave function, since only some of the qubits are measured.
 - Joint measurement: measuring a joint property of all $n$ qubits ($2$ possible outcomes).
 
@@ -88,10 +88,10 @@ This can be generalized to measurements in other bases, such as the 2-qubit Paul
 For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$ each basis state is a tensor product of states $\ket{+}$ and $\ket{-}$, which form a single-qubit basis state.
 >
 > Measuring in orthogonal bases which contain states which are not tensor product states, such as the Bell basis, are trickier to implement, and require appropriate unitary rotations in addition to measuring all qubits one after another.
-> We will not discuss such measurements in this tutorial.
+> We will not discuss such measurements in this Kata.
 > You can find examples of such measurements and their implementations in the [Measurements kata](../../Measurements/Measurements.ipynb).
 >
-> If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this tutorial.
+> If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this Kata.
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics",
@@ -140,7 +140,7 @@ $$
 P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m},
 $$
 where $\mathbb{1}_{n-m}$ is the identity operator over the remaining $(n-m)$ qubits.
-> The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication (see the [Linear Algebra tutorial](../LinearAlgebra/LinearAlgebra.ipynb#Tensor-Product) for a refresher). In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that the operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured, while the effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m}$, i.e., the identity operator.
+> The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication. In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that the operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured, while the effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m}$, i.e., the identity operator.
 
 Analogous to the case for measurements for single-qubit systems, the rules for partial measurement probabilities and outcomes can be summarized as follows:
 - When a measurement is done, one of these projectors is chosen randomly. The probability of choosing projector $P_i$ is $\big|P_i|\psi\rangle\big|^2$.
