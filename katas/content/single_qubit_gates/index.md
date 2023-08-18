@@ -121,7 +121,7 @@ That is, applying a gate to a qubit in superposition is equivalent to applying t
 
 @[section]({
     "id": "single_qubit_gates_ket_bra_representation",
-    "title": "Ket-bra Representation"
+    "title": "Ket-Bra Representation"
 })
 
 There is another way to represent quantum gates, this time using Dirac notation. However, the kets we've been using aren't enough to represent arbitrary matrices. We need to introduce another piece of notation: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
@@ -186,30 +186,33 @@ $$A = \begin{bmatrix} a_{00} & a_{01} \\\ a_{10} & a_{11} \end{bmatrix}$$
 will have the following ket-bra representation:
 $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\langle0| + a_{11} |1\rangle\langle1|$$
 
-> ## Ket-bra Decomposition
->
-> This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
->
-> You can use the properties of eigenvalues and eigenvectors to find the ket-bra decomposition of any gate. Given a gate $A$, and its orthogonal eigenvectors $|\phi\rangle$ and $|\psi\rangle$, if:
->
-> $$A|\phi\rangle = x_\phi|\phi\rangle$$
-> $$A|\psi\rangle = x_\psi|\psi\rangle$$
->
-> Then:
->
-> $$A = x_\phi|\phi\rangle\langle\phi| + x_\psi|\psi\rangle\langle\psi|$$
->
-> Let's use our $X$ gate as a simple example. The $X$ gate has two eigenvectors: $|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and $|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$. Their eigenvalues are $1$ and $-1$ respectively:
->
-> $$X|+\rangle = |+\rangle$$
-> $$X|-\rangle = -|-\rangle$$
->
-> Here's what the decomposition looks like:
-> $$X = |+\rangle\langle+| - |-\rangle\langle-| =$$
-> $$\frac{1}{2}\big[\big(|0\rangle + |1\rangle\big)\big(\langle0| + \langle1|\big) - \big(|0\rangle - |1\rangle\big)\big(\langle0| - \langle1|\big)\big] =$$
-> $$\frac{1}{2}\big(|0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| + |1\rangle\langle1| - |0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| - |1\rangle\langle1|\big) =$$
-> $$\frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
-> $$|0\rangle\langle1| + |1\rangle\langle0|$$
+@[section]({
+    "id": "single_qubit_gates_ket_bra_decomposition",
+    "title": "Ket-Bra Decomposition"
+})
+
+This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
+
+You can use the properties of eigenvalues and eigenvectors to find the ket-bra decomposition of any gate. Given a gate $A$, and its orthogonal eigenvectors $|\phi\rangle$ and $|\psi\rangle$, if:
+
+$$A|\phi\rangle = x_\phi|\phi\rangle$$
+$$A|\psi\rangle = x_\psi|\psi\rangle$$
+
+Then:
+
+$$A = x_\phi|\phi\rangle\langle\phi| + x_\psi|\psi\rangle\langle\psi|$$
+
+Let's use our $X$ gate as a simple example. The $X$ gate has two eigenvectors: $|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and $|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$. Their eigenvalues are $1$ and $-1$ respectively:
+
+$$X|+\rangle = |+\rangle$$
+$$X|-\rangle = -|-\rangle$$
+
+Here's what the decomposition looks like:
+$$X = |+\rangle\langle+| - |-\rangle\langle-| =$$
+$$\frac{1}{2}\big[\big(|0\rangle + |1\rangle\big)\big(\langle0| + \langle1|\big) - \big(|0\rangle - |1\rangle\big)\big(\langle0| - \langle1|\big)\big] =$$
+$$\frac{1}{2}\big(|0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| + |1\rangle\langle1| - |0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| - |1\rangle\langle1|\big) =$$
+$$\frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
+$$|0\rangle\langle1| + |1\rangle\langle0|$$
 
 @[section]({
     "id": "single_qubit_gates_important_gates",
