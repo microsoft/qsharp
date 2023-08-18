@@ -148,7 +148,7 @@ Same as in the case of single-qubit gates, we can represent multi-qubit gates us
 >
 > Kets and bras are used to express inner and outer products. The inner product of $|\phi\rangle$ and $|\psi\rangle$ is the matrix product of $\langle\phi|$ and $|\psi\rangle$, denoted as $\langle\phi|\psi\rangle$, and their outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
 >
-> As we've seen in the single-qubit gates tutorial, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
+> As we've seen in the "Single-Qubit Gates" Kata, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
 
 Let's consider ket-bra representation of the $\\text{CNOT}$ gate:
 
@@ -583,4 +583,4 @@ The sequence of steps that implement this variant are:
     "title": "Conclusion"
 })
 
-Congratulations! You have completed the series of introductory tutorials.
+Congratulations! You have completed the series of introductory Katas.
