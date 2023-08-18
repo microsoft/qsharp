@@ -102,8 +102,8 @@ Writing out each vector when doing quantum calculations takes up a lot of space,
 
 <table>
     <tr>
-        <td style=\"text-align:center; border:1px solid\">$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
-        <td style=\"text-align:center; border:1px solid\">$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
+        <td>$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
+        <td>$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
     </tr>
 </table>
 
@@ -119,12 +119,12 @@ Several ket symbols have a generally accepted use, such as:
 
 <table>
     <tr>
-        <td style=\"text-align:center; border:1px solid\">$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$</td>
-        <td style=\"text-align:center; border:1px solid\">$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$</td>
+        <td>$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$</td>
+        <td>$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$</td>
     </tr>
     <tr>
-        <td style=\"text-align:center; border:1px solid\">$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$</td>
-        <td style=\"text-align:center; border:1px solid\">$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$</td>
+        <td>$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$</td>
+        <td>$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$</td>
     </tr>
 </table>
 
@@ -193,11 +193,28 @@ This includes information about the amplitude of the state, the probability of m
 
 Note that each row has the following format:
 
-<table class="state-table"><thead><tr><th>Basis State<br>(|𝜓ₙ…𝜓₁⟩)</th><th>Amplitude</th><th>Measurement Probability</th><th colspan="2">Phase</th></tr></thead></table>
+<table>
+    <thead>
+        <tr>
+            <th>Basis State<br>(|𝜓ₙ…𝜓₁⟩)</th>
+            <th>Amplitude</th>
+            <th>Measurement Probability</th>
+            <th>Phase</th>
+        </tr>
+    </thead>
+</table>
 
 For example, the state $|0\rangle$ would be represented as follows:
 
-<table class="state-table"><tbody><tr><td style="text-align: center;">|0⟩</td><td style="text-align: right;">1.0000+0.0000𝑖</td><td style="text-align: center;">100.0000%</td><td style="transform: rotate(0rad);">↑</td><td style="text-align: right;">0.0000</td></tr></tbody></table>
+<table>
+    <tbody>
+        <tr>
+            <td>|0⟩</td>
+            <td>1.0000+0.0000𝑖</td>
+            <td>100.0000%</td>
+            <td>↑ 0.0000</td></tr>
+    </tbody>
+</table>
 
 > It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see [Q# documentation on quantum states](https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states).
 
