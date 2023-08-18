@@ -104,17 +104,69 @@ $$
 
 The states that allow such representation are known as **separable states**.
 
-@[question]({
-    "id": "separable_state",
-    "descriptionPath": "./separable_state/index.md",
-    "answerPath": "./separable_state/solution.md"
-})
+## 🔎 Analyze
 
-@[question]({
-    "id": "is_it_separable",
-    "descriptionPath": "./is_it_separable/index.md",
-    "answerPath": "./is_it_separable/solution.md"
-})
+Show that the state is separable:
+$$
+\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
+\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}
+$$
+
+<details>
+<summary><b>Solution</b></summary>
+To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
+
+$$
+\begin{bmatrix} \alpha \gamma \\\ \alpha \delta \\\ \beta \gamma \\\ \beta \delta \end{bmatrix} = 
+\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} \otimes \begin{bmatrix} \gamma \\\ \delta \end{bmatrix}
+$$
+
+This brings us to a system of equations:
+
+$$
+\begin{cases}
+\alpha\gamma = \frac{1}{2} \\\ \alpha\delta = \frac{i}{2} \\\ \beta \gamma = \frac{-i}{2} \\\ \beta \delta = \frac{1}{2}
+\end{cases}
+$$
+
+Solving this system of equations gives us the answer:
+
+$$\alpha = \frac{1}{\sqrt2}, \beta = \frac{-i}{\sqrt2}, \gamma = \frac{1}{\sqrt2}, \delta = \frac{i}{\sqrt2}$$
+
+$$
+\frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
+\frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ -i \end{bmatrix} \otimes \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ i \end{bmatrix}
+$$
+
+Note that finding such representation is not always possible, as you will see in the next exercise.
+</details>
+
+## 🔎 Analyze
+
+Is this state separable?
+
+$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}$$
+
+<details>
+<summary><b>Solution</b></summary>
+Let's assume that this state is separable and write down the system of equations to determine the coefficients of individual qubit states in the tensor product, similar to what we did in the previous exercise:
+
+$$
+\begin{cases}
+\alpha\gamma = \frac{1}{\sqrt2} \\\ \alpha\delta = 0 \\\ \beta \gamma = 0 \\\ \beta \delta = \frac{1}{\sqrt2}
+\end{cases}
+$$
+
+Now let's multiply the first and the last equations, and the second and the third equations:
+
+$$
+\begin{cases}
+\alpha\beta\gamma\delta = \frac{1}{2} \\\ \alpha\beta\gamma\delta = 0
+\end{cases}
+$$
+
+We can see that this system of equations doesn't have a solution, which means that this state is <b>not separable</b>.
+</details>
 
 @[section]({
     "id": "multi_qubit_systems_entanglement",
