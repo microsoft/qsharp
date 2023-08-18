@@ -76,7 +76,7 @@ All quantum gates are reversible - there is another gate which will undo any giv
 This means that when dealing with quantum gates, information about qubit states is never lost, as opposed to classical logic gates, some of which destroy information. 
 Quantum gates are represented by unitary matrices, so the inverse of a gate is its adjoint; these terms are also used interchangeably in quantum computing.
 
-## Effects on Basis States (Dirac Notation, Continued)
+## Effects On Basis States
 
 There is a simple way to find out what a gate does to the two computational basis states ($|0\rangle$ and $|1\rangle$) from looking at its matrix that comes in handy when you want to work with states in Dirac notation. Consider an arbitrary gate:
 
@@ -186,7 +186,7 @@ $$A = \begin{bmatrix} a_{00} & a_{01} \\\ a_{10} & a_{11} \end{bmatrix}$$
 will have the following ket-bra representation:
 $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\langle0| + a_{11} |1\rangle\langle1|$$
 
-> ## Ket-bra decomposition
+> ## Ket-bra Decomposition
 >
 > This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
 >
@@ -213,7 +213,7 @@ $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\l
 
 @[section]({
     "id": "single_qubit_gates_important_gates",
-    "title": "Important Gates"
+    "title": "Pauli Gates"
 })
 
 This section introduces some of the common single-qubit gates, including their matrix form, their ket-bra decomposition, and a brief "cheatsheet" listing their effect on some common qubit states.
@@ -232,8 +232,6 @@ This section relies on the following notation:
     <td>$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$</td>
   </tr>
 </table>
-
-## Pauli Gates
 
 The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolfgang_Pauli), are based on the so-called **Pauli matrices**. All three Pauli gates are **self-adjoint**, meaning that each one is its own inverse.
 
@@ -308,7 +306,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 @[section]({
     "id": "single_qubit_gates_pauli_gates_in_qsharp",
-    "title": "Pauli Gates in Q#"
+    "title": "Pauli Gates In Q#"
 })
 
 The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
@@ -328,7 +326,7 @@ All the basic gates we will be covering in this Kata are part of the [Intrinsic]
 
 @[exercise]({
     "id": "y_gate",
-    "title": "The $Y$ gate",
+    "title": "The Y Gate",
     "descriptionPath": "./y_gate/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -340,7 +338,7 @@ All the basic gates we will be covering in this Kata are part of the [Intrinsic]
 
 @[exercise]({
     "id": "global_phase_i",
-    "title": "Applying a global phase $i$",
+    "title": "Applying A Global Phase",
     "descriptionPath": "./global_phase_i/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -352,7 +350,7 @@ All the basic gates we will be covering in this Kata are part of the [Intrinsic]
 
 @[exercise]({
     "id": "sign_flip_on_zero",
-    "title": "Sign Flip on Zero",
+    "title": "Sign Flip On Zero",
     "descriptionPath": "./sign_flip_on_zero/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -423,7 +421,7 @@ $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
     "id": "three_quarters_pi_phase",
-    "title": "Three Quarters Pi Phase",
+    "title": "Three-Quarters Pi Phase",
     "descriptionPath": "./three_quarters_pi_phase/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -510,7 +508,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
     "id": "prepare_rotated_state",
-    "title": "Prepare Rotate State",
+    "title": "Prepare Rotated State",
     "descriptionPath": "./prepare_rotated_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
