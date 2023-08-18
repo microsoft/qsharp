@@ -24,7 +24,7 @@ This Kata introduces you to one of the core concepts in quantum computing - the 
 
 @[section]({
     "id": "qubit_concept",
-    "title": "The Concept of Qubit"
+    "title": "The Concept Of Qubit"
 })
 
 The basic building block of a classical computer is the bit - a single memory cell that is either in state $0$ or in state $1$. Similarly, the basic building block of a quantum computer is the quantum bit, or **qubit**. Like the classical bit, a qubit can be in state $0$ or in state $1$. Unlike the classical bit, however, the qubit isn't limited to just those two states - it may also be in a combination, or **superposition** of those states.
@@ -133,7 +133,7 @@ We will learn more about Dirac notation in the next Katas, as we introduce quant
 
 @[section]({
     "id": "qubit_relative_and_global_phase",
-    "title": "Relative and Global Phase"
+    "title": "Relative And Global Phase"
 })
 
 You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
@@ -146,7 +146,7 @@ The state of a qubit (or, more generally, the state of a quantum system) is defi
 
 @[section]({
     "id": "qubit_qsharp_data_type",
-    "title": "Q# Qubit data type"
+    "title": "Q# Qubit Data Type"
 })
 
 In Q#, qubits are represented by the `Qubit` data type. On a physical quantum computer, it's impossible to directly access the state of a qubit, whether to read its exact state, or to set it to a desired state, and this data type reflects that. Instead, you can change the state of a qubit using quantum gates, and extract information about the state of the system using measurements.
@@ -161,7 +161,7 @@ Freshly allocated qubits start out in state $|0\rangle$, and have to be returned
 
 Before we continue, let's learn some techniques to visualize the Quantum state of our qubits.
 
-### Display the quantum state of a single-qubit program
+### Display The Quantum State Of A Single-Qubit Program
 
 Let's start with a simple scenario: a program that acts on a single qubit. 
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
@@ -176,7 +176,7 @@ You can take advantage of this to do some non-physical things, such as peeking a
 
 [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from [Microsoft.Quantum.Diagnostics namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. This function is available in standalone Q# applications as well.
 
-### Demo: DumpMachine for single-qubit systems
+### Demo: DumpMachine For Single-Qubit Systems
 
 The following demo shows how to use [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to output the state of the system at any point in the program without affecting the state.
 
@@ -207,7 +207,7 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 
 @[exercise]({
     "id": "learn_single_qubit_state",
-    "title": "Learn Single Qubit State",
+    "title": "Learn The State Of A Single Qubit",
     "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -219,7 +219,7 @@ This demo shows how to allocate a qubit and examine its state in Q#. This demo u
 
 @[section]({
     "id": "qubit_visualizing_multi_qubit",
-    "title": "Display the Quantum State of a Multi-Qubit Program"
+    "title": "Display The Quantum State Of A Multi-Qubit Program"
 })
 
 Now let's take a look at the general case: a program that acts on $N$ qubits. 
@@ -233,7 +233,7 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 `DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
 We will learn more details on endiannes in the "Multi-qubit Systems" Kata.
 
-## Demo: DumpMachine for multi-qubit systems
+## Demo: DumpMachine For Multi-Qubit Systems
 
 @[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
 
