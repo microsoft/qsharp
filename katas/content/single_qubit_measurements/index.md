@@ -1,24 +1,24 @@
-# Measurements for single-qubit systems
+# Measurements In Single-Qubit Systems
 
 @[section]({
     "id": "single_qubit_measurements_overview",
     "title": "Overview"
 })
 
-This tutorial introduces you to measurements done on single-qubit systems.
+This Kata introduces you to measurements done on single-qubit systems.
 
 The concept of a measurement is a central part of quantum mechanics, as well as quantum algorithms. Single-qubit measurements, as their name implies, are measurements on single qubits. The outcomes of a measurement in quantum mechanics are probabilistic, and in general, change the state of the qubit according to the outcome of the measurement.
 
-We recommend to go through the [tutorial that introduces single-qubit gates](single_qubit_gates) before starting this one.
+We recommend to go through the "Single-Qubit Gates" Kata before starting this one.
 
-**This tutorial covers the following topics:**
+**This Kata covers the following topics:**
 
 - Computational basis measurements
 - Pauli basis measurements
 - Measurements in arbitrary orthogonal bases
 - Representing measurements as projector operators
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this Kata:**
 
 - Basic linear algebra
 - The concept of a qubit
@@ -96,7 +96,7 @@ The following code demonstrates that the theoretical and experimental values of 
     "codePath": "./measurement_statistics/example.qs"
 })
 
-Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states and discuss the general case of arbitrary basis measurements later in the tutorial.
+Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states and discuss the general case of arbitrary basis measurements later in the Kata.
 
 @[exercise]({
     "id": "distinguish_0_and_1",
@@ -120,7 +120,7 @@ So far, we have discussed measurements done in the computational basis, i.e., th
 
 It is also possible to implement measurements in other orthogonal bases, such as the [Pauli X basis](single_qubit_gates_pauli_basis), which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation [Measure](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) for measurements in the Pauli bases.
 
-> The `Measure` operation can be used for measuring multiple qubits in a multi-qubit system; however, in this tutorial we only consider measurements for single-qubit systems.
+> The `Measure` operation can be used for measuring multiple qubits in a multi-qubit system; however, in this Kata we only consider measurements for single-qubit systems.
 
 The eigenvalues of a Pauli matrix are $\pm 1$, with one eigenvector corresponding to each eigenvalue. For any chosen Pauli basis, the `Measure` operation returns `Zero` if the measurement outcome corresponds to the eigenvalue $+1$, and returns `One` if the measurement outcome corresponds to the eigenvalue $-1$. As in the case of the computational basis measurements, the wave function of the qubit collapses to the corresponding state after the measurement is executed.
 
@@ -307,4 +307,4 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 })
 
 Congratulations!
-You can continue to the next tutorial in the series to learn about [measurements for multi-qubit systems](multi_qubit_measurements).
+You can continue to the next Kata in the series to learn about measurements in multi-qubit systems.
