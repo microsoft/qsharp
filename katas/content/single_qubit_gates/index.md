@@ -64,7 +64,7 @@ X|\psi\rangle =
 \begin{bmatrix} \beta \\\ \alpha \end{bmatrix}
 $$
 
-> If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in the [Qubit](qubit) Kata.
+> If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in "The Qubit" Kata.
 
 Because this is the most common way to represent quantum gates, the terms "gate" and "gate matrix" will be used interchangeably in this Kata.
 
@@ -128,8 +128,6 @@ There is another way to represent quantum gates, this time using Dirac notation.
 
 Recall that kets represent column vectors; a bra is a ket's row vector counterpart. For any ket $|\psi\rangle$, the corresponding bra is its adjoint (conjugate transpose): $\langle\psi| = |\psi\rangle^\dagger$.
 
-> As a quick reminder, the [adjoint](../LinearAlgebra/LinearAlgebra.ipynb#Unary-Operations), also known as the conjugate transpose of a matrix, well, the conjugate of that matrix's transpose.
-
 Some examples:
 
 <table>
@@ -159,7 +157,7 @@ Some examples:
   </tr>
 </table>
 
-Kets and bras give us a neat way to express [inner](../LinearAlgebra/LinearAlgebra.ipynb#Inner-Product) and [outer](../LinearAlgebra/LinearAlgebra.ipynb#Outer-Product) products. The inner product of $|\phi\rangle$ and $|\psi\rangle$ is the matrix product of $\langle\phi|$ and $|\psi\rangle$, denoted as $\langle\phi|\psi\rangle$, and their outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$. Notice that the norm of $|\psi\rangle$ is $\sqrt{\langle\psi|\psi\rangle}$.
+Kets and bras give us a neat way to express inner and outer products. The inner product of $|\phi\rangle$ and $|\psi\rangle$ is the matrix product of $\langle\phi|$ and $|\psi\rangle$, denoted as $\langle\phi|\psi\rangle$, and their outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$. Notice that the norm of $|\psi\rangle$ is $\sqrt{\langle\psi|\psi\rangle}$.
 
 This brings us to representing matrices. Recall that the outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
 
@@ -192,7 +190,7 @@ $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\l
 >
 > This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
 >
-> You can use the properties of [eigenvalues and eigenvectors](../LinearAlgebra/LinearAlgebra.ipynb#Part-III:-Eigenvalues-and-Eigenvectors) to find the ket-bra decomposition of any gate. Given a gate $A$, and its orthogonal eigenvectors $|\phi\rangle$ and $|\psi\rangle$, if:
+> You can use the properties of eigenvalues and eigenvectors to find the ket-bra decomposition of any gate. Given a gate $A$, and its orthogonal eigenvectors $|\phi\rangle$ and $|\psi\rangle$, if:
 >
 > $$A|\phi\rangle = x_\phi|\phi\rangle$$
 > $$A|\psi\rangle = x_\psi|\psi\rangle$$
@@ -446,7 +444,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
 
 > These gates are known as rotation gates, because they represent rotations around various axes on the Bloch sphere. The Bloch sphere is a way of representing the qubit states visually, mapping them onto the surface of a sphere. 
 > Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this Kata.
-> If you are curious about it, you can learn more in [this slide deck](http://www.vcpc.univie.ac.at/~ian/hotlist/qc/talks/bloch-sphere.pdf) or in [Wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere).
+> If you are curious about it, you can learn more in [this Wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere).
 
 <table>
   <tr>
