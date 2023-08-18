@@ -1,56 +1,58 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use miette::{Diagnostic, SourceCode};
-use qsc_frontend::compile::{Source, SourceMap};
+use crate::compile::SourceMap;
+use miette::Diagnostic;
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
 };
 
 #[derive(Clone, Debug)]
-pub(super) struct WithSource<S, E> {
-    source: Option<S>,
+pub struct WithSource<E> {
+    sources: SourceMap,
     error: E,
     stack_trace: Option<String>,
 }
 
-impl<S, E> WithSource<S, E> {
-    pub(super) fn new(source: S, error: E, stack_trace: Option<String>) -> Self {
-        WithSource {
-            source: Some(source),
-            error,
-            stack_trace,
-        }
-    }
-
-    pub(super) fn error(&self) -> &E {
+impl<E> WithSource<E> {
+    pub fn error(&self) -> &E {
         &self.error
     }
 
-    pub(super) fn stack_trace(&self) -> &Option<String> {
+    pub fn stack_trace(&self) -> &Option<String> {
         &self.stack_trace
     }
 }
 
-impl<E: Diagnostic> WithSource<Source, E> {
+impl<E: Diagnostic> WithSource<E> {
     pub fn from_map(sources: &SourceMap, error: E, stack_trace: Option<String>) -> Self {
-        let source = sources.find_by_diagnostic(&error).cloned();
+        // Filter the source map to avoid cloning all sources
+        // and only clone the relevant ones
+        let offsets = error
+            .labels()
+            .map(|labels| {
+                labels
+                    .map(|label| u32::try_from(label.offset()).expect("offset should fit into u32"))
+            })
+            .into_iter()
+            .flatten();
+
         Self {
-            source,
+            sources: sources.filter(offsets),
             error,
             stack_trace,
         }
     }
 }
 
-impl<S: Debug, E: Error> Error for WithSource<S, E> {
+impl<E: Error> Error for WithSource<E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.error.source()
     }
 }
 
-impl<S: SourceCode + Debug, E: Diagnostic> Diagnostic for WithSource<S, E> {
+impl<E: Diagnostic> Diagnostic for WithSource<E> {
     fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
         self.error.code()
     }
@@ -68,10 +70,7 @@ impl<S: SourceCode + Debug, E: Diagnostic> Diagnostic for WithSource<S, E> {
     }
 
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        match &self.source {
-            None => self.error.source_code(),
-            Some(source) => Some(source),
-        }
+        Some(&self.sources)
     }
 
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
@@ -87,7 +86,7 @@ impl<S: SourceCode + Debug, E: Diagnostic> Diagnostic for WithSource<S, E> {
     }
 }
 
-impl<S, E: Display> Display for WithSource<S, E> {
+impl<E: Display> Display for WithSource<E> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         self.error.fmt(f)
     }

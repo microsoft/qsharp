@@ -411,6 +411,28 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "Test2.Main()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
         }
+
+        #[test]
+        fn error_spans_across_lines() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Full,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                "namespace Other { operation DumpMachine() : Unit { } }",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "open Other;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "DumpMachine();");
+            is_only_error(&result, &output, "name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`");
+        }
     }
 
     fn get_interpreter() -> Interpreter {

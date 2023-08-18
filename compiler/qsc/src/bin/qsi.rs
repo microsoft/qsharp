@@ -20,6 +20,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
+use std::path::Path;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -27,7 +28,6 @@ use std::{
     process::ExitCode,
     string::String,
 };
-use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Parser)]
 #[command(name = "qsi", version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"))]
@@ -116,10 +116,7 @@ fn main() -> miette::Result<ExitCode> {
     };
 
     if let Some(entry) = cli.entry {
-        print_interpret_result(
-            &entry,
-            interpreter.interpret_line(&mut TerminalReceiver, &entry),
-        );
+        print_interpret_result(interpreter.interpret_line(&mut TerminalReceiver, &entry));
     }
 
     repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
@@ -146,7 +143,7 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut impl Receiver) -> io::Resu
         }
 
         if !line.trim().is_empty() {
-            print_interpret_result(&line, interpreter.interpret_line(receiver, &line));
+            print_interpret_result(interpreter.interpret_line(receiver, &line));
         }
 
         print_prompt(false);
@@ -175,17 +172,16 @@ fn print_prompt(continuation: bool) {
     io::stdout().flush().expect("standard out should flush");
 }
 
-fn print_interpret_result(line: &str, result: Result<Value, Vec<LineError>>) {
+fn print_interpret_result(result: Result<Value, Vec<LineError>>) {
     match result {
         Ok(Value::Tuple(items)) if items.is_empty() => {}
         Ok(value) => println!("{value}"),
         Err(errors) => {
-            let source: Arc<str> = line.into();
             for error in errors {
                 if let Some(stack_trace) = error.stack_trace() {
                     eprintln!("{stack_trace}");
                 }
-                let report = Report::new(error).with_source_code(Arc::clone(&source));
+                let report = Report::new(error);
                 eprintln!("error: {report:?}");
             }
         }

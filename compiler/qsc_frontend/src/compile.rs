@@ -7,6 +7,7 @@ mod tests;
 mod preprocess;
 
 use crate::{
+    error::WithSource,
     lower::{self, Lowerer},
     resolve::{self, Names, Resolver},
     typeck::{self, Checker, Table},
@@ -82,7 +83,7 @@ pub struct AstPackage {
     pub names: Names,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
     entry: Option<Source>,
@@ -94,19 +95,23 @@ impl SourceMap {
         entry: Option<Arc<str>>,
     ) -> Self {
         let mut offset_sources = Vec::new();
-        for (name, contents) in sources {
-            offset_sources.push(Source {
-                name,
-                contents,
-                offset: next_offset(&offset_sources),
-            });
-        }
 
         let entry_source = entry.map(|contents| Source {
             name: "<entry>".into(),
             contents,
-            offset: next_offset(&offset_sources),
+            offset: 0,
         });
+
+        let mut offset = next_offset(entry_source.as_ref());
+        for (name, contents) in sources {
+            let source = Source {
+                name,
+                contents,
+                offset,
+            };
+            offset = next_offset(Some(&source));
+            offset_sources.push(source);
+        }
 
         Self {
             sources: offset_sources,
@@ -114,28 +119,74 @@ impl SourceMap {
         }
     }
 
+    pub fn push(&mut self, name: SourceName, contents: SourceContents) -> u32 {
+        let offset = next_offset(self.sources.last());
+
+        self.sources.push(Source {
+            name,
+            contents,
+            offset,
+        });
+
+        offset
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    /// # Panics
+    /// I don't know man
+    #[must_use]
+    pub fn filter<I>(&self, offsets: I) -> SourceMap
+    where
+        I: Iterator<Item = u32>,
+    {
+        let mut sources = Vec::new();
+        let mut offsets = offsets.collect::<Vec<_>>();
+        offsets.sort_unstable();
+        let mut offsets = offsets.into_iter();
+        let mut all = self.entry.iter().chain(self.sources.iter());
+
+        let mut offset = offsets.next();
+        let mut source = all.next();
+        let mut lo = source.map(|s| s.offset);
+        let mut hi = source.map(|s| s.offset + s.contents.len() as u32);
+
+        loop {
+            // Skip sources until we get to one that contains the current offset
+            while hi.map_or(false, |hi| hi <= offset.unwrap_or(hi)) {
+                source = all.next();
+                lo = source.map(|s| s.offset);
+                hi = source.map(|s| s.offset + s.contents.len() as u32);
+            }
+
+            // If we stopped at a valid offset and source, add the source to the list
+            if let Some(source) = source {
+                if offset.is_some() {
+                    sources.push(source.clone());
+                    offset = offsets.next();
+                    // Skip offsets until we get to one that's within the current source
+                    while offset.map_or(false, |o| o < lo.unwrap_or(o)) {
+                        offset = offsets.next();
+                    }
+                    continue;
+                }
+            }
+
+            break;
+        }
+
+        SourceMap {
+            sources,
+            entry: None,
+        }
+    }
+
     #[must_use]
     pub fn find_by_offset(&self, offset: u32) -> Option<&Source> {
         self.sources
             .iter()
-            .chain(&self.entry)
             .rev()
+            .chain(&self.entry)
             .find(|source| offset >= source.offset)
-    }
-
-    #[must_use]
-    pub fn find_by_diagnostic(&self, diagnostic: &impl Diagnostic) -> Option<&Source> {
-        diagnostic
-            .labels()
-            .and_then(|mut labels| labels.next())
-            .and_then(|label| {
-                self.find_by_offset(
-                    label
-                        .offset()
-                        .try_into()
-                        .expect("offset should fit into u32"),
-                )
-            })
     }
 
     #[must_use]
@@ -151,23 +202,29 @@ pub struct Source {
     pub offset: u32,
 }
 
-impl SourceCode for Source {
+impl SourceCode for SourceMap {
     fn read_span<'a>(
         &'a self,
         span: &SourceSpan,
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
-        let contents = self.contents.read_span(
-            &with_offset(span, |o| o - (self.offset as usize)),
+        let source = self
+            .find_by_offset(
+                u32::try_from(span.offset()).expect("expected the offset to fit into u32"),
+            )
+            .expect("expected to find source at span");
+
+        let contents = source.contents.read_span(
+            &with_offset(span, |o| o - (source.offset as usize)),
             context_lines_before,
             context_lines_after,
         )?;
 
         Ok(Box::new(MietteSpanContents::new_named(
-            self.name.to_string(),
+            source.name.to_string(),
             contents.data(),
-            with_offset(contents.span(), |o| o + (self.offset as usize)),
+            with_offset(contents.span(), |o| o + (source.offset as usize)),
             contents.line(),
             contents.column(),
             contents.line_count(),
@@ -497,8 +554,8 @@ fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan 
     SourceSpan::new(f(span.offset()).into(), span.len().into())
 }
 
-fn next_offset(sources: &[Source]) -> u32 {
-    sources.last().map_or(0, |s| {
+fn next_offset(last_source: Option<&Source>) -> u32 {
+    last_source.map_or(0, |s| {
         s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
     })
 }
@@ -506,11 +563,10 @@ fn next_offset(sources: &[Source]) -> u32 {
 fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
     if !errors.is_empty() {
         for error in errors.drain(..) {
-            if let Some(source) = sources.find_by_diagnostic(&error) {
-                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
-            } else {
-                eprintln!("{:?}", Report::new(error));
-            }
+            eprintln!(
+                "{:?}",
+                Report::new(WithSource::from_map(sources, error, None))
+            );
         }
 
         panic!("could not compile package");

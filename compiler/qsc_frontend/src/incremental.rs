@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compile::PackageStore,
+    compile::{Offsetter, PackageStore, SourceMap},
     lower::{self, Lowerer},
     resolve::{self, Resolver},
     typeck::{self, Checker},
@@ -39,6 +39,8 @@ pub enum Fragment {
 }
 
 pub struct Compiler {
+    lines: usize,
+    sources: SourceMap,
     ast_assigner: AstAssigner,
     hir_assigner: HirAssigner,
     resolver: Resolver,
@@ -64,6 +66,8 @@ impl Compiler {
         }
 
         Self {
+            lines: 0,
+            sources: SourceMap::default(),
             ast_assigner: AstAssigner::new(),
             hir_assigner: HirAssigner::new(),
             resolver: Resolver::with_persistent_local_scope(resolve_globals),
@@ -76,6 +80,11 @@ impl Compiler {
         &mut self.hir_assigner
     }
 
+    #[must_use]
+    pub fn source_map(&self) -> &SourceMap {
+        &self.sources
+    }
+
     /// Compile a string with one or more fragments of Q# code.
     /// # Errors
     /// Returns a vector of errors if any of the input fails compilation.
@@ -86,6 +95,20 @@ impl Compiler {
                 .into_iter()
                 .map(|e| Error(ErrorKind::Parse(e)))
                 .collect());
+        }
+
+        // Append the line to the source map with the appropriate offset
+        let offset = self
+            .sources
+            .push(format!("line_{}", self.lines).into(), input.into());
+        self.lines += 1;
+        let mut offsetter = Offsetter(offset);
+
+        for fragment in &mut fragments {
+            match fragment {
+                qsc_parse::Fragment::Namespace(namespace) => offsetter.visit_namespace(namespace),
+                qsc_parse::Fragment::Stmt(stmt) => offsetter.visit_stmt(stmt),
+            }
         }
 
         for fragment in &mut fragments {
