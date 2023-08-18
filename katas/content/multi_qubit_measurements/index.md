@@ -120,7 +120,6 @@ For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{-
 >
 > Measuring in orthogonal bases which contain states which are not tensor product states, such as the Bell basis, are trickier to implement, and require appropriate unitary rotations in addition to measuring all qubits one after another.
 > We will not discuss such measurements in this Kata.
-> You can find examples of such measurements and their implementations in the [Measurements kata](../../Measurements/Measurements.ipynb).
 >
 > If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this Kata.
 
@@ -542,7 +541,3 @@ Using these, we obtain
 $$ \alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle = (\alpha + \beta) |++\rangle + (\alpha - \beta) |--\rangle.$$
 Thus, this state has an even parity in the Hadamard basis. It follows that an $XX$ Pauli measurement will result in the outcome `Zero` with probability 1, leaving the state unchanged after the measurement.
 </details>
-
-## Conclusion
-
-Congratulations!
