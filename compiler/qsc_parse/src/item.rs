@@ -98,6 +98,10 @@ pub(super) fn parse_fragments(s: &mut Scanner) -> Result<Vec<Fragment>> {
 }
 
 fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
+    // Here we parse any doc comments ahead of calling `parse_namespace` or `stmt::parse` in order
+    // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
+    // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
+    // opt. This pattern can be dropped along with namespaces once we have a module-based design.
     let doc = parse_doc(s);
     if let Some(mut namespace) = opt(s, parse_namespace)? {
         namespace.doc = doc.into();
