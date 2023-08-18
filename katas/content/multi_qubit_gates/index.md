@@ -102,7 +102,7 @@ The `CNOT` gate is a two-qubit gate, the first qubit is referred to as the **con
         <th>Q# Documentation</th>
     </tr>
     <tr>
-        <td>$\text{CNOT}</td>
+        <td>$\text{CNOT}$</td>
         <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
         <td>$\text{CNOT}|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \delta|10\rangle + \gamma|11\rangle$</td>
         <td>
@@ -111,7 +111,7 @@ The `CNOT` gate is a two-qubit gate, the first qubit is referred to as the **con
             $$\text{CNOT}|10\rangle = |11\rangle$$
             $$\text{CNOT}|11\rangle = |10\rangle$$
         </td>
-        <td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot\">CNOT</a></td>
+        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot">CNOT</a></td>
     </tr>
 </table>
 
@@ -263,7 +263,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
             $$\text{SWAP}|01\rangle = |10\rangle$$
             $$\text{SWAP}|10\rangle = |01\rangle$$
             $$\text{SWAP}|11\rangle = |11\rangle$$
-        <td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap\">SWAP</a></td>
+        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap">SWAP</a></td>
     </tr>
 </table>
 
@@ -422,7 +422,7 @@ Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatri
             \end{bmatrix}
             $$
         </td>
-        <td><a href=\"https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor\">Controlled functor</a></td>
+        <td><a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor">Controlled functor</a></td>
     </tr>
 </table>
 
