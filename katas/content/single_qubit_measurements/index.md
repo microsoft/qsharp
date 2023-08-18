@@ -34,8 +34,9 @@ $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
 In this section, we will discuss the simplest type of qubit measurements - measurements in the computational basis. This is the "default" type of measurements. Unless otherwise specified, "measurement" refers to this type.
 
-The state $\ket{\psi}$ of a single qubit can always be expressed in [Dirac notation](qubit_dirac_notation) as
-$$\ket{\psi} = \alpha \ket{0} + \beta \ket{1}$$ where $\alpha$ and $\beta$ are complex numbers, and the state is normalized, i.e., $|\alpha|^2 + |\beta|^2 = 1$.
+The state $\ket{\psi}$ of a single qubit can always be expressed in Dirac notation as:
+$$\ket{\psi} = \alpha \ket{0} + \beta \ket{1}$$
+where $\alpha$ and $\beta$ are complex numbers, and the state is normalized, i.e., $|\alpha|^2 + |\beta|^2 = 1$.
 
 We can examine the qubit to get some information about its state - *measure* its state. Similar to the classical case of examining a bit, the outcome of a measurement can be $0$ or $1$. However, unlike the classical case, quantum measurement is a probabilistic process.
 
@@ -124,7 +125,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 So far, we have discussed measurements done in the computational basis, i.e., the $\{ \ket 0, \ket 1\}$ basis.
 
-It is also possible to implement measurements in other orthogonal bases, such as the [Pauli X basis](single_qubit_gates_pauli_basis), which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation [Measure](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) for measurements in the Pauli bases.
+It is also possible to implement measurements in other orthogonal bases, such as the Pauli X basis, which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation [`Measure`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) for measurements in the Pauli bases.
 
 > The `Measure` operation can be used for measuring multiple qubits in a multi-qubit system; however, in this Kata we only consider measurements for single-qubit systems.
 
@@ -185,7 +186,7 @@ This can be summarized in the following table:
 
 As before, the assumption of $\ket \psi$ being normalized is important, since it guarantees that the two probabilities add to $1$.
 
-> As you may recall, a [global phase](qubit_global_phase) is said to be hidden or unobservable.
+> As you may recall, a global phase is said to be hidden or unobservable.
 This is explained by the fact that global phases have no impact on quantum measurements. For example, consider two isolated qubits which are in (normalized) states $\ket \psi$ and $e^{i\theta}\ket \psi$.
 If both are measured in an orthogonal basis $\{ \ket{b_0},\ket{b_1}\}$, the probabilities of measuring $b_0$ or $b_1$ are identical in both cases, since $|\bra{b_i}\ket{\psi}|^2 = |\bra{b_i}e^{i\theta}\ket{\psi}|^2  $.
 Similarly, for either qubit, if $b_i$ is the measurement outcome, the post-measurement state of the qubit is $\ket{b_i}$ for both qubits. Hence, the measurements are independent of the global phase $\theta$.
@@ -198,7 +199,7 @@ P^2 = P^\dagger = P.
 $$
 (As usual, the $\dagger$ symbol denotes conjugate transposition.)
 >
-> Using the [ket-bra representation](single_qubit_gates_ket_bra), one can represent a projection matrix in the Dirac notation.
+> Using the ket-bra representation, one can represent a projection matrix in the Dirac notation.
 For example, one may construct a projector onto the $\ket{0}$ subspace as:
 $$
 P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\\ 0 & 0\end{bmatrix}.
