@@ -105,15 +105,13 @@ fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
     } else {
         let kind = s.peek().kind;
         let span = s.peek().span;
-        let mut fragment = stmt::parse(s).map(Fragment::Stmt)?;
-        if let Fragment::Stmt(stmt) = &mut fragment {
-            if let StmtKind::Item(item) = &mut *stmt.kind {
-                item.doc = doc.into();
-            } else if !doc.is_empty() {
-                return Err(Error(ErrorKind::Rule("item", kind, span)));
-            }
+        let mut stmt = stmt::parse(s)?;
+        if let StmtKind::Item(item) = &mut *stmt.kind {
+            item.doc = doc.into();
+        } else if !doc.is_empty() {
+            return Err(Error(ErrorKind::Rule("item", kind, span)));
         }
-        Ok(fragment)
+        Ok(Fragment::Stmt(stmt))
     }
 }
 
