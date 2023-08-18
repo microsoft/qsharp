@@ -287,7 +287,7 @@ Some ket symbols have a commonly accepted usage, such as the symbols for the Bel
 
 @[section]({
     "id": "multi_qubit_systems_in_qsharp",
-    "title": "Multi-qubit systems in Q#"
+    "title": "Multi-Qubit Systems In Q#"
 })
 
 This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates kata.
@@ -319,7 +319,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_basis_state",
-    "title": "Prepare a basis state",
+    "title": "Prepare A Basis State",
     "descriptionPath": "./prepare_basis_state/index.md",
     "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
     "solutionPath": "./prepare_basis_state/solution.md",
@@ -332,7 +332,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_superposition",
-    "title": "Prepare a superposition of two basis states",
+    "title": "Prepare A Superposition Of Two Basis States",
     "descriptionPath": "./prepare_superposition/index.md",
     "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
     "solutionPath": "./prepare_superposition/solution.md",
@@ -345,7 +345,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_with_real",
-    "title": " Prepare a superposition with real amplitudes",
+    "title": " Prepare A Superposition With Real Amplitudes",
     "descriptionPath": "./prepare_with_real/index.md",
     "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
     "solutionPath": "./prepare_with_real/solution.md",
@@ -358,7 +358,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_with_complex",
-    "title": "Prepare a superposition with complex amplitudes",
+    "title": "Prepare A Superposition With Complex Amplitudes",
     "descriptionPath": "./prepare_with_complex/index.md",
     "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
     "solutionPath": "./prepare_with_complex/solution.md",
