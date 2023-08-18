@@ -313,7 +313,7 @@ The following example contains code demonstrating how to apply gates in Q#, usin
 
 In the previous Kata we discussed that the qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to the quantum gates: applying a gate to a qubit modifies the internal state of that qubit but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
 
-Applying several gates in a row follows the same principle. In the mathematical notation applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
+Applying several gates in a row follows the same principle. In the mathematical notation applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$ because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
 
 ```qsharp
 X(q);
@@ -421,7 +421,7 @@ $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
     "id": "three_quarters_pi_phase",
-    "title": "Three-Quarters Pi Phase",
+    "title": "Three-Fourths Phase",
     "descriptionPath": "./three_quarters_pi_phase/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -529,3 +529,10 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
     "placeholderSourcePath": "./prepare_arbitrary_state/Placeholder.qs",
     "solutionPath": "./prepare_arbitrary_state/solution.md"
 })
+
+@[section]({
+    "id": "single_qubit_gates_conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! You have learned enough to continue to the next Katas in the series to learn about multi-qubit systems and the multi-qubit gates.
