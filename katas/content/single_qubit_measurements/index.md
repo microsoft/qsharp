@@ -64,11 +64,17 @@ The outcomes of computational basis measurements and their probabilities are sum
 >
 >Additionally, the assumption of the wave function being **normalized** is important, since the probability outcomes must sum up to $1$. If the wave function is not normalized, it is important to normalize it first in order to obtain the correct measurement probabilities.
 
-@[question]({
-    "id": "probabilities_specific_state",
-    "descriptionPath": "./probabilities_specific_state/index.md",
-    "answerPath": "./probabilities_specific_state/solution.md"
-})
+## 🔎 Analyze
+
+The qubit is in the following state:
+$$\ket \psi = 0.6 \ket 0 + 0.8 \ket 1 \equiv \begin{bmatrix} 0.6 \\\ 0.8\end{bmatrix}.$$
+
+If this qubit is measured in the computational basis, what are the outcome probabilities?
+
+<details>
+<summary><b>Solution</b></summary>
+The given state $\ket \psi$ is normalized, since $0.6^2 + 0.8^2 = 1$. Hence, the probability of measuring $0$ is $|0.6|^2 = 0.36$, and the probability of measuring $1$ is $|0.8|^2 = 0.64$.
+</details>
 
 @[section]({
     "id": "single_qubit_measurements_implementing_measurement",
@@ -195,7 +201,7 @@ $$
 > Using the [ket-bra representation](single_qubit_gates_ket_bra), one can represent a projection matrix in the Dirac notation.
 For example, one may construct a projector onto the $\ket{0}$ subspace as:
 $$
-P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\ 0 & 0\end{bmatrix}.
+P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\\ 0 & 0\end{bmatrix}.
 $$
 >
 >A measurement in an orthogonal basis $\{ \ket{b_0}, \ket{b_1}\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
@@ -235,15 +241,13 @@ $$
 U^\dagger = \ket{b_0} \bra{0} + \ket{b_1} \bra{1}
 $$
 
-(One may verify that $U$ is indeed a unitary matrix, by checking that $U^\dagger U = U U^\dagger = I$.)
+(One may verify that $U$ is indeed a unitary matrix, by checking that $U^\dagger U = U U^\dagger = I$)
 
 Note that the effect of these matrices on the two bases is the following:
-\begin{align}
-U\ket{b_0} &= \ket{0}; & U\ket{b_1} &= \ket{1}\\
-U^\dagger \ket{0} &= \ket{b_0}; & U^\dagger \ket 1 &= \ket{b_1}.
-\end{align}
+$$U\ket{b_0} = \ket{0}; U\ket{b_1} = \ket{1}$$
+$$U^\dagger \ket{0} = \ket{b_0}; U^\dagger \ket 1 = \ket{b_1}$$
 
-In order to implement a measurement in the $\{ \ket{b_0}, \ket{b_1}\}$ basis, we do the following:
+In order to implement a measurement in the ${ \ket{b_0}, \ket{b_1} }$ basis, we do the following:
 
 1. Apply $U$ to $\ket \psi$.  
    The resulting state is $U\ket \psi = c_0 \ket 0 + c_1 \ket 1 $.
@@ -256,11 +260,48 @@ Thus, $b_0$ and $b_1$ are measured with probabilities $|c_0|^2$ and $|c_1|^2$, r
 
 This procedure can be used to distinguish arbitrary orthogonal states as well, as will become clear from the following exercises.
 
-@[question]({
-    "id": "probabilities_specific_basis",
-    "descriptionPath": "./probabilities_specific_basis/index.md",
-    "answerPath": "./probabilities_specific_basis/solution.md"
-})
+## 🔎 Analyze
+
+**The outcome probabilities for a measurement in a specified basis**
+
+1. What are the outcome probabilities of measuring a qubit in the $\ket{0}$ state in the Pauli X basis, i.e., the $\{ \ket +, \ket -\}$ basis?
+
+2. What are the outcome probabilities of measuring a qubit in the $0.6\ket{0} + 0.8 \ket{1}$ state in the Pauli Y basis, i.e., the $\{ \ket i, \ket{-i}\}$ basis?
+
+<details>
+<summary><b>Solution</b></summary>
+
+1. To find the probabilities of measuring $+$ and $-$, we first need to express the state $\ket 0$ in terms of $\ket +$ and $\ket -$. Using the fact that $\ket{\pm} = \frac{1}{\sqrt{2}}  (\ket{0} \pm \ket{1})$, we can show that
+    $$
+    \ket 0 = \frac{1}{\sqrt{2}} \ket{+} + \frac{1}{\sqrt{2}} \ket{-}.
+    $$
+    Thus, the probability of measuring $+$ is $|\frac1{\sqrt2}|^2 = 0.5$, and similarly, the probability of measuring $-$ is $0.5$.
+
+2. Similar to the first part, we need to express the state $\ket \psi = 0.6 \ket 0 + 0.8 \ket 1$ in the $\ket{\pm i}$ basis. For this calculation, we use the projection matrix approach.
+
+    First, we recall that the states $\ket{\pm i}$ are given by
+    $$
+    \ket{\pm i} = \frac1{\sqrt2} (\ket 0 \pm i \ket 1).
+    $$
+
+    We can now construct the two projectors $P_{\pm i}$ onto states $\ket {\pm i}$ as follows:
+    $$
+    P_{i} = \ket{i}\bra{i} = \frac{1}{2} \begin{bmatrix} 1 \\\ i \end{bmatrix} \begin{bmatrix} 1 & -i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & -i \\\ i & 1\end{bmatrix}; \\\
+    P_{-i} = \ket{-i}\bra{-i} = \frac{1}{2} \begin{bmatrix} 1 \\\ -i \end{bmatrix} \begin{bmatrix} 1 & i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & i \\\ -i & 1\end{bmatrix}
+    $$
+
+    Recalling that the probabilities of measuring $\pm i$ are equal to the norm of the vectors $P_{\pm i}\ket \psi$, we now apply $P_{\pm i}$ to $\ket \psi$:
+    $$
+    P_{+i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & -i \\\ i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 - 0.8i \\\ 0.8 + 0.6i \end{bmatrix} ; 
+    P_{-i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & i \\\ -i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 + 0.8i \\\ 0.8 - 0.6i \end{bmatrix}.
+    $$
+
+    Hence, the probabilities of measuring $\pm i$, which we denote by $p(\pm i)$, are:
+    $$
+    p(+i) = |P_{+i} \ket \psi|^2 = \frac{1}{4}(|0.6 - 0.8i|^2 + |0.8 + 0.6i|^2) = \frac{1}{2}; 
+    p(-i) = |P_{-i} \ket \psi|^2 = \frac{1}{4}(|0.6 + 0.8i|^2 + |0.8 - 0.6i|^2) = \frac{1}{2}.
+    $$
+</details>
 
 @[exercise]({
     "id": "distinguish_orthogonal_states_1",
