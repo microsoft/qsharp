@@ -79,7 +79,7 @@ The given state $\ket \psi$ is normalized, since $0.6^2 + 0.8^2 = 1$. Hence, the
 
 @[section]({
     "id": "single_qubit_measurements_implementing_measurement",
-    "title": "Implementing measurement in Q# using the M operation"
+    "title": "Implementing Measurement In Q# Using The M Operation"
 })
 
 In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the [M operation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.m). It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
@@ -93,7 +93,7 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 
 @[section]({
     "id": "single_qubit_measurements_measurement_statistics",
-    "title": "Measurement statistics"
+    "title": "Measurement Statistics"
 })
 
 The following code demonstrates that the theoretical and experimental values of the probability outcomes indeed match with each other. We repeatedly prepare the same state $\ket \psi = 0.6 \ket 0 + 0.8 \ket 1$ and measure it in the computational basis $100$ times. At the end, we expect $0$ to be measured approximately $36$ times, and $1$ to be measured approximately $64$ times. Note that since measurements are probabilistic, we do not expect the results to match these values exactly.
@@ -107,7 +107,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 @[exercise]({
     "id": "distinguish_0_and_1",
-    "title": "Distinguish |0〉 and |1〉",
+    "title": "Distinguish |0〉 And |1〉",
     "descriptionPath": "./distinguish_0_and_1/index.md",
     "placeholderSourcePath": "./distinguish_0_and_1/placeholder.qs",
     "solutionPath": "./distinguish_0_and_1/solution.md",
@@ -120,7 +120,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 @[section]({
     "id": "single_qubit_measurements_pauli_bases",
-    "title": "Measurements in the Pauli bases"
+    "title": "Measurements In The Pauli Bases"
 })
 
 So far, we have discussed measurements done in the computational basis, i.e., the $\{ \ket 0, \ket 1\}$ basis.
@@ -140,7 +140,7 @@ The probabilities of outcomes $0$ and $1$ will be defined as $|c_0|^2$ and $|c_1
 
 @[exercise]({
     "id": "distinguish_plus_and_minus",
-    "title": "Distinguish |+〉 and |-〉",
+    "title": "Distinguish |+〉 And |-〉",
     "descriptionPath": "./distinguish_plus_and_minus/index.md",
     "placeholderSourcePath": "./distinguish_plus_and_minus/placeholder.qs",
     "solutionPath": "./distinguish_plus_and_minus/solution.md",
@@ -153,7 +153,7 @@ The probabilities of outcomes $0$ and $1$ will be defined as $|c_0|^2$ and $|c_1
 
 @[section]({
     "id": "single_qubit_measurements_arbitrary_bases",
-    "title": "Measurements in arbitrary orthogonal bases"
+    "title": "Measurements In Arbitrary Orthogonal Bases"
 })
 
 It is possible to measure a qubit in orthogonal bases other than the Pauli bases. Suppose one wants to measure a qubit in an orthonormal basis $\ket {b_0}$ and $\ket {b_1}$. Let the state of the qubit be represented by the normalized vector $\ket \psi$. Then, one can always express the state in terms of the basis vectors $\ket{b_0}$ and $\ket{b_1}$, i.e., there exist complex numbers $c_0, c_1$, such that
@@ -191,21 +191,21 @@ This is explained by the fact that global phases have no impact on quantum measu
 If both are measured in an orthogonal basis $\{ \ket{b_0},\ket{b_1}\}$, the probabilities of measuring $b_0$ or $b_1$ are identical in both cases, since $|\bra{b_i}\ket{\psi}|^2 = |\bra{b_i}e^{i\theta}\ket{\psi}|^2  $.
 Similarly, for either qubit, if $b_i$ is the measurement outcome, the post-measurement state of the qubit is $\ket{b_i}$ for both qubits. Hence, the measurements are independent of the global phase $\theta$.
 
-> ## Measurements as projection operations
+## Measurements As Projection Operations
 
 Quantum measurements are modeled by orthogonal projection operators. An orthogonal projection operator is a matrix $P$ which satisfies the following property:
 $$
 P^2 = P^\dagger = P.
 $$
 (As usual, the $\dagger$ symbol denotes conjugate transposition.)
->
-> Using the ket-bra representation, one can represent a projection matrix in the Dirac notation.
+
+Using the ket-bra representation, one can represent a projection matrix in the Dirac notation.
 For example, one may construct a projector onto the $\ket{0}$ subspace as:
 $$
 P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\\ 0 & 0\end{bmatrix}.
 $$
->
->A measurement in an orthogonal basis $\{ \ket{b_0}, \ket{b_1}\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
+
+A measurement in an orthogonal basis $\{ \ket{b_0}, \ket{b_1}\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
 
 * Measuring a qubit in a state $\ket \psi$ is done by picking one of these projection operators at random.
 * Projection $P_0$ is chosen with probability $|P_0 \ket{\psi}|^2$, and the projector $P_1$ is chosen with probability $|P_1\ket{\psi}|^2$.
@@ -214,8 +214,8 @@ $$
 \frac1{|P_0 \ket{\psi}|}P_0 \ket\psi,
 $$
 and similarly for $P_1$.
->
->Although this formalism looks different from the previous sections, it is in fact equivalent. If $\ket \psi = c_0 \ket{b_0} + c_1 \ket{b_1}$, we have
+
+Although this formalism looks different from the previous sections, it is in fact equivalent. If $\ket \psi = c_0 \ket{b_0} + c_1 \ket{b_1}$, we have
 $$
 P_0 \ket \psi = c_0 \ket{b_0}, \text{so that } | P_0\ket \psi| = c_0,
 $$
@@ -223,12 +223,12 @@ and similarly,
 $$
 P_1 \ket \psi = c_1 \ket{b_1}, \text{so that } |P_1\ket \psi| = c_1.
 $$
->
->Thus, as before, the probability of measuring $b_0$ is $|P_0\ket\psi|^2 = |c_0|^2$, and the probability of measuring $b_1$ is $|P_1\ket\psi|^2 = |c_1|^2$. Similarly, one can verify that the post-measurement outcomes are also $\ket{b_0}$ and $\ket{b_1}$ respectively (up to unobservable global phases).
->
->Although the projector formalism for single-qubit systems may seem superfluous, its importance will become clear later while considering measurements for multi-qubit systems.
 
-## Arbitrary basis measurements implementation
+Thus, as before, the probability of measuring $b_0$ is $|P_0\ket\psi|^2 = |c_0|^2$, and the probability of measuring $b_1$ is $|P_1\ket\psi|^2 = |c_1|^2$. Similarly, one can verify that the post-measurement outcomes are also $\ket{b_0}$ and $\ket{b_1}$ respectively (up to unobservable global phases).
+
+Although the projector formalism for single-qubit systems may seem superfluous, its importance will become clear later while considering measurements for multi-qubit systems.
+
+## Arbitrary Basis Measurements Implementation
 
 In the previous section, we discussed measurements in Pauli bases using the built-in `Measure` operation. We will now show that it is always possible to measure a qubit in any orthogonal basis using just unitary rotation matrices and computation basis measurements.
 
@@ -306,7 +306,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 
 @[exercise]({
     "id": "distinguish_orthogonal_states_1",
-    "title": "Distinguishing orthogonal states - 1",
+    "title": "Distinguishing Orthogonal States: 1",
     "descriptionPath": "./distinguish_orthogonal_states_1/index.md",
     "placeholderSourcePath": "./distinguish_orthogonal_states_1/placeholder.qs",
     "solutionPath": "./distinguish_orthogonal_states_1/solution.md",
@@ -319,7 +319,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 
 @[exercise]({
     "id": "distinguish_orthogonal_states_2",
-    "title": "Distinguishing orthogonal states - 2",
+    "title": "Distinguishing Orthogonal States: 2",
     "descriptionPath": "./distinguish_orthogonal_states_2/index.md",
     "placeholderSourcePath": "./distinguish_orthogonal_states_2/placeholder.qs",
     "solutionPath": "./distinguish_orthogonal_states_2/solution.md",
@@ -332,7 +332,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 
 @[exercise]({
     "id": "a_b_basis_measurements",
-    "title": "Measurement in the |A〉, |B〉 basis",
+    "title": "Measurement In The |A〉, |B〉 Basis",
     "descriptionPath": "./a_b_basis_measurements/index.md",
     "placeholderSourcePath": "./a_b_basis_measurements/placeholder.qs",
     "solutionPath": "./a_b_basis_measurements/solution.md",
