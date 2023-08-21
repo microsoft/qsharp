@@ -319,7 +319,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_basis_state",
-    "title": "Prepare A Basis State",
+    "title": "Prepare a Basis State",
     "descriptionPath": "./prepare_basis_state/index.md",
     "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
     "solutionPath": "./prepare_basis_state/solution.md",
