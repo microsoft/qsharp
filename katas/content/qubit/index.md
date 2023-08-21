@@ -133,7 +133,7 @@ We will learn more about Dirac notation in the next Katas, as we introduce quant
 
 @[section]({
     "id": "qubit_relative_and_global_phase",
-    "title": "Relative And Global Phase"
+    "title": "Relative and Global Phase"
 })
 
 You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
