@@ -332,7 +332,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_superposition",
-    "title": "Prepare A Superposition Of Two Basis States",
+    "title": "Prepare a Superposition of Two Basis States",
     "descriptionPath": "./prepare_superposition/index.md",
     "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
     "solutionPath": "./prepare_superposition/solution.md",
