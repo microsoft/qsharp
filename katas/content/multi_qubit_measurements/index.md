@@ -179,7 +179,7 @@ We can also use Q# to solve this problem. It can be achieved in three steps:
     </tr> 
 </table>
 
-So the amplitudes of the computational basis states after the transformation are the same as the amplitudes of the basis states of the Pauli X basis before the transformation!
+The amplitudes of the computational basis states after the transformation are the same as the amplitudes of the basis states of the Pauli X basis before the transformation!
 
 >To implement the first step, we can represent $\ket \psi$ as  
 >$$\frac 2 3 \ket {00} + {\big (} \frac 1 {\sqrt 5} \ket {0} + \frac 2 {\sqrt 5} \ket {1} {\big )} \frac {\sqrt 5} 3 \ket {1}$$
