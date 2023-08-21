@@ -154,7 +154,7 @@ After this, the probabilities of measuring each of the four basis vectors is giv
 We can also use Q# to solve this problem. It can be achieved in three steps:
 1. Prepare the state $\ket \psi$.
 2. Apply a transformation that maps the 2-qubit Pauli X basis into the 2-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
-3. View probabilities of each basis state with `DumpMachine` function. Thanks to the previous step the following state equivalence holds:
+3. View probabilities of each basis state with the `DumpMachine` function. Thanks to the previous step, the following state equivalence holds:
 
 <table>
     <tr>
