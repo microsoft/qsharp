@@ -192,7 +192,7 @@ The amplitudes of the computational basis states after the transformation are th
     "codePath": "./multi_qubit_probabilities.qs"
 })
 
-## Measuring Each Qubit in a System One After Another
+## Measuring Each Qubit in a System Sequentially
 
 As described in the previous sections, in theory it is possible to measure all the qubits in an $n$-qubit system simultaneously in an orthogonal basis. The post-measurement state of the qubits is then exactly one of the $2^n$ possible basis states.
 
