@@ -1,4 +1,4 @@
-# Measurements In Multi-Qubit Systems
+# Measurements in Multi-Qubit Systems
 
 @[section]({
     "id": "multi_qubit_measurements_overview",
@@ -27,7 +27,7 @@ $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
  
 @[section]({
     "id": "multi_qubit_measurements_types_of_measurements",
-    "title": "Types Of Measurements"
+    "title": "Types of Measurements"
 })
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
@@ -38,7 +38,7 @@ There are several types of measurements you can perform on an $n$-qubit system (
 
 We will discuss these concepts in the same order as in the list above.
 
-## Full Measurements: Measurements In Multi-Qubit Bases
+## Full Measurements: Measurements in Multi-Qubit Bases
 
 Consider a system consisting of $n\geq1$ qubits. The wave function of such a system belongs to a vector space of dimension $2^n$. Thus, the vector space is spanned by an orthogonal basis, such as the computational basis which consists of the vectors $|0\dotsc0\rangle, \dotsc, |1\dotsc 1\rangle$. For generality, we consider an arbitrary orthonormal basis, which we denote by $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$.
 
@@ -67,7 +67,6 @@ This can be summarized in the following table:
         <td>$\ket{b_i}$</td>
     </tr>
 </table>
-
 
 > Similar to measurements in single-qubit systems, the assumption of normalization of the original wave function is required in order to ensure that the sum of all the outcome probabilities is 1.
 
@@ -150,7 +149,7 @@ After this, the probabilities of measuring each of the four basis vectors is giv
     </tr> 
 </table>
 
-### Code-based solution
+### Code-Based Solution
 
 We can also use Q# to solve this problem. It can be achieved in three steps:
 1. Prepare the state $\ket \psi$.
@@ -193,7 +192,7 @@ So the amplitudes of the computational basis states after the transformation are
     "codePath": "./multi_qubit_probabilities.qs"
 })
 
-## Measuring Each Qubit In A System One After Another
+## Measuring Each Qubit in a System One After Another
 
 As described in the previous sections, in theory it is possible to measure all the qubits in an $n$-qubit system simultaneously in an orthogonal basis. The post-measurement state of the qubits is then exactly one of the $2^n$ possible basis states.
 
@@ -211,7 +210,7 @@ For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{-
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics",
-    "title": "Measurement Statistics For Qubit-By-Qubit Full Measurement"
+    "title": "Measurement Statistics for Qubit-By-Qubit Full Measurement"
 })
 
 This demo illustrates the equivalence of the measurement probabilities for simultaneous measurement on all qubits, and measurements on each of the qubits executed one after another. Using the wave function from exercise 1 above as an example, we show that the measurement probabilities obtained using the `M` operation in Q# are the same as those expected theoretically for exercise 1.
@@ -223,7 +222,7 @@ The simulated probabilities will be different for each run of `DemoBasisMeasurem
     "codePath": "./measuring_one.qs"
 })
 
-## Using Full Measurements To Identify The State Of The System
+## Using Full Measurements to Identify the State of the System
 
 Full measurements can also be used to identify the state of the system, if it is guaranteed to be in one of several possible orthogonal states.
 
@@ -248,9 +247,7 @@ Full measurements can also be used to identify the state of the system, if it is
 For a system with $n>1$ qubits, it is possible to measure $m<n$ qubits one after another. The number of measurement outcomes is then $2^m$ instead of $2^n$. The probabilities of each of the outcomes and the post-measurement states of the qubits can be found using the projection formalism for measurements.
 
 First, we recall the concept of projection operators introduced in the single-qubit systems measurements kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
-$$
-P^2 = P^\dagger = P.
-$$
+$$P^2 = P^\dagger = P$$
 Consider an $n$-qubit system in a state $|\psi\rangle$, for which the first $m<n$ qubits are measured in an orthogonal basis $\{ |b_0\rangle , |b_1\rangle, \dotsc, |b_{2^m-1}\rangle\}$ corresponding to the $m$ qubits being measured. Then we define $2^m$ projectors corresponding to each of the $|b_i\rangle$ states as
 
 $$P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m} $$
@@ -270,22 +267,21 @@ $$
 $$
 
 For example, consider a two-qubit system in the state $\ket \psi = \frac{1}{\sqrt{2}}\ket{01} - \frac{1}{\sqrt 2}\ket{10}$. Consider a measurement of the first qubit in the computational basis, i.e., in the $\{\ket 0 , \ket 1 \}$ basis. Then, we have two projectors that represent this measurement:
-\begin{align*}
-P_0 &= \ket 0\bra 0 \otimes \mathbb{1},\\
-P_1 &= \ket 1 \bra 1 \otimes \mathbb{1}.
-\end{align*}
+$$P_0 = \ket 0\bra 0 \otimes \mathbb{1}$$
+$$P_1 = \ket 1 \bra 1 \otimes \mathbb{1}$$
 
 The action of $P_0$ on $\ket \psi$ is
-\begin{align*}
-P_0 \ket \psi &= \left(\ket 0\bra 0 \otimes \mathbb{1}\right) \frac{1}{\sqrt 2}\big(\ket{01} - \ket{10}\big) = \\
-              &= \frac{1}{\sqrt 2} \big( \ket 0\bra 0 0\rangle \otimes \mathbb{1} \ket{1} - \ket 0 \bra 0 1\rangle \otimes \mathbb{1} \ket 0 \big) = \\
-              &= \frac{1}{\sqrt 2} \ket{01}.
-\end{align*}
+
+$$P_0 \ket \psi =$$
+
+$$\left(\ket 0\bra 0 \otimes \mathbb{1}\right) \frac{1}{\sqrt 2}\big(\ket{01} - \ket{10}\big) =$$
+
+$$\frac{1}{\sqrt 2} \big( \ket 0\bra 0 0\rangle \otimes \mathbb{1} \ket{1} - \ket 0 \bra 0 1\rangle \otimes \mathbb{1} \ket 0 \big) =$$
+
+$$\frac{1}{\sqrt 2} \ket{01}$$
 
 Similarly, we obtain
-$$
-P_1 \ket\psi = -\frac{1}{\sqrt 2} \ket{10}.
-$$
+$$P_1 \ket\psi = -\frac{1}{\sqrt 2} \ket{10}$$
 
 Clearly, we have $\big|P_0 \ket \psi\big| = \big|P_1 \ket \psi\big| = \frac{1}{2}$ in this case. Thus, the probabilities of measuring $0$ and $1$ are both $0.5$, with the post-measurement states of system being $\ket{01}$ and $\ket{10}$, respectively.
 
@@ -331,7 +327,7 @@ $$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ke
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics_for_partial_measurements",
-    "title": "Measurement Statistics For Partial Measurement"
+    "title": "Measurement Statistics for Partial Measurement"
 })
 
 Using the `M` operation in Q#, we demonstrate that the simulated outcome probabilities and post-measurement outcomes match the theoretical values obtained using the projection operators as described above. We use the Hardy state from Exercise 4 with a computational basis measurement on the first qubit for this purpose.
@@ -343,7 +339,7 @@ The simulated and theoretical measurement probabilities are not expected to matc
     "codePath": "./partial_measurements_demo.qs"
 })
 
-## Using Partial Measurements To identify The State Of The System
+## Using Partial Measurements to Identify the State of the System
 
 In certain situations, it is possible to distinguish between orthogonal states of multi-qubit systems using partial measurements, as illustrated in the next exercise.
 
@@ -362,7 +358,7 @@ In certain situations, it is possible to distinguish between orthogonal states o
 
 @[section]({
     "id": "multi_qubit_measurements_measurements_and_entanglement",
-    "title": "Measurements And Entanglement"
+    "title": "Measurements and Entanglement"
 })
 
 Qubits entanglement has an effect on the measurement statistics of the system. If two qubits are entangled, then their measurement outcomes will be correlated, while separable states (which are by definition not entangled) have uncorrelated measurement outcomes.
@@ -374,12 +370,14 @@ $$
 where $\ket{\phi_A}$ and $\ket{\phi_B}$ are wave functions that describe parts $A$ and $B$, respectively. If it is not possible to express $\ket \psi$ in such a form, then we say that system A is entangled with system B.
 
 Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
-\begin{align*}
-\ket{\psi}_{i} &\equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|} = \\
-               &= \frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|} = \\
-               &= \frac{\bra{b_i}\phi_A\rangle \cdot \ket{b_i} \otimes \ket {\phi_B}}{\big|\ket{b_i}\big| \cdot \bra{b_i}\phi_A\rangle \cdot \big| \ket {\phi_B}\big|} = \\
-               &= \ket{b_i} \otimes \ket{\phi_B}.
-\end{align*}
+
+$$\ket{\psi}_{i} &\equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|} =$$
+
+$$\frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|} =$$
+
+$$\frac{\bra{b_i}\phi_A\rangle \cdot \ket{b_i} \otimes \ket {\phi_B}}{\big|\ket{b_i}\big| \cdot \bra{b_i}\phi_A\rangle \cdot \big| \ket {\phi_B}\big|} =$$
+
+$$\ket{b_i} \otimes \ket{\phi_B}$$
 
 Thus, the state of subsystem $B$ after the measurement is $\ket{\phi_B}$ independently of the outcome $i$ of the measurement on the first qubit. The results of a subsequent measurement on subsystem $B$, including outcome probabilities, will be independent of the result of the first measurement. In other words, the outcomes of the two measurements will be uncorrelated.
 
@@ -555,7 +553,7 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 
 @[exercise]({
     "id": "joint_measurements",
-    "title": "Two-qubit Parity Measurement",
+    "title": "Two-Qubit Parity Measurement",
     "descriptionPath": "./joint_measurements/index.md",
     "placeholderSourcePath": "./joint_measurements/placeholder.qs",
     "solutionPath": "./joint_measurements/solution.md",
