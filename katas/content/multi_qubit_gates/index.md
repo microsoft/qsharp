@@ -281,7 +281,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
 
 @[section]({
     "id": "multi_qubit_gates_acting_on_non_adjacent_qubits",
-    "title": "Multi-Qubit Gates Acting On Non-Adjacent Qubits"
+    "title": "Multi-Qubit Gates Acting on Non-Adjacent Qubits"
 })
 
 In the above examples the `CNOT` gate acted on two adjacent qubits. However, multi-qubit gates can act on non-adjacent qubits as well. Let's see how to work out the math of the system state change in this case.
