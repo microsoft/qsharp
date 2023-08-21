@@ -341,7 +341,7 @@ All the basic gates we will be covering in this Kata are part of the [Intrinsic]
 
 @[exercise]({
     "id": "global_phase_i",
-    "title": "Applying A Global Phase",
+    "title": "Applying a Global Phase",
     "descriptionPath": "./global_phase_i/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
