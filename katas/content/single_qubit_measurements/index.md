@@ -120,7 +120,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 @[section]({
     "id": "single_qubit_measurements_pauli_bases",
-    "title": "Measurements In The Pauli Bases"
+    "title": "Measurements in the Pauli Bases"
 })
 
 So far, we have discussed measurements done in the computational basis, i.e., the $\{ \ket 0, \ket 1\}$ basis.
