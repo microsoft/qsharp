@@ -100,7 +100,7 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits.
+Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is $2N$, where N is the number of control qubits.
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
