@@ -76,7 +76,7 @@ All quantum gates are reversible - there is another gate which will undo any giv
 This means that when dealing with quantum gates, information about qubit states is never lost, as opposed to classical logic gates, some of which destroy information. 
 Quantum gates are represented by unitary matrices, so the inverse of a gate is its adjoint; these terms are also used interchangeably in quantum computing.
 
-## Effects On Basis States
+## Effects on Basis States
 
 There is a simple way to find out what a gate does to the two computational basis states ($|0\rangle$ and $|1\rangle$) from looking at its matrix that comes in handy when you want to work with states in Dirac notation. Consider an arbitrary gate:
 
