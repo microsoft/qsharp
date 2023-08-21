@@ -24,7 +24,7 @@ This Kata introduces you to one of the core concepts in quantum computing - the 
 
 @[section]({
     "id": "qubit_concept",
-    "title": "The Concept Of Qubit"
+    "title": "The Concept of Qubit"
 })
 
 The basic building block of a classical computer is the bit - a single memory cell that is either in state $0$ or in state $1$. Similarly, the basic building block of a quantum computer is the quantum bit, or **qubit**. Like the classical bit, a qubit can be in state $0$ or in state $1$. Unlike the classical bit, however, the qubit isn't limited to just those two states - it may also be in a combination, or **superposition** of those states.
