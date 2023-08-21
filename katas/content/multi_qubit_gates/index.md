@@ -127,7 +127,7 @@ The `CNOT` gate is self-adjoint: applying it for the second time reverses its ef
 
 @[exercise]({
     "id": "preparing_bell_state",
-    "title": "Preparing A Bell State",
+    "title": "Preparing a Bell State",
     "descriptionPath": "./preparing_bell_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
