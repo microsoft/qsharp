@@ -161,7 +161,7 @@ Freshly allocated qubits start out in state $|0\rangle$, and have to be returned
 
 Before we continue, let's learn some techniques to visualize the Quantum state of our qubits.
 
-### Display The Quantum State Of A Single-Qubit Program
+### Display the Quantum State of a Single-Qubit Program
 
 Let's start with a simple scenario: a program that acts on a single qubit. 
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
