@@ -218,7 +218,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 
 @[exercise]({
     "id": "learn_single_qubit_state",
-    "title": "Learn The State Of A Single Qubit",
+    "title": "Learn the State of a Single Qubit",
     "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
