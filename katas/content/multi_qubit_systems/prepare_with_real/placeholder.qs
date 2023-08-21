@@ -1,5 +1,6 @@
 namespace Kata {
-    operation PrepareState3(qs: Qubit[]): Unit is Adj+Ctl {
-        // ...
+    operation PrepareWithReal(qs : Qubit[]) : Unit is Adj + Ctl {
+        // Implement your solution here...
+
     }
 }
