@@ -503,7 +503,7 @@ To construct a multi-controlled version of an operation in Q#, you can use the C
 
 @[section]({
     "id": "multi_qubit_gates_other_controlled_gates",
-    "title": "Other Types Of Controlled Gates"
+    "title": "Other Types of Controlled Gates"
 })
 
 Typically the term "controlled `U` gate" refers to the type of gate we've described previously, which applies the gate `U` only if the control qubit(s) are in the $|1\rangle$ state.
