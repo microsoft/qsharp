@@ -89,19 +89,20 @@ impl Compiler {
     /// # Errors
     /// Returns a vector of errors if any of the input fails compilation.
     pub fn compile_fragments(&mut self, input: &str) -> Result<Vec<Fragment>, Vec<Error>> {
-        let (mut fragments, errors) = qsc_parse::fragments(input);
-        if !errors.is_empty() {
-            return Err(errors
-                .into_iter()
-                .map(|e| Error(ErrorKind::Parse(e)))
-                .collect());
-        }
-
         // Append the line to the source map with the appropriate offset
         let offset = self
             .sources
             .push(format!("line_{}", self.lines).into(), input.into());
         self.lines += 1;
+
+        let (mut fragments, errors) = qsc_parse::fragments(input);
+        if !errors.is_empty() {
+            return Err(errors
+                .into_iter()
+                .map(|e| Error(ErrorKind::Parse(e.with_offset(offset))))
+                .collect());
+        }
+
         let mut offsetter = Offsetter(offset);
 
         for fragment in &mut fragments {

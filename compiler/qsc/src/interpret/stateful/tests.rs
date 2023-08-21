@@ -3,6 +3,8 @@
 
 mod given_interpreter {
     use crate::interpret::stateful::{Interpreter, LineError};
+    use expect_test::expect;
+    use miette::Report;
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::{SourceMap, TargetProfile};
     use qsc_passes::PackageType;
@@ -317,6 +319,79 @@ mod given_interpreter {
                 "lambdas cannot close over mutable variables",
             );
         }
+
+        #[test]
+        fn error_spans_across_lines() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "namespace Other { operation DumpMachine() : Unit { } }",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "open Other;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "DumpMachine();");
+            is_only_error(&result, &output, "name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`");
+            let s = format!(
+                "{:?}",
+                Report::new(
+                    result
+                        .expect_err("expected errors")
+                        .first()
+                        .expect("expected at least one error")
+                        .0
+                        .clone()
+                )
+            );
+            expect![[r#"
+                [31mQsc.Resolve.Ambiguous[0m
+
+                  [31m×[0m name error
+                [31m  ╰─▶ [0m`DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
+                   ╭─[[36;1;4mline_1[0m:1:1]
+                 [2m1[0m │ open Other;
+                   · [35;1m     ──┬──[0m
+                   ·        [35;1m╰── [35;1mfound in this namespace[0m[0m
+                   ╰────
+                   ╭─[[36;1;4mline_2[0m:1:1]
+                 [2m1[0m │ open Microsoft.Quantum.Diagnostics;
+                   · [33;1m     ──────────────┬──────────────[0m
+                   ·                    [33;1m╰── [33;1mand also in this namespace[0m[0m
+                   ╰────
+                   ╭─[[36;1;4mline_3[0m:1:1]
+                 [2m1[0m │ DumpMachine();
+                   · [32;1m─────┬─────[0m
+                   ·      [32;1m╰── [32;1mambiguous name[0m[0m
+                   ╰────
+            "#]].assert_eq(
+                &s
+            );
+        }
+
+        #[test]
+        fn runtime_error_from_stdlib() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "use q = Qubit(); CNOT(q,q)");
+            is_only_error(
+                &result,
+                &output,
+                "runtime error: qubits in gate invocation are not unique",
+            );
+            let s = format!(
+                "{:?}",
+                Report::new(
+                    result
+                        .expect_err("expected errors")
+                        .first()
+                        .expect("expected at least one error")
+                        .0
+                        .clone()
+                )
+            );
+            assert_eq!("runtime error", s);
+        }
     }
 
     #[cfg(test)]
@@ -413,25 +488,35 @@ mod given_interpreter {
         }
 
         #[test]
-        fn error_spans_across_lines() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetProfile::Full,
-            )
-            .expect("interpreter should be created");
-            let (result, output) = line(
-                &mut interpreter,
-                "namespace Other { operation DumpMachine() : Unit { } }",
+        fn runtime_error_from_stdlib() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace Foo {
+                        operation Bar(): Unit {
+                            use qs = Qubit[10000000000000000000000000000000000000000000000000000000];
+                        }
+                    }
+                    "
+                        .into(),
+                )],
+                Some("Foo.Bar()".into()),
             );
-            is_only_value(&result, &output, &Value::unit());
-            let (result, output) = line(&mut interpreter, "open Other;");
-            is_only_value(&result, &output, &Value::unit());
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
-            is_only_value(&result, &output, &Value::unit());
-            let (result, output) = line(&mut interpreter, "DumpMachine();");
-            is_only_error(&result, &output, "name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`");
+
+            let mut interpreter =
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                    .expect("interpreter should be created");
+            let (result, output) = entry(&mut interpreter);
+            is_only_error(
+                &result,
+                &output,
+                "runtime error: program failed: Cannot allocate qubit array with a negative length",
+            );
+            let s = format!(
+                "{:?}",
+                Report::new(result.err().unwrap().first().unwrap().0.clone())
+            );
+            assert_eq!("runtime error", s);
         }
     }
 
@@ -480,7 +565,10 @@ mod given_interpreter {
         }
     }
 
-    fn is_only_error(result: &Result<Value, Vec<LineError>>, output: &str, error: &str) {
+    fn is_only_error<E>(result: &Result<Value, Vec<E>>, output: &str, error: &str)
+    where
+        E: Error,
+    {
         assert_eq!("", output);
 
         match result {

@@ -29,6 +29,7 @@ thiserror = { workspace = true }
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
 indoc = { workspace = true }
+expect-test = { workspace = true }
 
 [lib]
 bench = false

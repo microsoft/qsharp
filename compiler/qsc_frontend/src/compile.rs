@@ -148,11 +148,13 @@ impl SourceMap {
         let mut offset = offsets.next();
         let mut source = all.next();
         let mut lo = source.map(|s| s.offset);
-        let mut hi = source.map(|s| s.offset + s.contents.len() as u32);
+        // +1 for EOF
+        let mut hi = source.map(|s| s.offset + s.contents.len() as u32 + 1);
 
         loop {
             // Skip sources until we get to one that contains the current offset
             while hi.map_or(false, |hi| hi <= offset.unwrap_or(hi)) {
+                println!("filtering out source {source:?}");
                 source = all.next();
                 lo = source.map(|s| s.offset);
                 hi = source.map(|s| s.offset + s.contents.len() as u32);
@@ -555,8 +557,9 @@ fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan 
 }
 
 fn next_offset(last_source: Option<&Source>) -> u32 {
+    // Leave 1 between each file for EOF
     last_source.map_or(0, |s| {
-        s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
+        1 + s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
     })
 }
 

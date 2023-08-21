@@ -621,3 +621,45 @@ fn introduce_prelude_ambiguity() {
             )
     );
 }
+
+#[test]
+fn error_at_eof() {
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store, TargetProfile::Full));
+    let sources = SourceMap::new([("test_1".into(), indoc! {"namespace Foo {"}.into())], None);
+
+    let unit = compile(&store, &[std], sources, TargetProfile::Full);
+    let errors: Vec<Error> = unit.errors;
+    assert!(errors.len() == 1);
+    expect![[r#"
+        Some(
+            Error(
+                Parse(
+                    Error(
+                        Token(
+                            Close(
+                                Brace,
+                            ),
+                            Eof,
+                            Span {
+                                lo: 15,
+                                hi: 15,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        )
+    "#]]
+    .assert_debug_eq(&errors.first());
+    expect![[r#"
+        Some(
+            Source {
+                name: "test_1",
+                contents: "namespace Foo {",
+                offset: 0,
+            },
+        )
+    "#]]
+    .assert_debug_eq(&unit.sources.find_by_offset(15));
+}

@@ -392,15 +392,15 @@ fn block_qubit_use_array_invalid_count_expr() {
                 UserFail(
                     "Cannot allocate qubit array with a negative length",
                     Span {
-                        lo: 1566,
-                        hi: 1623,
+                        lo: 1567,
+                        hi: 1624,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 1571,
-                            hi: 1623,
+                            lo: 1572,
+                            hi: 1624,
                         },
                         id: GlobalId {
                             package: PackageId(
@@ -2241,15 +2241,15 @@ fn call_adjoint_expr() {
                 UserFail(
                     "Adjoint Implementation",
                     Span {
-                        lo: 166,
-                        hi: 195,
+                        lo: 185,
+                        hi: 214,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 171,
-                            hi: 195,
+                            lo: 190,
+                            hi: 214,
                         },
                         id: GlobalId {
                             package: PackageId(
@@ -2300,15 +2300,15 @@ fn call_adjoint_adjoint_expr() {
                 UserFail(
                     "Body Implementation",
                     Span {
-                        lo: 92,
-                        hi: 118,
+                        lo: 119,
+                        hi: 145,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 97,
-                            hi: 118,
+                            lo: 124,
+                            hi: 145,
                         },
                         id: GlobalId {
                             package: PackageId(
@@ -2354,15 +2354,15 @@ fn call_adjoint_self_expr() {
                 UserFail(
                     "Body Implementation",
                     Span {
-                        lo: 92,
-                        hi: 118,
+                        lo: 111,
+                        hi: 137,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 97,
-                            hi: 118,
+                            lo: 116,
+                            hi: 137,
                         },
                         id: GlobalId {
                             package: PackageId(
