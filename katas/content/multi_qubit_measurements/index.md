@@ -114,26 +114,18 @@ If all the qubits are measured simultaneously in the Pauli X basis, i.e., in the
 ### Analytical Solution
 
 Using the expressions $|0\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle + |-\rangle \big)$ and $|1\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle - |-\rangle \big)$, we first express $|\psi\rangle$ in the Pauli X basis. This gives us
-$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} = $$ 
+$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} =$$
 
-$$= \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + $$ 
-$$+ \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + $$ 
-$$+ \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] = $$ 
+$$\frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] =$$
 
-$$= \frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + $$ 
-$$+ \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + $$ 
-$$+ \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] = $$ 
+$$\frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] =$$
 
-$$= \frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + $$ 
-$$+ \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + $$ 
-$$+ \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big] = $$ 
+$$\frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big] =$$
 
-$$= (\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + $$
-$$+ (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + $$
-$$+ (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + $$
-$$+ (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--} = $$
+$$(\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--} =$$
 
-$$= \frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--} ;$$
+$$\frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--}$$
+
 After this, the probabilities of measuring each of the four basis vectors is given by the square of the absolute value of its amplitude in the superposition:
 <table>
     <tr>
@@ -192,13 +184,13 @@ So the amplitudes of the computational basis states after the transformation are
 
 >To implement the first step, we can represent $\ket \psi$ as  
 >$$\frac 2 3 \ket {00} + {\big (} \frac 1 {\sqrt 5} \ket {0} + \frac 2 {\sqrt 5} \ket {1} {\big )} \frac {\sqrt 5} 3 \ket {1}$$
->This representation tells us how we should rotate individual qubits. You can read more about preparing superposition states in the [Superposition kata](../../Superposition/Superposition.ipynb#Part--II.-Arbitrary-rotations.).
+>This representation tells us how we should rotate individual qubits.
 >
-> Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
+>Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
 
 @[example]({
     "id": "multi_qubit_probabilities_2_example",
-    "codePath": "./multi_qubit_probabilities_2/solution.qs"
+    "codePath": "./multi_qubit_probabilities.qs"
 })
 
 ## Measuring Each Qubit In A System One After Another
@@ -260,11 +252,15 @@ $$
 P^2 = P^\dagger = P.
 $$
 Consider an $n$-qubit system in a state $|\psi\rangle$, for which the first $m<n$ qubits are measured in an orthogonal basis $\{ |b_0\rangle , |b_1\rangle, \dotsc, |b_{2^m-1}\rangle\}$ corresponding to the $m$ qubits being measured. Then we define $2^m$ projectors corresponding to each of the $|b_i\rangle$ states as
-$$
-P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m},
-$$
+
+$$P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m} $$
+
 where $\mathbb{1}_{n-m}$ is the identity operator over the remaining $(n-m)$ qubits.
-> The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication. In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that the operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured, while the effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m}$, i.e., the identity operator.
+
+The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication.
+In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that 
+- The operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured.
+- The effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m} $, i.e., the identity operator.
 
 Analogous to the case for measurements for single-qubit systems, the rules for partial measurement probabilities and outcomes can be summarized as follows:
 - When a measurement is done, one of these projectors is chosen randomly. The probability of choosing projector $P_i$ is $\big|P_i|\psi\rangle\big|^2$.
