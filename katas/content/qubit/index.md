@@ -242,7 +242,7 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 
 > Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
 `DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
-We will learn more details on endiannes in the "Multi-Qubit Systems" Kata.
+We will learn more details on endianness in the "Multi-Qubit Systems" Kata.
 
 ## Demo: DumpMachine For Multi-Qubit Systems
 
