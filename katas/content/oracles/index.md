@@ -100,7 +100,7 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits. To learn its internal implementation (and the very similar [ApplyControlledOnInt](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonint)), please refer to the [Q# source code](https://github.com/microsoft/qsharp/blob/7d72e789b084ea5ecc50a9298517bc19cd0c1c88/library/std/canon.qs#L463).
+Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits.
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
@@ -201,7 +201,7 @@ $$|\psi\rangle = \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}|b_1\rangle + (-1)^{f(b_2
 
 which looks exactly as if we applied a phase oracle to $|x\rangle$ instead of applying a marking oracle to $|x\rangle|-\rangle$!  This is a very important application of phase kickback: it allows to convert a marking oracle into a phase oracle - which you will implement in the next task.
 
-> Another important application of this effect is **phase estimation** algorithm, which allows to estimate an eigenvalue of an eigenvector. You can learn more about this important algorithm in the [PhaseEstimation kata](../../PhaseEstimation/PhaseEstimation.ipynb).
+> Another important application of this effect is **phase estimation** algorithm, which allows to estimate an eigenvalue of an eigenvector.
 
 Consider the following example using the $U_{7,mark}$ oracle. Let's begin with $|x\rangle$ as an equal superposition of the $6$ and $7$ basis states and $|y\rangle=|-\rangle$, the overall state is:
 $$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big) = $$
@@ -224,12 +224,21 @@ $$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big]
 $$|\xi\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle - |111\rangle\big)\Big] \otimes |-\rangle$$
 
 We can see that these two equations are identical, except for the $-1$ phase that appeared on the $|111\rangle$ basis state (representing $7$).  This is a specific example of the phase kickback effect, as the phase from $|-\rangle$ has been *kicked back* into $|x\rangle$.
-    
-@[question]({
-    "id": "distinguish_states",
-    "descriptionPath": "./distinguish_states/index.md",
-    "answerPath": "./distinguish_states/solution.md"
-})
+
+
+## 🔎 Analyze
+
+**Distinguishing states**
+
+How could we distinguish the states $|\eta\rangle = |11+\rangle |-\rangle$ and $|\xi\rangle = |11-\rangle |-\rangle$?  Take a moment to think.
+
+<details>
+<summary><b>Solution</b></summary>
+Recall that we can only observe alterations to out input state by performing a measurement.
+If we apply Hadamard gate to the third qubit, we will be able to distinguish between the input state and the output state. 
+    $$(I\otimes I \otimes H)|11+\rangle = |110\rangle \\ (I\otimes I \otimes H)|11-\rangle = |111\rangle$$ 
+Now if we were to measure the third qubit, we'll be able to distinguish the starting state and the state after phase kickback occurred.
+</details>
 
 @[exercise]({
     "id": "marking_oracle_as_phase",
