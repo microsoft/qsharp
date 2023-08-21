@@ -314,7 +314,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
-In the previous Kata we discussed that the qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to the quantum gates: applying a gate to a qubit modifies the internal state of that qubit but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
+In the previous Kata we discussed that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
 
 Applying several gates in a row follows the same principle. In the mathematical notation applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$ because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
 
