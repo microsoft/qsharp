@@ -107,7 +107,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 @[exercise]({
     "id": "distinguish_0_and_1",
-    "title": "Distinguish |0〉 And |1〉",
+    "title": "Distinguish |0〉 and |1〉",
     "descriptionPath": "./distinguish_0_and_1/index.md",
     "placeholderSourcePath": "./distinguish_0_and_1/placeholder.qs",
     "solutionPath": "./distinguish_0_and_1/solution.md",
