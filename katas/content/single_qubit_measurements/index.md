@@ -9,7 +9,7 @@ This Kata introduces you to measurements done on single-qubit systems.
 
 The concept of a measurement is a central part of quantum mechanics, as well as quantum algorithms. Single-qubit measurements, as their name implies, are measurements on single qubits. The outcomes of a measurement in quantum mechanics are probabilistic, and in general, change the state of the qubit according to the outcome of the measurement.
 
-We recommend to go through the "Single-Qubit Gates" Kata before starting this one.
+We recommend you complete the "Single-Qubit Gates" Kata before starting this one.
 
 **This Kata covers the following topics:**
 
