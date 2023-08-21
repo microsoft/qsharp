@@ -287,7 +287,7 @@ Some ket symbols have a commonly accepted usage, such as the symbols for the Bel
 
 @[section]({
     "id": "multi_qubit_systems_in_qsharp",
-    "title": "Multi-Qubit Systems In Q#"
+    "title": "Multi-Qubit Systems in Q#"
 })
 
 This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates Kata.
