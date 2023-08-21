@@ -1,4 +1,4 @@
-# Measurements In Single-Qubit Systems
+# Measurements in Single-Qubit Systems
 
 @[section]({
     "id": "single_qubit_measurements_overview",
