@@ -140,7 +140,7 @@ The probabilities of outcomes $0$ and $1$ will be defined as $|c_0|^2$ and $|c_1
 
 @[exercise]({
     "id": "distinguish_plus_and_minus",
-    "title": "Distinguish |+〉 And |-〉",
+    "title": "Distinguish |+〉 and |-〉",
     "descriptionPath": "./distinguish_plus_and_minus/index.md",
     "placeholderSourcePath": "./distinguish_plus_and_minus/placeholder.qs",
     "solutionPath": "./distinguish_plus_and_minus/solution.md",
