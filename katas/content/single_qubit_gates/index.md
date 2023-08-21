@@ -353,7 +353,7 @@ All the basic gates we will be covering in this Kata are part of the [Intrinsic]
 
 @[exercise]({
     "id": "sign_flip_on_zero",
-    "title": "Sign Flip On Zero",
+    "title": "Sign Flip on Zero",
     "descriptionPath": "./sign_flip_on_zero/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
