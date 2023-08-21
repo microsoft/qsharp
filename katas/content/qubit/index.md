@@ -230,7 +230,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 
 @[section]({
     "id": "qubit_visualizing_multi_qubit",
-    "title": "Display The Quantum State Of A Multi-Qubit Program"
+    "title": "Display the Quantum State of a Multi-Qubit Program"
 })
 
 Now let's take a look at the general case: a program that acts on $N$ qubits. 
