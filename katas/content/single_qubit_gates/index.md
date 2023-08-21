@@ -309,7 +309,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 @[section]({
     "id": "single_qubit_gates_pauli_gates_in_qsharp",
-    "title": "Pauli Gates In Q#"
+    "title": "Pauli Gates in Q#"
 })
 
 The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
