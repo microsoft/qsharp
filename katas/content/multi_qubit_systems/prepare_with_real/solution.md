@@ -6,7 +6,7 @@ This time we need to transform both the first and the second qubits. Let's start
 
 $$ H|0\rangle = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} \cdot \begin{bmatrix} 1 \\\ 0 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big)$$
 
-For the second qubit we can use the same transformation we've seen in the "Prepare A Superposition Of Two Basis States" exercise; this will give the desired end state.
+For the second qubit we can use the same transformation we've seen in the "Prepare a Superposition of Two Basis States" exercise; this will give the desired end state.
 
 @[solution]({
     "id": "prepare_with_real_solution",
