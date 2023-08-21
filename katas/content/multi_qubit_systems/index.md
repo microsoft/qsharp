@@ -345,7 +345,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_with_real",
-    "title": " Prepare A Superposition With Real Amplitudes",
+    "title": " Prepare a Superposition with Real Amplitudes",
     "descriptionPath": "./prepare_with_real/index.md",
     "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
     "solutionPath": "./prepare_with_real/solution.md",
