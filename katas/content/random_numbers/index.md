@@ -32,7 +32,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_bit",
-    "title": "Generate A Single Random Bit",
+    "title": "Generate a Single Random Bit",
     "descriptionPath": "./random_bit/index.md",
     "placeholderSourcePath": "./random_bit/placeholder.qs",
     "solutionPath": "./random_bit/solution.md",
@@ -45,7 +45,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_two_bits",
-    "title": "Generate A Random Two-Bit Number",
+    "title": "Generate a Random Two-Bit Number",
     "descriptionPath": "./random_two_bits/index.md",
     "placeholderSourcePath": "./random_two_bits/placeholder.qs",
     "solutionPath": "./random_two_bits/solution.md",
@@ -58,7 +58,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_n_bits",
-    "title": "Generate A Number Of Arbitrary Size",
+    "title": "Generate a Number of Arbitrary Size",
     "descriptionPath": "./random_n_bits/index.md",
     "placeholderSourcePath": "./random_n_bits/placeholder.qs",
     "solutionPath": "./random_n_bits/solution.md",
@@ -71,7 +71,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "weighted_random_bit",
-    "title": "Generate A Weighted Bit",
+    "title": "Generate a Weighted Bit",
     "descriptionPath": "./weighted_random_bit/index.md",
     "placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
     "solutionPath": "./weighted_random_bit/solution.md",
@@ -84,7 +84,7 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[exercise]({
     "id": "random_number",
-    "title": "Generate A Random Number Between Min And Max",
+    "title": "Generate a Random Number Between Min and Max",
     "descriptionPath": "./random_number/index.md",
     "placeholderSourcePath": "./random_number/placeholder.qs",
     "solutionPath": "./random_number/solution.md",
