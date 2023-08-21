@@ -71,17 +71,13 @@ This can be summarized in the following table:
 
 > Similar to measurements in single-qubit systems, the assumption of normalization of the original wave function is required in order to ensure that the sum of all the outcome probabilities is 1.
 
-## 🔎 Analyze
-
-**Multi-qubit measurement outcome probabilities I**
+## Multi-Qubit Measurement Outcome Probabilities I
 
 Suppose that a two-qubit system is known to be in the following state:
 $$\ket \psi =  \frac{1}{3}\ket {00} + \frac{2}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
 If all the qubits are measured simultaneously in the computational basis, what are the outcome probabilities?
 
-<details>
-<summary><b>Solution</b></summary>
 The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^2 + \left(\frac{2}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = 1$. Hence, the probabilities of measuring each of the computational basis states is simply the square of the absolute value of the corresponding coefficients. That is, the probabilities of measuring $00$, $01$ and $11$ are $\frac{1}{9}$, $\frac{4}{9}$ and $\frac{4}{9}$, respectively, and the probability of measuring the basis state $10$ that is not part of the superposition is $0$:
 
 <table>
@@ -107,6 +103,103 @@ The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^
     </tr> 
 </table>
 </details>
+
+##  Multi-Qubit Measurement Outcome Probabilities II
+
+Suppose that a two-qubit system is known to be in the following state:
+$$\ket \psi = \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
+
+If all the qubits are measured simultaneously in the Pauli X basis, i.e., in the $\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\}$ basis, what are the outcome probabilities?
+
+### Analytical Solution
+
+Using the expressions $|0\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle + |-\rangle \big)$ and $|1\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle - |-\rangle \big)$, we first express $|\psi\rangle$ in the Pauli X basis. This gives us
+$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} = $$ 
+
+$$= \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + $$ 
+$$+ \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + $$ 
+$$+ \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] = $$ 
+
+$$= \frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + $$ 
+$$+ \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + $$ 
+$$+ \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] = $$ 
+
+$$= \frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + $$ 
+$$+ \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + $$ 
+$$+ \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big] = $$ 
+
+$$= (\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + $$
+$$+ (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + $$
+$$+ (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + $$
+$$+ (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--} = $$
+
+$$= \frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--} ;$$
+After this, the probabilities of measuring each of the four basis vectors is given by the square of the absolute value of its amplitude in the superposition:
+<table>
+    <tr>
+        <th>Measurement outcome</th>
+        <th>Probability of outcome</th>
+    </tr>
+    <tr>
+        <td>$++$</td>
+        <td>$\left( \frac{5}{6}\right)^2 = \frac{25}{36}$</td>
+    </tr> 
+    <tr>
+        <td>$+-$</td>
+        <td>$\left( -\frac{1}{6}\right)^2 = \frac{1}{36}$</td>
+    </tr> 
+    <tr>
+        <td>$-+$</td>
+        <td>$\left( \frac{1}{6}\right)^2 = \frac{1}{36}$</td>
+    </tr>
+    <tr>
+        <td>$--$</td>
+        <td>$\left( \frac{1}{2}\right)^2 = \frac{1}{4}$</td>
+    </tr> 
+</table>
+
+### Code-based solution
+
+We can also use Q# to solve this problem. It can be achieved in three steps:
+1. Prepare the state $\ket \psi$.
+2. Apply a transformation that maps the 2-qubit Pauli X basis into the 2-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
+3. View probabilities of each basis state with `DumpMachine` function. Thanks to the previous step the following state equivalence holds:
+
+<table>
+    <tr>
+        <th>Before basis transformation</th>
+        <th>After basis transformation</th>
+    </tr>
+    <tr>
+        <td>$\ket {++}$</td>
+        <td>$\ket {00}$</td>
+    </tr> 
+    <tr>
+        <td>$\ket {+-}$</td>
+        <td>$\ket {01}$</td>
+    </tr> 
+    <tr>
+        <td>$\ket {-+}$</td>
+        <td>$\ket {10}$</td>
+    </tr>
+    <tr>
+        <td>$\ket {--}$</td>
+        <td>$\ket {11}$</td>
+    </tr> 
+</table>
+
+So the amplitudes of the computational basis states after the transformation are the same as the amplitudes of the basis states of the Pauli X basis before the transformation!
+
+>To implement the first step, we can represent $\ket \psi$ as  
+>$$\frac 2 3 \ket {00} + {\big (} \frac 1 {\sqrt 5} \ket {0} + \frac 2 {\sqrt 5} \ket {1} {\big )} \frac {\sqrt 5} 3 \ket {1}$$
+>This representation tells us how we should rotate individual qubits. You can read more about preparing superposition states in the [Superposition kata](../../Superposition/Superposition.ipynb#Part--II.-Arbitrary-rotations.).
+>
+> Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
+
+@[example]({
+    "id": "multi_qubit_probabilities_2_example",
+    "codePath": "./multi_qubit_probabilities_2/solution.qs"
+})
 
 ## Measuring Each Qubit In A System One After Another
 
