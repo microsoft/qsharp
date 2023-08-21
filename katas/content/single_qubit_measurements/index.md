@@ -153,7 +153,7 @@ The probabilities of outcomes $0$ and $1$ will be defined as $|c_0|^2$ and $|c_1
 
 @[section]({
     "id": "single_qubit_measurements_arbitrary_bases",
-    "title": "Measurements In Arbitrary Orthogonal Bases"
+    "title": "Measurements in Arbitrary Orthogonal Bases"
 })
 
 It is possible to measure a qubit in orthogonal bases other than the Pauli bases. Suppose one wants to measure a qubit in an orthonormal basis $\ket {b_0}$ and $\ket {b_1}$. Let the state of the qubit be represented by the normalized vector $\ket \psi$. Then, one can always express the state in terms of the basis vectors $\ket{b_0}$ and $\ket{b_1}$, i.e., there exist complex numbers $c_0, c_1$, such that
