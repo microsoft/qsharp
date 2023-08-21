@@ -358,7 +358,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_with_complex",
-    "title": "Prepare A Superposition With Complex Amplitudes",
+    "title": "Prepare a Superposition with Complex Amplitudes",
     "descriptionPath": "./prepare_with_complex/index.md",
     "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
     "solutionPath": "./prepare_with_complex/solution.md",
