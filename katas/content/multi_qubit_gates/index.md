@@ -28,7 +28,7 @@ The effect of a gate applied to a qubit can be calculated by multiplying the cor
 
 Multi-qubit gates are represented by $2^N\\times2^N$ matrices, where $N$ is the number of qubits the gate operates on. To apply this gate, you multiply the matrix by the state vector of the $N$-qubit quantum system.
 
-## Applying Gates To A Part Of The System
+## Applying Gates to a Part of the System
 
 The simplest thing we can do with multi-qubit systems is to apply gates to only a subset of qubits in the system.
 Similar to how it is sometimes possible to represent the state of a multi-qubit systems as a tensor product of single-qubit states, you can construct gates that modify the state of a multi-qubit system as tensor products of gates that affect parts of the system.
