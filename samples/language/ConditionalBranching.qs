@@ -32,8 +32,5 @@ namespace MyQuantumApp {
         } else {
             Message("It is way too hot");
         }
-
-        // `if` can also be used as an expression, to conditionally return a value.
-        let absoluteValue = if fahrenheit > 0 { fahrenheit } else { fahrenheit * -1 };        
     }
 }
