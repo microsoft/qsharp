@@ -426,7 +426,7 @@ pub struct State {
     vals: Vec<Value>,
     package: PackageId,
     call_stack: CallStack,
-    current_expr: Span,
+    current_span: Span,
 }
 
 impl State {
@@ -437,7 +437,7 @@ impl State {
             vals: Vec::new(),
             package,
             call_stack: CallStack::default(),
-            current_expr: Span::default(),
+            current_span: Span::default(),
         }
     }
 
@@ -455,7 +455,7 @@ impl State {
 
     fn push_frame(&mut self, id: GlobalId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
-            span: self.current_expr,
+            span: self.current_span,
             id,
             caller: self.package,
             functor,
@@ -514,7 +514,7 @@ impl State {
     pub fn get_stack_frames(&self) -> Vec<Frame> {
         let mut frames = self.call_stack.clone().into_frames();
 
-        let mut span = self.current_expr;
+        let mut span = self.current_span;
         for frame in frames.iter_mut().rev() {
             std::mem::swap(&mut frame.span, &mut span);
         }
@@ -602,7 +602,7 @@ impl State {
         expr: ExprId,
     ) -> Result<(), Error> {
         let expr = globals.get_expr(self.package, expr);
-        self.current_expr = expr.span;
+        self.current_span = expr.span;
 
         match &expr.kind {
             ExprKind::Array(arr) => self.cont_arr(arr),
@@ -825,7 +825,7 @@ impl State {
 
     fn cont_stmt(&mut self, globals: &impl NodeLookup, stmt: StmtId) {
         let stmt = globals.get_stmt(self.package, stmt);
-        self.current_expr = stmt.span;
+        self.current_span = stmt.span;
 
         match &stmt.kind {
             StmtKind::Expr(expr) => self.push_expr(*expr),
