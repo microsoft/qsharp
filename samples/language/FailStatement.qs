@@ -8,11 +8,14 @@
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
-        if 0 / 0 == 0 {
+        use q = Qubit();
+        X(q);
+        if M(q) == Zero {
             // Fail statements are useful when representing control flow
-            // for unreachable lines
-            fail "Division by zero is impossible, how did we get here?"
+            // for unreachable lines.
+            fail "Measurement should have been `One`, how did we get here?"
         }
+        Reset(q);
 
         let computerIsOnFire = false;
         // Fail statements are also useful for bailing out of unrecoverable states
