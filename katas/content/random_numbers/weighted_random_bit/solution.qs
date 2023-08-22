@@ -15,7 +15,7 @@ namespace Kata {
         // Measuring state of qubit and reset.
         let result = M(q);
         Reset(q);
-        
+
         // Reset qubit and return integer value of result.
         if result == One {
             return 1;

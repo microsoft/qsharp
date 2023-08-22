@@ -3,6 +3,6 @@
 **Output:** `true` if the qubit was in the $\ket {\psi_+}$ state, or `false` if it was in the $\ket{\psi_-} $ state. The state of the qubit at the end of the operation does not matter.
 
 <details>
-    <summary><strong>Need a hint?</strong></summary>
-    <p>A suitable <a href="../SingleQubitGates/SingleQubitGates.ipynb#Rotation-Gates">$R_y$ rotation</a> can be used to go from the computational basis $\{ \ket 0, \ket 1 \}$ to the $\{ \ket{\psi_+}, \ket{\psi_-} \}$ basis and vice versa.</p>
+<summary><strong>Need a hint?</strong></summary>
+A suitable $R_y$ rotation can be used to go from the computational basis ${ \ket 0, \ket 1 }$ to the ${ \ket{\psi_+}, \ket{\psi_-} }$ basis and vice versa.
 </details>

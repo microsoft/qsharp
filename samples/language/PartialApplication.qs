@@ -2,8 +2,8 @@
 /// Partial Application
 ///
 /// # Description
-/// Partial application of functions provides a way to tersely define
-/// lambda functions and lambda operations. It is a convenient syntax
+/// Partial application of functions and operations provides a way to tersely
+/// define lambda functions and lambda operations. It is a convenient syntax
 /// that uses an `_` to describe the "remaining element".
 namespace MyQuantumApp {
     open Microsoft.Quantum.Arrays;

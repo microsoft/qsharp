@@ -420,7 +420,8 @@ impl AstVisitor<'_> for With<'_> {
                 });
             }
             ast::ExprKind::Path(path) => self.resolver.resolve_path(NameKind::Term, path),
-            ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
+            ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace)
+            | ast::ExprKind::AssignUpdate(container, index, replace) => {
                 self.visit_expr(container);
                 if !is_field_update(&self.resolver.globals, &self.resolver.scopes, index) {
                     self.visit_expr(index);

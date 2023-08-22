@@ -7,7 +7,7 @@ This resulting state is exactly the state we need to prepare, with $\alpha = \be
 
 The solution takes two steps:
 1. Prepare a state $\big(\frac{1}{\sqrt{2}}|0\rangle + \frac{1}{\sqrt{2}}|1\rangle\big) \otimes |0\rangle$.
-We can use [Hadamard gate](../SingleQubitGates/SingleQubitGates.ipynb#Hadamard) to do this.
+We can use the Hadamard gate to do this.
 2. Apply a CNOT take with the first qubit as the control and the second qubit as the target.
 
 @[solution]({

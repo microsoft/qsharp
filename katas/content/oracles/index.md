@@ -38,7 +38,7 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 
 @[exercise]({
     "id": "classical_oracles",
-    "title": "Implement a classical oracle",
+    "title": "Implement a Classical Oracle",
     "descriptionPath": "./classical_oracles/index.md",
     "placeholderSourcePath": "./classical_oracles/placeholder.qs",
     "solutionPath": "./classical_oracles/solution.md",
@@ -71,7 +71,7 @@ This allows us to define quantum oracles based on their effect on the basis stat
 
 There are two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
 
-### Phase Oracles
+## Phase Oracles
 A phase oracle $U_{phase}$ is an oracle that encodes the value of the classical function $f$ it implements in the *phase* of the qubit state. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
 
 $$U_{phase} |\vec{x}\rangle = (-1)^{f(x)}|\vec{x}\rangle$$
@@ -83,7 +83,7 @@ A phase oracle doesn't have an "output", unlike the function it implements; the 
 
 @[section]({
     "id": "oracles_phase_oracle",
-    "title": "Phase oracle for alternating bit pattern function"
+    "title": "Phase Oracle for Alternating Bit Pattern Function"
 })
 
 Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise.
@@ -100,7 +100,7 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is 2 * N, where N is the number of control qubits. To learn its internal implementation (and the very similar [ApplyControlledOnInt](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonint)), please refer to the [Q# source code](https://github.com/microsoft/qsharp/blob/7d72e789b084ea5ecc50a9298517bc19cd0c1c88/library/std/canon.qs#L463).
+Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is $2N$, where N is the number of control qubits.
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
@@ -110,7 +110,7 @@ Now you will implement the classical oracle that you've implemented in the first
 
 @[exercise]({
     "id": "phase_oracle_seven",
-    "title": "Implement a phase oracle",
+    "title": "Implement a Phase Oracle",
     "descriptionPath": "./phase_oracle_seven/index.md",
     "placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
     "solutionPath": "./phase_oracle_seven/solution.md",
@@ -134,7 +134,7 @@ Again, since all quantum operations are linear, you can figure out the effect of
 
 A marking oracle has distinct "input" and "output" qubits, but in general the effect of the oracle application is the change in the state of the whole system rather than of the "output" qubits only. We will look at this closer in a moment.
 
-## Marking oracle for alternating bit pattern function
+## Marking Oracle for Alternating Bit Pattern Function
 
 Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it is the same function we've seen in demo 1.1).
 
@@ -154,7 +154,7 @@ Now you will implement the same function you've seen in the first two exercises 
 
 @[exercise]({
     "id": "marking_oracle_seven",
-    "title": "Implement a marking oracle",
+    "title": "Implement a Marking Oracle",
     "descriptionPath": "./marking_oracle_seven/index.md",
     "placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
     "solutionPath": "./marking_oracle_seven/solution.md",
@@ -201,39 +201,57 @@ $$|\psi\rangle = \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}|b_1\rangle + (-1)^{f(b_2
 
 which looks exactly as if we applied a phase oracle to $|x\rangle$ instead of applying a marking oracle to $|x\rangle|-\rangle$!  This is a very important application of phase kickback: it allows to convert a marking oracle into a phase oracle - which you will implement in the next task.
 
-> Another important application of this effect is **phase estimation** algorithm, which allows to estimate an eigenvalue of an eigenvector. You can learn more about this important algorithm in the [PhaseEstimation kata](../../PhaseEstimation/PhaseEstimation.ipynb).
+> Another important application of this effect is **phase estimation** algorithm, which allows to estimate an eigenvalue of an eigenvector.
 
 Consider the following example using the $U_{7,mark}$ oracle. Let's begin with $|x\rangle$ as an equal superposition of the $6$ and $7$ basis states and $|y\rangle=|-\rangle$, the overall state is:
+
 $$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big) = $$
-$$ = \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle\big)$$
+
+$$\frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle\big)$$
 
 How does $U_{7,mark}$ act on this state?
+
 $$U_{7,mark}|\eta\rangle = U_{7,mark} \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle \big) = $$
-$$= \frac{1}{2} \big( U_{7,mark}|110\rangle|0\rangle + U_{7,mark}|111\rangle|0\rangle - U_{7,mark}|110\rangle|1\rangle - U_{7,mark}|111\rangle|1\rangle \big) = $$
-$$= \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle \big) := |\xi\rangle$$
-    
+
+$$\frac{1}{2} \big( U_{7,mark}|110\rangle|0\rangle + U_{7,mark}|111\rangle|0\rangle - U_{7,mark}|110\rangle|1\rangle - U_{7,mark}|111\rangle|1\rangle \big) = $$
+
+$$\frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle \big) := |\xi\rangle$$
+
 Now we would like to observe how our input state $|\eta\rangle$ was modified by the oracle.  Let's simplify the resulting state $|\xi\rangle$:
+
 $$|\xi\rangle = \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle\big)  = $$
-$$= \frac{1}{2} \big(|110\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle + |111\rangle|1\rangle \big) = $$
-$$= \frac{1}{2} \Big[|110\rangle \otimes \big(|0\rangle - |1\rangle \big) + |111\rangle \otimes \big(|1\rangle - |0\rangle\big)\Big] = $$
-$$ = \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes \Big[ \frac{1}{\sqrt{2}} \big( |0\rangle - |1\rangle \big) \Big] = $$
-$$= \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes |-\rangle$$
+
+$$\frac{1}{2} \big(|110\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle + |111\rangle|1\rangle \big) = $$
+
+$$\frac{1}{2} \Big[|110\rangle \otimes \big(|0\rangle - |1\rangle \big) + |111\rangle \otimes \big(|1\rangle - |0\rangle\big)\Big] = $$
+
+$$\Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes \Big[ \frac{1}{\sqrt{2}} \big( |0\rangle - |1\rangle \big) \Big] = $$
+
+$$\Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes |-\rangle$$
 
 Finally, let's compare $|\eta\rangle$ and $|\xi\rangle$; below are the final equations repeated for your convenience:
 $$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes |-\rangle$$
 $$|\xi\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle - |111\rangle\big)\Big] \otimes |-\rangle$$
 
 We can see that these two equations are identical, except for the $-1$ phase that appeared on the $|111\rangle$ basis state (representing $7$).  This is a specific example of the phase kickback effect, as the phase from $|-\rangle$ has been *kicked back* into $|x\rangle$.
-    
-@[question]({
-    "id": "distinguish_states",
-    "descriptionPath": "./distinguish_states/index.md",
-    "answerPath": "./distinguish_states/solution.md"
-})
+
+## 🔎 Analyze
+
+**Distinguishing states**
+
+How could we distinguish the states $|\eta\rangle = |11+\rangle |-\rangle$ and $|\xi\rangle = |11-\rangle |-\rangle$?  Take a moment to think.
+
+<details>
+<summary><b>Solution</b></summary>
+Recall that we can only observe alterations to out input state by performing a measurement.
+If we apply Hadamard gate to the third qubit, we will be able to distinguish between the input state and the output state. 
+    $$(I\otimes I \otimes H)|11+\rangle = |110\rangle \\ (I\otimes I \otimes H)|11-\rangle = |111\rangle$$ 
+Now if we were to measure the third qubit, we'll be able to distinguish the starting state and the state after phase kickback occurred.
+</details>
 
 @[exercise]({
     "id": "marking_oracle_as_phase",
-    "title": "Apply the marking oracle as a phase oracle",
+    "title": "Apply the Marking Oracle as a Phase Oracle",
     "descriptionPath": "./marking_oracle_as_phase/index.md",
     "placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
     "solutionPath": "./marking_oracle_as_phase/solution.md",
@@ -246,7 +264,7 @@ We can see that these two equations are identical, except for the $-1$ phase tha
 
 @[section]({
     "id": "oracles_conversion",
-    "title": "Oracle conversion"
+    "title": "Oracle Conversion"
 })
 
 In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
@@ -269,7 +287,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[exercise]({
     "id": "or_oracle",
-    "title": "Implement the OR oracle",
+    "title": "Implement the OR Oracle",
     "descriptionPath": "./or_oracle/index.md",
     "placeholderSourcePath": "./or_oracle/placeholder.qs",
     "solutionPath": "./or_oracle/solution.md",
@@ -282,7 +300,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[exercise]({
     "id": "kth_bit_oracle",
-    "title": "Implement the k-th bit oracle",
+    "title": "Implement the K-th Bit Oracle",
     "descriptionPath": "./kth_bit_oracle/index.md",
     "placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
     "solutionPath": "./kth_bit_oracle/solution.md",
@@ -295,7 +313,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[exercise]({
     "id": "or_but_kth_oracle",
-    "title": "Implement the OR oracle of all bits except the k-th",
+    "title": "Implement the OR Oracle of All Bits Except the K-th",
     "descriptionPath": "./or_but_kth_oracle/index.md",
     "placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
     "solutionPath": "./or_but_kth_oracle/solution.md",
@@ -308,7 +326,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[exercise]({
     "id": "bit_pattern_oracle",
-    "title": "Implement the arbitrary bit pattern oracle",
+    "title": "Implement the Arbitrary Bit Pattern Oracle",
     "descriptionPath": "./bit_pattern_oracle/index.md",
     "placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
     "solutionPath": "./bit_pattern_oracle/solution.md",
@@ -321,7 +339,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[exercise]({
     "id": "bit_pattern_challenge",
-    "title": "Implement the arbitrary bit pattern oracle (challenge version)",
+    "title": "Implement the Arbitrary Bit Pattern Oracle (Challenge Version)",
     "descriptionPath": "./bit_pattern_challenge/index.md",
     "placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
     "solutionPath": "./bit_pattern_challenge/solution.md",
@@ -334,7 +352,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[exercise]({
     "id": "meeting_oracle",
-    "title": "Implement the meeting oracle",
+    "title": "Implement the Meeting Oracle",
     "descriptionPath": "./meeting_oracle/index.md",
     "placeholderSourcePath": "./meeting_oracle/placeholder.qs",
     "solutionPath": "./meeting_oracle/solution.md",
@@ -347,7 +365,7 @@ In this section you will implement a few more complicated quantum oracles.
 
 @[section]({
     "id": "oracles_testing_implementation",
-    "title": "Testing an oracle implementation"
+    "title": "Testing an Oracle Implementation"
 })
 
 In this demo we show how you could test an oracle that you've implemented for your own problem. 
