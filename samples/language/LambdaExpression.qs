@@ -1,11 +1,11 @@
 /// # Sample
-/// Lambda Functions
+/// Lambda Expressions
 ///
 /// # Description
-/// Lambda functions allow the programmer to ergonomically define smaller functions,
-/// typically used for local encapsulated functionality. Lambdas offer low sytactic overhead,
-/// foregoing a fully namespaced function declaration, making them useful for single-use or
-/// utility functions.
+/// A lambda expression creates an anonymous function or operation, typically
+/// used for local encapsulated functionality. Lambdas offer low sytactic
+/// overhead, foregoing a fully namespaced function declaration, making them
+/// useful for single-use or utility functions.
 namespace MyQuantumApp {
     open Microsoft.Quantum.Arrays;
     @EntryPoint()
