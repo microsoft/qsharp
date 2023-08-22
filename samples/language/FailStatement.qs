@@ -3,7 +3,7 @@
 ///
 /// # Description
 /// A fail statement collects information about the current state of the program,
-/// and then terminates execution entirely. The presented information will be
+/// and then terminates execution entirely. The collected information will be
 /// presented to the user along with the message specified with the fail statement.
 namespace MyQuantumApp {
     @EntryPoint()
