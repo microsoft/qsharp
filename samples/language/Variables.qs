@@ -2,8 +2,7 @@
 /// Variables
 ///
 /// # Description
-/// Like most programming languages, Q# supports variables. Variables in Q# are
-/// immutable by default and, like other items in Q#, can be shadowed.
+/// Variables in Q# are immutable by default and can be shadowed.
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
