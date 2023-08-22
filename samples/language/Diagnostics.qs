@@ -21,8 +21,8 @@ namespace MyQuantumApp {
         // `DumpMachine` displays the quantum state of the qubits.
         DumpMachine();
 
-        // `Fact` is used for testing. It checks a condition and logs a debug log if the
-        // condition is false.
+        // `Fact` checks whether a classical condition is true, and throws an
+        // error with the specified message if not.
         Fact(1 == 1, "1 should always be equal to 1");
     }
 }
