@@ -10,26 +10,25 @@
 namespace Sample {
     open Microsoft.Quantum.Measurement;
     @EntryPoint()
-    operation Main () : Result {
-        // There are two main measurement operations in Q#.
-        // The first is `M`, which measures a single qubit in the computational basis.
-        // The below line allocates a qubit. After that, we will measure it with `M`.
+    operation Main () : (Result, Result[], Result) {
+        // The `M` operation performs a measurement of a single qubit in the
+        // computational basis, also known as the Pauli Z basis.
         use q = Qubit();
-        let result: Result = M(q);
+        let result = M(q);
+        Reset(q);
 
-        // The second is `Measure`, a more explicit variant that performs joint measurement.
-        // When using `Measure`, you must specify the `base` Pauli values indicating the
-        // tensor product factors on each qubit. The second argument is the register of
-        // qubits to be measured.  Note that the below call to `Measure` is equivalent
-        // to the above call to `M`.
-
-        use q = Qubit();
-        let result: Result = Measure([PauliZ], [q]);
-
-        // The below code shows joint measurement of a register of qubits.
+        // The `MeasureEachZ` operation measures each qubit in an array in the
+        // computational basis and returns an array of `Result` values.
         use qs = Qubit[2];
-        let result = Measure([PauliZ, PauliZ], qs);
+        let results = MeasureEachZ(qs);
 
-        return result;
+        // The `Measure` operation performs a joint measurement of one or more
+        // qubits in the specified Pauli bases.
+        H(qs[0]);
+        CNOT(qs[0], qs[1]);
+        let jointResult = Measure([PauliZ, PauliZ], qs);
+        ResetAll(qs);
+
+        return (result, results, jointResult);
     }
 }
