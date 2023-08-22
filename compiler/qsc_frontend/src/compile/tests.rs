@@ -621,3 +621,28 @@ fn introduce_prelude_ambiguity() {
             )
     );
 }
+
+#[test]
+fn two_files_error_eof() {
+    let sources = SourceMap::new(
+        [
+            ("test1".into(), "namespace Foo {".into()),
+            ("test2".into(), "namespace Bar {}".into()),
+        ],
+        None,
+    );
+
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        TargetProfile::Full,
+    );
+    let errors: Vec<_> = unit
+        .errors
+        .iter()
+        .map(|error| source_span(&unit.sources, error))
+        .collect();
+
+    assert_eq!(vec![("test1", Span { lo: 15, hi: 15 }),], errors);
+}
