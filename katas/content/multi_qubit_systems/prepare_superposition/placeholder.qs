@@ -1,5 +1,6 @@
 namespace Kata {
-    operation PrepareState2(qs: Qubit[]): Unit is Adj+Ctl {
-        // ...
+    operation PrepareSuperposition(qs : Qubit[]) : Unit is Adj + Ctl {
+        // Implement your solution here...
+
     }
 }

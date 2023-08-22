@@ -8,9 +8,8 @@ namespace Kata {
     operation DemoBasisMeasurement() : Unit {
         let numRuns = 1000;
 
-        // Define coefficients and obtain measurement probabilities
-        // for the state corresponding to Exercise 1
-        // |psi❭ = 0.33 |00❭ + 0.67 |01❭ + 0.67 |11❭
+        // Define coefficients and obtain measurement probabilities for the
+        // state |psi❭ = 0.33 |00❭ + 0.67 |01❭ + 0.67 |11❭
         // Use little endian format to encode basis states as integer indices.
         let coefficients = [0.333, 0.0, 0.667, 0.667];
         let expected_probabilities = [0.111, 0.0, 0.445, 0.445];
@@ -27,7 +26,8 @@ namespace Kata {
                 DumpMachine();
             }
 
-            // Measure the first qubit, followed by the second qubit, and convert the result to little endian integer
+            // Measure the first qubit, followed by the second qubit, and
+            // convert the result to little endian integer
             let result = MeasureInteger(qs);
 
             // Update countArray
@@ -37,7 +37,8 @@ namespace Kata {
         // Obtain simulated probability of measurement for each outcome
         mutable simulated_probabilities = [];
         for i in 0 .. 3 {
-            set simulated_probabilities += [IntAsDouble(countArray[i]) / IntAsDouble(numRuns)];
+            set simulated_probabilities +=
+                [IntAsDouble(countArray[i]) / IntAsDouble(numRuns)];
         }
 
         Message($"Theoretical measurement probabilities are {expected_probabilities}");

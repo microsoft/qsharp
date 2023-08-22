@@ -15,12 +15,20 @@ Suppose that $|\beta\rangle$ is an equal superposition of the $|6\rangle$ and $|
 $$|\beta\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big) = |11\rangle \otimes |+\rangle = |11+\rangle$$
 
 Let's consider how our operator $U_{7,phase}$ acts on this state:
-$$U_{7,phase} |\beta\rangle = U_{7,phase} \Big[\frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big)\Big] = $$
-$$= \frac{1}{\sqrt{2}} \big(U_{7,phase} |110\rangle + U_{7,phase} |111\rangle\big) = \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) := |\gamma\rangle$$
+
+$$U_{7,phase} |\beta\rangle = U_{7,phase} \Big[\frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big)\Big] =$$
+
+$$\frac{1}{\sqrt{2}} \big(U_{7,phase} |110\rangle + U_{7,phase} |111\rangle\big) =$$
+
+$$\frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) := |\gamma\rangle$$
 
 Was our input state modified during this operation? Let's simplify $|\gamma\rangle$:
-$$|\gamma\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big) = $$
-$$= |11\rangle \otimes |-\rangle = |11-\rangle \neq |\beta\rangle$$
+
+$$|\gamma\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) =$$
+
+$$|11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big) = $$
+
+$$|11\rangle \otimes |-\rangle = |11-\rangle \neq |\beta\rangle$$
 
 Here we see that the oracle modifies the input, if the input state was a *superposition* of the basis states, as a phase oracle will only modify the sign of the basis states.  Thus when a superposition state is provided as input to an oracle, the input state can be modified via the application of the quantum oracle.
 

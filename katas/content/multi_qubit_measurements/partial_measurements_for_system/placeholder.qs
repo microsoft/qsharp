@@ -1,7 +1,7 @@
 namespace Kata {
+    operation IsPlusPlusMinus(qs : Qubit[]) : Int {
+        // Implement your solution here...
 
-    operation IsPlusPlusMinus(qs: Qubit[]): Int {
-        // ...
         return -1;
     }
 
