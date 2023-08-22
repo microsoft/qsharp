@@ -96,7 +96,7 @@ impl LoopUni<'_> {
                 continue_cond_init,
                 Stmt {
                     id: self.assigner.next_node(),
-                    span,
+                    span: Span::default(),
                     kind: StmtKind::Expr(Expr {
                         id: self.assigner.next_node(),
                         span,
@@ -155,7 +155,7 @@ impl LoopUni<'_> {
         );
 
         let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
-        let index_init = index_id.gen_id_init(
+        let index_init = index_id.gen_steppable_id_init(
             Mutability::Mutable,
             Expr {
                 id: self.assigner.next_node(),
@@ -169,7 +169,7 @@ impl LoopUni<'_> {
         let pat_ty = iter.ty.clone();
         let pat_init = Stmt {
             id: self.assigner.next_node(),
-            span,
+            span: iter.span,
             kind: StmtKind::Local(
                 Mutability::Immutable,
                 iter,
@@ -209,7 +209,7 @@ impl LoopUni<'_> {
 
         let while_stmt = Stmt {
             id: self.assigner.next_node(),
-            span,
+            span: Span::default(),
             kind: StmtKind::Expr(Expr {
                 id: self.assigner.next_node(),
                 span,
@@ -244,7 +244,7 @@ impl LoopUni<'_> {
         let range_capture = range_id.gen_id_init(Mutability::Immutable, *iterable, self.assigner);
 
         let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
-        let index_init = index_id.gen_id_init(
+        let index_init = index_id.gen_steppable_id_init(
             Mutability::Mutable,
             range_id.gen_field_access(PrimField::Start, self.assigner),
             self.assigner,
@@ -266,7 +266,7 @@ impl LoopUni<'_> {
 
         let pat_init = Stmt {
             id: self.assigner.next_node(),
-            span,
+            span: iter.span,
             kind: StmtKind::Local(
                 Mutability::Immutable,
                 iter,
@@ -284,7 +284,7 @@ impl LoopUni<'_> {
 
         let while_stmt = Stmt {
             id: self.assigner.next_node(),
-            span,
+            span: Span::default(),
             kind: StmtKind::Expr(Expr {
                 id: self.assigner.next_node(),
                 span,

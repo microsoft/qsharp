@@ -5,17 +5,17 @@
     "title": "Overview"
 })
 
-This kata introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
+This Kata introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
 
-If you are not familiar with single-qubit systems, we recommend that you complete the qubit kata first.
+If you are not familiar with single-qubit systems, we recommend that you complete "The Qubit" Kata first.
 
-**This tutorial covers the following topics:**
+**This Kata covers the following topics:**
 
 - Vector representation of multi-qubit systems
 - Entangled and separable states
 - Dirac notation
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this Kata:**
 
 - Basic single-qubit gates
 - The concept of tensor product
@@ -25,7 +25,7 @@ If you are not familiar with single-qubit systems, we recommend that you complet
     "title": "Multi-Qubit Systems"
 })
 
-In a previous kata we discussed the concept of a qubit - the basic building block of a quantum computer.
+In a previous Kata we discussed the concept of a qubit - the basic building block of a quantum computer.
 A multi-qubit system is a collection of multiple qubits, treated as a single system.
 
 Let's start by examining a system of two classical bits. Each bit can be in two states: $0$ and $1$. Therefore, a system of two bits can be in four different states: $00$, $01$, $10$, and $11$. Generally, a system of $N$ classical bits can be in any of the $2^N$ states.
@@ -104,17 +104,69 @@ $$
 
 The states that allow such representation are known as **separable states**.
 
-@[question]({
-    "id": "separable_state",
-    "descriptionPath": "./separable_state/index.md",
-    "answerPath": "./separable_state/solution.md"
-})
+## 🔎 Analyze
 
-@[question]({
-    "id": "is_it_separable",
-    "descriptionPath": "./is_it_separable/index.md",
-    "answerPath": "./is_it_separable/solution.md"
-})
+Show that the state is separable:
+$$
+\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
+\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}
+$$
+
+<details>
+<summary><b>Solution</b></summary>
+To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
+
+$$
+\begin{bmatrix} \alpha \gamma \\\ \alpha \delta \\\ \beta \gamma \\\ \beta \delta \end{bmatrix} = 
+\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} \otimes \begin{bmatrix} \gamma \\\ \delta \end{bmatrix}
+$$
+
+This brings us to a system of equations:
+
+$$
+\begin{cases}
+\alpha\gamma = \frac{1}{2} \\\ \alpha\delta = \frac{i}{2} \\\ \beta \gamma = \frac{-i}{2} \\\ \beta \delta = \frac{1}{2}
+\end{cases}
+$$
+
+Solving this system of equations gives us the answer:
+
+$$\alpha = \frac{1}{\sqrt2}, \beta = \frac{-i}{\sqrt2}, \gamma = \frac{1}{\sqrt2}, \delta = \frac{i}{\sqrt2}$$
+
+$$
+\frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
+\frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ -i \end{bmatrix} \otimes \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ i \end{bmatrix}
+$$
+
+Note that finding such representation is not always possible, as you will see in the next exercise.
+</details>
+
+## 🔎 Analyze
+
+Is this state separable?
+
+$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}$$
+
+<details>
+<summary><b>Solution</b></summary>
+Let's assume that this state is separable and write down the system of equations to determine the coefficients of individual qubit states in the tensor product, similar to what we did in the previous exercise:
+
+$$
+\begin{cases}
+\alpha\gamma = \frac{1}{\sqrt2} \\\ \alpha\delta = 0 \\\ \beta \gamma = 0 \\\ \beta \delta = \frac{1}{\sqrt2}
+\end{cases}
+$$
+
+Now let's multiply the first and the last equations, and the second and the third equations:
+
+$$
+\begin{cases}
+\alpha\beta\gamma\delta = \frac{1}{2} \\\ \alpha\beta\gamma\delta = 0
+\end{cases}
+$$
+
+We can see that this system of equations doesn't have a solution, which means that this state is <b>not separable</b>.
+</details>
 
 @[section]({
     "id": "multi_qubit_systems_entanglement",
@@ -235,15 +287,15 @@ Some ket symbols have a commonly accepted usage, such as the symbols for the Bel
 
 @[section]({
     "id": "multi_qubit_systems_in_qsharp",
-    "title": "Multi-qubit systems in Q#"
+    "title": "Multi-Qubit Systems in Q#"
 })
 
-This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates kata.
+This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates Kata.
 
 These demos use the function `DumpMachine` to print the state of the quantum simulator.
-If you aren't familiar with the output of this function for single qubits, you should revisit the qubit kata.
+If you aren't familiar with the output of this function for single qubits, you should revisit the qubit Kata.
 When printing the state of multi-qubit systems, this function outputs the same information for each multi-qubit basis state.
-The qubit kata explains how `DumpMachine` works for multiple qubits in more detail.
+The qubit Kata explains how `DumpMachine` works for multiple qubits in more detail.
 
 @[example]({"id": "multiqubit_system", "codePath": "./examples/MultiQubitSystems.qs"})
 
@@ -257,17 +309,17 @@ If they are not in zero state by that time, they can potentially be still entang
 >
 > The requirement that the qubits should be in zero state before they can be released aims to remind the developer to double-check that all necessary information has been properly extracted from the qubits, and that they are not entangled with unreleased qubits any more.
 >
-> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in the qubit kata.)
+> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in the qubit Kata.)
 
 In the following exercises you will learn to prepare separable quantum states by manipulating individual qubits.
-You will only need knowledge from the single-qubit gates kata for that.
+You will only need knowledge from the single-qubit gates Kata for that.
 
 > In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`.
 Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({
     "id": "prepare_basis_state",
-    "title": "Prepare a basis state",
+    "title": "Prepare a Basis State",
     "descriptionPath": "./prepare_basis_state/index.md",
     "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
     "solutionPath": "./prepare_basis_state/solution.md",
@@ -280,7 +332,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_superposition",
-    "title": "Prepare a superposition of two basis states",
+    "title": "Prepare a Superposition of Two Basis States",
     "descriptionPath": "./prepare_superposition/index.md",
     "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
     "solutionPath": "./prepare_superposition/solution.md",
@@ -293,7 +345,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_with_real",
-    "title": " Prepare a superposition with real amplitudes",
+    "title": " Prepare a Superposition with Real Amplitudes",
     "descriptionPath": "./prepare_with_real/index.md",
     "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
     "solutionPath": "./prepare_with_real/solution.md",
@@ -306,7 +358,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 @[exercise]({
     "id": "prepare_with_complex",
-    "title": "Prepare a superposition with complex amplitudes",
+    "title": "Prepare a Superposition with Complex Amplitudes",
     "descriptionPath": "./prepare_with_complex/index.md",
     "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
     "solutionPath": "./prepare_with_complex/solution.md",
@@ -324,4 +376,4 @@ Array elements are indexed starting with 0, the first array element corresponds 
 
 As you've seen in the exercises, you can prepare separable multi-qubit states using only single-qubit gates.
 However, to prepare and manipulate entangled states you'll need more powerful tools.
-In the next kata, multi-qubit gates, you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.
+In the next Kata, "Multi-Qubit Gates", you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.

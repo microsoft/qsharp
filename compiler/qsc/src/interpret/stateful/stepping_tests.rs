@@ -49,6 +49,8 @@ mod given_interpreter_with_sources {
             expect_next(&mut interpreter);
             expect_next(&mut interpreter);
             expect_next(&mut interpreter);
+            expect_next(&mut interpreter);
+            expect_next(&mut interpreter);
             let expected = "42";
             expect_return(interpreter, expected);
             Ok(())
@@ -83,6 +85,9 @@ mod given_interpreter_with_sources {
             expect_next(&mut interpreter);
             expect_next(&mut interpreter);
             expect_in(&mut interpreter);
+            expect_next(&mut interpreter);
+            expect_next(&mut interpreter);
+            expect_next(&mut interpreter);
             expect_next(&mut interpreter);
             expect_next(&mut interpreter);
             let expected = "42";
