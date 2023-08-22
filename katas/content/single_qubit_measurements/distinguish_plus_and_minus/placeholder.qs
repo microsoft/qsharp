@@ -1,7 +1,8 @@
 namespace Kata {
 
-    operation IsQubitMinus(q: Qubit): Bool {
-        // Replace the following line with your solution.
+    operation IsQubitMinus(q : Qubit) : Bool {
+        // Implement your solution here...
+
         return false;
     }
 

@@ -5,9 +5,9 @@
     "title": "Overview"
 })
 
-This tutorial introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
+This Kata introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
 
-**This tutorial covers the following topics:**
+**This Kata covers the following topics:**
 
 - The concept of a qubit
 - Superposition
@@ -17,7 +17,7 @@ This tutorial introduces you to one of the core concepts in quantum computing - 
 - `Qubit` data type in Q#
 - Visualizing Quantum State using `DumpMachine`
 
-**What you should know to start working on this tutorial:**
+**What you should know to start working on this Kata:**
 
 - Complex arithmetic
 - Linear algebra
@@ -102,8 +102,8 @@ Writing out each vector when doing quantum calculations takes up a lot of space,
 
 <table>
     <tr>
-        <td style=\"text-align:center; border:1px solid\">$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
-        <td style=\"text-align:center; border:1px solid\">$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
+        <td>$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
+        <td>$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
     </tr>
 </table>
 
@@ -119,16 +119,16 @@ Several ket symbols have a generally accepted use, such as:
 
 <table>
     <tr>
-        <td style=\"text-align:center; border:1px solid\">$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$</td>
-        <td style=\"text-align:center; border:1px solid\">$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$</td>
+        <td>$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$</td>
+        <td>$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$</td>
     </tr>
     <tr>
-        <td style=\"text-align:center; border:1px solid\">$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$</td>
-        <td style=\"text-align:center; border:1px solid\">$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$</td>
+        <td>$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$</td>
+        <td>$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$</td>
     </tr>
 </table>
 
-We will learn more about Dirac notation in the next tutorials, as we introduce quantum gates and multi-qubit systems.
+We will learn more about Dirac notation in the next Katas, as we introduce quantum gates and multi-qubit systems.
 
 
 @[section]({
@@ -146,22 +146,22 @@ The state of a qubit (or, more generally, the state of a quantum system) is defi
 
 @[section]({
     "id": "qubit_qsharp_data_type",
-    "title": "Q# Qubit data type"
+    "title": "Q# Qubit Data Type"
 })
 
 In Q#, qubits are represented by the `Qubit` data type. On a physical quantum computer, it's impossible to directly access the state of a qubit, whether to read its exact state, or to set it to a desired state, and this data type reflects that. Instead, you can change the state of a qubit using quantum gates, and extract information about the state of the system using measurements.
 
 That being said, when you run Q# code on a quantum simulator instead of a physical quantum computer, you can use diagnostic functions that allow you to peek at the state of the quantum system. This is very useful both for learning and for debugging small Q# programs.
 
-The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently:
+The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently.
 
-Freshly allocated qubits start out in state $|0\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\rangle$ will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
+Freshly allocated qubits start out in state $|0\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\rangle$, it will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
 
 ## Visualizing Quantum State
 
 Before we continue, let's learn some techniques to visualize the Quantum state of our qubits.
 
-### Display the quantum state of a single-qubit program
+### Display the Quantum State of a Single-Qubit Program
 
 Let's start with a simple scenario: a program that acts on a single qubit. 
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
@@ -174,15 +174,13 @@ You would need to run the program repeatedly up to this point, perform a measure
 However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state. 
 You can take advantage of this to do some non-physical things, such as peeking at the internals of the quantum system to observe its exact state without disturbing it!
 
-[DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from [Microsoft.Quantum.Diagnostics namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. This function is available in standalone Q# applications as well.
+The [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from the [Microsoft.Quantum.Diagnostics namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase; sometimes you'll see that all amplitudes are multiplied by some complex number compared to the state you're expecting.
 
-### Demo: DumpMachine for single-qubit systems
+### Demo: DumpMachine For Single-Qubit Systems
 
-The following demo shows how to use [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to output the state of the system at any point in the program without affecting the state.
+The following demo shows how to allocate a qubit and examine its state in Q# using [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to output the state of the system at any point in the program without affecting the state.
 
 > Note that the Q# code doesn't have access to the output of `DumpMachine`, so you cannot write any non-physical code in Q#!
-
-The output of `DumpMachine` is accurate up to a global phase: sometimes you'll see that all amplitudes are multiplied by some complex number compared to the state you're expecting.
 
 @[example]({"id": "single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
 
@@ -193,21 +191,34 @@ This includes information about the amplitude of the state, the probability of m
 
 Note that each row has the following format:
 
-<table class="state-table"><thead><tr><th>Basis State<br>(|𝜓ₙ…𝜓₁⟩)</th><th>Amplitude</th><th>Measurement Probability</th><th colspan="2">Phase</th></tr></thead></table>
+<table>
+    <thead>
+        <tr>
+            <th>Basis State<br>(|𝜓ₙ…𝜓₁⟩)</th>
+            <th>Amplitude</th>
+            <th>Measurement Probability</th>
+            <th>Phase</th>
+        </tr>
+    </thead>
+</table>
 
 For example, the state $|0\rangle$ would be represented as follows:
 
-<table class="state-table"><tbody><tr><td style="text-align: center;">|0⟩</td><td style="text-align: right;">1.0000+0.0000𝑖</td><td style="text-align: center;">100.0000%</td><td style="transform: rotate(0rad);">↑</td><td style="text-align: right;">0.0000</td></tr></tbody></table>
+<table>
+    <tbody>
+        <tr>
+            <td>|0⟩</td>
+            <td>1.0000+0.0000𝑖</td>
+            <td>100.0000%</td>
+            <td>↑ 0.0000</td></tr>
+    </tbody>
+</table>
 
 > It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see [Q# documentation on quantum states](https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states).
 
-This demo shows how to allocate a qubit and examine its state in Q#. This demo uses quantum gates to manipulate the state of the qubit - we will explain how they work in the next tutorial, so do not worry about them for now. Run the next example to see the output:
-
-@[example]({"id": "qubit_data_type", "codePath": "./examples/QubitDataType.qs"})
-
 @[exercise]({
     "id": "learn_single_qubit_state",
-    "title": "Learn Single Qubit State",
+    "title": "Learn the State of a Single Qubit",
     "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -231,9 +242,9 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 
 > Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
 `DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
-We will learn more details on endiannes in the Multi-qubit Systems Tutorial.
+We will learn more details on endianness in the "Multi-Qubit Systems" Kata.
 
-## Demo: DumpMachine for multi-qubit systems
+## Demo: DumpMachine for Multi-Qubit Systems
 
 @[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
 
@@ -254,4 +265,4 @@ We will learn more details on endiannes in the Multi-qubit Systems Tutorial.
     "title": "Conclusion"
 })
 
-This should be enough for you to gain a basic understanding of qubits and qubit states. Next, you will learn how to manipulate those states in the single-qubit gates tutorial.
+This should be enough for you to gain a basic understanding of qubits and qubit states. Next, you will learn how to manipulate those states in the "Single-Qubit Gates" Kata.

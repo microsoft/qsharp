@@ -26,7 +26,7 @@ namespace Kata.Verification {
         if isCorrect {
             Message("All tests passed.");
         } else {
-            Message("One of the amplitudes was too far from the expected value.");
+            Message("At least one of the amplitudes was too far from the expected value.");
         }
 
         isCorrect

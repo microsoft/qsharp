@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    operation PrepareState4_Reference(qs: Qubit[]): Unit is Adj+Ctl {
+    operation PrepareWithComplex_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
         H(qs[1]);
         S(qs[0]);
@@ -8,9 +8,11 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution(): Bool {
-        let isCorrect = AssertEqualOnZeroState(Kata.PrepareState4, PrepareState4_Reference);
+        let isCorrect = AssertEqualOnZeroState(Kata.PrepareWithComplex, PrepareWithComplex_Reference);
         if isCorrect {
-            Message("All tests passed.");
+            Message("Correct!");
+        } else {
+            Message("Incorrect.");
         }
         return isCorrect;
     }

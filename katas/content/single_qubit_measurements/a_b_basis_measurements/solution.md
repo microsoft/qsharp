@@ -1,5 +1,5 @@
-For this problem, we follow the procedure given in the [arbitrary basis measurement section](./SingleQubitSystemMeasurements.ipynb#Arbitrary-basis-measurements-implementation) of the tutorial.
-As noted in the solution of problem 6, the gate $R_x(-\theta)$, with $\theta = 2\alpha$ transforms the $\ket A/\ket B$ states to the $\ket 0/\ket 1$ states:
+For this problem, we follow the procedure given in the "Measurements in Arbitrary Orthogonal Bases" section of the Kata.
+As noted in the solution of the "Distinguishing Orthogonal States: 2" exercise, the gate $R_x(-\theta)$, with $\theta = 2\alpha$ transforms the $\ket A/\ket B$ states to the $\ket 0/\ket 1$ states:
 \begin{align}
 R_x(-\theta) \ket A &= \ket 0 \\
 R_X(-\theta) \ket B &= \ket 1
