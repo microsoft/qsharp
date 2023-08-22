@@ -45,7 +45,7 @@ Consider a system consisting of $n\geq1$ qubits. The wave function of such a sys
 Then, the state $|\psi\rangle$ of the multi-qubit system can be expressed as a linear combination of the $2^n$ basis vectors $|b_i\rangle$. That is, there exist complex numbers $c_0,c_1,\dotsc, c_{2^n-1}$ such that
 
 $$
-|\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix}c_0 \\ c_1 \\ \vdots \\ c_{2^n-1}\end{pmatrix}.
+|\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix} c_0 \\\ c_1 \\\ \vdots \\\ c_{2^n-1} \end{pmatrix}
 $$
 
 In line with the usual convention, we choose the wave function to be normalized, so that $|c_0|^2 + \dotsc + |c_{2^n-1}|^2 =1$. Then, a quantum measurement in the $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$ basis satisfies the following rules:
@@ -200,7 +200,7 @@ In practice, this is implemented by measuring all the qubits one after another. 
 
 This can be generalized to measurements in other bases, such as the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$, and the bases for larger numbers of qubits.
 
-> Note that measuring all qubits one after another can only be used to measure in orthogonal bases $\{ \ket{b_i}\}$ such that each $\ket{b_i}$ is a 'tensor product state'. That is, each $\ket{b_i}$ must be of the form $\ket{v_0} \otimes \ket{v_1} \dotsc \otimes \ket{v_{n-1}}$, with each $\ket{v_j}$ being a single-qubit basis state.
+> Note that measuring all qubits one after another can only be used to measure in orthogonal bases $\{ \ket{b_i}\}$ such that each $\ket{b_i}$ is a tensor product state. That is, each $\ket{b_i}$ must be of the form $\ket{v_0} \otimes \ket{v_1} \dotsc \otimes \ket{v_{n-1}}$, with each $\ket{v_j}$ being a single-qubit basis state.
 For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$ each basis state is a tensor product of states $\ket{+}$ and $\ket{-}$, which form a single-qubit basis state.
 >
 > Measuring in orthogonal bases which contain states which are not tensor product states, such as the Bell basis, are trickier to implement, and require appropriate unitary rotations in addition to measuring all qubits one after another.
@@ -371,7 +371,7 @@ where $\ket{\phi_A}$ and $\ket{\phi_B}$ are wave functions that describe parts $
 
 Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
 
-$$\ket{\psi}_{i} &\equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|} =$$
+$$\ket{\psi}_{i} \equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|} =$$
 
 $$\frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|} =$$
 
@@ -452,9 +452,9 @@ Joint measurements, also known as Pauli measurements, are a generalization of 2-
 For single-qubit systems, any measurement corresponding to an orthogonal basis can be associated with a Hermitian matrix with eigenvalues $\pm 1$. The possible measurement outcomes (represented as `Result` in Q#) are the eigenvalues of the Hermitian matrix, and the corresponding projection matrices for the measurement are the projection operators onto the *eigenspaces* corresponding to the eigenvalues.
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by
-$$
-Z = \begin{pmatrix} 1 & 0 \\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}.
-$$
+
+$$Z = \begin{pmatrix} 1 & 0 \\\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
+
 The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\{\ket{0},\ket{1}\}$ basis, with the measurement outcomes being $1$ and $-1$ respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
 Similarly, one can implement measurements corresponding to the Pauli X and Y operators. We summarize the various properties below:
@@ -510,44 +510,51 @@ The simplest joint measurement is a parity measurement. A parity measurement tre
 
 For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\{ |00\rangle, |11\rangle \}$ and $\{ |01\rangle, |10\rangle \}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e. the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of $1$'s. On the other hand, a result of `One` corresponds to a post-measurement state with only odd parity computational basis vectors.
 
-> Let's see what happens to various two-qubit states after the parity measurement. The $Z \otimes Z$ matrix for two qubits is:
->
->$$Z \otimes Z = \begin{bmatrix}
-    1 & 0 & 0 & 0 \\
-    0 & -1 & 0 & 0 \\
-    0 & 0 & -1 & 0 \\
-    0 & 0 & 0 & 1 \\
-\end{bmatrix}$$
->
->When this transformation is applied to a basis state $|00\rangle$, we get
->
-> $$\begin{bmatrix}
-    1 & 0 & 0 & 0 \\
-    0 & -1 & 0 & 0 \\
-    0 & 0 & -1 & 0 \\
-    0 & 0 & 0 & 1 \\
+Let's see what happens to various two-qubit states after the parity measurement. The $Z \otimes Z$ matrix for two qubits is:
+
+$$
+Z \otimes Z =
+\begin{bmatrix}
+    1 & 0 & 0 & 0 \\\
+    0 & -1 & 0 & 0 \\\
+    0 & 0 & -1 & 0 \\\
+    0 & 0 & 0 & 1 \\\
 \end{bmatrix}
-\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ \end{bmatrix} =
-\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ \end{bmatrix}$$
->
-> Comparing this to the characteristic equation for eigenvectors of $Z \otimes Z$ given by
+$$
+
+When this transformation is applied to a basis state $|00\rangle$, we get
+
+$$
+\begin{bmatrix}
+    1 & 0 & 0 & 0 \\\ 
+    0 & -1 & 0 & 0 \\\ 
+    0 & 0 & -1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
+\end{bmatrix}
+\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
+$$
+
+Comparing this to the characteristic equation for eigenvectors of $Z \otimes Z$ given by
 $ Z \otimes Z |\psi\rangle = \lambda |\psi\rangle$,
 it is easy to see that $|00\rangle$ belongs to the $+1$ eigenspace, hence the $Z \otimes Z$ measurement will return `Zero` and leave the state unchanged.
->
-> Similarly, it can easily be verified that $|11\rangle$ also belongs to $+1$ eigenspace, while $|01\rangle$ and $|10\rangle$ belong to the $-1$ eigenspace.
->
-> Now, what happens if we apply a $Z \otimes Z$ measurement to a superposition state $\alpha |00\rangle + \beta |11\rangle$? We can see that
->
-> $$\begin{bmatrix}
-    1 & 0 & 0 & 0 \\
-    0 & -1 & 0 & 0 \\
-    0 & 0 & -1 & 0 \\
-    0 & 0 & 0 & 1 \\
+
+Similarly, it can easily be verified that $|11\rangle$ also belongs to $+1$ eigenspace, while $|01\rangle$ and $|10\rangle$ belong to the $-1$ eigenspace.
+
+Now, what happens if we apply a $Z \otimes Z$ measurement to a superposition state $\alpha |00\rangle + \beta |11\rangle$? We can see that
+
+$$
+\begin{bmatrix}
+    1 & 0 & 0 & 0 \\\ 
+    0 & -1 & 0 & 0 \\\ 
+    0 & 0 & -1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
 \end{bmatrix}
-\begin{bmatrix} \alpha \\ 0 \\ 0 \\ \beta \\ \end{bmatrix} =
-\begin{bmatrix} \alpha \\ 0 \\ 0 \\ \beta \\ \end{bmatrix}$$
->
->So this state also belongs to the $+1$ eigenspace, and measuring it will return `Zero` and leave the state unchanged. Similarly, we can verify that an $\alpha |01\rangle + \beta |10\rangle$ state belongs to the $-1$ eigenspace, and measuring it will return `One` without changing the state.
+\begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix} =
+\begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix}
+$$
+
+So this state also belongs to the $+1$ eigenspace, and measuring it will return `Zero` and leave the state unchanged. Similarly, we can verify that an $\alpha |01\rangle + \beta |10\rangle$ state belongs to the $-1$ eigenspace, and measuring it will return `One` without changing the state.
 
 Similarly, a parity measurement on a higher number of qubits can be implemented using a $Z \otimes \dotsc \otimes Z$ measurement.
 
@@ -606,26 +613,26 @@ What are the possible outcomes and their associated probabilities, if a measurem
 
 <details>
 <summary><b>Solution</b></summary>
-The first step towards identifying the outcomes and their probabilities for joint measurements is to identify the eigenvectors corresponding to eigenvalues $\pm1$ of the Pauli operator. We note that since $X\ket{\pm}= \pm\ket{\pm}$, we have 
-\begin{align}
-XX \ket{++} &= \ket{++}, &XX \ket{--} &= \ket{--};\\
-XX \ket{+-} &= -\ket{+-}, &XX \ket{-+} &= -\ket{-+}.
-\end{align}
+The first step towards identifying the outcomes and their probabilities for joint measurements is to identify the eigenvectors corresponding to eigenvalues $\pm1$ of the Pauli operator. We note that since $X\ket{\pm}= \pm\ket{\pm}$, we have
+
+$$XX \ket{++} = \ket{++}$$
+$$XX \ket{--} = \ket{--}$$
+$$XX \ket{+-} = -\ket{+-}$$
+$$XX \ket{-+} = -\ket{-+}$$
+
 Thus, the $XX$ operator measures the parity in the Hadamard, or the $\ket{\pm}$ basis. That is, it distinguishes basis states with an even number of $+$'s from basis states which have an odd number of $+$'s.
 
 The projector corresponding to a result of `Zero` is given by $P_{+1} = \ket{++}\bra{++} + \ket{--}\bra{--}$, while the projector corresponding to a result of `One` is given by $P_{-1} = \ket{+-}\bra{+-} + \ket{-+}\bra{-+}$. Then, we note that $P_{+1}$ annihilates states with odd parity, while leaving states with even parity unaffected. That is, for any values of the constants 
-\begin{align}
-P_{+1} ( \gamma \ket{++} + \delta \ket{--} ) &= ( \gamma \ket{++} + \delta \ket{--} )\\
-P_{+1} ( \mu \ket{-+} + \nu \ket{+-} ) &= 0.
-\end{align}
-Similarly, $P_{-1}$ annihilates states with even parity, while leaving states with odd parity unaffected.
+$$P_{+1} ( \gamma \ket{++} + \delta \ket{--} ) =$$
+$$( \gamma \ket{++} + \delta \ket{--} )P_{+1} ( \mu \ket{-+} + \nu \ket{+-} ) = 0$$
 
+Similarly, $P_{-1}$ annihilates states with even parity, while leaving states with odd parity unaffected.
 
 Now we express the given state in the Hadamard basis. We note that it is possible to go from the computational basis to the Hadamard basis using the following relations:
 $$\ket{0} = \frac{1}{\sqrt{2}} \left( \ket{+} + \ket{-} \right)$$
 $$\ket{1} = \frac{1}{\sqrt{2}} \left( \ket{+} - \ket{-} \right)$$
 
 Using these, we obtain
-$$ \alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle = (\alpha + \beta) |++\rangle + (\alpha - \beta) |--\rangle.$$
+$$ \alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle = (\alpha + \beta) |++\rangle + (\alpha - \beta) |--\rangle$$
 Thus, this state has an even parity in the Hadamard basis. It follows that an $XX$ Pauli measurement will result in the outcome `Zero` with probability 1, leaving the state unchanged after the measurement.
 </details>
