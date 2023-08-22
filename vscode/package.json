@@ -21,6 +21,16 @@
     "onDebugDynamicConfigurations:qsharp"
   ],
   "contributes": {
+    "configuration": {
+      "title": "Q#",
+      "properties": {
+        "Q#.AzureQuantumIntegration": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable integration with the Azure Quantum service\n\n**NOTE**: This feature processes data in a U.S. based service for job submission and retrieval. See <https://aks.ms/qdk-azure-preview> for more information."
+        }
+      }
+    },
     "menus": {
       "editor/title/run": [
         {
@@ -98,7 +108,8 @@
       "explorer": [
         {
           "id": "quantum-workspaces",
-          "name": "Quantum Workspaces"
+          "name": "Quantum Workspaces",
+          "when": "config.Q#.AzureQuantumIntegration == true"
         }
       ]
     },
@@ -125,60 +136,72 @@
       },
       {
         "command": "extension.qsharp.aadSignin",
+        "category": "Q#",
         "title": "Sign in to Azure Quantum with a Microsoft account"
       },
       {
         "command": "extension.qsharp.patSignin",
+        "category": "Q#",
         "title": "Sign in to Azure Quantum using an access token"
       },
       {
         "command": "quantum-workspaces-refresh",
-        "title": "Refresh",
+        "category": "Q#",
+        "title": "Refresh Azure Quantum workspaces",
         "icon": "$(refresh)"
       },
       {
         "command": "quantum-workspaces-add",
-        "title": "Add a workspace",
+        "category": "Q#",
+        "title": "Add an Azure Quantum workspace",
         "icon": "$(add)"
       },
       {
         "command": "quantum-target-submit",
-        "title": "Submit current program",
+        "category": "Q#",
+        "title": "Submit current Q# program",
         "icon": "$(run)"
       },
       {
         "command": "quantum-filter-results",
-        "title": "Filter results",
+        "category": "Q#",
+        "title": "Filter Azure Quantum workspace job results",
         "icon": "$(filter)"
       },
       {
         "command": "quantum-result-histogram",
-        "title": "View results histogram",
+        "category": "Q#",
+        "title": "View Azure Quantum results histogram",
         "icon": "$(graph)"
       },
       {
         "command": "quantum-result-download",
-        "title": "Download full results",
+        "category": "Q#",
+        "title": "Download full Azure Quantum job results",
         "icon": "$(cloud-download)"
       },
       {
         "command": "quantum-job-cancel",
-        "title": "Cancel job",
+        "category": "Q#",
+        "title": "Cancel pending Azure Quantum job",
         "icon": "$(trash)"
       },
       {
         "command": "quantum-workspace-getkey",
-        "title": "Get access key",
+        "category": "Q#",
+        "title": "Get access key for Azure Quantum workspace",
         "icon": "$(key)"
       },
       {
         "command": "quantum-target-view",
-        "title": "View provider details",
+        "category": "Q#",
+        "title": "View Azure Quantum target details",
         "icon": "$(info)"
       },
       {
         "command": "quantum-set-target",
-        "title": "Q#: Set the QIR target profile",
+        "category": "Q#",
+        "title": "Set the Azure Quantum QIR target profile",
         "enablement": "resourceLangId == qsharp"
       }
     ],

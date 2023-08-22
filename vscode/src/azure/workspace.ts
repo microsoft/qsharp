@@ -34,7 +34,6 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
   workspaceTree.onDidChangeSelection((evt) => {
     if (evt.selection.length) {
       log.debug("TreeView selection changed to ", evt.selection[0].label);
-      evt.selection[0];
     }
   });
 
