@@ -2,9 +2,8 @@
 /// Joint Measurement
 ///
 /// # Description
-/// The `Measure` operation performs a Pauli measurement. It performs a
-/// joint measurement of one or more qubits in the specified Pauli bases.
-/// The basis array and qubit array must be of the same length.
+/// Joint measurements, also known as Pauli measurements, are a generalization
+/// of 2-outcome measurements to multiple qubits and other bases.
 namespace Sample {
     open Microsoft.Quantum.Measurement;
     @EntryPoint()
