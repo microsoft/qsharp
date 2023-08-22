@@ -19,15 +19,12 @@ namespace MyQuantumApp {
         // Since 5 is divisible by 5, the message "Buzz" will be printed.
         if number % 5 == 0 { Message("Buzz"); }
 
-
-        // `elif` allows you to express successive conditional expressions, with each
-        // successive condition only being evaluated if the previous one was false.
-
         let fahrenheit = 40;
-
 
         // In this example, we print a message based on the temperature. The
         // message that will be printed is "It is livable".
+        // `elif` allows you to express successive conditional expressions, with each
+        // successive condition only being evaluated if the previous one was false.
         if fahrenheit <= 32 {
             Message("It's freezing");
         } elif fahrenheit <= 85 {
