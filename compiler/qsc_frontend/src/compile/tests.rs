@@ -623,6 +623,37 @@ fn introduce_prelude_ambiguity() {
 }
 
 #[test]
+fn entry_parse_error() {
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            "namespace Foo { operation B() : Unit {} }".into(),
+        )],
+        Some("Foo.B)".into()),
+    );
+
+    let unit = compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        TargetProfile::Full,
+    );
+
+    assert_eq!(
+        unit.errors[0]
+            .code()
+            .expect("expected error code")
+            .to_string(),
+        "Qsc.Parse.Token"
+    );
+
+    assert_eq!(
+        ("<entry>", Span { lo: 5, hi: 6 }),
+        source_span(&unit.sources, &unit.errors[0])
+    );
+}
+
+#[test]
 fn two_files_error_eof() {
     let sources = SourceMap::new(
         [
