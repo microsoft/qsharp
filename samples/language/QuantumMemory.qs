@@ -5,8 +5,8 @@
 /// The primary quantum feature of Q# is its representation of qubits and qubit
 /// memory. Q# supports allocation of qubits, and differentiates between allocating
 /// "clean" qubits and "dirty" qubits with the `use` and `borrow` keywords. 
-/// Clean qubits are unentangled, whereas dirty qubits have unknown state and
-/// potentially entanglements.
+/// Clean qubits are unentangled, whereas dirty qubits are in an unknown state
+/// and can potentially be entangled.
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
