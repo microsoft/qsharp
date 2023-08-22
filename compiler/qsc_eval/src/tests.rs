@@ -1958,6 +1958,24 @@ fn assignupdate_expr() {
 }
 
 #[test]
+fn assignupdate_expr_using_field_name() {
+    check_expr(
+        indoc! {"
+        namespace A {
+            newtype Pair = (First : Int, Second : Int);
+        }
+    "},
+        indoc! {"{
+            open A;
+            mutable p = Pair(1, 2);
+            set p w/= First <- 3;
+            p
+        }"},
+        &expect!["(3, 2)"],
+    );
+}
+
+#[test]
 fn unop_bitwise_not_int_expr() {
     check_expr("", "~~~(13)", &expect!["-14"]);
 }

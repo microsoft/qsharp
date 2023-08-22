@@ -28,7 +28,7 @@ use qsc_fir::{
         Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
         Stmt, StmtId,
     },
-    visit::Visitor,
+    visit::{self, Visitor},
 };
 use qsc_frontend::error::WithSource;
 use qsc_frontend::{
@@ -614,7 +614,19 @@ impl<'a> BreakpointCollector<'a> {
 impl<'a> Visitor<'a> for BreakpointCollector<'a> {
     fn visit_stmt(&mut self, stmt: StmtId) {
         let stmt_res = self.get_stmt(stmt);
-        self.add_stmt(stmt_res);
+        match stmt_res.kind {
+            qsc_fir::fir::StmtKind::Expr(expr) | qsc_fir::fir::StmtKind::Local(_, _, expr) => {
+                self.add_stmt(stmt_res);
+                visit::walk_expr(self, expr);
+            }
+            qsc_fir::fir::StmtKind::Qubit(_, _, _, block) => match block {
+                Some(block) => visit::walk_block(self, block),
+                None => self.add_stmt(stmt_res),
+            },
+            qsc_fir::fir::StmtKind::Item(_) | qsc_fir::fir::StmtKind::Semi(_) => {
+                self.add_stmt(stmt_res);
+            }
+        };
     }
 
     fn get_block(&mut self, id: BlockId) -> &'a Block {

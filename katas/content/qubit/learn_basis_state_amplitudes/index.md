@@ -10,5 +10,5 @@ once for every run.
 
 <details>
   <summary><b>Need a hint?</b></summary>
-  On a physical quantum system, there would be no way to obtain these values from a single observation. Since this program runs on a simulator, we can use `DumpMachine` to inspect the qubits and take a note of their state. Furthermore, the problem statement guarantees, that the state will be the same from invocation to invocation. So we can update the code to return the amplitudes that we've taken note of. Then run the code again.
+  On a physical quantum system, there would be no way to obtain these values from a single observation. Since this program runs on a simulator, we can use <code>DumpMachine</code> to inspect the qubits and take a note of their state. Furthermore, the problem statement guarantees, that the state will be the same from invocation to invocation. So we can update the code to return the amplitudes that we've taken note of. Then run the code again.
 </details>
