@@ -1,8 +1,9 @@
 namespace Kata {
     open Microsoft.Quantum.Math;
 
-    operation IsQubitPsiPlus(q: Qubit): Bool {
-        // Replace the following line with your solution.
+    operation IsQubitPsiPlus(q : Qubit) : Bool {
+        // Implement your solution here...
+
         return false;
     }
 

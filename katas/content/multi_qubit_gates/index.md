@@ -5,14 +5,14 @@
     "title": "Overview"
 })
 
-This kata continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
+This Kata continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
 
-**This kata covers the following topics:**
+**This Kata covers the following topics:**
 - Applying quantum gates to a part of the system
 - `CNOT` and `SWAP` gates
 - Controlled gates
 
-**What you should know to start working on this kata:**
+**What you should know to start working on this Kata:**
 - Basic linear algebra
 - The concept of qubit and multi-qubit systems
 - Single-qubit and multi-qubit quantum gates
@@ -22,7 +22,7 @@ This kata continues the introduction to quantum gates, focusing on applying quan
     "title": "The Basics"
 })
 
-As a reminder, single-qubit gates are represented by $2\\times2$ unitary matrices.
+As a reminder, single-qubit gates are represented by $2\times2$ unitary matrices.
 
 The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit to get the resulting state vector.
 
@@ -67,7 +67,7 @@ $$
 > $$X \otimes H = (X I) \otimes (I H) = (X \otimes I) (I \otimes H)$$
 
 This approach can be generalized to larger systems and gates that act on multiple qubits as well.
-It can be less straightforward if a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this kata.
+It is more complex when a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this Kata.
 
 @[exercise]({
     "id": "compound_gate",
@@ -102,7 +102,7 @@ The `CNOT` gate is a two-qubit gate, the first qubit is referred to as the **con
         <th>Q# Documentation</th>
     </tr>
     <tr>
-        <td>$\text{CNOT}</td>
+        <td>$\text{CNOT}$</td>
         <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
         <td>$\text{CNOT}|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \delta|10\rangle + \gamma|11\rangle$</td>
         <td>
@@ -111,7 +111,7 @@ The `CNOT` gate is a two-qubit gate, the first qubit is referred to as the **con
             $$\text{CNOT}|10\rangle = |11\rangle$$
             $$\text{CNOT}|11\rangle = |10\rangle$$
         </td>
-        <td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot\">CNOT</a></td>
+        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot">CNOT</a></td>
     </tr>
 </table>
 
@@ -127,7 +127,7 @@ The `CNOT` gate is self-adjoint: applying it for the second time reverses its ef
 
 @[exercise]({
     "id": "preparing_bell_state",
-    "title": "Preparing a Bell state",
+    "title": "Preparing a Bell State",
     "descriptionPath": "./preparing_bell_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -139,7 +139,7 @@ The `CNOT` gate is self-adjoint: applying it for the second time reverses its ef
 
 @[section]({
     "id": "multi_qubit_gates_ket_bra_representation",
-    "title": "Ket-bra Representation"
+    "title": "Ket-Bra Representation"
 })
 
 Same as in the case of single-qubit gates, we can represent multi-qubit gates using Dirac notation.
@@ -148,7 +148,7 @@ Same as in the case of single-qubit gates, we can represent multi-qubit gates us
 >
 > Kets and bras are used to express inner and outer products. The inner product of $|\phi\rangle$ and $|\psi\rangle$ is the matrix product of $\langle\phi|$ and $|\psi\rangle$, denoted as $\langle\phi|\psi\rangle$, and their outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
 >
-> As we've seen in the single-qubit gates tutorial, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
+> As we've seen in the "Single-Qubit Gates" Kata, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
 
 Let's consider ket-bra representation of the $\\text{CNOT}$ gate:
 
@@ -206,7 +206,7 @@ With enough practice you'll be able to perform computations in Dirac notation wi
 
 @[section]({
     "id": "multi_qubit_gates_ket_bra_decomposition",
-    "title": "Ket-bra Decomposition"
+    "title": "Ket-Bra Decomposition"
 })
 
 This section describes a more formal process of finding the ket-bra decompositions of multi-qubit quantum gates.
@@ -263,7 +263,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
             $$\text{SWAP}|01\rangle = |10\rangle$$
             $$\text{SWAP}|10\rangle = |01\rangle$$
             $$\text{SWAP}|11\rangle = |11\rangle$$
-        <td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap\">SWAP</a></td>
+        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap">SWAP</a></td>
     </tr>
 </table>
 
@@ -300,7 +300,7 @@ operation CINOT (qs: Qubit[]) : Unit {
 }
 ```
 
-## Dirac notation
+## Dirac Notation
 
 In Dirac notation we can consider the effect of the gate on each basis vector separately: each basis vector $|a_1a_2a_3\rangle$ remains unchanged if $a_1 = 0$, and becomes $|a_1a_2(\neg a_3)\rangle$ if $a_1 = 1$. The full effect on the state becomes:
 
@@ -308,7 +308,7 @@ $$\text{CINOT}|\psi\rangle = x_{000} \text{CINOT}|000\rangle + x_{001} \text{CIN
 $$x_{100} \text{CINOT}|100\rangle + x_{101} \text{CINOT}|101\rangle + x_{110} \text{CINOT}|110\rangle + x_{111} \text{CINOT}|111\rangle =$$
 $$x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle + x_{101}|100\rangle + x_{100}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle $$
 
-## Matrix form
+## Matrix Form
 
 $\text{CINOT}$ can also be represented in matrix form as a $2^3 \times 2^3$ matrix:
 $$
@@ -422,7 +422,7 @@ Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatri
             \end{bmatrix}
             $$
         </td>
-        <td><a href=\"https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor\">Controlled functor</a></td>
+        <td><a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor">Controlled functor</a></td>
     </tr>
 </table>
 
@@ -478,7 +478,7 @@ In other cases, you'll need to define the controlled version of an operation man
 
 @[section]({
     "id": "multi_qubit_gates_multi_controlled_gates",
-    "title": "Multi-controlled Gates"
+    "title": "Multi-Controlled Gates"
 })
 
 Controlled gates can have multiple control qubits; in this case the gate $U$ is applied only if all control qubits are in the $|1\rangle$ states.
@@ -583,4 +583,4 @@ The sequence of steps that implement this variant are:
     "title": "Conclusion"
 })
 
-Congratulations! You have completed the series of introductory tutorials.
+Congratulations! You have completed the series of introductory Katas.
