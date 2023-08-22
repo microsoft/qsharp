@@ -20,7 +20,6 @@ namespace MyQuantumApp {
         // we can add `1` to any number using our partially applied function
         let five = incrementByOne(4);
 
-
         // More than one underscore can be used to define a function that takes
         // multiple arguments.
         let sumAndAddOne = AddMany(_, _, _, 1);
