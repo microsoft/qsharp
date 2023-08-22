@@ -1,19 +1,20 @@
 /// # Sample
-/// Ternary
+/// Ternary Expression
 ///
 /// # Description
-/// Q# supports conditional expressions (`if` expressions) with or without the use of a ternary operator.
-
+/// Q# supports ternary expressions with `?` and `|`.
+/// The structure of a ternary is a boolean condition, followed by a `?`,
+/// the expression to evaluate if the condition is `true`, a `|`, and the
+/// expression to evaluate if the expression is `false`. More succinctly,
+/// `[condition] ? [true branch] | [else branch]`
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
         let fahrenheit = 40;
 
-        // `if` can also be used as an expression, to conditionally return a value.
-        // This emulates the behavior of the ternary operator in languages like Python.
-        let absoluteValue = if fahrenheit > 0 { fahrenheit } else { fahrenheit * -1 };        
-
-        // The below ternary expression is equivalent to the above if expression.
+        // The below ternary expression sets the value of `fahrenheit` to its absolute value.
+        // `fahrenheit` if `fahrenheit` is positive,
+        // `fahrenheit * -1` if `fahrenheit` is negative.
         let absoluteValue = fahrenheit > 0 ? fahrenheit | fahrenheit * -1;
     }
 }
