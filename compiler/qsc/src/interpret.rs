@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 mod debug;
+mod error;
 pub mod stateful;
 pub mod stateless;
 

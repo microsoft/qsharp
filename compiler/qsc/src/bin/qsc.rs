@@ -103,7 +103,7 @@ fn main() -> miette::Result<ExitCode> {
         for error in errors {
             eprintln!(
                 "{:?}",
-                Report::new(WithSource::from_map(&unit.sources, error, None))
+                Report::new(WithSource::from_map(&unit.sources, error))
             );
         }
 
@@ -157,11 +157,7 @@ fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Resu
         }
         Err((error, _)) => {
             let unit = store.get(package_id).expect("package should be in store");
-            Err(Report::new(WithSource::from_map(
-                &unit.sources,
-                error,
-                None,
-            )))
+            Err(Report::new(WithSource::from_map(&unit.sources, error)))
         }
     }
 }

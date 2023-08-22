@@ -3,12 +3,12 @@
 
 mod given_interpreter {
     use crate::interpret::stateful::{Interpreter, LineError};
-    use expect_test::expect;
-    use miette::Report;
+    use expect_test::{expect, Expect};
+    use miette::Diagnostic;
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::{SourceMap, TargetProfile};
     use qsc_passes::PackageType;
-    use std::{error::Error, fmt::Write, io::Cursor, iter};
+    use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
     fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
@@ -50,7 +50,16 @@ mod given_interpreter {
                 .expect("interpreter should be created");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
-                is_only_error(&result, &output, "name error: `Message` not found");
+                is_only_error(
+                    &result,
+                    &output,
+                    &expect![[r#"
+                        name error: `Message` not found
+                           line_0: Message
+                        type error: insufficient type information to infer type
+                           line_0: Message("_")
+                    "#]],
+                );
             }
         }
 
@@ -100,10 +109,24 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7");
-            is_only_error(&result, &output, "syntax error: expected `;`, found EOF");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    syntax error: expected `;`, found EOF
+                       line_0: 
+                "#]],
+            );
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, &output, "name error: `y` not found");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    name error: `y` not found
+                       line_1: y
+                "#]],
+            );
         }
 
         #[test]
@@ -111,17 +134,40 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = x;");
-            is_only_error(&result, &output, "name error: `x` not found");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                name error: `x` not found
+                   line_0: x
+                type error: insufficient type information to infer type
+                   line_0: y
+            "#]],
+            );
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, &output, "runtime error: name is not bound");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: name is not bound
+                       line_1: y
+                "#]],
+            );
         }
 
         #[test]
         fn failing_statements_return_early_error() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
-            is_only_error(&result, &output, "runtime error: division by zero");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: division by zero
+                      cannot divide by zero line_0: 0
+                "#]],
+            );
         }
 
         #[test]
@@ -147,9 +193,23 @@ mod given_interpreter {
         fn invalid_declare_function_and_unbound_call_return_error() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "function Foo() : Int { invalid }");
-            is_only_error(&result, &output, "name error: `invalid` not found");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    name error: `invalid` not found
+                       line_0: invalid
+                "#]],
+            );
             let (result, output) = line(&mut interpreter, "Foo()");
-            is_only_error(&result, &output, "runtime error: name is not bound");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: name is not bound
+                       line_1: Foo
+                "#]],
+            );
         }
 
         #[test]
@@ -268,7 +328,10 @@ mod given_interpreter {
             is_only_error(
                 &result,
                 &output,
-                "type error: insufficient type information to infer type",
+                &expect![[r#"
+                    type error: insufficient type information to infer type
+                       line_0: []
+                "#]],
             );
             let (result, output) = line(&mut interpreter, "let x = []; let y = [0] + x;");
             is_only_value(&result, &output, &Value::unit());
@@ -276,7 +339,10 @@ mod given_interpreter {
             is_only_error(
                 &result,
                 &output,
-                "type error: insufficient type information to infer type",
+                &expect![[r#"
+                    type error: insufficient type information to infer type
+                       line_2: []
+                "#]],
             );
         }
 
@@ -286,7 +352,14 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "let x = []; let y = [0] + x;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "let z = [0.0] + x;");
-            is_only_error(&result, &output, "type error: expected Double, found Int");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    type error: expected Double, found Int
+                       line_1: [0.0] + x
+                "#]],
+            );
         }
 
         #[test]
@@ -309,14 +382,24 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "set x += [0];");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "set y += [0];");
-            is_only_error(&result, &output, "cannot update immutable variable");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    cannot update immutable variable
+                       line_2: y
+                "#]],
+            );
             let (result, output) = line(&mut interpreter, "let lam = () -> y + [0];");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "let lam = () -> x + [0];");
             is_only_error(
                 &result,
                 &output,
-                "lambdas cannot close over mutable variables",
+                &expect![[r#"
+                    lambdas cannot close over mutable variables
+                       line_4: () -> x + [0]
+                "#]],
             );
         }
 
@@ -333,40 +416,17 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine();");
-            is_only_error(&result, &output, "name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`");
-            let s = format!(
-                "{:?}",
-                Report::new(
-                    result
-                        .expect_err("expected errors")
-                        .first()
-                        .expect("expected at least one error")
-                        .0
-                        .clone()
-                )
-            );
-            expect![[r#"
-                [31mQsc.Resolve.Ambiguous[0m
-
-                  [31m×[0m name error
-                [31m  ╰─▶ [0m`DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
-                   ╭─[[36;1;4mline_1[0m:1:1]
-                 [2m1[0m │ open Other;
-                   · [35;1m     ──┬──[0m
-                   ·        [35;1m╰── [35;1mfound in this namespace[0m[0m
-                   ╰────
-                   ╭─[[36;1;4mline_2[0m:1:1]
-                 [2m1[0m │ open Microsoft.Quantum.Diagnostics;
-                   · [33;1m     ──────────────┬──────────────[0m
-                   ·                    [33;1m╰── [33;1mand also in this namespace[0m[0m
-                   ╰────
-                   ╭─[[36;1;4mline_3[0m:1:1]
-                 [2m1[0m │ DumpMachine();
-                   · [32;1m─────┬─────[0m
-                   ·      [32;1m╰── [32;1mambiguous name[0m[0m
-                   ╰────
-            "#]].assert_eq(
-                &s
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
+                  ambiguous name line_3: DumpMachine
+                  found in this namespace line_1: Other
+                  and also in this namespace line_2: Microsoft.Quantum.Diagnostics
+                type error: insufficient type information to infer type
+                   line_3: DumpMachine()
+            "#]],
             );
         }
 
@@ -377,20 +437,11 @@ mod given_interpreter {
             is_only_error(
                 &result,
                 &output,
-                "runtime error: qubits in gate invocation are not unique",
+                &expect![[r#"
+                    runtime error: qubits in gate invocation are not unique
+                       intrinsic.qs: (control, target)
+                "#]],
             );
-            let s = format!(
-                "{:?}",
-                Report::new(
-                    result
-                        .expect_err("expected errors")
-                        .first()
-                        .expect("expected at least one error")
-                        .0
-                        .clone()
-                )
-            );
-            assert_eq!("runtime error", s);
         }
     }
 
@@ -510,13 +561,11 @@ mod given_interpreter {
             is_only_error(
                 &result,
                 &output,
-                "runtime error: program failed: Cannot allocate qubit array with a negative length",
+                &expect![[r#"
+                    runtime error: program failed: Cannot allocate qubit array with a negative length
+                      explicit fail qir.qs: fail "Cannot allocate qubit array with a negative length"
+                "#]],
             );
-            let s = format!(
-                "{:?}",
-                Report::new(result.err().unwrap().first().unwrap().0.clone())
-            );
-            assert_eq!("runtime error", s);
         }
     }
 
@@ -565,20 +614,41 @@ mod given_interpreter {
         }
     }
 
-    fn is_only_error<E>(result: &Result<Value, Vec<E>>, output: &str, error: &str)
+    fn is_only_error<E>(result: &Result<Value, Vec<E>>, output: &str, expected_errors: &Expect)
     where
-        E: Error,
+        E: Diagnostic,
     {
         assert_eq!("", output);
 
         match result {
             Ok(value) => panic!("Expected error , got {value:?}"),
             Err(errors) => {
-                let mut message = errors[0].to_string();
-                for source in iter::successors(errors[0].source(), |&e| e.source()) {
-                    write!(message, ": {source}").expect("string should be writable");
+                let mut actual = String::new();
+                for error in errors {
+                    write!(actual, "{error}").expect("writing should succeed");
+                    for s in iter::successors(error.source(), |&s| s.source()) {
+                        write!(actual, ": {s}").expect("writing should succeed");
+                    }
+                    for label in error.labels().into_iter().flatten() {
+                        let span = error
+                            .source_code()
+                            .expect("expected valid source code")
+                            .read_span(label.inner(), 0, 0)
+                            .expect("expected to be able to read span");
+
+                        write!(
+                            actual,
+                            "\n  {} {}: {}",
+                            label.label().unwrap_or(""),
+                            span.name().expect("expected source file name"),
+                            from_utf8(span.data()).expect("expected valid utf-8 string"),
+                        )
+                        .expect("writing should succeed");
+                    }
+                    writeln!(actual).expect("writing should succeed");
                 }
-                assert_eq!(error, message);
+
+                expected_errors.assert_eq(&actual);
             }
         }
     }

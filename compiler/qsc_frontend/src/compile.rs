@@ -154,7 +154,6 @@ impl SourceMap {
         loop {
             // Skip sources until we get to one that contains the current offset
             while hi.map_or(false, |hi| hi <= offset.unwrap_or(hi)) {
-                println!("filtering out source {source:?}");
                 source = all.next();
                 lo = source.map(|s| s.offset);
                 hi = source.map(|s| s.offset + s.contents.len() as u32);
@@ -566,10 +565,7 @@ fn next_offset(last_source: Option<&Source>) -> u32 {
 fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
     if !errors.is_empty() {
         for error in errors.drain(..) {
-            eprintln!(
-                "{:?}",
-                Report::new(WithSource::from_map(sources, error, None))
-            );
+            eprintln!("{:?}", Report::new(WithSource::from_map(sources, error)));
         }
 
         panic!("could not compile package");

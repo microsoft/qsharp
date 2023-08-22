@@ -86,7 +86,6 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         Err(e) => {
             let stack_trace = e[0]
                 .stack_trace()
-                .as_ref()
                 .expect("code should have a valid stack trace");
             let expectation = indoc! {r#"
                          Error: division by zero
@@ -149,7 +148,6 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         Err(e) => {
             let stack_trace = e[0]
                 .stack_trace()
-                .as_ref()
                 .expect("code should have a valid stack trace");
             let expectation = indoc! {r#"
                          Error: division by zero

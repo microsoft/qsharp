@@ -7,6 +7,8 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
+use super::error;
+use super::{debug::format_call_stack, stateless};
 use crate::compile::{self, compile};
 use miette::Diagnostic;
 use num_bigint::BigUint;
@@ -37,17 +39,18 @@ use qsc_passes::{PackageType, PassContext};
 use std::collections::HashSet;
 use thiserror::Error;
 
-use super::{debug::format_call_stack, stateless};
-
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(WithSource<ErrorKind>);
+pub struct Error(ErrorKind);
 
 impl Error {
     #[must_use]
-    pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
+    pub fn stack_trace(&self) -> Option<&str> {
+        match &self.0 {
+            ErrorKind::Eval(err) => err.stack_trace(),
+            _ => None,
+        }
     }
 }
 
@@ -55,13 +58,13 @@ impl Error {
 enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Compile(#[from] compile::Error),
+    Compile(#[from] WithSource<compile::Error>),
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Pass(#[from] qsc_passes::Error),
+    Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] qsc_eval::Error),
+    Eval(#[from] error::Eval),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
@@ -70,22 +73,20 @@ enum ErrorKind {
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct CompileError(WithSource<compile::Error>);
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct LineError(WithSource<LineErrorKind>);
+pub struct LineError(LineErrorKind);
 
 impl LineError {
     #[must_use]
     pub fn kind(&self) -> &LineErrorKind {
-        self.0.error()
+        &self.0
     }
 
     #[must_use]
-    pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
+    pub fn stack_trace(&self) -> Option<&str> {
+        match &self.0 {
+            LineErrorKind::Eval(err) => err.stack_trace(),
+            _ => None,
+        }
     }
 }
 
@@ -93,11 +94,11 @@ impl LineError {
 #[diagnostic(transparent)]
 pub enum LineErrorKind {
     #[error(transparent)]
-    Compile(#[from] incremental::Error),
+    Compile(#[from] WithSource<incremental::Error>),
     #[error(transparent)]
-    Pass(#[from] qsc_passes::Error),
+    Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
-    Eval(#[from] qsc_eval::Error),
+    Eval(#[from] error::Eval),
 }
 
 struct Lookup<'a> {
@@ -192,7 +193,7 @@ impl Interpreter {
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
+                .map(|error| Error(WithSource::from_map(&unit.sources, error).into()))
                 .collect());
         }
 
@@ -259,22 +260,16 @@ impl Interpreter {
                 step,
             )
             .map_err(|(error, call_stack)| {
-                let package = self
-                    .store
-                    .get(map_fir_package_to_hir(self.package))
-                    .expect("package should be in store");
-
                 let stack_trace = if call_stack.is_empty() {
                     None
                 } else {
                     Some(self.render_call_stack(call_stack, &error))
                 };
 
-                vec![Error(WithSource::from_map(
-                    &package.sources,
-                    error.into(),
-                    stack_trace,
-                ))]
+                vec![Error(
+                    error::Eval::new(error, self.compiler.source_map(), &self.store, stack_trace)
+                        .into(),
+                )]
             })
     }
 
@@ -299,22 +294,16 @@ impl Interpreter {
             receiver,
         )
         .map_err(|(error, call_stack)| {
-            let package = self
-                .store
-                .get(map_fir_package_to_hir(self.package))
-                .expect("package should be in store");
-
             let stack_trace = if call_stack.is_empty() {
                 None
             } else {
                 Some(self.render_call_stack(call_stack, &error))
             };
 
-            vec![Error(WithSource::from_map(
-                &package.sources,
-                error.into(),
-                stack_trace,
-            ))]
+            vec![Error(
+                error::Eval::new(error, self.compiler.source_map(), &self.store, stack_trace)
+                    .into(),
+            )]
         })
     }
 
@@ -326,15 +315,7 @@ impl Interpreter {
         if let Some(entry) = unit.entry {
             return Ok(entry);
         };
-        let unit = self
-            .store
-            .get(map_fir_package_to_hir(self.source_package))
-            .expect("store should have package");
-        Err(vec![Error(WithSource::from_map(
-            &unit.sources,
-            ErrorKind::NoEntryPoint,
-            None,
-        ))])
+        Err(vec![Error(ErrorKind::NoEntryPoint)])
     }
 
     /// # Errors
@@ -352,11 +333,7 @@ impl Interpreter {
             errors
                 .into_iter()
                 .map(|error| {
-                    LineError(WithSource::from_map(
-                        self.compiler.source_map(),
-                        error.into(),
-                        None,
-                    ))
+                    LineError(WithSource::from_map(self.compiler.source_map(), error).into())
                 })
                 .collect::<Vec<_>>()
         })?;
@@ -372,11 +349,7 @@ impl Interpreter {
             return Err(pass_errors
                 .into_iter()
                 .map(|error| {
-                    LineError(WithSource::from_map(
-                        self.compiler.source_map(),
-                        error.into(),
-                        None,
-                    ))
+                    LineError(WithSource::from_map(self.compiler.source_map(), error).into())
                 })
                 .collect());
         }
@@ -408,11 +381,15 @@ impl Interpreter {
                                 Some(self.render_call_stack(call_stack, &error))
                             };
 
-                            return Err(vec![LineError(WithSource::from_map(
-                                self.compiler.source_map(),
-                                error.into(),
-                                stack_trace,
-                            ))]);
+                            return Err(vec![LineError(
+                                error::Eval::new(
+                                    error,
+                                    self.compiler.source_map(),
+                                    &self.store,
+                                    stack_trace,
+                                )
+                                .into(),
+                            )]);
                         }
                     }
                 }

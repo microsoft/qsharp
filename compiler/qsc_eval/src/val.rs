@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
 use qsc_fir::fir::{LocalItemId, PackageId, Pauli};
 use std::{
     fmt::{self, Display, Formatter},
@@ -81,11 +80,6 @@ impl Display for GlobalId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "<item {} in package {}>", self.item, self.package)
     }
-}
-
-pub struct GlobalSpan {
-    pub package: PackageId,
-    pub span: Span,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

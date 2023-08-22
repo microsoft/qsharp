@@ -12,21 +12,22 @@ use std::{
 pub struct WithSource<E> {
     sources: SourceMap,
     error: E,
-    stack_trace: Option<String>,
+    //    stack_trace: Option<String>,
 }
 
 impl<E> WithSource<E> {
     pub fn error(&self) -> &E {
         &self.error
     }
-
-    pub fn stack_trace(&self) -> &Option<String> {
-        &self.stack_trace
-    }
 }
 
+//     pub fn stack_trace(&self) -> &Option<String> {
+//         &self.stack_trace
+//     }
+// }
+
 impl<E: Diagnostic> WithSource<E> {
-    pub fn from_map(sources: &SourceMap, error: E, stack_trace: Option<String>) -> Self {
+    pub fn from_map(sources: &SourceMap, error: E) -> Self {
         // Filter the source map to avoid cloning all sources
         // and only clone the relevant ones
         let offsets = error
@@ -41,7 +42,14 @@ impl<E: Diagnostic> WithSource<E> {
         Self {
             sources: sources.filter(offsets),
             error,
-            stack_trace,
+            //stack_trace,
+        }
+    }
+
+    pub fn no_sources(error: E) -> Self {
+        Self {
+            sources: SourceMap::default(),
+            error,
         }
     }
 }
