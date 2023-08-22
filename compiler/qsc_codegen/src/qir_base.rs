@@ -10,7 +10,7 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     debug::{map_hir_package_to_fir, Frame},
-    eval_expr,
+    eval_expr, eval_stmt,
     output::GenericReceiver,
     val::{GlobalId, Value},
     Env, Error, Global, NodeLookup, State,
@@ -47,7 +47,7 @@ pub fn generate_qir(
     let unit = fir_store.get(package).expect("store should have package");
     let entry_expr = unit.entry.expect("package should have entry");
 
-    let mut stdout = vec![];
+    let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
     let result = eval_expr(
         &mut State::new(package),
@@ -60,6 +60,29 @@ pub fn generate_qir(
         &mut out,
     );
     match result {
+        Ok(val) => {
+            sim.write_output_recording(&val)
+                .expect("writing to string should succeed");
+            sim.instrs.push_str(POSTFIX);
+            Ok(sim.instrs)
+        }
+        Err((err, stack)) => Err((err, stack)),
+    }
+}
+
+/// # Errors
+/// This function will return an error if execution was unable to complete.
+pub fn generate_qir_for_stmt(
+    stmt: StmtId,
+    globals: &impl NodeLookup,
+    env: &mut Env,
+    package: PackageId,
+) -> std::result::Result<String, (Error, Vec<Frame>)> {
+    let mut sim = BaseProfSim::default();
+    sim.instrs.push_str(PREFIX);
+    let mut stdout = std::io::sink();
+    let mut out = GenericReceiver::new(&mut stdout);
+    match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
         Ok(val) => {
             sim.write_output_recording(&val)
                 .expect("writing to string should succeed");
