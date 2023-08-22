@@ -3,7 +3,7 @@
 ///
 /// # Description
 /// Comparison operators in Q# are used to compare one value relative to
-/// another value or the same type, producing an output Boolean value.
+/// another value of the same type, producing an output Boolean value.
 /// The comparison operators in Q# are `==`, `!=`, `<`, `<=`, `>`, and `>=`.
 namespace MyQuantumApp {
 

@@ -3,8 +3,8 @@
 ///
 /// # Description
 /// The copy and update operator in Q# is used to make a copy of a data
-/// structure, like an array, and update a single element of the copied
-/// version of the structure.
+/// structure, like an array or UDT, and update a single element in the
+/// copied version of the structure.
 namespace MyQuantumApp {
 
     newtype Pair = (first: Int, second: Int);

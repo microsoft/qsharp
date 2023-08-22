@@ -10,7 +10,7 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
 
-        // `~~~` performs a bit-wise Boolean Not on the bits of an integer.
+        // `~~~` performs a bitwise NOT on the bits of an integer.
 
         // The integer value -6.
         let integer = ~~~5;
@@ -18,7 +18,7 @@ namespace MyQuantumApp {
         // The integer value 4.
         let integer = ~~~-5;
 
-        // `&&&` performs a bit-wise Boolean And on the bits of two integer.
+        // `&&&` performs a bitwise AND on the bits of two integer.
 
         // The integer value 4.
         let integer = 5 &&& 6;
@@ -26,7 +26,7 @@ namespace MyQuantumApp {
         // The integer value 2.
         let integer = -5 &&& 6;
 
-        // `|||` performs a bit-wise Boolean Or on the bits of two integer.
+        // `|||` performs a bitwise OR on the bits of two integer.
 
         // The integer value 7.
         let integer = 5 ||| 6;
@@ -34,7 +34,7 @@ namespace MyQuantumApp {
         // The integer value -1.
         let integer = -5 ||| 6;
 
-        // `^^^` performs a bit-wise Boolean Xor on the bits of two integer.
+        // `^^^` performs a bitwise XOR on the bits of two integer.
 
         // The integer value 3.
         let integer = 5 ^^^ 6;
