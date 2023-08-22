@@ -2,11 +2,14 @@
 /// Measurement
 ///
 /// # Description
-/// Measurement is a critical component of quantum algorithm design. Measurement refers to
-/// measurements in the computational basis, unless otherwise specified. The result of
-/// a measurement is a value of the type `Result`, that is, `One` or `Zero`. This appears
-/// similar to classical computation, but the measurement itself is a probabilistic process.
-/// The process of measuring a qubit can change the state of the qubit.
+/// Quantum measurement is an irreversible operation in which a quantum system
+/// is manipulated to yield a numerical result. Measuring a quantum system
+/// generally changes the quantum state that describes that system.
+///
+/// In Q#, the result of a measurement is a value of the type `Result`, that is,
+/// `One` or `Zero`.
+///
+/// This Q# program exemplifies different types of measurements.
 namespace Sample {
     open Microsoft.Quantum.Measurement;
     @EntryPoint()
