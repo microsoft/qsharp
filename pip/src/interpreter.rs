@@ -13,12 +13,13 @@ use qsc::{
         stateful::{self, LineError},
         Value,
     },
-    PackageType, SourceMap, TargetProfile,
+    PackageType, SourceMap,
 };
 use std::{fmt::Write, sync::Arc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
@@ -26,6 +27,23 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
     Ok(())
+}
+
+#[derive(Clone, Copy)]
+#[pyclass(unsendable)]
+/// A Q# target profile.
+///
+/// A target profile describes the capabilities of the hardware or simulator
+/// which will be used to run the Q# program.
+pub(crate) enum TargetProfile {
+    /// Target supports the full set of capabilities required to run any Q# program.
+    ///
+    /// This option maps to the Full Profile as defined by the QIR specification.
+    Full,
+    /// Target supports the minimal set of capabilities required to run a quantum program.
+    ///
+    /// This option maps to the Base Profile as defined by the QIR specification.
+    Base,
 }
 
 #[pyclass(unsendable)]
@@ -38,13 +56,12 @@ pub(crate) struct Interpreter {
 impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
-    pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        match stateful::Interpreter::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            TargetProfile::Full,
-        ) {
+    pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
+        let target = match target {
+            TargetProfile::Full => qsc::TargetProfile::Full,
+            TargetProfile::Base => qsc::TargetProfile::Base,
+        };
+        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => {
                 let mut message = String::new();
@@ -74,6 +91,14 @@ impl Interpreter {
         match self.interpreter.interpret_line(&mut receiver, input) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(input, errors))),
+        }
+    }
+
+    #[allow(clippy::unused_self)]
+    fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
+        match self.interpreter.qirgen(entry_expr) {
+            Ok(qir) => Ok(qir),
+            Err(errors) => Err(QSharpError::new_err(format_errors(entry_expr, errors))),
         }
     }
 }

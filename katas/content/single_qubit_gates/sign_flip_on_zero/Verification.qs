@@ -5,7 +5,7 @@ namespace Kata.Verification {
     operation SignFlipOnZero(q : Qubit) : Unit is Adj + Ctl {
         X(q);
         Z(q);
-        Y(q);
+        X(q);
     }
 
     operation CheckSolution() : Bool {
