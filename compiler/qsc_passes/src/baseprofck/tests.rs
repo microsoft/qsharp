@@ -65,8 +65,8 @@ fn result_comparison_error() {
             [
                 ResultComparison(
                     Span {
-                        lo: 41,
-                        hi: 53,
+                        lo: 42,
+                        hi: 54,
                     },
                 ),
             ]
@@ -82,14 +82,14 @@ fn result_literal_error() {
             [
                 ResultLiteral(
                     Span {
-                        lo: 1,
-                        hi: 4,
+                        lo: 2,
+                        hi: 5,
                     },
                 ),
                 ResultLiteral(
                     Span {
-                        lo: 6,
-                        hi: 10,
+                        lo: 7,
+                        hi: 11,
                     },
                 ),
             ]
@@ -110,8 +110,8 @@ fn non_result_return_error() {
             [
                 ReturnNonResult(
                     Span {
-                        lo: 0,
-                        hi: 54,
+                        lo: 1,
+                        hi: 55,
                     },
                 ),
             ]
@@ -131,8 +131,8 @@ fn unsupported_intrsinsic_error() {
             [
                 UnsupportedIntrinsic(
                     Span {
-                        lo: 16,
-                        hi: 20,
+                        lo: 17,
+                        hi: 21,
                     },
                 ),
             ]

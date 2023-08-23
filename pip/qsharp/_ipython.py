@@ -4,7 +4,7 @@
 from IPython.display import display, Javascript, Pretty
 from IPython.core.magic import register_cell_magic
 from ._native import QSharpError
-from ._qsharp import _interpreter
+from ._qsharp import get_interpreter
 import pathlib
 
 
@@ -17,7 +17,7 @@ def register_magic():
             display(output)
 
         try:
-            return _interpreter.interpret(cell, callback)
+            return get_interpreter().interpret(cell, callback)
         except QSharpError as e:
             display(Pretty(str(e)))
 
