@@ -28,7 +28,7 @@ namespace Sample {
         let firstQubitResult = M(qs[0]);
         DumpMachine();
 
-        // Measuring the last qubit does not change the state quantum state
+        // Measuring the last qubit does not change the quantum state
         // since the state of the second qubit collapsed when the first qubit 
         // was measured because they were entangled.
         let secondQubitResult = M(qs[1]);
