@@ -4,7 +4,35 @@
 import * as vscode from "vscode";
 import { getCompilerWorker, log } from "qsharp";
 
+let compilerWorkerScriptPath: string;
+
+export async function getQirForActiveWindow(): Promise<string> {
+  let result = "";
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) return result;
+  const code = editor.document.getText();
+
+  // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
+  const worker = getCompilerWorker(compilerWorkerScriptPath);
+  try {
+    result = await worker.getQir(code);
+  } catch (e: any) {
+    vscode.window.showErrorMessage(
+      "Code generation failed. Please ensure the code is compatible with the QIR base profile"
+    );
+    log.error("Codegen error. ", e.toString());
+  }
+  worker.terminate();
+
+  return result;
+}
+
 export function initCodegen(context: vscode.ExtensionContext) {
+  compilerWorkerScriptPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "./out/compilerWorker.js"
+  ).toString();
+
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     200
@@ -14,31 +42,14 @@ export function initCodegen(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("quantum-get-qir", async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) return;
-      const code = editor.document.getText();
-
-      // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
-      const compilerWorkerScriptPath = vscode.Uri.joinPath(
-        context.extensionUri,
-        "./out/compilerWorker.js"
-      );
-      const worker = getCompilerWorker(compilerWorkerScriptPath.toString());
-      try {
-        const qir = await worker.getQir(code);
-
+      const qir = await getQirForActiveWindow();
+      if (qir) {
         const qirDoc = await vscode.workspace.openTextDocument({
           language: "llvm",
           content: qir,
         });
         await vscode.window.showTextDocument(qirDoc);
-      } catch (e: any) {
-        vscode.window.showErrorMessage(
-          "Code generation failed. Please ensure the code is compatible with the QIR base profile"
-        );
-        log.error("Codegen error. ", e.toString());
       }
-      worker.terminate();
     })
   );
 

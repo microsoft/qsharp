@@ -7,7 +7,7 @@ const publicMgmtEndpoint = "https://management.azure.com";
 
 // TODO: Remove once cors on quantum endpoint and storage accounts is fixed
 const proxy = ""; // "http://localhost:5555";
-const storageProxy = "https://dev.qsx.tools/api/blob";
+const storageProxy = "https://qsx-proxy.azurewebsites.net/api/proxy";
 
 export async function azureRequest(
   uri: string,

@@ -22,6 +22,7 @@ import {
 import { sampleWorkspace } from "./sampleData";
 import { QuantumUris } from "./azure";
 import { getResourcePath } from "../extension";
+import { getQirForActiveWindow } from "../qirGeneration";
 
 let workspaceTreeProvider: WorkspaceTreeProvider;
 
@@ -42,17 +43,39 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     async (arg: WorkspaceTreeItem) => {
       const target = arg.itemData as Target;
       let qirFilePath: vscode.Uri;
-      let providerId: string;
+
+      const qir = await getQirForActiveWindow();
+      if (!qir) return;
+
+      // x-hardware-target should be set to rigetti or quantinuum
+      let providerId = "rigetti";
 
       if (target.id.startsWith("quantinuum")) {
         providerId = "quantinuum";
-        qirFilePath = getResourcePath("inputData-quantinuum.h1-2.bc");
       } else if (target.id.startsWith("rigetti")) {
         providerId = "rigetti";
-        qirFilePath = getResourcePath("inputData-rigetti.sim.qvm.bc");
       } else {
         return;
       }
+
+      // TODO(billti) wrap in try/catch and log error
+      // Convert the ll format qir to bitcode
+      const bitcodeRequest = await fetch(
+        "https://qsx-proxy.azurewebsites.net/api/compile",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "x-hardware-target": providerId,
+          },
+          body: qir,
+        }
+      );
+
+      if (!bitcodeRequest.ok) {
+        // TODO log error and exit
+      }
+      const bitcode = new Uint8Array(await bitcodeRequest.arrayBuffer());
 
       const token = await getTokenForWorkspace(arg.workspace);
       const quantumUris = new QuantumUris(
@@ -60,8 +83,7 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
         arg.workspace.id
       );
 
-      const qirFile = await vscode.workspace.fs.readFile(qirFilePath);
-      await submitJob(token, quantumUris, qirFile, providerId, target.id);
+      await submitJob(token, quantumUris, bitcode, providerId, target.id);
       setTimeout(async () => {
         await queryWorkspace(arg.workspace);
         workspaceTreeProvider.updateWorkspace(arg.workspace);

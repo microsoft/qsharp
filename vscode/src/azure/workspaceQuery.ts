@@ -375,7 +375,7 @@ Authorization: Bearer {{QUANTUM_TOKEN}}
     inputDataFormat: "qir.v1",
     outputDataFormat: "microsoft.quantum-results.v1",
     inputParams: {
-      entryPoint: "program__main",
+      entryPoint: "ENTRYPOINT__main",
       arguments: [],
       count: 100,
     },
