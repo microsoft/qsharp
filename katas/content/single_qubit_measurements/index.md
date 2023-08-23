@@ -245,12 +245,10 @@ $$
 (One may verify that $U$ is indeed a unitary matrix, by checking that $U^\dagger U = U U^\dagger = I$)
 
 Note that the effect of these matrices on the two bases is the following:
-\begin{align}
-&U\ket{b_0} = \ket{0}, \\\\
-&U\ket{b_1} = \ket{1}, \\\\
-&U^\dagger \ket{0} = \ket{b_0}, \\\\
-&U^\dagger \ket 1 = \ket{b_1}.
-\end{align}
+$$U\ket{b_0} = \ket{0},$$
+$$U\ket{b_1} = \ket{1},$$
+$$U^\dagger \ket{0} = \ket{b_0},$$
+$$U^\dagger \ket 1 = \ket{b_1}.$$
 
 In order to implement a measurement in the ${ \ket{b_0}, \ket{b_1} }$ basis, we do the following:
 
@@ -290,22 +288,16 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
     $$
 
     We can now construct the two projectors $P_{\pm i}$ onto states $\ket {\pm i}$ as follows:
-    \begin{align}
-    &P_{i} = \ket{i}\bra{i} = \frac{1}{2} \begin{bmatrix} 1 \\\\ i \end{bmatrix} \begin{bmatrix} 1 & -i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & -i \\\\ i & 1\end{bmatrix}, \\\\
-    &P_{-i} = \ket{-i}\bra{-i} = \frac{1}{2} \begin{bmatrix} 1 \\\\ -i \end{bmatrix} \begin{bmatrix} 1 & i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & i \\\\ -i & 1\end{bmatrix}.
-    \end{align}
+    $$P_{i} = \ket{i}\bra{i} = \frac{1}{2} \begin{bmatrix} 1 \\\\ i \end{bmatrix} \begin{bmatrix} 1 & -i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & -i \\\\ i & 1\end{bmatrix},$$
+    $$P_{-i} = \ket{-i}\bra{-i} = \frac{1}{2} \begin{bmatrix} 1 \\\\ -i \end{bmatrix} \begin{bmatrix} 1 & i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & i \\\\ -i & 1\end{bmatrix}.$$
 
     Recalling that the probabilities of measuring $\pm i$ are equal to the norm of the vectors $P_{\pm i}\ket \psi$, we now apply $P_{\pm i}$ to $\ket \psi$:
-    \begin{align}
-    P_{+i} \ket \psi &= \frac{1}{2} \begin{bmatrix}1 & -i \\\\ i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 - 0.8i \\\\ 0.8 + 0.6i \end{bmatrix}, \\\\
-    P_{-i} \ket \psi &= \frac{1}{2} \begin{bmatrix}1 & i \\\\ -i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 + 0.8i \\\\ 0.8 - 0.6i \end{bmatrix}.
-    \end{align}
+    $$P_{+i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & -i \\\\ i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 - 0.8i \\\\ 0.8 + 0.6i \end{bmatrix},$$
+    $$P_{-i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & i \\\\ -i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 + 0.8i \\\\ 0.8 - 0.6i \end{bmatrix}.$$
 
     Hence, the probabilities of measuring $\pm i$, which we denote by $p(\pm i)$, are:
-    \begin{align}
-    p(+i) &= |P_{+i} \ket \psi|^2 = \frac{1}{4}(|0.6 - 0.8i|^2 + |0.8 + 0.6i|^2) = \frac{1}{2}, \\\\
-    p(-i) &= |P_{-i} \ket \psi|^2 = \frac{1}{4}(|0.6 + 0.8i|^2 + |0.8 - 0.6i|^2) = \frac{1}{2}.
-    \end{align}
+    $$p(+i) = |P_{+i} \ket \psi|^2 = \frac{1}{4}(|0.6 - 0.8i|^2 + |0.8 + 0.6i|^2) = \frac{1}{2},$$
+    $$p(-i) = |P_{-i} \ket \psi|^2 = \frac{1}{4}(|0.6 + 0.8i|^2 + |0.8 - 0.6i|^2) = \frac{1}{2}.$$
 
 </details>
 
