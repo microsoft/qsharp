@@ -14,6 +14,7 @@ use qsc::{
     },
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
+use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -34,6 +35,30 @@ thread_local! {
 pub fn git_hash() -> JsValue {
     let git_hash = env!("QSHARP_GIT_HASH");
     JsValue::from_str(git_hash)
+}
+
+#[wasm_bindgen]
+pub fn get_qir(code: &str) -> Result<JsValue, JsValue> {
+    let core = compile::core();
+    let mut store = PackageStore::new(core);
+    let std = compile::std(&store, TargetProfile::Base);
+    let std = store.insert(std);
+    let sources = SourceMap::new([("test".into(), code.into())], None);
+
+    let unit = qsc::compile::compile(
+        &store,
+        &[std],
+        sources,
+        PackageType::Exe,
+        TargetProfile::Base,
+    );
+    let package = store.insert(unit.0);
+
+    let qir = generate_qir(&store, package);
+    match qir {
+        Ok(qir) => Ok(JsValue::from_str(&qir)),
+        Err((err, _)) => Err(JsValue::from_str(&err.to_string())),
+    }
 }
 
 #[wasm_bindgen]
@@ -240,6 +265,8 @@ pub fn check_exercise_solution(
 
 #[cfg(test)]
 mod test {
+    use crate::get_qir;
+
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
@@ -254,6 +281,16 @@ mod test {
         assert_eq!(err_2.start_pos, 32);
         assert_eq!(err_2.end_pos, 33);
         assert_eq!(err_2.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
+    }
+
+    #[test]
+    fn test_compile() {
+        let code = "namespace test { @EntryPoint() operation Foo(): Result {
+        use q = Qubit();
+        H(q);
+        M(q)
+        }}";
+        let _ = get_qir(code);
     }
 
     #[test]

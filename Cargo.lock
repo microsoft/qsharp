@@ -944,6 +944,7 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "qsc",
+ "qsc_codegen",
  "qsls",
  "serde",
  "serde-wasm-bindgen",

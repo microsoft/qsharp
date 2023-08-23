@@ -163,6 +163,11 @@
         "icon": "$(run)"
       },
       {
+        "command": "quantum-get-qir",
+        "category": "Q#",
+        "title": "Get QIR for current Q# program"
+      },
+      {
         "command": "quantum-filter-results",
         "category": "Q#",
         "title": "Filter Azure Quantum workspace job results",

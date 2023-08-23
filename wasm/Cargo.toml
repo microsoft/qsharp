@@ -22,6 +22,7 @@ num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsls = { path = "../language_service" }
 qsc = { path = "../compiler/qsc" }
+qsc_codegen = { path = "../compiler/qsc_codegen" }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
