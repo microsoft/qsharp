@@ -13,7 +13,7 @@
 namespace Sample {
     open Microsoft.Quantum.Measurement;
     @EntryPoint()
-    operation Main () : (Result, Result[], Result) {
+    operation Main () : (Result, Result[]) {
         // The `M` operation performs a measurement of a single qubit in the
         // computational basis, also known as the Pauli Z basis.
         use q = Qubit();
@@ -25,13 +25,6 @@ namespace Sample {
         use qs = Qubit[2];
         let results = MeasureEachZ(qs);
 
-        // The `Measure` operation performs a joint measurement of one or more
-        // qubits in the specified Pauli bases.
-        H(qs[0]);
-        CNOT(qs[0], qs[1]);
-        let jointResult = Measure([PauliZ, PauliZ], qs);
-        ResetAll(qs);
-
-        return (result, results, jointResult);
+        return (result, results);
     }
 }
