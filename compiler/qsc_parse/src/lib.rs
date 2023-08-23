@@ -112,7 +112,7 @@ pub fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
 
 pub fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match expr::expr(&mut scanner) {
+    match expr::expr_eof(&mut scanner) {
         Ok(expr) => (expr, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();

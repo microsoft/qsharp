@@ -499,7 +499,9 @@ fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan 
 
 fn next_offset(sources: &[Source]) -> u32 {
     sources.last().map_or(0, |s| {
-        s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
+        // Leave a gap of 1 between each source so that offsets at EOF
+        // get mapped to the correct source
+        1 + s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
     })
 }
 
