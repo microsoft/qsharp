@@ -99,13 +99,40 @@ function aggregateSources(paths, globalCodeSources) {
   return codeSources;
 }
 
+function resolveSvgSegment(properties, baseFolderPath) {
+  const requiredProperties = ["path"];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `SVG macro is missing the following properties: ${missingProperties}`
+    );
+  }
+
+  const svgPath = join(baseFolderPath, properties.path);
+  const svg = tryReadFile(
+    svgPath,
+    `Could not read the contents of the SVG file at ${svgPath}`
+  );
+
+  properties["svg"] = svg;
+}
+
+function resolveEmbeddedContent(segments, baseFolderPath) {
+  for (const segment of segments) {
+    if (segment.type === "svg") {
+      resolveSvgSegment(segment.properties, baseFolderPath);
+    }
+  }
+}
+
 function appendToMarkdownSegment(markdownSegment, segmentToAppend) {
   if (segmentToAppend.type === "markdown") {
     markdownSegment.markdown += "\n" + segmentToAppend.markdown;
   } else if (segmentToAppend.type === "svg") {
-    // TODO: Temporary scaffolding.
-    markdownSegment.markdown +=
-      "\n" + `<b>${segmentToAppend.properties.path}</b>`;
+    markdownSegment.markdown += "\n" + segmentToAppend.properties.svg;
   } else {
     throw new Error(
       `Cannot append segment of type "${segmentToAppend.type}" into markdown segment`
@@ -147,6 +174,12 @@ function coalesceSegments(segments) {
     coalescedSegments.push(coalescedSegment);
   }
 
+  return coalescedSegments;
+}
+
+function preProcessSegments(segments, baseFolderPath) {
+  resolveEmbeddedContent(segments, baseFolderPath);
+  const coalescedSegments = coalesceSegments(segments);
   return coalescedSegments;
 }
 
@@ -253,7 +286,7 @@ function createExplainedSolution(markdownFilePath) {
 
   const solutionFolderPath = dirname(markdownFilePath);
   const rawSegments = parseMarkdown(markdown);
-  const segments = coalesceSegments(rawSegments);
+  const segments = preProcessSegments(rawSegments, solutionFolderPath);
   const solutionItems = [];
   for (const segment of segments) {
     let solutionItem = null;
@@ -284,7 +317,7 @@ function createAnswer(markdownFilePath) {
 
   const answerFolderPath = dirname(markdownFilePath);
   const rawSegments = parseMarkdown(markdown);
-  const segments = coalesceSegments(rawSegments);
+  const segments = preProcessSegments(rawSegments, answerFolderPath);
   const items = [];
   for (const segment of segments) {
     let answerItem = null;
@@ -526,7 +559,8 @@ function generateKataContent(path, globalCodeSources) {
     `Could not get title for kata '${kataId}'`
   );
 
-  const segments = coalesceSegments(rawSegments.slice(1));
+  // Do not use the first segment since it was already processed to get the kata's title.
+  const segments = preProcessSegments(rawSegments.slice(1), path);
   const kata = createKata(path, kataId, title, segments, globalCodeSources);
   console.log(`-- '${kata.id}' kata was successfully created`);
   return kata;
