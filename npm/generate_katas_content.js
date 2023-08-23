@@ -99,6 +99,57 @@ function aggregateSources(paths, globalCodeSources) {
   return codeSources;
 }
 
+function appendToMarkdownSegment(markdownSegment, segmentToAppend) {
+  if (segmentToAppend.type === "markdown") {
+    markdownSegment.markdown += "\n" + segmentToAppend.markdown;
+  } else if (segmentToAppend.type === "svg") {
+    // TODO: Temporary scaffolding.
+    markdownSegment.markdown +=
+      "\n" + `<b>${segmentToAppend.properties.path}</b>`;
+  } else {
+    throw new Error(
+      `Cannot append segment of type "${segmentToAppend.type}" into markdown segment`
+    );
+  }
+}
+
+function coalesceIntoSingleMarkdownSegment(startingSegment, segmentsStack) {
+  const markdownSegment = { type: "markdown", markdown: "" };
+  appendToMarkdownSegment(markdownSegment, startingSegment);
+  const isCoalesceSupportedForSegment = (segment) =>
+    segment.type === "markdown" || segment.type === "svg";
+  while (
+    segmentsStack.length > 0 &&
+    isCoalesceSupportedForSegment(segmentsStack.at(-1))
+  ) {
+    const currentSegment = segmentsStack.pop();
+    appendToMarkdownSegment(markdownSegment, currentSegment);
+  }
+
+  return markdownSegment;
+}
+
+function coalesceSegments(segments) {
+  const coalescedSegments = [];
+  const segmentsStack = segments.reverse();
+  while (segmentsStack.length > 0) {
+    let currentSegment = segmentsStack.pop();
+    let coalescedSegment = null;
+    if (currentSegment.type === "markdown" || currentSegment.type === "svg") {
+      coalescedSegment = coalesceIntoSingleMarkdownSegment(
+        currentSegment,
+        segmentsStack
+      );
+    } else {
+      coalescedSegment = currentSegment;
+    }
+
+    coalescedSegments.push(coalescedSegment);
+  }
+
+  return coalescedSegments;
+}
+
 function parseMarkdown(markdown) {
   const segments = [];
   const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
@@ -201,7 +252,8 @@ function createExplainedSolution(markdownFilePath) {
   );
 
   const solutionFolderPath = dirname(markdownFilePath);
-  const segments = parseMarkdown(markdown);
+  const rawSegments = parseMarkdown(markdown);
+  const segments = coalesceSegments(rawSegments);
   const solutionItems = [];
   for (const segment of segments) {
     let solutionItem = null;
@@ -231,7 +283,8 @@ function createAnswer(markdownFilePath) {
   );
 
   const answerFolderPath = dirname(markdownFilePath);
-  const segments = parseMarkdown(markdown);
+  const rawSegments = parseMarkdown(markdown);
+  const segments = coalesceSegments(rawSegments);
   const items = [];
   for (const segment of segments) {
     let answerItem = null;
@@ -408,25 +461,15 @@ function tryCreateMarkdownSegment(text) {
   return null;
 }
 
-function createKata(segments, kataPath, globalCodeSources) {
-  const kataId = basename(kataPath);
-
-  // Validate that the kata markdown file is not empty.
+function createKata(kataPath, id, title, segments, globalCodeSources) {
+  // Validate that the kata has at least one segment.
   if (segments.length === 0) {
-    throw new Error(`Markdown for '${kataId}' kata does not have any segments`);
+    throw new Error(`Kata '${id}' does not have any segments`);
   }
 
+  // Create sections from the segments in the stack.
   // Use the array of segments as a stack to keep track of the segments that have not been processed.
   const segmentsStack = segments.reverse();
-
-  // The first segment in the kata must be the title.
-  const firstSegment = segmentsStack.pop();
-  const title = tryGetTitleFromSegment(
-    firstSegment,
-    `Could not get title for kata '${kataId}'`
-  );
-
-  // Create sections from the remainin segments in the stack.
   const sections = [];
   while (segmentsStack.length > 0) {
     const currentSegment = segmentsStack.pop();
@@ -459,7 +502,7 @@ function createKata(segments, kataPath, globalCodeSources) {
   }
 
   return {
-    id: kataId,
+    id: id,
     title: title,
     sections: sections,
   };
@@ -472,8 +515,19 @@ function generateKataContent(path, globalCodeSources) {
     markdownPath,
     "Could not read the contents of the kata markdown file"
   );
-  const segments = parseMarkdown(markdown);
-  const kata = createKata(segments, path, globalCodeSources);
+
+  const kataId = basename(path);
+  const rawSegments = parseMarkdown(markdown);
+
+  // The first segment in the kata must be the title.
+  const firstSegment = rawSegments.at(0);
+  const title = tryGetTitleFromSegment(
+    firstSegment,
+    `Could not get title for kata '${kataId}'`
+  );
+
+  const segments = coalesceSegments(rawSegments.slice(1));
+  const kata = createKata(path, kataId, title, segments, globalCodeSources);
   console.log(`-- '${kata.id}' kata was successfully created`);
   return kata;
 }
