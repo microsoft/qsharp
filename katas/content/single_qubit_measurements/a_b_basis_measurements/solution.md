@@ -1,9 +1,9 @@
 For this problem, we follow the procedure given in the "Measurements in Arbitrary Orthogonal Bases" section of the Kata.
 As noted in the solution of the "Distinguishing Orthogonal States: 2" exercise, the gate $R_x(-\theta)$, with $\theta = 2\alpha$ transforms the $\ket A/\ket B$ states to the $\ket 0/\ket 1$ states:
-\begin{aligned}
+\begin{align}
 R_x(-\theta) \ket A &= \ket 0, \\\\
 R_x(-\theta) \ket B &= \ket 1.
-\end{aligned}
+\end{align}
 Hence, we first apply $R_x(-\theta)$ to the qubit. Next, we measure in the computational basis using the `M` operation.
 If the `M` operation returned `Zero`, we get measurement outcome $A$, and if it returned `One`, we get measurement outcome $B$.
 
