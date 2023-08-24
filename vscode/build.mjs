@@ -20,7 +20,7 @@ const buildOptions = {
   target: ["es2020"],
   sourcemap: "linked",
   define: { "import.meta.url": "undefined" },
-}
+};
 
 /** @type {import("esbuild").BuildOptions} */
 const extensionOptions = {
@@ -30,16 +30,14 @@ const extensionOptions = {
     join(thisDir, "src", "debugger", "debug-service-worker.ts"),
   ],
   outdir: join(thisDir, "out"),
-  ...buildOptions
+  ...buildOptions,
 };
 
 /** @type {import("esbuild").BuildOptions} */
 const testOptions = {
-  entryPoints: [
-    join(thisDir, "test", "suite", "index.ts")
-  ],
+  entryPoints: [join(thisDir, "test", "suite", "index.ts")],
   outdir: join(thisDir, "test", "out"),
-  ...buildOptions
+  ...buildOptions,
 };
 
 function copyWasm() {
@@ -64,7 +62,7 @@ function buildTests() {
   console.log("Running esbuild");
 
   build(testOptions).then(() =>
-  console.log(`Built bundle to ${testOptions.outdir}`)
+    console.log(`Built bundle to ${testOptions.outdir}`)
   );
 }
 
