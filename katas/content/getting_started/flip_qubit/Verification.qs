@@ -14,7 +14,7 @@ namespace Kata.Verification {
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
             Message("Correct!");
-            Message("Congratulation! You have solved your first exercise");
+            Message("Congratulations! You have solved your first exercise.");
         } else {
             Message("Incorrect.");
             Message("Look out for hints when your solution is incorrect.");
