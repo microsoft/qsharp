@@ -52,4 +52,4 @@ pyo3 = { version = "0.18", features = ["abi3-py37", "extension-module"] }
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e96b9a12a43e98f83f2d4d499f46d651d0c6c341", default-features = false }
 
 [profile.release]
-debug = 1
+strip = true
