@@ -5,9 +5,9 @@
     "title": "Overview"
 })
 
-This Kata introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
+This kata introduces you to one of the core concepts in quantum computing - the qubit, and its representation in mathematical notation and in Q# code.
 
-**This Kata covers the following topics:**
+**This kata covers the following topics:**
 
 - The concept of a qubit
 - Superposition
@@ -17,7 +17,7 @@ This Kata introduces you to one of the core concepts in quantum computing - the 
 - `Qubit` data type in Q#
 - Visualizing the quantum state using `DumpMachine`
 
-**What you should know to start working on this Kata:**
+**What you should know to start working on this kata:**
 
 - Complex arithmetic
 - Linear algebra
@@ -129,7 +129,7 @@ Other examples of vector states represented in Dirac notation are:
     </tr>
 </table>
 
-We will learn more about Dirac notation in the next Katas, as we introduce quantum gates and multi-qubit systems.
+We will learn more about Dirac notation in the next katas, as we introduce quantum gates and multi-qubit systems.
 
 
 @[section]({
@@ -160,14 +160,14 @@ Freshly allocated qubits start out in state $|0\rangle$, and have to be returned
 
 ## Visualizing Quantum State
 
-Before we continue, let's learn some techniques to visualize the Quantum state of our qubits.
+Before we continue, let's learn some techniques to visualize the quantum state of our qubits.
 
 ### Display the Quantum State of a Single-Qubit Program
 
 Let's start with a simple scenario: a program that acts on a single qubit. 
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
 
-$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+$$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
 If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation. 
 You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.
@@ -175,20 +175,20 @@ You would need to run the program repeatedly up to this point, perform a measure
 However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state. 
 You can take advantage of this to do some non-physical things, such as peeking at the internals of the quantum system to observe its exact state without disturbing it!
 
-The [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from the [Microsoft.Quantum.Diagnostics namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase; sometimes you'll see that all amplitudes are multiplied by some complex number compared to the state you're expecting.
+The [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from the [`Microsoft.Quantum.Diagnostics namespace`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase, and remember that global phase does not have any physical meaning. When using `DumpMachine`, you may see that all probability amplitudes are multiplied by some complex number compared to the state you're expecting.
 
 ### Demo: DumpMachine For Single-Qubit Systems
 
-The following demo shows how to allocate a qubit and examine its state in Q# using [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to output the state of the system at any point in the program without affecting the state.
+The following demo shows how to allocate a qubit and examine its state in Q#. You'll use `DumpMachine` to output the state of the system at any point in the program without affecting the state.
 
 > Note that the Q# code doesn't have access to the output of `DumpMachine`, so you cannot write any non-physical code in Q#!
 
 @[example]({"id": "single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
 
-The exact behavior of this function depends on the quantum simulator or processor you are using.
+The exact behavior of this operation called `RunExample` depends on the quantum simulator or processor you are using.
 
 On the simulator used in these demos, this function prints the information on each basis state that has a non-zero amplitude, one basis state per row.
-This includes information about the amplitude of the state, the probability of measuring that state, and the phase of the state (more on that later)
+This includes information about the amplitude of the state, the probability of measuring that state, and the phase of the state.
 
 Note that each row has the following format:
 
@@ -243,7 +243,7 @@ Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes
 
 > Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
 `DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
-We will learn more details on endianness in the "Multi-Qubit Systems" Kata.
+We will learn more details on endianness in the "Multi-Qubit Systems" kata.
 
 ## Demo: DumpMachine for Multi-Qubit Systems
 
@@ -266,4 +266,8 @@ We will learn more details on endianness in the "Multi-Qubit Systems" Kata.
     "title": "Conclusion"
 })
 
-This should be enough for you to gain a basic understanding of qubits and qubit states. Next, you will learn how to manipulate those states in the "Single-Qubit Gates" Kata.
+Congratulations! In this kata you learned the basics of qubits and qubit states. Here are a few key concepts to keep in mind:
+* A qubit is a basic unit of quantum information, analogous to a bit in classical computing.
+* Superposition is a quantum phenomenon where a qubit is in a combination of both 0 and 1 states. When measured, a qubit goes from being in superposition to one of the classical states.
+* A qubit can be represented as $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$, where $\alpha$ and $\beta$ are complex numbers and state vectors $|0\rangle$ and $|1\rangle$ are $0$ and $1$ states respectively.
+* In Q#, qubits are represented by the `Qubit` data type. When simulating a quantum program, you can use `DumpMachine` to inspect the state of a qubit without disturbing it.
