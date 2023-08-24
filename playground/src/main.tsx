@@ -110,7 +110,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   return (
     <>
-      <header class="header">Q# playground</header>
+      <header class="page-header">Q# playground</header>
       <Nav
         selected={currentNavItem}
         navSelected={onNavItemSelected}
