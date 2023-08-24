@@ -1,4 +1,4 @@
 %Result = type opaque
 %Qubit = type opaque
 
-define void @program__main() #0 {
+define void @ENTRYPOINT__main() #0 {

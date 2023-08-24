@@ -2,10 +2,8 @@ We can distinguish between the states $\ket{A}$ and $\ket B$ if we implement a m
 
 We can notice that the $R_x$ rotation gate with $\theta = 2 \alpha$ is an appropriate transformation which maps the $\ket 0 $ state to the $\ket A$ state, and the $\ket 1$ state to the $\ket B$ state:
 
-\begin{align}
-R_x(\theta) \ket 0 &= \cos \alpha \ket 0 -i \sin \alpha \ket 1 = \ket {A} \\
-R_x(\theta) \ket 1 &= -i \sin \alpha \ket 0 + \cos \alpha \ket 1 = \ket{B}
-\end{align}
+$$R_x(\theta) \ket 0 = \cos \alpha \ket 0 -i \sin \alpha \ket 1 = \ket {A},$$
+$$R_x(\theta) \ket 1 = -i \sin \alpha \ket 0 + \cos \alpha \ket 1 = \ket{B}.$$
 
 Thus, the inverse transformation $R_x(-\theta)$ maps the $A/B$ basis to the $0/1$ basis.
 

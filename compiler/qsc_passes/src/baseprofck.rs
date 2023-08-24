@@ -9,7 +9,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
         BinOp, CallableDecl, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody,
-        SpecGen, Stmt,
+        SpecGen, Stmt, StmtKind,
     },
     ty::{Prim, Ty},
     visit::{walk_expr, walk_item, Visitor},
@@ -64,6 +64,11 @@ pub fn check_base_profile_compliance(package: &Package) -> Vec<Error> {
 pub fn check_base_profile_compliance_for_stmt(stmt: &Stmt) -> Vec<Error> {
     let mut checker = Checker { errors: Vec::new() };
     checker.visit_stmt(stmt);
+    if let StmtKind::Expr(expr) = &stmt.kind {
+        if any_non_result_ty(&expr.ty) {
+            checker.errors.push(Error::ReturnNonResult(stmt.span));
+        }
+    }
 
     checker.errors
 }
