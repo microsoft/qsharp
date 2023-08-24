@@ -6,7 +6,7 @@
 })
 
 kaˑ ta | kah-tuh
-_The japanese word for "form", a pattern of learning and practicing new skills, particularly martial arts._
+_The japanese word for "form", a pattern of learning and practicing new skills._
 
 <style>
 .transparent {
@@ -20,12 +20,12 @@ _The japanese word for "form", a pattern of learning and practicing new skills, 
                 @[svg]({"path": "./media/Copilot.svg"})
             </td>
             <td style="border:none;">
-                <b>Self placed AI-assisted learning</b>
+                <b>Self-paced AI-assisted learning</b>
             </td>
         </tr>
         <tr class="transparent" style="border:none;">
             <td style="border:none;">
-                Quantum Katas are self-paced learning tutorials assisted by Copilot in Azure Quantum
+                Quantum katas are self-paced learning tutorials assisted by Copilot in Azure Quantum.
             </td>
         </tr>
         <tr class="transparent" style="border:none;">
@@ -38,7 +38,7 @@ _The japanese word for "form", a pattern of learning and practicing new skills, 
         </tr>
         <tr class="transparent" style="border:none;">
             <td style="border:none;">
-                The Quantum Katas focus on teaching quantum computing concepts and quantum programming using the Q# language.
+                The Quantum katas focus on teaching quantum computing concepts and quantum programming using the Q# language.
             </td>
         </tr>
         <tr class="transparent" style="border:none;">
