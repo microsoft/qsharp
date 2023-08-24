@@ -1,9 +1,9 @@
-* @billti @idavis @minestarks @samarsha @swernli
+* @billti @idavis @minestarks @swernli
 
-/.github/ISSUE_TEMPLATE/fuzz_bug_report.md @billti @kuzminrobin @swernli
-/.github/workflows/fuzz.yml @billti @kuzminrobin @swernli
-/compiler @idavis @samarsha @swernli
-/fuzz  @billti @kuzminrobin @swernli
+/.github/ISSUE_TEMPLATE/fuzz_bug_report.md @billti @idavis @swernli
+/.github/workflows/fuzz.yml @billti @idavis @swernli
+/compiler @idavis @minestarks @swernli
+/fuzz  @billti @idavis @swernli
 /katas @billti @cesarzc @DmitryVasilevsky @sezna @swernli
 /jupyterlab @billti @idavis @minestarks
 /language_service @billti @idavis @minestarks @ScottCarda-MS
@@ -15,7 +15,7 @@
 /vscode @billti @idavis @minestarks
 /wasm @billti @cesarzc @swernli
 
-/Cargo.lock @idavis @samarsha @swernli
-/Cargo.toml @idavis @samarsha @swernli
+/Cargo.lock @idavis @minestarks @swernli
+/Cargo.toml @idavis @minestarks @swernli
 /package-lock.json @billti @cesarzc @minestarks
 /package.json @billti @cesarzc @minestarks
