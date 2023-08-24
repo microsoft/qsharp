@@ -12,12 +12,6 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-  entryPoints: [
-    join(thisDir, "src", "extension.ts"),
-    join(thisDir, "src", "compilerWorker.ts"),
-    join(thisDir, "src", "debugger/debug-service-worker.ts"),
-  ],
-  outdir: join(thisDir, "out"),
   bundle: true,
   mainFields: ["browser", "module", "main"],
   external: ["vscode"],
@@ -26,6 +20,26 @@ const buildOptions = {
   target: ["es2020"],
   sourcemap: "linked",
   define: { "import.meta.url": "undefined" },
+}
+
+/** @type {import("esbuild").BuildOptions} */
+const extensionOptions = {
+  entryPoints: [
+    join(thisDir, "src", "extension.ts"),
+    join(thisDir, "src", "compilerWorker.ts"),
+    join(thisDir, "src", "debugger", "debug-service-worker.ts"),
+  ],
+  outdir: join(thisDir, "out"),
+  ...buildOptions
+};
+
+/** @type {import("esbuild").BuildOptions} */
+const testOptions = {
+  entryPoints: [
+    join(thisDir, "test", "suite", "index.ts")
+  ],
+  outdir: join(thisDir, "test", "out"),
+  ...buildOptions
 };
 
 function copyWasm() {
@@ -41,10 +55,19 @@ function copyWasm() {
 function buildBundle() {
   console.log("Running esbuild");
 
-  build(buildOptions).then(() =>
-    console.log(`Built bundle to ${join(thisDir, "out")}`)
+  build(extensionOptions).then(() =>
+    console.log(`Built bundle to ${extensionOptions.outdir}`)
+  );
+}
+
+function buildTests() {
+  console.log("Running esbuild");
+
+  build(testOptions).then(() =>
+  console.log(`Built bundle to ${testOptions.outdir}`)
   );
 }
 
 copyWasm();
 buildBundle();
+buildTests();
