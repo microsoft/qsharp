@@ -13,9 +13,9 @@ This Kata introduces you to one of the core concepts in quantum computing - the 
 - Superposition
 - Vector representation of qubit states
 - Dirac notation
-- Relative and Global Phase
+- Relative and global phase
 - `Qubit` data type in Q#
-- Visualizing Quantum State using `DumpMachine`
+- Visualizing the quantum state using `DumpMachine`
 
 **What you should know to start working on this Kata:**
 
@@ -29,7 +29,7 @@ This Kata introduces you to one of the core concepts in quantum computing - the 
 
 The basic building block of a classical computer is the bit - a single memory cell that is either in state $0$ or in state $1$. Similarly, the basic building block of a quantum computer is the quantum bit, or **qubit**. Like the classical bit, a qubit can be in state $0$ or in state $1$. Unlike the classical bit, however, the qubit isn't limited to just those two states - it may also be in a combination, or **superposition** of those states.
 
-> A common misconception about quantum computing is that a qubit is always in one state or the other, we just don't know which one until we "measure" it. That is not the case. A qubit in a superposition is in a state between the states $0$ and $1$. When a qubit is measured, it is forced entirely into one state or the other - in other words, measuring it actually changes its state.
+> A common misconception about quantum computing is that a qubit is always in state $1$ or state $0$, we just don't know which one until we "measure" it. That is not the case. A qubit in a superposition is in a linear combination of the states 0 and 1. When a qubit is measured, it is forced to collapse into one state or the other - in other words, measuring a qubit is a drastic process that changes its initial state.
 
 ## Matrix Representation
 
@@ -37,9 +37,10 @@ The state of a qubit is represented by a complex vector of size 2:
 
 $$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$$
 
-Here $\alpha$ represents how "close" the qubit is to the state $0$, and $\beta$ represents how "close" the qubit is to the state $1$. This vector is normalized: $|\alpha|^2 + |\beta|^2 = 1$.
+Here $\alpha$ and $\beta$ are complex numbers. $\alpha$ represents how "close" the qubit is to state $0$, and $\beta$ represents how "close" the qubit is to state $1$. This vector is normalized: $|\alpha|^2 + |\beta|^2 = 1$.
+α and β are known as the probability amplitudes of states 0 and 1, respectively.
 
-$\alpha$ and $\beta$ are known as **amplitudes** of states $0$ and $1$, respectively.
+$\alpha$ and $\beta$ are known as the probability amplitudes of states $0$ and $1$, respectively.
 
 ## Basis States
 
@@ -51,7 +52,7 @@ Likewise, a qubit in state $1$ would be represented by this vector:
 
 $$\begin{bmatrix} 0 \\\ 1 \end{bmatrix}$$
 
-Note that you can use scalar multiplication and vector addition to express any qubit state as a sum of these two vectors with certain weights (known as **linear combination**):
+Note that you can use scalar multiplication and vector addition to express any qubit state $\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$ as a sum of these two vectors with certain probability amplitudes $\alpha$ and $\beta$, known as linear combination.
 
 $$
 \begin{bmatrix} \alpha \\\ \beta \\end{bmatrix} =
@@ -59,16 +60,16 @@ $$
 \alpha \cdot \begin{bmatrix} 1 \\\ 0 \end{bmatrix} + \beta \cdot \begin{bmatrix} 0 \\\ 1 \end{bmatrix}
 $$
 
-Because of this, these two states are known as **basis states**.
+Because of this, qubit states $0$ and $1$ are known as basis states. These two vectors have two properties.
 
-These two vectors have two additional properties. First, as mentioned before, both are **normalized**:
+1. They are normalized.
 
 $$
 \langle \begin{bmatrix} 1 \\\ 0 \end{bmatrix} , \begin{bmatrix} 1 \\\ 0 \end{bmatrix} \rangle =
 \langle \begin{bmatrix} 0 \\\ 1 \end{bmatrix} , \begin{bmatrix} 0 \\\ 1 \end{bmatrix} \rangle = 1
 $$
 
-Second, they are **orthogonal** to each other:
+2. They are orthogonal to each other.
 
 $$
 \langle \begin{bmatrix} 1 \\\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\\ 1 \end{bmatrix} \rangle =
@@ -98,12 +99,12 @@ This means that these vectors form an **orthonormal basis**. The basis of $\begi
     "title": "Dirac Notation"
 })
 
-Writing out each vector when doing quantum calculations takes up a lot of space, and this will get even worse once we introduce quantum gates and multi-qubit systems. **Dirac notation** is a shorthand notation that helps solve this issue. In Dirac notation, a vector is denoted by a symbol called a **ket**. For example, a qubit in state $0$ is represented by the ket $|0\rangle$, and a qubit in state $1$ is represented by the ket $|1\rangle$:
+Dirac notation is a shorthand notation that eases writing quantum states and computing linear algebra. In Dirac notation, a vector is denoted by a symbol called a **ket**. For example, a qubit in state $0$ is represented by the ket $|0\rangle$, and a qubit in state $1$ is represented by the ket $|1\rangle$:
 
 <table>
     <tr>
-        <td>$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
-        <td>$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
+        <td>$$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$$</td>
+        <td>$$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$$</td>
     </tr>
 </table>
 
@@ -111,20 +112,20 @@ These two kets represent basis states, so they can be used to represent any othe
 
 $$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
-Any symbol other than $0$ or $1$ within the ket can be used to represent arbitrary vectors, similar to how variables are used in algebra:
+Dirac notation is not only restricted to vectors $0$ and $1$, but it can be used to represent any arbitrary vector. For example the vector $\psi$ can be written as:
 
 $$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$$
 
-Several ket symbols have a generally accepted use, such as:
+Other examples of vector states represented in Dirac notation are:
 
 <table>
     <tr>
-        <td>$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$</td>
-        <td>$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$</td>
+        <td>$$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$$</td>
+        <td>$$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$$</td>
     </tr>
     <tr>
-        <td>$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$</td>
-        <td>$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$</td>
+        <td>$$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$$</td>
+        <td>$$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$$</td>
     </tr>
 </table>
 
@@ -136,9 +137,9 @@ We will learn more about Dirac notation in the next Katas, as we introduce quant
     "title": "Relative and Global Phase"
 })
 
-You may recall that a complex number has a parameter called its phase. If a complex number $x$ is written in polar form $x = re^{i\theta}$, its phase is $\theta$.
+Complex numbers have a parameter called the phase. If a complex number $z = x + iy$ is written in polar form $z = re^{i\theta}$, its phase is $\theta$ where $\theta = tan^{-1}(\frac{y}{x})$.
 
-The phase of a basis state is the complex phase of the amplitude of that state. For example, a system in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$, the phase of $|0\rangle$ is $\frac{\pi}{4}$, and the phase of $|1\rangle$ is $-\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
+The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that $\theta = tan^{-1}(1) = \frac{\pi}{4}$. Thus, the phase of $|0\rangle$ is $\frac{\pi}{4}$, and the phase of $|1\rangle$ is $-\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
 
 Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha|0\rangle + \beta|1\rangle$ has the same relative phase as $e^{i\theta}\big(\alpha|0\rangle + \beta|1\rangle\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
 
