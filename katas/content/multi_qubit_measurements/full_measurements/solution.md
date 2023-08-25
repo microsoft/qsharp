@@ -4,7 +4,7 @@ First, we measure both qubits in the input array and store the result in `m1` an
 - `m1` is $|1\rangle$ and `m2` is $|0\rangle$: we return $1\cdot2+0 = 2$
 - `m1` is $|1\rangle$ and `m2` is $|1\rangle$: we return $1\cdot2+1 = 3$
 
-In other words, we treat the measurement results as the binary notation of the return value in [big endian notation](../MultiQubitSystems/MultiQubitSystems.ipynb#Endianness).
+In other words, we treat the measurement results as the binary notation of the return value in big endian notation.
 
 @[solution]({
 "id": "full_measurements_solution",

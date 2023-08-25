@@ -392,15 +392,15 @@ fn block_qubit_use_array_invalid_count_expr() {
                 UserFail(
                     "Cannot allocate qubit array with a negative length",
                     Span {
-                        lo: 1566,
-                        hi: 1623,
+                        lo: 1567,
+                        hi: 1624,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 1571,
-                            hi: 1623,
+                            lo: 1572,
+                            hi: 1624,
                         },
                         id: GlobalId {
                             package: PackageId(
@@ -507,8 +507,8 @@ fn binop_andl_no_shortcut() {
                 UserFail(
                     "Should Fail",
                     Span {
-                        lo: 10,
-                        hi: 28,
+                        lo: 11,
+                        hi: 29,
                     },
                 ),
                 [],
@@ -531,8 +531,8 @@ fn binop_div_bigint_zero() {
             (
                 DivZero(
                     Span {
-                        lo: 6,
-                        hi: 8,
+                        lo: 7,
+                        hi: 9,
                     },
                 ),
                 [],
@@ -555,8 +555,8 @@ fn binop_div_int_zero() {
             (
                 DivZero(
                     Span {
-                        lo: 5,
-                        hi: 6,
+                        lo: 6,
+                        hi: 7,
                     },
                 ),
                 [],
@@ -579,8 +579,8 @@ fn binop_div_double_zero() {
             (
                 DivZero(
                     Span {
-                        lo: 6,
-                        hi: 9,
+                        lo: 7,
+                        hi: 10,
                     },
                 ),
                 [],
@@ -724,8 +724,8 @@ fn binop_exp_bigint_negative_exp() {
                 InvalidNegativeInt(
                     -3,
                     Span {
-                        lo: 3,
-                        hi: 5,
+                        lo: 4,
+                        hi: 6,
                     },
                 ),
                 [],
@@ -744,8 +744,8 @@ fn binop_exp_bigint_too_large() {
                 IntTooLarge(
                     9223372036854775807,
                     Span {
-                        lo: 3,
-                        hi: 28,
+                        lo: 4,
+                        hi: 29,
                     },
                 ),
                 [],
@@ -789,8 +789,8 @@ fn binop_exp_int_negative_exp() {
                 InvalidNegativeInt(
                     -3,
                     Span {
-                        lo: 2,
-                        hi: 4,
+                        lo: 3,
+                        hi: 5,
                     },
                 ),
                 [],
@@ -1233,8 +1233,8 @@ fn fail_expr() {
                 UserFail(
                     "This is a failure",
                     Span {
-                        lo: 0,
-                        hi: 24,
+                        lo: 1,
+                        hi: 25,
                     },
                 ),
                 [],
@@ -1253,8 +1253,8 @@ fn fail_shortcut_expr() {
                 UserFail(
                     "Got Here!",
                     Span {
-                        lo: 2,
-                        hi: 18,
+                        lo: 3,
+                        hi: 19,
                     },
                 ),
                 [],
@@ -1407,8 +1407,8 @@ fn array_slice_step_zero_expr() {
             (
                 RangeStepZero(
                     Span {
-                        lo: 16,
-                        hi: 23,
+                        lo: 17,
+                        hi: 24,
                     },
                 ),
                 [],
@@ -1427,8 +1427,8 @@ fn array_slice_out_of_range_expr() {
                 IndexOutOfRange(
                     5,
                     Span {
-                        lo: 16,
-                        hi: 20,
+                        lo: 17,
+                        hi: 21,
                     },
                 ),
                 [],
@@ -1447,8 +1447,8 @@ fn array_index_negative_expr() {
                 InvalidIndex(
                     -2,
                     Span {
-                        lo: 10,
-                        hi: 12,
+                        lo: 11,
+                        hi: 13,
                     },
                 ),
                 [],
@@ -1467,8 +1467,8 @@ fn array_index_out_of_range_expr() {
                 IndexOutOfRange(
                     4,
                     Span {
-                        lo: 10,
-                        hi: 11,
+                        lo: 11,
+                        hi: 12,
                     },
                 ),
                 [],
@@ -1734,8 +1734,8 @@ fn update_invalid_index_range_expr() {
                 IndexOutOfRange(
                     7,
                     Span {
-                        lo: 13,
-                        hi: 14,
+                        lo: 14,
+                        hi: 15,
                     },
                 ),
                 [],
@@ -1754,8 +1754,8 @@ fn update_invalid_index_negative_expr() {
                 InvalidNegativeInt(
                     -1,
                     Span {
-                        lo: 13,
-                        hi: 15,
+                        lo: 14,
+                        hi: 16,
                     },
                 ),
                 [],
@@ -1874,6 +1874,24 @@ fn assignupdate_expr() {
             x
         }"},
         &expect!["[1, 2, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_field_name() {
+    check_expr(
+        indoc! {"
+        namespace A {
+            newtype Pair = (First : Int, Second : Int);
+        }
+    "},
+        indoc! {"{
+            open A;
+            mutable p = Pair(1, 2);
+            set p w/= First <- 3;
+            p
+        }"},
+        &expect!["(3, 2)"],
     );
 }
 

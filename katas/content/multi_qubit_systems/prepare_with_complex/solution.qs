@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PrepareState4(qs: Qubit[]): Unit is Adj+Ctl {
+    operation PrepareWithComplex(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
         H(qs[1]);
         S(qs[0]);
