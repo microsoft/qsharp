@@ -9,13 +9,13 @@ In the previous kata, we discussed the concept of measurements done on single-qu
 Building upon those ideas, this kata will introduce you to measurements done on multi-qubit systems, and how to implement such measurements in Q#.
 This will include measuring a single qubit in a multi-qubit system, as well as measuring multiple qubits simultaneously.
 
-**This Kata covers the following topics:**
+**This kata covers the following topics:**
 
 - Measuring a single qubit in a multi-qubit system
 - Measuring multiple qubits simultaneously
-- how to implement such measurements in Q#
+- How to implement such measurements in Q#
 
-**What you should know to start working on this Kata:**
+**What you should know to start working on this kata:**
 
 - Basic linear algebra
 - Single and multi-qubit systems
@@ -32,7 +32,7 @@ $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
 
-- Measuring all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes). As we shall see below, this is a direct generalization of orthogonal basis measurements done in single-qubit systems introduced in the previous Kata.
+- Measuring all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes). As we shall see below, this is a direct generalization of orthogonal basis measurements done in single-qubit systems introduced in the previous kata.
 - Partial measurement: measuring $m$ qubits out of $n$, for $m<n$ ($2^m$ possible outcomes). Partial measurements involve a partial collapse of the system's wave function, since only some of the qubits are measured.
 - Joint measurement: measuring a joint property of all $n$ qubits ($2$ possible outcomes).
 
@@ -108,22 +108,22 @@ The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^
 Suppose that a two-qubit system is known to be in the following state:
 $$\ket \psi = \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
-If all the qubits are measured simultaneously in the Pauli X basis, i.e., in the $\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\}$ basis, what are the outcome probabilities?
+If all the qubits are measured simultaneously in the Pauli X basis, that is, in the $\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\}$ basis, what are the outcome probabilities?
 
 ### Analytical Solution
 
 Using the expressions $|0\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle + |-\rangle \big)$ and $|1\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle - |-\rangle \big)$, we first express $|\psi\rangle$ in the Pauli X basis. This gives us
-$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} =$$
+$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
-$$\frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] =$$
+$$= \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big]$$
 
-$$\frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] =$$
+$$= \frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big]$$
 
-$$\frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big] =$$
+$$= \frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big]$$
 
-$$(\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--} =$$
+$$= (\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--}$$
 
-$$\frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--}$$
+$$= \frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--}$$
 
 After this, the probabilities of measuring each of the four basis vectors is given by the square of the absolute value of its amplitude in the superposition:
 <table>
@@ -204,9 +204,9 @@ This can be generalized to measurements in other bases, such as the 2-qubit Paul
 For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$ each basis state is a tensor product of states $\ket{+}$ and $\ket{-}$, which form a single-qubit basis state.
 >
 > Measuring in orthogonal bases which contain states which are not tensor product states, such as the Bell basis, are trickier to implement, and require appropriate unitary rotations in addition to measuring all qubits one after another.
-> We will not discuss such measurements in this Kata.
+> We will not discuss such measurements in this kata.
 >
-> If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this Kata.
+> If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this kata.
 
 @[section]({
     "id": "multi_qubit_measurements_measurement_statistics",
@@ -272,13 +272,13 @@ $$P_1 = \ket 1 \bra 1 \otimes \mathbb{1}$$
 
 The action of $P_0$ on $\ket \psi$ is
 
-$$P_0 \ket \psi =$$
+$$P_0 \ket \psi$$
 
-$$\left(\ket 0\bra 0 \otimes \mathbb{1}\right) \frac{1}{\sqrt 2}\big(\ket{01} - \ket{10}\big) =$$
+$$= \left(\ket 0\bra 0 \otimes \mathbb{1}\right) \frac{1}{\sqrt 2}\big(\ket{01} - \ket{10}\big)$$
 
-$$\frac{1}{\sqrt 2} \big( \ket 0\bra 0 0\rangle \otimes \mathbb{1} \ket{1} - \ket 0 \bra 0 1\rangle \otimes \mathbb{1} \ket 0 \big) =$$
+$$= \frac{1}{\sqrt 2} \big( \ket 0\bra 0 0\rangle \otimes \mathbb{1} \ket{1} - \ket 0 \bra 0 1\rangle \otimes \mathbb{1} \ket 0 \big)$$
 
-$$\frac{1}{\sqrt 2} \ket{01}$$
+$$= \frac{1}{\sqrt 2} \ket{01}$$
 
 Similarly, we obtain
 $$P_1 \ket\psi = -\frac{1}{\sqrt 2} \ket{10}$$
@@ -361,7 +361,7 @@ In certain situations, it is possible to distinguish between orthogonal states o
     "title": "Measurements and Entanglement"
 })
 
-Qubits entanglement has an effect on the measurement statistics of the system. If two qubits are entangled, then their measurement outcomes will be correlated, while separable states (which are by definition not entangled) have uncorrelated measurement outcomes.
+Entanglement has an effect on the measurement statistics of the system. If two qubits are entangled, then their measurement outcomes will be correlated, while separable states (which are by definition not entangled) have uncorrelated measurement outcomes.
 
 > It is useful to revisit the concepts of entanglement and separable states, which were introduced in the kata on multi-qubit systems. Consider a system of $n>1$ number of qubits, which we divide into two parts: A, consisting of $m$ qubits, and B, consisting of the remaining $n-m$ qubits. We say that the state $\ket \psi$ of the entire system is separable if it can be expressed as a tensor product of the states of parts A and B:
 $$
@@ -371,13 +371,13 @@ where $\ket{\phi_A}$ and $\ket{\phi_B}$ are wave functions that describe parts $
 
 Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
 
-$$\ket{\psi}_{i} \equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|} =$$
+$$\ket{\psi}_{i} \equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|}$$
 
-$$\frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|} =$$
+$$= \frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|}$$
 
-$$\frac{\bra{b_i}\phi_A\rangle \cdot \ket{b_i} \otimes \ket {\phi_B}}{\big|\ket{b_i}\big| \cdot \bra{b_i}\phi_A\rangle \cdot \big| \ket {\phi_B}\big|} =$$
+$$= \frac{\bra{b_i}\phi_A\rangle \cdot \ket{b_i} \otimes \ket {\phi_B}}{\big|\ket{b_i}\big| \cdot \bra{b_i}\phi_A\rangle \cdot \big| \ket {\phi_B}\big|}$$
 
-$$\ket{b_i} \otimes \ket{\phi_B}$$
+$$= \ket{b_i} \otimes \ket{\phi_B}$$
 
 Thus, the state of subsystem $B$ after the measurement is $\ket{\phi_B}$ independently of the outcome $i$ of the measurement on the first qubit. The results of a subsequent measurement on subsystem $B$, including outcome probabilities, will be independent of the result of the first measurement. In other words, the outcomes of the two measurements will be uncorrelated.
 
@@ -455,7 +455,7 @@ For example, consider the computational basis measurement, which can result in o
 
 $$Z = \begin{pmatrix} 1 & 0 \\\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
 
-The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\{\ket{0},\ket{1}\}$ basis, with the measurement outcomes being $1$ and $-1$ respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
+The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\\{\ket{0},\ket{1}\\}$ basis, with the measurement outcomes being $1$ and $-1$ respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
 Similarly, one can implement measurements corresponding to the Pauli X and Y operators. We summarize the various properties below:
 <table>
@@ -515,10 +515,10 @@ Let's see what happens to various two-qubit states after the parity measurement.
 $$
 Z \otimes Z =
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\
-    0 & -1 & 0 & 0 \\\
-    0 & 0 & -1 & 0 \\\
-    0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 \\\ 
+    0 & -1 & 0 & 0 \\\ 
+    0 & 0 & -1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
 \end{bmatrix}
 $$
 
@@ -636,3 +636,15 @@ Using these, we obtain
 $$ \alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle = (\alpha + \beta) |++\rangle + (\alpha - \beta) |--\rangle$$
 Thus, this state has an even parity in the Hadamard basis. It follows that an $XX$ Pauli measurement will result in the outcome `Zero` with probability 1, leaving the state unchanged after the measurement.
 </details>
+
+@[section]({
+    "id": "multi_qubit_measurements_conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! In this kata you learned how to apply measurements on multi-qubit systems. Here are a few key concepts to keep in mind:
+* Full measurements: you measure all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes).
+* Partial measurements: you measure qubits $m$ out of $n$, for $m< n$ ($2^m$ possible outcomes).
+* Joint measurement: Pauli measurement of all $n$ qubits (2 possible outcomes).
+
+Next, you will implement a quantum algorithm to generate random numbers in "Quantum Random Number Generation" kata.
