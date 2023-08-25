@@ -243,7 +243,7 @@ function createExample(baseFolderPath, properties) {
   return {
     type: "example",
     id: properties.id,
-    code: code,
+    code,
   };
 }
 
@@ -274,7 +274,7 @@ function createSolution(baseFolderPath, properties) {
   return {
     type: "solution",
     id: properties.id,
-    code: code,
+    code,
   };
 }
 
@@ -332,7 +332,7 @@ function createAnswer(markdownFilePath) {
     }
   }
 
-  return { type: "answer", items: items };
+  return { type: "answer", items };
 }
 
 function createQuestion(kataPath, properties) {
@@ -361,8 +361,8 @@ function createQuestion(kataPath, properties) {
 
   return {
     type: "question",
-    description: description,
-    answer: answer,
+    description,
+    answer,
   };
 }
 
@@ -411,10 +411,10 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
     type: "exercise",
     id: properties.id,
     title: properties.title,
-    description: description,
-    sourceIds: sourceIds,
-    placeholderCode: placeholderCode,
-    explainedSolution: explainedSolution,
+    description,
+    sourceIds,
+    placeholderCode,
+    explainedSolution,
   };
 }
 
@@ -480,8 +480,8 @@ function createMacroSegment(match) {
     `Invalid JSON for macro of type ${type}.\n` + `JSON: ${propertiesJson}`
   );
   return {
-    type: type,
-    properties: properties,
+    type,
+    properties,
   };
 }
 
@@ -535,9 +535,9 @@ function createKata(kataPath, id, title, segments, globalCodeSources) {
   }
 
   return {
-    id: id,
-    title: title,
-    sections: sections,
+    id,
+    title,
+    sections,
   };
 }
 
