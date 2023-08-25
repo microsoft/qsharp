@@ -16,6 +16,7 @@ import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
 import { activateDebugger } from "./debugger/activate.js";
+import { initTelemetry } from "./telemetry.js"
 import {
   qsharpDocumentFilter,
   qsharpNotebookCellDocumentFilter,
@@ -24,6 +25,7 @@ import {
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
+  initTelemetry(context);
 
   vscode.workspace.registerTextDocumentContentProvider(
     qsharpLibraryUriScheme,
