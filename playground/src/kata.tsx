@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
   ExplainedSolution,
@@ -11,6 +11,7 @@ import {
   Lesson,
   QscEventTarget,
   Question,
+  VSDiagnostic,
 } from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
@@ -94,6 +95,10 @@ export function Kata(props: {
     );
   }
   const itemEvtHandlers = handlerMap.current || [];
+  
+  const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     // MathJax rendering inside of React components seems to mess them up a bit,
@@ -157,6 +162,7 @@ export function Kata(props: {
                   defaultShots={1}
                   showExpr={false}
                   showShots={false}
+                  shotError={shotError}
                   evtTarget={itemEvtHandlers[idx]}
                   compiler={props.compiler}
                   compilerState={props.compilerState}
@@ -173,6 +179,7 @@ export function Kata(props: {
                   evtTarget={itemEvtHandlers[idx]}
                   showPanel={false}
                   kataMode={true}
+                  onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
                   hir=""
                   activeTab="results-tab"
                   setActiveTab={() => undefined}

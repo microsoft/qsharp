@@ -69,6 +69,12 @@ pub(super) fn expr(s: &mut Scanner) -> Result<Box<Expr>> {
     expr_op(s, OpContext::Precedence(0))
 }
 
+pub(super) fn expr_eof(s: &mut Scanner) -> Result<Box<Expr>> {
+    let expr = expr(s)?;
+    token(s, TokenKind::Eof)?;
+    Ok(expr)
+}
+
 pub(super) fn expr_stmt(s: &mut Scanner) -> Result<Box<Expr>> {
     expr_op(s, OpContext::Stmt)
 }

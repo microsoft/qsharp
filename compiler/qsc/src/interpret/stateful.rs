@@ -14,6 +14,7 @@ use crate::{
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
+use qsc_codegen::qir_base::generate_qir_for_stmt;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::backend::Backend;
 use qsc_eval::{
@@ -29,7 +30,7 @@ use qsc_fir::{
         Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
         Stmt, StmtId,
     },
-    visit::Visitor,
+    visit::{self, Visitor},
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
@@ -92,14 +93,19 @@ impl LineError {
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
 pub enum LineErrorKind {
     #[error(transparent)]
+    #[diagnostic(transparent)]
     Compile(#[from] incremental::Error),
     #[error(transparent)]
+    #[diagnostic(transparent)]
     Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
+    #[diagnostic(transparent)]
     Eval(#[from] qsc_eval::Error),
+    #[error("code generation target mismatch")]
+    #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
+    TargetMismatch,
 }
 
 struct Lookup<'a> {
@@ -160,6 +166,7 @@ pub struct Interpreter {
     fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
     state: State,
     source_package: PackageId,
+    target: TargetProfile,
 }
 
 impl Interpreter {
@@ -221,6 +228,7 @@ impl Interpreter {
             state: State::new(map_hir_package_to_fir(package)),
             lowerer,
             fir_store,
+            target,
         })
     }
 
@@ -412,6 +420,72 @@ impl Interpreter {
         }
 
         Ok(result)
+    }
+
+    /// # Errors
+    /// If the currently configured target profile is not `TargetProfile::Base`, an error is returned.
+    /// If the parsing of the expr fails, an error is returned.
+    /// If the compilation of the expr fails, an error is returned.
+    /// If there is a runtime error when generating code for the expr, an error is returned.
+    /// # Panics
+    /// If internal compiler state is inconsistent, a panic may occur.
+    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<LineError>> {
+        if self.target != TargetProfile::Base {
+            return Err(vec![LineError(WithSource::new(
+                expr.into(),
+                LineErrorKind::TargetMismatch,
+                None,
+            ))]);
+        }
+
+        let mut fragment = self.compiler.compile_expr(expr).map_err(|errors| {
+            let source = expr.into();
+            errors
+                .into_iter()
+                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .collect::<Vec<_>>()
+        })?;
+
+        let pass_errors = self.passes.run(
+            self.store.core(),
+            self.compiler.assigner_mut(),
+            &mut fragment,
+        );
+        if !pass_errors.is_empty() {
+            let source = expr.into();
+            return Err(pass_errors
+                .into_iter()
+                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .collect());
+        }
+
+        let Fragment::Stmt(stmt) = fragment else {
+            panic!("only a stmt fragment should reach here.")
+        };
+
+        let stmt_id = self.lower_stmt(&stmt);
+        let globals = Lookup {
+            fir_store: &self.fir_store,
+            package: self.package,
+            udts: &self.udts,
+            callables: &self.callables,
+        };
+
+        generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
+            |(error, call_stack)| {
+                let stack_trace = if call_stack.is_empty() {
+                    None
+                } else {
+                    Some(self.render_call_stack(call_stack, &error))
+                };
+
+                vec![LineError(WithSource::new(
+                    expr.into(),
+                    error.into(),
+                    stack_trace,
+                ))]
+            },
+        )
     }
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
@@ -629,7 +703,19 @@ impl<'a> BreakpointCollector<'a> {
 impl<'a> Visitor<'a> for BreakpointCollector<'a> {
     fn visit_stmt(&mut self, stmt: StmtId) {
         let stmt_res = self.get_stmt(stmt);
-        self.add_stmt(stmt_res);
+        match stmt_res.kind {
+            qsc_fir::fir::StmtKind::Expr(expr) | qsc_fir::fir::StmtKind::Local(_, _, expr) => {
+                self.add_stmt(stmt_res);
+                visit::walk_expr(self, expr);
+            }
+            qsc_fir::fir::StmtKind::Qubit(_, _, _, block) => match block {
+                Some(block) => visit::walk_block(self, block),
+                None => self.add_stmt(stmt_res),
+            },
+            qsc_fir::fir::StmtKind::Item(_) | qsc_fir::fir::StmtKind::Semi(_) => {
+                self.add_stmt(stmt_res);
+            }
+        };
     }
 
     fn get_block(&mut self, id: BlockId) -> &'a Block {

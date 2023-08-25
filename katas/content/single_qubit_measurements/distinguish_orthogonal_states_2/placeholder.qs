@@ -1,7 +1,8 @@
 namespace Kata {
 
-    operation IsQubitA(alpha: Double, q: Qubit): Bool {
-        // Replace the following line with your solution.
+    operation IsQubitA(alpha : Double, q : Qubit) : Bool {
+        // Implement your solution here...
+
         return false;
     }
 

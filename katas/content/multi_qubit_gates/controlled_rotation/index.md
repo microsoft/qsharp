@@ -1,9 +1,9 @@
 **Inputs:**
 
-1. Two qubits in an arbitrary state $|\\phi\\rangle$, stored as an array of length 2.
+1. Two qubits in an arbitrary state $|\phi\rangle$, stored as an array of length 2.
 2. An angle $\theta$: $-\pi < \theta \leq \pi$.
 
-**Goal:** Apply a controlled [$R_x$ gate](../SingleQubitGates/SingleQubitGates.ipynb#Rotation-Gates), using the first qubit as control and the second qubit as target, with $\\theta$ as the angle argument for the gate.
+**Goal:** Apply a controlled $R_x$ gate, using the first qubit as control and the second qubit as target, with $\theta$ as the angle argument for the gate.
 
 <details>
     <summary><b>Need a hint?</b></summary>

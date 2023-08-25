@@ -464,7 +464,7 @@ fn create_general_alloc_stmt(
     call_expr: Expr,
     array_size: Option<Expr>,
 ) -> Stmt {
-    ident.gen_id_init(
+    ident.gen_steppable_id_init(
         Mutability::Immutable,
         create_qubit_alloc_call_expr(assigner, ident.span, call_expr, array_size),
         assigner,
