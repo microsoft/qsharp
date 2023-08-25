@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.Canon {
     /// The target on which the operation acts.
     ///
     /// # Example
-    /// Prepare a three-qubit $\ket{+}$ state:
+    /// Prepare a three-qubit |+⟩ state:
     /// ```qsharp
     /// use register = Qubit[3];
     /// ApplyToEach(H, register);
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.Canon {
     /// The target on which the operation acts.
     ///
     /// # Example
-    /// Prepare a three-qubit $\ket{+}$ state:
+    /// Prepare a three-qubit |+⟩ state:
     /// ```qsharp
     /// use register = Qubit[3];
     /// ApplyToEach(H, register);
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.Canon {
     /// The target on which the operation acts.
     ///
     /// # Example
-    /// Prepare a three-qubit $\ket{+}$ state:
+    /// Prepare a three-qubit |+⟩ state:
     /// ```qsharp
     /// use register = Qubit[3];
     /// ApplyToEach(H, register);
@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.Canon {
     /// The target on which the operation acts.
     ///
     /// # Example
-    /// Prepare a three-qubit $\ket{+}$ state:
+    /// Prepare a three-qubit |+⟩ state:
     /// ```qsharp
     /// use register = Qubit[3];
     /// ApplyToEach(H, register);
@@ -125,9 +125,14 @@ namespace Microsoft.Quantum.Canon {
     /// # Summary
     /// Applies the controlled-X (CX) gate to a pair of qubits.
     ///
-    /// # Description
+    /// # Input
+    /// ## control
+    /// Control qubit for the CX gate.
+    /// ## target
+    /// Target qubit for the CX gate.
+    ///
+    /// # Remarks
     /// This operation can be simulated by the unitary matrix
-    /// $$
     /// \begin{align}
     ///     \left(\begin{matrix}
     ///         1 & 0 & 0 & 0 \\\\
@@ -136,16 +141,8 @@ namespace Microsoft.Quantum.Canon {
     ///         0 & 0 & 1 & 0
     ///      \end{matrix}\right)
     /// \end{align},
-    /// $$
     /// where rows and columns are organized as in the quantum concepts guide.
     ///
-    /// # Input
-    /// ## control
-    /// Control qubit for the CX gate.
-    /// ## target
-    /// Target qubit for the CX gate.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// Controlled X([control], target);
@@ -167,18 +164,6 @@ namespace Microsoft.Quantum.Canon {
     /// # Summary
     /// Applies the controlled-Y (CY) gate to a pair of qubits.
     ///
-    /// # Description
-    /// This operation can be simulated by the unitary matrix
-    /// $$
-    /// \begin{align}
-    ///     1 & 0 & 0 & 0 \\\\
-    ///     0 & 1 & 0 & 0 \\\\
-    ///     0 & 0 & 0 & -i \\\\
-    ///     0 & 0 & i & 0
-    /// \end{align},
-    /// $$
-    /// where rows and columns are organized as in the quantum concepts guide.
-    ///
     /// # Input
     /// ## control
     /// Control qubit for the CY gate.
@@ -186,6 +171,15 @@ namespace Microsoft.Quantum.Canon {
     /// Target qubit for the CY gate.
     ///
     /// # Remarks
+    /// This operation can be simulated by the unitary matrix
+    /// \begin{align}
+    ///     1 & 0 & 0 & 0 \\\\
+    ///     0 & 1 & 0 & 0 \\\\
+    ///     0 & 0 & 0 & -i \\\\
+    ///     0 & 0 & i & 0
+    /// \end{align},
+    /// where rows and columns are organized as in the quantum concepts guide.
+    ///
     /// Equivalent to:
     /// ```qsharp
     /// Controlled Y([control], target);
@@ -203,18 +197,6 @@ namespace Microsoft.Quantum.Canon {
     /// # Summary
     /// Applies the controlled-Z (CZ) gate to a pair of qubits.
     ///
-    /// # Description
-    /// This operation can be simulated by the unitary matrix
-    /// $$
-    /// \begin{align}
-    ///     1 & 0 & 0 & 0 \\\\
-    ///     0 & 1 & 0 & 0 \\\\
-    ///     0 & 0 & 1 & 0 \\\\
-    ///     0 & 0 & 0 & -1
-    /// \end{align},
-    /// $$
-    /// where rows and columns are organized as in the quantum concepts guide.
-    ///
     /// # Input
     /// ## control
     /// Control qubit for the CZ gate.
@@ -222,6 +204,15 @@ namespace Microsoft.Quantum.Canon {
     /// Target qubit for the CZ gate.
     ///
     /// # Remarks
+    /// This operation can be simulated by the unitary matrix
+    /// \begin{align}
+    ///     1 & 0 & 0 & 0 \\\\
+    ///     0 & 1 & 0 & 0 \\\\
+    ///     0 & 0 & 1 & 0 \\\\
+    ///     0 & 0 & 0 & -1
+    /// \end{align},
+    /// where rows and columns are organized as in the quantum concepts guide.
+    ///
     /// Equivalent to:
     /// ```qsharp
     /// Controlled Z([control], target);
@@ -251,19 +242,17 @@ namespace Microsoft.Quantum.Canon {
     /// # Summary
     /// Computes the parity of a register of qubits in-place.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubits
+    /// Array of qubits whose parity is to be computed and stored.
+    ///
+    /// # Remarks
     /// This operation transforms the state of its input as
-    /// $$
     /// \begin{align}
     ///     \ket{q_0} \ket{q_1} \cdots \ket{q_{n - 1}} & \mapsto
     ///     \ket{q_0} \ket{q_0 \oplus q_1} \ket{q_0 \oplus q_1 \oplus q_2} \cdots
     ///         \ket{q_0 \oplus \cdots \oplus q_{n - 1}}.
     /// \end{align}
-    /// $$
-    ///
-    /// # Input
-    /// ## qubits
-    /// Array of qubits whose parity is to be computed and stored.
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
         for i in 0..Length(qubits)-2 {
             CNOT(qubits[i], qubits[i+1]);

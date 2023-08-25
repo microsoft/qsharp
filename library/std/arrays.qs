@@ -1192,10 +1192,10 @@ namespace Microsoft.Quantum.Arrays {
     /// of arrays.
     ///
     /// # Description
-    /// Input as an $r \times c$ matrix with $r$ rows and $c$ columns.  The matrix
-    /// is row-based, i.e., `matrix[i][j]` accesses the element at row $i$ and column $j$.
+    /// Input as an r x c matrix with r rows and c columns.  The matrix
+    /// is row-based, i.e., `matrix[i][j]` accesses the element at row `i` and column `j`.
     ///
-    /// This function returns the $c \times r$ matrix that is the transpose of the
+    /// This function returns the c x r matrix that is the transpose of the
     /// input matrix.
     ///
     /// # Type Parameters
@@ -1204,10 +1204,10 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## matrix
-    /// Row-based $r \times c$ matrix.
+    /// Row-based r x c matrix.
     ///
     /// # Output
-    /// Transposed $c \times r$ matrix.
+    /// Transposed c x r matrix.
     ///
     /// # Example
     /// ```qsharp

@@ -37,7 +37,13 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the controlled-NOT (CNOT) gate to a pair of qubits.
     ///
-    /// # Description
+    /// # Input
+    /// ## control
+    /// Control qubit for the CNOT gate.
+    /// ## target
+    /// Target qubit for the CNOT gate.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     \operatorname{CNOT} \mathrel{:=}
     ///     \begin{bmatrix}
@@ -50,13 +56,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// where rows and columns are ordered as in the quantum concepts guide.
     ///
-    /// # Input
-    /// ## control
-    /// Control qubit for the CNOT gate.
-    /// ## target
-    /// Target qubit for the CNOT gate.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// Controlled X([control], target);
@@ -74,13 +73,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the exponential of a multi-qubit Pauli operator.
     ///
-    /// # Description
-    /// \begin{align}
-    ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
-    /// \end{align}
-    /// where $P_i$ is the $i$th element of `paulis`, and where
-    /// $N = $`Length(paulis)`.
-    ///
     /// # Input
     /// ## paulis
     /// Array of single-qubit Pauli values indicating the tensor product
@@ -90,6 +82,13 @@ namespace Microsoft.Quantum.Intrinsic {
     /// target register is to be rotated.
     /// ## qubits
     /// Register to apply the given rotation to.
+    ///
+    /// # Remarks
+    /// \begin{align}
+    ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
+    /// \end{align}
+    /// where $P_i$ is the $i$th element of `paulis`, and where
+    /// $N = $`Length(paulis)`.
     operation Exp (paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
         body ... {
             Fact(Length(paulis) == Length(qubits),
@@ -140,21 +139,18 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the Hadamard transformation to a single qubit.
-    ///
-    /// # Description
-    /// \begin{align}
-    ///     H \mathrel{:=}
-    ///     \frac{1}{\sqrt{2}}
-    ///     \begin{bmatrix}
-    ///         1 & 1 \\\\
-    ///         1 & -1
-    ///     \end{bmatrix}.
-    /// \end{align}
+    /// Applies the Hadamard transformation to a single qubit.x
     ///
     /// # Input
     /// ## qubit
     /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
+    /// \begin{align}
+    ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
+    /// \end{align}
+    /// where $P_i$ is the $i$th element of `paulis`, and where
+    /// $N = $`Length(paulis)`.
     operation H(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__h__body(qubit);
@@ -202,7 +198,15 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Performs a measurement of a single qubit in the
     /// Pauli _Z_ basis.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit
+    /// Qubit to be measured.
+    ///
+    /// # Output
+    /// `Zero` if the +1 eigenvalue is observed, and `One` if
+    /// the -1 eigenvalue is observed.
+    ///
+    /// # Remarks
     /// The output result is given by
     /// the distribution
     /// \begin{align}
@@ -210,15 +214,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         \braket{\psi | 0} \braket{0 | \psi}.
     /// \end{align}
     ///
-    /// # Input
-    /// ## qubit
-    /// Qubit to be measured.
-    ///
-    /// # Output
-    /// `Zero` if the $+1$ eigenvalue is observed, and `One` if
-    /// the $-1$ eigenvalue is observed.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
@@ -231,7 +226,18 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Performs a joint measurement of one or more qubits in the
     /// specified Pauli bases.
     ///
-    /// # Description
+    /// # Input
+    /// ## bases
+    /// Array of single-qubit Pauli values indicating the tensor product
+    /// factors on each qubit.
+    /// ## qubits
+    /// Register of qubits to be measured.
+    ///
+    /// # Output
+    /// `Zero` if the +1 eigenvalue is observed, and `One` if
+    /// the -1 eigenvalue is observed.
+    ///
+    /// # Remarks
     /// The output result is given by the distribution:
     /// \begin{align}
     ///     \Pr(\texttt{Zero} | \ket{\psi}) =
@@ -248,18 +254,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
     /// observed measurement effect is $(-1)^d$.
     ///
-    /// # Input
-    /// ## bases
-    /// Array of single-qubit Pauli values indicating the tensor product
-    /// factors on each qubit.
-    /// ## qubits
-    /// Register of qubits to be measured.
-    ///
-    /// # Output
-    /// `Zero` if the $+1$ eigenvalue is observed, and `One` if
-    /// the $-1$ eigenvalue is observed.
-    ///
-    /// # Remarks
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
@@ -291,22 +285,21 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies a rotation about the given Pauli axis.
     ///
-    /// # Description
-    /// \begin{align}
-    ///     R_{\mu}(\theta) \mathrel{:=}
-    ///     e^{-i \theta \sigma_{\mu} / 2},
-    /// \end{align}
-    /// where $\mu \in \{I, X, Y, Z\}$.
-    ///
     /// # Input
     /// ## pauli
-    /// Pauli operator ($\mu$) to be exponentiated to form the rotation.
+    /// Pauli operator (μ) to be exponentiated to form the rotation.
     /// ## theta
     /// Angle in radians about which the qubit is to be rotated.
     /// ## qubit
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// \begin{align}
+    ///     R_{\mu}(\theta) \mathrel{:=}
+    ///     e^{-i \theta \sigma_{\mu} / 2},
+    /// \end{align}
+    /// where $\mu \in \{I, X, Y, Z\}$.
+    ///
     /// When called with `pauli = PauliI`, this operation applies
     /// a *global phase*. This phase can be significant
     /// when used with the `Controlled` functor.
@@ -328,12 +321,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies a rotation about the |1⟩ state by a given angle.
     ///
-    /// # Description
-    /// \begin{align}
-    ///     R_1(\theta) \mathrel{:=}
-    ///     \operatorname{diag}(1, e^{i\theta}).
-    /// \end{align}
-    ///
     /// # Input
     /// ## theta
     /// Angle about which the qubit is to be rotated.
@@ -341,6 +328,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// \begin{align}
+    ///     R_1(\theta) \mathrel{:=}
+    ///     \operatorname{diag}(1, e^{i\theta}).
+    /// \end{align}
+    ///
     /// Equivalent to:
     /// ```qsharp
     /// R(PauliZ, theta, qubit);
@@ -374,17 +366,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Applies a rotation about the |1⟩ state by an angle specified
     /// as a dyadic fraction.
     ///
-    /// # Description
-    /// \begin{align}
-    ///     R_1(n, k) \mathrel{:=}
-    ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
-    /// \end{align}
-    ///
-    /// > [!WARNING]
-    /// > This operation uses the **opposite** sign convention from
-    /// > @"microsoft.quantum.intrinsic.r", and does not include the
-    /// > factor of $1/ 2$ included by @"microsoft.quantum.intrinsic.r1".
-    ///
     /// # Input
     /// ## numerator
     /// Numerator in the dyadic fraction representation of the angle
@@ -396,6 +377,16 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// \begin{align}
+    ///     R_1(n, k) \mathrel{:=}
+    ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
+    /// \end{align}
+    ///
+    /// > [!WARNING]
+    /// > This operation uses the **opposite** sign convention from
+    /// > @"microsoft.quantum.intrinsic.r", and does not include the
+    /// > factor of $1/ 2$ included by @"microsoft.quantum.intrinsic.r1".
+    ///
     /// Equivalent to:
     /// ```qsharp
     /// RFrac(PauliZ, -numerator, denominator + 1, qubit);
@@ -412,7 +403,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Input
     /// ## qubit
-    /// The qubit whose state is to be reset to $\ket{0}$.
+    /// The qubit whose state is to be reset to |0⟩.
     operation Reset(qubit : Qubit) : Unit {
         __quantum__qis__reset__body(qubit);
     }
@@ -423,7 +414,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Input
     /// ## qubits
-    /// An array of qubits whose states are to be reset to $\ket{0}$.
+    /// An array of qubits whose states are to be reset to |0⟩.
     operation ResetAll(qubits : Qubit[]) : Unit {
         for q in qubits {
             Reset(q);
@@ -433,17 +424,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies a rotation about the given Pauli axis by an angle specified
     /// as a dyadic fraction.
-    ///
-    /// # Description
-    /// \begin{align}
-    ///     R_{\mu}(n, k) \mathrel{:=}
-    ///     e^{i \pi n \sigma_{\mu} / 2^k},
-    /// \end{align}
-    /// where $\mu \in \{I, X, Y, Z\}$.
-    ///
-    /// > [!WARNING]
-    /// > This operation uses the **opposite** sign convention from
-    /// > @"microsoft.quantum.intrinsic.r".
     ///
     /// # Input
     /// ## pauli
@@ -458,6 +438,16 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// \begin{align}
+    ///     R_{\mu}(n, k) \mathrel{:=}
+    ///     e^{i \pi n \sigma_{\mu} / 2^k},
+    /// \end{align}
+    /// where $\mu \in \{I, X, Y, Z\}$.
+    ///
+    /// > [!WARNING]
+    /// > This operation uses the **opposite** sign convention from
+    /// > @"microsoft.quantum.intrinsic.r".
+    ///
     /// Equivalent to:
     /// ```qsharp
     /// // PI() is a Q# function that returns an approximation of π.
@@ -473,7 +463,13 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies a rotation about the _x_-axis by a given angle.
     ///
-    /// # Description
+    /// # Input
+    /// ## theta
+    /// Angle about which the qubit is to be rotated.
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     R_x(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_x / 2} =
@@ -483,13 +479,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     \end{bmatrix}.
     /// \end{align}
     ///
-    /// # Input
-    /// ## theta
-    /// Angle about which the qubit is to be rotated.
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// R(PauliX, theta, qubit);
@@ -519,7 +508,15 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the two qubit Ising _XX_ rotation gate.
     ///
-    /// # Description
+    /// # Input
+    /// ## theta
+    /// The angle about which the qubits are rotated.
+    /// ## qubit0
+    /// The first qubit input to the gate.
+    /// ## qubit1
+    /// The second qubit input to the gate.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     R_{xx}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
@@ -529,14 +526,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         -i\sin \theta & 0 & 0 & \cos \theta
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## theta
-    /// The angle about which the qubits are rotated.
-    /// ## qubit0
-    /// The first qubit input to the gate.
-    /// ## qubit1
-    /// The second qubit input to the gate.
     operation Rxx(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__rxx__body(theta, qubit0, qubit1);
@@ -567,7 +556,13 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies a rotation about the _y_-axis by a given angle.
     ///
-    /// # Description
+    /// # Input
+    /// ## theta
+    /// Angle about which the qubit is to be rotated.
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     R_y(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_y / 2} =
@@ -577,13 +572,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     \end{bmatrix}.
     /// \end{align}
     ///
-    /// # Input
-    /// ## theta
-    /// Angle about which the qubit is to be rotated.
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// R(PauliY, theta, qubit);
@@ -613,7 +601,15 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the two qubit Ising _YY_ rotation gate.
     ///
-    /// # Description
+    /// # Input
+    /// ## theta
+    /// The angle about which the qubits are rotated.
+    /// ## qubit0
+    /// The first qubit input to the gate.
+    /// ## qubit1
+    /// The second qubit input to the gate.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     R_{yy}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
@@ -623,14 +619,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         i\sin \theta & 0 & 0 & \cos \theta
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## theta
-    /// The angle about which the qubits are rotated.
-    /// ## qubit0
-    /// The first qubit input to the gate.
-    /// ## qubit1
-    /// The second qubit input to the gate.
     operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__ryy__body(theta, qubit0, qubit1);
@@ -661,7 +649,13 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies a rotation about the _z_-axis by a given angle.
     ///
-    /// # Description
+    /// # Input
+    /// ## theta
+    /// Angle about which the qubit is to be rotated.
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     R_z(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_z / 2} =
@@ -671,13 +665,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     \end{bmatrix}.
     /// \end{align}
     ///
-    /// # Input
-    /// ## theta
-    /// Angle about which the qubit is to be rotated.
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// R(PauliZ, theta, qubit);
@@ -712,7 +699,15 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the two qubit Ising _ZZ_ rotation gate.
     ///
-    /// # Description
+    /// # Input
+    /// ## theta
+    /// The angle about which the qubits are rotated.
+    /// ## qubit0
+    /// The first qubit input to the gate.
+    /// ## qubit1
+    /// The second qubit input to the gate.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     R_{zz}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
@@ -722,14 +717,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & 0 & 0 & e^{-i \theta / 2}
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## theta
-    /// The angle about which the qubits are rotated.
-    /// ## qubit0
-    /// The first qubit input to the gate.
-    /// ## qubit1
-    /// The second qubit input to the gate.
     operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__rzz__body(theta, qubit0, qubit1);
@@ -760,7 +747,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the π/4 phase gate to a single qubit.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     S \mathrel{:=}
     ///     \begin{bmatrix}
@@ -768,10 +759,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & i
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
     operation S(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__s__body(qubit);
@@ -834,7 +821,13 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the SWAP gate to a pair of qubits.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit1
+    /// First qubit to be swapped.
+    /// ## qubit2
+    /// Second qubit to be swapped.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     \operatorname{SWAP} \mathrel{:=}
     ///     \begin{bmatrix}
@@ -847,13 +840,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// where rows and columns are ordered as in the quantum concepts guide.
     ///
-    /// # Input
-    /// ## qubit1
-    /// First qubit to be swapped.
-    /// ## qubit2
-    /// Second qubit to be swapped.
-    ///
-    /// # Remarks
     /// Equivalent to:
     /// ```qsharp
     /// CNOT(qubit1, qubit2);
@@ -883,7 +869,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the π/8 gate to a single qubit.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     T \mathrel{:=}
     ///     \begin{bmatrix}
@@ -891,10 +881,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & e^{i \pi / 4}
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
     operation T(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__t__body(qubit);
@@ -943,7 +929,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the Pauli _X_ gate.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     \sigma_x \mathrel{:=}
     ///     \begin{bmatrix}
@@ -951,10 +941,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         1 & 0
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
     operation X(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__x__body(qubit);
@@ -990,7 +976,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the Pauli _Y_ gate.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     \sigma_y \mathrel{:=}
     ///     \begin{bmatrix}
@@ -998,10 +988,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         i & 0
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
     operation Y(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__y__body(qubit);
@@ -1037,7 +1023,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Applies the Pauli _Z_ gate.
     ///
-    /// # Description
+    /// # Input
+    /// ## qubit
+    /// Qubit to which the gate should be applied.
+    ///
+    /// # Remarks
     /// \begin{align}
     ///     \sigma_z \mathrel{:=}
     ///     \begin{bmatrix}
@@ -1045,10 +1035,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & -1
     ///     \end{bmatrix}.
     /// \end{align}
-    ///
-    /// # Input
-    /// ## qubit
-    /// Qubit to which the gate should be applied.
     operation Z(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__z__body(qubit);
