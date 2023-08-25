@@ -58,7 +58,7 @@ An oracle in the quantum world is a "black box" operation that is used as input 
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
 In this kata, you will learn the properties of quantum oracles and how to implement them.
 
-A quantum oracle implements a function $f(x): \{0,1\}^n \rightarrow \{0,1\}^m$, where $x$ is an $n$-bit input state of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
+A quantum oracle implements a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
 $$|x\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$ 
@@ -73,7 +73,7 @@ There are two types of quantum oracles: phase oracles and marking oracles.  Let'
 
 ## Phase Oracles
 
-For a function $f(x): 0,1^n \rightarrow 0,1$, the phase oracle $U_{\text{phase}}$ encodes the the values $f(0)$ and $f(1)$ in the relative phases of basis states $\ket{0}$ and $\ket{1}$, respectively.
+For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the the values $f(0)$ and $f(1)$ in the relative phases of basis states $\ket{0}$ and $\ket{1}$, respectively.
 
 $$U_{phase} |\vec{x}\rangle = (-1)^{f(x)}|\vec{x}\rangle$$
 

@@ -195,7 +195,7 @@ $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\l
 
 This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
 
-You can use the properties of _eigenvalues_ and _eigenvectors_ to find the ket-bra decomposition of any gate. Given a gate $A$ and the orthogonal eigenvectors $|\phi\rangle$ and $|\psi\rangle$, if:
+You can use the properties of _eigenvalues_ and _eigenvectors_ to find the ket-bra decomposition of any gate. Given a gate $A$ and the orthogonal vectors $|\phi\rangle$ and $|\psi\rangle$, if:
 
 $$A|\phi\rangle = x_\phi|\phi\rangle$$
 $$A|\psi\rangle = x_\psi|\psi\rangle$$
