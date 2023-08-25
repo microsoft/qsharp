@@ -103,11 +103,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     setCurrentNavItem(name);
   }
 
-  function onShotError(diag?: VSDiagnostic) {
-    // TODO: Should this be for katas too and not just the main editor?
-    setShotError(diag);
-  }
-
   return (
     <>
       <header class="page-header">Q# playground</header>
@@ -136,7 +131,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           <OutputTabs
             evtTarget={evtTarget}
             showPanel={true}
-            onShotError={onShotError}
+            onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
             hir={hir}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
