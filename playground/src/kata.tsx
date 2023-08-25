@@ -95,7 +95,7 @@ export function Kata(props: {
     );
   }
   const itemEvtHandlers = handlerMap.current || [];
-  
+
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined
   );
