@@ -76,35 +76,6 @@ impl Compiler {
         &mut self.hir_assigner
     }
 
-    /// Compile a string with a single fragment of Q# code that is an expression.
-    /// # Errors
-    /// Returns a vector of errors if the input fails compilation.
-    pub fn compile_expr(&mut self, input: &str) -> Result<Fragment, Vec<Error>> {
-        let (expr, errors) = qsc_parse::expr(input);
-        if !errors.is_empty() {
-            return Err(errors
-                .into_iter()
-                .map(|e| Error(ErrorKind::Parse(e)))
-                .collect());
-        }
-
-        let mut stmt = ast::Stmt {
-            id: ast::NodeId::default(),
-            span: expr.span,
-            kind: Box::new(ast::StmtKind::Expr(expr)),
-        };
-        self.check_stmt(&mut stmt);
-        self.checker.solve(self.resolver.names());
-
-        let fragment = self.lower_stmt(&stmt);
-        let errors = self.drain_errors();
-        if errors.is_empty() {
-            Ok(fragment.expect("lowering an expression should not produce None"))
-        } else {
-            Err(errors)
-        }
-    }
-
     /// Compile a string with one or more fragments of Q# code.
     /// # Errors
     /// Returns a vector of errors if any of the input fails compilation.
@@ -135,6 +106,35 @@ impl Compiler {
             Ok(fragments)
         } else {
             self.lowerer.clear_items();
+            Err(errors)
+        }
+    }
+
+    /// Compile a string with a single fragment of Q# code that is an expression.
+    /// # Errors
+    /// Returns a vector of errors if the input fails compilation.
+    pub fn compile_expr(&mut self, input: &str) -> Result<Fragment, Vec<Error>> {
+        let (expr, errors) = qsc_parse::expr(input);
+        if !errors.is_empty() {
+            return Err(errors
+                .into_iter()
+                .map(|e| Error(ErrorKind::Parse(e)))
+                .collect());
+        }
+
+        let mut stmt = ast::Stmt {
+            id: ast::NodeId::default(),
+            span: expr.span,
+            kind: Box::new(ast::StmtKind::Expr(expr)),
+        };
+        self.check_stmt(&mut stmt);
+        self.checker.solve(self.resolver.names());
+
+        let fragment = self.lower_stmt(&stmt);
+        let errors = self.drain_errors();
+        if errors.is_empty() {
+            Ok(fragment.expect("lowering an expression should not produce None"))
+        } else {
             Err(errors)
         }
     }
