@@ -93,14 +93,14 @@ The coefficients of the basis vectors define how "close" is the system state to 
     "title": "Separable States"
 })
 
-Sometimes the state of a multi-qubit system can be separated into the states of individual qubits or smaller subsystems.
-To do this, you would express the vector state of the system as a tensor product of the vectors representing each individual qubit/subsystem.
-Here is an example for two qubits:
+Sometimes the global state of a multi-qubit system can be separated into the states of individual qubits or subsystems. To do this, you would express the vector state of the global system as a tensor product of the vectors representing each individual qubit/subsystem. Here is an example of a two-qubit state:
 
 $$
 \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ 0 \\\ \frac{1}{\sqrt{2}} \\\ 0 \end{bmatrix} =
 \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix} \otimes \begin{bmatrix} 1 \\\ 0 \end{bmatrix}
 $$
+
+You can see that qubit 1 is in state $\frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and qubit 2 is in state $|0\rangle$. The states that allow such representation are known as separable states, or product states, because you can separate the global state into the product of individual subsystems.
 
 The states that allow such representation are known as **separable states**.
 
@@ -108,8 +108,8 @@ The states that allow such representation are known as **separable states**.
 
 Show that the state is separable:
 $$
-\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
-\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}
+\frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
+\begin{bmatrix} ? \\\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\\ ? \end{bmatrix}
 $$
 
 <details>
@@ -173,14 +173,20 @@ We can see that this system of equations doesn't have a solution, which means th
     "title": "Entanglement"
 })
 
-As we've just seen, some quantum states are impossible to factor into individual qubit states or even into states of larger subsystems. The states of these qubits are inseparable from one another and must always be considered as part of a larger system - they are **entangled**.
+Sometimes, quantum states cannot be written as individual qubit states. Quantum systems that are not separable are called entangled systems. If a state can be written as the product state of the individual subsystems, that state is not entangled.
 
-> For example, every state in the Bell basis we saw earlier is an entangled state.
+Entanglement is a quantum correlation, which is very different from classical correlations. In entanglement, the state of the subsystems isn't determined, and you can talk only about the probabilities associated with the outcomes. The global system must be considered as one.
 
-Entanglement is a huge part of what makes quantum computing so powerful.
-It allows us to link the qubits so that they stop behaving like individuals and start behaving like a large, more complex system.
-In entangled systems, measuring one of the qubits modifies the state of the other qubits, and tells us something about their state.
-In the example above, when one of the qubits is measured, we know that the second qubit will end up in the same state.
+> For example, every state in the Bell basis is an entangled state.
+
+Entanglement is a huge part of what makes quantum computing so powerful. It allows us to link the qubits so that they stop behaving like individuals and start behaving like a large, more complex system. In entangled systems, measuring one of the qubits modifies the state of the other qubits, and tells us something about their state.
+
+For example, consider two qubits $A$ and $B$ in superpositions such that the state of the global system is
+
+$$|\psi\rangle_{AB} = \frac{1}{\sqrt2}|00\rangle + \frac{1}{\sqrt2}|11\rangle$$
+
+In such a state, only two outcomes are possible when you measure the state of both qubits in the standard basis: $|00\rangle$ and $|11\rangle$. Notice that each outcome has the same probability of $\frac{1}{2}$. There's zero probability of obtaining $|01\rangle$ and $|10\rangle$. If you measure the first qubit and you get that it is in $|0\rangle$ state, then you can be positive that the second qubit is also in $|0\rangle$ state, even without measuring it. The measurement outcomes are correlated, and the qubits are _entangled_.
+
 This property is used extensively in many quantum algorithms.
 
 @[section]({
@@ -299,7 +305,7 @@ The qubit Kata explains how `DumpMachine` works for multiple qubits in more deta
 
 @[example]({"id": "multiqubit_system", "codePath": "./examples/MultiQubitSystems.qs"})
 
-> You might have noticed that we've been "resetting" the qubits at the end of our demos, i.e., returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block.
+> You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block.
 > The reason for this is entanglement.
 >
 > Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program.
@@ -374,6 +380,10 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "title": "Conclusion"
 })
 
-As you've seen in the exercises, you can prepare separable multi-qubit states using only single-qubit gates.
-However, to prepare and manipulate entangled states you'll need more powerful tools.
-In the next Kata, "Multi-Qubit Gates", you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.
+Congratulations! In this kata you learned to prepare separable multi-qubit states using only single-qubit gates. You also learned the difference between separable states an entangled states. Here are a few key concepts to keep in mind:
+
+- A system of $N$ qubits can also be in a superposition of $2^N$ quantum states. The computational basis for an $N$-qubit system is a set of $2^N$ vectors.
+- Any two-qubit system can be expressed as some linear combination of the tensor product of single-qubit basis states.
+- Two qubits are entangled if their states are correlated and if they can't be described as two independent qubits.
+
+Next, you will learn about multi-qubit gates and how they can give you access to all states of multi-qubit systems in the "Multi-Qubit Gates" kata.
