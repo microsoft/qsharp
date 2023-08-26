@@ -137,7 +137,7 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
             ("1.qs".into(), source1.into()),
             ("2.qs".into(), source2.into()),
         ],
-        Some("Adjoint Test2.A(0);".into()),
+        Some("Adjoint Test2.A(0)".into()),
     );
     let interpreter =
         stateless::Interpreter::new(true, source_map).expect("Failed to compile base environment.");

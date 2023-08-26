@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._qsharp import eval, eval_file
+from ._qsharp import init, eval, eval_file, compile
 
-from ._native import Result, Pauli, QSharpError
+from ._native import Result, Pauli, QSharpError, TargetProfile
 
 # IPython notebook specific features
 try:
@@ -16,4 +16,13 @@ except NameError:
     pass
 
 
-__all__ = ["eval", "eval_file", "Result", "Pauli", "QSharpError"]
+__all__ = [
+    "init",
+    "eval",
+    "eval_file",
+    "compile",
+    "Result",
+    "Pauli",
+    "QSharpError",
+    "TargetProfile",
+]
