@@ -21,6 +21,6 @@ For the second qubit. we'll apply the **H** gate, followed by the **T** gate, wi
 $$ \begin{bmatrix} 1 & 0 \\\ 0 & e^{i\pi/4} \end{bmatrix} \cdot \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ e^{i\pi/4} \end{bmatrix} $$
 
 @[solution]({
-"id": "prepare_with_real_solution",
+"id": "prepare_with_complex_solution",
 "codePath": "solution.qs"
 })

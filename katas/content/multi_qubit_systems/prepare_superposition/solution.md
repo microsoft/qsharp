@@ -13,6 +13,6 @@ Second, we apply the **H** gate to the second qubit; this transforms its state i
 $$ H|1\rangle = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} \cdot \begin{bmatrix} 0 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2}\begin{bmatrix} 1 \\\ -1 \end{bmatrix}$$
 
 @[solution]({
-"id": "prepare_superposition",
+"id": "prepare_superposition_solution",
 "codePath": "solution.qs"
 })

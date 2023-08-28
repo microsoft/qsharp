@@ -28,7 +28,7 @@ $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
 @[section]({
-    "id": "single_qubit_measurements_overview",
+    "id": "single_qubit_measurements_computational_basis_measurements",
     "title": "Computational Basis Measurements"
 })
 

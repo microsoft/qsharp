@@ -280,6 +280,39 @@ test("all katas work", async () => {
   );
 });
 
+test("IDs used in katas are unique", async () => {
+  const katas = await getAllKatas();
+  const allIds = new Set();
+  const assertUniqueness = (id) => {
+    const isIdUnique = !allIds.has(id);
+    assert(isIdUnique, `"${id}" is not unique`);
+    allIds.add(id);
+  };
+  for (const kata of katas) {
+    //
+    assertUniqueness(kata.id);
+    for (const section of kata.sections) {
+      //
+      assertUniqueness(section.id);
+      if (section.type === "exercise") {
+        //
+        section.explainedSolution.items.forEach((item) => {
+          if (item.type === "example" || item.type === "solution") {
+            assertUniqueness(item.id);
+          }
+        });
+      } else if (section.type === "lesson") {
+        //
+        section.items.forEach((item) => {
+          if (item.type === "example") {
+            assertUniqueness(item.id);
+          }
+        });
+      }
+    }
+  }
+});
+
 test("getting_started kata is valid", async () => {
   const kata = await getKata("getting_started");
   await validateKata(kata, true, true, true);
