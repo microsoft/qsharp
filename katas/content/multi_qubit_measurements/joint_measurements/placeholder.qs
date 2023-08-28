@@ -1,7 +1,7 @@
 namespace Kata {
+    operation ParityMeasurement(qs : Qubit[]) : Int {
+        // Implement your solution here...
 
-    operation ParityMeasurement(qs: Qubit[]): Int {
-        // ...
         return -1;
     }
 
