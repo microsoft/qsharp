@@ -23,15 +23,15 @@ Let's consider how our operator $U_{7,mark}$ acts on this state.
 
 > Recall that oracles are linear operators, thus they can be applied to each term individually.
 
-$$U_{7,mark} |\alpha\rangle = \frac{1}{\sqrt{2}} \big(U_{7,mark}|110\rangle |0\rangle + U_{7,mark}|111\rangle |0\rangle\big) =$$
+$$U_{7,mark} |\alpha\rangle = \frac{1}{\sqrt{2}} \big(U_{7,mark}|110\rangle |0\rangle + U_{7,mark}|111\rangle |0\rangle\big)$$
 
-$$\frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) := |\epsilon\rangle$$
+$$= \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) := |\epsilon\rangle$$
 
 Was our input state modified during this operation?  Let's simplify the resulting state $|\epsilon\rangle$:
 
-$$|\epsilon\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle |0\rangle + |1\rangle |1\rangle\big) = $$
+$$|\epsilon\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle |0\rangle + |1\rangle |1\rangle\big)$$
 
-$$|11\rangle \otimes \frac{1}{\sqrt{2}} \big(|00\rangle + |11\rangle\big) = |11\rangle \otimes |\Phi^+\rangle = |11\Phi^+\rangle$$
+$$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|00\rangle + |11\rangle\big) = |11\rangle \otimes |\Phi^+\rangle = |11\Phi^+\rangle$$
 
 We have entangled the states of qubits $|x\rangle$ and $|y\rangle$!  This is a common occurrence for marking oracles when the input is a superposition of basis states: after applying the oracle, the input $|x\rangle$ will often become entangled with $|y\rangle$. Thus, while applying the marking oracle to a basis state will leave the input array unchanged, applying the marking oracle to a superposition state will change the state of both the input array and the output qubit.
 

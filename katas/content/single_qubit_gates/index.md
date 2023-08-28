@@ -5,15 +5,15 @@
     "title": "Overview"
 })
 
-This Kata introduces you to single-qubit gates. Quantum gates are the quantum counterpart to classical logic gates, acting as the building blocks of quantum algorithms. Quantum gates transform qubit states in various ways, and can be applied sequentially to perform complex quantum calculations. Single-qubit gates, as their name implies, act on individual qubits. You can learn more at [Wikipedia](https://en.wikipedia.org/wiki/Quantum_logic_gate).
+This kata introduces you to single-qubit gates. Quantum gates are the quantum counterpart to classical logic gates, acting as the building blocks of quantum algorithms. Quantum gates transform qubit states in various ways, and can be applied sequentially to perform complex quantum calculations. Single-qubit gates, as their name implies, act on individual qubits. You can learn more at [Wikipedia](https://en.wikipedia.org/wiki/Quantum_logic_gate).
 
-**This Kata covers the following topics:**
+**This kata covers the following topics:**
 
 - Matrix representation
 - Ket-bra representation
 - The most important single-qubit gates
 
-**What you should know to start working on this Kata:**
+**What you should know to start working on this kata:**
 
 - Basic linear algebra
 - The concept of qubit
@@ -28,7 +28,7 @@ There are certain properties common to all quantum gates. This section will intr
 ## Matrix Representation
 
 Quantum gates are represented as $2^N \times 2^N$ unitary matrices, where $N$ is the number of qubits the gate operates on. 
-As a quick reminder, a unitary matrix is a square matrix whose inverse is its adjoint. 
+As a quick reminder, a unitary matrix is a square matrix whose inverse is its adjoint, thus $U^* U = UU^* = UU^{-1} = \mathbb{I}$.
 Single-qubit gates are represented by $2 \times 2$ matrices.
 Our example for this section, the $X$ gate, is represented by the following matrix:
 
@@ -64,13 +64,15 @@ X|\psi\rangle =
 \begin{bmatrix} \beta \\\ \alpha \end{bmatrix}
 $$
 
-> If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in "The Qubit" Kata.
+> If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in "The Qubit" kata.
 
-Because this is the most common way to represent quantum gates, the terms "gate" and "gate matrix" will be used interchangeably in this Kata.
+Quantum gates are represented by matrices, just like quantum states are represented by vectors. Because this is the most common way to represent quantum gates, the terms "gate" and "gate matrix" will be used interchangeably in this kata.
 
 Applying several quantum gates in sequence is equivalent to performing several of these multiplications. 
-For example, if you have gates $A$ and $B$ and a qubit in state $|\psi\rangle$, the result of applying $A$ followed by $B$ to that qubit would be $B\big(A|\psi\rangle\big)$ (the gates closest to the qubit state get applied first). 
+For example, if you have gates $A$ and $B$ and a qubit in state $|\psi\rangle$, the result of applying $A$ followed by $B$ to that qubit would be $B\big(A|\psi\rangle\big)$ (the gate closest to the qubit state gets applied first). 
 Matrix multiplication is associative, so this is equivalent to multiplying the $B$ matrix by the $A$ matrix, producing a compound gate of the two, and then applying that to the qubit: $\big(BA\big)|\psi\rangle$.
+
+>Note that matrix multiplication isn’t commutative, thus $(BA) \neq \(AB)$.
 
 All quantum gates are reversible - there is another gate which will undo any given gate's transformation, returning the qubit to its original state. 
 This means that when dealing with quantum gates, information about qubit states is never lost, as opposed to classical logic gates, some of which destroy information. 
@@ -78,7 +80,7 @@ Quantum gates are represented by unitary matrices, so the inverse of a gate is i
 
 ## Effects on Basis States
 
-There is a simple way to find out what a gate does to the two computational basis states ($|0\rangle$ and $|1\rangle$) from looking at its matrix that comes in handy when you want to work with states in Dirac notation. Consider an arbitrary gate:
+There is a simple way to find out what a gate does to the two computational basis states $|0\rangle$ and $|1\rangle$. Consider an arbitrary gate:
 
 $$A = \begin{bmatrix} \epsilon & \zeta \\\ \eta & \mu \end{bmatrix}$$
 
@@ -193,12 +195,12 @@ $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\l
 
 This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
 
-You can use the properties of eigenvalues and eigenvectors to find the ket-bra decomposition of any gate. Given a gate $A$, and its orthogonal eigenvectors $|\phi\rangle$ and $|\psi\rangle$, if:
+You can use the properties of _eigenvalues_ and _eigenvectors_ to find the ket-bra decomposition of any gate. Given a gate $A$ and the orthogonal vectors $|\phi\rangle$ and $|\psi\rangle$, if:
 
 $$A|\phi\rangle = x_\phi|\phi\rangle$$
 $$A|\psi\rangle = x_\psi|\psi\rangle$$
 
-Then:
+Real numbers $x_\phi$ and $x_\psi$ are called eigenvalues and $|\phi\rangle$ and $|\psi\rangle$ are eigenvectors of $A$. Then:
 
 $$A = x_\phi|\phi\rangle\langle\phi| + x_\psi|\psi\rangle\langle\psi|$$
 
@@ -236,7 +238,7 @@ This section relies on the following notation:
   </tr>
 </table>
 
-The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolfgang_Pauli), are based on the so-called **Pauli matrices**. All three Pauli gates are **self-adjoint**, meaning that each one is its own inverse.
+The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolfgang_Pauli), are based on the so-called **Pauli matrices**, $X$, $Y$ and $Z$. All three Pauli gates are **self-adjoint**, meaning that each one is its own inverse, $XX = \mathbb{I}$.
 
 <table>
   <tr>
@@ -314,7 +316,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
-In the previous Kata we discussed that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
+In the previous kata we discussed that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
 
 The same principle applies to successive qubit gates. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$ because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
 
@@ -323,7 +325,7 @@ X(q);
 Z(q);
 ```
 
-All the basic gates we will be covering in this Kata are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
+All the basic gates we will be covering in this kata are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
 
 @[example]({"id": "pauli_gates_in_qsharp", "codePath": "./examples/PauliGates.qs"})
 
@@ -444,7 +446,7 @@ These gates are the $X$ rotation gate $R_x(\theta)$, $Y$ rotation gate $R_y(\the
 Note that for the first three gates the parameter $\theta$ is multiplied by $\frac{1}{2}$ within the gate's matrix.
 
 > These gates are known as rotation gates, because they represent rotations around various axes on the Bloch sphere. The Bloch sphere is a way of representing the qubit states visually, mapping them onto the surface of a sphere. 
-> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this Kata.
+> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this kata.
 > If you are curious about it, you can learn more in [this Wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere).
 
 <table>
@@ -538,4 +540,11 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
     "title": "Conclusion"
 })
 
-Congratulations! You have learned enough to continue to the next Katas in the series to learn about multi-qubit systems and the multi-qubit gates.
+Congratulations!  In this Kata you learned the matrix and the Ket-Bra representation of quantum gates. Here are a few key concepts to keep in mind:
+* Single-qubit gates act on individual qubits and are represented by $2 \times 2$ unitary matrices.
+* The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit.
+* Applying several quantum gates in sequence is equivalent to performing several matrix multiplications.
+* A square matrix can be represented as the outer product of two vectors. The outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
+* Pauli gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
+
+Next, you will learn about multi-qubit systems and the multi-qubit gates in the “Multi-Qubit Systems” Kata.

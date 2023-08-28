@@ -14,12 +14,21 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        return DistinguishStates_MultiQubit(
+        let isCorrect = DistinguishStates_MultiQubit(
             2,
             4,
             StatePrep_BasisStateMeasurement,
             Kata.BasisStateMeasurement,
             false,
             ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]);
+
+        if (isCorrect) {
+            Message("Correct!");
+            Message("All test cases passed.");
+        } else {
+            Message("Incorrect!");
+        }
+
+        isCorrect
     }
 }
