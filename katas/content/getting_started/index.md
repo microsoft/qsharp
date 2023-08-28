@@ -1,7 +1,7 @@
 # Getting Started
 
 @[section]({
-    "id": "getting_started_welcome",
+    "id": "getting_started__welcome",
     "title": "Welcome to Quantum Katas"
 })
 
@@ -58,7 +58,7 @@ _The japanese word for "form", a pattern of learning and practicing new skills._
 </table>
 
 @[exercise]({
-    "id": "flip_qubit",
+    "id": "getting_started__flip_qubit",
     "title": "Flip a Qubit",
     "descriptionPath": "./flip_qubit/index.md",
     "codePaths": [

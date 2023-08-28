@@ -1,7 +1,7 @@
 # Oracles
 
 @[section]({
-    "id": "oracles_overview",
+    "id": "oracles__overview",
     "title": "Overview"
 })
 
@@ -20,7 +20,7 @@ Quantum oracles are a key part of many quantum algorithms that rely on quantum i
 - Multi-qubit gates (especially controlled gates)
 
 @[section]({
-    "id": "oracles_classical_oracles",
+    "id": "oracles__classical_oracles",
     "title": "Classical Oracles"
 })
 
@@ -37,7 +37,7 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 > This function is an example of a classical oracle.
 
 @[exercise]({
-    "id": "classical_oracles",
+    "id": "oracles__implement_classical_oracles",
     "title": "Implement a Classical Oracle",
     "descriptionPath": "./classical_oracles/index.md",
     "placeholderSourcePath": "./classical_oracles/placeholder.qs",
@@ -50,7 +50,7 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 })
 
 @[section]({
-    "id": "oracles_quantum_oracles",
+    "id": "oracles__quantum_oracles",
     "title": "Quantum Oracles"
 })
 
@@ -85,7 +85,7 @@ Remember that quantum operations are linear: if you define the effect of an oper
 A phase oracle doesn't have an "output", unlike the function it implements; the effect of the oracle application is the change in the state of the system.
 
 @[section]({
-    "id": "oracles_phase_oracle",
+    "id": "oracles__phase_oracle",
     "title": "Phase Oracle for Alternating Bit Pattern Function"
 })
 
@@ -112,7 +112,7 @@ After applying the oracle the absolute values of all amplitudes are the same, bu
 In the next exercise you will implement the classical oracle that you've implemented in the first exercise, this time as a quantum phase oracle $U_{7,\text{phase}}$ that encodes the number 7.
 
 @[exercise]({
-    "id": "phase_oracle_seven",
+    "id": "oracles__phase_oracle_seven",
     "title": "Implement a Phase Oracle",
     "descriptionPath": "./phase_oracle_seven/index.md",
     "placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
@@ -125,7 +125,7 @@ In the next exercise you will implement the classical oracle that you've impleme
 })
 
 @[section]({
-    "id": "oracles_marking_oracles",
+    "id": "oracles__marking_oracles",
     "title": "Marking Oracles"
 })
 
@@ -156,7 +156,7 @@ The basis states $|010\rangle \otimes |0\rangle$ and $|101\rangle \otimes |0\ran
 Now you will implement the same function you've seen in the first two exercises as a marking oracle $U_{7,mark}$.
 
 @[exercise]({
-    "id": "marking_oracle_seven",
+    "id": "oracles__marking_oracle_seven",
     "title": "Implement a Marking Oracle",
     "descriptionPath": "./marking_oracle_seven/index.md",
     "placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
@@ -169,7 +169,7 @@ Now you will implement the same function you've seen in the first two exercises 
 })
 
 @[section]({
-    "id": "oracles_phase_kickback",
+    "id": "oracles__phase_kickback",
     "title": "Phase Kickback"
 })
 
@@ -262,7 +262,7 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 </details>
 
 @[exercise]({
-    "id": "marking_oracle_as_phase",
+    "id": "oracles__marking_oracle_as_phase",
     "title": "Apply the Marking Oracle as a Phase Oracle",
     "descriptionPath": "./marking_oracle_as_phase/index.md",
     "placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
@@ -275,7 +275,7 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 })
 
 @[section]({
-    "id": "oracles_conversion",
+    "id": "oracles__conversion",
     "title": "Oracle Conversion"
 })
 
@@ -289,7 +289,7 @@ This way to convert a marking oracle to a phase oracle is useful because many qu
 This converter provides a way to implement the function of interest as a marking oracle and then convert it into a phase oracle, which could then be leveraged in a quantum algorithm.
 
 @[section]({
-    "id": "oracles_implementing_quantum_oracles",
+    "id": "oracles__implementing_quantum_oracles",
     "title": "Implementing Quantum Oracles"
 })
 
@@ -298,7 +298,7 @@ In this section you will implement a few more complicated quantum oracles.
 > Notice that the operation declarations below require adjoint and controlled variants of the oracle to be automatically generated. This is common practice that makes testing and reusing the code easier. Typically Q# compiler will easily generate these variants, as long as you don't use mutable variables or operations that don't support these functors.
 
 @[exercise]({
-    "id": "or_oracle",
+    "id": "oracles__or_oracle",
     "title": "Implement the OR Oracle",
     "descriptionPath": "./or_oracle/index.md",
     "placeholderSourcePath": "./or_oracle/placeholder.qs",
@@ -311,7 +311,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "kth_bit_oracle",
+    "id": "oracles__kth_bit_oracle",
     "title": "Implement the K-th Bit Oracle",
     "descriptionPath": "./kth_bit_oracle/index.md",
     "placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
@@ -324,7 +324,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "or_but_kth_oracle",
+    "id": "oracles__or_but_kth_oracle",
     "title": "Implement the OR Oracle of All Bits Except the K-th",
     "descriptionPath": "./or_but_kth_oracle/index.md",
     "placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
@@ -337,7 +337,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "bit_pattern_oracle",
+    "id": "oracles__bit_pattern_oracle",
     "title": "Implement the Arbitrary Bit Pattern Oracle",
     "descriptionPath": "./bit_pattern_oracle/index.md",
     "placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
@@ -350,7 +350,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "bit_pattern_challenge",
+    "id": "oracles__bit_pattern_challenge",
     "title": "Implement the Arbitrary Bit Pattern Oracle (Challenge Version)",
     "descriptionPath": "./bit_pattern_challenge/index.md",
     "placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
@@ -363,7 +363,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "meeting_oracle",
+    "id": "oracles__meeting_oracle",
     "title": "Implement the Meeting Oracle",
     "descriptionPath": "./meeting_oracle/index.md",
     "placeholderSourcePath": "./meeting_oracle/placeholder.qs",
@@ -376,7 +376,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[section]({
-    "id": "oracles_testing_implementation",
+    "id": "oracles__testing_implementation",
     "title": "Testing an Oracle Implementation"
 })
 
@@ -391,7 +391,7 @@ Here we will compare the reference implementation of `Meeting_Classical` oracle 
 @[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
 
 @[section]({
-    "id": "oracles_conclusion",
+    "id": "oracles__conclusion",
     "title": "Conclusion"
 })
 
