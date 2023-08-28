@@ -366,6 +366,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Applies a rotation about the |1⟩ state by an angle specified
     /// as a dyadic fraction.
     ///
+    /// > [!WARNING]
+    /// > This operation uses the **opposite** sign convention from
+    /// > @"microsoft.quantum.intrinsic.r", and does not include the
+    /// > factor of 1/2 included by @"microsoft.quantum.intrinsic.r1".
+    ///
     /// # Input
     /// ## numerator
     /// Numerator in the dyadic fraction representation of the angle
@@ -381,11 +386,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     R_1(n, k) \mathrel{:=}
     ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
     /// \end{align}
-    ///
-    /// > [!WARNING]
-    /// > This operation uses the **opposite** sign convention from
-    /// > @"microsoft.quantum.intrinsic.r", and does not include the
-    /// > factor of $1/ 2$ included by @"microsoft.quantum.intrinsic.r1".
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -425,6 +425,10 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Applies a rotation about the given Pauli axis by an angle specified
     /// as a dyadic fraction.
     ///
+    /// > [!WARNING]
+    /// > This operation uses the **opposite** sign convention from
+    /// > @"microsoft.quantum.intrinsic.r".
+    ///
     /// # Input
     /// ## pauli
     /// Pauli operator to be exponentiated to form the rotation.
@@ -443,10 +447,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     e^{i \pi n \sigma_{\mu} / 2^k},
     /// \end{align}
     /// where $\mu \in \{I, X, Y, Z\}$.
-    ///
-    /// > [!WARNING]
-    /// > This operation uses the **opposite** sign convention from
-    /// > @"microsoft.quantum.intrinsic.r".
     ///
     /// Equivalent to:
     /// ```qsharp
