@@ -94,7 +94,7 @@ This knowledge is sufficient to implement a simple random number generator!
     ]
 })
 
-@[section]({"id": "random_numbers_introduction_whats_next", "title": "What's Next?"})
+@[section]({"id": "random_numbers_whats_next", "title": "What's Next?"})
 
 Congratulations! In this Kata you have created a truly random number generator using quantum computing. Here are a few key concepts to keep in mind:
 * You can generate a random bit by applying a Hadamard gate to a state $\ket{0}$, and then measuring the resulting qubit in the computational basis.
