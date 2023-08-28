@@ -26,6 +26,6 @@ Finally we measure just the extra qubit; this causes a partial collapse of the s
 This technique is sometimes called post-selection.
 
 @[solution]({
-    "id": "state_preparation_solution",
+    "id": "multi_qubit_measurements__state_preparation_solution",
     "codePath": "solution.qs"
 })

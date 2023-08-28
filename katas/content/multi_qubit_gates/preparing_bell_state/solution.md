@@ -11,6 +11,6 @@ We can use the Hadamard gate to do this.
 2. Apply a CNOT take with the first qubit as the control and the second qubit as the target.
 
 @[solution]({
-    "id": "preparing_bell_state_solution",
+    "id": "multi_qubit_gates__preparing_bell_state_solution",
     "codePath": "./Solution.qs"
 })

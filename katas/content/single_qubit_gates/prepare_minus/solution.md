@@ -2,6 +2,6 @@ We know that applying the Hadamard gate $H$ on the computational basis states $|
 We are given a qubit in the state $|0\rangle$. We first apply the Pauli $X$ gate to turn it into $X|0\rangle=|1\rangle$, and then apply the $H$ gate, turning the qubit into the required $H|1\rangle=|-\rangle$ state.
 
 @[solution]({
-    "id": "prepare_minus_solution",
+    "id": "single_qubit_gates__prepare_minus_solution",
     "codePath": "./Solution.qs"
 })

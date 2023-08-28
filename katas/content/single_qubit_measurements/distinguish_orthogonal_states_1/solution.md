@@ -12,7 +12,7 @@ $$R_y(-\theta) \ket {\psi_-} = \ket 1.$$
 Hence, if we apply $R_y(-\theta)$ to the qubit, its state will be transformed to one of the computational basis states, at which point we can measure it using `M`. If `M` returns `Zero`, the rotated state is $\ket{0}$, which means that the original state of the qubit was $\ket{\psi_+}$. Similarly, an output of `One` indicates that the qubit was originally in the state $\ket{\psi_-}$.
 
 @[solution]({
-    "id": "distinguish_orthogonal_states_1_solution",
+    "id": "single_qubit_measurements__distinguish_orthogonal_states_1_solution",
     "exerciseId": "distinguish_orthogonal_states_1",
     "codePath": "solution.qs"
 })
