@@ -93,7 +93,7 @@ Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=
 
 The phase oracle that implements this function will take an array of 3 qubits as an input, flip the sign of basis states $|101\rangle$ and $|010\rangle$, and leave the rest of the basis states unchanged. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
+@[example]({"id": "oracles__phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
 
 We introduced the function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) provided by the Q# Standard library.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
@@ -143,7 +143,7 @@ Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=
 
 The marking oracle that implements this function will take an array of 3 qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $|101\rangle$ or $|010\rangle$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "marking_oracle_alt_bit", "codePath": "./marking_oracle_alt_bit.qs"})
+@[example]({"id": "oracles__marking_oracle_alt_bit", "codePath": "./marking_oracle_alt_bit.qs"})
 
 > Let's compare the initial state to the final state from the above demo. 
 In the initial state we had a tensor product of an equal superposition of all 3-qubit basis states and the state $|0\rangle$.  In the final state, this is no longer the case. 
@@ -281,7 +281,7 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 
 In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
 
-@[example]({"id": "oracle_converter_demo", "codePath": "./oracle_converter_demo.qs"})
+@[example]({"id": "oracles__oracle_converter_demo", "codePath": "./oracle_converter_demo.qs"})
 
 > Notice from the above demo that your phase oracle $U_{7,phase}$ behaves the same as the converted version of your marking oracle $U_{7,mark}$, both of which induce a phase flip on the basis state $|111\rangle$!
 
@@ -388,7 +388,7 @@ A good way to test a quantum oracle of interest is to write a classical oracle t
 
 Here we will compare the reference implementation of `Meeting_Classical` oracle to the classical code implementing the same function.
 
-@[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
+@[example]({"id": "oracles__test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
 
 @[section]({
     "id": "oracles__conclusion",

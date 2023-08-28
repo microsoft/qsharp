@@ -183,7 +183,7 @@ The following demo shows how to allocate a qubit and examine its state in Q#. Yo
 
 > Note that the Q# code doesn't have access to the output of `DumpMachine`, so you cannot write any non-physical code in Q#!
 
-@[example]({"id": "single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
+@[example]({"id": "qubit__single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
 
 The exact behavior of this operation called `RunExample` depends on the quantum simulator or processor you are using.
 
@@ -247,7 +247,7 @@ We will learn more details on endianness in the "Multi-Qubit Systems" kata.
 
 ## Demo: DumpMachine for Multi-Qubit Systems
 
-@[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
+@[example]({"id": "qubit__multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
 
 @[exercise]({
     "id": "qubit__learn_basis_state_amplitudes",

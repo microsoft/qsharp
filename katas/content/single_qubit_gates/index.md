@@ -327,7 +327,7 @@ Z(q);
 
 All the basic gates we will be covering in this kata are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
 
-@[example]({"id": "pauli_gates_in_qsharp", "codePath": "./examples/PauliGates.qs"})
+@[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
 @[exercise]({
     "id": "single_qubit_gates__y_gate",

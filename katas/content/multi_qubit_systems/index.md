@@ -303,7 +303,7 @@ If you aren't familiar with the output of this function for single qubits, you s
 When printing the state of multi-qubit systems, this function outputs the same information for each multi-qubit basis state.
 The qubit kata explains how `DumpMachine` works for multiple qubits in more detail.
 
-@[example]({"id": "multiqubit_system", "codePath": "./examples/MultiQubitSystems.qs"})
+@[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
 
 > You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block.
 > The reason for this is entanglement.

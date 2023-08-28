@@ -188,7 +188,7 @@ The amplitudes of the computational basis states after the transformation are th
 >Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
 
 @[example]({
-    "id": "multi_qubit_probabilities_2_example",
+    "id": "multi_qubit_measurements__multi_qubit_probabilities_2_example",
     "codePath": "./multi_qubit_probabilities.qs"
 })
 
@@ -218,7 +218,7 @@ This demo illustrates the equivalence of the measurement probabilities for simul
 The simulated probabilities will be different for each run of `DemoBasisMeasurement`. The simulated and theoretical probabilities are not expected to be identical, since measurements are probabilistic. However, we expect the values to be similar, and the simulated probabilities to approach the theoretical probabilities as the parameter `numRuns` is increased.
 
 @[example]({
-    "id": "measuring_one_at_a_time",
+    "id": "multi_qubit_measurements__measuring_one_at_a_time",
     "codePath": "./measuring_one.qs"
 })
 
@@ -335,7 +335,7 @@ Using the `M` operation in Q#, we demonstrate that the simulated outcome probabi
 The simulated and theoretical measurement probabilities are not expected to match exactly, but should be close to each other, since measurement is probabilistic. However, the post-measurement states from the simulation should match the expected states for Exercise 4 precisely, since partial state collapse is not a probabilistic process.
 
 @[example]({
-    "id": "partial_measurements_demo",
+    "id": "multi_qubit_measurements__partial_measurements_demo",
     "codePath": "./partial_measurements_demo.qs"
 })
 

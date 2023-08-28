@@ -87,7 +87,7 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 > If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for $0$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
 
 @[example]({
-    "id": "implementing_measurement",
+    "id": "single_qubit_measurements__implementing_measurement_demo",
     "codePath": "./implementing_measurement/example.qs"
 })
 
@@ -99,7 +99,7 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 The following code demonstrates that the theoretical and experimental values of the probability outcomes indeed match with each other. We repeatedly prepare the same state $\ket \psi = 0.6 \ket 0 + 0.8 \ket 1$ and measure it in the computational basis $100$ times. At the end, we expect 0 to be measured approximately $|0.6 |^2 \cdot 100= 36$ times, and 1 to be measured approximately $|0.8|^2 \cdot 100= 64$ times. Note that since measurements are probabilistic, we do not expect the results to match these values exactly. As we repeat the measurements, the resulting distribution will align with the theoretical probabilities.
 
 @[example]({
-    "id": "measurement_statistics",
+    "id": "single_qubit_measurements__measurement_statistics_demo",
     "codePath": "./measurement_statistics/example.qs"
 })
 
