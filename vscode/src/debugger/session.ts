@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor, basename } from "../common";
+import { FileAccessor, basename, qsharpDocumentFilter } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -276,6 +276,7 @@ export class QscDebugSession extends LoggingDebugSession {
       await this.runWithoutDebugging(args);
     } else {
       log.trace(`Running with debugging`);
+      // if we want to stop on entry, change this call to 'continue' to 'stepIn'
       await this.continue();
     }
   }
@@ -421,66 +422,93 @@ export class QscDebugSession extends LoggingDebugSession {
     const file = await this.fileAccessor
       .openPath(args.source.path ?? "")
       .catch((e) => {
-        log.error(`Failed to open file: ${e}`);
+        log.trace(`Failed to open file: ${e}`);
         const fileUri = this.fileAccessor.resolvePathToUri(
           args.source.path ?? ""
         );
         log.trace(
           "breakpointLocationsRequest, target file: " + fileUri.toString()
         );
+        return undefined;
       });
 
+    // If we couldn't find the file, or it wasn't a Q# file, or
+    // the range is longer than the file, just return
     const targetLineNumber = this.convertClientLineToDebugger(args.line);
-    if (file && targetLineNumber < file.lineCount) {
-      // Map request start/end line/column to file offset for debugger
-      const line = file.lineAt(targetLineNumber);
-      const lineRange = line.range;
-      const isLineBreakpoint = !args.column;
-      const startLine = lineRange.start.line;
-      const startCol = args.column
-        ? this.convertClientColumnToDebugger(args.column)
-        : lineRange.start.character;
-      const endLine = args.endLine
-        ? this.convertClientLineToDebugger(args.endLine)
-        : lineRange.end.line;
-      const endCol = args.endColumn
-        ? this.convertClientColumnToDebugger(args.endColumn)
-        : lineRange.end.character;
-      const startPos = new vscode.Position(startLine, startCol);
-      const endPos = new vscode.Position(endLine, endCol);
-      const startOffset = file.offsetAt(startPos);
-      const endOffset = file.offsetAt(endPos);
-
-      log.trace(
-        `breakpointLocationsRequest: ${startLine}:${startCol} - ${endLine}:${endCol}`
-      );
-      log.trace(`breakpointLocationsRequest: ${startOffset} - ${endOffset}`);
-      // Now that we have the mapped breakpoint span, get the actual breakpoints
-      // from the debugger
-      // This currently has issues with breakpoints that span multiple lines
-      // stmt for example may have a span that only includes the identifier
-      // where the rest of the statement is on the next line(s)
-      const bps =
-        this.breakpointLocations
-          .get(file.uri.toString())
-          ?.filter((bp) =>
-            isLineBreakpoint
-              ? bp.uiLocation.line == args.line
-              : startOffset <= bp.fileLocation.startOffset &&
-                bp.fileLocation.startOffset <= endOffset
-          ) ?? [];
-
-      log.trace(`breakpointLocationsRequest: candidates %O`, bps);
-
-      // must map the debugger breakpoints back to the client breakpoint locations
-      const bls = bps.map((bps) => {
-        return bps.uiLocation;
-      });
-      log.trace(`breakpointLocationsRequest: mapped %O`, bls);
-      response.body = {
-        breakpoints: bls,
-      };
+    if (
+      !file ||
+      !vscode.languages.match(qsharpDocumentFilter, file) ||
+      targetLineNumber >= file.lineCount
+    ) {
+      log.trace(`setBreakPointsResponse: %O`, response);
+      this.sendResponse(response);
+      return;
     }
+
+    // Map request start/end line/column to file offset for debugger
+    // everything from `file` is 0 based, everything from `args` is 1 based
+    // so we have to convert anything from `args` to 0 based
+
+    const line = file.lineAt(targetLineNumber);
+    const lineRange = line.range;
+    // If the column isn't specified, it is a line breakpoint so that we
+    // use the whole line's range for breakpoint finding.
+    const isLineBreakpoint = !args.column;
+    const startLine = lineRange.start.line;
+    // If the column isn't specified, use the start of the line. This also means
+    // that we are looking at the whole line for a breakpoint
+    const startCol = args.column
+      ? this.convertClientColumnToDebugger(args.column)
+      : lineRange.start.character;
+    // If the end line isn't specified, use the end of the line range
+    const endLine = args.endLine
+      ? this.convertClientLineToDebugger(args.endLine)
+      : lineRange.end.line;
+    // If the end column isn't specified, use the end of the line.
+    const endCol = args.endColumn
+      ? this.convertClientColumnToDebugger(args.endColumn)
+      : lineRange.end.character;
+
+    // We've translated the request's range into a full implied range,
+    // calculate the start and end positions as offsets which can be used to
+    // isolate statements.
+    const startPos = new vscode.Position(startLine, startCol);
+    const endPos = new vscode.Position(endLine, endCol);
+    const startOffset = file.offsetAt(startPos);
+    const endOffset = file.offsetAt(endPos);
+
+    log.trace(
+      `breakpointLocationsRequest: ${startLine}:${startCol} - ${endLine}:${endCol}`
+    );
+    log.trace(`breakpointLocationsRequest: ${startOffset} - ${endOffset}`);
+
+    // Now that we have the mapped breakpoint span, get the potential
+    // breakpoints from the debugger
+
+    // If is is a line breakpoint, we can just use the line number for matching
+    // Otherwise, when looking for range breakpoints, we are given a single
+    // column offset, so we need to check if the startOffset is within range.
+    const bps =
+      this.breakpointLocations
+        .get(file.uri.toString())
+        ?.filter((bp) =>
+          isLineBreakpoint
+            ? bp.uiLocation.line == args.line
+            : startOffset <= bp.fileLocation.startOffset &&
+              bp.fileLocation.startOffset <= endOffset
+        ) ?? [];
+
+    log.trace(`breakpointLocationsRequest: candidates %O`, bps);
+
+    // must map the debugger breakpoints back to the client breakpoint locations
+    const bls = bps.map((bps) => {
+      return bps.uiLocation;
+    });
+    log.trace(`breakpointLocationsRequest: mapped %O`, bls);
+    response.body = {
+      breakpoints: bls,
+    };
+
     log.trace(`breakpointLocationsResponse: %O`, response);
     this.sendResponse(response);
   }
@@ -495,106 +523,118 @@ export class QscDebugSession extends LoggingDebugSession {
     const file = await this.fileAccessor
       .openPath(args.source.path ?? "")
       .catch((e) => {
-        log.error(`setBreakPointsRequest - Failed to open file: ${e}`);
+        log.trace(`setBreakPointsRequest - Failed to open file: ${e}`);
         const fileUri = this.fileAccessor.resolvePathToUri(
           args.source.path ?? ""
         );
         log.trace("setBreakPointsRequest, target file: " + fileUri.toString());
+        return undefined;
       });
 
-    if (file) {
-      log.trace(`setBreakPointsRequest: looking`);
-      this.breakpoints.set(file.uri.toString(), []);
-      log.trace(
-        `setBreakPointsRequest: files in cache %O`,
-        this.breakpointLocations.keys()
-      );
-      const locations = this.breakpointLocations.get(file.uri.toString()) ?? [];
-      log.trace(`setBreakPointsRequest: got locations %O`, locations);
-      // convert the request line/column to file offset for debugger
-      const bpOffsets: [
-        lo: number,
-        hi: number,
-        isLineBreakpoint: boolean,
-        line: number
-      ][] = (args.breakpoints ?? [])
-        .filter(
-          (sourceBreakpoint) =>
-            this.convertClientLineToDebugger(sourceBreakpoint.line) <
-            file.lineCount
-        )
-        .map((sourceBreakpoint) => {
-          const isLineBreakpoint = !sourceBreakpoint.column;
-          const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
-          const lineRange = file.lineAt(line).range;
-          const startCol = sourceBreakpoint.column
-            ? this.convertClientColumnToDebugger(sourceBreakpoint.column)
-            : lineRange.start.character;
-          const startPos = new vscode.Position(line, startCol);
-          const startOffset = file.offsetAt(startPos);
-          const endOffset = file.offsetAt(lineRange.end);
+    // If we couldn't find the file, or it wasn't a Q# file, just return
+    if (!file || !vscode.languages.match(qsharpDocumentFilter, file)) {
+      log.trace(`setBreakPointsResponse: %O`, response);
+      this.sendResponse(response);
+      return;
+    }
 
-          return [
-            startOffset,
-            endOffset,
-            isLineBreakpoint,
-            sourceBreakpoint.line,
-          ];
-        });
+    log.trace(`setBreakPointsRequest: looking`);
+    this.breakpoints.set(file.uri.toString(), []);
+    log.trace(
+      `setBreakPointsRequest: files in cache %O`,
+      this.breakpointLocations.keys()
+    );
+    const locations = this.breakpointLocations.get(file.uri.toString()) ?? [];
+    log.trace(`setBreakPointsRequest: got locations %O`, locations);
+    // convert the request line/column to file offset for debugger
+    const desiredBpOffsets: [
+      lo: number,
+      hi: number,
+      isLineBreakpoint: boolean,
+      uiLine: number
+    ][] = (args.breakpoints ?? [])
+      .filter(
+        (sourceBreakpoint) =>
+          this.convertClientLineToDebugger(sourceBreakpoint.line) <
+          file.lineCount
+      )
+      .map((sourceBreakpoint) => {
+        const isLineBreakpoint = !sourceBreakpoint.column;
+        const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
+        const lineRange = file.lineAt(line).range;
+        const startCol = sourceBreakpoint.column
+          ? this.convertClientColumnToDebugger(sourceBreakpoint.column)
+          : lineRange.start.character;
+        const startPos = new vscode.Position(line, startCol);
+        const startOffset = file.offsetAt(startPos);
+        const endOffset = file.offsetAt(lineRange.end);
 
-      // We should probably ensure we don't return duplicate
-      // spans from the debugger, but for now we'll just filter them out
-      const uniqOffsets: [
-        lo: number,
-        hi: number,
-        isLineBreakpoint: boolean,
-        line: number
-      ][] = [];
-      for (const bpOffset of bpOffsets) {
-        if (
-          uniqOffsets.findIndex(
-            (u) => u[0] == bpOffset[0] && u[1] == bpOffset[1]
-          ) == -1
-        ) {
-          uniqOffsets.push(bpOffset);
-        }
+        return [
+          startOffset,
+          endOffset,
+          isLineBreakpoint,
+          sourceBreakpoint.line,
+        ];
+      });
+
+    // We should probably ensure we don't return duplicate
+    // spans from the debugger, but for now we'll just filter them out
+    const uniqOffsets: [
+      lo: number,
+      hi: number,
+      isLineBreakpoint: boolean,
+      uiLine: number
+    ][] = [];
+    for (const bpOffset of desiredBpOffsets) {
+      if (
+        uniqOffsets.findIndex(
+          (u) => u[0] == bpOffset[0] && u[1] == bpOffset[1]
+        ) == -1
+      ) {
+        uniqOffsets.push(bpOffset);
       }
-      // Now that we have the mapped breakpoint span, get the actual breakpoints
-      // with corresponding ids from the debugger
-      const bps = [];
+    }
+    // Now that we have the mapped breakpoint span, get the actual breakpoints
+    // with corresponding ids from the debugger
+    const bps = [];
 
-      for (const bpOffset of uniqOffsets) {
-        const lo = bpOffset[0];
-        const isLineBreakpoint = bpOffset[2];
-        const line = bpOffset[3];
-        const matchingLocations = locations.filter((location) => {
-          return location.uiLocation.line == line;
-        });
-        for (const location of matchingLocations) {
-          if (isLineBreakpoint) {
-            // line bp
+    for (const bpOffset of uniqOffsets) {
+      const lo = bpOffset[0];
+      const isLineBreakpoint = bpOffset[2];
+      const uiLine = bpOffset[3];
+      // we can quickly filter out any breakpoints that are outside of the
+      // desired line
+      const matchingLocations = locations.filter((location) => {
+        return location.uiLocation.line == uiLine;
+      });
+      // Now if the breakpoint is a line breakpoint, we can just use the first
+      // matching location. Otherwise, we need to check if the desired column
+      // is within the range of the location.
+      for (const location of matchingLocations) {
+        if (isLineBreakpoint) {
+          //
+          bps.push(location.breakpoint);
+          break;
+        } else {
+          // column bp just has end of selection or cursor location in lo
+          if (
+            location.fileLocation.startOffset <= lo &&
+            lo <= location.fileLocation.endOffset
+          ) {
             bps.push(location.breakpoint);
             break;
-          } else {
-            // column bp just has end of selection or cursor location in lo
-            if (
-              location.fileLocation.startOffset <= lo &&
-              lo <= location.fileLocation.endOffset
-            ) {
-              bps.push(location.breakpoint);
-              break;
-            }
           }
         }
       }
-
-      // Update our breakpoint list for the given file
-      this.breakpoints.set(file.uri.toString(), bps);
-
-      response.body = {
-        breakpoints: bps,
-      };
     }
+
+    // Update our breakpoint list for the given file
+    this.breakpoints.set(file.uri.toString(), bps);
+
+    response.body = {
+      breakpoints: bps,
+    };
+
     log.trace(`setBreakPointsResponse: %O`, response);
     this.sendResponse(response);
   }
