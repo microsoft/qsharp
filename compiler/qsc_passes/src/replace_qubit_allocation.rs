@@ -64,7 +64,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
             if let PatKind::Bind(id) = pat.kind {
                 let id = IdentTemplate {
                     id: id.id,
-                    span: id.span,
+                    span: stmt_span,
                     name: id.name,
                     ty: pat.ty,
                 };
