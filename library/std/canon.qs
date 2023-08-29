@@ -133,6 +133,7 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Remarks
     /// This operation can be simulated by the unitary matrix
+    /// $$
     /// \begin{align}
     ///     \left(\begin{matrix}
     ///         1 & 0 & 0 & 0 \\\\
@@ -141,6 +142,7 @@ namespace Microsoft.Quantum.Canon {
     ///         0 & 0 & 1 & 0
     ///      \end{matrix}\right)
     /// \end{align},
+    /// $$
     /// where rows and columns are organized as in the quantum concepts guide.
     ///
     /// Equivalent to:
@@ -172,12 +174,14 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Remarks
     /// This operation can be simulated by the unitary matrix
+    /// $$
     /// \begin{align}
     ///     1 & 0 & 0 & 0 \\\\
     ///     0 & 1 & 0 & 0 \\\\
     ///     0 & 0 & 0 & -i \\\\
     ///     0 & 0 & i & 0
     /// \end{align},
+    /// $$
     /// where rows and columns are organized as in the quantum concepts guide.
     ///
     /// Equivalent to:
@@ -205,12 +209,14 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Remarks
     /// This operation can be simulated by the unitary matrix
+    /// $$
     /// \begin{align}
     ///     1 & 0 & 0 & 0 \\\\
     ///     0 & 1 & 0 & 0 \\\\
     ///     0 & 0 & 1 & 0 \\\\
     ///     0 & 0 & 0 & -1
     /// \end{align},
+    /// $$
     /// where rows and columns are organized as in the quantum concepts guide.
     ///
     /// Equivalent to:
@@ -247,12 +253,14 @@ namespace Microsoft.Quantum.Canon {
     /// Array of qubits whose parity is to be computed and stored.
     ///
     /// # Remarks
-    /// This operation transforms the state of its input as
+    /// This operation transforms the state of its input asd
+    /// $$
     /// \begin{align}
     ///     \ket{q_0} \ket{q_1} \cdots \ket{q_{n - 1}} & \mapsto
     ///     \ket{q_0} \ket{q_0 \oplus q_1} \ket{q_0 \oplus q_1 \oplus q_2} \cdots
     ///         \ket{q_0 \oplus \cdots \oplus q_{n - 1}}.
     /// \end{align}
+    /// $$
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
         for i in 0..Length(qubits)-2 {
             CNOT(qubits[i], qubits[i+1]);

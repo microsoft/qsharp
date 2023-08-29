@@ -44,6 +44,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Target qubit for the CNOT gate.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     \operatorname{CNOT} \mathrel{:=}
     ///     \begin{bmatrix}
@@ -53,6 +54,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & 0 & 1 & 0
     ///     \end{bmatrix},
     /// \end{align}
+    /// $$
     ///
     /// where rows and columns are ordered as in the quantum concepts guide.
     ///
@@ -84,9 +86,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Register to apply the given rotation to.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
     /// \end{align}
+    /// $$
     /// where $P_i$ is the $i$th element of `paulis`, and where
     /// $N = $`Length(paulis)`.
     operation Exp (paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
@@ -146,9 +150,11 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
     /// \end{align}
+    /// $$
     /// where $P_i$ is the $i$th element of `paulis`, and where
     /// $N = $`Length(paulis)`.
     operation H(qubit : Qubit) : Unit is Adj + Ctl {
@@ -209,10 +215,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Remarks
     /// The output result is given by
     /// the distribution
+    /// $$
     /// \begin{align}
     ///     \Pr(\texttt{Zero} | \ket{\psi}) =
     ///         \braket{\psi | 0} \braket{0 | \psi}.
     /// \end{align}
+    /// $$
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -239,6 +247,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Remarks
     /// The output result is given by the distribution:
+    /// $$
     /// \begin{align}
     ///     \Pr(\texttt{Zero} | \ket{\psi}) =
     ///         \frac12 \braket{
@@ -249,6 +258,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///             \psi
     ///         },
     /// \end{align}
+    /// $$
     /// where $P_i$ is the $i$th element of `bases`, and where
     /// $N = \texttt{Length}(\texttt{bases})$.
     /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
@@ -294,10 +304,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_{\mu}(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_{\mu} / 2},
     /// \end{align}
+    /// $$
     /// where $\mu \in \{I, X, Y, Z\}$.
     ///
     /// When called with `pauli = PauliI`, this operation applies
@@ -328,10 +340,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_1(\theta) \mathrel{:=}
     ///     \operatorname{diag}(1, e^{i\theta}).
     /// \end{align}
+    /// $$
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -382,10 +396,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_1(n, k) \mathrel{:=}
     ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
     /// \end{align}
+    /// $$
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -442,10 +458,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_{\mu}(n, k) \mathrel{:=}
     ///     e^{i \pi n \sigma_{\mu} / 2^k},
     /// \end{align}
+    /// $$
     /// where $\mu \in \{I, X, Y, Z\}$.
     ///
     /// Equivalent to:
@@ -470,6 +488,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_x(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_x / 2} =
@@ -478,6 +497,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         -i\sin \frac{\theta}{2} & \cos \frac{\theta}{2}
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -517,6 +537,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// The second qubit input to the gate.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_{xx}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
@@ -526,6 +547,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         -i\sin \theta & 0 & 0 & \cos \theta
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation Rxx(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__rxx__body(theta, qubit0, qubit1);
@@ -563,6 +585,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_y(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_y / 2} =
@@ -571,6 +594,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         \sin \frac{\theta}{2} & \cos \frac{\theta}{2}
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -610,6 +634,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// The second qubit input to the gate.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_{yy}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
@@ -619,6 +644,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         i\sin \theta & 0 & 0 & \cos \theta
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__ryy__body(theta, qubit0, qubit1);
@@ -656,6 +682,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_z(\theta) \mathrel{:=}
     ///     e^{-i \theta \sigma_z / 2} =
@@ -664,6 +691,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & e^{i \theta / 2}
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     ///
     /// Equivalent to:
     /// ```qsharp
@@ -708,6 +736,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// The second qubit input to the gate.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     R_{zz}(\theta) \mathrel{:=}
     ///     \begin{bmatrix}
@@ -717,6 +746,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & 0 & 0 & e^{-i \theta / 2}
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__rzz__body(theta, qubit0, qubit1);
@@ -752,6 +782,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     S \mathrel{:=}
     ///     \begin{bmatrix}
@@ -759,6 +790,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & i
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation S(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__s__body(qubit);
@@ -828,6 +860,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Second qubit to be swapped.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     \operatorname{SWAP} \mathrel{:=}
     ///     \begin{bmatrix}
@@ -837,6 +870,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & 0 & 0 & 1
     ///     \end{bmatrix},
     /// \end{align}
+    /// $$
     ///
     /// where rows and columns are ordered as in the quantum concepts guide.
     ///
@@ -874,6 +908,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     T \mathrel{:=}
     ///     \begin{bmatrix}
@@ -881,6 +916,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & e^{i \pi / 4}
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation T(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__t__body(qubit);
@@ -934,6 +970,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     \sigma_x \mathrel{:=}
     ///     \begin{bmatrix}
@@ -941,6 +978,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         1 & 0
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation X(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__x__body(qubit);
@@ -981,6 +1019,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     \sigma_y \mathrel{:=}
     ///     \begin{bmatrix}
@@ -988,6 +1027,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         i & 0
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation Y(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__y__body(qubit);
@@ -1028,6 +1068,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Qubit to which the gate should be applied.
     ///
     /// # Remarks
+    /// $$
     /// \begin{align}
     ///     \sigma_z \mathrel{:=}
     ///     \begin{bmatrix}
@@ -1035,6 +1076,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///         0 & -1
     ///     \end{bmatrix}.
     /// \end{align}
+    /// $$
     operation Z(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__z__body(qubit);
