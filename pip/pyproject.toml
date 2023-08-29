@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest ~= 7.2.0"]
+jupyterlab = ["qsharp_jupyterlab"]
 
 [build-system]
 requires = ["maturin ~= 0.14.16"]

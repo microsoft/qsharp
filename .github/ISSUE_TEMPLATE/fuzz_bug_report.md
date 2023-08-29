@@ -3,7 +3,7 @@ name: Fuzzing Bug Report
 about: Used by fuzzing to automatically file the bugs found.
 title: 'Fuzz: "{{ env.PANIC_MESSAGE }}" ({{ env.WF_AGENT_OS }})'
 labels: bug
-assignees: kuzminrobin
+assignees: swernli
 ---
 
 The fuzz-testing workflow has detected a bug.
