@@ -27,6 +27,9 @@ impl<E: Diagnostic> WithSource<E> {
 }
 
 impl<E: Diagnostic> WithSource<E> {
+    /// Construct a diagnostic with source information from a source map.
+    /// Since errors may contain labeled spans from any source file in the
+    /// compilation, the entire source map is needed to resolve offsets.
     pub fn from_map(sources: &SourceMap, error: E) -> Self {
         // Filter the source map to the relevant sources
         // to avoid cloning all of them.

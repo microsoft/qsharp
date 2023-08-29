@@ -357,23 +357,21 @@ impl Interpreter {
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
 
-        let line_label = format!("line_{}", self.lines);
-        self.lines += 1;
-
-        let mut fragments =
-            self.compiler
-                .compile_fragments(&line_label, line)
-                .map_err(|errors| {
-                    errors
-                        .into_iter()
-                        .map(|error| {
-                            LineError(WithSource::from_map(
-                                self.compiler.source_map(),
-                                error.into(),
-                            ))
-                        })
-                        .collect::<Vec<_>>()
-                })?;
+        let label = self.next_line_label();
+        let mut fragments = self
+            .compiler
+            .compile_fragments(&label, line)
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            error.into(),
+                        ))
+                    })
+                    .collect::<Vec<_>>()
+            })?;
 
         let pass_errors = fragments
             .iter_mut()
@@ -507,6 +505,12 @@ impl Interpreter {
                 ))]
             },
         )
+    }
+
+    fn next_line_label(&mut self) -> String {
+        let label = format!("line_{}", self.lines);
+        self.lines += 1;
+        label
     }
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
