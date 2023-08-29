@@ -308,14 +308,14 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
                 Some(s) => {
                     if let StmtKind::Expr(end) = &mut s.kind {
                         let end_capture = self.gen_ident(end.ty.clone(), end.span);
-                        *s = end_capture.gen_id_init(
+                        *s = end_capture.gen_steppable_id_init(
                             Mutability::Immutable,
                             take(end),
                             self.assigner,
                         );
                         Some(Stmt {
                             id: self.assigner.next_node(),
-                            span: s.span,
+                            span: Span::default(),
                             kind: StmtKind::Expr(end_capture.gen_local_ref(self.assigner)),
                         })
                     } else {
@@ -500,10 +500,10 @@ fn create_general_dealloc_stmt(
 ) -> Stmt {
     Stmt {
         id: assigner.next_node(),
-        span: ident.span,
+        span: Span::default(),
         kind: StmtKind::Semi(Expr {
             id: assigner.next_node(),
-            span: ident.span,
+            span: Span::default(),
             ty: Ty::UNIT,
             kind: ExprKind::Call(Box::new(call_expr), Box::new(ident.gen_local_ref(assigner))),
         }),
