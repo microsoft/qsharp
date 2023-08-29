@@ -85,7 +85,7 @@ pub(super) enum Error {
 
     #[error("`{0}` not available")]
     #[diagnostic(help(
-        "this name matches an item that is not available for the current compilation target"
+        "this name matches an item that is not available for the current compilation configuration"
     ))]
     #[diagnostic(code("Qsc.Resolve.NotAvailable"))]
     NotAvailable(String, #[label] Span),
