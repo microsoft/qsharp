@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.Random {
     /// Fails if `max < min`.
     ///
     /// # Example
-    /// The following Q# snippet randomly draws an angle between $0$ and $2 \pi$:
+    /// The following Q# snippet randomly draws an angle between 0 and 2π:
     /// ```qsharp
     /// let angle = DrawRandomDouble(0.0, 2.0 * PI());
     /// ```
