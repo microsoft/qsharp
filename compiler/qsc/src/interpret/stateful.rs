@@ -15,7 +15,7 @@ use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::generate_qir_for_stmt;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_eval::backend::Backend;
 use qsc_eval::{
     backend::SparseSim,
@@ -691,11 +691,15 @@ impl<'a> BreakpointCollector<'a> {
     fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
         let source: &Source = self.get_source(self.offset);
         if source.offset == self.offset {
-            self.statements.insert(BreakpointSpan {
+            let span = stmt.span.subtract(source.offset);
+            let bps = BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo - source.offset,
-                hi: stmt.span.hi - source.offset,
-            });
+                lo: span.lo,
+                hi: span.hi,
+            };
+            if span != Span::default() {
+                self.statements.insert(bps);
+            }
         }
     }
 }
