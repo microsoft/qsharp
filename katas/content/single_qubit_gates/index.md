@@ -1,7 +1,7 @@
 # Single-Qubit Gates
 
 @[section]({
-    "id": "single_qubit_gates_overview",
+    "id": "single_qubit_gates__overview",
     "title": "Overview"
 })
 
@@ -19,7 +19,7 @@ This kata introduces you to single-qubit gates. Quantum gates are the quantum co
 - The concept of qubit
 
 @[section]({
-    "id": "single_qubit_gates_basics",
+    "id": "single_qubit_gates__basics",
     "title": "The Basics"
 })
 
@@ -122,7 +122,7 @@ $$X|\psi\rangle = X\big(\alpha|0\rangle + \beta|1\rangle\big) = X\big(\alpha|0\r
 That is, applying a gate to a qubit in superposition is equivalent to applying that gate to the basis states that make up that superposition and adding the results with appropriate weights.
 
 @[section]({
-    "id": "single_qubit_gates_ket_bra_representation",
+    "id": "single_qubit_gates__ket_bra_representation",
     "title": "Ket-Bra Representation"
 })
 
@@ -189,7 +189,7 @@ will have the following ket-bra representation:
 $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\langle0| + a_{11} |1\rangle\langle1|$$
 
 @[section]({
-    "id": "single_qubit_gates_ket_bra_decomposition",
+    "id": "single_qubit_gates__ket_bra_decomposition",
     "title": "Ket-Bra Decomposition"
 })
 
@@ -217,7 +217,7 @@ $$\frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
 $$|0\rangle\langle1| + |1\rangle\langle0|$$
 
 @[section]({
-    "id": "single_qubit_gates_important_gates",
+    "id": "single_qubit_gates__important_gates",
     "title": "Pauli Gates"
 })
 
@@ -310,7 +310,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
   $$XYZ = iI$$
 
 @[section]({
-    "id": "single_qubit_gates_pauli_gates_in_qsharp",
+    "id": "single_qubit_gates__pauli_gates_in_qsharp",
     "title": "Pauli Gates in Q#"
 })
 
@@ -327,10 +327,10 @@ Z(q);
 
 All the basic gates we will be covering in this kata are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
 
-@[example]({"id": "pauli_gates_in_qsharp", "codePath": "./examples/PauliGates.qs"})
+@[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
 @[exercise]({
-    "id": "y_gate",
+    "id": "single_qubit_gates__y_gate",
     "title": "The Y Gate",
     "descriptionPath": "./y_gate/index.md",
     "codePaths": [
@@ -342,7 +342,7 @@ All the basic gates we will be covering in this kata are part of the [Intrinsic]
 })
 
 @[exercise]({
-    "id": "global_phase_i",
+    "id": "single_qubit_gates__global_phase_i",
     "title": "Applying a Global Phase",
     "descriptionPath": "./global_phase_i/index.md",
     "codePaths": [
@@ -354,7 +354,7 @@ All the basic gates we will be covering in this kata are part of the [Intrinsic]
 })
 
 @[exercise]({
-    "id": "sign_flip_on_zero",
+    "id": "single_qubit_gates__sign_flip_on_zero",
     "title": "Sign Flip on Zero",
     "descriptionPath": "./sign_flip_on_zero/index.md",
     "codePaths": [
@@ -366,7 +366,7 @@ All the basic gates we will be covering in this kata are part of the [Intrinsic]
 })
 
 @[exercise]({
-    "id": "prepare_minus",
+    "id": "single_qubit_gates__prepare_minus",
     "title": "Prepare Minus",
     "descriptionPath": "./prepare_minus/index.md",
     "codePaths": [
@@ -378,7 +378,7 @@ All the basic gates we will be covering in this kata are part of the [Intrinsic]
 })
 
 @[section]({
-    "id": "single_qubit_gates_phase_shift_gates",
+    "id": "single_qubit_gates__phase_shift_gates",
     "title": "Phase Shift Gates"
 })
 
@@ -425,7 +425,7 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
 $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
-    "id": "three_quarters_pi_phase",
+    "id": "single_qubit_gates__three_quarters_pi_phase",
     "title": "Three-Fourths Phase",
     "descriptionPath": "./three_quarters_pi_phase/index.md",
     "codePaths": [
@@ -437,7 +437,7 @@ $$T^2 = S, S^2 = Z$$
 })
 
 @[section]({
-    "id": "single_qubit_gates_rotation_gates",
+    "id": "single_qubit_gates__rotation_gates",
     "title": "Rotation Gates"
 })
 
@@ -512,7 +512,7 @@ In addition, the rotation gates are very closely related to their respective Pau
 $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
-    "id": "prepare_rotated_state",
+    "id": "single_qubit_gates__prepare_rotated_state",
     "title": "Prepare Rotated State",
     "descriptionPath": "./prepare_rotated_state/index.md",
     "codePaths": [
@@ -524,7 +524,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 })
 
 @[exercise]({
-    "id": "prepare_arbitrary_state",
+    "id": "single_qubit_gates__prepare_arbitrary_state",
     "title": "Prepare Arbitrary State",
     "descriptionPath": "./prepare_arbitrary_state/index.md",
     "codePaths": [
@@ -536,7 +536,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 })
 
 @[section]({
-    "id": "single_qubit_gates_conclusion",
+    "id": "single_qubit_gates__conclusion",
     "title": "Conclusion"
 })
 
