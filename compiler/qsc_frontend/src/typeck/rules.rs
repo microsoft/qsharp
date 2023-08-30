@@ -507,8 +507,13 @@ impl<'a> Context<'a> {
                 );
                 converge(with_ctls)
             }
-            UnOp::Neg | UnOp::NotB | UnOp::Pos => {
+            UnOp::Neg | UnOp::Pos => {
                 self.inferrer.class(span, Class::Num(operand.ty.clone()));
+                operand
+            }
+            UnOp::NotB => {
+                self.inferrer
+                    .class(span, Class::Integral(operand.ty.clone()));
                 operand
             }
             UnOp::NotL => {
