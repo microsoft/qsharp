@@ -99,6 +99,8 @@ impl Compiler {
         self.ast_assigner.visit_stmt(&mut stmt);
         self.resolver.with(&mut self.hir_assigner).visit_stmt(&stmt);
         self.checker
+            .collect_stmt_items(self.resolver.names(), &stmt);
+        self.checker
             .check_stmt_fragment(self.resolver.names(), &stmt);
         self.checker.solve(self.resolver.names());
 
