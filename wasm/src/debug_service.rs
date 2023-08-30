@@ -32,14 +32,20 @@ impl DebugService {
         }
     }
 
-    pub fn load_source(&mut self, path: &str, source: &str) -> bool {
-        let source_map = SourceMap::new([(path.into(), source.into())], None);
+    pub fn load_source(&mut self, path: String, source: String, entry: Option<String>) -> String {
+        let source_map = SourceMap::new(
+            [(path.into(), source.into())],
+            entry.as_deref().map(|value| value.into()),
+        );
         match Interpreter::new(true, source_map, qsc::PackageType::Exe, TargetProfile::Full) {
             Ok(interpreter) => {
                 self.interpreter = interpreter;
-                self.interpreter.set_entry().is_ok()
+                match self.interpreter.set_entry() {
+                    Ok(()) => "".to_string(),
+                    Err(e) => render_errors(e),
+                }
             }
-            Err(_) => false,
+            Err(e) => render_errors(e),
         }
     }
 
@@ -207,6 +213,15 @@ impl Default for DebugService {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn render_errors(errors: Vec<qsc::interpret::stateful::Error>) -> String {
+    let mut msg = String::new();
+    for error in errors {
+        let error_string = format!("{:?}\n", miette::Report::new(error));
+        msg.push_str(&error_string);
+    }
+    msg
 }
 
 impl From<StepResult> for StructStepResult {
