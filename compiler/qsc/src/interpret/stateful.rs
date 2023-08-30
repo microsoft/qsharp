@@ -438,7 +438,7 @@ impl Interpreter {
             ))]);
         }
 
-        let mut fragment = self.compiler.compile_expr(expr).map_err(|errors| {
+        let mut fragments = self.compiler.compile_expr(expr).map_err(|errors| {
             let source = expr.into();
             errors
                 .into_iter()
@@ -446,11 +446,13 @@ impl Interpreter {
                 .collect::<Vec<_>>()
         })?;
 
-        let pass_errors = self.passes.run(
-            self.store.core(),
-            self.compiler.assigner_mut(),
-            &mut fragment,
-        );
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
+            })
+            .collect::<Vec<_>>();
         if !pass_errors.is_empty() {
             let source = expr.into();
             return Err(pass_errors
@@ -459,33 +461,49 @@ impl Interpreter {
                 .collect());
         }
 
-        let Fragment::Stmt(stmt) = fragment else {
-            panic!("only a stmt fragment should reach here.")
-        };
+        let mut ret = Ok(String::new());
+        for fragment in fragments {
+            match fragment {
+                Fragment::Item(item) => match item.kind {
+                    qsc_hir::hir::ItemKind::Callable(callable) => {
+                        let callable = self.lower_callable_decl(&callable);
 
-        let stmt_id = self.lower_stmt(&stmt);
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
-        };
+                        self.callables
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                    }
+                    qsc_hir::hir::ItemKind::Namespace(..) => {}
+                    qsc_hir::hir::ItemKind::Ty(..) => {
+                        self.udts
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                    }
+                },
+                Fragment::Stmt(stmt) => {
+                    let stmt_id = self.lower_stmt(&stmt);
+                    let globals = Lookup {
+                        fir_store: &self.fir_store,
+                        package: self.package,
+                        udts: &self.udts,
+                        callables: &self.callables,
+                    };
 
-        generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
-            |(error, call_stack)| {
-                let stack_trace = if call_stack.is_empty() {
-                    None
-                } else {
-                    Some(self.render_call_stack(call_stack, &error))
-                };
+                    ret = generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package)
+                        .map_err(|(error, call_stack)| {
+                            let stack_trace = if call_stack.is_empty() {
+                                None
+                            } else {
+                                Some(self.render_call_stack(call_stack, &error))
+                            };
 
-                vec![LineError(WithSource::new(
-                    expr.into(),
-                    error.into(),
-                    stack_trace,
-                ))]
-            },
-        )
+                            vec![LineError(WithSource::new(
+                                expr.into(),
+                                error.into(),
+                                stack_trace,
+                            ))]
+                        });
+                }
+            }
+        }
+        ret
     }
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
