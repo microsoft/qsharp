@@ -10,7 +10,7 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateless,
+        stateless, Error, Frame,
     },
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
@@ -37,8 +37,7 @@ pub fn git_hash() -> JsValue {
     JsValue::from_str(git_hash)
 }
 
-#[wasm_bindgen]
-pub fn get_qir(code: &str) -> Result<JsValue, JsValue> {
+fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame>)> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
     let std = compile::std(&store, TargetProfile::Base);
@@ -54,9 +53,14 @@ pub fn get_qir(code: &str) -> Result<JsValue, JsValue> {
     );
     let package = store.insert(unit.0);
 
-    let qir = generate_qir(&store, package);
+    generate_qir(&store, package)
+}
+
+#[wasm_bindgen]
+pub fn get_qir(code: &str) -> Result<JsValue, JsValue> {
+    let qir = get_qir_internal(code);
     match qir {
-        Ok(qir) => Ok(JsValue::from_str(&qir)),
+        Ok(qir) => Ok(JsValue::from_str(qir.as_str())),
         Err((err, _)) => Err(JsValue::from_str(&err.to_string())),
     }
 }
@@ -265,7 +269,7 @@ pub fn check_exercise_solution(
 
 #[cfg(test)]
 mod test {
-    use crate::get_qir;
+    use crate::get_qir_internal;
 
     #[test]
     fn test_missing_type() {
@@ -290,7 +294,8 @@ mod test {
         H(q);
         M(q)
         }}";
-        let _ = get_qir(code);
+        let result = get_qir_internal(code);
+        assert!(result.is_ok());
     }
 
     #[test]
