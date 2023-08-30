@@ -82,7 +82,7 @@ impl Compiler {
     /// Compile a string with a single fragment of Q# code that is an expression.
     /// # Errors
     /// Returns a vector of errors if the input fails compilation.
-    pub fn compile_expr(&mut self, input: &str) -> Result<Fragment, Vec<Error>> {
+    pub fn compile_expr(&mut self, input: &str) -> Result<Vec<Fragment>, Vec<Error>> {
         let (expr, errors) = qsc_parse::expr(input);
         if !errors.is_empty() {
             return Err(errors
@@ -99,14 +99,17 @@ impl Compiler {
         self.ast_assigner.visit_stmt(&mut stmt);
         self.resolver.with(&mut self.hir_assigner).visit_stmt(&stmt);
         self.checker
+            .collect_stmt_items(self.resolver.names(), &stmt);
+        self.checker
             .check_stmt_fragment(self.resolver.names(), &stmt);
         self.checker.solve(self.resolver.names());
 
-        let fragment = self.lower_stmt(&stmt);
+        let fragments = self.lower_fragment(qsc_parse::Fragment::Stmt(Box::new(stmt)));
         let errors = self.drain_errors();
         if errors.is_empty() {
-            Ok(fragment.expect("lowering an expression should not produce None"))
+            Ok(fragments)
         } else {
+            self.lowerer.clear_items();
             Err(errors)
         }
     }
