@@ -570,8 +570,8 @@ function validateIdsUniqueness(katas) {
   console.log("Validating IDs uniqueness across all katas");
   const allIds = new Set();
   const assertUniqueness = (id) => {
-    const isIdUnique = !allIds.has(id);
-    if (!isIdUnique) {
+    const idAlreadyExists = allIds.has(id);
+    if (idAlreadyExists) {
       throw new Error(`"${id}" is not unique`);
     }
     allIds.add(id);
