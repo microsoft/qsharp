@@ -567,6 +567,7 @@ function generateKataContent(path, globalCodeSources) {
 }
 
 function validateIdsUniqueness(katas) {
+  console.log("Validating IDs uniqueness across all katas");
   const allIds = new Set();
   const assertUniqueness = (id) => {
     const isIdUnique = !allIds.has(id);
