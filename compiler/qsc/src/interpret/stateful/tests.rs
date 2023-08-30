@@ -696,11 +696,6 @@ mod given_interpreter {
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
             "#]].assert_eq(&res);
 
-            // Can't validate here in this test, but note that the following call will cause
-            // `lower_fragments` (https://github.com/microsoft/qsharp/blob/e0c4dd334a81a0b0be82f4fbff0d850acc0a5fc8/compiler/qsc_frontend/src/incremental.rs#L235)
-            // to yield items that were previously declared in the qirgen call.
-            // this is because `lowerer.drain_items` is being called (it wasn't called
-            // previously as part of `qirgen()`).
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Baz() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
