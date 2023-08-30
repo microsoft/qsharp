@@ -81,9 +81,10 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     if span_contains(decl.name.span, self.offset) {
                         self.set_definition_from_position(decl.name.span.lo, None);
                     } else if span_contains(decl.span, self.offset) {
+                        let context = self.curr_callable;
                         self.curr_callable = Some(decl);
                         walk_callable_decl(self, decl);
-                        self.curr_callable = None;
+                        self.curr_callable = context;
                     }
                     // Note: the `item.span` can cover things like doc
                     // comment, attributes, and visibility keywords, which aren't
