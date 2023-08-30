@@ -3,6 +3,6 @@ Once you have successfully implemented a solution or if you are stuck on a probl
 For this exercise, you can solve the problem by simply using Q#'s `X` operation on the input qubit, which will perform a "bit flip" and set the qubit into the $|1\rangle$ state.
 
 @[solution]({
-    "id": "flip_qubit_solution",
+    "id": "getting_started__flip_qubit_solution",
     "codePath": "./Solution.qs"
 })

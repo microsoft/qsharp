@@ -31,6 +31,8 @@ mod given_interpreter {
     }
 
     mod without_sources {
+        use indoc::indoc;
+
         use super::*;
 
         mod without_stdlib {
@@ -447,6 +449,62 @@ mod given_interpreter {
                        [line_3] [DumpMachine()]
                 "#]],
             );
+        }
+
+        #[test]
+        fn items_usable_before_definition() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    function A() : Unit {
+                        B();
+                    }
+                    function B() : Unit {}
+                    A()
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+        }
+
+        #[test]
+        fn namespace_usable_before_definition() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    A.B();
+                    namespace A {
+                        function B() : Unit {}
+                    }
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+        }
+
+        #[test]
+        fn mutually_recursive_namespaces_work() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    A.B();
+                    namespace A {
+                        open C;
+                        function B() : Unit {
+                            D();
+                        }
+                        function E() : Unit {}
+                    }
+                    namespace C {
+                        open A;
+                        function D() : Unit {
+                            E();
+                        }
+                    }
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
         }
     }
 

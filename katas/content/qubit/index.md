@@ -1,7 +1,7 @@
 # The Qubit
 
 @[section]({
-    "id": "qubit_overview",
+    "id": "qubit__overview",
     "title": "Overview"
 })
 
@@ -23,7 +23,7 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 - Linear algebra
 
 @[section]({
-    "id": "qubit_concept",
+    "id": "qubit__concept",
     "title": "The Concept of Qubit"
 })
 
@@ -95,7 +95,7 @@ This means that these vectors form an **orthonormal basis**. The basis of $\begi
 > The Hadamard basis is widely used in quantum computing, for example, in the [BB84 quantum key distribution protocol](https://en.wikipedia.org/wiki/BB84).
 
 @[section]({
-    "id": "qubit_dirac_notation",
+    "id": "qubit__dirac_notation",
     "title": "Dirac Notation"
 })
 
@@ -133,7 +133,7 @@ We will learn more about Dirac notation in the next katas, as we introduce quant
 
 
 @[section]({
-    "id": "qubit_relative_and_global_phase",
+    "id": "qubit__relative_and_global_phase",
     "title": "Relative and Global Phase"
 })
 
@@ -146,7 +146,7 @@ Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the r
 The state of a qubit (or, more generally, the state of a quantum system) is defined by its relative phase - global phase arises as a consequence of using linear algebra to represent qubits, and has no physical meaning. That is, applying a phase to the entire state of a system (multiplying the entire vector by $e^{i\theta}$ for any real $\theta$) doesn't actually affect the state of the system. Because of this, global phase is sometimes known as **unobservable phase** or **hidden phase**.
 
 @[section]({
-    "id": "qubit_qsharp_data_type",
+    "id": "qubit__qsharp_data_type",
     "title": "Q# Qubit Data Type"
 })
 
@@ -183,7 +183,7 @@ The following demo shows how to allocate a qubit and examine its state in Q#. Yo
 
 > Note that the Q# code doesn't have access to the output of `DumpMachine`, so you cannot write any non-physical code in Q#!
 
-@[example]({"id": "single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
+@[example]({"id": "qubit__single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
 
 The exact behavior of this operation called `RunExample` depends on the quantum simulator or processor you are using.
 
@@ -218,7 +218,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 > It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see [Q# documentation on quantum states](https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states).
 
 @[exercise]({
-    "id": "learn_single_qubit_state",
+    "id": "qubit__learn_single_qubit_state",
     "title": "Learn the State of a Single Qubit",
     "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
@@ -230,7 +230,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 })
 
 @[section]({
-    "id": "qubit_visualizing_multi_qubit",
+    "id": "qubit__visualizing_multi_qubit",
     "title": "Display the Quantum State of a Multi-Qubit Program"
 })
 
@@ -247,10 +247,10 @@ We will learn more details on endianness in the "Multi-Qubit Systems" kata.
 
 ## Demo: DumpMachine for Multi-Qubit Systems
 
-@[example]({"id": "multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
+@[example]({"id": "qubit__multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
 
 @[exercise]({
-    "id": "learn_basis_state_amplitudes",
+    "id": "qubit__learn_basis_state_amplitudes",
     "title": "Learn Basis State Amplitudes",
     "descriptionPath": "./learn_basis_state_amplitudes/index.md",
     "codePaths": [
@@ -262,7 +262,7 @@ We will learn more details on endianness in the "Multi-Qubit Systems" kata.
 })
 
 @[section]({
-    "id": "qubit_conclusion",
+    "id": "qubit__conclusion",
     "title": "Conclusion"
 })
 

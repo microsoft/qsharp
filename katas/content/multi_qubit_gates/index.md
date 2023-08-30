@@ -1,7 +1,7 @@
 # Multi-Qubit Gates
 
 @[section]({
-    "id": "multi_qubit_gates_overview",
+    "id": "multi_qubit_gates__overview",
     "title": "Overview"
 })
 
@@ -18,7 +18,7 @@ This kata continues the introduction to quantum gates, focusing on applying quan
 - Single-qubit and multi-qubit quantum gates
 
 @[section]({
-    "id": "multi_qubit_gates_the_basics",
+    "id": "multi_qubit_gates__the_basics",
     "title": "The Basics"
 })
 
@@ -70,7 +70,7 @@ This approach can be generalized to larger systems and gates that act on multipl
 It is more complex when a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this kata.
 
 @[exercise]({
-    "id": "compound_gate",
+    "id": "multi_qubit_gates__compound_gate",
     "title": "Compound Gate",
     "descriptionPath": "./compound_gate/index.md",
     "codePaths": [
@@ -82,7 +82,7 @@ It is more complex when a multi-qubit gate is applied to a subset of qubits that
 })
 
 @[section]({
-    "id": "multi_qubit_gates_cnot_gate",
+    "id": "multi_qubit_gates__cnot_gate",
     "title": "CNOT Gate"
 })
 
@@ -126,7 +126,7 @@ $$\alpha|00\rangle + \beta|11\rangle$$
 The `CNOT` gate is self-adjoint: applying it for the second time reverses its effect.
 
 @[exercise]({
-    "id": "preparing_bell_state",
+    "id": "multi_qubit_gates__preparing_bell_state",
     "title": "Preparing a Bell State",
     "descriptionPath": "./preparing_bell_state/index.md",
     "codePaths": [
@@ -138,7 +138,7 @@ The `CNOT` gate is self-adjoint: applying it for the second time reverses its ef
 })
 
 @[section]({
-    "id": "multi_qubit_gates_ket_bra_representation",
+    "id": "multi_qubit_gates__ket_bra_representation",
     "title": "Ket-Bra Representation"
 })
 
@@ -205,7 +205,7 @@ Dirac notation is particularly useful for expressing sparse matrices - matrices 
 With enough practice you'll be able to perform computations in Dirac notation without spelling out all the bra-ket terms explicitly!
 
 @[section]({
-    "id": "multi_qubit_gates_ket_bra_decomposition",
+    "id": "multi_qubit_gates__ket_bra_decomposition",
     "title": "Ket-Bra Decomposition"
 })
 
@@ -240,7 +240,7 @@ $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(2|10\rangle\lang
 $$|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|$$
 
 @[section]({
-    "id": "multi_qubit_gates_swap_gate",
+    "id": "multi_qubit_gates__swap_gate",
     "title": "SWAP Gate"
 })
 
@@ -268,7 +268,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
 </table>
 
 @[exercise]({
-    "id": "qubit_swap",
+    "id": "multi_qubit_gates__qubit_swap",
     "title": "Qubit SWAP",
     "descriptionPath": "./qubit_swap/index.md",
     "codePaths": [
@@ -280,7 +280,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
 })
 
 @[section]({
-    "id": "multi_qubit_gates_acting_on_non_adjacent_qubits",
+    "id": "multi_qubit_gates__acting_on_non_adjacent_qubits",
     "title": "Multi-Qubit Gates Acting on Non-Adjacent Qubits"
 })
 
@@ -395,7 +395,7 @@ operation CINOT (qs: Qubit[]) : Unit {
 ```
 
 @[section]({
-    "id": "multi_qubit_gates_controlled_gates",
+    "id": "multi_qubit_gates__controlled_gates",
     "title": "Controlled Gates"
 })
 
@@ -465,7 +465,7 @@ The Q# compiler will often be able to generate a controlled version of the opera
 In other cases, you'll need to define the controlled version of an operation manually.
 
 @[exercise]({
-    "id": "controlled_rotation",
+    "id": "multi_qubit_gates__controlled_rotation",
     "title": "Controlled Rotation",
     "descriptionPath": "./controlled_rotation/index.md",
     "codePaths": [
@@ -477,7 +477,7 @@ In other cases, you'll need to define the controlled version of an operation man
 })
 
 @[section]({
-    "id": "multi_qubit_gates_multi_controlled_gates",
+    "id": "multi_qubit_gates__multi_controlled_gates",
     "title": "Multi-Controlled Gates"
 })
 
@@ -502,7 +502,7 @@ $$
 To construct a multi-controlled version of an operation in Q#, you can use the Controlled functor as well, passing all control qubits as an array that is the first parameter.
 
 @[section]({
-    "id": "multi_qubit_gates_other_controlled_gates",
+    "id": "multi_qubit_gates__other_controlled_gates",
     "title": "Other Types of Controlled Gates"
 })
 
@@ -567,7 +567,7 @@ The sequence of steps that implement this variant are:
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
 @[exercise]({
-    "id": "arbitrary_controls",
+    "id": "multi_qubit_gates__arbitrary_controls",
     "title": "Arbitrary Controls",
     "descriptionPath": "./arbitrary_controls/index.md",
     "codePaths": [
@@ -579,7 +579,7 @@ The sequence of steps that implement this variant are:
 })
 
 @[section]({
-    "id": "multi_qubit_gates_conclusion",
+    "id": "multi_qubit_gates__conclusion",
     "title": "Conclusion"
 })
 

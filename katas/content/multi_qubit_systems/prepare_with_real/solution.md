@@ -9,6 +9,6 @@ $$ H|0\rangle = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} \
 For the second qubit we can use the same transformation we've seen in the "Prepare a Superposition of Two Basis States" exercise; this will give the desired end state.
 
 @[solution]({
-    "id": "prepare_with_real_solution",
+    "id": "multi_qubit_systems__prepare_with_real_solution",
     "codePath": "solution.qs"
 })

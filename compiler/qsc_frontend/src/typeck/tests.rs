@@ -84,7 +84,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, Vec::new());
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -1171,7 +1171,20 @@ fn unop_bitwise_not_bool() {
         &expect![[r##"
             #1 0-8 "~~~false" : Bool
             #2 3-8 "false" : Bool
-            Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 3, hi: 8 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Bool), Span { lo: 3, hi: 8 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn unop_bitwise_not_double() {
+    check(
+        "",
+        "~~~2.0",
+        &expect![[r##"
+            #1 0-6 "~~~2.0" : Double
+            #2 3-6 "2.0" : Double
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 3, hi: 6 }))))
         "##]],
     );
 }
@@ -3206,24 +3219,24 @@ fn instantiate_duplicate_ty_param_names() {
 #[test]
 fn ambiguous_generic() {
     check(
-        "namespace Test { 
+        "namespace Test {
             function Foo<'T>(x: 'T) : 'T { x }
-            function Bar() : () { let x = Foo([]); } 
+            function Bar() : () { let x = Foo([]); }
         }",
         "",
         &expect![[r##"
-            #7 46-53 "(x: 'T)" : 0
-            #8 47-52 "x: 'T" : 0
-            #14 59-64 "{ x }" : 0
-            #16 61-62 "x" : 0
-            #22 89-91 "()" : Unit
-            #24 97-117 "{ let x = Foo([]); }" : Unit
-            #26 103-104 "x" : (?2)[]
-            #28 107-114 "Foo([])" : (?2)[]
-            #29 107-110 "Foo" : ((?2)[] -> (?2)[])
-            #32 110-114 "([])" : (?2)[]
-            #33 111-113 "[]" : (?2)[]
-            Error(Type(Error(AmbiguousTy(Span { lo: 111, hi: 113 }))))
+            #7 45-52 "(x: 'T)" : 0
+            #8 46-51 "x: 'T" : 0
+            #14 58-63 "{ x }" : 0
+            #16 60-61 "x" : 0
+            #22 88-90 "()" : Unit
+            #24 96-116 "{ let x = Foo([]); }" : Unit
+            #26 102-103 "x" : (?2)[]
+            #28 106-113 "Foo([])" : (?2)[]
+            #29 106-109 "Foo" : ((?2)[] -> (?2)[])
+            #32 109-113 "([])" : (?2)[]
+            #33 110-112 "[]" : (?2)[]
+            Error(Type(Error(AmbiguousTy(Span { lo: 110, hi: 112 }))))
         "##]],
     );
 }
@@ -3256,6 +3269,34 @@ fn undeclared_generic_param() {
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
+        "##]],
+    );
+}
+
+#[test]
+fn use_bound_item_in_another_bound_item() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    function C() : Unit {
+                        D();
+                    }
+                    function D() : Unit {}
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 28-30 "()" : Unit
+            #10 38-133 "{\n        function C() : Unit {\n            D();\n        }\n        function D() : Unit {}\n    }" : Unit
+            #15 58-60 "()" : Unit
+            #19 68-96 "{\n            D();\n        }" : Unit
+            #21 82-85 "D()" : Unit
+            #22 82-83 "D" : (Unit -> Unit)
+            #25 83-85 "()" : Unit
+            #30 115-117 "()" : Unit
+            #34 125-127 "{}" : Unit
         "##]],
     );
 }
