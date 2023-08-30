@@ -83,11 +83,11 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
 
-    #[error("`{0}` not available")]
+    #[error("`{0}` not found")]
     #[diagnostic(help(
-        "this name matches an item that is not available for the current compilation configuration"
+        "found a matching name that is not available for the current compilation configuration"
     ))]
-    #[diagnostic(code("Qsc.Resolve.NotAvailable"))]
+    #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotAvailable(String, #[label] Span),
 }
 
