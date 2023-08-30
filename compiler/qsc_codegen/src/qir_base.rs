@@ -266,7 +266,7 @@ impl Backend for BaseProfSim {
         let id = self.get_meas_id();
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__mz__body({}, {}) #1",
+            "  call void @__quantum__qis__m__body({}, {}) #1",
             Qubit(q),
             Result(id),
         )
@@ -278,12 +278,11 @@ impl Backend for BaseProfSim {
         let id = self.get_meas_id();
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__mz__body({}, {}) #1",
+            "  call void @__quantum__qis__mresetz__body({}, {}) #1",
             Qubit(q),
             Result(id),
         )
         .expect("writing to string should succeed");
-        self.reset(q);
         id
     }
 
