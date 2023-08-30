@@ -622,7 +622,7 @@ test("debug service getting breakpoints after loaded source succeeds when file n
     );
     assert.equal(true, result);
     const bps = await debugService.getBreakpoints("test.qs");
-    assert.equal(bps.length, 5);
+    assert.equal(bps.length, 4);
   } finally {
     debugService.terminate();
   }
