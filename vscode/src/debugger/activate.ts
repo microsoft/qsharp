@@ -138,16 +138,27 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
           return undefined;
         });
     }
+    return config;
+  }
+
+  resolveDebugConfiguration(
+    folder: vscode.WorkspaceFolder | undefined,
+    config: vscode.DebugConfiguration,
+    _token?: vscode.CancellationToken | undefined
+  ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // apply defaults if not set
-    config.type = "type" in config ? config.type : "qsharp";
-    config.name = "name" in config ? config.name : "Launch";
-    config.request = "request" in config ? config.request : "launch";
-    config.shots = "shots" in config ? config.shots : 1;
-    config.entry = "entry" in config ? config.entry : "";
-    config.trace = "trace" in config ? config.trace : false;
-    config.noDebug = "noDebug" in config ? config.noDebug : true;
-    config.stopOnEntry =
-      "stopOnEntry" in config ? config.stopOnEntry : !config.noDebug;
+    config.type = config.type ?? "qsharp";
+    config.name = config.name ?? "Launch";
+    config.request = config.request ?? "launch";
+    config.shots = config.shots ?? 1;
+    config.entry = config.entry ?? "";
+    config.trace = config.trace ?? false;
+    // noDebug is set to true when the user runs the program without debugging.
+    // otherwise it usually isn't set, but we default to false.
+    config.noDebug = config.noDebug ?? false;
+    // stopOnEntry is set to true when the user runs the program with debugging.
+    // unless overridden.
+    config.stopOnEntry = config.stopOnEntry ?? !config.noDebug;
 
     return config;
   }

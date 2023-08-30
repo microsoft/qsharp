@@ -563,7 +563,7 @@ test("debug service loading source without entry point attr fails - web worker",
 }`,
       undefined
     );
-    assert.notEqual("", result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
     debugService.terminate();
   }
@@ -580,7 +580,7 @@ test("debug service loading source with syntax error fails - web worker", async 
 }`,
       undefined
     );
-    assert.notEqual("", result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
     debugService.terminate();
   }
@@ -594,7 +594,7 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
       `namespace Sample { operation main() : Unit { } }`,
       "SomeBadExpr()"
     );
-    assert.notEqual("", result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
     debugService.terminate();
   }
@@ -608,7 +608,7 @@ test("debug service loading source with good entry expr succeeds - web worker", 
       `namespace Sample { operation Main() : Unit { } }`,
       "Sample.Main()"
     );
-    assert.equal("", result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
   } finally {
     debugService.terminate();
   }
@@ -630,7 +630,7 @@ test("debug service loading source with entry point attr succeeds - web worker",
 }`,
       undefined
     );
-    assert.equal("", result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
   } finally {
     debugService.terminate();
   }
@@ -652,7 +652,7 @@ test("debug service getting breakpoints after loaded source succeeds when file n
 }`,
       undefined
     );
-    assert.equal("", result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
     assert.equal(bps.length, 4);
   } finally {
