@@ -691,7 +691,7 @@ impl<'a> BreakpointCollector<'a> {
     fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
         let source: &Source = self.get_source(self.offset);
         if source.offset == self.offset {
-            let span = stmt.span.subtract(source.offset);
+            let span = stmt.span - source.offset;
             let bps = BreakpointSpan {
                 id: stmt.id.into(),
                 lo: span.lo,

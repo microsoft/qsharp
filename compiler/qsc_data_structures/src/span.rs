@@ -4,7 +4,7 @@
 use miette::SourceSpan;
 use std::{
     fmt::{self, Display, Formatter},
-    ops::{Add, Index},
+    ops::{Add, Index, Sub},
 };
 
 /// A region between two offsets in an array. Spans are the half-open interval `[lo, hi)`.
@@ -16,16 +16,6 @@ pub struct Span {
     pub hi: u32,
 }
 
-impl Span {
-    #[must_use]
-    pub fn subtract(&self, offset: u32) -> Span {
-        Span {
-            lo: self.lo - offset,
-            hi: self.hi - offset,
-        }
-    }
-}
-
 impl Add<u32> for Span {
     type Output = Self;
 
@@ -33,6 +23,17 @@ impl Add<u32> for Span {
         Self {
             lo: self.lo + rhs,
             hi: self.hi + rhs,
+        }
+    }
+}
+
+impl Sub<u32> for Span {
+    type Output = Self;
+
+    fn sub(self, rhs: u32) -> Self::Output {
+        Self {
+            lo: self.lo - rhs,
+            hi: self.hi - rhs,
         }
     }
 }
