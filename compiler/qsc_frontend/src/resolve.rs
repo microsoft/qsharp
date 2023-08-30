@@ -23,6 +23,8 @@ use std::{
 };
 use thiserror::Error;
 
+use crate::compile::preprocess::TrackedName;
+
 const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Canon",
     "Microsoft.Quantum.Core",
@@ -82,6 +84,13 @@ pub(super) enum Error {
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
+
+    #[error("`{0}` not found")]
+    #[diagnostic(help(
+        "found a matching item `{1}` that is not available for the current compilation configuration"
+    ))]
+    #[diagnostic(code("Qsc.Resolve.NotFound"))]
+    NotAvailable(String, String, #[label] Span),
 }
 
 struct Scope {
@@ -150,24 +159,30 @@ struct Open {
 
 pub(super) struct Resolver {
     names: Names,
+    dropped_names: Vec<TrackedName>,
     globals: GlobalScope,
     scopes: Vec<Scope>,
     errors: Vec<Error>,
 }
 
 impl Resolver {
-    pub(super) fn new(globals: GlobalTable) -> Self {
+    pub(super) fn new(globals: GlobalTable, dropped_names: Vec<TrackedName>) -> Self {
         Self {
             names: globals.names,
+            dropped_names,
             globals: globals.scope,
             scopes: Vec::new(),
             errors: Vec::new(),
         }
     }
 
-    pub(super) fn with_persistent_local_scope(globals: GlobalTable) -> Self {
+    pub(super) fn with_persistent_local_scope(
+        globals: GlobalTable,
+        dropped_names: Vec<TrackedName>,
+    ) -> Self {
         Self {
             names: globals.names,
+            dropped_names,
             globals: globals.scope,
             scopes: vec![Scope::new(ScopeKind::Block)],
             errors: Vec::new(),
@@ -206,7 +221,23 @@ impl Resolver {
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
             Ok(id) => self.names.insert(path.id, id),
-            Err(err) => self.errors.push(err),
+            Err(err) => {
+                if let Error::NotFound(name, span) = err {
+                    if let Some(dropped_name) =
+                        self.dropped_names.iter().find(|n| n.name.as_ref() == name)
+                    {
+                        self.errors.push(Error::NotAvailable(
+                            name,
+                            format!("{}.{}", dropped_name.namespace, dropped_name.name),
+                            span,
+                        ));
+                    } else {
+                        self.errors.push(Error::NotFound(name, span));
+                    }
+                } else {
+                    self.errors.push(err);
+                }
+            }
         }
     }
 

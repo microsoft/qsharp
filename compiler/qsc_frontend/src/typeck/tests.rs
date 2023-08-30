@@ -84,7 +84,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, Vec::new());
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -1171,7 +1171,20 @@ fn unop_bitwise_not_bool() {
         &expect![[r##"
             #1 0-8 "~~~false" : Bool
             #2 3-8 "false" : Bool
-            Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 3, hi: 8 }))))
+            Error(Type(Error(MissingClassInteger(Prim(Bool), Span { lo: 3, hi: 8 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn unop_bitwise_not_double() {
+    check(
+        "",
+        "~~~2.0",
+        &expect![[r##"
+            #1 0-6 "~~~2.0" : Double
+            #2 3-6 "2.0" : Double
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 3, hi: 6 }))))
         "##]],
     );
 }
