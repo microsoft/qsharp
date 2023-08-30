@@ -29,6 +29,7 @@ mod given_interpreter {
     }
 
     mod without_sources {
+        use expect_test::expect;
         use indoc::indoc;
 
         use super::*;
@@ -374,6 +375,404 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
+        }
+
+        #[test]
+        fn normal_qirgen() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Foo()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__rx__body(double, %Qubit*)
+                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__ry__body(double, %Qubit*)
+                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__h__body(%Qubit*)
+                declare void @__quantum__qis__s__body(%Qubit*)
+                declare void @__quantum__qis__s__adj(%Qubit*)
+                declare void @__quantum__qis__t__body(%Qubit*)
+                declare void @__quantum__qis__t__adj(%Qubit*)
+                declare void @__quantum__qis__x__body(%Qubit*)
+                declare void @__quantum__qis__y__body(%Qubit*)
+                declare void @__quantum__qis__z__body(%Qubit*)
+                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__reset__body(%Qubit*)
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+                declare void @__quantum__rt__array_record_output(i64, i8*)
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]].assert_eq(&res);
+        }
+
+        #[test]
+        fn qirgen_entry_expr_in_block() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("{Foo()}").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__rx__body(double, %Qubit*)
+                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__ry__body(double, %Qubit*)
+                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__h__body(%Qubit*)
+                declare void @__quantum__qis__s__body(%Qubit*)
+                declare void @__quantum__qis__s__adj(%Qubit*)
+                declare void @__quantum__qis__t__body(%Qubit*)
+                declare void @__quantum__qis__t__adj(%Qubit*)
+                declare void @__quantum__qis__x__body(%Qubit*)
+                declare void @__quantum__qis__y__body(%Qubit*)
+                declare void @__quantum__qis__z__body(%Qubit*)
+                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__reset__body(%Qubit*)
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+                declare void @__quantum__rt__array_record_output(i64, i8*)
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]].assert_eq(&res);
+        }
+
+        #[test]
+        fn qirgen_entry_expr_defines_operation() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter
+                .qirgen("{operation Bar() : Unit {}; Foo()}")
+                .expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__rx__body(double, %Qubit*)
+                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__ry__body(double, %Qubit*)
+                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__h__body(%Qubit*)
+                declare void @__quantum__qis__s__body(%Qubit*)
+                declare void @__quantum__qis__s__adj(%Qubit*)
+                declare void @__quantum__qis__t__body(%Qubit*)
+                declare void @__quantum__qis__t__adj(%Qubit*)
+                declare void @__quantum__qis__x__body(%Qubit*)
+                declare void @__quantum__qis__y__body(%Qubit*)
+                declare void @__quantum__qis__z__body(%Qubit*)
+                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__reset__body(%Qubit*)
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+                declare void @__quantum__rt__array_record_output(i64, i8*)
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]].assert_eq(&res);
+
+            // Operation should not be visible from global scope
+            let (result, output) = line(&mut interpreter, indoc! {"Bar()"});
+            is_only_error(&result, &output, "name error: `Bar` not found");
+        }
+
+        #[test]
+        fn qirgen_multiple_exprs_parse_fail() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter
+                .qirgen("Foo(); operation Bar() : Unit {}; Foo()")
+                .expect_err("expected error");
+            expect![[r#"
+                [
+                    LineError(
+                        WithSource {
+                            source: Some(
+                                "Foo(); operation Bar() : Unit {}; Foo()",
+                            ),
+                            error: Compile(
+                                Error(
+                                    Parse(
+                                        Error(
+                                            Token(
+                                                Eof,
+                                                Semi,
+                                                Span {
+                                                    lo: 5,
+                                                    hi: 6,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                            stack_trace: None,
+                        },
+                    ),
+                ]
+            "#]]
+            .assert_debug_eq(&res);
+        }
+
+        #[test]
+        fn qirgen_entry_expr_defines_operation_then_more_operations() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter
+                .qirgen("{operation Bar() : Unit {}; Foo()}")
+                .expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__rx__body(double, %Qubit*)
+                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__ry__body(double, %Qubit*)
+                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__h__body(%Qubit*)
+                declare void @__quantum__qis__s__body(%Qubit*)
+                declare void @__quantum__qis__s__adj(%Qubit*)
+                declare void @__quantum__qis__t__body(%Qubit*)
+                declare void @__quantum__qis__t__adj(%Qubit*)
+                declare void @__quantum__qis__x__body(%Qubit*)
+                declare void @__quantum__qis__y__body(%Qubit*)
+                declare void @__quantum__qis__z__body(%Qubit*)
+                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__reset__body(%Qubit*)
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+                declare void @__quantum__rt__array_record_output(i64, i8*)
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]].assert_eq(&res);
+
+            // Can't validate here in this test, but note that the following call will cause
+            // `lower_fragments` (https://github.com/microsoft/qsharp/blob/e0c4dd334a81a0b0be82f4fbff0d850acc0a5fc8/compiler/qsc_frontend/src/incremental.rs#L235)
+            // to yield items that were previously declared in the qirgen call.
+            // this is because `lowerer.drain_items` is being called (it wasn't called
+            // previously as part of `qirgen()`).
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {"operation Baz() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
+            );
+            is_only_value(&result, &output, &Value::unit());
+
+            let (result, output) = line(&mut interpreter, indoc! {"Bar()"});
+            is_only_error(&result, &output, "name error: `Bar` not found");
+        }
+
+        #[test]
+        fn qirgen_define_operation_use_it() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            // this panics today. It shouldn't
+            let res = interpreter
+                .qirgen("{ operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; }; Foo() }")
+                .expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__rx__body(double, %Qubit*)
+                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__ry__body(double, %Qubit*)
+                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+                declare void @__quantum__qis__h__body(%Qubit*)
+                declare void @__quantum__qis__s__body(%Qubit*)
+                declare void @__quantum__qis__s__adj(%Qubit*)
+                declare void @__quantum__qis__t__body(%Qubit*)
+                declare void @__quantum__qis__t__adj(%Qubit*)
+                declare void @__quantum__qis__x__body(%Qubit*)
+                declare void @__quantum__qis__y__body(%Qubit*)
+                declare void @__quantum__qis__z__body(%Qubit*)
+                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+                declare void @__quantum__qis__reset__body(%Qubit*)
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+                declare void @__quantum__rt__array_record_output(i64, i8*)
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]].assert_eq(&res);
         }
     }
 
