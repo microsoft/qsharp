@@ -14,6 +14,6 @@ The parameters of the new gate are changed a bit:
 > The `Controlled` functor can be used before any single qubit gate to make it a controlled gate. The first argument will be an `array` of qubits even if you are using a single control qubit, like in the **CNOT** gate. The second argument is a tuple `()` with the parameters of the gate. For example, these two gates are equivalent: `CNOT(qs[0],qs[1])` and `Controlled X([qs[0]],(qs[1]));`
 
 @[solution]({
-    "id": "controlled_rotation_solution",
+    "id": "multi_qubit_gates__controlled_rotation_solution",
     "codePath": "./Solution.qs"
 })

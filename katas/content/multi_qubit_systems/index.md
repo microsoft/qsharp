@@ -1,7 +1,7 @@
 ﻿# Multi-Qubit Systems
 
 @[section]({
-    "id": "multi_qubit_systems_overview",
+    "id": "multi_qubit_systems__overview",
     "title": "Overview"
 })
 
@@ -21,7 +21,7 @@ If you are not familiar with single-qubit systems, we recommend that you complet
 - The concept of tensor product
 
 @[section]({
-    "id": "multi_qubit_systems_introduction",
+    "id": "multi_qubit_systems__introduction",
     "title": "Multi-Qubit Systems"
 })
 
@@ -89,7 +89,7 @@ The coefficients of the basis vectors define how "close" is the system state to 
 > You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors.  The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
 
 @[section]({
-    "id": "multi_qubit_systems_separable_states",
+    "id": "multi_qubit_systems__separable_states",
     "title": "Separable States"
 })
 
@@ -169,7 +169,7 @@ We can see that this system of equations doesn't have a solution, which means th
 </details>
 
 @[section]({
-    "id": "multi_qubit_systems_entanglement",
+    "id": "multi_qubit_systems__entanglement",
     "title": "Entanglement"
 })
 
@@ -190,7 +190,7 @@ In such a state, only two outcomes are possible when you measure the state of bo
 This property is used extensively in many quantum algorithms.
 
 @[section]({
-    "id": "multi_qubit_systems_dirac_notation",
+    "id": "multi_qubit_systems__dirac_notation",
     "title": "Dirac Notation"
 })
 
@@ -292,7 +292,7 @@ Some ket symbols have a commonly accepted usage, such as the symbols for the Bel
 > Multi-qubit quantum systems that store superpositions of numbers are often referred to as **quantum registers**.
 
 @[section]({
-    "id": "multi_qubit_systems_in_qsharp",
+    "id": "multi_qubit_systems__in_qsharp",
     "title": "Multi-Qubit Systems in Q#"
 })
 
@@ -303,7 +303,7 @@ If you aren't familiar with the output of this function for single qubits, you s
 When printing the state of multi-qubit systems, this function outputs the same information for each multi-qubit basis state.
 The qubit kata explains how `DumpMachine` works for multiple qubits in more detail.
 
-@[example]({"id": "multiqubit_system", "codePath": "./examples/MultiQubitSystems.qs"})
+@[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
 
 > You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block.
 > The reason for this is entanglement.
@@ -324,7 +324,7 @@ You will only need knowledge from the single-qubit gates kata for that.
 Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({
-    "id": "prepare_basis_state",
+    "id": "multi_qubit_systems__prepare_basis_state",
     "title": "Prepare a Basis State",
     "descriptionPath": "./prepare_basis_state/index.md",
     "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
@@ -337,7 +337,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[exercise]({
-    "id": "prepare_superposition",
+    "id": "multi_qubit_systems__prepare_superposition",
     "title": "Prepare a Superposition of Two Basis States",
     "descriptionPath": "./prepare_superposition/index.md",
     "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
@@ -350,7 +350,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[exercise]({
-    "id": "prepare_with_real",
+    "id": "multi_qubit_systems__prepare_with_real",
     "title": " Prepare a Superposition with Real Amplitudes",
     "descriptionPath": "./prepare_with_real/index.md",
     "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
@@ -363,7 +363,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[exercise]({
-    "id": "prepare_with_complex",
+    "id": "multi_qubit_systems__prepare_with_complex",
     "title": "Prepare a Superposition with Complex Amplitudes",
     "descriptionPath": "./prepare_with_complex/index.md",
     "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
@@ -376,7 +376,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[section]({
-    "id": "multi_qubit_systems_conclusion",
+    "id": "multi_qubit_systems__conclusion",
     "title": "Conclusion"
 })
 

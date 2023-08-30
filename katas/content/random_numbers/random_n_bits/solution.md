@@ -3,6 +3,6 @@ We'll generate N random bits by calling `RandomBit` operation N times, and treat
 Since the maximum value of the number written with N bits is $2^N - 1$, we don't need to do any extra checks to ensure that the result is within the given range.
 
 @[solution]({
-    "id": "random_n_bits_solution",
+    "id": "random_numbers__random_n_bits_solution",
     "codePath": "solution.qs"
 })

@@ -17,6 +17,6 @@ $$
 This turns $|0\rangle = \begin{bmatrix} 1 \\\ 0\end{bmatrix}$ into $\begin{bmatrix} \alpha & -\beta \\\ e^{i\theta}\beta & e^{i\theta}\alpha \end{bmatrix} \begin{bmatrix} 1 \\\ 0\end{bmatrix} = \begin{bmatrix} \alpha \\\ e^{i\theta}\beta \end{bmatrix} = \alpha|0\rangle +e^{i\theta}\beta|1\rangle$.
 
 @[solution]({
-    "id": "prepare_arbitrary_state_solution",
+    "id": "single_qubit_gates__prepare_arbitrary_state_solution",
     "codePath": "./Solution.qs"
 })

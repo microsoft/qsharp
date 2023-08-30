@@ -6,6 +6,6 @@ This gate turns $|0\rangle = \begin{bmatrix} 1 \\\ 0\end{bmatrix}$ into $\begin{
 > Trigonometric functions are available in Q# via the [Math](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math) namespace. In this case we will need [ArcTan2](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.arctan2).
 
 @[solution]({
-    "id": "prepare_rotated_state_solution",
+    "id": "single_qubit_gates__prepare_rotated_state_solution",
     "codePath": "./Solution.qs"
 })

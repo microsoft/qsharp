@@ -10,6 +10,6 @@ Hence, we can use this joint measurement to recognize which of the superposition
 In Q#, the operation [`Measure`](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) can be used to measure multiple qubits using an array of [Pauli](https://docs.microsoft.com/en-us/quantum/user-guide/language/types?#primitive-types) constants that define the basis for measurement.
 
 @[solution]({
-"id": "joint_measurements_solution",
+"id": "multi_qubit_measurements__joint_measurements_solution",
 "codePath": "solution.qs"
 })

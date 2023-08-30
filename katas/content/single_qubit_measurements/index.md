@@ -1,7 +1,7 @@
 # Measurements in Single-Qubit Systems
 
 @[section]({
-    "id": "single_qubit_measurements_overview",
+    "id": "single_qubit_measurements__overview",
     "title": "Overview"
 })
 
@@ -28,7 +28,7 @@ $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
 @[section]({
-    "id": "single_qubit_measurements_overview",
+    "id": "single_qubit_measurements__computational_basis_measurements",
     "title": "Computational Basis Measurements"
 })
 
@@ -78,7 +78,7 @@ The given state $\ket \psi$ is normalized, since $0.6^2 + 0.8^2 = 1$. Hence, the
 </details>
 
 @[section]({
-    "id": "single_qubit_measurements_implementing_measurement",
+    "id": "single_qubit_measurements__implementing_measurement",
     "title": "Implementing Measurement In Q# Using The M Operation"
 })
 
@@ -87,26 +87,26 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 > If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for $0$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
 
 @[example]({
-    "id": "implementing_measurement",
+    "id": "single_qubit_measurements__implementing_measurement_demo",
     "codePath": "./implementing_measurement/example.qs"
 })
 
 @[section]({
-    "id": "single_qubit_measurements_measurement_statistics",
+    "id": "single_qubit_measurements__measurement_statistics",
     "title": "Measurement Statistics"
 })
 
 The following code demonstrates that the theoretical and experimental values of the probability outcomes indeed match with each other. We repeatedly prepare the same state $\ket \psi = 0.6 \ket 0 + 0.8 \ket 1$ and measure it in the computational basis $100$ times. At the end, we expect 0 to be measured approximately $|0.6 |^2 \cdot 100= 36$ times, and 1 to be measured approximately $|0.8|^2 \cdot 100= 64$ times. Note that since measurements are probabilistic, we do not expect the results to match these values exactly. As we repeat the measurements, the resulting distribution will align with the theoretical probabilities.
 
 @[example]({
-    "id": "measurement_statistics",
+    "id": "single_qubit_measurements__measurement_statistics_demo",
     "codePath": "./measurement_statistics/example.qs"
 })
 
 Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states and discuss the general case of arbitrary basis measurements later in the kata.
 
 @[exercise]({
-    "id": "distinguish_0_and_1",
+    "id": "single_qubit_measurements__distinguish_0_and_1",
     "title": "Distinguish |0〉 and |1〉",
     "descriptionPath": "./distinguish_0_and_1/index.md",
     "placeholderSourcePath": "./distinguish_0_and_1/placeholder.qs",
@@ -119,7 +119,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 })
 
 @[section]({
-    "id": "single_qubit_measurements_pauli_bases",
+    "id": "single_qubit_measurements__pauli_bases",
     "title": "Measurements in the Pauli Bases"
 })
 
@@ -139,7 +139,7 @@ The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c
 > Computational basis measurement is often referred to as measurement in Pauli Z basis. Indeed, the eigenvectors of the Z gate are $\ket 0$ and $\ket 1$, with eigenvalues $+1$ and $-1$, respectively.
 
 @[exercise]({
-    "id": "distinguish_plus_and_minus",
+    "id": "single_qubit_measurements__distinguish_plus_and_minus",
     "title": "Distinguish |+〉 and |-〉",
     "descriptionPath": "./distinguish_plus_and_minus/index.md",
     "placeholderSourcePath": "./distinguish_plus_and_minus/placeholder.qs",
@@ -152,7 +152,7 @@ The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c
 })
 
 @[section]({
-    "id": "single_qubit_measurements_arbitrary_bases",
+    "id": "single_qubit_measurements__arbitrary_bases",
     "title": "Measurements in Arbitrary Orthogonal Bases"
 })
 
@@ -302,7 +302,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 </details>
 
 @[exercise]({
-    "id": "distinguish_orthogonal_states_1",
+    "id": "single_qubit_measurements__distinguish_orthogonal_states_1",
     "title": "Distinguishing Orthogonal States: 1",
     "descriptionPath": "./distinguish_orthogonal_states_1/index.md",
     "placeholderSourcePath": "./distinguish_orthogonal_states_1/placeholder.qs",
@@ -315,7 +315,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 })
 
 @[exercise]({
-    "id": "distinguish_orthogonal_states_2",
+    "id": "single_qubit_measurements__distinguish_orthogonal_states_2",
     "title": "Distinguishing Orthogonal States: 2",
     "descriptionPath": "./distinguish_orthogonal_states_2/index.md",
     "placeholderSourcePath": "./distinguish_orthogonal_states_2/placeholder.qs",
@@ -328,7 +328,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 })
 
 @[exercise]({
-    "id": "a_b_basis_measurements",
+    "id": "single_qubit_measurements__a_b_basis_measurements",
     "title": "Measurement In The |A〉, |B〉 Basis",
     "descriptionPath": "./a_b_basis_measurements/index.md",
     "placeholderSourcePath": "./a_b_basis_measurements/placeholder.qs",
@@ -341,7 +341,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 })
 
 @[section]({
-    "id": "single_qubit_measurements_conclusion",
+    "id": "single_qubit_measurements__conclusion",
     "title": "Conclusion"
 })
 

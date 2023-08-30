@@ -40,6 +40,6 @@ Q =
 $$
 
 @[solution]({
-    "id": "compound_gate_solution",
+    "id": "multi_qubit_gates__compound_gate_solution",
     "codePath": "./Solution.qs"
 })
