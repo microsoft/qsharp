@@ -196,6 +196,10 @@ if build_pip:
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
 
+    # Build the sdist
+    pip_sdist_args = [python_bin, "-m", "maturin", "sdist", "--out", wheels_dir]
+    subprocess.run(pip_sdist_args, check=True, text=True, cwd=pip_src)
+
     if run_tests:
         print("Running tests for the pip package")
 
@@ -247,6 +251,24 @@ if build_pip:
             subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
         else:
             print("Could not import PyQIR, skipping tests")
+
+        # Test installing from sdist
+        pip_install_sdist_args = [
+            python_bin,
+            "-m",
+            "pip",
+            "install",
+            "--force-reinstall",
+            os.path.join(wheels_dir, "qsharp-0.0.0.tar.gz"),
+        ]
+        subprocess.run(pip_install_sdist_args, check=True, text=True, cwd=pip_src)
+
+        # Run tests again with the sdist installed
+        pytest_args = [python_bin, "-m", "pytest"]
+        subprocess.run(
+            pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
+        )
+
 
 if build_wasm:
     print("Building the wasm crate")
