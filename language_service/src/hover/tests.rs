@@ -166,6 +166,7 @@ fn identifier() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             x: Int
             ```
@@ -185,6 +186,7 @@ fn identifier_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             x: Int
             ```
@@ -203,6 +205,7 @@ fn identifier_tuple() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             y: Double
             ```
@@ -222,6 +225,7 @@ fn identifier_tuple_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             y: Double
             ```
@@ -242,6 +246,7 @@ fn identifier_for_loop() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             i: Int
             ```
@@ -262,6 +267,7 @@ fn identifier_for_loop_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             i: Int
             ```
@@ -283,6 +289,7 @@ fn identifier_nested_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             x: Int
             ```
@@ -303,6 +310,7 @@ fn lambda() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             lambda: ((Double, String) => Int)
             ```
@@ -323,6 +331,7 @@ fn lambda_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             lambda: ((Double, String) => Int)
             ```
@@ -343,6 +352,7 @@ fn lambda_param() {
         }
     "#},
         &expect![[r#"
+            lambda param
             ```qsharp
             y: String
             ```
@@ -362,6 +372,7 @@ fn lambda_param_ref() {
         }
     "#},
         &expect![[r#"
+            lambda param
             ```qsharp
             y: String
             ```
@@ -382,6 +393,7 @@ fn lambda_closure_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             a: Int
             ```
@@ -402,6 +414,7 @@ fn identifier_udt() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
             a: Pair
             ```
@@ -828,6 +841,43 @@ fn callable_empty_summary() {
             Test
             operation Foo() : Unit
             ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_param_doc() {
+    check(
+        indoc! {r#"
+        namespace Test {
+
+            /// Doc string
+            /// # Summary
+            /// This is the summary
+            /// # Input
+            /// Input string
+            /// ## x
+            /// Doc string for `x`
+            /// ### Note
+            /// note for `x`
+            /// ## other
+            /// Doc string for `other`
+            /// # Last
+            /// Last string
+            operation Foo(x: Int) : Unit {
+                let y = ◉↘x◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            param of `Foo`
+            ```qsharp
+            x: Int
+            ```
+            ---
+            Doc string for `x`
+            ### Note
+            note for `x`
         "#]],
     );
 }

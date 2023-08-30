@@ -352,7 +352,31 @@ fn parse_doc_for_summary(doc: &str) -> String {
 }
 
 fn parse_doc_for_param(doc: &str, param: &str) -> String {
-    format!("this is a param doc for {param}:\n{doc}")
+    let re = Regex::new(r"(?mi)(?:^# Input$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
+    let input = match re.captures(doc) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => return String::new(),
+    }
+    .trim();
+
+    let re = Regex::new(format!(r"(?mi)(?:^## {param}$)([\s\S]*?)(?:(^(#|##) .*)|\z)").as_str())
+        .expect("Invalid regex");
+    match re.captures(input) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => return String::new(),
+    }
+    .trim()
+    .to_string()
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
