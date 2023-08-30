@@ -720,7 +720,6 @@ mod given_interpreter {
                 TargetProfile::Base,
             )
             .expect("interpreter should be created");
-            // this panics today. It shouldn't
             let res = interpreter
                 .qirgen("{ operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; }; Foo() }")
                 .expect("expected success");
