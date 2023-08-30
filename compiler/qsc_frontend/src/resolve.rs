@@ -199,7 +199,6 @@ impl Resolver {
         With {
             resolver: self,
             assigner,
-            in_block: false,
         }
     }
 
@@ -258,7 +257,7 @@ impl Resolver {
         }
     }
 
-    fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item) {
+    pub(super) fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item) {
         match &*item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
@@ -278,6 +277,34 @@ impl Resolver {
         }
     }
 
+    pub(super) fn bind_namespace_items(
+        &mut self,
+        assigner: &mut Assigner,
+        namespace: &ast::Namespace,
+    ) {
+        if !self.names.contains_key(namespace.name.id) {
+            let id = assigner.next_item();
+            self.names
+                .insert(namespace.name.id, Res::Item(intrapackage(id)));
+            self.globals
+                .namespaces
+                .insert(Rc::clone(&namespace.name.name));
+
+            for item in namespace.items.iter() {
+                match bind_global_item(
+                    &mut self.names,
+                    &mut self.globals,
+                    &namespace.name.name,
+                    || intrapackage(assigner.next_item()),
+                    item,
+                ) {
+                    Ok(()) => {}
+                    Err(error) => self.errors.push(error),
+                }
+            }
+        }
+    }
+
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
         decl.generics.iter().enumerate().for_each(|(ix, ident)| {
             let scope = self
@@ -293,7 +320,6 @@ impl Resolver {
 pub(super) struct With<'a> {
     resolver: &'a mut Resolver,
     assigner: &'a mut Assigner,
-    in_block: bool,
 }
 
 impl With<'_> {
@@ -316,29 +342,7 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        if !self.resolver.names.contains_key(namespace.name.id) {
-            let id = self.assigner.next_item();
-            self.resolver
-                .names
-                .insert(namespace.name.id, Res::Item(intrapackage(id)));
-            self.resolver
-                .globals
-                .namespaces
-                .insert(Rc::clone(&namespace.name.name));
-
-            for item in namespace.items.iter() {
-                match bind_global_item(
-                    &mut self.resolver.names,
-                    &mut self.resolver.globals,
-                    &namespace.name.name,
-                    || intrapackage(self.assigner.next_item()),
-                    item,
-                ) {
-                    Ok(()) => {}
-                    Err(error) => self.resolver.errors.push(error),
-                }
-            }
-        }
+        self.resolver.bind_namespace_items(self.assigner, namespace);
 
         let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
         self.with_scope(kind, |visitor| {
@@ -386,8 +390,6 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_block(&mut self, block: &ast::Block) {
-        let prev = self.in_block;
-        self.in_block = true;
         self.with_scope(ScopeKind::Block, |visitor| {
             for stmt in block.stmts.iter() {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
@@ -397,17 +399,11 @@ impl AstVisitor<'_> for With<'_> {
 
             ast_visit::walk_block(visitor, block);
         });
-        self.in_block = prev;
     }
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &*stmt.kind {
-            ast::StmtKind::Item(item) => {
-                if !self.in_block {
-                    self.resolver.bind_local_item(self.assigner, item);
-                }
-                self.visit_item(item);
-            }
+            ast::StmtKind::Item(item) => self.visit_item(item),
             ast::StmtKind::Local(_, pat, _) => {
                 ast_visit::walk_stmt(self, stmt);
                 self.resolver.bind_pat(pat);

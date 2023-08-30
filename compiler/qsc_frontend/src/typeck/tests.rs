@@ -3259,3 +3259,31 @@ fn undeclared_generic_param() {
         "##]],
     );
 }
+
+#[test]
+fn use_bound_item_in_another_bound_item() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    function C() : Unit {
+                        D();
+                    }
+                    function D() : Unit {}
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 28-30 "()" : Unit
+            #10 38-133 "{\n        function C() : Unit {\n            D();\n        }\n        function D() : Unit {}\n    }" : Unit
+            #15 58-60 "()" : Unit
+            #19 68-96 "{\n            D();\n        }" : Unit
+            #21 82-85 "D()" : Unit
+            #22 82-83 "D" : (Unit -> Unit)
+            #25 83-85 "()" : Unit
+            #30 115-117 "()" : Unit
+            #34 125-127 "{}" : Unit
+        "##]],
+    );
+}

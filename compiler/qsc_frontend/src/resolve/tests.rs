@@ -1747,6 +1747,32 @@ fn bind_items_in_qubit_use_block() {
 }
 
 #[test]
+fn use_bound_item_in_another_bound_item() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    function C() : Unit {
+                        D();
+                    }
+                    function D() : Unit {}
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    function item2() : Unit {
+                        item3();
+                    }
+                    function item3() : Unit {}
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn use_unbound_generic() {
     check(
         indoc! {"
