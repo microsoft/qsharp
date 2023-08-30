@@ -566,6 +566,41 @@ function generateKataContent(path, globalCodeSources) {
   return kata;
 }
 
+function validateIdsUniqueness(katas) {
+  const allIds = new Set();
+  const assertUniqueness = (id) => {
+    const isIdUnique = !allIds.has(id);
+    if (!isIdUnique) {
+      throw new Error(`"${id}" is not unique`);
+    }
+    allIds.add(id);
+  };
+
+  for (const kata of katas) {
+    // Check kata IDs are unique.
+    assertUniqueness(kata.id);
+    for (const section of kata.sections) {
+      // Check section IDs are unique.
+      assertUniqueness(section.id);
+      if (section.type === "exercise") {
+        // Check IDs for examples and solutions within exercises are unique.
+        section.explainedSolution.items.forEach((item) => {
+          if (item.type === "example" || item.type === "solution") {
+            assertUniqueness(item.id);
+          }
+        });
+      } else if (section.type === "lesson") {
+        // Check IDs for examples within lessons are unique.
+        section.items.forEach((item) => {
+          if (item.type === "example") {
+            assertUniqueness(item.id);
+          }
+        });
+      }
+    }
+  }
+}
+
 function generateKatasContent(katasPath, outputPath) {
   console.log("Generating katas content");
   const indexPath = join(katasPath, contentFileNames.katasIndex);
@@ -600,12 +635,16 @@ function generateKatasContent(katasPath, outputPath) {
       code: globalCodeSourcesContainer.sources[id],
     });
   }
+
+  // Validate the uniqueness of IDs.
+  validateIdsUniqueness(katas);
+
+  // Save the JS object to a file.
   const katasContent = {
     katas: katas,
     globalCodeSources: globalCodeSources,
   };
 
-  // Save the JS object to a file.
   if (!existsSync(outputPath)) {
     mkdirSync(outputPath);
   }
