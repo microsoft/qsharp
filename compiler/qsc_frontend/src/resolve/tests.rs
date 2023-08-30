@@ -1837,7 +1837,7 @@ fn dropped_callable() {
                 }
             }
 
-            // NotAvailable("Dropped", Span { lo: 100, hi: 107 })
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 100, hi: 107 })
         "#]],
     );
 }

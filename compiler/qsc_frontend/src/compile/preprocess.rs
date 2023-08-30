@@ -10,10 +10,16 @@ use std::rc::Rc;
 
 use super::TargetProfile;
 
+#[derive(PartialEq, Hash, Clone, Debug)]
+pub struct TrackedName {
+    pub name: Rc<str>,
+    pub namespace: Rc<str>,
+}
+
 pub(crate) struct Conditional {
     target: TargetProfile,
-    dropped_names: Vec<Rc<str>>,
-    included_names: Vec<Rc<str>>,
+    dropped_names: Vec<TrackedName>,
+    included_names: Vec<TrackedName>,
 }
 
 impl Conditional {
@@ -25,7 +31,7 @@ impl Conditional {
         }
     }
 
-    pub(crate) fn into_names(self) -> Vec<Rc<str>> {
+    pub(crate) fn into_names(self) -> Vec<TrackedName> {
         self.dropped_names
             .into_iter()
             .filter(|n| !self.included_names.contains(n))
@@ -42,18 +48,30 @@ impl MutVisitor for Conditional {
                 if matches_target(&item.attrs, self.target) {
                     match item.kind.as_ref() {
                         ItemKind::Callable(callable) => {
-                            self.included_names.push(callable.name.name.clone());
+                            self.included_names.push(TrackedName {
+                                name: callable.name.name.clone(),
+                                namespace: namespace.name.name.clone(),
+                            });
                         }
-                        ItemKind::Ty(ident, _) => self.included_names.push(ident.name.clone()),
+                        ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
+                            name: ident.name.clone(),
+                            namespace: namespace.name.name.clone(),
+                        }),
                         _ => {}
                     }
                     Some(item.clone())
                 } else {
                     match item.kind.as_ref() {
                         ItemKind::Callable(callable) => {
-                            self.dropped_names.push(callable.name.name.clone());
+                            self.dropped_names.push(TrackedName {
+                                name: callable.name.name.clone(),
+                                namespace: namespace.name.name.clone(),
+                            });
                         }
-                        ItemKind::Ty(ident, _) => self.dropped_names.push(ident.name.clone()),
+                        ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
+                            name: ident.name.clone(),
+                            namespace: namespace.name.name.clone(),
+                        }),
                         _ => {}
                     }
                     None

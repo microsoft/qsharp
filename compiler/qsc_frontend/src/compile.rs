@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-pub(crate) mod preprocess;
+pub mod preprocess;
 
 use crate::{
     lower::{self, Lowerer},
@@ -14,6 +14,7 @@ use crate::{
 use miette::{
     Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
 };
+use preprocess::TrackedName;
 use qsc_ast::{
     assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor,
     validate::Validator as AstValidator, visit::Visitor as _,
@@ -29,7 +30,7 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, rc::Rc, str::FromStr, sync::Arc};
+use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -73,7 +74,7 @@ pub struct CompileUnit {
     pub assigner: HirAssigner,
     pub sources: SourceMap,
     pub errors: Vec<Error>,
-    pub dropped_names: Vec<Rc<str>>,
+    pub dropped_names: Vec<TrackedName>,
 }
 
 #[derive(Debug, Default)]
@@ -449,7 +450,7 @@ fn resolve_all(
     dependencies: &[PackageId],
     assigner: &mut HirAssigner,
     package: &ast::Package,
-    mut dropped_names: Vec<Rc<str>>,
+    mut dropped_names: Vec<TrackedName>,
 ) -> (Names, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
