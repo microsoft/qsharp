@@ -35,7 +35,8 @@ import {
 } from "qsharp";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-const ErrorProgramHasErrors = "program contains compile errors(s): cannot run.";
+const ErrorProgramHasErrors =
+  "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
 const ConfigurationDelayMS = 1000;
 
@@ -73,7 +74,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private breakpointLocations: Map<string, IBreakpointLocationData[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private variableHandles = new Handles<"locals" | "quantum">();
-  private failed: boolean;
+  private failureMessage: string;
   private program: vscode.Uri;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
@@ -86,7 +87,7 @@ export class QscDebugSession extends LoggingDebugSession {
     super();
 
     this.program = fileAccessor.resolvePathToUri(this.config.program);
-    this.failed = false;
+    this.failureMessage = "";
     this.eventTarget = createDebugConsoleEventTarget((message) => {
       this.writeToStdOut(message);
     });
@@ -101,11 +102,12 @@ export class QscDebugSession extends LoggingDebugSession {
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
 
-    const loaded = await this.debugService.loadSource(
+    const failureMessage = await this.debugService.loadSource(
       this.program.toString(),
-      programText
+      programText,
+      this.config.entry
     );
-    if (loaded) {
+    if (failureMessage == "") {
       const locations = await this.debugService.getBreakpoints(
         this.program.toString()
       );
@@ -141,8 +143,8 @@ export class QscDebugSession extends LoggingDebugSession {
       });
       this.breakpointLocations.set(this.program.toString(), mapped);
     } else {
-      log.warn(`compilation failed.`);
-      this.failed = true;
+      log.warn(`compilation failed. ${failureMessage}`);
+      this.failureMessage = failureMessage;
     }
   }
 
@@ -240,10 +242,11 @@ export class QscDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: ILaunchRequestArguments
   ): Promise<void> {
-    if (this.failed) {
+    if (this.failureMessage != "") {
       log.info(
         "compilation failed. sending error response and stopping execution."
       );
+      this.writeToDebugConsole(this.failureMessage);
       this.sendErrorResponse(response, {
         id: -1,
         format: ErrorProgramHasErrors,
@@ -276,8 +279,11 @@ export class QscDebugSession extends LoggingDebugSession {
       await this.runWithoutDebugging(args);
     } else {
       log.trace(`Running with debugging`);
-      // if we want to stop on entry, change this call to 'continue' to 'stepIn'
-      await this.continue();
+      if (this.config.stopOnEntry) {
+        await this.stepIn();
+      } else {
+        await this.continue();
+      }
     }
   }
 
@@ -345,11 +351,32 @@ export class QscDebugSession extends LoggingDebugSession {
     args: ILaunchRequestArguments
   ): Promise<void> {
     const bps: number[] = [];
+    // This will be replaced when the interpreter
+    // supports shots.
     for (let i = 0; i < args.shots; i++) {
-      await this.eval_step(
-        async () => await this.debugService.evalContinue(bps, this.eventTarget)
+      const result = await this.debugService.evalContinue(
+        bps,
+        this.eventTarget
       );
+      if (result.id != StepResultId.Return) {
+        await this.endSession(`execution didn't run to completion`, -1);
+        return;
+      }
+      this.writeToDebugConsole(`Finished shot ${i + 1} of ${args.shots}`);
+      // Reset the interpreter for the next shot.
+      // The interactive interpreter doesn't do this automatically,
+      // and doesn't know how to deal with shots like the stateless version.
+      await this.init();
+      if (this.failureMessage != "") {
+        log.info(
+          "compilation failed. sending error response and stopping execution."
+        );
+        this.writeToDebugConsole(this.failureMessage);
+        await this.endSession(`ending session`, -1);
+        return;
+      }
     }
+    await this.endSession(`ending session`, 0);
   }
 
   private getBreakpointIds(): number[] {

@@ -81,6 +81,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             program: targetResource.toString(),
             shots: 1,
             stopOnEntry: true,
+            noDebug: false,
           });
         }
       }
@@ -89,7 +90,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 }
 
 class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
-  resolveDebugConfiguration(
+  resolveDebugConfigurationWithSubstitutedVariables(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
     _token?: vscode.CancellationToken | undefined
@@ -106,8 +107,26 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         config.request = "launch";
         config.program = editor.document.uri.toString();
         config.shots = 1;
-        config.stopOnEntry = true;
         config.noDebug = "noDebug" in config ? config.noDebug : false;
+        config.stopOnEntry = !config.noDebug;
+      }
+    } else {
+      // we have a launch config, resolve the program path
+
+      // ensure we have the program uri correctly formatted
+      // this is a user specified path.
+      if (config.program) {
+        const uri = workspaceFileAccessor.resolvePathToUri(config.program);
+        config.program = uri.toString();
+      } else {
+        // Use the active editor if no program or ${file} is specified.
+        const editor = vscode.window.activeTextEditor;
+        if (
+          editor &&
+          vscode.languages.match(qsharpDocumentFilter, editor.document)
+        ) {
+          config.program = editor.document.uri.toString();
+        }
       }
     }
 
@@ -119,6 +138,27 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
           return undefined;
         });
     }
+    return config;
+  }
+
+  resolveDebugConfiguration(
+    folder: vscode.WorkspaceFolder | undefined,
+    config: vscode.DebugConfiguration,
+    _token?: vscode.CancellationToken | undefined
+  ): vscode.ProviderResult<vscode.DebugConfiguration> {
+    // apply defaults if not set
+    config.type = config.type ?? "qsharp";
+    config.name = config.name ?? "Launch";
+    config.request = config.request ?? "launch";
+    config.shots = config.shots ?? 1;
+    config.entry = config.entry ?? "";
+    config.trace = config.trace ?? false;
+    // noDebug is set to true when the user runs the program without debugging.
+    // otherwise it usually isn't set, but we default to false.
+    config.noDebug = config.noDebug ?? false;
+    // stopOnEntry is set to true when the user runs the program with debugging.
+    // unless overridden.
+    config.stopOnEntry = config.stopOnEntry ?? !config.noDebug;
 
     return config;
   }
