@@ -6,7 +6,7 @@ mod tests;
 
 use crate::protocol::Definition;
 use crate::qsc_utils::{
-    find_item, map_offset, span_contains, Compilation, QSHARP_LIBRARY_URI_SCHEME,
+    find_item, map_offset, span_contains, AstIdentFinder, Compilation, QSHARP_LIBRARY_URI_SCHEME,
 };
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::hir::PackageId;
@@ -202,13 +202,13 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {
                             {
-                                let mut finder = AstPatFinder {
+                                let mut finder = AstIdentFinder {
                                     node_id,
-                                    result: None,
+                                    ident: None,
                                 };
                                 finder.visit_callable_decl(curr);
-                                if let Some(lo) = finder.result {
-                                    self.set_definition_from_position(lo, None);
+                                if let Some(ident) = finder.ident {
+                                    self.set_definition_from_position(ident.span.lo, None);
                                 }
                             }
                         }
@@ -216,30 +216,6 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     _ => {}
                 }
             }
-        }
-    }
-}
-
-struct AstPatFinder<'a> {
-    node_id: &'a ast::NodeId,
-    result: Option<u32>,
-}
-
-impl<'a> Visitor<'a> for AstPatFinder<'_> {
-    fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        match &*pat.kind {
-            ast::PatKind::Bind(ident, _) => {
-                if ident.id == *self.node_id {
-                    self.result = Some(ident.span.lo);
-                }
-            }
-            _ => walk_pat(self, pat),
-        }
-    }
-
-    fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if self.result.is_none() {
-            walk_expr(self, expr);
         }
     }
 }

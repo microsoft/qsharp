@@ -6,7 +6,7 @@ mod tests;
 
 use crate::display::CodeDisplay;
 use crate::protocol::{self, Hover};
-use crate::qsc_utils::{find_item, map_offset, span_contains, Compilation};
+use crate::qsc_utils::{find_item, map_offset, span_contains, AstIdentFinder, Compilation};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 use regex_lite::Regex;
@@ -148,19 +148,14 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
                         let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
-                        if self.in_params {
-                            match self.current_callable {
-                                Some(decl) => {
-                                    self.contents =
-                                        Some(format!("param of `{}`\n{code}", decl.name.name));
-                                }
-                                None => self.contents = Some(format!("param\n{code}")),
-                            }
+                        let kind = if self.in_params {
+                            LocalKind::Param
                         } else if self.in_lambda_params {
-                            self.contents = Some(format!("lambda param\n{code}"));
+                            LocalKind::LambdaParam
                         } else {
-                            self.contents = Some(format!("local\n{code}"));
-                        }
+                            LocalKind::Local
+                        };
+                        self.contents = Some(self.display_local(&kind, &code, &ident.name));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -233,30 +228,69 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         }
                     }
                     resolve::Res::Local(node_id) => {
-                        let code = markdown_fenced_block(self.display.path_ty_id(path, *node_id));
-                        if is_param(&curr_callable_to_params(self.current_callable), *node_id) {
-                            match self.current_callable {
-                                Some(decl) => {
-                                    self.contents = Some(display_param(
-                                        self.current_item_doc.clone(),
-                                        "param_name",
-                                        self.display.path_ty_id(path, *node_id),
-                                    ));
-                                    //Some(format!("param of `{}`\n{code}", decl.name.name));
+                        let mut local_name = Rc::from("");
+                        if let Some(curr) = self.current_callable {
+                            {
+                                let mut finder = AstIdentFinder {
+                                    node_id,
+                                    ident: None,
+                                };
+                                finder.visit_callable_decl(curr);
+                                if let Some(ident) = finder.ident {
+                                    local_name = ident.name.clone();
                                 }
-                                None => self.contents = Some(format!("param\n{code}")),
                             }
-                        } else if is_param(&self.lambda_params, *node_id) {
-                            self.contents = Some(format!("lambda param\n{code}"));
-                        } else {
-                            self.contents = Some(format!("local\n{code}"));
                         }
+
+                        let code = markdown_fenced_block(self.display.path_ty_id(path, *node_id));
+                        let kind = if is_param(
+                            &curr_callable_to_params(self.current_callable),
+                            *node_id,
+                        ) {
+                            LocalKind::Param
+                        } else if is_param(&self.lambda_params, *node_id) {
+                            LocalKind::LambdaParam
+                        } else {
+                            LocalKind::Local
+                        };
+                        self.contents = Some(self.display_local(&kind, &code, &local_name));
                         self.start = path.span.lo;
                         self.end = path.span.hi;
                     }
                     _ => {}
                 };
             }
+        }
+    }
+}
+
+enum LocalKind {
+    Param,
+    LambdaParam,
+    Local,
+}
+
+impl<'a> HoverVisitor<'a> {
+    fn display_local(
+        &mut self,
+        param_kind: &LocalKind,
+        markdown: &String,
+        local_name: &str,
+    ) -> String {
+        match param_kind {
+            LocalKind::Param => {
+                if let Some(decl) = self.current_callable {
+                    let param_doc = parse_doc_for_param(&self.current_item_doc, local_name);
+                    with_doc(
+                        &param_doc,
+                        format!("param of `{}`\n{markdown}", decl.name.name),
+                    )
+                } else {
+                    format!("param\n{markdown}")
+                }
+            }
+            LocalKind::LambdaParam => format!("lambda param\n{markdown}"),
+            LocalKind::Local => format!("local\n{markdown}"),
         }
     }
 }
@@ -284,26 +318,19 @@ fn is_param(param_pats: &[&ast::Pat], node_id: ast::NodeId) -> bool {
 fn display_callable(doc: &str, namespace: Option<Rc<str>>, code: impl Display) -> String {
     let summary = parse_doc_for_summary(doc);
 
-    let code = match namespace {
+    let mut code = match namespace {
         Some(namespace) if !namespace.is_empty() => {
             format!("{namespace}\n{code}")
         }
         _ => code.to_string(),
     };
-
-    markdown_with_doc(&summary, code)
+    code = markdown_fenced_block(code);
+    with_doc(&summary, code)
 }
 
-fn display_param(doc: Rc<str>, param_name: &str, code: impl Display) -> String {
-    let param = parse_doc_for_param(doc, param_name);
-
-    markdown_with_doc(&param, code)
-}
-
-fn markdown_with_doc(doc: &String, code: impl Display) -> String {
-    let code = markdown_fenced_block(code);
+fn with_doc(doc: &String, code: impl Display) -> String {
     if doc.is_empty() {
-        code
+        code.to_string()
     } else {
         format!("{code}---\n{doc}\n")
     }
@@ -324,8 +351,8 @@ fn parse_doc_for_summary(doc: &str) -> String {
     .to_string()
 }
 
-fn parse_doc_for_param(doc: Rc<str>, param: &str) -> String {
-    "this is a param doc".to_string()
+fn parse_doc_for_param(doc: &str, param: &str) -> String {
+    format!("this is a param doc for {param}:\n{doc}")
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
