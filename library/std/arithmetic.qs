@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.Arithmetic {
     ///
     /// Let us denote `value` by a and let y be an unsigned integer encoded in `target`,
     /// then `ApplyXorInPlace` performs an operation given by the following map:
-    /// $\ket{y}\rightarrow \ket{y\oplus a}$ , where $\oplus$ is the bitwise exclusive OR operator.
+    /// |y⟩ -> |y ⊕ a⟩, where ⊕ is the bitwise exclusive OR operator.
     operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj+Ctl {
         body(...) {
             Fact(value >= 0, "value must be non-negative");
@@ -84,9 +84,9 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Reversible, in-place ripple-carry addition of two integers without carry out.
     ///
     /// # Description
-    /// Given two $n$-bit integers encoded in LittleEndian registers `xs` and `ys`,
-    /// the operation computes the sum of the two integers modulo $2^n$,
-    /// where $n$ is the length of the inputs arrays `xs` and `ys`,
+    /// Given two n-bit integers encoded in LittleEndian registers `xs` and `ys`,
+    /// the operation computes the sum of the two integers modulo 2^n,
+    /// where n is the length of the inputs arrays `xs` and `ys`,
     /// which must be positive. It does not compute the carry out bit.
     ///
     /// # Input
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// LittleEndian qubit register encoding the first integer summand.
     /// ## ys
     /// LittleEndian qubit register encoding the second integer summand, is
-    /// modified to hold the $n$ least significant bits of the sum.
+    /// modified to hold the n least significant bits of the sum.
     ///
     /// # References
     /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
@@ -125,9 +125,9 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Reversible, in-place ripple-carry addition of two integers.
     ///
     /// # Description
-    /// Given two $n$-bit integers encoded in LittleEndian registers `xs` and `ys`,
+    /// Given two n-bit integers encoded in LittleEndian registers `xs` and `ys`,
     /// and a qubit carry, the operation computes the sum of the two integers
-    /// where the $n$ least significant bits of the result are held in `ys` and
+    /// where the n least significant bits of the result are held in `ys` and
     /// the carry out bit is xored to the qubit `carry`.
     ///
     /// # Input
@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// LittleEndian qubit register encoding the first integer summand.
     /// ## ys
     /// LittleEndian qubit register encoding the second integer summand, is
-    /// modified to hold the $n$ least significant bits of the sum.
+    /// modified to hold the n least significant bits of the sum.
     /// ## carry
     /// Carry qubit, is xored with the carry out bit of the addition.
     ///

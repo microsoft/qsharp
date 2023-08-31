@@ -21,8 +21,8 @@ use crate::{
 };
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind,
-    TyKind, Visibility, VisibilityKind,
+    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, Ty, TyDef,
+    TyDefKind, TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -98,10 +98,24 @@ pub(super) fn parse_fragments(s: &mut Scanner) -> Result<Vec<Fragment>> {
 }
 
 fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
-    if let Some(namespace) = opt(s, parse_namespace)? {
+    // Here we parse any doc comments ahead of calling `parse_namespace` or `stmt::parse` in order
+    // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
+    // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
+    // opt. This pattern can be dropped along with namespaces once we have a module-based design.
+    let doc = parse_doc(s);
+    if let Some(mut namespace) = opt(s, parse_namespace)? {
+        namespace.doc = doc.into();
         Ok(Fragment::Namespace(namespace))
     } else {
-        stmt::parse(s).map(Fragment::Stmt)
+        let kind = s.peek().kind;
+        let span = s.peek().span;
+        let mut stmt = stmt::parse(s)?;
+        if let StmtKind::Item(item) = &mut *stmt.kind {
+            item.doc = doc.into();
+        } else if !doc.is_empty() {
+            return Err(Error(ErrorKind::Rule("item", kind, span)));
+        }
+        Ok(Fragment::Stmt(stmt))
     }
 }
 

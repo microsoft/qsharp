@@ -104,11 +104,6 @@ impl Checker {
         }
     }
 
-    pub(crate) fn check_namespace(&mut self, names: &Names, namespace: &ast::Namespace) {
-        ItemCollector::new(self, names).visit_namespace(namespace);
-        ItemChecker::new(self, names).visit_namespace(namespace);
-    }
-
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
         self.check_callable_signature(names, decl);
         let output = convert::ty_from_ast(names, &decl.output).0;
@@ -165,8 +160,19 @@ impl Checker {
         ));
     }
 
-    pub(crate) fn check_stmt_fragment(&mut self, names: &Names, stmt: &ast::Stmt) {
+    pub(crate) fn collect_namespace_items(&mut self, names: &Names, namespace: &ast::Namespace) {
+        ItemCollector::new(self, names).visit_namespace(namespace);
+    }
+
+    pub(crate) fn collect_stmt_items(&mut self, names: &Names, stmt: &ast::Stmt) {
         ItemCollector::new(self, names).visit_stmt(stmt);
+    }
+
+    pub(crate) fn check_namespace_fragment(&mut self, names: &Names, namespace: &ast::Namespace) {
+        ItemChecker::new(self, names).visit_namespace(namespace);
+    }
+
+    pub(crate) fn check_stmt_fragment(&mut self, names: &Names, stmt: &ast::Stmt) {
         ItemChecker::new(self, names).visit_stmt(stmt);
 
         self.new.append(&mut rules::stmt_fragment(

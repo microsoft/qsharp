@@ -99,6 +99,90 @@ function aggregateSources(paths, globalCodeSources) {
   return codeSources;
 }
 
+function resolveSvgSegment(properties, baseFolderPath) {
+  const requiredProperties = ["path"];
+  const missingProperties = identifyMissingProperties(
+    properties,
+    requiredProperties
+  );
+  if (missingProperties.length > 0) {
+    throw new Error(
+      `SVG macro is missing the following properties: ${missingProperties}`
+    );
+  }
+
+  const svgPath = join(baseFolderPath, properties.path);
+  const svg = tryReadFile(
+    svgPath,
+    `Could not read the contents of the SVG file at ${svgPath}`
+  );
+
+  properties["svg"] = svg;
+}
+
+function resolveEmbeddedContent(segments, baseFolderPath) {
+  for (const segment of segments) {
+    if (segment.type === "svg") {
+      resolveSvgSegment(segment.properties, baseFolderPath);
+    }
+  }
+}
+
+function appendToMarkdownSegment(markdownSegment, segmentToAppend) {
+  if (segmentToAppend.type === "markdown") {
+    markdownSegment.markdown += "\n" + segmentToAppend.markdown;
+  } else if (segmentToAppend.type === "svg") {
+    markdownSegment.markdown += "\n" + segmentToAppend.properties.svg;
+  } else {
+    throw new Error(
+      `Cannot append segment of type "${segmentToAppend.type}" into markdown segment`
+    );
+  }
+}
+
+function coalesceIntoSingleMarkdownSegment(startingSegment, segmentsStack) {
+  const markdownSegment = { type: "markdown", markdown: "" };
+  appendToMarkdownSegment(markdownSegment, startingSegment);
+  const isCoalesceSupportedForSegment = (segment) =>
+    segment.type === "markdown" || segment.type === "svg";
+  while (
+    segmentsStack.length > 0 &&
+    isCoalesceSupportedForSegment(segmentsStack.at(-1))
+  ) {
+    const currentSegment = segmentsStack.pop();
+    appendToMarkdownSegment(markdownSegment, currentSegment);
+  }
+
+  return markdownSegment;
+}
+
+function coalesceSegments(segments) {
+  const coalescedSegments = [];
+  const segmentsStack = segments.reverse();
+  while (segmentsStack.length > 0) {
+    let currentSegment = segmentsStack.pop();
+    let coalescedSegment = null;
+    if (currentSegment.type === "markdown" || currentSegment.type === "svg") {
+      coalescedSegment = coalesceIntoSingleMarkdownSegment(
+        currentSegment,
+        segmentsStack
+      );
+    } else {
+      coalescedSegment = currentSegment;
+    }
+
+    coalescedSegments.push(coalescedSegment);
+  }
+
+  return coalescedSegments;
+}
+
+function preProcessSegments(segments, baseFolderPath) {
+  resolveEmbeddedContent(segments, baseFolderPath);
+  const coalescedSegments = coalesceSegments(segments);
+  return coalescedSegments;
+}
+
 function parseMarkdown(markdown) {
   const segments = [];
   const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
@@ -159,7 +243,7 @@ function createExample(baseFolderPath, properties) {
   return {
     type: "example",
     id: properties.id,
-    code: code,
+    code,
   };
 }
 
@@ -190,7 +274,7 @@ function createSolution(baseFolderPath, properties) {
   return {
     type: "solution",
     id: properties.id,
-    code: code,
+    code,
   };
 }
 
@@ -201,7 +285,8 @@ function createExplainedSolution(markdownFilePath) {
   );
 
   const solutionFolderPath = dirname(markdownFilePath);
-  const segments = parseMarkdown(markdown);
+  const rawSegments = parseMarkdown(markdown);
+  const segments = preProcessSegments(rawSegments, solutionFolderPath);
   const solutionItems = [];
   for (const segment of segments) {
     let solutionItem = null;
@@ -231,7 +316,8 @@ function createAnswer(markdownFilePath) {
   );
 
   const answerFolderPath = dirname(markdownFilePath);
-  const segments = parseMarkdown(markdown);
+  const rawSegments = parseMarkdown(markdown);
+  const segments = preProcessSegments(rawSegments, answerFolderPath);
   const items = [];
   for (const segment of segments) {
     let answerItem = null;
@@ -246,7 +332,7 @@ function createAnswer(markdownFilePath) {
     }
   }
 
-  return { type: "answer", items: items };
+  return { type: "answer", items };
 }
 
 function createQuestion(kataPath, properties) {
@@ -275,8 +361,8 @@ function createQuestion(kataPath, properties) {
 
   return {
     type: "question",
-    description: description,
-    answer: answer,
+    description,
+    answer,
   };
 }
 
@@ -325,10 +411,10 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
     type: "exercise",
     id: properties.id,
     title: properties.title,
-    description: description,
-    sourceIds: sourceIds,
-    placeholderCode: placeholderCode,
-    explainedSolution: explainedSolution,
+    description,
+    sourceIds,
+    placeholderCode,
+    explainedSolution,
   };
 }
 
@@ -394,8 +480,8 @@ function createMacroSegment(match) {
     `Invalid JSON for macro of type ${type}.\n` + `JSON: ${propertiesJson}`
   );
   return {
-    type: type,
-    properties: properties,
+    type,
+    properties,
   };
 }
 
@@ -408,25 +494,15 @@ function tryCreateMarkdownSegment(text) {
   return null;
 }
 
-function createKata(segments, kataPath, globalCodeSources) {
-  const kataId = basename(kataPath);
-
-  // Validate that the kata markdown file is not empty.
+function createKata(kataPath, id, title, segments, globalCodeSources) {
+  // Validate that the kata has at least one segment.
   if (segments.length === 0) {
-    throw new Error(`Markdown for '${kataId}' kata does not have any segments`);
+    throw new Error(`Kata '${id}' does not have any segments`);
   }
 
+  // Create sections from the segments in the stack.
   // Use the array of segments as a stack to keep track of the segments that have not been processed.
   const segmentsStack = segments.reverse();
-
-  // The first segment in the kata must be the title.
-  const firstSegment = segmentsStack.pop();
-  const title = tryGetTitleFromSegment(
-    firstSegment,
-    `Could not get title for kata '${kataId}'`
-  );
-
-  // Create sections from the remainin segments in the stack.
   const sections = [];
   while (segmentsStack.length > 0) {
     const currentSegment = segmentsStack.pop();
@@ -459,9 +535,9 @@ function createKata(segments, kataPath, globalCodeSources) {
   }
 
   return {
-    id: kataId,
-    title: title,
-    sections: sections,
+    id,
+    title,
+    sections,
   };
 }
 
@@ -472,10 +548,58 @@ function generateKataContent(path, globalCodeSources) {
     markdownPath,
     "Could not read the contents of the kata markdown file"
   );
-  const segments = parseMarkdown(markdown);
-  const kata = createKata(segments, path, globalCodeSources);
+
+  const kataId = basename(path);
+  const rawSegments = parseMarkdown(markdown);
+
+  // The first segment in the kata must be the title.
+  const firstSegment = rawSegments.at(0);
+  const title = tryGetTitleFromSegment(
+    firstSegment,
+    `Could not get title for kata '${kataId}'`
+  );
+
+  // Do not use the first segment since it was already processed to get the kata's title.
+  const segments = preProcessSegments(rawSegments.slice(1), path);
+  const kata = createKata(path, kataId, title, segments, globalCodeSources);
   console.log(`-- '${kata.id}' kata was successfully created`);
   return kata;
+}
+
+function validateIdsUniqueness(katas) {
+  console.log("Validating IDs uniqueness across all katas");
+  const allIds = new Set();
+  const assertUniqueness = (id) => {
+    const idAlreadyExists = allIds.has(id);
+    if (idAlreadyExists) {
+      throw new Error(`"${id}" is not unique`);
+    }
+    allIds.add(id);
+  };
+
+  for (const kata of katas) {
+    // Check kata IDs are unique.
+    assertUniqueness(kata.id);
+    for (const section of kata.sections) {
+      // Check section IDs are unique.
+      assertUniqueness(section.id);
+      if (section.type === "exercise") {
+        // Check IDs for examples and solutions within exercises are unique.
+        section.explainedSolution.items.forEach((item) => {
+          if (item.type === "example" || item.type === "solution") {
+            assertUniqueness(item.id);
+          }
+        });
+      } else if (section.type === "lesson") {
+        // Check IDs for examples within lessons are unique.
+        section.items.forEach((item) => {
+          if (item.type === "example") {
+            assertUniqueness(item.id);
+          }
+        });
+      }
+    }
+  }
 }
 
 function generateKatasContent(katasPath, outputPath) {
@@ -512,12 +636,16 @@ function generateKatasContent(katasPath, outputPath) {
       code: globalCodeSourcesContainer.sources[id],
     });
   }
+
+  // Validate the uniqueness of IDs.
+  validateIdsUniqueness(katas);
+
+  // Save the JS object to a file.
   const katasContent = {
     katas: katas,
     globalCodeSources: globalCodeSources,
   };
 
-  // Save the JS object to a file.
   if (!existsSync(outputPath)) {
     mkdirSync(outputPath);
   }

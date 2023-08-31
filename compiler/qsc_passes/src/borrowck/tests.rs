@@ -27,8 +27,8 @@ fn assign_invalid_expr() {
             [
                 Unassignable(
                     Span {
-                        lo: 4,
-                        hi: 5,
+                        lo: 5,
+                        hi: 6,
                     },
                 ),
             ]
@@ -48,8 +48,8 @@ fn assignop_mutability_expr() {
             [
                 Mutability(
                     Span {
-                        lo: 29,
-                        hi: 30,
+                        lo: 30,
+                        hi: 31,
                     },
                 ),
             ]
@@ -69,8 +69,8 @@ fn assignupdate_immutable_expr() {
             [
                 Mutability(
                     Span {
-                        lo: 33,
-                        hi: 34,
+                        lo: 34,
+                        hi: 35,
                     },
                 ),
             ]
@@ -89,8 +89,8 @@ fn block_mutable_immutable_expr() {
             [
                 Mutability(
                     Span {
-                        lo: 25,
-                        hi: 26,
+                        lo: 26,
+                        hi: 27,
                     },
                 ),
             ]
@@ -119,8 +119,8 @@ fn for_loop_iterator_immutable_expr() {
             [
                 Mutability(
                     Span {
-                        lo: 21,
-                        hi: 22,
+                        lo: 22,
+                        hi: 23,
                     },
                 ),
             ]
@@ -139,8 +139,8 @@ fn complex_expr_not_assignable() {
             [
                 Unassignable(
                     Span {
-                        lo: 39,
-                        hi: 64,
+                        lo: 40,
+                        hi: 65,
                     },
                 ),
             ]
@@ -159,8 +159,8 @@ fn lambda_mutable_closure() {
             [
                 MutableClosure(
                     Span {
-                        lo: 33,
-                        hi: 43,
+                        lo: 34,
+                        hi: 44,
                     },
                 ),
             ]
