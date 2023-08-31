@@ -5,9 +5,10 @@ namespace Kata.Verification {
         for N in [1, 2, 3, 10] {
             Message($"Testing N = {N}...");
             let max = (1 <<< N) - 1;
-            if not RetryTestOperation(() =>
-                CheckUniformDistribution(() =>
-                    Kata.RandomNBits(N), 0, max, 1000)) {
+            let randomnessVerifier = () => CheckUniformDistribution(() =>
+                Kata.RandomNBits(N), 0, max, 1000);
+            let isCorrect = IsSufficientlyRandom(randomnessVerifier);
+            if not isCorrect {
                 return false;
             }
             Message($"Test passed for N = {N}");

@@ -6,9 +6,9 @@ namespace Kata.Verification {
     operation CheckSolution(): Bool {
         for x in [0.0, 0.25, 0.5, 0.75, 1.0] {
             Message($"Testing generating zero with {x*100.0}% probability...");
-            if not RetryTestOperation(() =>
-                CheckXPercentZero(() =>
-                    Kata.WeightedRandomBit(x), x)) {
+            let randomnessVerifier = () => CheckXPercentZero(() => Kata.WeightedRandomBit(x), x);
+            let isCorrect = IsSufficientlyRandom(randomnessVerifier);
+            if not isCorrect {
                 return false;
             }
             Message($"Test passed for generating zero with {x*100.0}% probability");
@@ -24,14 +24,14 @@ namespace Kata.Verification {
     /// Random number generation operation to be tested.
     /// ## x
     /// Probability of generating zero
-    operation CheckXPercentZero (op : (Unit => Int), x : Double) : Bool {
+    operation CheckXPercentZero (op : (Unit => Int), x : Double) : Int {
         mutable oneCount = 0;
         let nRuns = 1000;
         for N in 1..nRuns {
             let val = op();
             if (val < 0 or val > 1) {
                 Message($"Unexpected number generated. Expected 0 or 1, instead generated {val}");
-                return false;
+                return 0x1;
             }
             set oneCount += val;
         }
@@ -42,18 +42,18 @@ namespace Kata.Verification {
         if (goalZeroCount == 0 or goalZeroCount == nRuns) {
             if zeroCount != goalZeroCount {
                 Message($"Expected {x * 100.0}% 0's, instead got {zeroCount} 0's out of {nRuns}");
-                return false;
+                return 0x2;
             }
         } else {
             if zeroCount < goalZeroCount - 4 * nRuns / 100 {
                 Message($"Unexpectedly low number of 0's generated: expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
-                return false;
+                return 0x3;
             } elif zeroCount > goalZeroCount + 4 * nRuns / 100 {
                 Message($"Unexpectedly high number of 0's generated: expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
-                return false;
+                return 0x4;
             }
         }
-        return true;
+        return 0x0;
     }
 
 }
