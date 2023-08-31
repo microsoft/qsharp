@@ -205,6 +205,26 @@ if build_pip:
             pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
         )
 
+        qir_test_dir = os.path.join(pip_src, "tests-qir")
+        # Try to install PyQIR and if successful, run additional tests.
+        qir_install_args = [
+            python_bin,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            "test_requirements.txt",
+        ]
+        pyqir_install = subprocess.run(
+            qir_install_args, check=False, text=True, cwd=qir_test_dir
+        )
+        if pyqir_install.returncode == 0:
+            print("Running tests for the pip package with PyQIR")
+            pytest_args = [python_bin, "-m", "pytest"]
+            subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
+        else:
+            print("Skipping PyQIR tests")
+
 if build_wasm:
     print("Building the wasm crate")
     # wasm-pack can't build for web and node in the same build, so need to run twice.
@@ -226,7 +246,12 @@ if build_wasm:
 
 if build_samples:
     print("Building qsharp samples")
-    files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if os.path.splitext(f)[1] == '.qs']
+    files = [
+        os.path.join(dp, f)
+        for dp, _, filenames in os.walk(samples_src)
+        for f in filenames
+        if os.path.splitext(f)[1] == ".qs"
+    ]
     args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":
         args.append("--release")
