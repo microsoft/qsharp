@@ -2,10 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc::{
-    ast::{
-        self,
-        visit::{walk_expr, walk_pat, Visitor},
-    },
+    ast,
     compile::{self, Error},
     hir::{Item, ItemId, Package, PackageId},
     CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
@@ -79,7 +76,7 @@ pub(crate) struct AstIdentFinder<'a> {
     pub ident: Option<&'a ast::Ident>,
 }
 
-impl<'a> Visitor<'a> for AstIdentFinder<'a> {
+impl<'a> ast::visit::Visitor<'a> for AstIdentFinder<'a> {
     fn visit_pat(&mut self, pat: &'a ast::Pat) {
         match &*pat.kind {
             ast::PatKind::Bind(ident, _) => {
@@ -87,13 +84,13 @@ impl<'a> Visitor<'a> for AstIdentFinder<'a> {
                     self.ident = Some(ident);
                 }
             }
-            _ => walk_pat(self, pat),
+            _ => ast::visit::walk_pat(self, pat),
         }
     }
 
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
         if self.ident.is_none() {
-            walk_expr(self, expr);
+            ast::visit::walk_expr(self, expr);
         }
     }
 }
