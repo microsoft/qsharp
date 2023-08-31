@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
-    compile::PackageStore,
+    compile::{Offsetter, PackageStore, SourceMap},
     lower::{self, Lowerer},
     resolve::{self, Resolver},
     typeck::{self, Checker},
@@ -33,12 +36,14 @@ enum ErrorKind {
     Lower(#[from] lower::Error),
 }
 
+#[derive(Debug)]
 pub enum Fragment {
     Stmt(hir::Stmt),
     Item(hir::Item),
 }
 
 pub struct Compiler {
+    sources: SourceMap,
     ast_assigner: AstAssigner,
     hir_assigner: HirAssigner,
     resolver: Resolver,
@@ -67,6 +72,7 @@ impl Compiler {
         }
 
         Self {
+            sources: SourceMap::default(),
             ast_assigner: AstAssigner::new(),
             hir_assigner: HirAssigner::new(),
             resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
@@ -79,51 +85,76 @@ impl Compiler {
         &mut self.hir_assigner
     }
 
+    #[must_use]
+    pub fn source_map(&self) -> &SourceMap {
+        &self.sources
+    }
+
     /// Compile a string with a single fragment of Q# code that is an expression.
     /// # Errors
     /// Returns a vector of errors if the input fails compilation.
-    pub fn compile_expr(&mut self, input: &str) -> Result<Vec<Fragment>, Vec<Error>> {
-        let (expr, errors) = qsc_parse::expr(input);
-        if !errors.is_empty() {
-            return Err(errors
-                .into_iter()
-                .map(|e| Error(ErrorKind::Parse(e)))
-                .collect());
-        }
+    pub fn compile_expr(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+    ) -> Result<Vec<Fragment>, Vec<Error>> {
+        let fragments = self.compile(source_name, source_contents, |s| {
+            let (expr, errors) = qsc_parse::expr(s);
+            if !errors.is_empty() {
+                return (Vec::new(), errors);
+            }
 
-        let mut stmt = ast::Stmt {
-            id: ast::NodeId::default(),
-            span: expr.span,
-            kind: Box::new(ast::StmtKind::Expr(expr)),
-        };
-        self.ast_assigner.visit_stmt(&mut stmt);
-        self.resolver.with(&mut self.hir_assigner).visit_stmt(&stmt);
-        self.checker
-            .collect_stmt_items(self.resolver.names(), &stmt);
-        self.checker
-            .check_stmt_fragment(self.resolver.names(), &stmt);
-        self.checker.solve(self.resolver.names());
+            let fragment = qsc_parse::Fragment::Stmt(Box::new(ast::Stmt {
+                id: ast::NodeId::default(),
+                span: expr.span,
+                kind: Box::new(ast::StmtKind::Expr(expr)),
+            }));
 
-        let fragments = self.lower_fragment(qsc_parse::Fragment::Stmt(Box::new(stmt)));
-        let errors = self.drain_errors();
-        if errors.is_empty() {
-            Ok(fragments)
-        } else {
-            self.lowerer.clear_items();
-            Err(errors)
-        }
+            (vec![fragment], errors)
+        })?;
+
+        Ok(fragments)
     }
 
     /// Compile a string with one or more fragments of Q# code.
     /// # Errors
     /// Returns a vector of errors if any of the input fails compilation.
-    pub fn compile_fragments(&mut self, input: &str) -> Result<Vec<Fragment>, Vec<Error>> {
-        let (mut fragments, errors) = qsc_parse::fragments(input);
+    pub fn compile_fragments(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+    ) -> Result<Vec<Fragment>, Vec<Error>> {
+        self.compile(source_name, source_contents, qsc_parse::fragments)
+    }
+
+    fn compile<F>(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+        parse: F,
+    ) -> Result<Vec<Fragment>, Vec<Error>>
+    where
+        F: Fn(&str) -> (Vec<qsc_parse::Fragment>, Vec<qsc_parse::Error>),
+    {
+        // Append the line to the source map with the appropriate offset
+        let offset = self
+            .sources
+            .push(source_name.into(), source_contents.into());
+
+        let (mut fragments, errors) = parse(source_contents);
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|e| Error(ErrorKind::Parse(e)))
+                .map(|e| Error(ErrorKind::Parse(e.with_offset(offset))))
                 .collect());
+        }
+
+        let mut offsetter = Offsetter(offset);
+        for fragment in &mut fragments {
+            match fragment {
+                qsc_parse::Fragment::Namespace(namespace) => offsetter.visit_namespace(namespace),
+                qsc_parse::Fragment::Stmt(stmt) => offsetter.visit_stmt(stmt),
+            }
         }
 
         // Namespaces must be processed before top-level statements, so sort the fragments.

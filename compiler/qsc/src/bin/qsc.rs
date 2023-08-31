@@ -8,7 +8,10 @@ use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
-use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile};
+use qsc_frontend::{
+    compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile},
+    error::WithSource,
+};
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use std::{
@@ -98,11 +101,10 @@ fn main() -> miette::Result<ExitCode> {
         Ok(ExitCode::SUCCESS)
     } else {
         for error in errors {
-            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
-                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
-            } else {
-                eprintln!("{:?}", Report::new(error));
-            }
+            eprintln!(
+                "{:?}",
+                Report::new(WithSource::from_map(&unit.sources, error))
+            );
         }
 
         Ok(ExitCode::FAILURE)
@@ -155,11 +157,7 @@ fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Resu
         }
         Err((error, _)) => {
             let unit = store.get(package_id).expect("package should be in store");
-            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
-                Err(Report::new(error).with_source_code(source.clone()))
-            } else {
-                Err(Report::new(error))
-            }
+            Err(Report::new(WithSource::from_map(&unit.sources, error)))
         }
     }
 }
