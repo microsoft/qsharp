@@ -23,20 +23,7 @@ pub(crate) fn get_hover(
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
     let package = &compilation.unit.ast.package;
 
-    let mut hover_visitor = HoverVisitor {
-        compilation,
-        offset,
-        contents: None,
-        start: 0,
-        end: 0,
-        display: CodeDisplay { compilation },
-        current_namespace: None,
-        current_callable: None,
-        in_params: false,
-        lambda_params: vec![],
-        in_lambda_params: false,
-        current_item_doc: Rc::from(""),
-    };
+    let mut hover_visitor = HoverVisitor::new(compilation, offset);
 
     hover_visitor.visit_package(package);
 
@@ -62,6 +49,25 @@ struct HoverVisitor<'a> {
     lambda_params: Vec<&'a ast::Pat>,
     in_lambda_params: bool,
     current_item_doc: Rc<str>,
+}
+
+impl<'a> HoverVisitor<'a> {
+    fn new(compilation: &'a Compilation, offset: u32) -> Self {
+        Self {
+            compilation,
+            offset,
+            contents: None,
+            start: 0,
+            end: 0,
+            display: CodeDisplay { compilation },
+            current_namespace: None,
+            current_callable: None,
+            in_params: false,
+            lambda_params: vec![],
+            in_lambda_params: false,
+            current_item_doc: Rc::from(""),
+        }
+    }
 }
 
 impl<'a> Visitor<'a> for HoverVisitor<'a> {
