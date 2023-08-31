@@ -738,10 +738,13 @@ mod given_interpreter {
             let res = interpreter
                 .qirgen("Foo(); operation Bar() : Unit {}; Foo()")
                 .expect_err("expected error");
-            is_error(&res, &expect![[r#"
+            is_error(
+                &res,
+                &expect![[r#"
                 syntax error: expected EOF, found `;`
                    [<entry>] [;]
-            "#]]);
+            "#]],
+            );
         }
 
         #[test]
