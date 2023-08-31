@@ -2,19 +2,29 @@
 // Licensed under the MIT License.
 
 mod given_interpreter {
-    use crate::interpret::stateful::{Interpreter, LineError};
+    use crate::interpret::stateful::{Interpreter, LineError, LineResult};
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::{SourceMap, TargetProfile};
     use qsc_passes::PackageType;
     use std::{error::Error, fmt::Write, io::Cursor, iter};
 
-    fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
+    fn line(interpreter: &mut Interpreter, line: &str) -> (LineResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (
             interpreter.interpret_line(&mut receiver, line),
             receiver.dump(),
         )
+    }
+
+    fn run(
+        interpreter: &mut Interpreter,
+        expr: &str,
+        shots: u32,
+    ) -> (Result<Vec<LineResult>, Vec<LineError>>, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        (interpreter.run(&mut receiver, expr, shots), receiver.dump())
     }
 
     fn entry(
@@ -767,6 +777,93 @@ mod given_interpreter {
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
             "#]].assert_eq(&res);
+        }
+
+        #[test]
+        fn run_with_shots() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "Foo()", 5);
+            assert_eq!(output, String::new());
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                let val = r.expect("individual run should succeed");
+                assert_eq!(val, Value::Int(1));
+            }
+        }
+
+        #[test]
+        fn run_parse_error() {
+            let mut interpreter = get_interpreter();
+            let (results, _) = run(&mut interpreter, "Foo)", 5);
+            results.expect_err("run() should fail");
+        }
+
+        #[test]
+        fn run_compile_error() {
+            let mut interpreter = get_interpreter();
+            let (results, _) = run(&mut interpreter, "Foo()", 5);
+            results.expect_err("run() should fail");
+        }
+
+        #[test]
+        fn run_multiple_statements() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "operation Bar() : Int { 2 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "{ Foo(); Bar() }", 5);
+            assert_eq!(output, String::new());
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                let val = r.expect("individual run should succeed");
+                assert_eq!(val, Value::Int(2));
+            }
+        }
+
+        #[test]
+        fn run_runtime_failure() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                r#"operation Foo() : Int { fail "failed" }"#,
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "Foo()", 5);
+            assert_eq!(output, String::new());
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                r.expect_err("individual run should fail");
+            }
+        }
+
+        #[test]
+        fn run_output_merged() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                r#"operation Foo() : Unit { Message("hello!") }"#,
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "Foo()", 5);
+            expect![[r#"
+                hello!
+                hello!
+                hello!
+                hello!
+                hello!"#]]
+            .assert_eq(&output);
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                let val = r.expect("individual run should succeed");
+                assert_eq!(val, Value::unit());
+            }
         }
     }
 
