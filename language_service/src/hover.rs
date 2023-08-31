@@ -30,6 +30,12 @@ pub(crate) fn get_hover(
     hover_visitor.hover
 }
 
+enum LocalKind {
+    Param,
+    LambdaParam,
+    Local,
+}
+
 struct HoverVisitor<'a> {
     // Input
     compilation: &'a Compilation,
@@ -294,12 +300,6 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
     }
 }
 
-enum LocalKind {
-    Param,
-    LambdaParam,
-    Local,
-}
-
 fn protocol_span(span: qsc::Span) -> protocol::Span {
     protocol::Span {
         start: span.lo,
@@ -359,14 +359,6 @@ fn display_callable(doc: &str, namespace: &str, code: impl Display) -> String {
     with_doc(&summary, code)
 }
 
-fn with_doc(doc: &String, code: impl Display) -> String {
-    if doc.is_empty() {
-        code.to_string()
-    } else {
-        format!("{code}---\n{doc}\n")
-    }
-}
-
 fn parse_doc_for_summary(doc: &str) -> String {
     let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
     match re.captures(doc) {
@@ -408,6 +400,14 @@ fn parse_doc_for_param(doc: &str, param: &str) -> String {
     }
     .trim()
     .to_string()
+}
+
+fn with_doc(doc: &String, code: impl Display) -> String {
+    if doc.is_empty() {
+        code.to_string()
+    } else {
+        format!("{code}---\n{doc}\n")
+    }
 }
 
 fn markdown_fenced_block(code: impl Display) -> String {
