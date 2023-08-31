@@ -53,9 +53,17 @@ parser.add_argument(
     help="Run the linting and formatting checks (default is --check)",
 )
 
+parser.add_argument(
+    "--check-prereqs",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="Run the prerequisites check (default is --check-prereqs)",
+)
+
 args = parser.parse_args()
 
-check_prereqs()
+if args.check_prereqs:
+    check_prereqs()
 
 # If no specific project given then build all
 build_all = (
@@ -84,6 +92,8 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
+
+pip_archflags = "-arch x86_64 -arch arm64" if platform.system() == "Darwin" else None
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "wasm")
@@ -166,6 +176,12 @@ if build_pip:
         # Already in a virtual environment, use current Python
         python_bin = sys.executable
 
+    # copy the process env vars
+    pip_env: dict[str, str] = {**os.environ}
+    if pip_archflags is not None:
+        # if on mac, add the arch flags for universal binary
+        pip_env["ARCHFLAGS"] = pip_archflags
+
     pip_build_args = [
         python_bin,
         "-m",
@@ -175,7 +191,7 @@ if build_pip:
         wheels_dir,
         pip_src,
     ]
-    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src)
+    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
 
     if run_tests:
         print("Running tests for the pip package")

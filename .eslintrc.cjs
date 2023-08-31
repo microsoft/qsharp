@@ -11,7 +11,7 @@ module.exports = {
     "/npm/lib/",
     "/npm/src/*.generated.ts",
     "/jupyterlab/lib",
-    "/jupyterlab/qsharp_jupyterlab/labextension",
+    "/jupyterlab/qsharp-jupyterlab/labextension",
     "/vscode/out/",
   ],
   env: {
