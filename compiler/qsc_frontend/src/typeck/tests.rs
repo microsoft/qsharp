@@ -3300,3 +3300,55 @@ fn use_bound_item_in_another_bound_item() {
         "##]],
     );
 }
+
+#[test]
+fn inferred_generic_tuple_arguments_for_passed_callable() {
+    check(
+        indoc! {"
+            namespace Test {
+                function Apply<'T>(f : 'T -> Unit, arg : 'T) : Unit {
+                    f(arg);
+                }
+                function Check(x : Int, y : Int) : Unit {}
+                function Test() : Unit {
+                    let x = (1, 2);
+                    Apply(Check, x);
+                    Apply(Check, (1, 2));
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #7 39-65 "(f : 'T -> Unit, arg : 'T)" : ((0 -> Unit), 0)
+            #8 40-54 "f : 'T -> Unit" : (0 -> Unit)
+            #16 56-64 "arg : 'T" : 0
+            #23 73-96 "{\n        f(arg);\n    }" : Unit
+            #25 83-89 "f(arg)" : Unit
+            #26 83-84 "f" : (0 -> Unit)
+            #29 84-89 "(arg)" : 0
+            #30 85-88 "arg" : 0
+            #36 115-133 "(x : Int, y : Int)" : (Int, Int)
+            #37 116-123 "x : Int" : Int
+            #42 125-132 "y : Int" : Int
+            #50 141-143 "{}" : Unit
+            #54 161-163 "()" : Unit
+            #58 171-257 "{\n        let x = (1, 2);\n        Apply(Check, x);\n        Apply(Check, (1, 2));\n    }" : Unit
+            #60 185-186 "x" : (Int, Int)
+            #62 189-195 "(1, 2)" : (Int, Int)
+            #63 190-191 "1" : Int
+            #64 193-194 "2" : Int
+            #66 205-220 "Apply(Check, x)" : Unit
+            #67 205-210 "Apply" : ((((Int, Int) -> Unit), (Int, Int)) -> Unit)
+            #70 210-220 "(Check, x)" : (((Int, Int) -> Unit), (Int, Int))
+            #71 211-216 "Check" : ((Int, Int) -> Unit)
+            #74 218-219 "x" : (Int, Int)
+            #78 230-250 "Apply(Check, (1, 2))" : Unit
+            #79 230-235 "Apply" : ((((Int, Int) -> Unit), (Int, Int)) -> Unit)
+            #82 235-250 "(Check, (1, 2))" : (((Int, Int) -> Unit), (Int, Int))
+            #83 236-241 "Check" : ((Int, Int) -> Unit)
+            #86 243-249 "(1, 2)" : (Int, Int)
+            #87 244-245 "1" : Int
+            #88 247-248 "2" : Int
+        "##]],
+    );
+}

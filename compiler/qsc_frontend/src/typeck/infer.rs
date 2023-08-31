@@ -269,6 +269,15 @@ impl ArgTy {
                     errors,
                 }
             }
+            (Self::Tuple(_), Ty::Infer(_)) => App {
+                holes: Vec::new(),
+                constraints: vec![Constraint::Eq {
+                    expected: param.clone(),
+                    actual: self.to_ty(),
+                    span,
+                }],
+                errors: Vec::new(),
+            },
             (Self::Tuple(_), _) => App {
                 holes: Vec::new(),
                 constraints: Vec::new(),
