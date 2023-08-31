@@ -24,6 +24,7 @@ homepage = "https://github.com/microsoft/qsharp"
 repository = "https://github.com/microsoft/qsharp"
 edition = "2021"
 license = "MIT"
+version = "0.0.0"
 
 [workspace.dependencies]
 clap = "4.1.8"

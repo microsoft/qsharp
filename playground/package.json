@@ -1,6 +1,6 @@
 {
   "name": "qsharp-playground",
-  "version": "0.0.12",
+  "version": "0.0.0",
   "type": "module",
   "description": "Web playground for the qsharp compiler",
   "private": true,
