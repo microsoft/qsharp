@@ -801,6 +801,7 @@ dependencies = [
  "clap 4.1.8",
  "criterion",
  "env_logger",
+ "expect-test",
  "indoc 2.0.0",
  "log",
  "miette",
