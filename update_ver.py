@@ -6,12 +6,20 @@
 import sys
 import re
 import os
+from packaging.version import Version, parse
 
 if len(sys.argv) < 2:
     print("Argument is missing. Please specify the new package version, e.g. 0.0.8")
-    sys.exit()
+    sys.exit(-1)
 
-newVer = sys.argv[1]
+newVer = parse(sys.argv[1])
+if not isinstance(newVer, Version):
+    print("Argument not a valid version")
+    sys.exit(-2)
+
+# ensure that we have a 3-part version or rust will fail
+newVerFormatted = f"{newVer.major}.{newVer.minor}.{newVer.micro}"
+
 scriptDir = os.path.dirname(os.path.abspath(__file__))
 
 for fileRPath in [
@@ -26,12 +34,12 @@ for fileRPath in [
 
     # Config:
     regexp = '^version\s*=\s*"\d+\.\d+\.\d+"\s*$'  # `version = "0.0.11"`
-    replacement = f'version = "{newVer}"\n'
+    replacement = f'version = "{newVerFormatted}"\n'
     if fileRPath.endswith("package.json"):
         regexp = (
             '\s*"version"\s*:\s*"\d+\.\d+\.\d+"\s*,\s*$'  # `  "version": "0.0.11",`
         )
-        replacement = f'  "version": "{newVer}",\n'
+        replacement = f'  "version": "{newVerFormatted}",\n'
 
     # Read file:
     with open(fileRPath, "r") as file:
