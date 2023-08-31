@@ -92,6 +92,10 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Add additional Rust targets
+        run: |
+          rustup target add aarch64-apple-darwin
+        if: matrix.os == 'macos-latest'
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
