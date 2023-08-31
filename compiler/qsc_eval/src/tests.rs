@@ -507,8 +507,8 @@ fn binop_andl_no_shortcut() {
                 UserFail(
                     "Should Fail",
                     Span {
-                        lo: 11,
-                        hi: 29,
+                        lo: 10,
+                        hi: 28,
                     },
                 ),
                 [],
@@ -531,8 +531,8 @@ fn binop_div_bigint_zero() {
             (
                 DivZero(
                     Span {
-                        lo: 7,
-                        hi: 9,
+                        lo: 6,
+                        hi: 8,
                     },
                 ),
                 [],
@@ -555,8 +555,8 @@ fn binop_div_int_zero() {
             (
                 DivZero(
                     Span {
-                        lo: 6,
-                        hi: 7,
+                        lo: 5,
+                        hi: 6,
                     },
                 ),
                 [],
@@ -579,8 +579,8 @@ fn binop_div_double_zero() {
             (
                 DivZero(
                     Span {
-                        lo: 7,
-                        hi: 10,
+                        lo: 6,
+                        hi: 9,
                     },
                 ),
                 [],
@@ -724,8 +724,8 @@ fn binop_exp_bigint_negative_exp() {
                 InvalidNegativeInt(
                     -3,
                     Span {
-                        lo: 4,
-                        hi: 6,
+                        lo: 3,
+                        hi: 5,
                     },
                 ),
                 [],
@@ -744,8 +744,8 @@ fn binop_exp_bigint_too_large() {
                 IntTooLarge(
                     9223372036854775807,
                     Span {
-                        lo: 4,
-                        hi: 29,
+                        lo: 3,
+                        hi: 28,
                     },
                 ),
                 [],
@@ -789,8 +789,8 @@ fn binop_exp_int_negative_exp() {
                 InvalidNegativeInt(
                     -3,
                     Span {
-                        lo: 3,
-                        hi: 5,
+                        lo: 2,
+                        hi: 4,
                     },
                 ),
                 [],
@@ -1233,8 +1233,8 @@ fn fail_expr() {
                 UserFail(
                     "This is a failure",
                     Span {
-                        lo: 1,
-                        hi: 25,
+                        lo: 0,
+                        hi: 24,
                     },
                 ),
                 [],
@@ -1253,8 +1253,8 @@ fn fail_shortcut_expr() {
                 UserFail(
                     "Got Here!",
                     Span {
-                        lo: 3,
-                        hi: 19,
+                        lo: 2,
+                        hi: 18,
                     },
                 ),
                 [],
@@ -1407,8 +1407,8 @@ fn array_slice_step_zero_expr() {
             (
                 RangeStepZero(
                     Span {
-                        lo: 17,
-                        hi: 24,
+                        lo: 16,
+                        hi: 23,
                     },
                 ),
                 [],
@@ -1427,8 +1427,8 @@ fn array_slice_out_of_range_expr() {
                 IndexOutOfRange(
                     5,
                     Span {
-                        lo: 17,
-                        hi: 21,
+                        lo: 16,
+                        hi: 20,
                     },
                 ),
                 [],
@@ -1447,8 +1447,8 @@ fn array_index_negative_expr() {
                 InvalidIndex(
                     -2,
                     Span {
-                        lo: 11,
-                        hi: 13,
+                        lo: 10,
+                        hi: 12,
                     },
                 ),
                 [],
@@ -1467,8 +1467,8 @@ fn array_index_out_of_range_expr() {
                 IndexOutOfRange(
                     4,
                     Span {
-                        lo: 11,
-                        hi: 12,
+                        lo: 10,
+                        hi: 11,
                     },
                 ),
                 [],
@@ -1734,8 +1734,8 @@ fn update_invalid_index_range_expr() {
                 IndexOutOfRange(
                     7,
                     Span {
-                        lo: 14,
-                        hi: 15,
+                        lo: 13,
+                        hi: 14,
                     },
                 ),
                 [],
@@ -1754,8 +1754,8 @@ fn update_invalid_index_negative_expr() {
                 InvalidNegativeInt(
                     -1,
                     Span {
-                        lo: 14,
-                        hi: 16,
+                        lo: 13,
+                        hi: 15,
                     },
                 ),
                 [],
@@ -2259,15 +2259,15 @@ fn call_adjoint_expr() {
                 UserFail(
                     "Adjoint Implementation",
                     Span {
-                        lo: 166,
-                        hi: 195,
+                        lo: 185,
+                        hi: 214,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 171,
-                            hi: 195,
+                            lo: 190,
+                            hi: 214,
                         },
                         id: GlobalId {
                             package: PackageId(
@@ -2318,15 +2318,15 @@ fn call_adjoint_adjoint_expr() {
                 UserFail(
                     "Body Implementation",
                     Span {
-                        lo: 92,
-                        hi: 118,
+                        lo: 119,
+                        hi: 145,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 97,
-                            hi: 118,
+                            lo: 124,
+                            hi: 145,
                         },
                         id: GlobalId {
                             package: PackageId(
@@ -2372,15 +2372,15 @@ fn call_adjoint_self_expr() {
                 UserFail(
                     "Body Implementation",
                     Span {
-                        lo: 92,
-                        hi: 118,
+                        lo: 111,
+                        hi: 137,
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 97,
-                            hi: 118,
+                            lo: 116,
+                            hi: 137,
                         },
                         id: GlobalId {
                             package: PackageId(

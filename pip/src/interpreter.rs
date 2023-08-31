@@ -15,7 +15,7 @@ use qsc::{
     },
     PackageType, SourceMap,
 };
-use std::{fmt::Write, sync::Arc};
+use std::fmt::Write;
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -90,7 +90,7 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.interpret_line(&mut receiver, input) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
-            Err(errors) => Err(QSharpError::new_err(format_errors(input, errors))),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
 
@@ -98,7 +98,7 @@ impl Interpreter {
     fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
         match self.interpreter.qirgen(entry_expr) {
             Ok(qir) => Ok(qir),
-            Err(errors) => Err(QSharpError::new_err(format_errors(entry_expr, errors))),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
 }
@@ -110,7 +110,7 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(expr: &str, errors: Vec<LineError>) -> String {
+fn format_errors(errors: Vec<LineError>) -> String {
     errors
         .into_iter()
         .map(|e| {
@@ -118,7 +118,7 @@ fn format_errors(expr: &str, errors: Vec<LineError>) -> String {
             if let Some(stack_trace) = e.stack_trace() {
                 write!(message, "{stack_trace}").unwrap();
             }
-            let report = Report::new(e).with_source_code(Arc::new(expr.to_owned()));
+            let report = Report::new(e);
             write!(message, "{report:?}").unwrap();
             message
         })
