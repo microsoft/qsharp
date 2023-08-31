@@ -18,7 +18,7 @@ node_ver = (
     16,
     17,
 )  # Node.js version 16.17 or later is required to support the Node.js 'test' module
-wasmpack_ver = (0, 11, 0)  # Latest tested wasm-pack version
+wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
 rust_fmt_ver = (1, 5, 2)  # Current version when Rust 1.70 shipped
 clippy_ver = (0, 1, 69)
 
