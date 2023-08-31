@@ -10,7 +10,7 @@ Thus, the inverse transformation $R_x(-\theta)$ maps the $A/B$ basis to the $0/1
 Therefore, if we apply $R_x(-\theta)$ to the qubit and measure it using `M`, a measurement result of `Zero` will correspond to the qubit's original state being $\ket{A}$, while a result of `One` will correspond to the qubit's original state being $\ket B$.
 
 @[solution]({
-    "id": "distinguish_orthogonal_states_2_solution",
+    "id": "single_qubit_measurements__distinguish_orthogonal_states_2_solution",
     "exerciseId": "distinguish_orthogonal_states_2",
     "codePath": "solution.qs"
 })

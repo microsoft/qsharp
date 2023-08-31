@@ -1,24 +1,24 @@
 # Multi-Qubit Gates
 
 @[section]({
-    "id": "multi_qubit_gates_overview",
+    "id": "multi_qubit_gates__overview",
     "title": "Overview"
 })
 
-This Kata continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
+This kata continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
 
-**This Kata covers the following topics:**
+**This kata covers the following topics:**
 - Applying quantum gates to a part of the system
 - `CNOT` and `SWAP` gates
 - Controlled gates
 
-**What you should know to start working on this Kata:**
+**What you should know to start working on this kata:**
 - Basic linear algebra
 - The concept of qubit and multi-qubit systems
 - Single-qubit and multi-qubit quantum gates
 
 @[section]({
-    "id": "multi_qubit_gates_the_basics",
+    "id": "multi_qubit_gates__the_basics",
     "title": "The Basics"
 })
 
@@ -67,10 +67,10 @@ $$
 > $$X \otimes H = (X I) \otimes (I H) = (X \otimes I) (I \otimes H)$$
 
 This approach can be generalized to larger systems and gates that act on multiple qubits as well.
-It is more complex when a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this Kata.
+It is more complex when a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this kata.
 
 @[exercise]({
-    "id": "compound_gate",
+    "id": "multi_qubit_gates__compound_gate",
     "title": "Compound Gate",
     "descriptionPath": "./compound_gate/index.md",
     "codePaths": [
@@ -82,12 +82,12 @@ It is more complex when a multi-qubit gate is applied to a subset of qubits that
 })
 
 @[section]({
-    "id": "multi_qubit_gates_cnot_gate",
+    "id": "multi_qubit_gates__cnot_gate",
     "title": "CNOT Gate"
 })
 
-Our first proper multi-qubit gate is the `CNOT` ("controlled NOT") gate.
-The `CNOT` gate is a two-qubit gate, the first qubit is referred to as the **control** qubit, and the second as the **target** qubit.
+Our first proper multi-qubit gate is the `CNOT` ("controlled NOT") gate. The `CNOT` gate is a two-qubit gate, one is referred to as the **control** qubit, and the other one is the **target** qubit (usually the first qubit is the control, and the second qubit is the target).
+
 `CNOT` acts as a conditional gate of sorts: if the control qubit is in state $|1\\rangle$, it applies the `X` gate to the target qubit, otherwise it does nothing.
 
 > If the system is in a superposition of several basis states, the effects of the gate will be a linear combination of the effects of it acting separately on each of the basis states.
@@ -126,7 +126,7 @@ $$\alpha|00\rangle + \beta|11\rangle$$
 The `CNOT` gate is self-adjoint: applying it for the second time reverses its effect.
 
 @[exercise]({
-    "id": "preparing_bell_state",
+    "id": "multi_qubit_gates__preparing_bell_state",
     "title": "Preparing a Bell State",
     "descriptionPath": "./preparing_bell_state/index.md",
     "codePaths": [
@@ -138,7 +138,7 @@ The `CNOT` gate is self-adjoint: applying it for the second time reverses its ef
 })
 
 @[section]({
-    "id": "multi_qubit_gates_ket_bra_representation",
+    "id": "multi_qubit_gates__ket_bra_representation",
     "title": "Ket-Bra Representation"
 })
 
@@ -148,7 +148,7 @@ Same as in the case of single-qubit gates, we can represent multi-qubit gates us
 >
 > Kets and bras are used to express inner and outer products. The inner product of $|\phi\rangle$ and $|\psi\rangle$ is the matrix product of $\langle\phi|$ and $|\psi\rangle$, denoted as $\langle\phi|\psi\rangle$, and their outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
 >
-> As we've seen in the "Single-Qubit Gates" Kata, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
+> As we've seen in the "Single-Qubit Gates" kata, kets and bras can be used to represent matrices. The outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix.
 
 Let's consider ket-bra representation of the $\\text{CNOT}$ gate:
 
@@ -205,7 +205,7 @@ Dirac notation is particularly useful for expressing sparse matrices - matrices 
 With enough practice you'll be able to perform computations in Dirac notation without spelling out all the bra-ket terms explicitly!
 
 @[section]({
-    "id": "multi_qubit_gates_ket_bra_decomposition",
+    "id": "multi_qubit_gates__ket_bra_decomposition",
     "title": "Ket-Bra Decomposition"
 })
 
@@ -225,22 +225,22 @@ The $\\text{CNOT}$ gate has four eigenvectors.
  * Two, as we can clearly see, are computational basis states $|00\rangle$ and $|01\rangle$ with eigen values $1$ and $1$, respectively (the basis states that are not affected by the gate).
  * The other two are $|1\rangle \otimes |+\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle + |11\rangle\big)$ and $|1\rangle \otimes |-\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle - |11\rangle\big)$ with eigenvalues $1$ and $-1$, respectively:
 
-$$\text{CNOT}|0\rangle \otimes |0\rangle = |0\rangle \otimes |0\rangle$$
-$$\text{CNOT}|0\rangle \otimes |1\rangle = |0\rangle \otimes |1\rangle$$
-$$\text{CNOT}|1\rangle \otimes |+\rangle = |1\rangle \otimes |+\rangle$$
-$$\text{CNOT}|1\rangle \otimes |-\rangle = -|1\rangle \otimes |-\rangle$$
+$$\text{CNOT}|00\rangle = |00\rangle$$
+$$\text{CNOT}|01\rangle = |01\rangle$$
+$$\text{CNOT}|1+\rangle = |1+\rangle$$
+$$\text{CNOT}|1-\rangle = -|1-\rangle$$
 
 Here's what the decomposition looks like:
 
 $$\text{CNOT} =$$
-$$|00\rangle\langle00| + |01\rangle\langle01| + 1\rangle \otimes |+\rangle\langle1| \otimes \langle +| - |1\rangle \otimes| -\rangle\langle1| \otimes \langle -| =$$
+$$|00\rangle\langle00| + |01\rangle\langle01| + |1+\rangle\langle1+| - |1-\rangle\langle1-| =$$
 $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big[\big(|10\rangle + |11\rangle\big)\big(\langle10| + \langle11|\big) - \big(|10\rangle - |11\rangle\big)\big(\langle10| - \langle11|\big)\big] =$$
 $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(|10\rangle\langle10| + |10\rangle\langle11| + |11\rangle\langle10| + |11\rangle\langle11| - |10\rangle\langle10| + |10\rangle\langle11| + |11\rangle\langle10| - |11\rangle\langle11|\big) =$$
 $$|00\rangle\langle00| + |01\rangle\langle01| + \frac{1}{2}\big(2|10\rangle\langle11| + 2|11\rangle\langle10|\big) =$$
 $$|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|$$
 
 @[section]({
-    "id": "multi_qubit_gates_swap_gate",
+    "id": "multi_qubit_gates__swap_gate",
     "title": "SWAP Gate"
 })
 
@@ -268,7 +268,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
 </table>
 
 @[exercise]({
-    "id": "qubit_swap",
+    "id": "multi_qubit_gates__qubit_swap",
     "title": "Qubit SWAP",
     "descriptionPath": "./qubit_swap/index.md",
     "codePaths": [
@@ -280,7 +280,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
 })
 
 @[section]({
-    "id": "multi_qubit_gates_acting_on_non_adjacent_qubits",
+    "id": "multi_qubit_gates__acting_on_non_adjacent_qubits",
     "title": "Multi-Qubit Gates Acting on Non-Adjacent Qubits"
 })
 
@@ -288,7 +288,7 @@ In the above examples the `CNOT` gate acted on two adjacent qubits. However, mul
 
 Take 3 qubits in an arbitrary state $|\psi\rangle = x_{000} |000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle + x_{100}|100\rangle + x_{101}|101\rangle + x_{110}|110\rangle + x_{111}|111\rangle $.
 
-We can apply the `CNOT` gate on 1st and 3rd qubits, with the 1st qubit as control and the 3rd qubit as target. Let's label the 3-qubit gate that describes the effect of this on the whole system as `CNOT`. The `CINOT` ignores the 2nd qubit (leaves it unchanged) and applies the `CNOT` gate as specified above.
+We can apply the `CNOT` gate on 1st and 3rd qubits, with the 1st qubit as control and the 3rd qubit as target. Let's label the 3-qubit gate that describes the effect of this on the whole system as `CINOT`. The `CINOT` ignores the 2nd qubit (leaves it unchanged) and applies the `CNOT` gate as specified above.
 
 ## Q#
 
@@ -395,7 +395,7 @@ operation CINOT (qs: Qubit[]) : Unit {
 ```
 
 @[section]({
-    "id": "multi_qubit_gates_controlled_gates",
+    "id": "multi_qubit_gates__controlled_gates",
     "title": "Controlled Gates"
 })
 
@@ -465,7 +465,7 @@ The Q# compiler will often be able to generate a controlled version of the opera
 In other cases, you'll need to define the controlled version of an operation manually.
 
 @[exercise]({
-    "id": "controlled_rotation",
+    "id": "multi_qubit_gates__controlled_rotation",
     "title": "Controlled Rotation",
     "descriptionPath": "./controlled_rotation/index.md",
     "codePaths": [
@@ -477,7 +477,7 @@ In other cases, you'll need to define the controlled version of an operation man
 })
 
 @[section]({
-    "id": "multi_qubit_gates_multi_controlled_gates",
+    "id": "multi_qubit_gates__multi_controlled_gates",
     "title": "Multi-Controlled Gates"
 })
 
@@ -502,11 +502,11 @@ $$
 To construct a multi-controlled version of an operation in Q#, you can use the Controlled functor as well, passing all control qubits as an array that is the first parameter.
 
 @[section]({
-    "id": "multi_qubit_gates_other_controlled_gates",
+    "id": "multi_qubit_gates__other_controlled_gates",
     "title": "Other Types of Controlled Gates"
 })
 
-Typically the term "controlled `U` gate" refers to the type of gate we've described previously, which applies the gate `U` only if the control qubit(s) are in the $|1\rangle$ state.
+Typically, the term "controlled `U` gate" refers to the type of gate we've described previously, which applies the gate `U` only if the control qubit(s) are in the $|1\rangle$ state.
 
 It is possible, however, to define variants of controlled gates that use different states as control states.
 For example, an **anti-controlled** `U` gate (sometimes called **zero-controlled**) applies a gate only if the control qubit is in the $|0\rangle$ state.
@@ -567,7 +567,7 @@ The sequence of steps that implement this variant are:
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
 @[exercise]({
-    "id": "arbitrary_controls",
+    "id": "multi_qubit_gates__arbitrary_controls",
     "title": "Arbitrary Controls",
     "descriptionPath": "./arbitrary_controls/index.md",
     "codePaths": [
@@ -579,8 +579,14 @@ The sequence of steps that implement this variant are:
 })
 
 @[section]({
-    "id": "multi_qubit_gates_conclusion",
+    "id": "multi_qubit_gates__conclusion",
     "title": "Conclusion"
 })
 
-Congratulations! You have completed the series of introductory Katas.
+Congratulations! You have completed the series of introductory katas. In this kata you learned how to apply quantum gates to multi-qubit systems. Here are a few key concepts to keep in mind: 
+* Multi-qubit gates are constructed as the tensor products of gates that affect individual qubits of the system.
+* CNOT gate is a type of controlled gate that acts on two qubits. If the control qubit is in state $\ket{1}$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
+* In Q#, controlled gates are applied using the `Controlled` functor.
+* In Q# you can apply a sequence of multi-qubit gates, regardless of whether the qubits are adjacent or not.
+
+Next, you will learn about quantum measurements in the "Measurements in Single-Qubit Systems" kata. 
