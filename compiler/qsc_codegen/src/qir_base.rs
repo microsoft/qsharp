@@ -298,7 +298,8 @@ impl Backend for BaseProfSim {
     fn rx(&mut self, theta: f64, q: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rx__body(double {theta}, {})",
+            "  call void @__quantum__qis__rx__body({}, {})",
+            Double(theta),
             Qubit(q),
         )
         .expect("writing to string should succeed");
@@ -307,7 +308,8 @@ impl Backend for BaseProfSim {
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rxx__body(double {theta}, {}, {})",
+            "  call void @__quantum__qis__rxx__body({}, {}, {})",
+            Double(theta),
             Qubit(q0),
             Qubit(q1),
         )
@@ -317,7 +319,8 @@ impl Backend for BaseProfSim {
     fn ry(&mut self, theta: f64, q: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__ry__body(double {theta}, {})",
+            "  call void @__quantum__qis__ry__body({}, {})",
+            Double(theta),
             Qubit(q),
         )
         .expect("writing to string should succeed");
@@ -326,7 +329,8 @@ impl Backend for BaseProfSim {
     fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__ryy__body(double {theta}, {}, {})",
+            "  call void @__quantum__qis__ryy__body({}, {}, {})",
+            Double(theta),
             Qubit(q0),
             Qubit(q1),
         )
@@ -336,7 +340,8 @@ impl Backend for BaseProfSim {
     fn rz(&mut self, theta: f64, q: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rz__body(double {theta}, {})",
+            "  call void @__quantum__qis__rz__body({}, {})",
+            Double(theta),
             Qubit(q),
         )
         .expect("writing to string should succeed");
@@ -345,7 +350,8 @@ impl Backend for BaseProfSim {
     fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rzz__body(double {theta}, {}, {})",
+            "  call void @__quantum__qis__rzz__body({}, {}, {})",
+            Double(theta),
             Qubit(q0),
             Qubit(q1),
         )
@@ -457,5 +463,20 @@ struct Result(usize);
 impl Display for Result {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "%Result* inttoptr (i64 {} to %Result*)", self.0)
+    }
+}
+
+struct Double(f64);
+
+impl Display for Double {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let v = self.0;
+        if (v.floor() - v.ceil()).abs() < f64::EPSILON {
+            // The value is a whole number, which requires at least one decimal point
+            // to differentiate it from an integer value.
+            write!(f, "double {v:.1}")
+        } else {
+            write!(f, "double {v}")
+        }
     }
 }
