@@ -392,6 +392,13 @@ impl Interpreter {
                 .collect());
         }
 
+        // Items must be processed before top-level statements, so sort the fragments.
+        // Note that stable sorting is used here to preserve the order of top-level statements.
+        fragments.sort_by_key(|f| match f {
+            Fragment::Item(_) => 0,
+            Fragment::Stmt(_) => 1,
+        });
+
         for fragment in fragments {
             match fragment {
                 Fragment::Item(item) => match item.kind {
