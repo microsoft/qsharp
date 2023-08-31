@@ -89,7 +89,7 @@ namespace Kata.Verification {
     }
 
     operation IsSufficientlyRandom(verifier : (Unit => Int)) : Bool {
-        let results = RunRandomnessVerifier(verifier, 5);
+        let results = RunRandomnessVerifier(verifier, 10);
         Tail(results) == 0x0
     }
 
