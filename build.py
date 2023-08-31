@@ -216,7 +216,7 @@ if build_pip:
             "test_requirements.txt",
         ]
         subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
-        pyqir_check_args = [python_bin, "-c", '"import pyqir"']
+        pyqir_check_args = [python_bin, "-c", "import pyqir"]
         if (
             subprocess.run(
                 pyqir_check_args, check=False, text=True, cwd=qir_test_dir
