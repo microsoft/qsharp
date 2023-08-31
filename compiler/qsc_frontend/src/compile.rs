@@ -4,16 +4,16 @@
 #[cfg(test)]
 mod tests;
 
-mod preprocess;
+pub mod preprocess;
 
 use crate::{
+    error::WithSource,
     lower::{self, Lowerer},
     resolve::{self, Names, Resolver},
     typeck::{self, Checker, Table},
 };
-use miette::{
-    Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
-};
+use miette::{Diagnostic, Report};
+use preprocess::TrackedName;
 use qsc_ast::{
     assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor,
     validate::Validator as AstValidator, visit::Visitor as _,
@@ -73,6 +73,7 @@ pub struct CompileUnit {
     pub assigner: HirAssigner,
     pub sources: SourceMap,
     pub errors: Vec<Error>,
+    pub dropped_names: Vec<TrackedName>,
 }
 
 #[derive(Debug, Default)]
@@ -94,19 +95,23 @@ impl SourceMap {
         entry: Option<Arc<str>>,
     ) -> Self {
         let mut offset_sources = Vec::new();
-        for (name, contents) in sources {
-            offset_sources.push(Source {
-                name,
-                contents,
-                offset: next_offset(&offset_sources),
-            });
-        }
 
         let entry_source = entry.map(|contents| Source {
             name: "<entry>".into(),
             contents,
-            offset: next_offset(&offset_sources),
+            offset: 0,
         });
+
+        let mut offset = next_offset(entry_source.as_ref());
+        for (name, contents) in sources {
+            let source = Source {
+                name,
+                contents,
+                offset,
+            };
+            offset = next_offset(Some(&source));
+            offset_sources.push(source);
+        }
 
         Self {
             sources: offset_sources,
@@ -114,28 +119,25 @@ impl SourceMap {
         }
     }
 
+    pub fn push(&mut self, name: SourceName, contents: SourceContents) -> u32 {
+        let offset = next_offset(self.sources.last());
+
+        self.sources.push(Source {
+            name,
+            contents,
+            offset,
+        });
+
+        offset
+    }
+
     #[must_use]
     pub fn find_by_offset(&self, offset: u32) -> Option<&Source> {
         self.sources
             .iter()
-            .chain(&self.entry)
             .rev()
+            .chain(&self.entry)
             .find(|source| offset >= source.offset)
-    }
-
-    #[must_use]
-    pub fn find_by_diagnostic(&self, diagnostic: &impl Diagnostic) -> Option<&Source> {
-        diagnostic
-            .labels()
-            .and_then(|mut labels| labels.next())
-            .and_then(|label| {
-                self.find_by_offset(
-                    label
-                        .offset()
-                        .try_into()
-                        .expect("offset should fit into u32"),
-                )
-            })
     }
 
     #[must_use]
@@ -149,30 +151,6 @@ pub struct Source {
     pub name: SourceName,
     pub contents: SourceContents,
     pub offset: u32,
-}
-
-impl SourceCode for Source {
-    fn read_span<'a>(
-        &'a self,
-        span: &SourceSpan,
-        context_lines_before: usize,
-        context_lines_after: usize,
-    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
-        let contents = self.contents.read_span(
-            &with_offset(span, |o| o - (self.offset as usize)),
-            context_lines_before,
-            context_lines_after,
-        )?;
-
-        Ok(Box::new(MietteSpanContents::new_named(
-            self.name.to_string(),
-            contents.data(),
-            with_offset(contents.span(), |o| o + (self.offset as usize)),
-            contents.line(),
-            contents.column(),
-            contents.line_count(),
-        )))
-    }
 }
 
 pub type SourceName = Arc<str>;
@@ -266,13 +244,21 @@ pub fn compile(
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
 
-    preprocess::Conditional { target }.visit_package(&mut ast_package);
+    let mut cond_compile = preprocess::Conditional::new(target);
+    cond_compile.visit_package(&mut ast_package);
+    let dropped_names = cond_compile.into_names();
 
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &ast_package);
+    let (names, name_errors) = resolve_all(
+        store,
+        dependencies,
+        &mut hir_assigner,
+        &ast_package,
+        dropped_names.clone(),
+    );
     let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
     let mut lowerer = Lowerer::new();
     let package = lowerer
@@ -300,6 +286,7 @@ pub fn compile(
         assigner: hir_assigner,
         sources,
         errors,
+        dropped_names,
     }
 }
 
@@ -439,10 +426,12 @@ fn resolve_all(
     dependencies: &[PackageId],
     assigner: &mut HirAssigner,
     package: &ast::Package,
+    mut dropped_names: Vec<TrackedName>,
 ) -> (Names, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
+        dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
     for &id in dependencies {
@@ -450,10 +439,11 @@ fn resolve_all(
             .get(id)
             .expect("dependency should be in package store before compilation");
         globals.add_external_package(id, &unit.package);
+        dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
     let mut errors = globals.add_local_package(assigner, package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
     let (names, mut resolver_errors) = resolver.into_names();
     errors.append(&mut resolver_errors);
@@ -493,14 +483,10 @@ fn append_parse_errors(
     }
 }
 
-fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan {
-    SourceSpan::new(f(span.offset()).into(), span.len().into())
-}
-
-fn next_offset(sources: &[Source]) -> u32 {
-    sources.last().map_or(0, |s| {
-        // Leave a gap of 1 between each source so that offsets at EOF
-        // get mapped to the correct source
+fn next_offset(last_source: Option<&Source>) -> u32 {
+    // Leave a gap of 1 between each source so that offsets at EOF
+    // get mapped to the correct source
+    last_source.map_or(0, |s| {
         1 + s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
     })
 }
@@ -508,11 +494,7 @@ fn next_offset(sources: &[Source]) -> u32 {
 fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
     if !errors.is_empty() {
         for error in errors.drain(..) {
-            if let Some(source) = sources.find_by_diagnostic(&error) {
-                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
-            } else {
-                eprintln!("{:?}", Report::new(error));
-            }
+            eprintln!("{:?}", Report::new(WithSource::from_map(sources, error)));
         }
 
         panic!("could not compile package");

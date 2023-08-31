@@ -6,7 +6,7 @@ Since the states $\ket +$ and $\ket -$ correspond to the eigenvalues $+1$ and $-
 Note that since `Measure` operation generally works with multiple qubits to perform multi-qubit measurements, it takes array parameters. To do a single-qubit measurement, you need to pass two arrays of one element, `[PauliX]` and `[q]`, rather than individual values.
 
 @[solution]({
-    "id": "distinguish_plus_and_minus_solution",
+    "id": "single_qubit_measurements__distinguish_plus_and_minus_solution",
     "exerciseId": "distinguish_plus_and_minus",
     "codePath": "solution.qs"
 })
