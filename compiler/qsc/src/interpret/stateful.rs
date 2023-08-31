@@ -478,7 +478,6 @@ impl Interpreter {
                 .collect());
         }
 
-        // items
         let mut stmt_ids = Vec::new();
         for fragment in fragments {
             match fragment {
@@ -516,36 +515,32 @@ impl Interpreter {
             callables: &self.callables,
         };
 
-        // statements
         let mut results: Vec<LineResult> = Vec::new();
-
         for _i in 0..shots {
-            {
-                results.push(
-                    match eval_stmt(
-                        stmt_id,
-                        &globals,
-                        &mut Env::with_empty_scope(),
-                        &mut SparseSim::new(),
-                        self.package,
-                        receiver,
-                    ) {
-                        Ok(value) => Ok(value),
-                        Err((error, call_stack)) => {
-                            let stack_trace = if call_stack.is_empty() {
-                                None
-                            } else {
-                                Some(self.render_call_stack(call_stack, &error))
-                            };
+            results.push(
+                match eval_stmt(
+                    stmt_id,
+                    &globals,
+                    &mut Env::with_empty_scope(),
+                    &mut SparseSim::new(),
+                    self.package,
+                    receiver,
+                ) {
+                    Ok(value) => Ok(value),
+                    Err((error, call_stack)) => {
+                        let stack_trace = if call_stack.is_empty() {
+                            None
+                        } else {
+                            Some(self.render_call_stack(call_stack, &error))
+                        };
 
-                            Err(vec![LineError(WithSource::from_map(
-                                self.compiler.source_map(),
-                                WithStack::new(error, stack_trace).into(),
-                            ))])
-                        }
-                    },
-                );
-            }
+                        Err(vec![LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            WithStack::new(error, stack_trace).into(),
+                        ))])
+                    }
+                },
+            );
         }
 
         Ok(results)
