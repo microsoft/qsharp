@@ -709,12 +709,16 @@ mod given_interpreter {
 
             // Operation should not be visible from global scope
             let (result, output) = line(&mut interpreter, indoc! {"Bar()"});
-            is_only_error(&result, &output, &expect![[r#"
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
                 name error: `Bar` not found
                    [line_1] [Bar]
                 type error: insufficient type information to infer type
                    [line_1] [Bar()]
-            "#]]);
+            "#]],
+            );
         }
 
         #[test]
@@ -734,38 +738,10 @@ mod given_interpreter {
             let res = interpreter
                 .qirgen("Foo(); operation Bar() : Unit {}; Foo()")
                 .expect_err("expected error");
-            expect![[r#"
-                [
-                    LineError(
-                        WithSource {
-                            sources: [
-                                Source {
-                                    name: "<entry>",
-                                    contents: "Foo(); operation Bar() : Unit {}; Foo()",
-                                    offset: 81,
-                                },
-                            ],
-                            error: Compile(
-                                Error(
-                                    Parse(
-                                        Error(
-                                            Token(
-                                                Eof,
-                                                Semi,
-                                                Span {
-                                                    lo: 86,
-                                                    hi: 87,
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        },
-                    ),
-                ]
-            "#]]
-            .assert_debug_eq(&res);
+            is_error(&res, &expect![[r#"
+                syntax error: expected EOF, found `;`
+                   [<entry>] [;]
+            "#]]);
         }
 
         #[test]
@@ -842,12 +818,16 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
 
             let (result, output) = line(&mut interpreter, indoc! {"Bar()"});
-            is_only_error(&result, &output, &expect![[r#"
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
                 name error: `Bar` not found
                    [line_2] [Bar]
                 type error: insufficient type information to infer type
                    [line_2] [Bar()]
-            "#]]);
+            "#]],
+            );
         }
 
         #[test]
@@ -1061,34 +1041,39 @@ mod given_interpreter {
 
         match result {
             Ok(value) => panic!("Expected error , got {value:?}"),
-            Err(errors) => {
-                let mut actual = String::new();
-                for error in errors {
-                    write!(actual, "{error}").expect("writing should succeed");
-                    for s in iter::successors(error.source(), |&s| s.source()) {
-                        write!(actual, ": {s}").expect("writing should succeed");
-                    }
-                    for label in error.labels().into_iter().flatten() {
-                        let span = error
-                            .source_code()
-                            .expect("expected valid source code")
-                            .read_span(label.inner(), 0, 0)
-                            .expect("expected to be able to read span");
-
-                        write!(
-                            actual,
-                            "\n  {} [{}] [{}]",
-                            label.label().unwrap_or(""),
-                            span.name().expect("expected source file name"),
-                            from_utf8(span.data()).expect("expected valid utf-8 string"),
-                        )
-                        .expect("writing should succeed");
-                    }
-                    writeln!(actual).expect("writing should succeed");
-                }
-
-                expected_errors.assert_eq(&actual);
-            }
+            Err(errors) => is_error(errors, expected_errors),
         }
+    }
+
+    fn is_error<E>(errors: &Vec<E>, expected_errors: &Expect)
+    where
+        E: Diagnostic,
+    {
+        let mut actual = String::new();
+        for error in errors {
+            write!(actual, "{error}").expect("writing should succeed");
+            for s in iter::successors(error.source(), |&s| s.source()) {
+                write!(actual, ": {s}").expect("writing should succeed");
+            }
+            for label in error.labels().into_iter().flatten() {
+                let span = error
+                    .source_code()
+                    .expect("expected valid source code")
+                    .read_span(label.inner(), 0, 0)
+                    .expect("expected to be able to read span");
+
+                write!(
+                    actual,
+                    "\n  {} [{}] [{}]",
+                    label.label().unwrap_or(""),
+                    span.name().expect("expected source file name"),
+                    from_utf8(span.data()).expect("expected valid utf-8 string"),
+                )
+                .expect("writing should succeed");
+            }
+            writeln!(actual).expect("writing should succeed");
+        }
+
+        expected_errors.assert_eq(&actual);
     }
 }
