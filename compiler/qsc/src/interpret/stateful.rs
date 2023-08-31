@@ -444,13 +444,20 @@ impl Interpreter {
         expr: &str,
         shots: u32,
     ) -> Result<Vec<LineResult>, Vec<LineError>> {
-        let mut fragments = self.compiler.compile_expr(expr).map_err(|errors| {
-            let source = expr.into();
-            errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect::<Vec<_>>()
-        })?;
+        let mut fragments = self
+            .compiler
+            .compile_expr("<entry>", expr)
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            error.into(),
+                        ))
+                    })
+                    .collect::<Vec<_>>()
+            })?;
 
         let pass_errors = fragments
             .iter_mut()
@@ -460,10 +467,14 @@ impl Interpreter {
             })
             .collect::<Vec<_>>();
         if !pass_errors.is_empty() {
-            let source = expr.into();
             return Err(pass_errors
                 .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .map(|error| {
+                    LineError(WithSource::from_map(
+                        self.compiler.source_map(),
+                        error.into(),
+                    ))
+                })
                 .collect());
         }
 
@@ -527,10 +538,9 @@ impl Interpreter {
                                 Some(self.render_call_stack(call_stack, &error))
                             };
 
-                            Err(vec![LineError(WithSource::new(
-                                expr.into(),
-                                error.into(),
-                                stack_trace,
+                            Err(vec![LineError(WithSource::from_map(
+                                self.compiler.source_map(),
+                                WithStack::new(error, stack_trace).into(),
                             ))])
                         }
                     },

@@ -97,8 +97,6 @@ impl Interpreter {
         }
     }
 
-    #[allow(clippy::unused_self)]
-    #[allow(clippy::unnecessary_wraps)]
     fn run(
         &mut self,
         py: Python,
@@ -112,13 +110,11 @@ impl Interpreter {
                 py,
                 results.into_iter().map(|res| match res {
                     Ok(v) => ValueWrapper(v).into_py(py),
-                    Err(errors) => {
-                        QSharpError::new_err(format_errors(entry_expr, errors)).into_py(py)
-                    }
+                    Err(errors) => QSharpError::new_err(format_errors(errors)).into_py(py),
                 }),
             )
             .into_py(py)),
-            Err(errors) => Err(QSharpError::new_err(format_errors(entry_expr, errors))),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
 
