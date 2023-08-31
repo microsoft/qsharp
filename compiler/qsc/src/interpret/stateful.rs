@@ -13,7 +13,7 @@ use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::generate_qir_for_stmt;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_eval::backend::Backend;
 use qsc_eval::{
     backend::SparseSim,
@@ -447,7 +447,7 @@ impl Interpreter {
             ))]);
         }
 
-        let mut fragment = self
+        let mut fragments = self
             .compiler
             .compile_expr("<entry>", expr)
             .map_err(|errors| {
@@ -462,11 +462,13 @@ impl Interpreter {
                     .collect::<Vec<_>>()
             })?;
 
-        let pass_errors = self.passes.run(
-            self.store.core(),
-            self.compiler.assigner_mut(),
-            &mut fragment,
-        );
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
+            })
+            .collect::<Vec<_>>();
         if !pass_errors.is_empty() {
             return Err(pass_errors
                 .into_iter()
@@ -479,32 +481,48 @@ impl Interpreter {
                 .collect());
         }
 
-        let Fragment::Stmt(stmt) = fragment else {
-            panic!("only a stmt fragment should reach here.")
-        };
+        let mut ret = Ok(String::new());
+        for fragment in fragments {
+            match fragment {
+                Fragment::Item(item) => match item.kind {
+                    qsc_hir::hir::ItemKind::Callable(callable) => {
+                        let callable = self.lower_callable_decl(&callable);
 
-        let stmt_id = self.lower_stmt(&stmt);
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
-        };
+                        self.callables
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                    }
+                    qsc_hir::hir::ItemKind::Namespace(..) => {}
+                    qsc_hir::hir::ItemKind::Ty(..) => {
+                        self.udts
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                    }
+                },
+                Fragment::Stmt(stmt) => {
+                    let stmt_id = self.lower_stmt(&stmt);
+                    let globals = Lookup {
+                        fir_store: &self.fir_store,
+                        package: self.package,
+                        udts: &self.udts,
+                        callables: &self.callables,
+                    };
 
-        generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
-            |(error, call_stack)| {
-                let stack_trace = if call_stack.is_empty() {
-                    None
-                } else {
-                    Some(self.render_call_stack(call_stack, &error))
-                };
+                    ret = generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package)
+                        .map_err(|(error, call_stack)| {
+                            let stack_trace = if call_stack.is_empty() {
+                                None
+                            } else {
+                                Some(self.render_call_stack(call_stack, &error))
+                            };
 
-                vec![LineError(WithSource::from_map(
-                    self.compiler.source_map(),
-                    WithStack::new(error, stack_trace).into(),
-                ))]
-            },
-        )
+                            vec![LineError(WithSource::from_map(
+                                self.compiler.source_map(),
+                                WithStack::new(error, stack_trace).into(),
+                            ))]
+                        });
+                }
+            }
+        }
+        ret
     }
 
     fn next_line_label(&mut self) -> String {
@@ -716,11 +734,15 @@ impl<'a> BreakpointCollector<'a> {
     fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
         let source: &Source = self.get_source(self.offset);
         if source.offset == self.offset {
-            self.statements.insert(BreakpointSpan {
+            let span = stmt.span - source.offset;
+            let bps = BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo - source.offset,
-                hi: stmt.span.hi - source.offset,
-            });
+                lo: span.lo,
+                hi: span.hi,
+            };
+            if span != Span::default() {
+                self.statements.insert(bps);
+            }
         }
     }
 }

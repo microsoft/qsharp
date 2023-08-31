@@ -560,9 +560,10 @@ test("debug service loading source without entry point attr fails - web worker",
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(false, result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
     debugService.terminate();
   }
@@ -576,9 +577,38 @@ test("debug service loading source with syntax error fails - web worker", async 
       `namespace Sample {
     operation main() : Result[]
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(false, result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with bad entry expr fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample { operation main() : Unit { } }`,
+      "SomeBadExpr()"
+    );
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with good entry expr succeeds - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample { operation Main() : Unit { } }`,
+      "Sample.Main()"
+    );
+    assert.ok(typeof result === "string" && result.trim().length == 0);
   } finally {
     debugService.terminate();
   }
@@ -597,9 +627,10 @@ test("debug service loading source with entry point attr succeeds - web worker",
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(true, result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
   } finally {
     debugService.terminate();
   }
@@ -618,11 +649,12 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(true, result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
-    assert.equal(bps.length, 5);
+    assert.equal(bps.length, 4);
   } finally {
     debugService.terminate();
   }

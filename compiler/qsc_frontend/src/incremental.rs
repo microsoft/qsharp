@@ -93,14 +93,12 @@ impl Compiler {
     /// Compile a string with a single fragment of Q# code that is an expression.
     /// # Errors
     /// Returns a vector of errors if the input fails compilation.
-    /// # Panics
-    /// Panics if compiling the expression yielded an unexpected item
     pub fn compile_expr(
         &mut self,
         source_name: &str,
         source_contents: &str,
-    ) -> Result<Fragment, Vec<Error>> {
-        let mut fragments = self.compile(source_name, source_contents, |s| {
+    ) -> Result<Vec<Fragment>, Vec<Error>> {
+        let fragments = self.compile(source_name, source_contents, |s| {
             let (expr, errors) = qsc_parse::expr(s);
             if !errors.is_empty() {
                 return (Vec::new(), errors);
@@ -115,15 +113,7 @@ impl Compiler {
             (vec![fragment], errors)
         })?;
 
-        let fragment = fragments
-            .pop()
-            .expect("compiling an expression should yield exactly one fragment");
-        assert!(
-            fragments.is_empty(),
-            "compiling an expression should yield exactly one fragment"
-        );
-
-        Ok(fragment)
+        Ok(fragments)
     }
 
     /// Compile a string with one or more fragments of Q# code.
