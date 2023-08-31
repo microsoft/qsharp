@@ -40,7 +40,7 @@ struct HoverVisitor<'a> {
 
     // State
     display: CodeDisplay<'a>,
-    current_namespace: Option<Rc<str>>,
+    current_namespace: Rc<str>,
     current_callable: Option<&'a ast::CallableDecl>,
     in_params: bool,
     lambda_params: Vec<&'a ast::Pat>,
@@ -55,7 +55,7 @@ impl<'a> HoverVisitor<'a> {
             offset,
             hover: None,
             display: CodeDisplay { compilation },
-            current_namespace: None,
+            current_namespace: Rc::from(""),
             current_callable: None,
             in_params: false,
             lambda_params: vec![],
@@ -68,7 +68,7 @@ impl<'a> HoverVisitor<'a> {
 impl<'a> Visitor<'a> for HoverVisitor<'a> {
     fn visit_namespace(&mut self, namespace: &'a ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.current_namespace = Some(namespace.name.name.clone());
+            self.current_namespace = namespace.name.name.clone();
             walk_namespace(self, namespace);
         }
     }
@@ -81,7 +81,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                     if span_contains(decl.name.span, self.offset) {
                         let contents = display_callable(
                             &item.doc,
-                            self.current_namespace.clone(),
+                            &self.current_namespace,
                             self.display.ast_callable_decl(decl),
                         );
                         self.hover = Some(Hover {
@@ -217,17 +217,20 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                             let ns = item
                                 .parent
                                 .and_then(|parent_id| package.items.get(parent_id))
-                                .and_then(|parent| match &parent.kind {
-                                    qsc::hir::ItemKind::Namespace(namespace, _) => {
-                                        Some(namespace.name.clone())
-                                    }
-                                    _ => None,
-                                });
+                                .map_or_else(
+                                    || Rc::from(""),
+                                    |parent| match &parent.kind {
+                                        qsc::hir::ItemKind::Namespace(namespace, _) => {
+                                            namespace.name.clone()
+                                        }
+                                        _ => Rc::from(""),
+                                    },
+                                );
 
                             let contents = match &item.kind {
                                 hir::ItemKind::Callable(decl) => display_callable(
                                     &item.doc,
-                                    ns,
+                                    &ns,
                                     self.display.hir_callable_decl(decl),
                                 ),
                                 hir::ItemKind::Namespace(_, _) => {
@@ -344,14 +347,13 @@ fn display_local(
     }
 }
 
-fn display_callable(doc: &str, namespace: Option<Rc<str>>, code: impl Display) -> String {
+fn display_callable(doc: &str, namespace: &str, code: impl Display) -> String {
     let summary = parse_doc_for_summary(doc);
 
-    let mut code = match namespace {
-        Some(namespace) if !namespace.is_empty() => {
-            format!("{namespace}\n{code}")
-        }
-        _ => code.to_string(),
+    let mut code = if namespace.is_empty() {
+        code.to_string()
+    } else {
+        format!("{namespace}\n{code}")
     };
     code = markdown_fenced_block(code);
     with_doc(&summary, code)
