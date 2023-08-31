@@ -155,7 +155,17 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         } else {
                             LocalKind::Local
                         };
-                        self.contents = Some(self.display_local(&kind, &code, &ident.name));
+                        let mut callable_name = Rc::from("");
+                        if let Some(decl) = self.current_callable {
+                            callable_name = decl.name.name.clone();
+                        }
+                        self.contents = Some(display_local(
+                            &kind,
+                            &code,
+                            &ident.name,
+                            &callable_name,
+                            &self.current_item_doc,
+                        ));
                         self.start = ident.span.lo;
                         self.end = ident.span.hi;
                     } else if let Some(ty) = anno {
@@ -229,16 +239,16 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                     }
                     resolve::Res::Local(node_id) => {
                         let mut local_name = Rc::from("");
+                        let mut callable_name = Rc::from("");
                         if let Some(curr) = self.current_callable {
-                            {
-                                let mut finder = AstIdentFinder {
-                                    node_id,
-                                    ident: None,
-                                };
-                                finder.visit_callable_decl(curr);
-                                if let Some(ident) = finder.ident {
-                                    local_name = ident.name.clone();
-                                }
+                            callable_name = curr.name.name.clone();
+                            let mut finder = AstIdentFinder {
+                                node_id,
+                                ident: None,
+                            };
+                            finder.visit_callable_decl(curr);
+                            if let Some(ident) = finder.ident {
+                                local_name = ident.name.clone();
                             }
                         }
 
@@ -253,7 +263,13 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         } else {
                             LocalKind::Local
                         };
-                        self.contents = Some(self.display_local(&kind, &code, &local_name));
+                        self.contents = Some(display_local(
+                            &kind,
+                            &code,
+                            &local_name,
+                            &callable_name,
+                            &self.current_item_doc,
+                        ));
                         self.start = path.span.lo;
                         self.end = path.span.hi;
                     }
@@ -268,31 +284,6 @@ enum LocalKind {
     Param,
     LambdaParam,
     Local,
-}
-
-impl<'a> HoverVisitor<'a> {
-    fn display_local(
-        &mut self,
-        param_kind: &LocalKind,
-        markdown: &String,
-        local_name: &str,
-    ) -> String {
-        match param_kind {
-            LocalKind::Param => {
-                if let Some(decl) = self.current_callable {
-                    let param_doc = parse_doc_for_param(&self.current_item_doc, local_name);
-                    with_doc(
-                        &param_doc,
-                        format!("param of `{}`\n{markdown}", decl.name.name),
-                    )
-                } else {
-                    format!("param\n{markdown}")
-                }
-            }
-            LocalKind::LambdaParam => format!("lambda param\n{markdown}"),
-            LocalKind::Local => format!("local\n{markdown}"),
-        }
-    }
 }
 
 fn curr_callable_to_params(curr_callable: Option<&ast::CallableDecl>) -> Vec<&ast::Pat> {
@@ -313,6 +304,26 @@ fn is_param(param_pats: &[&ast::Pat], node_id: ast::NodeId) -> bool {
     }
 
     param_pats.iter().any(|pat| find_in_pat(pat, node_id))
+}
+
+fn display_local(
+    param_kind: &LocalKind,
+    markdown: &String,
+    local_name: &str,
+    callable_name: &str,
+    callable_doc: &str,
+) -> String {
+    match param_kind {
+        LocalKind::Param => {
+            let param_doc = parse_doc_for_param(callable_doc, local_name);
+            with_doc(
+                &param_doc,
+                format!("param of `{callable_name}`\n{markdown}",),
+            )
+        }
+        LocalKind::LambdaParam => format!("lambda param\n{markdown}"),
+        LocalKind::Local => format!("local\n{markdown}"),
+    }
 }
 
 fn display_callable(doc: &str, namespace: Option<Rc<str>>, code: impl Display) -> String {
