@@ -27,21 +27,18 @@ pub(crate) fn get_hover(
 
     hover_visitor.visit_package(package);
 
-    hover_visitor.contents.map(|contents| Hover {
-        contents,
-        span: protocol::Span {
-            start: hover_visitor.start,
-            end: hover_visitor.end,
-        },
-    })
+    hover_visitor.hover
 }
 
 struct HoverVisitor<'a> {
+    // Input
     compilation: &'a Compilation,
     offset: u32,
-    contents: Option<String>,
-    start: u32,
-    end: u32,
+
+    // Output
+    hover: Option<Hover>,
+
+    // State
     display: CodeDisplay<'a>,
     current_namespace: Option<Rc<str>>,
     current_callable: Option<&'a ast::CallableDecl>,
@@ -56,9 +53,7 @@ impl<'a> HoverVisitor<'a> {
         Self {
             compilation,
             offset,
-            contents: None,
-            start: 0,
-            end: 0,
+            hover: None,
             display: CodeDisplay { compilation },
             current_namespace: None,
             current_callable: None,
@@ -84,13 +79,15 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_contains(decl.name.span, self.offset) {
-                        self.contents = Some(display_callable(
+                        let contents = display_callable(
                             &item.doc,
                             self.current_namespace.clone(),
                             self.display.ast_callable_decl(decl),
-                        ));
-                        self.start = decl.name.span.lo;
-                        self.end = decl.name.span.hi;
+                        );
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(decl.name.span),
+                        });
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.current_callable;
                         self.current_callable = Some(decl);
@@ -113,10 +110,11 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if span_contains(ident.span, self.offset) {
-                        self.contents =
-                            Some(markdown_fenced_block(self.display.ident_ty_def(ident, def)));
-                        self.start = ident.span.lo;
-                        self.end = ident.span.hi;
+                        let contents = markdown_fenced_block(self.display.ident_ty_def(ident, def));
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(ident.span),
+                        });
                     } else {
                         self.visit_ty_def(def);
                     }
@@ -132,10 +130,11 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        self.contents =
-                            Some(markdown_fenced_block(self.display.ident_ty(ident, ty)));
-                        self.start = ident.span.lo;
-                        self.end = ident.span.hi;
+                        let contents = markdown_fenced_block(self.display.ident_ty(ident, ty));
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(ident.span),
+                        });
                     } else {
                         self.visit_ty(ty);
                     }
@@ -165,15 +164,17 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         if let Some(decl) = self.current_callable {
                             callable_name = decl.name.name.clone();
                         }
-                        self.contents = Some(display_local(
+                        let contents = display_local(
                             &kind,
                             &code,
                             &ident.name,
                             &callable_name,
                             &self.current_item_doc,
-                        ));
-                        self.start = ident.span.lo;
-                        self.end = ident.span.hi;
+                        );
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(ident.span),
+                        });
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
                     }
@@ -187,11 +188,11 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
                 ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
-                    self.contents = Some(markdown_fenced_block(
-                        self.display.ident_ty_id(field, expr.id),
-                    ));
-                    self.start = field.span.lo;
-                    self.end = field.span.hi;
+                    let contents = markdown_fenced_block(self.display.ident_ty_id(field, expr.id));
+                    self.hover = Some(Hover {
+                        contents,
+                        span: protocol_span(field.span),
+                    });
                 }
                 ast::ExprKind::Lambda(_, pat, expr) => {
                     self.in_lambda_params = true;
@@ -223,12 +224,12 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                                     _ => None,
                                 });
 
-                            self.contents = match &item.kind {
-                                hir::ItemKind::Callable(decl) => Some(display_callable(
+                            let contents = match &item.kind {
+                                hir::ItemKind::Callable(decl) => display_callable(
                                     &item.doc,
                                     ns,
                                     self.display.hir_callable_decl(decl),
-                                )),
+                                ),
                                 hir::ItemKind::Namespace(_, _) => {
                                     panic!(
                                         "Reference node should not refer to a namespace: {}",
@@ -236,11 +237,13 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                                     )
                                 }
                                 hir::ItemKind::Ty(_, udt) => {
-                                    Some(markdown_fenced_block(self.display.hir_udt(udt)))
+                                    markdown_fenced_block(self.display.hir_udt(udt))
                                 }
                             };
-                            self.start = path.span.lo;
-                            self.end = path.span.hi;
+                            self.hover = Some(Hover {
+                                contents,
+                                span: protocol_span(path.span),
+                            });
                         }
                     }
                     resolve::Res::Local(node_id) => {
@@ -269,15 +272,17 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         } else {
                             LocalKind::Local
                         };
-                        self.contents = Some(display_local(
+                        let contents = display_local(
                             &kind,
                             &code,
                             &local_name,
                             &callable_name,
                             &self.current_item_doc,
-                        ));
-                        self.start = path.span.lo;
-                        self.end = path.span.hi;
+                        );
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(path.span),
+                        });
                     }
                     _ => {}
                 };
@@ -290,6 +295,13 @@ enum LocalKind {
     Param,
     LambdaParam,
     Local,
+}
+
+fn protocol_span(span: qsc::Span) -> protocol::Span {
+    protocol::Span {
+        start: span.lo,
+        end: span.hi,
+    }
 }
 
 fn curr_callable_to_params(curr_callable: Option<&ast::CallableDecl>) -> Vec<&ast::Pat> {
