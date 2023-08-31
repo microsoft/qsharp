@@ -215,15 +215,19 @@ if build_pip:
             "-r",
             "test_requirements.txt",
         ]
-        pyqir_install = subprocess.run(
-            qir_install_args, check=False, text=True, cwd=qir_test_dir
-        )
-        if pyqir_install.returncode == 0:
+        subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
+        pyqir_check_args = [python_bin, "-c", '"import pyqir"']
+        if (
+            subprocess.run(
+                pyqir_check_args, check=False, text=True, cwd=qir_test_dir
+            ).returncode
+            == 0
+        ):
             print("Running tests for the pip package with PyQIR")
             pytest_args = [python_bin, "-m", "pytest"]
             subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
         else:
-            print("Skipping PyQIR tests")
+            print("Could not import PyQIR, skipping tests")
 
 if build_wasm:
     print("Building the wasm crate")
