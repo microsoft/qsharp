@@ -135,6 +135,19 @@ def test_qirgen_compile_error() -> None:
     assert str(excinfo.value).startswith("Qsc.Resolve.NotFound") != -1
 
 
+def test_error_spans_from_multiple_lines() -> None:
+    e = Interpreter(TargetProfile.Full)
+
+    # Qsc.Resolve.Ambiguous is chosen as a test case
+    # because it contains multiple spans which can be from different lines
+    e.interpret("namespace Other { operation DumpMachine() : Unit { } }")
+    e.interpret("open Other;")
+    e.interpret("open Microsoft.Quantum.Diagnostics;")
+    with pytest.raises(QSharpError) as excinfo:
+        e.interpret("DumpMachine()")
+    assert str(excinfo.value).startswith("Qsc.Resolve.Ambiguous")
+
+
 def test_qirgen() -> None:
     e = Interpreter(TargetProfile.Base)
     e.interpret("operation Program() : Result { use q = Qubit(); return M(q) }")
