@@ -1,11 +1,11 @@
 namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution(): Bool {
-        let testCases = [(1, 3), (27, 312), (0, 3), (0, 1023)];
-        for (min, max) in testCases {
+        let testCases = [(1, 3, 1000), (27, 312, 5000), (0, 3, 1000), (0, 1023, 10000)];
+        for (min, max, runs) in testCases {
             Message($"Testing for min = {min} and max = {max}...");
             let randomnessVerifier = () => CheckUniformDistribution(() =>
-                Kata.RandomNumberInRange(min, max), min, max, 1000);
+                Kata.RandomNumberInRange(min, max), min, max, runs);
             let isCorrect = IsSufficientlyRandom(randomnessVerifier);
             if not isCorrect {
                 return false;
