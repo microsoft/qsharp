@@ -479,6 +479,19 @@ mod given_interpreter {
         }
 
         #[test]
+        fn items_usable_before_definition_top_level() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    B();
+                    function B() : Unit {}
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+        }
+
+        #[test]
         fn namespace_usable_before_definition() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(
