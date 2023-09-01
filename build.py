@@ -122,6 +122,17 @@ if os.environ.get("QSHARP_PACKAGE_SUFFIX") is not None:
     print(f"Updating package name for {package_name}")
     subprocess.run(update_package_name_args, check=True, text=True, cwd=root_dir)
 
+if os.environ.get("QSHARP_PACKAGE_VERSION") is not None:
+    version = os.environ["QSHARP_PACKAGE_VERSION"]
+
+    update_package_version_args = [
+        sys.executable,  # use the current python, we aren't installing anything
+        "update_package_version.py",
+        version,
+    ]
+    print(f"Updating packages version to {version}")
+    subprocess.run(update_package_version_args, check=True, text=True, cwd=root_dir)
+
 if npm_install_needed:
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
 
