@@ -130,9 +130,8 @@
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build": "npm run tsc:check && node build.mjs",
-    "run:web": "npx --no-install @vscode/test-web --extensionDevelopmentPath . ../samples",
-    "test": "node ./test/runTest.js",
-    "pretest": "node ../node_modules/typescript/bin/tsc ./test/runTest.ts"
+    "start": "npm exec --no @vscode/test-web --extensionDevelopmentPath . ../samples",
+    "test": "node ./test/runTest.mjs"
   },
   "repository": {
     "type": "git",

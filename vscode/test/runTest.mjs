@@ -1,18 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as path from "path";
+// Adapted from the sample at
+// https://github.com/microsoft/vscode-test-web/blob/3f0f858ab15cb65ef3c19564b0f5a6910ea9414e/sample/src/web/test/runTest.ts
+
+// @ts-check
+
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { runTests } from "@vscode/test-web";
+
+const thisDir = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
   try {
     // The folder containing the Extension Manifest package.json
-    const extensionDevelopmentPath = path.resolve(__dirname, "..");
+    const extensionDevelopmentPath = join(thisDir, "..");
 
     // The path to module with the test runner and tests
-    const extensionTestsPath = path.resolve(__dirname, "./out/index");
+    const extensionTestsPath = join(thisDir, "./out/index");
 
-    const folderPath = path.resolve(__dirname, "test-workspace");
+    const folderPath = join(thisDir, "test-workspace");
 
     const attachArgName = "--waitForDebugger=";
     const waitForDebugger = process.argv.find((arg) =>

@@ -24,20 +24,20 @@ const buildOptions = {
 
 /** @type {import("esbuild").BuildOptions} */
 const extensionOptions = {
+  ...buildOptions,
   entryPoints: [
     join(thisDir, "src", "extension.ts"),
     join(thisDir, "src", "compilerWorker.ts"),
     join(thisDir, "src", "debugger", "debug-service-worker.ts"),
   ],
   outdir: join(thisDir, "out"),
-  ...buildOptions,
 };
 
 /** @type {import("esbuild").BuildOptions} */
 const testOptions = {
+  ...buildOptions,
   entryPoints: [join(thisDir, "test", "suite", "index.ts")],
   outdir: join(thisDir, "test", "out"),
-  ...buildOptions,
 };
 
 function copyWasm() {
@@ -50,11 +50,11 @@ function copyWasm() {
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
 
-function buildBundle() {
+function buildProduct() {
   console.log("Running esbuild");
 
   build(extensionOptions).then(() =>
-    console.log(`Built bundle to ${extensionOptions.outdir}`)
+    console.log(`Built product to ${extensionOptions.outdir}`)
   );
 }
 
@@ -62,10 +62,10 @@ function buildTests() {
   console.log("Running esbuild");
 
   build(testOptions).then(() =>
-    console.log(`Built bundle to ${testOptions.outdir}`)
+    console.log(`Built tests to ${testOptions.outdir}`)
   );
 }
 
 copyWasm();
-buildBundle();
+buildProduct();
 buildTests();
