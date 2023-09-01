@@ -485,7 +485,7 @@ impl Interpreter {
                 .collect());
         }
 
-        let mut stmt_ids = Vec::new();
+        let mut stmt_id = None;
         for fragment in fragments {
             match fragment {
                 Fragment::Item(item) => match item.kind {
@@ -501,19 +501,16 @@ impl Interpreter {
                             .insert(qsc_eval::lower::lower_local_item_id(item.id));
                     }
                 },
-                Fragment::Stmt(stmt) => {
-                    stmt_ids.push(self.lower_stmt(&stmt));
-                }
+                Fragment::Stmt(stmt) => assert!(
+                    stmt_id.replace(self.lower_stmt(&stmt)).is_none(),
+                    "expression should yield exactly one statement"
+                ),
             }
         }
 
-        let stmt_id = stmt_ids
-            .pop()
-            .expect("expression should yield exactly one statement");
-        assert!(
-            stmt_ids.is_empty(),
-            "expression should yield exactly one statement"
-        );
+        let Some(stmt_id) = stmt_id else {
+            panic!("expression should yield exactly one statement");
+        };
 
         let globals = Lookup {
             fir_store: &self.fir_store,
