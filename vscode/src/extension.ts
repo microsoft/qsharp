@@ -16,7 +16,7 @@ import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
 import { activateDebugger } from "./debugger/activate.js";
-import { initTelemetry } from "./telemetry.js"
+import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js"
 import {
   qsharpDocumentFilter,
   qsharpNotebookCellDocumentFilter,
@@ -158,15 +158,18 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
  * Loads the Q# compiler including the WASM module
  */
 async function loadLanguageService(baseUri: vscode.Uri) {
+  const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  return await getLanguageService();
+  const end = performance.now();
+  const service = await getLanguageService();
+  sendTelemetryEvent(EventType.LoadLanguageService, {}, { timeToStart: end - start });
+  return service;
 }
 
 export class QsTextDocumentContentProvider
-  implements vscode.TextDocumentContentProvider
-{
+  implements vscode.TextDocumentContentProvider {
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
   provideTextDocumentContent(
     uri: vscode.Uri,

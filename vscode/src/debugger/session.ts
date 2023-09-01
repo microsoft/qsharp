@@ -75,7 +75,7 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(): Promise<void> {
-    sendTelemetryEvent( EventType.DebugSessionStart)
+    const start = performance.now();
     const programText = (
       await this.fileAccessor.openUri(this.program)
     ).getText();
@@ -94,6 +94,8 @@ export class QscDebugSession extends LoggingDebugSession {
       log.warn(`compilation failed.`);
       this.failed = true;
     }
+    const end = performance.now();
+    sendTelemetryEvent(EventType.DebugSessionStart, {}, { timeToStart: end - start })
   }
 
   /**

@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
-import TelemetryReporter, {
-  TelemetryEventMeasurements,
-  TelemetryEventProperties,
-} from "@vscode/extension-telemetry";
+import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp";
 // the application insights key (also known as instrumentation key)
 const key = "175861b7-3a41-4015-9571-1d930b8b0722";
@@ -11,31 +8,29 @@ const key = "175861b7-3a41-4015-9571-1d930b8b0722";
 let reporter: TelemetryReporter | undefined;
 
 export enum EventType {
-  Install = "Install",
   DebugSessionStart = "DebugSessionStart",
-  Compile = "Compile",
   Initialize = "Initialize",
+  LoadLanguageService = "LoadLanguageService",
 }
+
 type Empty = { [K in any]: never };
 
 type EventTypes = {
-  [EventType.Install]: {
-    properties: Empty;
-    measurements: {
-      timeToInstall: number;
-    };
-  };
   [EventType.Initialize]: {
     properties: Empty;
-    measurements: {};
-  };
-  [EventType.Compile]: {
-    properties: Empty;
-    measurements: {};
+    measurements: Empty;
   };
   [EventType.DebugSessionStart]: {
     properties: Empty;
-    measurements: {};
+    measurements: {
+      timeToStart: number;
+    };
+  };
+  [EventType.LoadLanguageService]: {
+    properties: Empty;
+    measurements: {
+      timeToStart: number;
+    };
   };
 };
 
@@ -56,6 +51,6 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
     reporter.sendTelemetryEvent(event, properties, measurements);
     log.info(`Sent telemetry event ${event}`);
   } else {
-    log.info(`Did not send telemetry event ${event}.`);
+    log.info("Telemetry reporter undefined.");
   }
 }
