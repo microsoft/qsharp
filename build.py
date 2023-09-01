@@ -17,6 +17,25 @@ from packaging.version import Version, parse
 
 from prereqs import check_prereqs
 
+# convert python version to rust version
+def python_ver_to_rust_ver_str(ver: Version) -> str:
+    parts = []
+
+    # extend the release to 3 parts if needed
+    release = ver.release
+    if len(release) == 1:
+        release = (release[0], 0, 0)
+    elif len(release) == 2:
+        release = (release[0], release[1], 0)
+
+    parts.append(".".join(str(x) for x in release))
+
+    if ver.pre is not None:
+        parts.append("-") # rust ver needs a - if there is a pre-release
+        parts.append("".join(str(x) for x in ver.pre))
+
+    return "".join(parts)
+
 def update_package_version() -> str:
     # when running in CI, set the version from the environment
     # to specify version/tag for the packages
@@ -33,10 +52,8 @@ def update_package_version() -> str:
         print("Argument not a valid version")
         sys.exit(-2)
 
-    print(f"New package version: {newVer}")
-
-    # ensure that we have a 3-part version or rust will fail
-    #newVerFormatted = f"{newVer.major}.{newVer.minor}.{newVer.micro}"
+    rustPackageVer = python_ver_to_rust_ver_str(newVer)
+    print(f"Rust package version: {rustPackageVer}")
 
     scriptDir = os.path.dirname(os.path.abspath(__file__))
 
@@ -49,15 +66,17 @@ def update_package_version() -> str:
         os.path.join(scriptDir, "vscode", "package.json"),
     ]:
         print(fileRPath)
-
+        versionToUse = newVer
+        if fileRPath.endswith("Cargo.toml"):
+            versionToUse = rustPackageVer
         # Config:
         regexp = r'^version\s*=\s*"\d+\.\d+\.\d+"\s*$'  # `version = "0.0.11"`
-        replacement = f'version = "{newVer}"\n'
+        replacement = f'version = "{versionToUse}"\n'
         if fileRPath.endswith("package.json"):
             regexp = (
                 r'\s*"version"\s*:\s*"\d+\.\d+\.\d+"\s*,\s*$'  # `  "version": "0.0.11",`
             )
-            replacement = f'  "version": "{newVer}",\n'
+            replacement = f'  "version": "{versionToUse}",\n'
 
         # Read file:
         with open(fileRPath, "r") as file:
