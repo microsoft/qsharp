@@ -92,7 +92,7 @@ This means that these vectors form an **orthonormal basis**. The basis of $\begi
 > \frac{\alpha - \beta}{\sqrt{2}} \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ -\frac{1}{\sqrt{2}} \end{bmatrix}
 > $$
 >
-> The Hadamard basis is widely used in quantum computing, for example, in the [BB84 quantum key distribution protocol](https://en.wikipedia.org/wiki/BB84).
+> The Hadamard basis is widely used in quantum computing, for example, in the <a href="https://en.wikipedia.org/wiki/BB84" target="_blank">BB84 quantum key distribution protocol</a>.
 
 @[section]({
     "id": "qubit__dirac_notation",
@@ -175,7 +175,7 @@ You would need to run the program repeatedly up to this point, perform a measure
 However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state. 
 You can take advantage of this to do some non-physical things, such as peeking at the internals of the quantum system to observe its exact state without disturbing it!
 
-The [`DumpMachine`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) function from the [`Microsoft.Quantum.Diagnostics namespace`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics) allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase, and remember that global phase does not have any physical meaning. When using `DumpMachine`, you may see that all probability amplitudes are multiplied by some complex number compared to the state you're expecting.
+The <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine" target="_blank">`DumpMachine`</a> function from the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics" target="_blank">`Microsoft.Quantum.Diagnostics namespace`</a> allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase, and remember that global phase does not have any physical meaning. When using `DumpMachine`, you may see that all probability amplitudes are multiplied by some complex number compared to the state you're expecting.
 
 ### Demo: DumpMachine For Single-Qubit Systems
 
@@ -215,7 +215,7 @@ For example, the state $|0\rangle$ would be represented as follows:
     </tbody>
 </table>
 
-> It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see [Q# documentation on quantum states](https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states).
+> It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see <a href="https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states" target="_blank">Q# documentation on quantum states</a>.
 
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",
