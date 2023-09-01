@@ -6,9 +6,9 @@ mod tests;
 
 use crate::display::CodeDisplay;
 use crate::protocol::{self, Hover};
-use crate::qsc_utils::{find_item, map_offset, span_contains, AstIdentFinder, Compilation};
+use crate::qsc_utils::{find_ident, find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
-use qsc::{ast, hir, resolve};
+use qsc::{ast, hir, resolve, SourceMap};
 use regex_lite::Regex;
 use std::fmt::Display;
 use std::mem::replace;
@@ -92,7 +92,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(decl.name.span),
+                            span: protocol_span(decl.name.span, &self.compilation.unit.sources),
                         });
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.current_callable;
@@ -119,7 +119,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = markdown_fenced_block(self.display.ident_ty_def(ident, def));
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span),
+                            span: protocol_span(ident.span, &self.compilation.unit.sources),
                         });
                     } else {
                         self.visit_ty_def(def);
@@ -139,7 +139,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = markdown_fenced_block(self.display.ident_ty(ident, ty));
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span),
+                            span: protocol_span(ident.span, &self.compilation.unit.sources),
                         });
                     } else {
                         self.visit_ty(ty);
@@ -179,7 +179,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span),
+                            span: protocol_span(ident.span, &self.compilation.unit.sources),
                         });
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -197,7 +197,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                     let contents = markdown_fenced_block(self.display.ident_ty_id(field, expr.id));
                     self.hover = Some(Hover {
                         contents,
-                        span: protocol_span(field.span),
+                        span: protocol_span(field.span, &self.compilation.unit.sources),
                     });
                 }
                 ast::ExprKind::Lambda(_, pat, expr) => {
@@ -251,7 +251,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                             };
                             self.hover = Some(Hover {
                                 contents,
-                                span: protocol_span(path.span),
+                                span: protocol_span(path.span, &self.compilation.unit.sources),
                             });
                         }
                     }
@@ -260,12 +260,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let mut callable_name = Rc::from("");
                         if let Some(curr) = self.current_callable {
                             callable_name = curr.name.name.clone();
-                            let mut finder = AstIdentFinder {
-                                node_id,
-                                ident: None,
-                            };
-                            finder.visit_callable_decl(curr);
-                            if let Some(ident) = finder.ident {
+                            if let Some(ident) = find_ident(node_id, curr) {
                                 local_name = ident.name.clone();
                             }
                         }
@@ -290,7 +285,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(path.span),
+                            span: protocol_span(path.span, &self.compilation.unit.sources),
                         });
                     }
                     _ => {}
@@ -300,10 +295,20 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
     }
 }
 
-fn protocol_span(span: qsc::Span) -> protocol::Span {
+fn protocol_span(span: qsc::Span, source_map: &SourceMap) -> protocol::Span {
+    // Note that lo and hi offsets will usually be the same as
+    // the span will usually come from a single source.
+    let lo_offset = source_map
+        .find_by_offset(span.lo)
+        .expect("source should exist for offset")
+        .offset;
+    let hi_offset = source_map
+        .find_by_offset(span.hi)
+        .expect("source should exist for offset")
+        .offset;
     protocol::Span {
-        start: span.lo,
-        end: span.hi,
+        start: span.lo - lo_offset,
+        end: span.hi - hi_offset,
     }
 }
 
@@ -339,10 +344,10 @@ fn display_local(
             let param_doc = parse_doc_for_param(callable_doc, local_name);
             with_doc(
                 &param_doc,
-                format!("param of `{callable_name}`\n{markdown}",),
+                format!("parameter of `{callable_name}`\n{markdown}",),
             )
         }
-        LocalKind::LambdaParam => format!("lambda param\n{markdown}"),
+        LocalKind::LambdaParam => format!("lambda parameter\n{markdown}"),
         LocalKind::Local => format!("local\n{markdown}"),
     }
 }

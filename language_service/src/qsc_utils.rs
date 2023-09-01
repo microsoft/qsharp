@@ -71,7 +71,22 @@ pub(crate) fn find_item<'a>(
     (package.items.get(id.item), Some(package))
 }
 
-pub(crate) struct AstIdentFinder<'a> {
+pub(crate) fn find_ident<'a>(
+    node_id: &'a ast::NodeId,
+    callable: &'a ast::CallableDecl,
+) -> Option<&'a ast::Ident> {
+    let mut finder = AstIdentFinder {
+        node_id,
+        ident: None,
+    };
+    {
+        use ast::visit::Visitor;
+        finder.visit_callable_decl(callable);
+    }
+    finder.ident
+}
+
+struct AstIdentFinder<'a> {
     pub node_id: &'a ast::NodeId,
     pub ident: Option<&'a ast::Ident>,
 }

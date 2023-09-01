@@ -352,7 +352,7 @@ fn lambda_param() {
         }
     "#},
         &expect![[r#"
-            lambda param
+            lambda parameter
             ```qsharp
             y: String
             ```
@@ -372,7 +372,7 @@ fn lambda_param_ref() {
         }
     "#},
         &expect![[r#"
-            lambda param
+            lambda parameter
             ```qsharp
             y: String
             ```
@@ -870,7 +870,7 @@ fn callable_param_doc() {
         }
     "#},
         &expect![[r#"
-            param of `Foo`
+            parameter of `Foo`
             ```qsharp
             x: Int
             ```

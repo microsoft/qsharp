@@ -6,7 +6,7 @@ mod tests;
 
 use crate::protocol::Definition;
 use crate::qsc_utils::{
-    find_item, map_offset, span_contains, AstIdentFinder, Compilation, QSHARP_LIBRARY_URI_SCHEME,
+    find_ident, find_item, map_offset, span_contains, Compilation, QSHARP_LIBRARY_URI_SCHEME,
 };
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::hir::PackageId;
@@ -202,12 +202,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {
                             {
-                                let mut finder = AstIdentFinder {
-                                    node_id,
-                                    ident: None,
-                                };
-                                finder.visit_callable_decl(curr);
-                                if let Some(ident) = finder.ident {
+                                if let Some(ident) = find_ident(node_id, curr) {
                                     self.set_definition_from_position(ident.span.lo, None);
                                 }
                             }
