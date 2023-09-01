@@ -320,7 +320,11 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
         token.kind
     else {
-        return Err(Error(ErrorKind::Rule("interpolated string", token.kind, token.span)));
+        return Err(Error(ErrorKind::Rule(
+            "interpolated string",
+            token.kind,
+            token.span,
+        )));
     };
 
     let mut components = Vec::new();
@@ -337,7 +341,11 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
         let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
             token.kind
         else {
-            return Err(Error(ErrorKind::Rule("interpolated string", token.kind, token.span)));
+            return Err(Error(ErrorKind::Rule(
+                "interpolated string",
+                token.kind,
+                token.span,
+            )));
         };
 
         let lit = shorten(1, 1, s.read());

@@ -1718,7 +1718,9 @@ fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
 
 fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
     for &index in path {
-        let Value::Tuple(items) = value else { return None; };
+        let Value::Tuple(items) = value else {
+            return None;
+        };
         value = items[index].clone();
     }
     Some(value)

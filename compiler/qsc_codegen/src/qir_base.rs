@@ -27,6 +27,9 @@ const POSTFIX: &str = include_str!("./qir_base/postfix.ll");
 /// # Errors
 ///
 /// This function will return an error if execution was unable to complete.
+/// # Panics
+///
+/// This function will panic if compiler state is invalid or in out-of-memory conditions.
 pub fn generate_qir(
     store: &PackageStore,
     package: hir::PackageId,
@@ -72,6 +75,9 @@ pub fn generate_qir(
 
 /// # Errors
 /// This function will return an error if execution was unable to complete.
+/// # Panics
+///
+/// This function will panic if compiler state is invalid or in out-of-memory conditions.
 pub fn generate_qir_for_stmt(
     stmt: StmtId,
     globals: &impl NodeLookup,

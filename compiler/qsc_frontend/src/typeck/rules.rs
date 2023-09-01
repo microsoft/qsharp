@@ -131,7 +131,7 @@ impl<'a> Context<'a> {
     fn infer_block(&mut self, block: &Block) -> Partial<Ty> {
         let mut diverges = false;
         let mut last = None;
-        for stmt in block.stmts.iter() {
+        for stmt in &*block.stmts {
             let stmt = self.infer_stmt(stmt);
             diverges = diverges || stmt.diverges;
             last = Some(stmt);

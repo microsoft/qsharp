@@ -52,6 +52,9 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();

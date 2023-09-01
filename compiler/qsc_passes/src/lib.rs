@@ -109,7 +109,7 @@ pub fn run_default_passes(
         .chain(borrow_errors.into_iter().map(Error::BorrowCk))
         .chain(spec_errors.into_iter().map(Error::SpecGen))
         .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
-        .chain(entry_point_errors.into_iter())
+        .chain(entry_point_errors)
         .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
         .collect()
 }

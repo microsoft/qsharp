@@ -2,7 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
 	"name": "qsharp",
-	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
+	"image": "mcr.microsoft.com/devcontainers/rust:dev-bullseye",
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {
 			"nodeGypDependencies": true,
