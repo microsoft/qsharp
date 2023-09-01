@@ -2,7 +2,7 @@
 
 @[section]({"id": "random_numbers__overview", "title": "Overview"})
 
-True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawn seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generators are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. You can read more about it [here](https://en.wikipedia.org/wiki/Random_number_generation). 
+True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawn seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generators are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. You can read more about it <a href="https://en.wikipedia.org/wiki/Random_number_generation" target="_blank">here</a>. 
 
 Quantum random number generators (QRNGs) are truly random. The quantum algorithm for random number generation is one of the simplest applications of quantum computing principles, requiring very few qubits to run.
 
@@ -98,11 +98,11 @@ This knowledge is sufficient to implement a simple random number generator!
 
 Congratulations! In this Kata you have created a truly random number generator using quantum computing. Here are a few key concepts to keep in mind:
 * You can generate a random bit by applying a Hadamard gate to a state $\ket{0}$, and then measuring the resulting qubit in the computational basis.
-* The Q# [BitSizeI function](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei) returns the numbers of bits needed to write an integer in binary.
+* The Q# <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei" target="_blank">BitSizeI function</a> returns the numbers of bits needed to write an integer in binary.
 
 **Next Steps**
 
 We hope you enjoyed this Kata on quantum random number generation! If you're looking to learn more about quantum computing and Q#, here are some suggestions:
-* To learn about superposition, interference and entanglement by using Q#, you can check [Microsoft Learn module "Explore the key concepts of quantum computing by using Q#"](https://learn.microsoft.com/en-us/training/modules/qsharp-explore-key-concepts-quantum-computing/).
-* For another look at quantum random number generation, you can check out the [Microsoft Learn module "Create your first Q# program by using the Quantum Development Kit"](https://docs.microsoft.com/learn/modules/qsharp-create-first-quantum-development-kit/1-introduction).
+* To learn about superposition, interference and entanglement by using Q#, you can check <a href="https://learn.microsoft.com/en-us/training/modules/qsharp-explore-key-concepts-quantum-computing/" target="_blank">Microsoft Learn module "Explore the key concepts of quantum computing by using Q#"</a>.
+* For another look at quantum random number generation, you can check out the <a href="https://docs.microsoft.com/learn/modules/qsharp-create-first-quantum-development-kit/1-introduction" target="_blank">Microsoft Learn module "Create your first Q# program by using the Quantum Development Kit"</a>.
 

@@ -5,7 +5,7 @@
     "title": "Overview"
 })
 
-This kata introduces you to single-qubit gates. Quantum gates are the quantum counterpart to classical logic gates, acting as the building blocks of quantum algorithms. Quantum gates transform qubit states in various ways, and can be applied sequentially to perform complex quantum calculations. Single-qubit gates, as their name implies, act on individual qubits. You can learn more at [Wikipedia](https://en.wikipedia.org/wiki/Quantum_logic_gate).
+This kata introduces you to single-qubit gates. Quantum gates are the quantum counterpart to classical logic gates, acting as the building blocks of quantum algorithms. Quantum gates transform qubit states in various ways, and can be applied sequentially to perform complex quantum calculations. Single-qubit gates, as their name implies, act on individual qubits. You can learn more at <a href="https://en.wikipedia.org/wiki/Quantum_logic_gate" target="_blank">Wikipedia</a>.
 
 **This kata covers the following topics:**
 
@@ -223,7 +223,7 @@ $$|0\rangle\langle1| + |1\rangle\langle0|$$
 
 This section introduces some of the common single-qubit gates, including their matrix form, their ket-bra decomposition, and a brief "cheatsheet" listing their effect on some common qubit states.
 
-You can use a tool called [Quirk](https://algassert.com/quirk) to visualize how these gates interact with various qubit states.
+You can use a tool called <a href="https://algassert.com/quirk" target="_blank">Quirk</a> to visualize how these gates interact with various qubit states.
 
 This section relies on the following notation:
 
@@ -238,7 +238,7 @@ This section relies on the following notation:
   </tr>
 </table>
 
-The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolfgang_Pauli), are based on the so-called **Pauli matrices**, $X$, $Y$ and $Z$. All three Pauli gates are **self-adjoint**, meaning that each one is its own inverse, $XX = \mathbb{I}$.
+The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pauli" target="_blank">Wolfgang Pauli</a>, are based on the so-called **Pauli matrices**, $X$, $Y$ and $Z$. All three Pauli gates are **self-adjoint**, meaning that each one is its own inverse, $XX = \mathbb{I}$.
 
 <table>
   <tr>
@@ -262,7 +262,7 @@ The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolf
       $X|i\rangle = i|-i\rangle$<br>
       $X|-i\rangle = -i|i\rangle$
     </td>
-    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.x">X</a></td>
+    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.x" target="_blank">X</a></td>
   </tr>
   <tr>
     <td>$Y$</td>
@@ -277,7 +277,7 @@ The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolf
       $Y|i\rangle = |i\rangle$<br>
       $Y|-i\rangle = -|-i\rangle$<br>
     </td>
-    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.y">Y</a></td>
+    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.y" target="_blank">Y</a></td>
   </tr>
   <tr>
     <td>$Z$</td>
@@ -292,7 +292,7 @@ The Pauli gates, named after [Wolfgang Pauli](https://en.wikipedia.org/wiki/Wolf
       $Z|i\rangle = |-i\rangle$<br>
       $Z|-i\rangle = |i\rangle$<br>
     </td>
-    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.z">Z</a></td>
+    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.z" target="_blank">Z</a></td>
   </tr>
 </table>
 
@@ -325,7 +325,7 @@ X(q);
 Z(q);
 ```
 
-All the basic gates we will be covering in this kata are part of the [Intrinsic](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic) namespace. We're also using the function [DumpMachine](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine) to print the state of the quantum simulator.
+All the basic gates we will be covering in this kata are part of the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic" target="_blank">Intrinsic</a> namespace. We're also using the function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine" target="_blank">DumpMachine</a> to print the state of the quantum simulator.
 
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
@@ -406,7 +406,7 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
       $S|i\rangle = |-\rangle$<br>
       $S|-i\rangle = |+\rangle$<br>
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.s">S</a></td>
+    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.s" target="_blank">S</a></td>
   </tr>
   <tr>
     <td>$T$</td>
@@ -417,7 +417,7 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
       $T|0\rangle = |0\rangle$<br>
       $T|1\rangle = e^{i\pi/4}|1\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.t">T</a></td>
+    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.t" target="_blank">T</a></td>
   </tr>
 </table>
 
@@ -447,7 +447,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
 
 > These gates are known as rotation gates, because they represent rotations around various axes on the Bloch sphere. The Bloch sphere is a way of representing the qubit states visually, mapping them onto the surface of a sphere. 
 > Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this kata.
-> If you are curious about it, you can learn more in [this Wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere).
+> If you are curious about it, you can learn more in <a href="https://en.wikipedia.org/wiki/Bloch_sphere" target="_blank">this Wikipedia article</a>.
 
 <table>
   <tr>
@@ -465,7 +465,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_x(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle - i\sin\frac{\theta}{2}|1\rangle$<br>
       $R_x(\theta)i\sin\frac{\theta}{2}|0\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx">Rx</a></td>
+    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx" target="_blank">Rx</a></td>
   </tr>
   <tr>
     <td>$R_y(\theta)$</td>
@@ -475,7 +475,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_y(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle + \sin\frac{\theta}{2}|1\rangle$<br>
       $R_y(\theta)\sin\frac{\theta}{2}|0\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.ry">Ry</a></td>
+    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.ry" target="_blank">Ry</a></td>
   </tr>
   <tr>
     <td>$R_z(\theta)$</td>
@@ -485,7 +485,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_z(\theta)|0\rangle = e^{-i\theta/2}|0\rangle$<br>
       $R_z(\theta)$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rz">Rz</a></td>
+    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rz" target="_blank">Rz</a></td>
   </tr>
   <tr>
     <td>$R_1(\theta)$</td>
@@ -495,7 +495,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_1(\theta)|0\rangle = |0\rangle$<br>
       $R_1(\theta)$
     </td>  
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1">R1</a></td>
+    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1" target="_blank">R1</a></td>
   </tr>
 </table>
 
