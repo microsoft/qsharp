@@ -5,7 +5,6 @@ import qsharp
 from contextlib import redirect_stdout
 import io
 
-
 # Tests for the Python library for Q#
 
 
@@ -38,4 +37,5 @@ def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
     operation = qsharp.compile("Program()")
-    assert isinstance(operation._repr_qir_(), bytes)
+    qir = operation._repr_qir_()
+    assert isinstance(qir, bytes)

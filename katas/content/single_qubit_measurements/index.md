@@ -40,7 +40,7 @@ where $\alpha$ and $\beta$ are complex numbers, and the state is normalized, $|\
 
 To get some information about the qubit state, we can measure the qubit. Similar to the classical case of measuring a bit, the outcome of a measurement can be $0$ or $1$. However, unlike the classical case, quantum measurement is a probabilistic process.
 
-The probabilities of the measurement outcomes being $0$ and $1$ are $|\alpha|^2$ and $|\beta|^2$, respectively. Additionally, the state of the qubit is modified by the measurement - if the outcome of the measurement is $0$, then the post-measurement state of the qubit is $\ket{0}$, and if the outcome is $1$, the state is $\ket{1}$. In quantum mechanics, this is referred to as the [collapse of the wave function](https://en.wikipedia.org/wiki/Wave_function_collapse).
+The probabilities of the measurement outcomes being $0$ and $1$ are $|\alpha|^2$ and $|\beta|^2$, respectively. Additionally, the state of the qubit is modified by the measurement - if the outcome of the measurement is $0$, then the post-measurement state of the qubit is $\ket{0}$, and if the outcome is $1$, the state is $\ket{1}$. In quantum mechanics, this is referred to as the <a href="https://en.wikipedia.org/wiki/Wave_function_collapse" target="_blank">collapse of the wave function</a>.
 
 The outcomes of computational basis measurements and their probabilities are summarized in the table below:
 <table>
@@ -82,7 +82,7 @@ The given state $\ket \psi$ is normalized, since $0.6^2 + 0.8^2 = 1$. Hence, the
     "title": "Implementing Measurement In Q# Using The M Operation"
 })
 
-In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the [M operation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.m). It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
+In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.m" target="_blank">M operation</a>. It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
 
 > If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for $0$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
 
@@ -125,7 +125,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 So far, we have discussed measurements done in the computational basis, that is, the $\{ \ket 0, \ket 1\}$ basis.
 
-It is also possible to implement measurements in other orthogonal bases, such as the Pauli X basis, which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation [`Measure`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) for measurements in the Pauli bases.
+It is also possible to implement measurements in other orthogonal bases, such as the Pauli X basis, which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure" target="_blank">`Measure`</a> for measurements in the Pauli bases.
 
 > The `Measure` operation can be used for measuring multiple qubits in a multi-qubit system; however, in this kata we only consider measurements for single-qubit systems.
 

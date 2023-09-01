@@ -6,5 +6,5 @@ Exercises are problems that you have to solve by writing Q# code. On each exerci
 
 <details>
 <summary><strong>Need a hint?</strong></summary>
-For some problems a hint will be provided to help you if you are stuck.
+For some problems a hint will be provided to help you if you are stuck. For this exercise, read line number 3 in the code below.
 </details>
