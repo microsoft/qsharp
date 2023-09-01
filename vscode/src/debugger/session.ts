@@ -75,7 +75,7 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(): Promise<void> {
-    sendTelemetryEvent( EventType.DebugSessionStart,  {test: 3},  {} )
+    sendTelemetryEvent( EventType.DebugSessionStart)
     const programText = (
       await this.fileAccessor.openUri(this.program)
     ).getText();

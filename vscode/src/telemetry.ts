@@ -13,24 +13,24 @@ export enum EventType {
   Compile = "Compile",
   Initialize = "Initialize"
 }
+type Empty =  { [ K in any]: never}
 
 type EventTypes = {
   [EventType.Install] : {
-    properties: {
-    },
+    properties: Empty,
     measurements: {
       timeToInstall: number
     }
   },
   [EventType.Initialize] : {
-    properties: {},
+    properties: Empty,
     measurements: {}
   },  [EventType.Compile] : {
-    properties: {},
+    properties: Empty,
     measurements: {}
   }
   [EventType.DebugSessionStart] : {
-    properties: {},
+    properties: Empty,
     measurements: {}
   }
 }
@@ -43,7 +43,7 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   sendTelemetryEvent( EventType.Initialize,  {},  {})
 }
 
-export function sendTelemetryEvent<E extends keyof EventTypes>(event: E, properties: EventTypes[E]["properties"], measurements: EventTypes[E]["measurements"]) {
+export function sendTelemetryEvent<E extends keyof EventTypes>(event: E, properties: EventTypes[E]["properties"] = {}, measurements: EventTypes[E]["measurements"] = {}) {
   if (reporter !== undefined) {
     reporter.sendTelemetryEvent (
       event,
