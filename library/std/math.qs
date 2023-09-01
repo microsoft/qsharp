@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Ouptut
     /// A double-precision approximation of the the circumference of a circle
-    /// to its diameter, $\pi \approx 3.14159265358979323846$.
+    /// to its diameter, π ≈ 3.14159265358979323846.
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.E
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// A double-precision approximation of the natural logarithic base,
-    /// $e \approx 2.7182818284590452354$.
+    /// e ≈ 2.7182818284590452354.
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.PI
@@ -365,7 +365,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Description
     /// This will calculate the multiplicative inverse of a
-    /// modular integer $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
+    /// modular integer `b` such that `a • b = 1 (mod modulus)`.
     function InverseModI(a : Int, modulus : Int) : Int {
         let (u, v) = ExtendedGreatestCommonDivisorI(a, modulus);
         let gcd = u * a + v * modulus;
@@ -378,7 +378,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Description
     /// This will calculate the multiplicative inverse of a
-    /// modular integer $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
+    /// modular integer `b` such that `a • b = 1 (mod modulus)`.
     function InverseModL(a : BigInt, modulus : BigInt) : BigInt {
         let (u, v) = ExtendedGreatestCommonDivisorL(a, modulus);
         let gcd = u * a + v * modulus;

@@ -95,9 +95,6 @@
         "label": "Q# Debug",
         "configurationAttributes": {
           "launch": {
-            "required": [
-              "program"
-            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -107,7 +104,7 @@
               "stopOnEntry": {
                 "type": "boolean",
                 "description": "Automatically stop after launch.",
-                "default": true
+                "default": false
               },
               "entry": {
                 "type": "string",
@@ -116,12 +113,13 @@
               },
               "shots": {
                 "type": "number",
-                "description": "Number of shots to execute."
+                "description": "Number of shots to execute.",
+                "default": 1
               },
               "trace": {
                 "type": "boolean",
                 "description": "Enable logging of the Debug Adapter Protocol.",
-                "default": true
+                "default": false
               }
             }
           }

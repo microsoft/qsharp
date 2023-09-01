@@ -1,7 +1,7 @@
 # Oracles
 
 @[section]({
-    "id": "oracles_overview",
+    "id": "oracles__overview",
     "title": "Overview"
 })
 
@@ -20,7 +20,7 @@ Quantum oracles are a key part of many quantum algorithms that rely on quantum i
 - Multi-qubit gates (especially controlled gates)
 
 @[section]({
-    "id": "oracles_classical_oracles",
+    "id": "oracles__classical_oracles",
     "title": "Classical Oracles"
 })
 
@@ -30,14 +30,14 @@ However, in "black box" testing, the tester doesn't have access to the details o
 Formally, a **classical oracle** is a function that, provided some input, produces a *deterministic* output
 (the same input *always* results in the same output).
 
-Some classical problems (typically [decision problems](https://en.wikipedia.org/wiki/Decision_problem)) are also expressed in terms of oracles; in this case we do not care about how the function is implemented, but only about the functionality that it provides.  
+Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decision_problem" target="_blank">decision problems</a>) are also expressed in terms of oracles; in this case we do not care about how the function is implemented, but only about the functionality that it provides.  
 
 > Suppose I provided you a function which takes two list parameters as input, where these lists represent the availability of two employees at a company during the week.  The function returns true if there is a day (Monday, Tuesday, Wednesday, Thursday, or Friday) for which they are both free and could schedule a meeting, and false if no such date exists.
 >
 > This function is an example of a classical oracle.
 
 @[exercise]({
-    "id": "classical_oracles",
+    "id": "oracles__implement_classical_oracles",
     "title": "Implement a Classical Oracle",
     "descriptionPath": "./classical_oracles/index.md",
     "placeholderSourcePath": "./classical_oracles/placeholder.qs",
@@ -50,7 +50,7 @@ Some classical problems (typically [decision problems](https://en.wikipedia.org/
 })
 
 @[section]({
-    "id": "oracles_quantum_oracles",
+    "id": "oracles__quantum_oracles",
     "title": "Quantum Oracles"
 })
 
@@ -58,7 +58,7 @@ An oracle in the quantum world is a "black box" operation that is used as input 
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
 In this kata, you will learn the properties of quantum oracles and how to implement them.
 
-A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where $x$ is an $n$-bit input state of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, i.e., the function can return values $0$ or $1$; in this kata, we will focus on this class of functions.
+A quantum oracle implements a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
 $$|x\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$ 
@@ -72,9 +72,12 @@ This allows us to define quantum oracles based on their effect on the basis stat
 There are two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
 
 ## Phase Oracles
-A phase oracle $U_{phase}$ is an oracle that encodes the value of the classical function $f$ it implements in the *phase* of the qubit state. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
+
+For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the the values $f(0)$ and $f(1)$ in the relative phases of basis states $\ket{0}$ and $\ket{1}$, respectively.
 
 $$U_{phase} |\vec{x}\rangle = (-1)^{f(x)}|\vec{x}\rangle$$
+
+Thus, the phase oracle $U_{\text{phase}}$ doesn't change the phase of the basis states for which $f(x)=0$, but multiplies the phase of the basis states for which $f(x)=1$ by $-1$.
 
 The effect of such an oracle on any single basis state is not particularly interesting: it just adds a global phase which is not something you can observe. However, if you apply this oracle to a *superposition* of basis states, its effect becomes noticeable. 
 Remember that quantum operations are linear: if you define the effect of an operation on the basis states, you'll be able to deduce its effect on superposition states (which are just linear combinations of the basis states) using its linearity. 
@@ -82,7 +85,7 @@ Remember that quantum operations are linear: if you define the effect of an oper
 A phase oracle doesn't have an "output", unlike the function it implements; the effect of the oracle application is the change in the state of the system.
 
 @[section]({
-    "id": "oracles_phase_oracle",
+    "id": "oracles__phase_oracle",
     "title": "Phase Oracle for Alternating Bit Pattern Function"
 })
 
@@ -90,9 +93,9 @@ Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=
 
 The phase oracle that implements this function will take an array of 3 qubits as an input, flip the sign of basis states $|101\rangle$ and $|010\rangle$, and leave the rest of the basis states unchanged. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
+@[example]({"id": "oracles__phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
 
-We introduced the function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) provided by the Q# Standard library.
+We introduced the function <a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring" target="_blank">`ApplyControlledOnBitString`</a> provided by the Q# Standard library.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
  
 The sequence of steps that implement this variant are:
@@ -100,16 +103,16 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is $2N$, where N is the number of control qubits.
+Due to this <a href="https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations" target="_blank">conjugation pattern</a>, the time complexity of this function is $2N$, where N is the number of control qubits.
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
 > Recall that these two states are exactly the inputs for which $f(x) = 1$, thus they are exactly the two states we expect to experience a phase flip!
 
-Now you will implement the classical oracle that you've implemented in the first exercise as a quantum phase oracle $U_{7,phase}$.
+In the next exercise you will implement the classical oracle that you've implemented in the first exercise, this time as a quantum phase oracle $U_{7,\text{phase}}$ that encodes the number 7.
 
 @[exercise]({
-    "id": "phase_oracle_seven",
+    "id": "oracles__phase_oracle_seven",
     "title": "Implement a Phase Oracle",
     "descriptionPath": "./phase_oracle_seven/index.md",
     "placeholderSourcePath": "./phase_oracle_seven/placeholder.qs",
@@ -122,7 +125,7 @@ Now you will implement the classical oracle that you've implemented in the first
 })
 
 @[section]({
-    "id": "oracles_marking_oracles",
+    "id": "oracles__marking_oracles",
     "title": "Marking Oracles"
 })
 
@@ -140,7 +143,7 @@ Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=
 
 The marking oracle that implements this function will take an array of 3 qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $|101\rangle$ or $|010\rangle$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "marking_oracle_alt_bit", "codePath": "./marking_oracle_alt_bit.qs"})
+@[example]({"id": "oracles__marking_oracle_alt_bit", "codePath": "./marking_oracle_alt_bit.qs"})
 
 > Let's compare the initial state to the final state from the above demo. 
 In the initial state we had a tensor product of an equal superposition of all 3-qubit basis states and the state $|0\rangle$.  In the final state, this is no longer the case. 
@@ -153,7 +156,7 @@ The basis states $|010\rangle \otimes |0\rangle$ and $|101\rangle \otimes |0\ran
 Now you will implement the same function you've seen in the first two exercises as a marking oracle $U_{7,mark}$.
 
 @[exercise]({
-    "id": "marking_oracle_seven",
+    "id": "oracles__marking_oracle_seven",
     "title": "Implement a Marking Oracle",
     "descriptionPath": "./marking_oracle_seven/index.md",
     "placeholderSourcePath": "./marking_oracle_seven/placeholder.qs",
@@ -166,7 +169,7 @@ Now you will implement the same function you've seen in the first two exercises 
 })
 
 @[section]({
-    "id": "oracles_phase_kickback",
+    "id": "oracles__phase_kickback",
     "title": "Phase Kickback"
 })
 
@@ -180,19 +183,28 @@ In order to observe phase kickback, we use the target qubit $|y\rangle=|-\rangle
 
 Let's see the results of applying a marking oracle $U_{mark}$ which implements the function $f(x)$ to the input register $|x\rangle$ and the target qubit in state $|-\rangle$:
 * If the input register $|x\rangle$ is in a basis state:
-$$U_{mark} |x\rangle |-\rangle = \frac1{\sqrt2} \big(U_{mark}|x\rangle|0\rangle - U_{mark}|x\rangle |1\rangle\big) 
-= \frac1{\sqrt2} \big(|x\rangle|0\oplus f(x)\rangle - |x\rangle |1\oplus f(x)\rangle\big) = \\ 
-= \begin{cases} 
-    \frac1{\sqrt2} \big(|x\rangle|0\rangle - |x\rangle |1\rangle\big) = |x\rangle|-\rangle \text{ if } f(x) = 0 \\ 
-    \frac1{\sqrt2} \big(|x\rangle|1\rangle - |x\rangle |0\rangle\big) = -|x\rangle|-\rangle \text{ if } f(x) = 1
-  \end{cases} 
-= (-1)^{f(x)}|x\rangle |-\rangle$$
+
+$$U_{mark} |x\rangle |-\rangle = \frac1{\sqrt2} \big(U_{mark}|x\rangle|0\rangle - U_{mark}|x\rangle |1\rangle\big)$$
+
+$$= \frac1{\sqrt2} \big(|x\rangle|0\oplus f(x)\rangle - |x\rangle |1\oplus f(x)\rangle\big)$$
+
+$$= 
+\begin{cases} 
+\frac1{\sqrt2} \big(|x\rangle|0\rangle - |x\rangle |1\rangle\big) = |x\rangle|-\rangle \text{ if } f(x) = 0 \\\ 
+\frac1{\sqrt2} \big(|x\rangle|1\rangle - |x\rangle |0\rangle\big) = -|x\rangle|-\rangle \text{ if } f(x) = 1
+\end{cases}
+$$
+
+$$= (-1)^{f(x)}|x\rangle |-\rangle$$
 
 
 * If the input register is in a superposition state, say $|x\rangle = \frac1{\sqrt2} \big(|b_1\rangle + |b_2\rangle\big)$, where $|b_1\rangle$ and $|b_2\rangle$ are basis states:
-$$U_{mark} |x\rangle |-\rangle = U_{mark} \frac{1}{\sqrt{2}} \big(|b_1\rangle + |b_2\rangle\big) |-\rangle = 
- \frac{1}{\sqrt{2}} \big( U_{mark}|b_1\rangle|-\rangle + U_{mark}|b_2\rangle|-\rangle\big) = \\
-= \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}|b_1\rangle + (-1)^{f(b_2)}|b_2\rangle\big) |-\rangle$$
+
+$$U_{mark} |x\rangle |-\rangle = U_{mark} \frac{1}{\sqrt{2}} \big(|b_1\rangle + |b_2\rangle\big) |-\rangle$$
+
+$$= \frac{1}{\sqrt{2}} \big( U_{mark}|b_1\rangle|-\rangle + U_{mark}|b_2\rangle|-\rangle\big)$$
+
+$$= \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}|b_1\rangle + (-1)^{f(b_2)}|b_2\rangle\big) |-\rangle$$
 
 We see that in both cases applying $U_{mark}$ does not change the state of the target qubit, but it does change the state of the input register. 
 Thus we can drop the target qubit without any repercussions after the application of the oracle. 
@@ -205,29 +217,29 @@ which looks exactly as if we applied a phase oracle to $|x\rangle$ instead of ap
 
 Consider the following example using the $U_{7,mark}$ oracle. Let's begin with $|x\rangle$ as an equal superposition of the $6$ and $7$ basis states and $|y\rangle=|-\rangle$, the overall state is:
 
-$$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big) = $$
+$$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$$
 
-$$\frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle\big)$$
+$$= \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle\big)$$
 
 How does $U_{7,mark}$ act on this state?
 
-$$U_{7,mark}|\eta\rangle = U_{7,mark} \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle \big) = $$
+$$U_{7,mark}|\eta\rangle = U_{7,mark} \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle \big)$$
 
-$$\frac{1}{2} \big( U_{7,mark}|110\rangle|0\rangle + U_{7,mark}|111\rangle|0\rangle - U_{7,mark}|110\rangle|1\rangle - U_{7,mark}|111\rangle|1\rangle \big) = $$
+$$= \frac{1}{2} \big( U_{7,mark}|110\rangle|0\rangle + U_{7,mark}|111\rangle|0\rangle - U_{7,mark}|110\rangle|1\rangle - U_{7,mark}|111\rangle|1\rangle \big)$$
 
-$$\frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle \big) := |\xi\rangle$$
+$$= \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle \big) := |\xi\rangle$$
 
 Now we would like to observe how our input state $|\eta\rangle$ was modified by the oracle.  Let's simplify the resulting state $|\xi\rangle$:
 
-$$|\xi\rangle = \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle\big)  = $$
+$$|\xi\rangle = \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle\big)$$
 
-$$\frac{1}{2} \big(|110\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle + |111\rangle|1\rangle \big) = $$
+$$= \frac{1}{2} \big(|110\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle + |111\rangle|1\rangle \big)$$
 
-$$\frac{1}{2} \Big[|110\rangle \otimes \big(|0\rangle - |1\rangle \big) + |111\rangle \otimes \big(|1\rangle - |0\rangle\big)\Big] = $$
+$$= \frac{1}{2} \Big[|110\rangle \otimes \big(|0\rangle - |1\rangle \big) + |111\rangle \otimes \big(|1\rangle - |0\rangle\big)\Big]$$
 
-$$\Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes \Big[ \frac{1}{\sqrt{2}} \big( |0\rangle - |1\rangle \big) \Big] = $$
+$$= \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes \Big[ \frac{1}{\sqrt{2}} \big( |0\rangle - |1\rangle \big) \Big]$$
 
-$$\Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes |-\rangle$$
+$$= \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes |-\rangle$$
 
 Finally, let's compare $|\eta\rangle$ and $|\xi\rangle$; below are the final equations repeated for your convenience:
 $$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes |-\rangle$$
@@ -250,7 +262,7 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 </details>
 
 @[exercise]({
-    "id": "marking_oracle_as_phase",
+    "id": "oracles__marking_oracle_as_phase",
     "title": "Apply the Marking Oracle as a Phase Oracle",
     "descriptionPath": "./marking_oracle_as_phase/index.md",
     "placeholderSourcePath": "./marking_oracle_as_phase/placeholder.qs",
@@ -263,13 +275,13 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 })
 
 @[section]({
-    "id": "oracles_conversion",
+    "id": "oracles__conversion",
     "title": "Oracle Conversion"
 })
 
 In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
 
-@[example]({"id": "oracle_converter_demo", "codePath": "./oracle_converter_demo.qs"})
+@[example]({"id": "oracles__oracle_converter_demo", "codePath": "./oracle_converter_demo.qs"})
 
 > Notice from the above demo that your phase oracle $U_{7,phase}$ behaves the same as the converted version of your marking oracle $U_{7,mark}$, both of which induce a phase flip on the basis state $|111\rangle$!
 
@@ -277,7 +289,7 @@ This way to convert a marking oracle to a phase oracle is useful because many qu
 This converter provides a way to implement the function of interest as a marking oracle and then convert it into a phase oracle, which could then be leveraged in a quantum algorithm.
 
 @[section]({
-    "id": "oracles_implementing_quantum_oracles",
+    "id": "oracles__implementing_quantum_oracles",
     "title": "Implementing Quantum Oracles"
 })
 
@@ -286,7 +298,7 @@ In this section you will implement a few more complicated quantum oracles.
 > Notice that the operation declarations below require adjoint and controlled variants of the oracle to be automatically generated. This is common practice that makes testing and reusing the code easier. Typically Q# compiler will easily generate these variants, as long as you don't use mutable variables or operations that don't support these functors.
 
 @[exercise]({
-    "id": "or_oracle",
+    "id": "oracles__or_oracle",
     "title": "Implement the OR Oracle",
     "descriptionPath": "./or_oracle/index.md",
     "placeholderSourcePath": "./or_oracle/placeholder.qs",
@@ -299,7 +311,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "kth_bit_oracle",
+    "id": "oracles__kth_bit_oracle",
     "title": "Implement the K-th Bit Oracle",
     "descriptionPath": "./kth_bit_oracle/index.md",
     "placeholderSourcePath": "./kth_bit_oracle/placeholder.qs",
@@ -312,7 +324,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "or_but_kth_oracle",
+    "id": "oracles__or_but_kth_oracle",
     "title": "Implement the OR Oracle of All Bits Except the K-th",
     "descriptionPath": "./or_but_kth_oracle/index.md",
     "placeholderSourcePath": "./or_but_kth_oracle/placeholder.qs",
@@ -325,7 +337,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "bit_pattern_oracle",
+    "id": "oracles__bit_pattern_oracle",
     "title": "Implement the Arbitrary Bit Pattern Oracle",
     "descriptionPath": "./bit_pattern_oracle/index.md",
     "placeholderSourcePath": "./bit_pattern_oracle/placeholder.qs",
@@ -338,7 +350,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "bit_pattern_challenge",
+    "id": "oracles__bit_pattern_challenge",
     "title": "Implement the Arbitrary Bit Pattern Oracle (Challenge Version)",
     "descriptionPath": "./bit_pattern_challenge/index.md",
     "placeholderSourcePath": "./bit_pattern_challenge/placeholder.qs",
@@ -351,7 +363,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[exercise]({
-    "id": "meeting_oracle",
+    "id": "oracles__meeting_oracle",
     "title": "Implement the Meeting Oracle",
     "descriptionPath": "./meeting_oracle/index.md",
     "placeholderSourcePath": "./meeting_oracle/placeholder.qs",
@@ -364,7 +376,7 @@ In this section you will implement a few more complicated quantum oracles.
 })
 
 @[section]({
-    "id": "oracles_testing_implementation",
+    "id": "oracles__testing_implementation",
     "title": "Testing an Oracle Implementation"
 })
 
@@ -376,4 +388,20 @@ A good way to test a quantum oracle of interest is to write a classical oracle t
 
 Here we will compare the reference implementation of `Meeting_Classical` oracle to the classical code implementing the same function.
 
-@[example]({"id": "test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
+@[example]({"id": "oracles__test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
+
+@[section]({
+    "id": "oracles__conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! In this kata you have learned to build quantum oracles. Here are a few key concepts to keep in mind:
+* A quantum oracle is an "opaque box" operation that is used as input to another algorithm.
+* Phase oracles encode the information in the relative phase of basis states $\ket{0}$ and $\ket{1}$. If $f(x)=0$, it does nothing, and if $f(x)=1$ it multiplies the phase of the basis states for which by $-1$.
+* Marking oracles uses an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it does nothing, and if $f(x)=1$ it it flips the state of the qubit $\ket{y}$.
+
+**Next Steps**
+
+We hope you enjoyed this kata! If you're looking to learn more about quantum oracles and Q#, here are some suggestions:
+* To learn about the Grover's algorithm, you can check <a href="https://learn.microsoft.com/en-us/training/modules/solve-graph-coloring-problems-grovers-search/" target="_blank">Microsoft Learn module "Solve graph coloring problems by using Grover's search"</a>.
+* To learn more about the Q# libraries, you can check the <a href="https://learn.microsoft.com/en-us/azure/quantum/user-guide/libraries/?tabs=tabid-clivscode" target="_blank">The Q# user guide</a>.

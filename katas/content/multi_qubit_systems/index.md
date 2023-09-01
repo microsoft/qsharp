@@ -1,31 +1,31 @@
 ﻿# Multi-Qubit Systems
 
 @[section]({
-    "id": "multi_qubit_systems_overview",
+    "id": "multi_qubit_systems__overview",
     "title": "Overview"
 })
 
-This Kata introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
+This kata introduces you to multi-qubit systems - their representation in mathematical notation and in Q# code, and the concept of entanglement.
 
-If you are not familiar with single-qubit systems, we recommend that you complete "The Qubit" Kata first.
+If you are not familiar with single-qubit systems, we recommend that you complete "The Qubit" kata first.
 
-**This Kata covers the following topics:**
+**This kata covers the following topics:**
 
 - Vector representation of multi-qubit systems
 - Entangled and separable states
 - Dirac notation
 
-**What you should know to start working on this Kata:**
+**What you should know to start working on this kata:**
 
 - Basic single-qubit gates
 - The concept of tensor product
 
 @[section]({
-    "id": "multi_qubit_systems_introduction",
+    "id": "multi_qubit_systems__introduction",
     "title": "Multi-Qubit Systems"
 })
 
-In a previous Kata we discussed the concept of a qubit - the basic building block of a quantum computer.
+In a previous kata we discussed the concept of a qubit - the basic building block of a quantum computer.
 A multi-qubit system is a collection of multiple qubits, treated as a single system.
 
 Let's start by examining a system of two classical bits. Each bit can be in two states: $0$ and $1$. Therefore, a system of two bits can be in four different states: $00$, $01$, $10$, and $11$. Generally, a system of $N$ classical bits can be in any of the $2^N$ states.
@@ -89,18 +89,18 @@ The coefficients of the basis vectors define how "close" is the system state to 
 > You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors.  The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
 
 @[section]({
-    "id": "multi_qubit_systems_separable_states",
+    "id": "multi_qubit_systems__separable_states",
     "title": "Separable States"
 })
 
-Sometimes the state of a multi-qubit system can be separated into the states of individual qubits or smaller subsystems.
-To do this, you would express the vector state of the system as a tensor product of the vectors representing each individual qubit/subsystem.
-Here is an example for two qubits:
+Sometimes the global state of a multi-qubit system can be separated into the states of individual qubits or subsystems. To do this, you would express the vector state of the global system as a tensor product of the vectors representing each individual qubit/subsystem. Here is an example of a two-qubit state:
 
 $$
 \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ 0 \\\ \frac{1}{\sqrt{2}} \\\ 0 \end{bmatrix} =
 \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix} \otimes \begin{bmatrix} 1 \\\ 0 \end{bmatrix}
 $$
+
+You can see that qubit 1 is in state $\frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and qubit 2 is in state $|0\rangle$. The states that allow such representation are known as separable states, or product states, because you can separate the global state into the product of individual subsystems.
 
 The states that allow such representation are known as **separable states**.
 
@@ -108,8 +108,8 @@ The states that allow such representation are known as **separable states**.
 
 Show that the state is separable:
 $$
-\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
-\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}
+\frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
+\begin{bmatrix} ? \\\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\\ ? \end{bmatrix}
 $$
 
 <details>
@@ -169,22 +169,28 @@ We can see that this system of equations doesn't have a solution, which means th
 </details>
 
 @[section]({
-    "id": "multi_qubit_systems_entanglement",
+    "id": "multi_qubit_systems__entanglement",
     "title": "Entanglement"
 })
 
-As we've just seen, some quantum states are impossible to factor into individual qubit states or even into states of larger subsystems. The states of these qubits are inseparable from one another and must always be considered as part of a larger system - they are **entangled**.
+Sometimes, quantum states cannot be written as individual qubit states. Quantum systems that are not separable are called entangled systems. If a state can be written as the product state of the individual subsystems, that state is not entangled.
 
-> For example, every state in the Bell basis we saw earlier is an entangled state.
+Entanglement is a quantum correlation, which is very different from classical correlations. In entanglement, the state of the subsystems isn't determined, and you can talk only about the probabilities associated with the outcomes. The global system must be considered as one.
 
-Entanglement is a huge part of what makes quantum computing so powerful.
-It allows us to link the qubits so that they stop behaving like individuals and start behaving like a large, more complex system.
-In entangled systems, measuring one of the qubits modifies the state of the other qubits, and tells us something about their state.
-In the example above, when one of the qubits is measured, we know that the second qubit will end up in the same state.
+> For example, every state in the Bell basis is an entangled state.
+
+Entanglement is a huge part of what makes quantum computing so powerful. It allows us to link the qubits so that they stop behaving like individuals and start behaving like a large, more complex system. In entangled systems, measuring one of the qubits modifies the state of the other qubits, and tells us something about their state.
+
+For example, consider two qubits $A$ and $B$ in superpositions such that the state of the global system is
+
+$$|\psi\rangle_{AB} = \frac{1}{\sqrt2}|00\rangle + \frac{1}{\sqrt2}|11\rangle$$
+
+In such a state, only two outcomes are possible when you measure the state of both qubits in the standard basis: $|00\rangle$ and $|11\rangle$. Notice that each outcome has the same probability of $\frac{1}{2}$. There's zero probability of obtaining $|01\rangle$ and $|10\rangle$. If you measure the first qubit and you get that it is in $|0\rangle$ state, then you can be positive that the second qubit is also in $|0\rangle$ state, even without measuring it. The measurement outcomes are correlated, and the qubits are _entangled_.
+
 This property is used extensively in many quantum algorithms.
 
 @[section]({
-    "id": "multi_qubit_systems_dirac_notation",
+    "id": "multi_qubit_systems__dirac_notation",
     "title": "Dirac Notation"
 })
 
@@ -286,20 +292,20 @@ Some ket symbols have a commonly accepted usage, such as the symbols for the Bel
 > Multi-qubit quantum systems that store superpositions of numbers are often referred to as **quantum registers**.
 
 @[section]({
-    "id": "multi_qubit_systems_in_qsharp",
+    "id": "multi_qubit_systems__in_qsharp",
     "title": "Multi-Qubit Systems in Q#"
 })
 
-This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates Kata.
+This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the single-qubit gates kata.
 
 These demos use the function `DumpMachine` to print the state of the quantum simulator.
-If you aren't familiar with the output of this function for single qubits, you should revisit the qubit Kata.
+If you aren't familiar with the output of this function for single qubits, you should revisit the qubit kata.
 When printing the state of multi-qubit systems, this function outputs the same information for each multi-qubit basis state.
-The qubit Kata explains how `DumpMachine` works for multiple qubits in more detail.
+The qubit kata explains how `DumpMachine` works for multiple qubits in more detail.
 
-@[example]({"id": "multiqubit_system", "codePath": "./examples/MultiQubitSystems.qs"})
+@[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
 
-> You might have noticed that we've been "resetting" the qubits at the end of our demos, i.e., returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block.
+> You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `using` block.
 > The reason for this is entanglement.
 >
 > Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program.
@@ -309,16 +315,16 @@ If they are not in zero state by that time, they can potentially be still entang
 >
 > The requirement that the qubits should be in zero state before they can be released aims to remind the developer to double-check that all necessary information has been properly extracted from the qubits, and that they are not entangled with unreleased qubits any more.
 >
-> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in the qubit Kata.)
+> (An alternative way to break entanglement is to measure qubits; in this case Q# allows to release them regardless of the measurement result. You can learn more about measurements in the qubit kata.)
 
 In the following exercises you will learn to prepare separable quantum states by manipulating individual qubits.
-You will only need knowledge from the single-qubit gates Kata for that.
+You will only need knowledge from the single-qubit gates kata for that.
 
 > In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`.
 Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({
-    "id": "prepare_basis_state",
+    "id": "multi_qubit_systems__prepare_basis_state",
     "title": "Prepare a Basis State",
     "descriptionPath": "./prepare_basis_state/index.md",
     "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
@@ -331,7 +337,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[exercise]({
-    "id": "prepare_superposition",
+    "id": "multi_qubit_systems__prepare_superposition",
     "title": "Prepare a Superposition of Two Basis States",
     "descriptionPath": "./prepare_superposition/index.md",
     "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
@@ -344,7 +350,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[exercise]({
-    "id": "prepare_with_real",
+    "id": "multi_qubit_systems__prepare_with_real",
     "title": " Prepare a Superposition with Real Amplitudes",
     "descriptionPath": "./prepare_with_real/index.md",
     "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
@@ -357,7 +363,7 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[exercise]({
-    "id": "prepare_with_complex",
+    "id": "multi_qubit_systems__prepare_with_complex",
     "title": "Prepare a Superposition with Complex Amplitudes",
     "descriptionPath": "./prepare_with_complex/index.md",
     "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
@@ -370,10 +376,14 @@ Array elements are indexed starting with 0, the first array element corresponds 
 })
 
 @[section]({
-    "id": "multi_qubit_systems_conclusion",
+    "id": "multi_qubit_systems__conclusion",
     "title": "Conclusion"
 })
 
-As you've seen in the exercises, you can prepare separable multi-qubit states using only single-qubit gates.
-However, to prepare and manipulate entangled states you'll need more powerful tools.
-In the next Kata, "Multi-Qubit Gates", you will learn about multi-qubit gates which give you access to all states of multi-qubit systems.
+Congratulations! In this kata you learned to prepare separable multi-qubit states using only single-qubit gates. You also learned the difference between separable states an entangled states. Here are a few key concepts to keep in mind:
+
+- A system of $N$ qubits can also be in a superposition of $2^N$ quantum states. The computational basis for an $N$-qubit system is a set of $2^N$ vectors.
+- Any two-qubit system can be expressed as some linear combination of the tensor product of single-qubit basis states.
+- Two qubits are entangled if their states are correlated and if they can't be described as two independent qubits.
+
+Next, you will learn about multi-qubit gates and how they can give you access to all states of multi-qubit systems in the "Multi-Qubit Gates" kata.

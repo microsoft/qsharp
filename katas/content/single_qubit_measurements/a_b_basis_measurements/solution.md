@@ -9,7 +9,7 @@ After the measurement, we apply the inverse of the $R_x(-\theta)$ gate, which is
 The final rotation ensures that the state of the qubit is in the state corresponding to the measurement outcome.
 
 @[solution]({
-    "id": "a_b_basis_measurements_solution",
+    "id": "single_qubit_measurements__a_b_basis_measurements_solution",
     "exerciseId": "a_b_basis_measurements",
     "codePath": "solution.qs"
 })
