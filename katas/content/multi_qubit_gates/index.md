@@ -111,7 +111,7 @@ Our first proper multi-qubit gate is the `CNOT` ("controlled NOT") gate. The `CN
             $$\text{CNOT}|10\rangle = |11\rangle$$
             $$\text{CNOT}|11\rangle = |10\rangle$$
         </td>
-        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot">CNOT</a></td>
+        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.cnot" target="_blank">CNOT</a></td>
     </tr>
 </table>
 
@@ -263,7 +263,7 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
             $$\text{SWAP}|01\rangle = |10\rangle$$
             $$\text{SWAP}|10\rangle = |01\rangle$$
             $$\text{SWAP}|11\rangle = |11\rangle$$
-        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap">SWAP</a></td>
+        <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.swap" target="_blank">SWAP</a></td>
     </tr>
 </table>
 
@@ -422,7 +422,7 @@ Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatri
             \end{bmatrix}
             $$
         </td>
-        <td><a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor">Controlled functor</a></td>
+        <td><a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor" target="_blank">Controlled functor</a></td>
     </tr>
 </table>
 
@@ -445,7 +445,7 @@ $$
 \end{bmatrix}
 $$
 
-In Q#, controlled gates are applied using the [`Controlled`](https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor) functor.
+In Q#, controlled gates are applied using the <a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor" target="_blank">`Controlled`</a> functor.
 The controlled version of a gate accepts an array of control qubits (in this case an array of a single qubit), followed by the arguments to the original gate.
 For example, these two lines are equivalent:
 
@@ -558,7 +558,7 @@ All the variants of controlled gates can be expressed in terms of the controls d
 >
 > You can check that getting the right behavior of the operation on the rest of the basis states also requires that last step.
 
-Finally, let's take a look at a very useful operation [ControlledOnBitString](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring) provided by the Q# Standard library.
+Finally, let's take a look at a very useful operation <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring" target="_blank">ControlledOnBitString</a> provided by the Q# Standard library.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
 
 The sequence of steps that implement this variant are:
