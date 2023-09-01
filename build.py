@@ -6,13 +6,79 @@
 import argparse
 import os
 import platform
+import re
 import sys
 import venv
 import shutil
 import subprocess
 import functools
 
+from packaging.version import Version, parse
+
 from prereqs import check_prereqs
+
+def update_package_version() -> str:
+    # when running in CI, set the version from the environment
+    # to specify version/tag for the packages
+    if os.environ.get("QSHARP_PACKAGE_VERSION") is None:
+        print("QSHARP_PACKAGE_VERSION not set")
+        return "0.0.0"
+
+    version = os.environ["QSHARP_PACKAGE_VERSION"]
+
+    print(f"Updating packages version to {version}")
+
+    newVer = parse(version)
+    if not isinstance(newVer, Version):
+        print("Argument not a valid version")
+        sys.exit(-2)
+
+    print(f"New package version: {newVer}")
+
+    # ensure that we have a 3-part version or rust will fail
+    #newVerFormatted = f"{newVer.major}.{newVer.minor}.{newVer.micro}"
+
+    scriptDir = os.path.dirname(os.path.abspath(__file__))
+
+    for fileRPath in [
+        os.path.join(scriptDir, "Cargo.toml"),
+        os.path.join(scriptDir, "pip", "pyproject.toml"),
+        os.path.join(scriptDir, "jupyterlab", "package.json"),
+        os.path.join(scriptDir, "npm", "package.json"),
+        os.path.join(scriptDir, "playground", "package.json"),
+        os.path.join(scriptDir, "vscode", "package.json"),
+    ]:
+        print(fileRPath)
+
+        # Config:
+        regexp = r'^version\s*=\s*"\d+\.\d+\.\d+"\s*$'  # `version = "0.0.11"`
+        replacement = f'version = "{newVer}"\n'
+        if fileRPath.endswith("package.json"):
+            regexp = (
+                r'\s*"version"\s*:\s*"\d+\.\d+\.\d+"\s*,\s*$'  # `  "version": "0.0.11",`
+            )
+            replacement = f'  "version": "{newVer}",\n'
+
+        # Read file:
+        with open(fileRPath, "r") as file:
+            lines = file.readlines()
+
+        # Replace the line:
+        lineIndex = 0  # Zero-based.
+        for line in lines:
+            if re.match(regexp, line):
+                lines[lineIndex] = replacement
+                print(f"{lineIndex + 1}: {lines[lineIndex]}", end="")
+                break
+            lineIndex = lineIndex + 1
+
+        # Save file:
+        with open(fileRPath, "w") as file:
+            file.writelines(lines)
+
+    return str(newVer)
+
+package_version = update_package_version()
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
@@ -105,33 +171,8 @@ pip_src = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
 jupyterlab_src = os.path.join(root_dir, "jupyterlab")
-package_name = "qsharp-nightly"
 
-if os.environ.get("QSHARP_PACKAGE_SUFFIX") is not None:
-    suffix = os.environ["QSHARP_PACKAGE_SUFFIX"]
-    if suffix == "stable":
-        package_name = "qsharp"
-    else:
-        package_name = f"qsharp-{suffix}"
 
-    update_package_name_args = [
-        sys.executable,  # use the current python, we aren't installing anything
-        "update_package_suffix.py",
-        suffix,
-    ]
-    print(f"Updating package name for {package_name}")
-    subprocess.run(update_package_name_args, check=True, text=True, cwd=root_dir)
-
-if os.environ.get("QSHARP_PACKAGE_VERSION") is not None:
-    version = os.environ["QSHARP_PACKAGE_VERSION"]
-
-    update_package_version_args = [
-        sys.executable,  # use the current python, we aren't installing anything
-        "update_package_version.py",
-        version,
-    ]
-    print(f"Updating packages version to {version}")
-    subprocess.run(update_package_version_args, check=True, text=True, cwd=root_dir)
 
 if npm_install_needed:
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
@@ -204,7 +245,7 @@ if build_pip:
         python_bin = sys.executable
 
     # copy the process env vars
-    pip_env: dict[str, str] = {**os.environ}
+    pip_env: dict[str, str] = os.environ.copy()
     if pip_archflags is not None:
         # if on mac, add the arch flags for universal binary
         pip_env["ARCHFLAGS"] = pip_archflags
@@ -240,7 +281,7 @@ if build_pip:
             "--force-reinstall",
             "--no-index",
             "--find-links=" + wheels_dir,
-            package_name,
+            f"qsharp-lang=={package_version}",
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]

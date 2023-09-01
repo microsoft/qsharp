@@ -1,5 +1,5 @@
 {
-  "name": "qsharp-jupyterlab-nightly",
+  "name": "qsharp-lang-jupyterlab",
   "version": "0.0.0",
   "description": "Q# extension for JupyterLab",
   "keywords": [

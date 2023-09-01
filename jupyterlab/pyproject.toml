@@ -3,7 +3,7 @@ requires = ["hatchling>=1.4.0", "jupyterlab==4.0.0", "hatch-nodejs-version"]
 build-backend = "hatchling.build"
 
 [project]
-name = "qsharp-jupyterlab-nightly"
+name = "qsharp-lang-jupyterlab"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
