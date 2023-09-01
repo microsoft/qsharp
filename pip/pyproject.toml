@@ -22,5 +22,8 @@ classifiers = [
 jupyterlab = ["qsharp_jupyterlab_nightly"]
 
 [build-system]
-requires = ["maturin ~= 0.14.16"]
+requires = ["maturin ~= 1.2.0"]
 build-backend = "maturin"
+
+[tool.maturin]
+module-name = "qsharp._native"
