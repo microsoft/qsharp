@@ -588,15 +588,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "msvc_spectre_libs"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6431d928428b689805ff8b2a0687760c3d1aa9845d165535a619e1c028bfbbb1"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "ndarray"
 version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -814,7 +805,6 @@ dependencies = [
  "indoc 2.0.0",
  "log",
  "miette",
- "msvc_spectre_libs",
  "num-bigint",
  "num-complex",
  "qsc_ast",

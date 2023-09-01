@@ -25,7 +25,6 @@ qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
 thiserror = { workspace = true }
-msvc_spectre_libs = { version = "0.1", features = ["error"] }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
