@@ -25,6 +25,15 @@ clippy_ver = (0, 1, 69)
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
 
+def install_build_deps() -> None:
+    pip_install_args = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "packaging",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True)
 
 def check_prereqs(install=False):
     ### Check the Python version ###
@@ -36,6 +45,9 @@ def check_prereqs(install=False):
             f"Python {python_ver[0]}.{python_ver[1]} or later is required. Please update"
         )
         exit(1)
+
+    if install:
+        install_build_deps()
 
     ### Check the rustc compiler version ###
     try:
