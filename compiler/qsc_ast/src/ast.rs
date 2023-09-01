@@ -123,7 +123,7 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in self.namespaces.iter() {
+        for ns in &*self.namespaces {
             write!(indent, "\n{ns}")?;
         }
         Ok(())
@@ -162,7 +162,7 @@ impl Display for Namespace {
             indent = set_indentation(indent, 1);
         }
 
-        for i in self.items.iter() {
+        for i in &*self.items {
             write!(indent, "\n{i}")?;
         }
 
@@ -213,7 +213,7 @@ impl Display for Item {
             indent = set_indentation(indent, 1);
         }
 
-        for attr in self.attrs.iter() {
+        for attr in &*self.attrs {
             write!(indent, "\n{attr}")?;
         }
 
@@ -392,7 +392,7 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for param in self.generics.iter() {
+            for param in &*self.generics {
                 write!(indent, "\n{param}")?;
             }
             indent = set_indentation(indent, 1);
@@ -610,7 +610,7 @@ impl Display for Block {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Block {} {}:", self.id, self.span)?;
             indent = set_indentation(indent, 1);
-            for s in self.stmts.iter() {
+            for s in &*self.stmts {
                 write!(indent, "\n{s}")?;
             }
         }
