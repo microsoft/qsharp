@@ -36,6 +36,8 @@ import {
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 import { EventType, sendTelemetryEvent } from "../telemetry";
+const ErrorProgramHasErrors =
+  "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
 const ConfigurationDelayMS = 1000;
 
