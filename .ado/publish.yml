@@ -49,14 +49,13 @@ jobs:
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Extension
     condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
-   
+
   - script: |
-      python build.py --wasm --npm --vscode --no-check --no-test --no-check-prereqs
+      python build.py --wasm --npm --vscode
     displayName: Build VSCode Extension
     condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
 
   - script: |
-      python -c "import shutil; shutil.copy2('../LICENSE.txt', '.')"
       vsce package --pre-release
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
@@ -86,6 +85,7 @@ jobs:
 
       chmod +x pip/build_manylinux.sh
 
+      # images: https://github.com/pypa/manylinux#docker-images
       docker run \
         --env ARCH=$ARCH --rm -i -v `pwd`:/io \
         quay.io/pypa/manylinux_2_28_$ARCH \
@@ -96,7 +96,7 @@ jobs:
     condition: eq(variables['Agent.OS'], 'Linux')
 
   - script: |
-      python build.py --jupyterlab --no-test --no-check-prereqs
+      python build.py --jupyterlab
     displayName: Build Platform-Independent Py Packages
     condition: eq(variables['Agent.OS'], '${{ variables.PlatfIndepPyPackBuildPlatf }}')
 
@@ -154,7 +154,7 @@ jobs:
       mv ../Wheels.Linux.aarch64/*.whl    target/wheels
       mv ../Wheels.Win/*.whl              target/wheels
       mv ../Wheels.Mac/*.whl              target/wheels
-      dir                                 target/wheels/*
+      ls                                  target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
 
   - download: current

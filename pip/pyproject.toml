@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-jupyterlab = ["qsharp_jupyterlab_nightly"]
+jupyterlab = ["qsharp-jupyterlab-nightly"]
 
 [build-system]
 requires = ["maturin ~= 1.2.0"]
