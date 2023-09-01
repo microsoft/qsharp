@@ -18,7 +18,7 @@ node_ver = (
     16,
     17,
 )  # Node.js version 16.17 or later is required to support the Node.js 'test' module
-wasmpack_ver = (0, 11, 0)  # Latest tested wasm-pack version
+wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
 rust_fmt_ver = (1, 5, 2)  # Current version when Rust 1.70 shipped
 clippy_ver = (0, 1, 69)
 
@@ -134,10 +134,8 @@ def check_prereqs(install=False):
 
     ### Check the wasm_pack version ###
     try:
-        # This is a workaround since the --version option was removed in the latest release.
-        wasm_pack_help = subprocess.check_output(["wasm-pack", "--help"])
-        wasm_pack_version = wasm_pack_help.decode().splitlines()[0]
-        print(f"Detected wasm-pack version {wasm_pack_version}")
+        wasm_pack_version = subprocess.check_output(["wasm-pack", "--version"])
+        print(f"Detected wasm-pack version {wasm_pack_version.decode()}")
     except FileNotFoundError:
         if install == True:
             if platform.system() == "Windows":
@@ -164,15 +162,14 @@ def check_prereqs(install=False):
                     print("Attempting to install wasm-pack")
                     subprocess.run(["sh", file_name], check=True)
 
-            wasm_pack_help = subprocess.check_output(["wasm-pack", "--help"])
-            wasm_pack_version = wasm_pack_help.decode().splitlines()[0]
+            wasm_pack_version = subprocess.check_output(["wasm-pack", "--version"])
         else:
             print(
                 "wasm-pack not found. Please install from https://rustwasm.github.io/wasm-pack/installer/"
             )
             exit(1)
 
-    version_match = re.search(r"wasm-pack (\d+)\.(\d+).\d+", wasm_pack_version)
+    version_match = re.search(r"wasm-pack (\d+)\.(\d+).\d+", wasm_pack_version.decode())
     if version_match:
         wasm_major = int(version_match.group(1))
         wasm_minor = int(version_match.group(2))
