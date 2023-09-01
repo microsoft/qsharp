@@ -59,7 +59,7 @@ fn simple_program_is_valid() {
 
             define void @ENTRYPOINT__main() #0 {
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               ret void
             }
@@ -84,7 +84,8 @@ fn simple_program_is_valid() {
             declare void @__quantum__qis__z__body(%Qubit*)
             declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
             declare void @__quantum__qis__reset__body(%Qubit*)
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
             declare void @__quantum__rt__array_record_output(i64, i8*)
             declare void @__quantum__rt__tuple_record_output(i64, i8*)
@@ -113,8 +114,8 @@ fn output_recording_array() {
             %Qubit = type opaque
 
             define void @ENTRYPOINT__main() #0 {
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
               call void @__quantum__rt__array_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -141,7 +142,8 @@ fn output_recording_array() {
             declare void @__quantum__qis__z__body(%Qubit*)
             declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
             declare void @__quantum__qis__reset__body(%Qubit*)
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
             declare void @__quantum__rt__array_record_output(i64, i8*)
             declare void @__quantum__rt__tuple_record_output(i64, i8*)
@@ -170,8 +172,8 @@ fn output_recording_tuple() {
             %Qubit = type opaque
 
             define void @ENTRYPOINT__main() #0 {
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
               call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -198,7 +200,8 @@ fn output_recording_tuple() {
             declare void @__quantum__qis__z__body(%Qubit*)
             declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
             declare void @__quantum__qis__reset__body(%Qubit*)
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
             declare void @__quantum__rt__array_record_output(i64, i8*)
             declare void @__quantum__rt__tuple_record_output(i64, i8*)
@@ -255,12 +258,12 @@ fn verify_all_intrinsics() {
               call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__cy__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
-              call void @__quantum__qis__rx__body(double 0, %Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__rxx__body(double 0, %Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
-              call void @__quantum__qis__ry__body(double 0, %Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__ryy__body(double 0, %Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
-              call void @__quantum__qis__rz__body(double 0, %Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__rzz__body(double 0, %Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
+              call void @__quantum__qis__rx__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__rxx__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
+              call void @__quantum__qis__ry__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__ryy__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
+              call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__rzz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__s__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__s__adj(%Qubit* inttoptr (i64 0 to %Qubit*))
@@ -271,9 +274,8 @@ fn verify_all_intrinsics() {
               call void @__quantum__qis__z__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__swap__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
               call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -300,7 +302,8 @@ fn verify_all_intrinsics() {
             declare void @__quantum__qis__z__body(%Qubit*)
             declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
             declare void @__quantum__qis__reset__body(%Qubit*)
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
             declare void @__quantum__rt__array_record_output(i64, i8*)
             declare void @__quantum__rt__tuple_record_output(i64, i8*)
@@ -569,18 +572,12 @@ fn complex_program_is_valid() {
               call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 2 to %Qubit*))
               call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
               call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 2 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 2 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 3 to %Qubit*), %Result* inttoptr (i64 3 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 3 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 4 to %Qubit*), %Result* inttoptr (i64 4 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 4 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 5 to %Qubit*), %Result* inttoptr (i64 5 to %Result*)) #1
-              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 5 to %Qubit*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*)) #1
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 2 to %Result*)) #1
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 3 to %Qubit*), %Result* inttoptr (i64 3 to %Result*)) #1
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 4 to %Qubit*), %Result* inttoptr (i64 4 to %Result*)) #1
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 5 to %Qubit*), %Result* inttoptr (i64 5 to %Result*)) #1
               call void @__quantum__rt__array_record_output(i64 6, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -611,7 +608,8 @@ fn complex_program_is_valid() {
             declare void @__quantum__qis__z__body(%Qubit*)
             declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
             declare void @__quantum__qis__reset__body(%Qubit*)
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
             declare void @__quantum__rt__array_record_output(i64, i8*)
             declare void @__quantum__rt__tuple_record_output(i64, i8*)

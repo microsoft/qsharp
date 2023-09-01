@@ -1,7 +1,7 @@
 # Measurements in Multi-Qubit Systems
 
 @[section]({
-    "id": "multi_qubit_measurements_overview",
+    "id": "multi_qubit_measurements__overview",
     "title": "Overview"
 })
 
@@ -26,7 +26,7 @@ $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
  
 @[section]({
-    "id": "multi_qubit_measurements_types_of_measurements",
+    "id": "multi_qubit_measurements__types_of_measurements",
     "title": "Types of Measurements"
 })
 
@@ -188,7 +188,7 @@ The amplitudes of the computational basis states after the transformation are th
 >Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
 
 @[example]({
-    "id": "multi_qubit_probabilities_2_example",
+    "id": "multi_qubit_measurements__multi_qubit_probabilities_2_example",
     "codePath": "./multi_qubit_probabilities.qs"
 })
 
@@ -209,7 +209,7 @@ For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{-
 > If we restrict ourselves to measurements in tensor product states, the distinction between measuring all the qubits simultaneously versus one after another is not important for an ideal quantum computer: in terms of the outcomes and measurement probabilities, both are identical. Furthermore, as long as all the qubits are measured, the sequence in which they are measured is also inconsequential. These factors can be  important in the case of real quantum computers with imperfect qubits, but we restrict the discussion to ideal systems in this kata.
 
 @[section]({
-    "id": "multi_qubit_measurements_measurement_statistics",
+    "id": "multi_qubit_measurements__measurement_statistics",
     "title": "Measurement Statistics for Qubit-By-Qubit Full Measurement"
 })
 
@@ -218,7 +218,7 @@ This demo illustrates the equivalence of the measurement probabilities for simul
 The simulated probabilities will be different for each run of `DemoBasisMeasurement`. The simulated and theoretical probabilities are not expected to be identical, since measurements are probabilistic. However, we expect the values to be similar, and the simulated probabilities to approach the theoretical probabilities as the parameter `numRuns` is increased.
 
 @[example]({
-    "id": "measuring_one_at_a_time",
+    "id": "multi_qubit_measurements__measuring_one_at_a_time",
     "codePath": "./measuring_one.qs"
 })
 
@@ -227,7 +227,7 @@ The simulated probabilities will be different for each run of `DemoBasisMeasurem
 Full measurements can also be used to identify the state of the system, if it is guaranteed to be in one of several possible orthogonal states.
 
 @[exercise]({
-    "id": "full_measurements",
+    "id": "multi_qubit_measurements__full_measurements",
     "title":  "Distinguish Four Basis States",
     "descriptionPath": "./full_measurements/index.md",
     "placeholderSourcePath": "./full_measurements/placeholder.qs",
@@ -240,7 +240,7 @@ Full measurements can also be used to identify the state of the system, if it is
 })
 
 @[section]({
-    "id": "multi_qubit_measurements_partial_measurements",
+    "id": "multi_qubit_measurements__partial_measurements",
     "title": "Partial Measurements"
 })
 
@@ -326,7 +326,7 @@ $$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ke
 </details>
 
 @[section]({
-    "id": "multi_qubit_measurements_measurement_statistics_for_partial_measurements",
+    "id": "multi_qubit_measurements__measurement_statistics_for_partial_measurements",
     "title": "Measurement Statistics for Partial Measurement"
 })
 
@@ -335,7 +335,7 @@ Using the `M` operation in Q#, we demonstrate that the simulated outcome probabi
 The simulated and theoretical measurement probabilities are not expected to match exactly, but should be close to each other, since measurement is probabilistic. However, the post-measurement states from the simulation should match the expected states for Exercise 4 precisely, since partial state collapse is not a probabilistic process.
 
 @[example]({
-    "id": "partial_measurements_demo",
+    "id": "multi_qubit_measurements__partial_measurements_demo",
     "codePath": "./partial_measurements_demo.qs"
 })
 
@@ -344,7 +344,7 @@ The simulated and theoretical measurement probabilities are not expected to matc
 In certain situations, it is possible to distinguish between orthogonal states of multi-qubit systems using partial measurements, as illustrated in the next exercise.
 
 @[exercise]({
-    "id": "partial_measurements_for_system",
+    "id": "multi_qubit_measurements__partial_measurements_for_system",
     "title": "Distinguish Orthogonal States Using Partial Measurements",
     "descriptionPath": "./partial_measurements_for_system/index.md",
     "placeholderSourcePath": "./partial_measurements_for_system/placeholder.qs",
@@ -357,7 +357,7 @@ In certain situations, it is possible to distinguish between orthogonal states o
 })
 
 @[section]({
-    "id": "multi_qubit_measurements_measurements_and_entanglement",
+    "id": "multi_qubit_measurements__measurements_and_entanglement",
     "title": "Measurements and Entanglement"
 })
 
@@ -407,7 +407,7 @@ For both states, consider a measurement on the first qubit, followed by a measur
 For certain multi-qubit systems prepared in a superposition state, it is possible to use partial measurements to collapse a part of the system to some desired state.
 
 @[exercise]({
-    "id": "state_modification",
+    "id": "multi_qubit_measurements__state_modification",
     "title": "State Selection Using Partial Measurements",
     "descriptionPath": "./state_modification/index.md",
     "placeholderSourcePath": "./state_modification/placeholder.qs",
@@ -420,7 +420,7 @@ For certain multi-qubit systems prepared in a superposition state, it is possibl
 })
 
 @[section]({
-    "id": "multi_qubit_measurements_state_preparation",
+    "id": "multi_qubit_measurements__state_preparation",
     "title": "State Preparation"
 })
 
@@ -429,7 +429,7 @@ However, sometimes it is easier and more efficient to prepare a state using part
 You could prepare a simpler state involving additional qubits, which, when measured, result in a collapse of the remaining qubits to the desired state with a high probability. This is called **post-selection**, and is particularly useful if it is easier to prepare the pre-measurement state with the extra qubits than to prepare the desired state directly using unitary gates alone. This is demonstrated by the following exercise.
 
 @[exercise]({
-    "id": "state_preparation",
+    "id": "multi_qubit_measurements__state_preparation_using_partial_measurements",
     "title": "State Preparation Using Partial Measurements",
     "descriptionPath": "./state_preparation/index.md",
     "placeholderSourcePath": "./state_preparation/placeholder.qs",
@@ -442,11 +442,11 @@ You could prepare a simpler state involving additional qubits, which, when measu
 })
 
 @[section]({
-    "id": "multi_qubit_measurements_joint_measurements",
+    "id": "multi_qubit_measurements__joint_measurements",
     "title": "Joint Measurements"
 })
 
-Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the [Measure](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure) operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
+Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure" target="_blank">`Measure`</a> operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
 
 ## Single-Qubit Pauli Measurement
 For single-qubit systems, any measurement corresponding to an orthogonal basis can be associated with a Hermitian matrix with eigenvalues $\pm 1$. The possible measurement outcomes (represented as `Result` in Q#) are the eigenvalues of the Hermitian matrix, and the corresponding projection matrices for the measurement are the projection operators onto the *eigenspaces* corresponding to the eigenvalues.
@@ -559,7 +559,7 @@ So this state also belongs to the $+1$ eigenspace, and measuring it will return 
 Similarly, a parity measurement on a higher number of qubits can be implemented using a $Z \otimes \dotsc \otimes Z$ measurement.
 
 @[exercise]({
-    "id": "joint_measurements",
+    "id": "multi_qubit_measurements__two_qubit_parity_measurement",
     "title": "Two-Qubit Parity Measurement",
     "descriptionPath": "./joint_measurements/index.md",
     "placeholderSourcePath": "./joint_measurements/placeholder.qs",
@@ -572,7 +572,7 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 })
 
 @[section]({
-    "id": "multi_qubit_measurements_pauli_measurements",
+    "id": "multi_qubit_measurements__pauli_measurements",
     "title": "Multi-Qubit Pauli Measurements"
 })
 
@@ -638,7 +638,7 @@ Thus, this state has an even parity in the Hadamard basis. It follows that an $X
 </details>
 
 @[section]({
-    "id": "multi_qubit_measurements_conclusion",
+    "id": "multi_qubit_measurements__conclusion",
     "title": "Conclusion"
 })
 

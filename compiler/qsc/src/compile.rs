@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::error::WithSource;
 use miette::{Diagnostic, Report};
-use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::{
+    compile::{CompileUnit, PackageStore, SourceMap, TargetProfile},
+    error::WithSource,
+};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
@@ -52,7 +54,7 @@ pub fn core() -> CompileUnit {
         unit
     } else {
         for error in pass_errors {
-            let report = Report::new(WithSource::from_map(&unit.sources, error, None));
+            let report = Report::new(WithSource::from_map(&unit.sources, error));
             eprintln!("{report:?}");
         }
 
@@ -73,7 +75,7 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
         unit
     } else {
         for error in pass_errors {
-            let report = Report::new(WithSource::from_map(&unit.sources, error, None));
+            let report = Report::new(WithSource::from_map(&unit.sources, error));
             eprintln!("{report:?}");
         }
 
