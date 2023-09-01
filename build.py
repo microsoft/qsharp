@@ -105,6 +105,22 @@ pip_src = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
 jupyterlab_src = os.path.join(root_dir, "jupyterlab")
+package_name = "qsharp-nightly"
+
+if os.environ.get("QSHARP_PACKAGE_SUFFIX") is not None:
+    suffix = os.environ["QSHARP_PACKAGE_SUFFIX"]
+    if suffix == "stable":
+        package_name = "qsharp"
+    else:
+        package_name = f"qsharp-{suffix}"
+
+    update_package_name_args = [
+        sys.executable,  # use the current python, we aren't installing anything
+        "update_package_suffix.py",
+        suffix,
+    ]
+    print(f"Updating package name for {package_name}")
+    subprocess.run(update_package_name_args, check=True, text=True, cwd=root_dir)
 
 if npm_install_needed:
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
@@ -213,7 +229,7 @@ if build_pip:
             "--force-reinstall",
             "--no-index",
             "--find-links=" + wheels_dir,
-            "qsharp",
+            package_name,
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]

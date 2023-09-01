@@ -1,5 +1,5 @@
 [project]
-name = "qsharp"
+name = "qsharp-nightly"
 version = "0.0.0"
 requires-python = ">= 3.7"
 classifiers = [
@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-jupyterlab = ["qsharp_jupyterlab"]
+jupyterlab = ["qsharp_jupyterlab_nightly"]
 
 [build-system]
 requires = ["maturin ~= 0.14.16"]
