@@ -34,6 +34,9 @@ def python_ver_to_rust_ver_str(ver: Version) -> str:
         parts.append("-") # rust ver needs a - if there is a pre-release
         parts.append("".join(str(x) for x in ver.pre))
 
+    if ver.dev is not None:
+        parts.append(f"-dev{ver.dev}")
+
     return "".join(parts)
 
 def update_package_version() -> str:
