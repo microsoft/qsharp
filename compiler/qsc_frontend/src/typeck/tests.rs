@@ -2054,14 +2054,14 @@ fn newtype_unwrap() {
             }
         "},
         "",
-        &expect![[r#"
-            #17 61-70 "(x : Foo)" : UDT<Item 1>
-            #18 62-69 "x : Foo" : UDT<Item 1>
-            #24 76-103 "{\n        let y = x!;\n    }" : Unit
-            #26 90-91 "y" : (Int, Bool)
-            #28 94-96 "x!" : (Int, Bool)
-            #29 94-95 "x" : UDT<Item 1>
-        "#]],
+        &expect![[r##"
+            #16 61-70 "(x : Foo)" : UDT<Item 1>
+            #17 62-69 "x : Foo" : UDT<Item 1>
+            #23 76-103 "{\n        let y = x!;\n    }" : Unit
+            #25 90-91 "y" : (Int, Bool)
+            #27 94-96 "x!" : (Int, Bool)
+            #28 94-95 "x" : UDT<Item 1>
+        "##]],
     );
 }
 
