@@ -20,6 +20,7 @@ pub(super) struct Scanner<'a> {
     tokens: Lexer<'a>,
     barriers: Vec<&'a [TokenKind]>,
     errors: Vec<Error>,
+    recovered_eof: bool,
     peek: Token,
     offset: u32,
 }
@@ -36,6 +37,7 @@ impl<'a> Scanner<'a> {
                 .into_iter()
                 .map(|e| Error(ErrorKind::Lex(e)))
                 .collect(),
+            recovered_eof: false,
             peek: peek.unwrap_or_else(|| eof(input.len())),
             offset: 0,
         }
@@ -98,7 +100,11 @@ impl<'a> Scanner<'a> {
     }
 
     pub(super) fn push_error(&mut self, error: Error) {
-        self.errors.push(error);
+        let is_eof_err = matches!(error.0, ErrorKind::Token(_, TokenKind::Eof, _));
+        if !is_eof_err || !self.recovered_eof {
+            self.errors.push(error);
+            self.recovered_eof = self.recovered_eof || is_eof_err;
+        }
     }
 
     pub(super) fn into_errors(self) -> Vec<Error> {
