@@ -3,6 +3,9 @@
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.extraArgs": [
+      "--all-targets"
+    ],
     "[css]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.formatOnSave": true
