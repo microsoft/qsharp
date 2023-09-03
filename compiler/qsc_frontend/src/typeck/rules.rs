@@ -329,11 +329,13 @@ impl<'a> Context<'a> {
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
                 let prev_ret_ty = self.return_ty.take();
-                let output_ty =
-                    self.inferrer.fresh_ty(TySource::not_divergent(body.span));
+                let output_ty = self.inferrer.fresh_ty(TySource::not_divergent(body.span));
                 self.return_ty = Some(output_ty);
                 let body_ty = self.infer_expr(body).ty;
-                let output_ty = self.return_ty.take().expect("return type should be present");
+                let output_ty = self
+                    .return_ty
+                    .take()
+                    .expect("return type should be present");
                 self.return_ty = prev_ret_ty;
                 if body_ty != Ty::UNIT {
                     self.inferrer.eq(body.span, output_ty.clone(), body_ty);
