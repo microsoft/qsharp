@@ -152,7 +152,7 @@ export class QscDebugSession extends LoggingDebugSession {
     sendTelemetryEvent(
       EventType.DebugSessionStart,
       {},
-      { timeToStart: end - start }
+      { timeToStartMs: end - start }
     );
   }
 

@@ -27,13 +27,13 @@ type EventTypes = {
   [EventType.DebugSessionStart]: {
     properties: Empty;
     measurements: {
-      timeToStart: number;
+      timeToStartMs: number;
     };
   };
   [EventType.LoadLanguageService]: {
     properties: Empty;
     measurements: {
-      timeToStart: number;
+      timeToStartMs: number;
     };
   };
 };

@@ -167,7 +167,7 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   sendTelemetryEvent(
     EventType.LoadLanguageService,
     {},
-    { timeToStart: end - start }
+    { timeToStartMs: end - start }
   );
   return service;
 }
