@@ -45,7 +45,7 @@ export function initTelemetry(context: vscode.ExtensionContext) {
 export function sendTelemetryEvent<E extends keyof EventTypes>(
   event: E,
   properties: EventTypes[E]["properties"] = {},
-  measurements: EventTypes[E]["measurements"] = {},
+  measurements: EventTypes[E]["measurements"] = {}
 ) {
   if (reporter !== undefined) {
     reporter.sendTelemetryEvent(event, properties, measurements);
