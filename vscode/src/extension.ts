@@ -162,8 +162,8 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const end = performance.now();
   const service = await getLanguageService();
+  const end = performance.now();
   sendTelemetryEvent(
     EventType.LoadLanguageService,
     {},

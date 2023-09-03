@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import TelemetryReporter from "@vscode/extension-telemetry";
+import {
+  TelemetryReporter,
+  TelemetryEventMeasurements,
+  TelemetryEventProperties,
+} from "@vscode/extension-telemetry";
 import { log } from "qsharp";
 // the application insights key (also known as instrumentation key)
 const key = "175861b7-3a41-4015-9571-1d930b8b0722";
@@ -34,11 +38,23 @@ type EventTypes = {
   };
 };
 
+type WrappedTelemetryEvent = {
+  id: string;
+  data?: {
+    measurements: TelemetryEventMeasurements;
+    properties: TelemetryEventProperties;
+  };
+};
+
 export function initTelemetry(context: vscode.ExtensionContext) {
-  // create telemetry reporter on extension activation
-  reporter = new TelemetryReporter(key);
-  // ensure it gets properly disposed. Upon disposal the events will be flushed
-  context.subscriptions.push(reporter);
+  const reporter = new TelemetryReporter(key);
+  log.setTelemetryCollector(
+    ({
+      id,
+      data: { properties, measurements } = { properties: {}, measurements: {} },
+    }: WrappedTelemetryEvent) =>
+      reporter.sendTelemetryEvent(id, properties, measurements)
+  );
   sendTelemetryEvent(EventType.Initialize, {}, {});
 }
 
@@ -47,6 +63,7 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
   properties: EventTypes[E]["properties"] = {},
   measurements: EventTypes[E]["measurements"] = {}
 ) {
+  log.logTelemetry({ id: event, data: { properties, measurements } });
   if (reporter !== undefined) {
     reporter.sendTelemetryEvent(event, properties, measurements);
     log.info(`Sent telemetry event ${event}`);
