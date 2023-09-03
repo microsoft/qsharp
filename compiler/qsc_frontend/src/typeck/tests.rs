@@ -2329,6 +2329,38 @@ fn infinite() {
 }
 
 #[test]
+fn lambda_inner_return() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let f = () -> {
+                        return 42;
+                    };
+                    let r = f();
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 40-126 "{\n        let f = () -> {\n            return 42;\n        };\n        let r = f();\n    }" : Unit
+            #12 54-55 "f" : (Unit -> Int)
+            #14 58-98 "() -> {\n            return 42;\n        }" : (Unit -> Int)
+            #15 58-60 "()" : Unit
+            #16 64-98 "{\n            return 42;\n        }" : Int
+            #17 64-98 "{\n            return 42;\n        }" : Int
+            #19 78-87 "return 42" : Unit
+            #20 85-87 "42" : Int
+            #22 112-113 "r" : Int
+            #24 116-119 "f()" : Int
+            #25 116-117 "f" : (Unit -> Int)
+            #28 117-119 "()" : Unit
+        "#]],
+    );
+}
+
+#[test]
 fn lambda_adj() {
     check(
         indoc! {"
