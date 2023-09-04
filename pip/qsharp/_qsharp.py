@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from urllib import request
 from ._native import Interpreter, TargetProfile
 
 _interpreter = None
@@ -88,4 +89,17 @@ class QirInputData:
     # The name of this method is defined
     # by the protocol and must remain unchanged.
     def _repr_qir_(self, **kwargs) -> bytes:
-        return self._ll_str.encode("utf-8")
+        target_name = ""
+        if "target" in kwargs.keys() and isinstance(kwargs["target"], str):
+            target_name = kwargs["target"].split(".")[0]
+
+        req = request.Request(
+            url="https://qsx-proxy.azurewebsites.net/api/compile",
+            headers={
+                "Content-Type": "application/octet-stream",
+                "x-hardware-target": target_name,
+            },
+            data=self._ll_str.encode(),
+        )
+        with request.urlopen(req) as f:
+            return f.read()
