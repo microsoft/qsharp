@@ -11,15 +11,15 @@ def test_compile_qir_input_data() -> None:
     operation = qsharp.compile("Program()")
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
-    module = Module.from_ir(Context(), qir.decode(), "module")
-    assert len(module.functions) == 26
+    module = Module.from_bitcode(Context(), qir, "module")
+    assert len(module.functions) == 3
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
     assert len(func.basic_blocks) == 1
     assert len(func.basic_blocks[0].instructions) == 3
     call_m = func.basic_blocks[0].instructions[0]
     assert isinstance(call_m, Call)
-    assert call_m.callee.name == "__quantum__qis__m__body"
+    assert call_m.callee.name == "__quantum__qis__mz__body"
     assert len(call_m.args) == 2
     assert qubit_id(call_m.args[0]) == 0
     assert result_id(call_m.args[1]) == 0
@@ -60,9 +60,9 @@ def test_compile_qir_all_gates() -> None:
         Microsoft.Quantum.Measurement.MResetZ(q1))\
         }"
     )
-    qir = operation._repr_qir_()
-    assert isinstance(qir, bytes)
-    module = Module.from_ir(Context(), qir.decode(), "module")
+    qir = operation._ll_str
+    assert isinstance(qir, str)
+    module = Module.from_ir(Context(), qir, "module")
     assert len(module.functions) == 26
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
