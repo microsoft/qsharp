@@ -410,7 +410,7 @@ impl Inferrer {
         self.solver
             .errors
             .drain(..)
-            .chain(unresolved_ty_errs.into_iter())
+            .chain(unresolved_ty_errs)
             .collect()
     }
 
@@ -735,10 +735,10 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 
 fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     let Ty::Arrow(arrow) = callee else {
-        return (Vec::new(), vec![Error(ErrorKind::MissingClassCall(
-            callee,
-            span,
-        ))]);
+        return (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClassCall(callee, span))],
+        );
     };
 
     let mut app = input.apply(&arrow.input, span);
@@ -772,10 +772,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let Ty::Arrow(arrow) = op else {
         return (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassCtl(
-                op,
-                span,
-            ))],
+            vec![Error(ErrorKind::MissingClassCtl(op, span))],
         );
     };
 

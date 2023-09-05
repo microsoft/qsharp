@@ -472,10 +472,14 @@ impl Udt {
     fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
         let mut udt_def = &self.definition;
         for &index in &path.indices {
-            let UdtDefKind::Tuple(items) = &udt_def.kind else { return None };
+            let UdtDefKind::Tuple(items) = &udt_def.kind else {
+                return None;
+            };
             udt_def = &items[index];
         }
-        let UdtDefKind::Field(field) = &udt_def.kind else { return None };
+        let UdtDefKind::Field(field) = &udt_def.kind else {
+            return None;
+        };
         Some(field)
     }
 
@@ -544,7 +548,7 @@ impl Display for UdtDefKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for t in ts.iter() {
+                    for t in ts {
                         write!(indent, "\n{t}")?;
                     }
                 }

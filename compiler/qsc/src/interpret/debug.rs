@@ -26,7 +26,9 @@ pub(crate) fn format_call_stack(
     frames.reverse();
 
     for frame in frames {
-        let Some(Global::Callable(call)) = globals.get(frame.id) else { panic!("missing global"); };
+        let Some(Global::Callable(call)) = globals.get(frame.id) else {
+            panic!("missing global");
+        };
 
         trace.push_str("    at ");
         if frame.functor.adjoint {
