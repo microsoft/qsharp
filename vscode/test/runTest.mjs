@@ -1,10 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// @ts-check
+
 // Adapted from the sample at
 // https://github.com/microsoft/vscode-test-web/blob/3f0f858ab15cb65ef3c19564b0f5a6910ea9414e/sample/src/web/test/runTest.ts
-
-// @ts-check
+//
+// This script is run using Node.js in the dev environment. It will
+// download the latest Insiders build of VS Code for the Web and launch
+// it in a headless instance of Chromium to run the integration test suite.
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
