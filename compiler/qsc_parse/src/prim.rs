@@ -195,9 +195,12 @@ pub(super) fn recovering<T>(
     match p(s) {
         Ok(value) => Ok(value),
         Err(error) if advanced(s, offset) => {
-            s.push_error(error);
-            s.recover(tokens);
-            Ok(default(s.span(offset)))
+            if s.recover(tokens) {
+                s.push_error(error);
+                Ok(default(s.span(offset)))
+            } else {
+                Err(error)
+            }
         }
         Err(error) => Err(error),
     }
@@ -207,9 +210,12 @@ pub(super) fn recovering_token(s: &mut Scanner, t: TokenKind) -> Result<()> {
     match token(s, t) {
         Ok(()) => Ok(()),
         Err(error) => {
-            s.push_error(error);
-            s.recover(&[t]);
-            Ok(())
+            if s.recover(&[t]) {
+                s.push_error(error);
+                Ok(())
+            } else {
+                Err(error)
+            }
         }
     }
 }

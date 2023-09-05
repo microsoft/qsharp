@@ -20,7 +20,6 @@ pub(super) struct Scanner<'a> {
     tokens: Lexer<'a>,
     barriers: Vec<&'a [TokenKind]>,
     errors: Vec<Error>,
-    recovered_eof: bool,
     peek: Token,
     offset: u32,
 }
@@ -37,7 +36,6 @@ impl<'a> Scanner<'a> {
                 .into_iter()
                 .map(|e| Error(ErrorKind::Lex(e)))
                 .collect(),
-            recovered_eof: false,
             peek: peek.unwrap_or_else(|| eof(input.len())),
             offset: 0,
         }
@@ -85,14 +83,17 @@ impl<'a> Scanner<'a> {
     /// Tries to recover from a parse error by advancing tokens until any of the given recovery
     /// tokens, or a barrier token, is found. If a recovery token is found, it is consumed. If a
     /// barrier token is found first, it is not consumed.
-    pub(super) fn recover(&mut self, tokens: &[TokenKind]) {
+    /// Returns a Boolean indicated whether recover occurred before EOF.
+    pub(super) fn recover(&mut self, tokens: &[TokenKind]) -> bool {
         loop {
             let peek = self.peek.kind;
             if contains(peek, tokens) {
                 self.advance();
-                break;
-            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
-                break;
+                break true;
+            } else if self.barriers.iter().any(|&b| contains(peek, b)) {
+                break true;
+            } else if peek == TokenKind::Eof {
+                break false;
             } else {
                 self.advance();
             }
@@ -100,11 +101,7 @@ impl<'a> Scanner<'a> {
     }
 
     pub(super) fn push_error(&mut self, error: Error) {
-        let is_eof_err = matches!(error.0, ErrorKind::Token(_, TokenKind::Eof, _));
-        if !is_eof_err || !self.recovered_eof {
-            self.errors.push(error);
-            self.recovered_eof = self.recovered_eof || is_eof_err;
-        }
+        self.errors.push(error);
     }
 
     pub(super) fn into_errors(self) -> Vec<Error> {
