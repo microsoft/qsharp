@@ -30,7 +30,9 @@ pub(super) fn eval_expr(
     let mut env = Env::with_empty_scope();
     let mut sim = SparseSim::new();
     state.push_expr(expr);
-    let StepResult::Return(value) = state.eval(globals, &mut env, &mut sim, out, &[], StepAction::Continue)? else{
+    let StepResult::Return(value) =
+        state.eval(globals, &mut env, &mut sim, out, &[], StepAction::Continue)?
+    else {
         unreachable!("eval_expr should always return a value");
     };
     Ok(value)

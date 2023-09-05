@@ -19,7 +19,7 @@ We can shorten the code a bit using the `within ... apply` construct which takes
     "codePath": "./SolutionB.qs"
 })
 
-Finally, here is how the exact same task could be realized using the library function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring).
+Finally, here is how the exact same task could be realized using the library function <a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring" target="_blank">ApplyControlledOnBitString</a>.
 
 @[solution]({
     "id": "multi_qubit_gates__arbitrary_controlled_solution_c",

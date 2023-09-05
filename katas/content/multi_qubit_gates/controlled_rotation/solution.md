@@ -1,4 +1,4 @@
-In Q# the [Rx](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx) gate takes the angle $\theta$ and the target qubit as inputs. To create a controlled version of this gate, we can use the `Controlled` functor.
+In Q# the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx" target="_blank">Rx</a> gate takes the angle $\theta$ and the target qubit as inputs. To create a controlled version of this gate, we can use the `Controlled` functor.
 
 A matrix representation of this operation would be:
 

@@ -8,6 +8,6 @@ A floating-point number $x$, $0 \le x \le 1$.
 **Goal:** Generate $0$ or $1$ with probability of $0$ equal to $x$ and probability of $1$ equal to $1 - x$.
 
 > Useful Q# documentation: 
-> * [`Math` namespace](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math)
-> * [`ArcCos` function](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.arccos)
-> * [`Sqrt` function](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.sqrt)
+> * <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math" target="_blank">`Math` namespace</a>
+> * <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.arccos" target="_blank">`ArcCos` function</a>
+> * <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.sqrt" target="_blank">`Sqrt` function</a>

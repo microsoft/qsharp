@@ -220,11 +220,13 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
         let ctl_adj = &mut decl.ctl_adj;
 
         let SpecBody::Impl(_, body_block) = &body.body else {
-                if body.body == SpecBody::Gen(SpecGen::Intrinsic) && [adj, ctl, ctl_adj].into_iter().any(|x| Option::is_some(x)) {
-                    self.errors.push(Error::MissingBody(body.span));
-                }
-                return;
-            };
+            if body.body == SpecBody::Gen(SpecGen::Intrinsic)
+                && [adj, ctl, ctl_adj].into_iter().any(|x| Option::is_some(x))
+            {
+                self.errors.push(Error::MissingBody(body.span));
+            }
+            return;
+        };
 
         if let Some(ctl) = ctl.as_mut() {
             if ctl.body == SpecBody::Gen(SpecGen::Distribute)

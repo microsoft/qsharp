@@ -340,7 +340,7 @@ mod test {
             code,
             expr,
             |_msg_| {
-                assert!(_msg_.contains(r#"\ta\n\t"#) || _msg_.contains("result"));
+                assert!(_msg_.contains(r"\ta\n\t") || _msg_.contains("result"));
             },
             1,
         );

@@ -30,7 +30,7 @@ However, in "black box" testing, the tester doesn't have access to the details o
 Formally, a **classical oracle** is a function that, provided some input, produces a *deterministic* output
 (the same input *always* results in the same output).
 
-Some classical problems (typically [decision problems](https://en.wikipedia.org/wiki/Decision_problem)) are also expressed in terms of oracles; in this case we do not care about how the function is implemented, but only about the functionality that it provides.  
+Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decision_problem" target="_blank">decision problems</a>) are also expressed in terms of oracles; in this case we do not care about how the function is implemented, but only about the functionality that it provides.  
 
 > Suppose I provided you a function which takes two list parameters as input, where these lists represent the availability of two employees at a company during the week.  The function returns true if there is a day (Monday, Tuesday, Wednesday, Thursday, or Friday) for which they are both free and could schedule a meeting, and false if no such date exists.
 >
@@ -95,7 +95,7 @@ The phase oracle that implements this function will take an array of 3 qubits as
 
 @[example]({"id": "oracles__phase_oracle_alt_bit", "codePath": "./phase_oracle_alt_bit.qs"})
 
-We introduced the function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) provided by the Q# Standard library.
+We introduced the function <a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring" target="_blank">`ApplyControlledOnBitString`</a> provided by the Q# Standard library.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
  
 The sequence of steps that implement this variant are:
@@ -103,7 +103,7 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this [conjugation pattern](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations), the time complexity of this function is $2N$, where N is the number of control qubits.
+Due to this <a href="https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations" target="_blank">conjugation pattern</a>, the time complexity of this function is $2N$, where N is the number of control qubits.
 
 > Notice that the input state in the demo above is an equal superposition of all basis states. 
 After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
@@ -403,5 +403,5 @@ Congratulations! In this kata you have learned to build quantum oracles. Here ar
 **Next Steps**
 
 We hope you enjoyed this kata! If you're looking to learn more about quantum oracles and Q#, here are some suggestions:
-* To learn about the Grover's algorithm, you can check [Microsoft Learn module "Solve graph coloring problems by using Grover's search"](https://learn.microsoft.com/en-us/training/modules/solve-graph-coloring-problems-grovers-search/).
-* To learn more about the Q# libraries, you can check the [The Q# user guide](https://learn.microsoft.com/en-us/azure/quantum/user-guide/libraries/?tabs=tabid-clivscode).
+* To learn about the Grover's algorithm, you can check <a href="https://learn.microsoft.com/en-us/training/modules/solve-graph-coloring-problems-grovers-search/" target="_blank">Microsoft Learn module "Solve graph coloring problems by using Grover's search"</a>.
+* To learn more about the Q# libraries, you can check the <a href="https://learn.microsoft.com/en-us/azure/quantum/user-guide/libraries/?tabs=tabid-clivscode" target="_blank">The Q# user guide</a>.

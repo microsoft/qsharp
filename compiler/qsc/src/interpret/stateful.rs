@@ -248,6 +248,9 @@ impl Interpreter {
     /// Resumes execution with specified `StepAction`.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn eval_step(
         &mut self,
         receiver: &mut impl Receiver,
@@ -292,6 +295,9 @@ impl Interpreter {
     /// Executes the entry expression until the end of execution.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
         let globals = Lookup {
@@ -391,6 +397,13 @@ impl Interpreter {
                 })
                 .collect());
         }
+
+        // Items must be processed before top-level statements, so sort the fragments.
+        // Note that stable sorting is used here to preserve the order of top-level statements.
+        fragments.sort_by_key(|f| match f {
+            Fragment::Item(_) => 0,
+            Fragment::Stmt(_) => 1,
+        });
 
         for fragment in fragments {
             match fragment {
@@ -584,6 +597,9 @@ impl Interpreter {
         format_call_stack(&self.store, &globals, call_stack, error)
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_stack_frames(&self) -> Vec<StackFrame> {
         let globals = Lookup {
@@ -628,6 +644,9 @@ impl Interpreter {
         self.sim.capture_quantum_state()
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_breakpoints(&self, path: &str) -> Vec<BreakpointSpan> {
         let unit = self
