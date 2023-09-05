@@ -338,6 +338,8 @@ impl<'a> Context<'a> {
                     .expect("return type should be present");
                 self.return_ty = prev_ret_ty;
                 if body_ty != Ty::UNIT {
+                    // Only when the type of the body is not `UNIT` do we need to unify with the inferred output type.
+                    // Otherwise we'd get spurious errors from lambdas that use explicit return-expr rather than implicit.
                     self.inferrer.eq(body.span, output_ty.clone(), body_ty);
                 }
                 converge(Ty::Arrow(Box::new(Arrow {
