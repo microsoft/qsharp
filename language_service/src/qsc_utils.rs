@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc::{
+    ast,
     compile::{self, Error},
     hir::{Item, ItemId, Package, PackageId},
     CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
@@ -68,4 +69,43 @@ pub(crate) fn find_item<'a>(
         &compilation.unit.package
     };
     (package.items.get(id.item), Some(package))
+}
+
+pub(crate) fn find_ident<'a>(
+    node_id: &'a ast::NodeId,
+    callable: &'a ast::CallableDecl,
+) -> Option<&'a ast::Ident> {
+    let mut finder = AstIdentFinder {
+        node_id,
+        ident: None,
+    };
+    {
+        use ast::visit::Visitor;
+        finder.visit_callable_decl(callable);
+    }
+    finder.ident
+}
+
+struct AstIdentFinder<'a> {
+    pub node_id: &'a ast::NodeId,
+    pub ident: Option<&'a ast::Ident>,
+}
+
+impl<'a> ast::visit::Visitor<'a> for AstIdentFinder<'a> {
+    fn visit_pat(&mut self, pat: &'a ast::Pat) {
+        match &*pat.kind {
+            ast::PatKind::Bind(ident, _) => {
+                if ident.id == *self.node_id {
+                    self.ident = Some(ident);
+                }
+            }
+            _ => ast::visit::walk_pat(self, pat),
+        }
+    }
+
+    fn visit_expr(&mut self, expr: &'a ast::Expr) {
+        if self.ident.is_none() {
+            ast::visit::walk_expr(self, expr);
+        }
+    }
 }
