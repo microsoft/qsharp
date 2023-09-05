@@ -707,4 +707,10 @@ fn two_files_error_eof() {
         .collect();
 
     assert_eq!(vec![("test1", Span { lo: 15, hi: 15 }),], errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [16-32] (Public):
+                Namespace (Ident 0 [26-29] "Bar"): <empty>"#]]
+    .assert_eq(&unit.package.to_string());
 }
