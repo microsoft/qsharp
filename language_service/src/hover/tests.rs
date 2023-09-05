@@ -156,6 +156,80 @@ fn callable_ref_functors() {
 }
 
 #[test]
+fn callable_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(◉↘x◉: Int) : Unit { let y = x; }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x: Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x: Int) : Unit { let y = ◉↘x◉; }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x: Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_spec_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x: Int): Unit is Ctl {
+                body ... { let y = x; }
+                controlled (◉↘ctrl◉, ...) { let z = ctrl; }
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            ctrl: Qubit[]
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_spec_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x: Int): Unit is Ctl {
+                body ... { let y = x; }
+                controlled (ctrl, ...) { let z = ◉↘ctrl◉; }
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            ctrl: Qubit[]
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn identifier() {
     check(
         indoc! {r#"

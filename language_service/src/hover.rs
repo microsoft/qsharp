@@ -131,6 +131,19 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
         }
     }
 
+    fn visit_spec_decl(&mut self, decl: &'a ast::SpecDecl) {
+        // Walk Spec Decl
+        match &decl.body {
+            ast::SpecBody::Gen(_) => {}
+            ast::SpecBody::Impl(pat, block) => {
+                self.in_params = true;
+                self.visit_pat(pat);
+                self.in_params = false;
+                self.visit_block(block);
+            }
+        }
+    }
+
     fn visit_ty_def(&mut self, def: &'a ast::TyDef) {
         if span_contains(def.span, self.offset) {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
@@ -314,7 +327,20 @@ fn protocol_span(span: qsc::Span, source_map: &SourceMap) -> protocol::Span {
 
 fn curr_callable_to_params(curr_callable: Option<&ast::CallableDecl>) -> Vec<&ast::Pat> {
     match curr_callable {
-        Some(decl) => vec![decl.input.as_ref()],
+        Some(decl) => match &*decl.body {
+            ast::CallableBody::Block(_) => vec![decl.input.as_ref()],
+            ast::CallableBody::Specs(spec_decls) => {
+                let mut pats = spec_decls
+                    .iter()
+                    .filter_map(|spec| match &spec.body {
+                        ast::SpecBody::Gen(_) => None,
+                        ast::SpecBody::Impl(input, _) => Some(input.as_ref()),
+                    })
+                    .collect::<Vec<&ast::Pat>>();
+                pats.push(decl.input.as_ref());
+                pats
+            }
+        },
         None => vec![],
     }
 }
