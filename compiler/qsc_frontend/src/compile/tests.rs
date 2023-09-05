@@ -710,7 +710,9 @@ fn two_files_error_eof() {
 
     expect![[r#"
         Package:
-            Item 0 [16-32] (Public):
-                Namespace (Ident 0 [26-29] "Bar"): <empty>"#]]
+            Item 0 [0-15] (Public):
+                Namespace (Ident 0 [10-13] "Foo"): <empty>
+            Item 1 [16-32] (Public):
+                Namespace (Ident 1 [26-29] "Bar"): <empty>"#]]
     .assert_eq(&unit.package.to_string());
 }
