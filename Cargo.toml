@@ -17,6 +17,7 @@ members = [
     "pip",
     "wasm",
 ]
+resolver = "2"
 
 [workspace.package]
 authors = ["Microsoft"]

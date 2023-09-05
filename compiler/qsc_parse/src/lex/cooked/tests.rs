@@ -60,7 +60,9 @@ fn op_string(kind: TokenKind) -> Option<String> {
 #[test]
 fn basic_ops() {
     for kind in enum_iterator::all() {
-        let Some(input) = op_string(kind) else { continue };
+        let Some(input) = op_string(kind) else {
+            continue;
+        };
         let actual: Vec<_> = Lexer::new(&input).collect();
         let len = input
             .len()
