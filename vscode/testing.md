@@ -29,5 +29,5 @@ npm test
 ```
 
 This will run the integration tests in an instance of VS Code for the Web.
-See `test/runTests.mjs` and `test/suite/index.ts` for more details on how tests are
+See [test/runTests.mjs](test/runTests.mjs) and [test/suite/index.ts](test/runTests.mjs) for more details on how tests are
 discovered and run.
