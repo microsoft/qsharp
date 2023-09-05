@@ -301,7 +301,7 @@ impl Resolver {
                 .namespaces
                 .insert(Rc::clone(&namespace.name.name));
 
-            for item in namespace.items.iter() {
+            for item in &*namespace.items {
                 match bind_global_item(
                     &mut self.names,
                     &mut self.globals,
@@ -357,7 +357,7 @@ impl AstVisitor<'_> for With<'_> {
 
         let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
         self.with_scope(kind, |visitor| {
-            for item in namespace.items.iter() {
+            for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
                     visitor.resolver.bind_open(name, alias);
                 }
@@ -402,7 +402,7 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_block(&mut self, block: &ast::Block) {
         self.with_scope(ScopeKind::Block, |visitor| {
-            for stmt in block.stmts.iter() {
+            for stmt in &*block.stmts {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
                     visitor.resolver.bind_local_item(visitor.assigner, item);
                 }
@@ -499,7 +499,7 @@ impl GlobalTable {
         package: &ast::Package,
     ) -> Vec<Error> {
         let mut errors = Vec::new();
-        for namespace in package.namespaces.iter() {
+        for namespace in &*package.namespaces {
             self.names.insert(
                 namespace.name.id,
                 Res::Item(intrapackage(assigner.next_item())),
@@ -508,7 +508,7 @@ impl GlobalTable {
                 .namespaces
                 .insert(Rc::clone(&namespace.name.name));
 
-            for item in namespace.items.iter() {
+            for item in &*namespace.items {
                 match bind_global_item(
                     &mut self.names,
                     &mut self.scope,

@@ -185,6 +185,9 @@ where
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
         eval_expr(

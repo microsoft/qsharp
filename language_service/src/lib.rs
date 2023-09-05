@@ -81,6 +81,9 @@ impl<'a> LanguageService<'a> {
 
     /// Indicates that the client is no longer interested in the document,
     /// typically occurs when the document is closed in the editor.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn close_document(&mut self, uri: &str) {
         trace!("close_document: {uri:?}");
         let document_state = self.document_map.remove(uri);
@@ -96,6 +99,9 @@ impl<'a> LanguageService<'a> {
         );
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_completions(&self, uri: &str, offset: u32) -> CompletionList {
         trace!("get_completions: uri: {uri:?}, offset: {offset:?}");
@@ -110,6 +116,9 @@ impl<'a> LanguageService<'a> {
         res
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
         trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
@@ -122,6 +131,9 @@ impl<'a> LanguageService<'a> {
         res
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
         trace!("get_hover: uri: {uri:?}, offset: {offset:?}");
