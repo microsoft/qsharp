@@ -131,7 +131,7 @@
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build": "npm run tsc:check && node build.mjs",
     "start": "npm exec --no @vscode/test-web --extensionDevelopmentPath . ../samples",
-    "test": "node ./test/runTest.mjs"
+    "test": "node ./test/runTests.mjs"
   },
   "repository": {
     "type": "git",
