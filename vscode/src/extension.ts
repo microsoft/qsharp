@@ -20,6 +20,7 @@ import {
   qsharpDocumentFilter,
   qsharpNotebookCellDocumentFilter,
 } from "./common.js";
+import { createSignatureHelpProvider } from "./signature.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -62,6 +63,14 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerDefinitionProvider(
       "qsharp",
       createDefinitionProvider(languageService)
+    )
+  );
+
+  // signature help
+  context.subscriptions.push(
+    vscode.languages.registerSignatureHelpProvider(
+      "qsharp",
+      createSignatureHelpProvider(languageService)
     )
   );
 
