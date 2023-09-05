@@ -170,6 +170,8 @@ pub struct Interpreter {
     target: TargetProfile,
 }
 
+pub type LineResult = Result<Value, Vec<LineError>>;
+
 impl Interpreter {
     /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
@@ -356,11 +358,7 @@ impl Interpreter {
     /// If the parsing of the line fails, an error is returned.
     /// If the compilation of the line fails, an error is returned.
     /// If there is a runtime error when interpreting the line, an error is returned.
-    pub fn interpret_line(
-        &mut self,
-        receiver: &mut impl Receiver,
-        line: &str,
-    ) -> Result<Value, Vec<LineError>> {
+    pub fn interpret_line(&mut self, receiver: &mut impl Receiver, line: &str) -> LineResult {
         let mut result = Value::unit();
 
         let label = self.next_line_label();
@@ -443,6 +441,119 @@ impl Interpreter {
         }
 
         Ok(result)
+    }
+
+    /// Runs the given entry expression on a new instance of the environment and simulator,
+    /// but using the current compilation.
+    /// # Errors
+    /// If the parsing of the expr fails, an error is returned.
+    /// If the compilation of the expr fails, an error is returned.
+    /// If there is a runtime error when generating code for the expr, an error is returned.
+    /// # Panics
+    /// If internal compiler state is inconsistent, a panic may occur.
+    pub fn run(
+        &mut self,
+        receiver: &mut impl Receiver,
+        expr: &str,
+        shots: u32,
+    ) -> Result<Vec<LineResult>, Vec<LineError>> {
+        let mut fragments = self
+            .compiler
+            .compile_expr("<entry>", expr)
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            error.into(),
+                        ))
+                    })
+                    .collect::<Vec<_>>()
+            })?;
+
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
+            })
+            .collect::<Vec<_>>();
+        if !pass_errors.is_empty() {
+            return Err(pass_errors
+                .into_iter()
+                .map(|error| {
+                    LineError(WithSource::from_map(
+                        self.compiler.source_map(),
+                        error.into(),
+                    ))
+                })
+                .collect());
+        }
+
+        let mut stmt_id = None;
+        for fragment in fragments {
+            match fragment {
+                Fragment::Item(item) => match item.kind {
+                    qsc_hir::hir::ItemKind::Callable(callable) => {
+                        let callable = self.lower_callable_decl(&callable);
+
+                        self.callables
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                    }
+                    qsc_hir::hir::ItemKind::Namespace(..) => {}
+                    qsc_hir::hir::ItemKind::Ty(..) => {
+                        self.udts
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                    }
+                },
+                Fragment::Stmt(stmt) => assert!(
+                    stmt_id.replace(self.lower_stmt(&stmt)).is_none(),
+                    "expression should yield exactly one statement"
+                ),
+            }
+        }
+
+        let Some(stmt_id) = stmt_id else {
+            panic!("expression should yield exactly one statement");
+        };
+
+        let globals = Lookup {
+            fir_store: &self.fir_store,
+            package: self.package,
+            udts: &self.udts,
+            callables: &self.callables,
+        };
+
+        let mut results: Vec<LineResult> = Vec::new();
+        for _i in 0..shots {
+            results.push(
+                match eval_stmt(
+                    stmt_id,
+                    &globals,
+                    &mut Env::with_empty_scope(),
+                    &mut SparseSim::new(),
+                    self.package,
+                    receiver,
+                ) {
+                    Ok(value) => Ok(value),
+                    Err((error, call_stack)) => {
+                        let stack_trace = if call_stack.is_empty() {
+                            None
+                        } else {
+                            Some(self.render_call_stack(call_stack, &error))
+                        };
+
+                        Err(vec![LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            WithStack::new(error, stack_trace).into(),
+                        ))])
+                    }
+                },
+            );
+        }
+
+        Ok(results)
     }
 
     /// # Errors

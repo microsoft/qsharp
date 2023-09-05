@@ -153,3 +153,21 @@ def test_qirgen() -> None:
     e.interpret("operation Program() : Result { use q = Qubit(); return M(q) }")
     qir = e.qir("Program()")
     assert isinstance(qir, str)
+
+
+def test_run_with_shots() -> None:
+    e = Interpreter(TargetProfile.Full)
+
+    def callback(output):
+        nonlocal called
+        called += 1
+        assert output.__repr__() == "Hello, world!"
+
+    called = 0
+    e.interpret('operation Foo() : Unit { Message("Hello, world!"); }', callback)
+    assert called == 0
+
+    value = e.run("Foo()", 5, callback)
+    assert called == 5
+
+    assert value == [None, None, None, None, None]
