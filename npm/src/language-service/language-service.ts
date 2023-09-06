@@ -97,7 +97,7 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number
   ): Promise<ICompletionList> {
     const code = this.code[documentUri];
-    if (!code) {
+    if (code === undefined) {
       log.error(`expected ${documentUri} to be in the document map`);
       return { items: [] };
     }
@@ -124,7 +124,7 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number
   ): Promise<IHover | undefined> {
     const code = this.code[documentUri];
-    if (!code) {
+    if (code === undefined) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -146,7 +146,7 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number
   ): Promise<IDefinition | undefined> {
     let code = this.code[documentUri];
-    if (!code) {
+    if (code === undefined) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -162,7 +162,7 @@ export class QSharpLanguageService implements ILanguageService {
       const url = new URL(result.source);
       if (url.protocol === qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
-        if (!code) {
+        if (code === undefined) {
           log.error(`expected ${url} to be in the library`);
           return undefined;
         }
@@ -195,7 +195,7 @@ export class QSharpLanguageService implements ILanguageService {
   onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
     try {
       const code = this.code[uri];
-      if (!code) {
+      if (code === undefined) {
         log.error(`expected ${uri} to be in the document map`);
         return;
       }
