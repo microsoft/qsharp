@@ -1037,18 +1037,6 @@ fn recover_unclosed_callable_item() {
                         },
                     ),
                 ),
-                Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
-                        Eof,
-                        Span {
-                            lo: 48,
-                            hi: 48,
-                        },
-                    ),
-                ),
             ]"#]],
     );
 }
