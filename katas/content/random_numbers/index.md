@@ -97,7 +97,7 @@ This knowledge is sufficient to implement a simple random number generator!
 @[section]({"id": "random_numbers__whats_next", "title": "What's Next?"})
 
 Congratulations! In this kata you have created a truly random number generator. Here are a few key concepts to keep in mind:
-* This code will generate truly random numbers when executed on a true quantum computer. Radom numbers obtained when executing on a simulator are only as good as the source of randomness used by the simulator.
+* This code will generate truly random numbers when executed on a true quantum computer. Random numbers obtained when executing on a simulator are only as good as the source of randomness used by the simulator.
 * You can generate a random bit by applying a Hadamard gate to a state $\ket{0}$, and then measuring the resulting qubit in the computational basis.
 * The Q# <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei" target="_blank">BitSizeI function</a> returns the number of bits needed to write an integer in binary.
 
