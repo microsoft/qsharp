@@ -139,7 +139,7 @@ A marking oracle has distinct "input" and "output" qubits, but in general the ef
 
 ## Marking Oracle for Alternating Bit Pattern Function
 
-Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it is the same function we've seen in demo 1.1).
+Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it is the same function we've seen in the demo "Phase oracle for alternating bit pattern function").
 
 The marking oracle that implements this function will take an array of 3 qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $|101\rangle$ or $|010\rangle$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
 
@@ -386,7 +386,7 @@ However, if you're designing an oracle for a new problem, you do not have a refe
 
 A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a lot of the inputs if you are constrained by runtime) to ensure that they match.
 
-Here we will compare the reference implementation of `Meeting_Classical` oracle to the classical code implementing the same function.
+Here we will compare the reference implementation of `Meeting_Oracle` to the classical code implementing the same function.
 
 @[example]({"id": "oracles__test_meeting_oracle", "codePath": "./test_meeting_oracle.qs"})
 
@@ -397,8 +397,8 @@ Here we will compare the reference implementation of `Meeting_Classical` oracle 
 
 Congratulations! In this kata you have learned to build quantum oracles. Here are a few key concepts to keep in mind:
 * A quantum oracle is an "opaque box" operation that is used as input to another algorithm.
-* Phase oracles encode the information in the relative phase of basis states $\ket{0}$ and $\ket{1}$. If $f(x)=0$, it does nothing, and if $f(x)=1$ it multiplies the phase of the basis states for which by $-1$.
-* Marking oracles uses an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it does nothing, and if $f(x)=1$ it it flips the state of the qubit $\ket{y}$.
+* Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$ it multiplies the phase of the basis states $\ket{x}$ by $-1$.
+* Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it doen't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$ it flips the state of the qubit $\ket{y} for the basis state $\ket{x}$.
 
 **Next Steps**
 

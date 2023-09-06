@@ -644,7 +644,7 @@ Thus, this state has an even parity in the Hadamard basis. It follows that an $X
 
 Congratulations! In this kata you learned how to apply measurements on multi-qubit systems. Here are a few key concepts to keep in mind:
 * Full measurements: you measure all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes).
-* Partial measurements: you measure qubits $m$ out of $n$, for $m< n$ ($2^m$ possible outcomes).
-* Joint measurement: Pauli measurement of all $n$ qubits (2 possible outcomes).
+* Partial measurements: you measure $m$ qubits out of $n$, for $m< n$ ($2^m$ possible outcomes).
+* Joint measurement: Pauli measurement of all $n$ qubits ($2$ possible outcomes).
 
 Next, you will implement a quantum algorithm to generate random numbers in "Quantum Random Number Generation" kata.
