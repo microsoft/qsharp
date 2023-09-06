@@ -8,6 +8,7 @@ import type {
   IHover,
   IDefinition,
   LanguageService,
+  IWorkspaceConfiguration,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -32,12 +33,8 @@ export type LanguageServiceEvent = {
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
-  updateDocument(
-    uri: string,
-    version: number,
-    code: string,
-    isExe: boolean
-  ): Promise<void>;
+  updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
+  updateDocument(uri: string, version: number, code: string): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
@@ -77,14 +74,17 @@ export class QSharpLanguageService implements ILanguageService {
     );
   }
 
+  async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
+    this.languageService.update_configuration(config);
+  }
+
   async updateDocument(
     documentUri: string,
     version: number,
-    code: string,
-    isExe: boolean
+    code: string
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code, isExe);
+    this.languageService.update_document(documentUri, version, code);
   }
 
   async closeDocument(documentUri: string): Promise<void> {

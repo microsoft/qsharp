@@ -181,8 +181,7 @@ export function Editor(props: {
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
-        srcModel.getValue(),
-        !props.kataExercise // Kata exercises are always libraries
+        srcModel.getValue()
       );
       const measure = performance.measure(
         "update-document",
@@ -205,6 +204,10 @@ export function Editor(props: {
   }, []);
 
   useEffect(() => {
+    props.languageService.updateConfiguration({
+      packageType: props.kataExercise ? "lib" : "exe",
+    });
+
     function onDiagnostics(evt: LanguageServiceEvent) {
       const diagnostics = evt.detail.diagnostics;
       errMarks.current.checkDiags = diagnostics;
@@ -218,7 +221,7 @@ export function Editor(props: {
       log.info("Removing diagnostics listener");
       props.languageService.removeEventListener("diagnostics", onDiagnostics);
     };
-  }, [props.languageService]);
+  }, [props.languageService, props.kataExercise]);
 
   useEffect(() => {
     const theEditor = editor.current;

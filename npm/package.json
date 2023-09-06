@@ -25,7 +25,8 @@
     "build": "npm run generate && npm run build:tsc",
     "generate": "node generate_katas_content.js && node generate_samples_content.js",
     "build:tsc": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
-    "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch"
+    "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch",
+    "test": "node --test"
   },
   "type": "module",
   "files": [
