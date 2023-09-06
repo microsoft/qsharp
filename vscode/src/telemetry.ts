@@ -7,8 +7,6 @@ import { log } from "qsharp";
 // the application insights key (also known as instrumentation key)
 const key = "175861b7-3a41-4015-9571-1d930b8b0722";
 
-// telemetry reporter
-let reporter: TelemetryReporter | undefined;
 
 export enum EventType {
   DebugSessionStart = "DebugSessionStart",
@@ -63,10 +61,4 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
   measurements: EventTypes[E]["measurements"] = {}
 ) {
   log.logTelemetry({ id: event, data: { properties, measurements } });
-  if (reporter !== undefined) {
-    reporter.sendTelemetryEvent(event, properties, measurements);
-    log.info(`Sent telemetry event ${event}`);
-  } else {
-    log.info("Telemetry reporter undefined.");
-  }
 }
