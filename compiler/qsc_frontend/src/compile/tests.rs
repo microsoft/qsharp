@@ -258,8 +258,12 @@ fn entry_call_operation() {
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
-    let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Call(callee, _) = &entry.kind else {
+        panic!("entry should be a call")
+    };
+    let ExprKind::Var(res, _) = &callee.kind else {
+        panic!("callee should be a variable")
+    };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -340,8 +344,13 @@ fn replace_node() {
         .items
         .get(LocalItemId::from(1))
         .expect("package should have item")
-        .kind else { panic!("item should be a callable"); };
-    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
+        .kind
+    else {
+        panic!("item should be a callable");
+    };
+    let SpecBody::Impl(_, block) = &callable.body.body else {
+        panic!("callable body have a block")
+    };
     expect![[r#"
         Block 4 [39-56] [Type Int]:
             Stmt 5 [49-50]: Expr: Expr 8 [49-50] [Type Int]: Lit: Int(2)"#]]
@@ -476,11 +485,22 @@ fn package_dependency() {
         .items
         .get(foo_id)
         .expect("package should have item")
-        .kind else { panic!("item should be a callable"); };
-    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
-    let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
+        .kind
+    else {
+        panic!("item should be a callable");
+    };
+    let SpecBody::Impl(_, block) = &callable.body.body else {
+        panic!("callable body have a block")
+    };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else {
+        panic!("statement should be an expression")
+    };
+    let ExprKind::Call(callee, _) = &expr.kind else {
+        panic!("expression should be a call")
+    };
+    let ExprKind::Var(res, _) = &callee.kind else {
+        panic!("callee should be a variable")
+    };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -531,11 +551,22 @@ fn package_dependency_internal() {
         .items
         .get(LocalItemId::from(1))
         .expect("package should have item")
-        .kind else { panic!("item should be a callable"); };
-    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
-    let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
+        .kind
+    else {
+        panic!("item should be a callable");
+    };
+    let SpecBody::Impl(_, block) = &callable.body.body else {
+        panic!("callable body have a block")
+    };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else {
+        panic!("statement should be an expression")
+    };
+    let ExprKind::Call(callee, _) = &expr.kind else {
+        panic!("expression should be a call")
+    };
+    let ExprKind::Var(res, _) = &callee.kind else {
+        panic!("callee should be a variable")
+    };
     assert_eq!(&Res::Err, res);
 }
 
@@ -676,4 +707,12 @@ fn two_files_error_eof() {
         .collect();
 
     assert_eq!(vec![("test1", Span { lo: 15, hi: 15 }),], errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-15] (Public):
+                Namespace (Ident 0 [10-13] "Foo"): <empty>
+            Item 1 [16-32] (Public):
+                Namespace (Ident 1 [26-29] "Bar"): <empty>"#]]
+    .assert_eq(&unit.package.to_string());
 }

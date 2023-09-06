@@ -106,7 +106,7 @@ pub(super) struct With<'a> {
 
 impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
-        for namespace in package.namespaces.iter() {
+        for namespace in &*package.namespaces {
             self.lower_namespace(namespace);
         }
 
@@ -116,9 +116,9 @@ impl With<'_> {
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId {
-            item: id, ..
-        })) = self.names.get(namespace.name.id) else {
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) =
+            self.names.get(namespace.name.id)
+        else {
             panic!("namespace should have item ID");
         };
 

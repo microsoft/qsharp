@@ -130,7 +130,9 @@ impl LoopUni<'_> {
         let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
         let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable, self.assigner);
 
-        let Ty::Array(item_ty) = &array_id.ty else { panic!("iterator should have array type"); };
+        let Ty::Array(item_ty) = &array_id.ty else {
+            panic!("iterator should have array type");
+        };
         let mut len_callee = create_gen_core_ref(
             self.core,
             "Microsoft.Quantum.Core",
