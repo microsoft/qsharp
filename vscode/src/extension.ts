@@ -70,7 +70,9 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerSignatureHelpProvider(
       "qsharp",
-      createSignatureHelpProvider(languageService)
+      createSignatureHelpProvider(languageService),
+      "(",
+      ","
     )
   );
 

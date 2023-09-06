@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, log } from "qsharp";
+import { ILanguageService } from "qsharp";
 import * as vscode from "vscode";
 
 export function createSignatureHelpProvider(languageService: ILanguageService) {
@@ -11,44 +11,36 @@ export function createSignatureHelpProvider(languageService: ILanguageService) {
 class QSharpSignatureHelpProvider implements vscode.SignatureHelpProvider {
   constructor(public languageService: ILanguageService) {}
 
-  public provideSignatureHelp(
+  async provideSignatureHelp(
     document: vscode.TextDocument,
     position: vscode.Position,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken
   ) {
-    log.info("providing signature help:");
-    const params = [
-      new vscode.ParameterInformation("a : Int", "The parameter `a`"),
-      new vscode.ParameterInformation("b : Double", "The parameter `b`"),
-      new vscode.ParameterInformation("c : String", "The parameter `c`"),
-    ];
-    const sig = new vscode.SignatureInformation(
-      "operation Foo(a: Int, b: Double, c: String) : Unit"
+    const sigHelpLs = await this.languageService.getSignatureHelp(
+      document.uri.toString(),
+      document.offsetAt(position)
     );
-    sig.parameters = params;
+    if (!sigHelpLs) return null;
+
     const sigHelp = new vscode.SignatureHelp();
-    sigHelp.signatures = [sig];
-    sigHelp.activeSignature = 0;
-    sigHelp.activeParameter = 0;
+    sigHelp.signatures = sigHelpLs.signatures.map((sig) => {
+      const info = new vscode.SignatureInformation(
+        sig.label,
+        sig.documentation
+      );
+      info.parameters = sig.parameters.map(
+        (param) =>
+          new vscode.ParameterInformation(
+            [param.label.start, param.label.end],
+            param.documentation
+          )
+      );
+      return info;
+    });
+    sigHelp.activeSignature = sigHelpLs.active_signature;
+    sigHelp.activeParameter = sigHelpLs.active_parameter;
+
     return sigHelp;
   }
-
-  // async provideDefinition(
-  //   document: vscode.TextDocument,
-  //   position: vscode.Position,
-  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //   token: vscode.CancellationToken
-  // ) {
-  //   const definition = await this.languageService.getDefinition(
-  //     document.uri.toString(),
-  //     document.offsetAt(position)
-  //   );
-  //   if (!definition) return null;
-  //   const uri = vscode.Uri.parse(definition.source);
-  //   // We have to do this to map the position :(
-  //   const definitionPosition = (
-  //     await vscode.workspace.openTextDocument(uri)
-  //   ).positionAt(definition.offset);
-  //   return new vscode.Location(uri, definitionPosition);
-  // }
 }

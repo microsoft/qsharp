@@ -7,6 +7,7 @@ import type {
   ICompletionList,
   IHover,
   IDefinition,
+  ISignatureHelp,
   LanguageService,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
@@ -46,6 +47,10 @@ export interface ILanguageService {
     offset: number
   ): Promise<IDefinition | null>;
   dispose(): Promise<void>;
+  getSignatureHelp(
+    documentUri: string,
+    offset: number
+  ): Promise<ISignatureHelp | null>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
@@ -155,6 +160,19 @@ export class QSharpLanguageService implements ILanguageService {
         result.offset
       ];
     }
+    return result;
+  }
+
+  async getSignatureHelp(
+    documentUri: string,
+    offset: number
+  ): Promise<ISignatureHelp | null> {
+    const code = this.code[documentUri];
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.get_signature_help(
+      documentUri,
+      convertedOffset
+    ) as ISignatureHelp | null;
     return result;
   }
 

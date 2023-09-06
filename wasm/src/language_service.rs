@@ -107,6 +107,33 @@ impl LanguageService {
             None => JsValue::NULL,
         })
     }
+
+    pub fn get_signature_help(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
+        //let hover = self.0.get_hover(uri, offset);
+
+        Ok(serde_wasm_bindgen::to_value(&SignatureHelp {
+            signatures: vec![SignatureInformation {
+                label: "operation Foo(a: Int, b: Double, c: String) : Unit".to_string(),
+                documentation: None,
+                parameters: vec![
+                    ParameterInformation {
+                        label: Span { start: 14, end: 20 },
+                        documentation: Some("The parameter `a`".to_string()),
+                    },
+                    ParameterInformation {
+                        label: Span { start: 22, end: 31 },
+                        documentation: Some("The parameter `b`".to_string()),
+                    },
+                    ParameterInformation {
+                        label: Span { start: 33, end: 42 },
+                        documentation: Some("The parameter `c`".to_string()),
+                    },
+                ],
+            }],
+            active_signature: 0,
+            active_parameter: 2,
+        })?)
+    }
 }
 
 // There is no easy way to serialize the result with serde_wasm_bindgen and get
@@ -183,6 +210,52 @@ export interface IDefinition {
 pub struct Definition {
     pub source: String,
     pub offset: u32,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const ISignatureHelp: &'static str = r#"
+export interface ISignatureHelp {
+    signatures: ISignatureInformation[];
+    active_signature: number;
+    active_parameter: number;
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+pub struct SignatureHelp {
+    signatures: Vec<SignatureInformation>,
+    active_signature: u32,
+    active_parameter: u32,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const ISignatureInformation: &'static str = r#"
+export interface ISignatureInformation {
+    label: string;
+    documentation: string | undefined;
+    parameters: IParameterInformation[];
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+pub struct SignatureInformation {
+    label: String,
+    documentation: Option<String>,
+    parameters: Vec<ParameterInformation>,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const IParameterInformation: &'static str = r#"
+export interface IParameterInformation {
+    label: { start: number; end: number };
+    documentation: string | undefined;
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+pub struct ParameterInformation {
+    label: Span,
+    documentation: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
