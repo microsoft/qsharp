@@ -17,6 +17,7 @@ use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, recovering, recovering_token, shorten},
     stmt::check_semis,
+    ty::array_or_arrow,
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -191,9 +192,37 @@ fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Newtype))?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
-    let def = parse_ty_def(s)?;
+    let lo = s.peek().span.lo;
+    let mut def = parse_ty_def(s)?;
+    if let Some(ty) = try_tydef_as_ty(def.as_ref()) {
+        let ty = array_or_arrow(s, ty, lo)?;
+        def = Box::new(TyDef {
+            id: def.id,
+            span: ty.span,
+            kind: Box::new(TyDefKind::Field(None, Box::new(ty))),
+        });
+    }
     token(s, TokenKind::Semi)?;
     Ok(Box::new(ItemKind::Ty(name, def)))
+}
+
+fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
+    match tydef.kind.as_ref() {
+        TyDefKind::Field(Some(_), _) => None,
+        TyDefKind::Field(None, ty) => Some(*ty.clone()),
+        TyDefKind::Paren(tydef) => try_tydef_as_ty(tydef.as_ref()),
+        TyDefKind::Tuple(tup) => {
+            let mut ty_tup = Vec::new();
+            for tydef in tup.iter() {
+                ty_tup.push(try_tydef_as_ty(tydef)?)
+            }
+            Some(Ty {
+                id: tydef.id,
+                span: tydef.span,
+                kind: Box::new(TyKind::Tuple(ty_tup.into_boxed_slice())),
+            })
+        }
+    }
 }
 
 fn parse_ty_def(s: &mut Scanner) -> Result<Box<TyDef>> {
