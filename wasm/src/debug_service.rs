@@ -272,8 +272,7 @@ serializable_type! {
         value: number;
     }"#,
     StructStepResult,
-    IStructStepResult,
-    "IStructStepResult"
+    IStructStepResult
 }
 
 serializable_type! {
@@ -285,8 +284,7 @@ serializable_type! {
     }
     "#,
     BreakpointSpanList,
-    IBreakpointSpanList,
-    "IBreakpointSpanList"
+    IBreakpointSpanList
 }
 
 serializable_type! {
@@ -311,8 +309,7 @@ serializable_type! {
     }
     "#,
     StackFrameList,
-    IStackFrameList,
-    "IStackFrameList"
+    IStackFrameList
 }
 
 serializable_type! {
@@ -338,8 +335,7 @@ serializable_type! {
         variables: Array<IVariable>
     }"#,
     VariableList,
-    IVariableList,
-    "IVariableList"
+    IVariableList
 }
 
 serializable_type! {
@@ -375,8 +371,7 @@ serializable_type! {
         entries: Array<IQuantumState>
     }"#,
     QuantumStateList,
-    IQuantumStateList,
-    "IQuantumStateList"
+    IQuantumStateList
 }
 
 serializable_type! {

@@ -119,8 +119,7 @@ serializable_type! {
         items: ICompletionItem[]
     }"#,
     CompletionList,
-    ICompletionList,
-    "ICompletionList"
+    ICompletionList
 }
 
 serializable_type! {
@@ -161,8 +160,7 @@ serializable_type! {
         span: ISpan
     }"#,
     Hover,
-    IHover,
-    "IHover"
+    IHover
 }
 
 serializable_type! {
@@ -175,8 +173,7 @@ serializable_type! {
         offset: number;
     }"#,
     Definition,
-    IDefinition,
-    "IDefinition"
+    IDefinition
 }
 
 serializable_type! {

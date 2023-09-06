@@ -46,8 +46,7 @@
 ///         span: ISpan
 ///     }"#,
 ///     Hover,
-///     IHover,
-///     "IHover"
+///     IHover
 /// }
 ///
 /// serializable_type! {
@@ -74,7 +73,7 @@
 /// function get_hover(): IHover | undefined;
 /// ```
 ///
-/// The last three arguments into the macro can be omitted
+/// The last two arguments into the macro can be omitted
 /// if the TypeScript type doesn't need to be directly referenced from
 /// Rust code, i.e. if the struct isn't meant to be used
 /// in method signatures.
@@ -115,7 +114,7 @@ macro_rules! serializable_type {
         const TYPESCRIPT_CUSTOM_SECTION: &'static str = $typescript;
     };
 
-    ($struct: item, $typescript: literal, $struct_ident: ident, $typescript_type_ident:ident, $typescript_type_name: literal) => {
+    ($struct: item, $typescript: literal, $struct_ident: ident, $typescript_type_ident:ident) => {
         #[derive(Serialize, Deserialize)]
         #[allow(non_snake_case)] // These types propagate to JS which expects camelCase
         $struct
@@ -128,7 +127,7 @@ macro_rules! serializable_type {
 
         #[wasm_bindgen]
         extern "C" {
-            #[wasm_bindgen(typescript_type = $typescript_type_name)]
+            #[wasm_bindgen(typescript_type = $typescript_type_ident)]
             #[doc=$typescript]
             pub type $typescript_type_ident;
         }
