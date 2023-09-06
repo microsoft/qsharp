@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::serializable_type::serializable_type;
+use crate::serializable_type;
 use miette::{Diagnostic, Severity};
 use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
@@ -152,7 +152,7 @@ serializable_type! {
 }
 
 serializable_type! {
-    pub struct Hover {
+    struct Hover {
         pub contents: String,
         pub span: Span,
     },
@@ -166,7 +166,7 @@ serializable_type! {
 }
 
 serializable_type! {
-    pub struct Definition {
+    struct Definition {
         pub source: String,
         pub offset: u32,
     },
@@ -180,7 +180,7 @@ serializable_type! {
 }
 
 serializable_type! {
-    pub struct Span {
+    struct Span {
         pub start: u32,
         pub end: u32,
     },
@@ -191,7 +191,7 @@ serializable_type! {
 }
 
 serializable_type! {
-    pub struct VSDiagnostic {
+    pub(crate) struct VSDiagnostic {
         pub start_pos: usize,
         pub end_pos: usize,
         pub message: String,
@@ -212,7 +212,7 @@ serializable_type! {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct VSDiagnosticCode {
+pub(crate) struct VSDiagnosticCode {
     value: String,
     target: String,
 }

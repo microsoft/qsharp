@@ -6,12 +6,10 @@ use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
 
+use crate::{language_service::VSDiagnostic, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
-
-use crate::serializable_type::serializable_type;
-use crate::{language_service::VSDiagnostic, CallbackReceiver};
 
 #[wasm_bindgen]
 pub struct DebugService {
@@ -265,7 +263,7 @@ impl From<StepResultId> for usize {
 }
 
 serializable_type! {
-    pub struct StructStepResult {
+    struct StructStepResult {
         pub id: usize,
         pub value: usize,
     },

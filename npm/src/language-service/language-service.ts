@@ -162,10 +162,10 @@ export class QSharpLanguageService implements ILanguageService {
       const url = new URL(result.source);
       if (url.protocol === qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
-      }
-      if (!code) {
-        log.error(`expected ${url} to be in the library`);
-        return undefined;
+        if (!code) {
+          log.error(`expected ${url} to be in the library`);
+          return undefined;
+        }
       }
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
         result.offset
