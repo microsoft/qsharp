@@ -60,3 +60,23 @@ pub struct Hover {
     pub contents: String,
     pub span: Span,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct SignatureHelp {
+    pub signatures: Vec<SignatureInformation>,
+    pub active_signature: u32,
+    pub active_parameter: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SignatureInformation {
+    pub label: String,
+    pub documentation: Option<String>,
+    pub parameters: Vec<ParameterInformation>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParameterInformation {
+    pub label: Span,
+    pub documentation: Option<String>,
+}

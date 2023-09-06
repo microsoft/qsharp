@@ -109,30 +109,34 @@ impl LanguageService {
     }
 
     pub fn get_signature_help(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
-        //let hover = self.0.get_hover(uri, offset);
+        let sig_help = self.0.get_signature_help(uri, offset);
 
-        Ok(serde_wasm_bindgen::to_value(&SignatureHelp {
-            signatures: vec![SignatureInformation {
-                label: "operation Foo(a: Int, b: Double, c: String) : Unit".to_string(),
-                documentation: None,
-                parameters: vec![
-                    ParameterInformation {
-                        label: Span { start: 14, end: 20 },
-                        documentation: Some("The parameter `a`".to_string()),
-                    },
-                    ParameterInformation {
-                        label: Span { start: 22, end: 31 },
-                        documentation: Some("The parameter `b`".to_string()),
-                    },
-                    ParameterInformation {
-                        label: Span { start: 33, end: 42 },
-                        documentation: Some("The parameter `c`".to_string()),
-                    },
-                ],
-            }],
-            active_signature: 0,
-            active_parameter: 2,
-        })?)
+        Ok(match sig_help {
+            Some(sig_help) => serde_wasm_bindgen::to_value(&SignatureHelp {
+                signatures: sig_help
+                    .signatures
+                    .into_iter()
+                    .map(|sig| SignatureInformation {
+                        label: sig.label,
+                        documentation: sig.documentation,
+                        parameters: sig
+                            .parameters
+                            .into_iter()
+                            .map(|param| ParameterInformation {
+                                label: Span {
+                                    start: param.label.start,
+                                    end: param.label.end,
+                                },
+                                documentation: param.documentation,
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+                active_signature: sig_help.active_signature,
+                active_parameter: sig_help.active_parameter,
+            })?,
+            None => JsValue::NULL,
+        })
     }
 }
 
