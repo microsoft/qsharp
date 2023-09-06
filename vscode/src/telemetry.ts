@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import {
-  TelemetryReporter,
+import TelemetryReporter, {
   TelemetryEventMeasurements,
   TelemetryEventProperties,
 } from "@vscode/extension-telemetry";
