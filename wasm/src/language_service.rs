@@ -112,18 +112,19 @@ impl LanguageService {
 }
 
 serializable_type! {
-    struct CompletionList {
+    CompletionList,
+    {
         pub items: Vec<CompletionItem>,
     },
     r#"export interface ICompletionList {
         items: ICompletionItem[]
     }"#,
-    CompletionList,
     ICompletionList
 }
 
 serializable_type! {
-    struct CompletionItem {
+    CompletionItem,
+    {
         pub label: String,
         pub kind: String,
         pub sortText: Option<String>,
@@ -140,7 +141,8 @@ serializable_type! {
 }
 
 serializable_type! {
-    struct TextEdit {
+    TextEdit,
+    {
         pub range: Span,
         pub newText: String,
     },
@@ -151,7 +153,8 @@ serializable_type! {
 }
 
 serializable_type! {
-    struct Hover {
+    Hover,
+    {
         pub contents: String,
         pub span: Span,
     },
@@ -159,12 +162,12 @@ serializable_type! {
         contents: string;
         span: ISpan
     }"#,
-    Hover,
     IHover
 }
 
 serializable_type! {
-    struct Definition {
+    Definition,
+    {
         pub source: String,
         pub offset: u32,
     },
@@ -172,12 +175,12 @@ serializable_type! {
         source: string;
         offset: number;
     }"#,
-    Definition,
     IDefinition
 }
 
 serializable_type! {
-    struct Span {
+    Span,
+    {
         pub start: u32,
         pub end: u32,
     },
@@ -188,7 +191,8 @@ serializable_type! {
 }
 
 serializable_type! {
-    pub(crate) struct VSDiagnostic {
+    VSDiagnostic,
+    {
         pub start_pos: usize,
         pub end_pos: usize,
         pub message: String,

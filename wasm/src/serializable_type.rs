@@ -37,7 +37,8 @@
 /// # use wasm_bindgen::prelude::*;
 ///
 /// serializable_type! {
-///     struct Hover {
+///     Hover,
+///     {
 ///         pub contents: String,
 ///         pub span: Span,
 ///     },
@@ -45,12 +46,12 @@
 ///         contents: string;
 ///         span: ISpan
 ///     }"#,
-///     Hover,
 ///     IHover
 /// }
 ///
 /// serializable_type! {
-///     struct Span {
+///     Span,
+///     {
 ///         pub start: u32,
 ///         pub end: u32,
 ///     },
@@ -73,15 +74,15 @@
 /// function get_hover(): IHover | undefined;
 /// ```
 ///
-/// The last two arguments into the macro can be omitted
+/// The last argument into the macro can be omitted
 /// if the TypeScript type doesn't need to be directly referenced from
 /// Rust code, i.e. if the struct isn't meant to be used
 /// in method signatures.
 ///
 /// The following data type is serializable, and can be used within
-/// other serializable structs, but since we omitted the identifier
-/// arguments, it cannot be referenced by its TypeScript type name in
-/// Rust code. Therefore it cannot be used directly in method
+/// other serializable structs, but since we omitted the TypeScript
+/// interface identifier, it cannot be referenced by its TypeScript type
+/// name in Rust code. Therefore it cannot be used directly in method
 /// signatures.
 ///
 /// ```
@@ -89,7 +90,8 @@
 /// # use serde::{Deserialize, Serialize};
 ///
 /// serializable_type! {
-///     struct Span {
+///     Span,
+///     {
 ///         pub start: u32,
 ///         pub end: u32,
 ///     },
@@ -102,10 +104,10 @@
 ///
 #[macro_export]
 macro_rules! serializable_type {
-    ($struct: item, $typescript: literal) => {
+    ($struct_ident: ident, $struct: tt, $typescript: literal) => {
         #[derive(Debug, Serialize, Deserialize)]
         #[allow(non_snake_case)] // These types propagate to JS which expects camelCase
-        $struct
+        pub(crate) struct $struct_ident $struct
 
         // TypeScript type definition that will be included in the generated .d.ts file.
         // This name will be shadowed every time we redeclare it but it doesn't matter
@@ -114,10 +116,10 @@ macro_rules! serializable_type {
         const TYPESCRIPT_CUSTOM_SECTION: &'static str = $typescript;
     };
 
-    ($struct: item, $typescript: literal, $struct_ident: ident, $typescript_type_ident:ident) => {
-        #[derive(Serialize, Deserialize)]
+    ($struct_ident: ident, $struct: tt, $typescript: literal, $typescript_type_ident:ident) => {
+        #[derive(Debug, Serialize, Deserialize)]
         #[allow(non_snake_case)] // These types propagate to JS which expects camelCase
-        $struct
+        pub(crate) struct $struct_ident $struct
 
         // TypeScript type definition that will be included in the generated .d.ts file.
         // This name will be shadowed every time we redeclare it but it doesn't matter

@@ -263,7 +263,8 @@ impl From<StepResultId> for usize {
 }
 
 serializable_type! {
-    struct StructStepResult {
+    StructStepResult,
+    {
         pub id: usize,
         pub value: usize,
     },
@@ -271,24 +272,24 @@ serializable_type! {
         id: number;
         value: number;
     }"#,
-    StructStepResult,
     IStructStepResult
 }
 
 serializable_type! {
-    struct BreakpointSpanList {
+    BreakpointSpanList,
+    {
         pub spans: Vec<BreakpointSpan>,
     },
     r#"export interface IBreakpointSpanList {
         spans: Array<IBreakpointSpan>
     }
     "#,
-    BreakpointSpanList,
     IBreakpointSpanList
 }
 
 serializable_type! {
-    struct BreakpointSpan {
+    BreakpointSpan,
+    {
         pub id: u32,
         pub lo: u32,
         pub hi: u32,
@@ -301,19 +302,20 @@ serializable_type! {
 }
 
 serializable_type! {
-    struct StackFrameList {
+    StackFrameList,
+    {
         pub frames: Vec<StackFrame>,
     },
     r#"export interface IStackFrameList {
         frames: Array<IStackFrame>
     }
     "#,
-    StackFrameList,
     IStackFrameList
 }
 
 serializable_type! {
-    struct StackFrame {
+    StackFrame,
+    {
         pub name: String,
         pub path: String,
         pub lo: u32,
@@ -328,18 +330,19 @@ serializable_type! {
 }
 
 serializable_type! {
-    struct VariableList {
+    VariableList,
+    {
         pub variables: Vec<Variable>,
     },
     r#"export interface IVariableList {
         variables: Array<IVariable>
     }"#,
-    VariableList,
     IVariableList
 }
 
 serializable_type! {
-    struct Variable {
+    Variable,
+    {
         pub name: String,
         pub value: String,
         pub var_type: String,
@@ -364,18 +367,19 @@ serializable_type! {
 }
 
 serializable_type! {
-    struct QuantumStateList {
+    QuantumStateList,
+    {
         pub entries: Vec<QuantumState>,
     },
     r#"export interface IQuantumStateList {
         entries: Array<IQuantumState>
     }"#,
-    QuantumStateList,
     IQuantumStateList
 }
 
 serializable_type! {
-    struct QuantumState {
+    QuantumState,
+    {
         pub name: String,
         pub value: String,
     },
