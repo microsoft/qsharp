@@ -6,7 +6,7 @@ namespace Kata {
         ApplyControlledOnInt(0, X, x, y);
     }
 
-    operation Meeting_Oracle(x: Qubit[], jasmine: Qubit[], z: Qubit): Unit is Adj + Ctl {
+    operation Meeting_Oracle(x: Qubit[], jasmine: Qubit[], y: Qubit): Unit is Adj + Ctl {
         use q = Qubit[Length(x)];
         within {
             for i in IndexRange(q) {
@@ -16,7 +16,7 @@ namespace Kata {
                 CCNOT(x[i], jasmine[i], q[i]);
             }
         } apply {
-            Or_Oracle(q, z);
+            Or_Oracle(q, y);
         }
     }
 }
