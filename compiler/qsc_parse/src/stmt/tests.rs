@@ -209,17 +209,23 @@ fn stmt_missing_semi() {
         parse,
         "let x = 2",
         &expect![[r#"
-            Error(
-                Token(
-                    Semi,
-                    Eof,
-                    Span {
-                        lo: 9,
-                        hi: 9,
-                    },
+            Stmt _id_ [0-9]: Local (Immutable):
+                Pat _id_ [4-5]: Bind:
+                    Ident _id_ [4-5] "x"
+                Expr _id_ [8-9]: Lit: Int(2)
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        Eof,
+                        Span {
+                            lo: 9,
+                            hi: 9,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -446,15 +452,24 @@ fn call_no_semi_call() {
         parse_block,
         "{ f(x) g(y) }",
         &expect![[r#"
-            Error(
-                MissingSemi(
-                    Span {
-                        lo: 6,
-                        hi: 6,
-                    },
+            Block _id_ [0-13]:
+                Stmt _id_ [2-6]: Expr: Expr _id_ [2-6]: Call:
+                    Expr _id_ [2-3]: Path: Path _id_ [2-3] (Ident _id_ [2-3] "f")
+                    Expr _id_ [3-6]: Paren: Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
+                Stmt _id_ [7-11]: Expr: Expr _id_ [7-11]: Call:
+                    Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "g")
+                    Expr _id_ [8-11]: Paren: Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")
+
+            [
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 6,
+                            hi: 6,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -485,15 +500,29 @@ fn expr_plus_if_no_semi() {
         parse_block,
         "{ 1 + if true { 2 } else { 3 } f(x) }",
         &expect![[r#"
-            Error(
-                MissingSemi(
-                    Span {
-                        lo: 30,
-                        hi: 30,
-                    },
+            Block _id_ [0-37]:
+                Stmt _id_ [2-30]: Expr: Expr _id_ [2-30]: BinOp (Add):
+                    Expr _id_ [2-3]: Lit: Int(1)
+                    Expr _id_ [6-30]: If:
+                        Expr _id_ [9-13]: Lit: Bool(true)
+                        Block _id_ [14-19]:
+                            Stmt _id_ [16-17]: Expr: Expr _id_ [16-17]: Lit: Int(2)
+                        Expr _id_ [20-30]: Expr Block: Block _id_ [25-30]:
+                            Stmt _id_ [27-28]: Expr: Expr _id_ [27-28]: Lit: Int(3)
+                Stmt _id_ [31-35]: Expr: Expr _id_ [31-35]: Call:
+                    Expr _id_ [31-32]: Path: Path _id_ [31-32] (Ident _id_ [31-32] "f")
+                    Expr _id_ [32-35]: Paren: Expr _id_ [33-34]: Path: Path _id_ [33-34] (Ident _id_ [33-34] "x")
+
+            [
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 30,
+                            hi: 30,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -682,6 +711,55 @@ fn recover_statements_before_and_after() {
                         Span {
                             lo: 67,
                             hi: 70,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn recover_missing_semicolon() {
+    check(
+        parse_block,
+        "{
+            let x = 2 + 2;
+            let y = Foo(x)
+            let z = x * 3;
+            z
+        }",
+        &expect![[r#"
+            Block _id_ [0-106]:
+                Stmt _id_ [14-28]: Local (Immutable):
+                    Pat _id_ [18-19]: Bind:
+                        Ident _id_ [18-19] "x"
+                    Expr _id_ [22-27]: BinOp (Add):
+                        Expr _id_ [22-23]: Lit: Int(2)
+                        Expr _id_ [26-27]: Lit: Int(2)
+                Stmt _id_ [41-55]: Local (Immutable):
+                    Pat _id_ [45-46]: Bind:
+                        Ident _id_ [45-46] "y"
+                    Expr _id_ [49-55]: Call:
+                        Expr _id_ [49-52]: Path: Path _id_ [49-52] (Ident _id_ [49-52] "Foo")
+                        Expr _id_ [52-55]: Paren: Expr _id_ [53-54]: Path: Path _id_ [53-54] (Ident _id_ [53-54] "x")
+                Stmt _id_ [68-82]: Local (Immutable):
+                    Pat _id_ [72-73]: Bind:
+                        Ident _id_ [72-73] "z"
+                    Expr _id_ [76-81]: BinOp (Mul):
+                        Expr _id_ [76-77]: Path: Path _id_ [76-77] (Ident _id_ [76-77] "x")
+                        Expr _id_ [80-81]: Lit: Int(3)
+                Stmt _id_ [95-96]: Expr: Expr _id_ [95-96]: Path: Path _id_ [95-96] (Ident _id_ [95-96] "z")
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        Keyword(
+                            Let,
+                        ),
+                        Span {
+                            lo: 68,
+                            hi: 71,
                         },
                     ),
                 ),
