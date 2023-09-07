@@ -9,8 +9,8 @@
 #   Environment (from YAML `docker run --env ARCH=x86_64`):
 #       ARCH: Architecture: x86_64 or aarch64, etc.
 # Output:
-#   "<this repo>/target/wheels/qsharp-preview-*-cp3*-abi3-manylinux*_$ARCH.whl", 
-#       e.g., "<this repo>/target/wheels/qsharp-preview-0.0.7-cp37-abi3-manylinux_2_28_x86_64.whl".
+#   "<this repo>/target/wheels/qsharp-lang-*-cp3*-abi3-manylinux*_$ARCH.whl",
+#       e.g., "<this repo>/target/wheels/qsharp-lang-0.0.7-cp37-abi3-manylinux_2_28_x86_64.whl".
 
 set -x -e
 
@@ -28,9 +28,9 @@ cd /io
 
 # Make the generated Linux .whl a manylinux .whl:
 export WHEEL_DIR_APATH=/io/target/wheels
-export WHEEL_FILE_APATH=$WHEEL_DIR_APATH/qsharp_preview-*-cp37-abi3-linux_$ARCH.whl
+export WHEEL_FILE_APATH=$WHEEL_DIR_APATH/qsharp_lang-*-cp37-abi3-linux_$ARCH.whl
 auditwheel repair --wheel-dir $WHEEL_DIR_APATH $WHEEL_FILE_APATH
-# The result is in, for example, "<this repo>/target/wheels/qsharp-preview-x.y.z-cp37-abi3-manylinux_2_28_x86_64.whl".
+# The result is in, for example, "<this repo>/target/wheels/qsharp-lang-x.y.z-cp37-abi3-manylinux_2_28_x86_64.whl".
 rm -fR $WHEEL_FILE_APATH    # Remove the platform-dependent Linux .whl (manylinux one remains).
 
 exit  # From the Docker container

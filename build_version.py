@@ -101,3 +101,4 @@ if BUILD_TYPE != "dev":
         "vscode/package.json",
         r'"name": "qsharp-lang-vscode-dev",' r'"name": "qsharp-lang-vscode",',
     )
+    # TODO: Update the description and/or readme also for the different extension channels

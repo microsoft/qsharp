@@ -1,6 +1,6 @@
 {
   "name": "qsharp-lang-vscode-dev",
-  "displayName": "Q# (preview)",
+  "displayName": "Azure Quantum Developer Kit (QDK) Preview",
   "description": "Q# Language Support",
   "version": "0.0.0",
   "publisher": "quantum",

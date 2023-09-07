@@ -93,6 +93,7 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
 
+# TODO: This requires that both targets are installed on macOS to build Python packages. Add to prereqs checks.
 pip_archflags = "-arch x86_64 -arch arm64" if platform.system() == "Darwin" else None
 
 root_dir = os.path.dirname(os.path.abspath(__file__))

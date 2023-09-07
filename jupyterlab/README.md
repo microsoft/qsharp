@@ -46,11 +46,11 @@ Then refresh the browser.
 Remove the `pip` package by running:
 
 ```bash
-pip uninstall qsharp-jupyterlab
+pip uninstall qsharp-lang-jupyterlab
 ```
 
 You will also need to remove the symlink created by `jupyter labextension develop`
-command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions` folder is located. Then you can remove the symlink named `qsharp-jupyterlab` within that folder.
+command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions` folder is located. Then you can remove the symlink named `qsharp-lang-jupyterlab` within that folder.
 
 ## Releasing
 
