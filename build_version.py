@@ -81,7 +81,7 @@ print("VS Code version: {}".format(vscode_version))
 
 def update_file(file, old_text, new_text):
     # Open the file and replace the first string matching the old text with the new text
-    with open(file, "r+") as f:
+    with open(file, "r+", newline="") as f:
         contents = f.read()
         new_contents = contents.replace(old_text, new_text, 1)
         f.seek(0)
