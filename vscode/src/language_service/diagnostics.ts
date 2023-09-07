@@ -3,7 +3,7 @@
 
 import { ILanguageService, VSDiagnostic, qsharpLibraryUriScheme } from "qsharp";
 import * as vscode from "vscode";
-import { qsharpLanguageId } from "./common.js";
+import { qsharpLanguageId } from "../common.js";
 
 export function startCheckingQSharp(languageService: ILanguageService) {
   const diagCollection =
