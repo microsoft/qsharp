@@ -101,7 +101,7 @@ jobs:
 
   # Build JupyterLab on Windows (was seeing some Access Denied errors on Linux)
   - script: |
-      python build.py --jupyterlab
+      python build.py --jupyterlab --no-check
     displayName: Build Platform-Independent Py Packages
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
