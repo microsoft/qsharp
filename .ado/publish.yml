@@ -130,9 +130,21 @@ jobs:
     displayName: Upload Python Artifacts Linux
     condition: eq(variables['Agent.OS'], 'Linux')
 
+# TODO: For an automated nightly release, this should be skipped
+- job: "Approval"
+  dependsOn: Build
+  pool: server
+  timeoutInMinutes: 1440 # job times out in 1 day
+  steps:
+  - task: ManualValidation@0
+    timeoutInMinutes: 1440 # task times out in 1 day
+    inputs:
+      notifyUsers: ''
+      instructions: 'Please verify artifacts and approve the release'
+      onTimeout: 'reject'
 
 - job: "Publish"
-  dependsOn: Build
+  dependsOn: Approval
   pool:
     vmImage: 'ubuntu-latest'
 
@@ -191,8 +203,10 @@ jobs:
   - script: |
       VSIX_RPATH=../VSIX
       VSIX_FNAME=`ls $VSIX_RPATH`
-      vsce publish --pat $(PAT) --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
+      vsce publish --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
     displayName: Publish VSCode Extension
+    env:
+      VSCE_PAT: $(PAT)
 
   - script: |
       dir
