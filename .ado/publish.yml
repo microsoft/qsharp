@@ -21,9 +21,10 @@ jobs:
                                         # The "manylinux" approach is used.
         imageName: 'ubuntu-latest'      # Manylinux Py (x86_64) + VSCode Ext.
         arch: x86_64
-      linux_ARM64:
-        imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
-        arch: aarch64
+# TODO: Add this back once everything else is working (takes too long and slows down the feedback loop).
+#      linux_ARM64:
+#        imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
+#        arch: aarch64
       mac:
         imageName: 'macOS-latest'       # MacOS-specific Py (Mac is usually quite limited).
         arch: x86_64
@@ -60,6 +61,7 @@ jobs:
     displayName: Build VSCode Extension
     condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
 
+  # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       vsce package --pre-release
     displayName: Pack VSCode Extension
@@ -100,10 +102,11 @@ jobs:
     displayName: Build Platform-Dependent Py Packages, Linux
     condition: eq(variables['Agent.OS'], 'Linux')
 
-  - script: |
-      python build.py --jupyterlab
-    displayName: Build Platform-Independent Py Packages
-    condition: and(eq(variables['Agent.OS'], '${{ variables.PlatfIndepPyPackBuildPlatf }}'), eq(variables['arch'], 'x86_64'))
+  # TODO: This is giving AccessDenied on build for some reason. Need to investigate and re-enable.
+  # - script: |
+  #     python build.py --jupyterlab
+  #   displayName: Build Platform-Independent Py Packages
+  #   condition: and(eq(variables['Agent.OS'], '${{ variables.PlatfIndepPyPackBuildPlatf }}'), eq(variables['arch'], 'x86_64'))
 
   - script: |
       dir target\wheels\*
@@ -130,7 +133,7 @@ jobs:
     displayName: Upload Python Artifacts Linux
     condition: eq(variables['Agent.OS'], 'Linux')
 
-# TODO: For an automated nightly release, this should be skipped
+# TODO: For an automated nightly release, the approval requirement should be skipped
 - job: "Approval"
   dependsOn: Build
   pool: server
@@ -200,10 +203,11 @@ jobs:
      DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
     displayName: Publish Py Packages
 
+  # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       VSIX_RPATH=../VSIX
       VSIX_FNAME=`ls $VSIX_RPATH`
-      vsce publish --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
+      vsce publish --pre-release --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
     displayName: Publish VSCode Extension
     env:
       VSCE_PAT: $(PAT)
