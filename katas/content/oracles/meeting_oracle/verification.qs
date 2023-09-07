@@ -7,7 +7,7 @@ namespace Kata.Verification {
         ApplyControlledOnInt(0, X, x, y);
     }
 
-    operation Meeting_Oracle_Reference(x: Qubit[], jasmine: Qubit[], z: Qubit): Unit is Adj + Ctl {
+    operation Meeting_Oracle_Reference(x: Qubit[], jasmine: Qubit[], y: Qubit): Unit is Adj + Ctl {
         use q = Qubit[Length(x)];
         within {
             for i in IndexRange(q) {
@@ -17,7 +17,7 @@ namespace Kata.Verification {
                 CCNOT(x[i], jasmine[i], q[i]);
             }
         } apply {
-            Or_Oracle_Reference(q, z);
+            Or_Oracle_Reference(q, y);
         }
     }
 

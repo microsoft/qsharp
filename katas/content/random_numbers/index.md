@@ -96,13 +96,14 @@ This knowledge is sufficient to implement a simple random number generator!
 
 @[section]({"id": "random_numbers__whats_next", "title": "What's Next?"})
 
-Congratulations! In this Kata you have created a truly random number generator using quantum computing. Here are a few key concepts to keep in mind:
+Congratulations! In this kata you have created a random number generator. Here are a few key concepts to keep in mind:
+* This code will generate truly random numbers when executed on a true quantum computer. Random numbers obtained when executing on a simulator are only as good as the source of randomness used by the simulator.
 * You can generate a random bit by applying a Hadamard gate to a state $\ket{0}$, and then measuring the resulting qubit in the computational basis.
-* The Q# <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei" target="_blank">BitSizeI function</a> returns the numbers of bits needed to write an integer in binary.
+* The Q# <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei" target="_blank">BitSizeI function</a> returns the number of bits needed to write an integer in binary.
 
 **Next Steps**
 
-We hope you enjoyed this Kata on quantum random number generation! If you're looking to learn more about quantum computing and Q#, here are some suggestions:
-* To learn about superposition, interference and entanglement by using Q#, you can check <a href="https://learn.microsoft.com/en-us/training/modules/qsharp-explore-key-concepts-quantum-computing/" target="_blank">Microsoft Learn module "Explore the key concepts of quantum computing by using Q#"</a>.
+We hope you enjoyed this kata on quantum random number generation! If you're looking to learn more about quantum computing and Q#, here are some suggestions:
+* To learn about superposition, interference and entanglement by using Q#, you can check the <a href="https://learn.microsoft.com/en-us/training/modules/qsharp-explore-key-concepts-quantum-computing/" target="_blank">Microsoft Learn module "Explore the key concepts of quantum computing by using Q#"</a>.
 * For another look at quantum random number generation, you can check out the <a href="https://docs.microsoft.com/learn/modules/qsharp-create-first-quantum-development-kit/1-introduction" target="_blank">Microsoft Learn module "Create your first Q# program by using the Quantum Development Kit"</a>.
 
