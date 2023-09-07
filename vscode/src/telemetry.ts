@@ -5,7 +5,7 @@ import TelemetryReporter, {
 } from "@vscode/extension-telemetry";
 import { log } from "qsharp";
 // the application insights key (also known as instrumentation key)
-const key = "175861b7-3a41-4015-9571-1d930b8b0722";
+const key = "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217";
 
 // telemetry reporter
 let reporter: TelemetryReporter | undefined;
@@ -14,6 +14,7 @@ export enum EventType {
   DebugSessionStart = "DebugSessionStart",
   Initialize = "Initialize",
   LoadLanguageService = "LoadLanguageService",
+  QSharpJupyterCellInitialized = "QSharpJupyterCellInitialized",
 }
 
 type Empty = { [K in any]: never };
@@ -35,6 +36,10 @@ type EventTypes = {
       timeToStartMs: number;
     };
   };
+  [EventType.QSharpJupyterCellInitialized] :{
+    properties: Empty,
+    measurements: Empty
+  }
 };
 
 type WrappedTelemetryEvent = {
@@ -45,7 +50,7 @@ type WrappedTelemetryEvent = {
   };
 };
 
-export function initTelemetry(context: vscode.ExtensionContext) {
+export function initTelemetry() {
   // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/183
   // we cannot use the latest version of extension-telemetry until this is fixed
   const reporter = new TelemetryReporter("qsharp-vscode", "0.0.0", key);

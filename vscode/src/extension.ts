@@ -25,7 +25,7 @@ import {
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
-  initTelemetry(context);
+  initTelemetry();
 
   vscode.workspace.registerTextDocumentContentProvider(
     qsharpLibraryUriScheme,
