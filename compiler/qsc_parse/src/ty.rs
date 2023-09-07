@@ -20,7 +20,11 @@ use qsc_ast::ast::{
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    let mut lhs = base(s)?;
+    let lhs = base(s)?;
+    array_or_arrow(s, lhs, lo)
+}
+
+pub(super) fn array_or_arrow(s: &mut Scanner<'_>, mut lhs: Ty, lo: u32) -> Result<Ty> {
     loop {
         if let Some(()) = opt(s, array)? {
             lhs = Ty {
