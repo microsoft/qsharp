@@ -57,7 +57,7 @@ pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
-    check_semis(&stmts)?;
+    check_semis(s, &stmts);
     recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Box::new(Block {
         id: NodeId::default(),
@@ -163,7 +163,7 @@ fn parse_qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     }))
 }
 
-pub(super) fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
+pub(super) fn check_semis(s: &mut Scanner, stmts: &[Box<Stmt>]) {
     let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
     for stmt in leading_stmts {
         if matches!(&*stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {
@@ -171,9 +171,7 @@ pub(super) fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
                 lo: stmt.span.hi,
                 hi: stmt.span.hi,
             };
-            return Err(Error(ErrorKind::MissingSemi(span)));
+            s.push_error(Error(ErrorKind::MissingSemi(span)));
         }
     }
-
-    Ok(())
 }

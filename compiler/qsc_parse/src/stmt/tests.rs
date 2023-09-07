@@ -452,15 +452,24 @@ fn call_no_semi_call() {
         parse_block,
         "{ f(x) g(y) }",
         &expect![[r#"
-            Error(
-                MissingSemi(
-                    Span {
-                        lo: 6,
-                        hi: 6,
-                    },
+            Block _id_ [0-13]:
+                Stmt _id_ [2-6]: Expr: Expr _id_ [2-6]: Call:
+                    Expr _id_ [2-3]: Path: Path _id_ [2-3] (Ident _id_ [2-3] "f")
+                    Expr _id_ [3-6]: Paren: Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
+                Stmt _id_ [7-11]: Expr: Expr _id_ [7-11]: Call:
+                    Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "g")
+                    Expr _id_ [8-11]: Paren: Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")
+
+            [
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 6,
+                            hi: 6,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -491,15 +500,29 @@ fn expr_plus_if_no_semi() {
         parse_block,
         "{ 1 + if true { 2 } else { 3 } f(x) }",
         &expect![[r#"
-            Error(
-                MissingSemi(
-                    Span {
-                        lo: 30,
-                        hi: 30,
-                    },
+            Block _id_ [0-37]:
+                Stmt _id_ [2-30]: Expr: Expr _id_ [2-30]: BinOp (Add):
+                    Expr _id_ [2-3]: Lit: Int(1)
+                    Expr _id_ [6-30]: If:
+                        Expr _id_ [9-13]: Lit: Bool(true)
+                        Block _id_ [14-19]:
+                            Stmt _id_ [16-17]: Expr: Expr _id_ [16-17]: Lit: Int(2)
+                        Expr _id_ [20-30]: Expr Block: Block _id_ [25-30]:
+                            Stmt _id_ [27-28]: Expr: Expr _id_ [27-28]: Lit: Int(3)
+                Stmt _id_ [31-35]: Expr: Expr _id_ [31-35]: Call:
+                    Expr _id_ [31-32]: Path: Path _id_ [31-32] (Ident _id_ [31-32] "f")
+                    Expr _id_ [32-35]: Paren: Expr _id_ [33-34]: Path: Path _id_ [33-34] (Ident _id_ [33-34] "x")
+
+            [
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 30,
+                            hi: 30,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
