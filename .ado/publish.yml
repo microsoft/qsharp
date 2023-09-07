@@ -17,10 +17,9 @@ jobs:
                                         # The "manylinux" approach is used.
         imageName: 'ubuntu-latest'      # Manylinux Py (x86_64) + VSCode Ext.
         arch: x86_64
-# TODO: Add this back once everything else is working (takes too long and slows down the feedback loop).
-#      linux_ARM64:
-#        imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
-#        arch: aarch64
+      linux_ARM64:
+        imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
+        arch: aarch64
       mac:
         imageName: 'macOS-latest'       # MacOS-specific Py (Mac is usually quite limited).
         arch: x86_64
@@ -47,7 +46,7 @@ jobs:
     displayName: Add aarch64 Rust target on macOS
     condition: eq(variables['Agent.OS'], 'Darwin')
 
-# Below VS Code extension build only needs to run on one platform (Linux x86_64 for now)
+  # Below VS Code extension build only needs to run on one platform (Linux x86_64 for now)
   - script: |
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Extension
