@@ -46,6 +46,11 @@ jobs:
     displayName: Install Prereqs and set version
 
   - script: |
+      rustup target add aarch64-apple-darwin
+    displayName: Add aarch64 Rust target on macOS
+    condition: eq(variables['Agent.OS'], 'Darwin')
+
+  - script: |
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Extension
     condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
