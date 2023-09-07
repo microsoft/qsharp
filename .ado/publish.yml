@@ -42,8 +42,8 @@ jobs:
       versionSpec: '3.11'
 
   - script: |
-      python ./prereqs.py --install
-    displayName: Install Prereqs
+      python ./prereqs.py --install && python ./build_version.py
+    displayName: Install Prereqs and set version
 
   - script: |
       npm install -g @vscode/vsce

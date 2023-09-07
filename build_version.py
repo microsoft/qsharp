@@ -17,6 +17,10 @@ version_date = datetime(2023, 9, 6, tzinfo=timezone.utc)
 now_time = datetime.now(timezone.utc)
 build_ver = int((now_time - version_date).total_seconds() / 60)
 
+#### TODO: Above is a bad idea for a matrix of builds, as each platform might get a different build number
+# For now, just go with the date of the build for dev builds in yymmdd format.
+build_ver = now_time.strftime("%y%m%d")
+
 # Check if the environment variable BUILD_TYPE is set to 'rc' or 'stable'.
 # If it is, we should use a provided build number instead of the dev build number.
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
@@ -73,6 +77,7 @@ def update_file(file, old_text, new_text):
         f.truncate()
 
 
+# TODO: Make paths absolute relative to the script location
 update_file(
     "pip/pyproject.toml", r'version = "0.0.0"', r'version = "{}"'.format(pip_version)
 )
