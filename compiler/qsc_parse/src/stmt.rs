@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering, recovering_token},
+    prim::{barrier, recovering, recovering_semi, recovering_token},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -91,7 +91,7 @@ fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = expr(s)?;
-    token(s, TokenKind::Semi)?;
+    recovering_semi(s)?;
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
@@ -113,7 +113,7 @@ fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let rhs = parse_qubit_init(s)?;
     let block = opt(s, parse_block)?;
     if block.is_none() {
-        token(s, TokenKind::Semi)?;
+        recovering_semi(s)?;
     }
 
     Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, block)))
