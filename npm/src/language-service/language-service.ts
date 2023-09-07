@@ -98,7 +98,9 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<ICompletionList> {
     const code = this.code[documentUri];
     if (code === undefined) {
-      log.error(`expected ${documentUri} to be in the document map`);
+      log.error(
+        `getCompletions: expected ${documentUri} to be in the document map`
+      );
       return { items: [] };
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
@@ -125,7 +127,7 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<IHover | undefined> {
     const code = this.code[documentUri];
     if (code === undefined) {
-      log.error(`expected ${documentUri} to be in the document map`);
+      log.error(`getHover: expected ${documentUri} to be in the document map`);
       return undefined;
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
@@ -147,7 +149,9 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<IDefinition | undefined> {
     let code = this.code[documentUri];
     if (code === undefined) {
-      log.error(`expected ${documentUri} to be in the document map`);
+      log.error(
+        `getDefinition: expected ${documentUri} to be in the document map`
+      );
       return undefined;
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
@@ -163,7 +167,7 @@ export class QSharpLanguageService implements ILanguageService {
       if (url.protocol === qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
         if (code === undefined) {
-          log.error(`expected ${url} to be in the library`);
+          log.error(`getDefinition: expected ${url} to be in the library`);
           return undefined;
         }
       }
@@ -195,15 +199,16 @@ export class QSharpLanguageService implements ILanguageService {
   onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
     try {
       const code = this.code[uri];
-      if (code === undefined) {
-        log.error(`expected ${uri} to be in the document map`);
+      const empty = diagnostics.length === 0;
+      if (code === undefined && !empty) {
+        log.error(`onDiagnostics: expected ${uri} to be in the document map`);
         return;
       }
       const event = new Event("diagnostics") as LanguageServiceEvent & Event;
       event.detail = {
         uri,
         version,
-        diagnostics: mapDiagnostics(diagnostics, code),
+        diagnostics: empty ? [] : mapDiagnostics(diagnostics, code as string),
       };
       this.eventHandler.dispatchEvent(event);
     } catch (e) {

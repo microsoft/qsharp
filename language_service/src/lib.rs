@@ -34,6 +34,7 @@ pub struct LanguageService<'a> {
     diagnostics_receiver: Box<DiagnosticsReceiver<'a>>,
 }
 
+#[derive(Debug)]
 struct WorkspaceConfiguration {
     pub target_profile: TargetProfile,
     pub package_type: PackageType,
@@ -192,6 +193,7 @@ impl<'a> LanguageService<'a> {
             self.configuration.target_profile = target_profile;
         }
 
+        trace!("need_recompile after configuration update: {need_recompile:?}");
         need_recompile
     }
 
@@ -215,6 +217,11 @@ impl<'a> LanguageService<'a> {
 
         // Now recompile everything with current settings
         for source in sources {
+            trace!(
+                "recompiling {:?} with settings {:?}",
+                source.0,
+                self.configuration
+            );
             self.update_document(&source.0, source.1, &source.2);
         }
     }
