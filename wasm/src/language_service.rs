@@ -234,8 +234,7 @@ serializable_type! {
         label: string;
         documentation: string | undefined;
         parameters: IParameterInformation[];
-    }"#,
-    ISignatureInformation
+    }"#
 }
 
 serializable_type! {
@@ -247,8 +246,7 @@ serializable_type! {
     r#"export interface IParameterInformation {
         label: { start: number; end: number };
         documentation: string | undefined;
-    }"#,
-    IParameterInformation
+    }"#
 }
 
 serializable_type! {
