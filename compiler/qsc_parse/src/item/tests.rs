@@ -479,15 +479,29 @@ fn function_body_missing_semi_between_stmts() {
         parse,
         "function Foo() : () { f(x) g(y) }",
         &expect![[r#"
-            Error(
-                MissingSemi(
-                    Span {
-                        lo: 26,
-                        hi: 26,
-                    },
+            Item _id_ [0-33]:
+                Callable _id_ [0-33] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-19]: Unit
+                    body: Block: Block _id_ [20-33]:
+                        Stmt _id_ [22-26]: Expr: Expr _id_ [22-26]: Call:
+                            Expr _id_ [22-23]: Path: Path _id_ [22-23] (Ident _id_ [22-23] "f")
+                            Expr _id_ [23-26]: Paren: Expr _id_ [24-25]: Path: Path _id_ [24-25] (Ident _id_ [24-25] "x")
+                        Stmt _id_ [27-31]: Expr: Expr _id_ [27-31]: Call:
+                            Expr _id_ [27-28]: Path: Path _id_ [27-28] (Ident _id_ [27-28] "g")
+                            Expr _id_ [28-31]: Paren: Expr _id_ [29-30]: Path: Path _id_ [29-30] (Ident _id_ [29-30] "y")
+
+            [
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 26,
+                            hi: 26,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 

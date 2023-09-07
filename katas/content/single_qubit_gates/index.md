@@ -463,7 +463,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     <td>$R_x(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})|1\rangle$</td>
     <td>
       $R_x(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle - i\sin\frac{\theta}{2}|1\rangle$<br>
-      $R_x(\theta)i\sin\frac{\theta}{2}|0\rangle$
+      $R_x(\theta)|1\rangle = \cos\frac{\theta}{2}|1\rangle - i\sin\frac{\theta}{2}|0\rangle$
     </td>
     <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx" target="_blank">Rx</a></td>
   </tr>
@@ -473,7 +473,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     <td>$R_y(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - \beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} + \alpha\sin\frac{\theta}{2})|1\rangle$</td>
     <td>
       $R_y(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle + \sin\frac{\theta}{2}|1\rangle$<br>
-      $R_y(\theta)\sin\frac{\theta}{2}|0\rangle$
+      $R_y(\theta)|1\rangle = \cos\frac{\theta}{2}|1\rangle - \sin\frac{\theta}{2}|0\rangle$
     </td>
     <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.ry" target="_blank">Ry</a></td>
   </tr>
@@ -483,7 +483,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     <td>$R_z(\theta)|\psi\rangle = \alpha e^{-i\theta/2}|0\rangle + \beta e^{i\theta/2}|1\rangle$</td>
     <td>
       $R_z(\theta)|0\rangle = e^{-i\theta/2}|0\rangle$<br>
-      $R_z(\theta)$
+      $R_z(\theta)|1\rangle = e^{i\theta/2}|1\rangle$
     </td>
     <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rz" target="_blank">Rz</a></td>
   </tr>
@@ -493,7 +493,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     <td>$R_1(\theta)|\psi\rangle = \alpha|0\rangle + \beta e^{i\theta}|1\rangle$</td>
     <td>
       $R_1(\theta)|0\rangle = |0\rangle$<br>
-      $R_1(\theta)$
+      $R_1(\theta)|1\rangle = e^{i\theta}|1\rangle$
     </td>  
     <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1" target="_blank">R1</a></td>
   </tr>
@@ -540,11 +540,11 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
     "title": "Conclusion"
 })
 
-Congratulations!  In this Kata you learned the matrix and the Ket-Bra representation of quantum gates. Here are a few key concepts to keep in mind:
+Congratulations!  In this kata you learned the matrix and the ket-bra representation of quantum gates. Here are a few key concepts to keep in mind:
 * Single-qubit gates act on individual qubits and are represented by $2 \times 2$ unitary matrices.
 * The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit.
 * Applying several quantum gates in sequence is equivalent to performing several matrix multiplications.
-* A square matrix can be represented as the outer product of two vectors. The outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
+* Any square matrix can be represented as a linear combination of the outer products of vectors. The outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
 * Pauli gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
 
-Next, you will learn about multi-qubit systems and the multi-qubit gates in the “Multi-Qubit Systems” Kata.
+Next, you will learn about multi-qubit systems and the multi-qubit gates in the “Multi-Qubit Systems” kata.
