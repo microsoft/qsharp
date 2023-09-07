@@ -4,14 +4,18 @@
 #[cfg(test)]
 mod tests;
 
-use qsc::ast::{
-    self,
-    visit::{walk_callable_decl, walk_expr, walk_item, Visitor},
+use qsc::{
+    ast::{
+        self,
+        visit::{walk_callable_decl, walk_expr, walk_item, Visitor},
+    },
+    resolve,
 };
 
 use crate::{
+    display::CodeDisplay,
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
-    qsc_utils::{map_offset, span_contains, Compilation},
+    qsc_utils::{find_item, map_offset, span_contains, Compilation},
 };
 
 pub(crate) fn get_signature_help(
@@ -27,13 +31,14 @@ pub(crate) fn get_signature_help(
         compilation,
         offset,
         signature_help: None,
+        display: CodeDisplay { compilation },
     };
 
     finder.visit_package(package);
 
-    finder.signature_help.map(|_| SignatureHelp {
+    finder.signature_help.map(|signature| SignatureHelp {
         signatures: vec![SignatureInformation {
-            label: "operation Foo(a: Int, b: Double, c: String) : Unit".to_string(),
+            label: signature,
             documentation: None,
             parameters: vec![
                 ParameterInformation {
@@ -58,7 +63,8 @@ pub(crate) fn get_signature_help(
 struct SignatureHelpFinder<'a> {
     compilation: &'a Compilation,
     offset: u32,
-    signature_help: Option<()>,
+    signature_help: Option<String>,
+    display: CodeDisplay<'a>,
 }
 
 impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
@@ -75,11 +81,30 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
         if span_contains(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Call(callee, arguments) => {
-                    self.signature_help = Some(());
+                ast::ExprKind::Call(callee, _) => {
+                    let callee = unwrap_parens(callee);
+                    if let ast::ExprKind::Path(path) = &*callee.kind {
+                        if let Some(resolve::Res::Item(item_id)) =
+                            self.compilation.unit.ast.names.get(path.id)
+                        {
+                            if let (Some(item), _) = find_item(self.compilation, item_id) {
+                                if let qsc::hir::ItemKind::Callable(callee) = &item.kind {
+                                    self.signature_help =
+                                        Some(self.display.hir_callable_decl(callee).to_string());
+                                }
+                            }
+                        }
+                    }
                 }
                 _ => walk_expr(self, expr),
             }
         }
+    }
+}
+
+fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
+    match &*expr.kind {
+        ast::ExprKind::Paren(inner) => unwrap_parens(inner),
+        _ => expr,
     }
 }
