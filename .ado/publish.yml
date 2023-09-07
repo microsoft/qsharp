@@ -4,10 +4,6 @@
 # Building Py .whl for multiple Linux distros - manylinux: https://github.com/pypa/manylinux
 # aarch64 (ARM64) support for manylinux builds: https://codepyre.com/2019/12/arming-yourself/
 
-variables:
-  VSCodeExtensionBuildPlatform: 'Linux'
-  PlatfIndepPyPackBuildPlatf: 'Linux'
-
 name: $(BuildId)
 
 trigger: none
@@ -51,27 +47,28 @@ jobs:
     displayName: Add aarch64 Rust target on macOS
     condition: eq(variables['Agent.OS'], 'Darwin')
 
+# Below VS Code extension build only needs to run on one platform (Linux x86_64 for now)
   - script: |
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Extension
-    condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   - script: |
       python build.py --wasm --npm --vscode
     displayName: Build VSCode Extension
-    condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       vsce package --pre-release
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
-    condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   - publish: $(System.DefaultWorkingDirectory)/vscode
     artifact: VSIX
     displayName: Upload VSCode Extension Artifact
-    condition: and(eq(variables['Agent.OS'], '${{ variables.VSCodeExtensionBuildPlatform }}'), eq(variables['arch'], 'x86_64'))
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   - script: |
       python build.py --pip --no-check --no-test --no-check-prereqs
@@ -102,11 +99,11 @@ jobs:
     displayName: Build Platform-Dependent Py Packages, Linux
     condition: eq(variables['Agent.OS'], 'Linux')
 
-  # TODO: This is giving AccessDenied on build for some reason. Need to investigate and re-enable.
-  # - script: |
-  #     python build.py --jupyterlab
-  #   displayName: Build Platform-Independent Py Packages
-  #   condition: and(eq(variables['Agent.OS'], '${{ variables.PlatfIndepPyPackBuildPlatf }}'), eq(variables['arch'], 'x86_64'))
+  # Build JupyterLab on Windows (was seeing some Access Denied errors on Linux)
+  - script: |
+    python build.py --jupyterlab
+    displayName: Build Platform-Independent Py Packages
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
 
   - script: |
       dir target\wheels\*
