@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "qsharp-lang-jupyterlab"
+version = "0.0.0"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -23,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
 ]
-dynamic = ["version", "description", "authors", "urls", "keywords"]
+dynamic = ["description", "authors", "urls", "keywords"]
 
 [tool.hatch.version]
 source = "nodejs"

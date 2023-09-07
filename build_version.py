@@ -74,17 +74,17 @@ def update_file(file, old_text, new_text):
 
 
 update_file(
-    "npm/package.json",
-    r'"version": "0.0.0",',
-    r'"version": "{}",'.format(npm_version),
-)
-
-update_file(
     "pip/pyproject.toml", r'version = "0.0.0"', r'version = "{}"'.format(pip_version)
 )
 
 update_file(
-    "jupyterlab/package.json",
+    "jupyterlab/pyproject.toml",
+    r'version = "0.0.0"',
+    r'version = "{}"'.format(pip_version),
+)
+
+update_file(
+    "npm/package.json",
     r'"version": "0.0.0",',
     r'"version": "{}",'.format(npm_version),
 )
