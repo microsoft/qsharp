@@ -6,101 +6,13 @@
 import argparse
 import os
 import platform
-import re
 import sys
 import venv
 import shutil
 import subprocess
 import functools
 
-from packaging.version import Version, parse
-
 from prereqs import check_prereqs
-
-# convert python version to rust version
-def python_ver_to_rust_ver_str(ver: Version) -> str:
-    parts = []
-
-    # extend the release to 3 parts if needed
-    release = ver.release
-    if len(release) == 1:
-        release = (release[0], 0, 0)
-    elif len(release) == 2:
-        release = (release[0], release[1], 0)
-
-    parts.append(".".join(str(x) for x in release))
-
-    if ver.pre is not None:
-        parts.append("-") # rust ver needs a - if there is a pre-release
-        parts.append("".join(str(x) for x in ver.pre))
-
-    if ver.dev is not None:
-        parts.append(f"-dev{ver.dev}")
-
-    return "".join(parts)
-
-def update_package_version() -> str:
-    # when running in CI, set the version from the environment
-    # to specify version/tag for the packages
-    if os.environ.get("QSHARP_PACKAGE_VERSION") is None:
-        print("QSHARP_PACKAGE_VERSION not set")
-        return "0.0.0"
-
-    version = os.environ["QSHARP_PACKAGE_VERSION"]
-
-    print(f"Updating packages version to {version}")
-
-    newVer = parse(version)
-    if not isinstance(newVer, Version):
-        print("Argument not a valid version")
-        sys.exit(-2)
-
-    rustPackageVer = python_ver_to_rust_ver_str(newVer)
-    print(f"Rust package version: {rustPackageVer}")
-
-    scriptDir = os.path.dirname(os.path.abspath(__file__))
-
-    for fileRPath in [
-        os.path.join(scriptDir, "Cargo.toml"),
-        os.path.join(scriptDir, "pip", "pyproject.toml"),
-        os.path.join(scriptDir, "jupyterlab", "package.json"),
-        os.path.join(scriptDir, "npm", "package.json"),
-        os.path.join(scriptDir, "playground", "package.json"),
-        os.path.join(scriptDir, "vscode", "package.json"),
-    ]:
-        print(fileRPath)
-        versionToUse = newVer
-        if fileRPath.endswith("Cargo.toml"):
-            versionToUse = rustPackageVer
-        # Config:
-        regexp = r'^version\s*=\s*"\d+\.\d+\.\d+"\s*$'  # `version = "0.0.11"`
-        replacement = f'version = "{versionToUse}"\n'
-        if fileRPath.endswith("package.json"):
-            regexp = (
-                r'\s*"version"\s*:\s*"\d+\.\d+\.\d+"\s*,\s*$'  # `  "version": "0.0.11",`
-            )
-            replacement = f'  "version": "{versionToUse}",\n'
-
-        # Read file:
-        with open(fileRPath, "r") as file:
-            lines = file.readlines()
-
-        # Replace the line:
-        lineIndex = 0  # Zero-based.
-        for line in lines:
-            if re.match(regexp, line):
-                lines[lineIndex] = replacement
-                print(f"{lineIndex + 1}: {lines[lineIndex]}", end="")
-                break
-            lineIndex = lineIndex + 1
-
-        # Save file:
-        with open(fileRPath, "w") as file:
-            file.writelines(lines)
-
-    return str(newVer)
-
-package_version = update_package_version()
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
@@ -193,8 +105,6 @@ pip_src = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
 jupyterlab_src = os.path.join(root_dir, "jupyterlab")
-
-
 
 if npm_install_needed:
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
@@ -303,7 +213,7 @@ if build_pip:
             "--force-reinstall",
             "--no-index",
             "--find-links=" + wheels_dir,
-            f"qsharp-lang=={package_version}",
+            f"qsharp-lang",
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]
