@@ -7,9 +7,9 @@ mod tests;
 use qsc::{
     ast::{
         self,
-        visit::{walk_callable_decl, walk_expr, walk_item, Visitor},
+        visit::{walk_expr, walk_item, Visitor},
     },
-    resolve,
+    hir, resolve,
 };
 
 use crate::{
@@ -37,33 +37,16 @@ pub(crate) fn get_signature_help(
     finder.visit_package(package);
 
     finder.signature_help.map(|signature| SignatureHelp {
-        signatures: vec![SignatureInformation {
-            label: signature,
-            documentation: None,
-            parameters: vec![
-                ParameterInformation {
-                    label: Span { start: 14, end: 20 },
-                    documentation: Some("The parameter `a`".to_string()),
-                },
-                ParameterInformation {
-                    label: Span { start: 22, end: 31 },
-                    documentation: Some("The parameter `b`".to_string()),
-                },
-                ParameterInformation {
-                    label: Span { start: 33, end: 42 },
-                    documentation: Some("The parameter `c`".to_string()),
-                },
-            ],
-        }],
+        signatures: vec![signature],
         active_signature: 0,
-        active_parameter: 2,
+        active_parameter: 0,
     })
 }
 
 struct SignatureHelpFinder<'a> {
     compilation: &'a Compilation,
     offset: u32,
-    signature_help: Option<String>,
+    signature_help: Option<SignatureInformation>,
     display: CodeDisplay<'a>,
 }
 
@@ -72,10 +55,6 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
         if span_contains(item.span, self.offset) {
             walk_item(self, item);
         }
-    }
-
-    fn visit_callable_decl(&mut self, decl: &'a ast::CallableDecl) {
-        walk_callable_decl(self, decl);
     }
 
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
@@ -89,8 +68,11 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                         {
                             if let (Some(item), _) = find_item(self.compilation, item_id) {
                                 if let qsc::hir::ItemKind::Callable(callee) = &item.kind {
-                                    self.signature_help =
-                                        Some(self.display.hir_callable_decl(callee).to_string());
+                                    self.signature_help = Some(SignatureInformation {
+                                        label: self.display.hir_callable_decl(callee).to_string(),
+                                        documentation: None,
+                                        parameters: get_params(callee.span.lo, &callee.input),
+                                    });
                                 }
                             }
                         }
@@ -107,4 +89,26 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
         ast::ExprKind::Paren(inner) => unwrap_parens(inner),
         _ => expr,
     }
+}
+
+fn get_params(offset: u32, input: &hir::Pat) -> Vec<ParameterInformation> {
+    fn populate_params(offset: u32, input: &hir::Pat, params: &mut Vec<ParameterInformation>) {
+        match &input.kind {
+            hir::PatKind::Bind(_) => params.push(ParameterInformation {
+                label: Span {
+                    start: input.span.lo - offset,
+                    end: input.span.hi - offset,
+                },
+                documentation: None,
+            }),
+            hir::PatKind::Discard => todo!(),
+            hir::PatKind::Tuple(items) => items
+                .iter()
+                .for_each(|item| populate_params(offset, item, params)),
+        }
+    }
+
+    let mut params: Vec<ParameterInformation> = vec![];
+    populate_params(offset, input, &mut params);
+    params
 }
