@@ -24,12 +24,23 @@ build_ver = now_time.strftime("%y%m%d")
 # Check if the environment variable BUILD_TYPE is set to 'rc' or 'stable'.
 # If it is, we should use a provided build number instead of the dev build number.
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
+BUILD_NUMBER = os.environ.get("BUILD_NUMBER") or "YYMMDD"
 
 if BUILD_TYPE not in ["dev", "rc", "stable"]:
     print("BUILD_TYPE environment variable must be 'dev', 'rc', or 'stable'")
     exit(1)
 
 print("Build type: {}".format(BUILD_TYPE))
+
+# Override the dev build number if provided as an environment variable.
+if BUILD_TYPE == "dev" and BUILD_NUMBER != "YYMMDD":
+    try:
+        build_ver = int(BUILD_NUMBER)
+    except:
+        print("BUILD_NUMBER environment variable is not valid")
+        exit(1)
+
+# Default to the dev build formats
 
 # Python dev version something like "2.3.0.dev1440"
 pip_version = "{}.0.dev{}".format(major_minor, build_ver)
@@ -40,10 +51,11 @@ npm_version = "{}.0-dev.{}".format(major_minor, build_ver)
 # VS Code dev version something like "2.3.1440" (they don't support pre-release versions)
 vscode_version = "{}.{}".format(major_minor, build_ver)
 
+# Update the rc or stable build formats if needed
 if BUILD_TYPE in ["rc", "stable"]:
     try:
         # Ensure build number is an integer.
-        build_ver = int(os.environ.get("BUILD_NUMBER"))
+        build_ver = int(BUILD_NUMBER)
     except:
         print("BUILD_NUMBER environment variable is not set to an integer")
         exit(1)
@@ -104,6 +116,7 @@ update_file(
 if BUILD_TYPE != "dev":
     update_file(
         "vscode/package.json",
-        r'"name": "qsharp-lang-vscode-dev",' r'"name": "qsharp-lang-vscode",',
+        r'"name": "qsharp-lang-vscode-dev",',
+        r'"name": "qsharp-lang-vscode",',
     )
     # TODO: Update the description and/or readme also for the different extension channels
