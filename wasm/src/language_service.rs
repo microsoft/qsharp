@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::serializable_type;
 use miette::{Diagnostic, Severity};
 use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
@@ -21,8 +22,8 @@ impl LanguageService {
                 let _ = diagnostics_callback
                     .call3(
                         &JsValue::NULL,
-                        &wasm_bindgen::JsValue::from(uri),
-                        &wasm_bindgen::JsValue::from(version),
+                        &uri.into(),
+                        &version.into(),
                         &serde_wasm_bindgen::to_value(&diags)
                             .expect("conversion to VSDiagnostic should succeed"),
                     )
@@ -49,9 +50,9 @@ impl LanguageService {
         self.0.close_document(uri);
     }
 
-    pub fn get_completions(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
+    pub fn get_completions(&self, uri: &str, offset: u32) -> ICompletionList {
         let completion_list = self.0.get_completions(uri, offset);
-        Ok(serde_wasm_bindgen::to_value(&CompletionList {
+        CompletionList {
             items: completion_list
                 .items
                 .into_iter()
@@ -80,145 +81,141 @@ impl LanguageService {
                     }),
                 })
                 .collect(),
-        })?)
+        }
+        .into()
     }
 
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<IDefinition> {
         let definition = self.0.get_definition(uri, offset);
-        Ok(match definition {
-            Some(definition) => serde_wasm_bindgen::to_value(&Definition {
+        definition.map(|definition| {
+            Definition {
                 source: definition.source,
                 offset: definition.offset,
-            })?,
-            None => JsValue::NULL,
+            }
+            .into()
         })
     }
 
-    pub fn get_hover(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
+    pub fn get_hover(&self, uri: &str, offset: u32) -> Option<IHover> {
         let hover = self.0.get_hover(uri, offset);
-        Ok(match hover {
-            Some(hover) => serde_wasm_bindgen::to_value(&Hover {
+        hover.map(|hover| {
+            Hover {
                 contents: hover.contents,
                 span: Span {
                     start: hover.span.start,
                     end: hover.span.end,
                 },
-            })?,
-            None => JsValue::NULL,
+            }
+            .into()
         })
     }
 }
 
-// There is no easy way to serialize the result with serde_wasm_bindgen and get
-// good TypeScript typing. Here we manually specify the type that the follow
-// method will return. At the call-site in the TypeScript, the response should be
-// cast to this type. (e.g., var result = get_completions() as ICompletionList).
-// It does mean this type decl must be kept up to date with any structural changes.
-#[wasm_bindgen(typescript_custom_section)]
-const ICompletionList: &'static str = r#"
-export interface ICompletionList {
-    items: Array<{
+serializable_type! {
+    CompletionList,
+    {
+        pub items: Vec<CompletionItem>,
+    },
+    r#"export interface ICompletionList {
+        items: ICompletionItem[]
+    }"#,
+    ICompletionList
+}
+
+serializable_type! {
+    CompletionItem,
+    {
+        pub label: String,
+        pub kind: String,
+        pub sortText: Option<String>,
+        pub detail: Option<String>,
+        pub additionalTextEdits: Option<Vec<TextEdit>>,
+    },
+    r#"export interface ICompletionItem {
         label: string;
         kind: "function" | "interface" | "keyword" | "module";
         sortText?: string;
         detail?: string;
-        additionalTextEdits?: TextEdit[];
-    }>
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-pub struct CompletionList {
-    pub items: Vec<CompletionItem>,
+        additionalTextEdits?: ITextEdit[];
+    }"#
 }
 
-#[derive(Serialize, Deserialize)]
-#[allow(non_snake_case)] // These types propagate to JS which expects camelCase
-pub struct CompletionItem {
-    pub label: String,
-    pub sortText: Option<String>,
-    pub kind: String,
-    pub detail: Option<String>,
-    pub additionalTextEdits: Option<Vec<TextEdit>>,
+serializable_type! {
+    TextEdit,
+    {
+        pub range: Span,
+        pub newText: String,
+    },
+    r#"export interface ITextEdit {
+        range: ISpan;
+        newText: string;
+    }"#
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const ITextEdit: &'static str = r#"
-export interface ITextEdit {
-    range: { start: number; end: number; };
-    newText: string;
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-#[allow(non_snake_case)] // These types propagate to JS which expects camelCase
-pub struct TextEdit {
-    pub range: Span,
-    pub newText: String,
+serializable_type! {
+    Hover,
+    {
+        pub contents: String,
+        pub span: Span,
+    },
+    r#"export interface IHover {
+        contents: string;
+        span: ISpan
+    }"#,
+    IHover
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const IHover: &'static str = r#"
-export interface IHover {
-    contents: string;
-    span: { start: number; end: number }
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-pub struct Hover {
-    pub contents: String,
-    pub span: Span,
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const IDefinition: &'static str = r#"
-export interface IDefinition {
-    source: string;
-    offset: number;
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-pub struct Definition {
-    pub source: String,
-    pub offset: u32,
+serializable_type! {
+    Definition,
+    {
+        pub source: String,
+        pub offset: u32,
+    },
+    r#"export interface IDefinition {
+        source: string;
+        offset: number;
+    }"#,
+    IDefinition
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Span {
-    pub start: u32,
-    pub end: u32,
+serializable_type! {
+    Span,
+    {
+        pub start: u32,
+        pub end: u32,
+    },
+    r#"export interface ISpan {
+        start: number;
+        end: number;
+    }"#
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const IDiagnostic: &'static str = r#"
-export interface IDiagnostic {
-    start_pos: number;
-    end_pos: number;
-    message: string;
-    severity: "error" | "warning" | "info"
-    code?: {
-        value: string;
-        target: string;
-    }
+serializable_type! {
+    VSDiagnostic,
+    {
+        pub start_pos: usize,
+        pub end_pos: usize,
+        pub message: String,
+        pub severity: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub code: Option<VSDiagnosticCode>,
+    },
+    r#"export interface IDiagnostic {
+        start_pos: number;
+        end_pos: number;
+        message: string;
+        severity: "error" | "warning" | "info"
+        code?: {
+            value: string;
+            target: string;
+        }
+    }"#
 }
-"#;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct VSDiagnosticCode {
+pub(crate) struct VSDiagnosticCode {
     value: String,
     target: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VSDiagnostic {
-    pub start_pos: usize,
-    pub end_pos: usize,
-    pub message: String,
-    pub severity: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<VSDiagnosticCode>,
 }
 
 impl VSDiagnostic {
