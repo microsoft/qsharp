@@ -87,7 +87,9 @@ build_jupyterlab = build_all or args.jupyterlab
 
 # JavaScript projects and eslint, prettier depend on npm_install
 # However the JupyterLab extension uses yarn in a separate workspace
-npm_install_needed = build_npm or build_play or build_vscode or args.check
+npm_install_needed = (
+    build_npm or build_play or build_vscode or build_jupyterlab or args.check
+)
 npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
