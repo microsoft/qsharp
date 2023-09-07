@@ -6,11 +6,10 @@ use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
 
+use crate::{language_service::VSDiagnostic, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
-
-use crate::{language_service::VSDiagnostic, CallbackReceiver};
 
 #[wasm_bindgen]
 pub struct DebugService {
@@ -49,7 +48,7 @@ impl DebugService {
         }
     }
 
-    pub fn capture_quantum_state(&mut self) -> JsValue {
+    pub fn capture_quantum_state(&mut self) -> IQuantumStateList {
         let state = self.interpreter.capture_quantum_state();
         let entries = state
             .0
@@ -60,14 +59,13 @@ impl DebugService {
             })
             .collect::<Vec<_>>();
 
-        let list = QuantumStateList { entries };
-        serde_wasm_bindgen::to_value(&list).expect("failed to serialize quantum state list")
+        QuantumStateList { entries }.into()
     }
 
-    pub fn get_stack_frames(&self) -> JsValue {
+    pub fn get_stack_frames(&self) -> IStackFrameList {
         let frames = self.interpreter.get_stack_frames();
 
-        let list = StackFrameList {
+        StackFrameList {
             frames: frames
                 .iter()
                 .map(|s| StackFrame {
@@ -77,15 +75,15 @@ impl DebugService {
                     hi: s.hi,
                 })
                 .collect(),
-        };
-        serde_wasm_bindgen::to_value(&list).expect("failed to serialize stack frame list")
+        }
+        .into()
     }
 
     pub fn eval_next(
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
-    ) -> Result<JsValue, JsValue> {
+    ) -> Result<IStructStepResult, JsValue> {
         self.eval(event_cb, ids, StepAction::Next)
     }
 
@@ -93,7 +91,7 @@ impl DebugService {
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
-    ) -> Result<JsValue, JsValue> {
+    ) -> Result<IStructStepResult, JsValue> {
         self.eval(event_cb, ids, StepAction::Continue)
     }
 
@@ -101,7 +99,7 @@ impl DebugService {
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
-    ) -> Result<JsValue, JsValue> {
+    ) -> Result<IStructStepResult, JsValue> {
         self.eval(event_cb, ids, StepAction::In)
     }
 
@@ -109,7 +107,7 @@ impl DebugService {
         &mut self,
         event_cb: &js_sys::Function,
         ids: &[u32],
-    ) -> Result<JsValue, JsValue> {
+    ) -> Result<IStructStepResult, JsValue> {
         self.eval(event_cb, ids, StepAction::Out)
     }
 
@@ -118,7 +116,7 @@ impl DebugService {
         event_cb: &js_sys::Function,
         ids: &[u32],
         step: StepAction,
-    ) -> Result<JsValue, JsValue> {
+    ) -> Result<IStructStepResult, JsValue> {
         if !event_cb.is_function() {
             return Err(JsError::new("Events callback function must be provided").into());
         }
@@ -132,9 +130,7 @@ impl DebugService {
             &bps,
             step,
         ) {
-            Ok(value) => Ok(JsValue::from(std::convert::Into::<StructStepResult>::into(
-                value,
-            ))),
+            Ok(value) => Ok(StructStepResult::from(value).into()),
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
     }
@@ -178,10 +174,10 @@ impl DebugService {
         }
     }
 
-    pub fn get_breakpoints(&self, path: &str) -> JsValue {
+    pub fn get_breakpoints(&self, path: &str) -> IBreakpointSpanList {
         let bps = self.interpreter.get_breakpoints(path);
 
-        let spans = BreakpointSpanList {
+        BreakpointSpanList {
             spans: bps
                 .iter()
                 .map(|s| BreakpointSpan {
@@ -190,11 +186,11 @@ impl DebugService {
                     hi: s.hi,
                 })
                 .collect(),
-        };
-        serde_wasm_bindgen::to_value(&spans).expect("failed to serialize breakpoint location list")
+        }
+        .into()
     }
 
-    pub fn get_locals(&self) -> JsValue {
+    pub fn get_locals(&self) -> IVariableList {
         let locals = self.interpreter.get_locals();
         let variables: Vec<_> = locals
             .into_iter()
@@ -204,8 +200,7 @@ impl DebugService {
                 var_type: local.type_name,
             })
             .collect();
-        let variables = VariableList { variables };
-        serde_wasm_bindgen::to_value(&variables).expect("failed to serialize variable list")
+        VariableList { variables }.into()
     }
 }
 
@@ -267,137 +262,129 @@ impl From<StepResultId> for usize {
     }
 }
 
-#[wasm_bindgen]
-#[derive(Serialize, Deserialize)]
-struct StructStepResult {
-    pub id: usize,
-    pub value: usize,
+serializable_type! {
+    StructStepResult,
+    {
+        pub id: usize,
+        pub value: usize,
+    },
+    r#"export interface IStructStepResult {
+        id: number;
+        value: number;
+    }"#,
+    IStructStepResult
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const IStructStepResult: &'static str = r#"
-export interface IStructStepResult {
-    id: number;
-    value: number;
-}
-"#;
-
-#[wasm_bindgen(typescript_custom_section)]
-const IBreakpointSpanList: &'static str = r#"
-export interface IBreakpointSpan {
-    id: number;
-    lo: number;
-    hi: number;
+serializable_type! {
+    BreakpointSpanList,
+    {
+        pub spans: Vec<BreakpointSpan>,
+    },
+    r#"export interface IBreakpointSpanList {
+        spans: Array<IBreakpointSpan>
+    }
+    "#,
+    IBreakpointSpanList
 }
 
-export interface IBreakpointSpanList {
-    spans: Array<IBreakpointSpan>
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-struct BreakpointSpanList {
-    pub spans: Vec<BreakpointSpan>,
-}
-
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, Hash, PartialEq)]
-struct BreakpointSpan {
-    pub id: u32,
-    pub lo: u32,
-    pub hi: u32,
+serializable_type! {
+    BreakpointSpan,
+    {
+        pub id: u32,
+        pub lo: u32,
+        pub hi: u32,
+    },
+    r#"export interface IBreakpointSpan {
+        id: number;
+        lo: number;
+        hi: number;
+    }"#
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const IStackFrameList: &'static str = r#"
-export interface IStackFrame {
-    name: string;
-    path: string;
-    lo: number;
-    hi: number;
+serializable_type! {
+    StackFrameList,
+    {
+        pub frames: Vec<StackFrame>,
+    },
+    r#"export interface IStackFrameList {
+        frames: Array<IStackFrame>
+    }
+    "#,
+    IStackFrameList
 }
 
-export interface IStackFrameList {
-    frames: Array<IStackFrame>
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-struct StackFrameList {
-    pub frames: Vec<StackFrame>,
-}
-
-// Public fields implementing Copy have automatically generated getters/setters.
-// To generate getters/setters for non-Copy public fields, we must
-// use #[wasm_bindgen(getter_with_clone)] for the struct
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
-struct StackFrame {
-    pub name: String,
-    pub path: String,
-    pub lo: u32,
-    pub hi: u32,
+serializable_type! {
+    StackFrame,
+    {
+        pub name: String,
+        pub path: String,
+        pub lo: u32,
+        pub hi: u32,
+    },
+    r#"export interface IStackFrame {
+        name: string;
+        path: string;
+        lo: number;
+        hi: number;
+    }"#
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const IVariableList: &'static str = r#"
-export interface IVariable {
-    name: string;
-    value: string;
-    var_type: "Array"
-        | "BigInt"
-        | "Bool"
-        | "Closure"
-        | "Double"
-        | "Global"
-        | "Int"
-        | "Pauli"
-        | "Qubit"
-        | "Range"
-        | "Result"
-        | "String"
-        | "Tuple";
+serializable_type! {
+    VariableList,
+    {
+        pub variables: Vec<Variable>,
+    },
+    r#"export interface IVariableList {
+        variables: Array<IVariable>
+    }"#,
+    IVariableList
 }
 
-export interface IVariableList {
-    variables: Array<IVariable>
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-struct VariableList {
-    pub variables: Vec<Variable>,
-}
-
-// Public fields implementing Copy have automatically generated getters/setters.
-// To generate getters/setters for non-Copy public fields, we must
-// use #[wasm_bindgen(getter_with_clone)] for the struct
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
-struct Variable {
-    pub name: String,
-    pub value: String,
-    pub var_type: String,
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const IQuantumState: &'static str = r#"
-export interface IQuantumState {
-    name: string;
-    value: string;
-}
-export interface IQuantumStateList {
-    entries: Array<IQuantumState>
-}
-"#;
-
-#[derive(Serialize, Deserialize)]
-struct QuantumStateList {
-    pub entries: Vec<QuantumState>,
+serializable_type! {
+    Variable,
+    {
+        pub name: String,
+        pub value: String,
+        pub var_type: String,
+    },
+    r#"export interface IVariable {
+        name: string;
+        value: string;
+        var_type: "Array"
+            | "BigInt"
+            | "Bool"
+            | "Closure"
+            | "Double"
+            | "Global"
+            | "Int"
+            | "Pauli"
+            | "Qubit"
+            | "Range"
+            | "Result"
+            | "String"
+            | "Tuple";
+    }"#
 }
 
-// Public fields implementing Copy have automatically generated getters/setters.
-// To generate getters/setters for non-Copy public fields, we must
-// use #[wasm_bindgen(getter_with_clone)] for the struct
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
-struct QuantumState {
-    pub name: String,
-    pub value: String,
+serializable_type! {
+    QuantumStateList,
+    {
+        pub entries: Vec<QuantumState>,
+    },
+    r#"export interface IQuantumStateList {
+        entries: Array<IQuantumState>
+    }"#,
+    IQuantumStateList
+}
+
+serializable_type! {
+    QuantumState,
+    {
+        pub name: String,
+        pub value: String,
+    },
+    r#"export interface IQuantumState {
+        name: string;
+        value: string;
+    }"#
 }

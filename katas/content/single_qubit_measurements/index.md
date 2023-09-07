@@ -329,7 +329,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 
 @[exercise]({
     "id": "single_qubit_measurements__a_b_basis_measurements",
-    "title": "Measurement In The |A〉, |B〉 Basis",
+    "title": "Measurement in the |A〉, |B〉 Basis",
     "descriptionPath": "./a_b_basis_measurements/index.md",
     "placeholderSourcePath": "./a_b_basis_measurements/placeholder.qs",
     "solutionPath": "./a_b_basis_measurements/solution.md",

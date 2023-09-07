@@ -6,7 +6,7 @@
 })
 
 kaˑ ta | kah-tuh
-_The japanese word for "form", a pattern of learning and practicing new skills._
+_The Japanese word for "form", a pattern of learning and practicing new skills._
 
 <style>
 .transparent {
@@ -46,7 +46,7 @@ _The japanese word for "form", a pattern of learning and practicing new skills._
                 @[svg]({"path": "./media/Coding.svg"})
             </td>
             <td style="border:none;">
-                <b>Tutorials with theory and interactive hands on exercises</b>
+                <b>Tutorials with theory and interactive hands-on exercises</b>
             </td>
         </tr>
         <tr class="transparent" style="border:none;">
