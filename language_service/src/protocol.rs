@@ -1,6 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc::{PackageType, TargetProfile};
+
+/// Workspace configuration
+#[derive(Clone, Debug, Default)]
+pub struct WorkspaceConfigurationUpdate {
+    pub target_profile: Option<TargetProfile>,
+    pub package_type: Option<PackageType>,
+}
+
 /// Represents a span of text used by the Language Server API
 #[derive(Debug, PartialEq)]
 pub struct Span {

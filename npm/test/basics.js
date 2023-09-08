@@ -468,8 +468,7 @@ test("language service diagnostics", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`,
-    true // PackageType "exe"
+}`
   );
   assert(gotDiagnostics);
 });
@@ -496,12 +495,49 @@ test("language service diagnostics - web worker", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`,
-    true // PackageType "exe"
+}`
   );
   languageService.terminate();
   assert(gotDiagnostics);
 });
+
+test("language service configuration update", async () => {
+  const languageService = getLanguageServiceWorker();
+  let gotDiagnostics = false;
+  let expectedMessages = [
+    "entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+  ];
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
+    event.detail.diagnostics.map((d, i) =>
+      assert.equal(d.message, expectedMessages[i])
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Unit {
+    }
+}`
+  );
+  // Above document should have generated a missing entrypoint error
+  assert(gotDiagnostics);
+
+  // Reset expectations
+  gotDiagnostics = false;
+  expectedMessages = [];
+
+  await languageService.updateConfiguration({ packageType: "lib" });
+
+  languageService.terminate();
+
+  // Updating the config should cause another diagnostics event clearing the errors
+  assert(gotDiagnostics);
+});
+
 async function testCompilerError(useWorker) {
   const compiler = useWorker ? getCompilerWorker() : getCompiler();
   if (useWorker) {

@@ -33,17 +33,25 @@ impl LanguageService {
         LanguageService(inner)
     }
 
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str, is_exe: bool) {
-        self.0.update_document(
-            uri,
-            version,
-            text,
-            if is_exe {
-                qsc::PackageType::Exe
-            } else {
-                qsc::PackageType::Lib
-            },
-        );
+    pub fn update_configuration(&mut self, config: IWorkspaceConfiguration) {
+        let config: WorkspaceConfiguration = config.into();
+        self.0
+            .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
+                target_profile: config.targetProfile.map(|s| match s.as_str() {
+                    "base" => qsc::TargetProfile::Base,
+                    "full" => qsc::TargetProfile::Full,
+                    _ => panic!("invalid target profile"),
+                }),
+                package_type: config.packageType.map(|s| match s.as_str() {
+                    "lib" => qsc::PackageType::Lib,
+                    "exe" => qsc::PackageType::Exe,
+                    _ => panic!("invalid package type"),
+                }),
+            })
+    }
+
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        self.0.update_document(uri, version, text);
     }
 
     pub fn close_document(&mut self, uri: &str) {
@@ -139,6 +147,19 @@ impl LanguageService {
             .into()
         })
     }
+}
+
+serializable_type! {
+    WorkspaceConfiguration,
+    {
+        pub targetProfile: Option<String>,
+        pub packageType: Option<String>,
+    },
+    r#"export interface IWorkspaceConfiguration {
+        targetProfile?: "full" | "base";
+        packageType?: "exe" | "lib";
+    }"#,
+    IWorkspaceConfiguration
 }
 
 serializable_type! {
