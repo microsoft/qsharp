@@ -532,10 +532,10 @@ test("language service configuration update", async () => {
 
   await languageService.updateConfiguration({ packageType: "lib" });
 
+  languageService.terminate();
+
   // Updating the config should cause another diagnostics event clearing the errors
   assert(gotDiagnostics);
-
-  languageService.terminate();
 });
 
 async function testCompilerError(useWorker) {
