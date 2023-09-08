@@ -38,7 +38,7 @@ struct Context<'a> {
     names: &'a Names,
     globals: &'a HashMap<ItemId, Scheme>,
     table: &'a mut Table,
-    return_ty: Option<&'a Ty>,
+    return_ty: Option<Ty>,
     typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
     inferrer: &'a mut Inferrer,
@@ -77,11 +77,11 @@ impl<'a> Context<'a> {
             self.inferrer.eq(input.span, expected, actual);
         }
 
-        self.return_ty = Some(spec.output);
+        self.return_ty = Some(spec.output.clone());
         let block = self.infer_block(spec.block);
         if let Some(return_ty) = self.return_ty.take() {
             let span = spec.block.stmts.last().map_or(spec.block.span, |s| s.span);
-            self.inferrer.eq(span, return_ty.clone(), block.ty);
+            self.inferrer.eq(span, return_ty, block.ty);
         }
     }
 
@@ -131,7 +131,7 @@ impl<'a> Context<'a> {
     fn infer_block(&mut self, block: &Block) -> Partial<Ty> {
         let mut diverges = false;
         let mut last = None;
-        for stmt in block.stmts.iter() {
+        for stmt in &*block.stmts {
             let stmt = self.infer_stmt(stmt);
             diverges = diverges || stmt.diverges;
             last = Some(stmt);
@@ -328,11 +328,24 @@ impl<'a> Context<'a> {
             }
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
-                let body = self.infer_expr(body).ty;
+                let prev_ret_ty = self.return_ty.take();
+                let output_ty = self.inferrer.fresh_ty(TySource::not_divergent(body.span));
+                self.return_ty = Some(output_ty);
+                let body_ty = self.infer_expr(body).ty;
+                let output_ty = self
+                    .return_ty
+                    .take()
+                    .expect("return type should be present");
+                self.return_ty = prev_ret_ty;
+                if body_ty != Ty::UNIT {
+                    // Only when the type of the body is not `UNIT` do we need to unify with the inferred output type.
+                    // Otherwise we'd get spurious errors from lambdas that use explicit return-expr rather than implicit.
+                    self.inferrer.eq(body.span, output_ty.clone(), body_ty);
+                }
                 converge(Ty::Arrow(Box::new(Arrow {
                     kind: convert::callable_kind_from_ast(*kind),
                     input: Box::new(input),
-                    output: Box::new(body),
+                    output: Box::new(output_ty),
                     functors: self.inferrer.fresh_functor(),
                 })))
             }
@@ -507,8 +520,13 @@ impl<'a> Context<'a> {
                 );
                 converge(with_ctls)
             }
-            UnOp::Neg | UnOp::NotB | UnOp::Pos => {
+            UnOp::Neg | UnOp::Pos => {
                 self.inferrer.class(span, Class::Num(operand.ty.clone()));
+                operand
+            }
+            UnOp::NotB => {
+                self.inferrer
+                    .class(span, Class::Integral(operand.ty.clone()));
                 operand
             }
             UnOp::NotL => {

@@ -3,7 +3,7 @@
 
 use crate::{
     compile::{self, compile},
-    error::WithSource,
+    error::WithStack,
 };
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
@@ -17,7 +17,10 @@ use qsc_eval::{
 };
 use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
 use qsc_fir::fir::{ItemKind, PackageId};
-use qsc_frontend::compile::{PackageStore, Source, SourceMap, TargetProfile};
+use qsc_frontend::{
+    compile::{PackageStore, SourceMap, TargetProfile},
+    error::WithSource,
+};
 use qsc_passes::PackageType;
 use thiserror::Error;
 
@@ -26,12 +29,15 @@ use super::debug::format_call_stack;
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(WithSource<Source, ErrorKind>);
+pub struct Error(WithSource<ErrorKind>);
 
 impl Error {
     #[must_use]
     pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
+        match &self.0.error() {
+            ErrorKind::Eval(err) => err.stack_trace(),
+            _ => &None,
+        }
     }
 }
 
@@ -45,7 +51,7 @@ enum ErrorKind {
     Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] qsc_eval::Error),
+    Eval(#[from] WithStack<qsc_eval::Error>),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
@@ -152,7 +158,7 @@ impl Interpreter {
         } else {
             Err(errors
                 .into_iter()
-                .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
+                .map(|error| Error(WithSource::from_map(&unit.sources, error.into())))
                 .collect())
         }
     }
@@ -179,6 +185,9 @@ where
     /// # Errors
     ///
     /// Returns a vector of errors if evaluating the entry point fails.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
         eval_expr(
@@ -211,8 +220,7 @@ where
 
             vec![Error(WithSource::from_map(
                 &package.sources,
-                error.into(),
-                stack_trace,
+                WithStack::new(error, stack_trace).into(),
             ))]
         })
     }
@@ -234,7 +242,6 @@ where
         Err(vec![Error(WithSource::from_map(
             &unit.sources,
             ErrorKind::NoEntryPoint,
-            None,
         ))])
     }
 }

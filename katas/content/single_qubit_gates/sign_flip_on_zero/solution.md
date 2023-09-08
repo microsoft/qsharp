@@ -11,6 +11,6 @@ XZX
 $$
 
 @[solution]({
-    "id": "sign_flip_on_zero_solution",
+    "id": "single_qubit_gates__sign_flip_on_zero_solution",
     "codePath": "./Solution.qs"
 })

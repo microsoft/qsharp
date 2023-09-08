@@ -194,10 +194,9 @@ fn ty_def_tuple() {
         "newtype Foo = (Int, Int);",
         &expect![[r#"
             Item _id_ [0-25]:
-                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-24]: Tuple:
-                    TyDef _id_ [15-18]: Field:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-24]: Field:
+                    Type _id_ [14-24]: Tuple:
                         Type _id_ [15-18]: Path: Path _id_ [15-18] (Ident _id_ [15-18] "Int")
-                    TyDef _id_ [20-23]: Field:
                         Type _id_ [20-23]: Path: Path _id_ [20-23] (Ident _id_ [20-23] "Int")"#]],
     );
 }
@@ -268,6 +267,36 @@ fn ty_def_tuple_with_name() {
                     Type _id_ [21-31]: Tuple:
                         Type _id_ [22-25]: Path: Path _id_ [22-25] (Ident _id_ [22-25] "Int")
                         Type _id_ [27-30]: Path: Path _id_ [27-30] (Ident _id_ [27-30] "Int")"#]],
+    );
+}
+
+#[test]
+fn ty_def_tuple_array() {
+    check(
+        parse,
+        "newtype Foo = (Int, Int)[];",
+        &expect![[r#"
+        Item _id_ [0-27]:
+            New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-26]: Field:
+                Type _id_ [14-26]: Array: Type _id_ [14-24]: Tuple:
+                    Type _id_ [15-18]: Path: Path _id_ [15-18] (Ident _id_ [15-18] "Int")
+                    Type _id_ [20-23]: Path: Path _id_ [20-23] (Ident _id_ [20-23] "Int")"#]],
+    );
+}
+
+#[test]
+fn ty_def_tuple_lambda_args() {
+    check(
+        parse,
+        "newtype Foo = (Int, Int) -> Int;",
+        &expect![[r#"
+            Item _id_ [0-32]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-31]: Field:
+                    Type _id_ [14-31]: Arrow (Function):
+                        param: Type _id_ [14-24]: Tuple:
+                            Type _id_ [15-18]: Path: Path _id_ [15-18] (Ident _id_ [15-18] "Int")
+                            Type _id_ [20-23]: Path: Path _id_ [20-23] (Ident _id_ [20-23] "Int")
+                        return: Type _id_ [28-31]: Path: Path _id_ [28-31] (Ident _id_ [28-31] "Int")"#]],
     );
 }
 
@@ -450,15 +479,29 @@ fn function_body_missing_semi_between_stmts() {
         parse,
         "function Foo() : () { f(x) g(y) }",
         &expect![[r#"
-            Error(
-                MissingSemi(
-                    Span {
-                        lo: 26,
-                        hi: 26,
-                    },
+            Item _id_ [0-33]:
+                Callable _id_ [0-33] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-19]: Unit
+                    body: Block: Block _id_ [20-33]:
+                        Stmt _id_ [22-26]: Expr: Expr _id_ [22-26]: Call:
+                            Expr _id_ [22-23]: Path: Path _id_ [22-23] (Ident _id_ [22-23] "f")
+                            Expr _id_ [23-26]: Paren: Expr _id_ [24-25]: Path: Path _id_ [24-25] (Ident _id_ [24-25] "x")
+                        Stmt _id_ [27-31]: Expr: Expr _id_ [27-31]: Call:
+                            Expr _id_ [27-28]: Path: Path _id_ [27-28] (Ident _id_ [27-28] "g")
+                            Expr _id_ [28-31]: Paren: Expr _id_ [29-30]: Path: Path _id_ [29-30] (Ident _id_ [29-30] "y")
+
+            [
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 26,
+                            hi: 26,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -1025,18 +1068,6 @@ fn recover_unclosed_callable_item() {
                         body: Block: Block _id_ [47-48]: <empty>
 
             [
-                Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
-                        Eof,
-                        Span {
-                            lo: 48,
-                            hi: 48,
-                        },
-                    ),
-                ),
                 Error(
                     Token(
                         Close(

@@ -1,12 +1,12 @@
 # Getting Started
 
 @[section]({
-    "id": "getting_started_welcome",
+    "id": "getting_started__welcome",
     "title": "Welcome to Quantum Katas"
 })
 
 kaˑ ta | kah-tuh
-_The japanese word for "form", a pattern of learning and practicing new skills._
+_The Japanese word for "form", a pattern of learning and practicing new skills._
 
 <style>
 .transparent {
@@ -46,7 +46,7 @@ _The japanese word for "form", a pattern of learning and practicing new skills._
                 @[svg]({"path": "./media/Coding.svg"})
             </td>
             <td style="border:none;">
-                <b>Tutorials with theory and interactive hands on exercises</b>
+                <b>Tutorials with theory and interactive hands-on exercises</b>
             </td>
         </tr>
         <tr class="transparent" style="border:none;">
@@ -58,7 +58,7 @@ _The japanese word for "form", a pattern of learning and practicing new skills._
 </table>
 
 @[exercise]({
-    "id": "flip_qubit",
+    "id": "getting_started__flip_qubit",
     "title": "Flip a Qubit",
     "descriptionPath": "./flip_qubit/index.md",
     "codePaths": [

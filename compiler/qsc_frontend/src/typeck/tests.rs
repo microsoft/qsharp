@@ -84,7 +84,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, Vec::new());
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -136,10 +136,10 @@ fn empty_callable() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 40-42 "{}" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -152,11 +152,11 @@ fn return_constant() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-44 "{ 4 }" : Int
             #12 41-42 "4" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -169,12 +169,12 @@ fn return_wrong_type() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-47 "{ true }" : Bool
             #12 41-45 "true" : Bool
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 41, hi: 45 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -187,12 +187,12 @@ fn return_semi() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-45 "{ 4; }" : Unit
             #12 41-42 "4" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 41, hi: 43 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -208,13 +208,13 @@ fn return_var() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-75 "{\n        let x = 4;\n        x\n    }" : Int
             #12 53-54 "x" : Int
             #14 57-58 "4" : Int
             #16 68-69 "x" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -228,7 +228,7 @@ fn call_function() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-39 "(x : Int)" : Int
             #7 31-38 "x : Int" : Int
             #15 46-51 "{ x }" : Int
@@ -239,7 +239,7 @@ fn call_function() {
             #30 79-82 "Foo" : (Int -> Int)
             #33 82-85 "(4)" : Int
             #34 83-84 "4" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -253,7 +253,7 @@ fn call_generic_identity() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #7 39-47 "(x : 'T)" : 0
             #8 40-46 "x : 'T" : 0
             #14 53-58 "{ x }" : 0
@@ -264,7 +264,7 @@ fn call_generic_identity() {
             #29 86-94 "Identity" : (Int -> Int)
             #32 94-97 "(4)" : Int
             #33 95-96 "4" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -277,7 +277,7 @@ fn call_generic_length() {
             }
         "},
         "Length([true, false, true])",
-        &expect![[r##"
+        &expect![[r#"
             #7 58-69 "(xs : 'T[])" : ?
             #8 59-68 "xs : 'T[]" : ?
             #17 98-125 "Length([true, false, true])" : Int
@@ -287,7 +287,7 @@ fn call_generic_length() {
             #23 106-110 "true" : Bool
             #24 112-117 "false" : Bool
             #25 119-123 "true" : Bool
-        "##]],
+        "#]],
     );
 }
 
@@ -300,7 +300,7 @@ fn add_wrong_types() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 40-52 "{ 1 + [2]; }" : Unit
             #12 42-49 "1 + [2]" : Int
@@ -308,7 +308,7 @@ fn add_wrong_types() {
             #14 46-49 "[2]" : (Int)[]
             #15 47-48 "2" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -321,7 +321,7 @@ fn int_as_double_error() {
             }
         "},
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
-        &expect![[r##"
+        &expect![[r#"
             #6 62-71 "(a : Int)" : ?
             #7 63-70 "a : Int" : ?
             #16 103-147 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
@@ -329,7 +329,7 @@ fn int_as_double_error() {
             #21 140-147 "(false)" : Bool
             #22 141-146 "false" : Bool
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 103, hi: 147 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -342,7 +342,7 @@ fn length_type_error() {
             }
         "},
         "Length((1, 2, 3))",
-        &expect![[r##"
+        &expect![[r#"
             #7 58-69 "(xs : 'T[])" : ?
             #8 59-68 "xs : 'T[]" : ?
             #17 98-115 "Length((1, 2, 3))" : Int
@@ -354,7 +354,7 @@ fn length_type_error() {
             #25 112-113 "3" : Int
             Error(Type(Error(TyMismatch(Array(Infer(InferTyId(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 98, hi: 115 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -370,7 +370,7 @@ fn single_arg_for_tuple() {
             use q = Qubit();
             Ry(q);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #6 56-87 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
             #7 57-71 "theta : Double" : Double
             #12 73-86 "qubit : Qubit" : Qubit
@@ -384,7 +384,7 @@ fn single_arg_for_tuple() {
             #33 140-143 "(q)" : Qubit
             #34 141-142 "q" : Qubit
             Error(Type(Error(TyMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 138, hi: 143 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -393,7 +393,7 @@ fn array_index_error() {
     check(
         "",
         "[1, 2, 3][false]",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-16 "[1, 2, 3][false]" : ?0
             #2 0-9 "[1, 2, 3]" : (Int)[]
             #3 1-2 "1" : Int
@@ -402,7 +402,7 @@ fn array_index_error() {
             #6 10-15 "false" : Bool
             Error(Type(Error(MissingClassHasIndex(Array(Prim(Int)), Prim(Bool), Span { lo: 0, hi: 16 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 16 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -411,12 +411,12 @@ fn array_repeat_error() {
     check(
         "",
         "[4, size = true]",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-16 "[4, size = true]" : (Int)[]
             #2 1-2 "4" : Int
             #3 11-15 "true" : Bool
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 11, hi: 15 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -431,7 +431,7 @@ fn assignop_error() {
                 x
             }
         "},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-48 "{\n    mutable x = false;\n    set x += 1;\n    x\n}" : Bool
             #2 0-48 "{\n    mutable x = false;\n    set x += 1;\n    x\n}" : Bool
             #4 14-15 "x" : Bool
@@ -442,7 +442,7 @@ fn assignop_error() {
             #14 45-46 "x" : Bool
             Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 }))))
             Error(Type(Error(MissingClassAdd(Prim(Bool), Span { lo: 33, hi: 34 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -451,7 +451,7 @@ fn binop_add_invalid() {
     check(
         "",
         "(1, 3) + 5.4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-12 "(1, 3) + 5.4" : (Int, Int)
             #2 0-6 "(1, 3)" : (Int, Int)
             #3 1-2 "1" : Int
@@ -459,7 +459,7 @@ fn binop_add_invalid() {
             #5 9-12 "5.4" : Double
             Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 }))))
             Error(Type(Error(MissingClassAdd(Tuple([Prim(Int), Prim(Int)]), Span { lo: 0, hi: 6 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -468,12 +468,12 @@ fn binop_add_mismatch() {
     check(
         "",
         "1 + 5.4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-7 "1 + 5.4" : Int
             #2 0-1 "1" : Int
             #3 4-7 "5.4" : Double
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Double), Span { lo: 0, hi: 7 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -482,12 +482,12 @@ fn binop_andb_invalid() {
     check(
         "",
         "2.8 &&& 5.4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-11 "2.8 &&& 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
             Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -496,12 +496,12 @@ fn binop_andb_mismatch() {
     check(
         "",
         "28 &&& 54L",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-10 "28 &&& 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
             Error(Type(Error(TyMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -515,7 +515,7 @@ fn binop_equal_callable() {
             }
         "},
         "Test.A == Test.B",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #10 41-43 "{}" : Unit
             #14 58-60 "()" : Unit
@@ -524,7 +524,7 @@ fn binop_equal_callable() {
             #20 73-79 "Test.A" : (Unit -> Unit)
             #24 83-89 "Test.B" : (Unit -> Unit)
             Error(Type(Error(MissingClassEq(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 79 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -533,7 +533,7 @@ fn binop_equal_tuple_arity_mismatch() {
     check(
         "",
         "(1, 2, 3) == (1, 2, 3, 4)",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-25 "(1, 2, 3) == (1, 2, 3, 4)" : Bool
             #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
             #3 1-2 "1" : Int
@@ -545,7 +545,7 @@ fn binop_equal_tuple_arity_mismatch() {
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
             Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -554,7 +554,7 @@ fn binop_equal_tuple_type_mismatch() {
     check(
         "",
         "(1, 2, 3) == (1, Zero, 3)",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-25 "(1, 2, 3) == (1, Zero, 3)" : Bool
             #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
             #3 1-2 "1" : Int
@@ -565,7 +565,7 @@ fn binop_equal_tuple_type_mismatch() {
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -574,12 +574,12 @@ fn binop_eq_mismatch() {
     check(
         "",
         "18L == 18",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-9 "18L == 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
             Error(Type(Error(TyMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -588,12 +588,12 @@ fn binop_neq_mismatch() {
     check(
         "",
         "18L != 18",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-9 "18L != 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
             Error(Type(Error(TyMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -602,7 +602,7 @@ fn binop_neq_tuple_type_mismatch() {
     check(
         "",
         "(1, 2, 3) != (1, Zero, 3)",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-25 "(1, 2, 3) != (1, Zero, 3)" : Bool
             #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
             #3 1-2 "1" : Int
@@ -613,7 +613,7 @@ fn binop_neq_tuple_type_mismatch() {
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -622,7 +622,7 @@ fn binop_neq_tuple_arity_mismatch() {
     check(
         "",
         "(1, 2, 3) != (1, 2, 3, 4)",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-25 "(1, 2, 3) != (1, 2, 3, 4)" : Bool
             #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
             #3 1-2 "1" : Int
@@ -634,7 +634,7 @@ fn binop_neq_tuple_arity_mismatch() {
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
             Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -643,12 +643,12 @@ fn binop_orb_invalid() {
     check(
         "",
         "2.8 ||| 5.4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-11 "2.8 ||| 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
             Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -657,12 +657,12 @@ fn binop_orb_mismatch() {
     check(
         "",
         "28 ||| 54L",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-10 "28 ||| 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
             Error(Type(Error(TyMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -671,12 +671,12 @@ fn binop_xorb_invalid() {
     check(
         "",
         "2.8 ^^^ 5.4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-11 "2.8 ^^^ 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
             Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 0, hi: 3 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -685,12 +685,12 @@ fn binop_xorb_mismatch() {
     check(
         "",
         "28 ^^^ 54L",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-10 "28 ^^^ 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
             Error(Type(Error(TyMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -699,7 +699,7 @@ fn let_tuple_arity_error() {
     check(
         "",
         "{ let (x, y, z) = (0, 1); }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-27 "{ let (x, y, z) = (0, 1); }" : Unit
             #2 0-27 "{ let (x, y, z) = (0, 1); }" : Unit
             #4 6-15 "(x, y, z)" : (Int, Int, ?2)
@@ -711,7 +711,7 @@ fn let_tuple_arity_error() {
             #13 22-23 "1" : Int
             Error(Type(Error(TyMismatch(Tuple([Infer(InferTyId(0)), Infer(InferTyId(1)), Infer(InferTyId(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 13, hi: 14 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -726,7 +726,7 @@ fn set_tuple_arity_error() {
                 x
             }
         "},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-66 "{\n    mutable (x, y) = (0, 1);\n    set (x, y) = (1, 2, 3);\n    x\n}" : Int
             #2 0-66 "{\n    mutable (x, y) = (0, 1);\n    set (x, y) = (1, 2, 3);\n    x\n}" : Int
             #4 14-20 "(x, y)" : (Int, Int)
@@ -745,7 +745,7 @@ fn set_tuple_arity_error() {
             #24 55-56 "3" : Int
             #26 63-64 "x" : Int
             Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -754,14 +754,14 @@ fn qubit_array_length_error() {
     check(
         "",
         "{ use q = Qubit[false]; }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-25 "{ use q = Qubit[false]; }" : Unit
             #2 0-25 "{ use q = Qubit[false]; }" : Unit
             #4 6-7 "q" : (Qubit)[]
             #6 10-22 "Qubit[false]" : (Qubit)[]
             #7 16-21 "false" : Bool
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -770,7 +770,7 @@ fn qubit_tuple_arity_error() {
     check(
         "",
         "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-47 "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }" : Unit
             #2 0-47 "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }" : Unit
             #4 6-13 "(q, q1)" : ((Qubit)[], Qubit)
@@ -782,7 +782,7 @@ fn qubit_tuple_arity_error() {
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
             Error(Type(Error(TyMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTyId(0)), Infer(InferTyId(1))]), Span { lo: 6, hi: 13 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -791,7 +791,7 @@ fn for_loop_not_iterable() {
     check(
         "",
         "for i in (1, true, One) {}",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-26 "for i in (1, true, One) {}" : Unit
             #2 4-5 "i" : ?0
             #4 9-23 "(1, true, One)" : (Int, Bool, Result)
@@ -801,7 +801,7 @@ fn for_loop_not_iterable() {
             #8 24-26 "{}" : Unit
             Error(Type(Error(MissingClassIterable(Tuple([Prim(Int), Prim(Bool), Prim(Result)]), Span { lo: 9, hi: 23 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 4, hi: 5 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -810,12 +810,12 @@ fn if_cond_error() {
     check(
         "",
         "if 4 {}",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-7 "if 4 {}" : Unit
             #2 3-4 "4" : Int
             #3 5-7 "{}" : Unit
             Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 3, hi: 4 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -824,13 +824,13 @@ fn if_no_else_must_be_unit() {
     check(
         "",
         "if true { 4 }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-13 "if true { 4 }" : Int
             #2 3-7 "true" : Bool
             #3 8-13 "{ 4 }" : Int
             #5 10-11 "4" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -839,7 +839,7 @@ fn if_else_fail() {
     check(
         "",
         r#"if false {} else { fail "error"; }"#,
-        &expect![[r##"
+        &expect![[r#"
             #1 0-34 "if false {} else { fail \"error\"; }" : Unit
             #2 3-8 "false" : Bool
             #3 9-11 "{}" : Unit
@@ -847,7 +847,7 @@ fn if_else_fail() {
             #5 17-34 "{ fail \"error\"; }" : Unit
             #7 19-31 "fail \"error\"" : Unit
             #8 24-31 "\"error\"" : String
-        "##]],
+        "#]],
     );
 }
 
@@ -866,7 +866,7 @@ fn if_cond_fail() {
             }
         "#},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 28-30 "()" : Unit
             #10 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
             #12 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
@@ -877,7 +877,7 @@ fn if_cond_fail() {
             #18 114-148 "else {\n            \"foo\"\n        }" : String
             #19 119-148 "{\n            \"foo\"\n        }" : String
             #21 133-138 "\"foo\"" : String
-        "##]],
+        "#]],
     );
 }
 
@@ -896,7 +896,7 @@ fn if_all_diverge() {
             }
         "#},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 28-30 "()" : Unit
             #10 37-145 "{\n        if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }\n    }" : Int
             #12 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
@@ -909,7 +909,7 @@ fn if_all_diverge() {
             #20 103-139 "{\n            fail \"false\"\n        }" : Int
             #22 117-129 "fail \"false\"" : Int
             #23 122-129 "\"false\"" : String
-        "##]],
+        "#]],
     );
 }
 
@@ -918,13 +918,13 @@ fn ternop_cond_error() {
     check(
         "",
         "7 ? 1 | 0",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-9 "7 ? 1 | 0" : Int
             #2 0-1 "7" : Int
             #3 4-5 "1" : Int
             #4 8-9 "0" : Int
             Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 0, hi: 1 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -933,7 +933,7 @@ fn ternop_update_invalid_container() {
     check(
         "",
         "(1, 2, 3) w/ 2 <- 4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-19 "(1, 2, 3) w/ 2 <- 4" : (Int, Int, Int)
             #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
             #3 1-2 "1" : Int
@@ -942,7 +942,7 @@ fn ternop_update_invalid_container() {
             #6 13-14 "2" : Int
             #7 18-19 "4" : Int
             Error(Type(Error(MissingClassHasIndex(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Prim(Int), Span { lo: 0, hi: 19 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -951,7 +951,7 @@ fn ternop_update_invalid_index() {
     check(
         "",
         "[1, 2, 3] w/ false <- 4",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-23 "[1, 2, 3] w/ false <- 4" : (Int)[]
             #2 0-9 "[1, 2, 3]" : (Int)[]
             #3 1-2 "1" : Int
@@ -960,7 +960,7 @@ fn ternop_update_invalid_index() {
             #6 13-18 "false" : Bool
             #7 22-23 "4" : Int
             Error(Type(Error(MissingClassHasIndex(Array(Prim(Int)), Prim(Bool), Span { lo: 0, hi: 23 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -977,7 +977,7 @@ fn ternop_update_array_index_var() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-117 "{\n        let xs = [2];\n        let i = 0;\n        let ys = xs w/ i <- 3;\n    }" : Unit
             #10 52-54 "xs" : (Int)[]
@@ -990,7 +990,7 @@ fn ternop_update_array_index_var() {
             #22 98-100 "xs" : (Int)[]
             #25 104-105 "i" : Int
             #28 109-110 "3" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1007,7 +1007,7 @@ fn ternop_update_array_index_expr() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-121 "{\n        let xs = [2];\n        let i = 0;\n        let ys = xs w/ i + 1 <- 3;\n    }" : Unit
             #10 52-54 "xs" : (Int)[]
@@ -1022,7 +1022,7 @@ fn ternop_update_array_index_expr() {
             #26 104-105 "i" : Int
             #29 108-109 "1" : Int
             #30 113-114 "3" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1040,7 +1040,7 @@ fn ternop_update_udt_known_field_name() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #19 79-81 "()" : Unit
             #21 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ First <- 3;\n    }" : Unit
             #23 101-102 "p" : UDT<Item 1>
@@ -1054,7 +1054,7 @@ fn ternop_update_udt_known_field_name() {
             #36 133-134 "p" : UDT<Item 1>
             #39 138-143 "First" : ?
             #42 147-148 "3" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1072,7 +1072,7 @@ fn ternop_update_udt_known_field_name_expr() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #19 79-81 "()" : Unit
             #21 87-159 "{\n        let p = Pair(1, 2);\n        let q = p w/ First + 1 <- 3;\n    }" : Unit
             #23 101-102 "p" : UDT<Item 1>
@@ -1089,7 +1089,7 @@ fn ternop_update_udt_known_field_name_expr() {
             #43 146-147 "1" : Int
             #44 151-152 "3" : Int
             Error(Resolve(NotFound("First", Span { lo: 138, hi: 143 })))
-        "##]],
+        "#]],
     );
 }
 
@@ -1107,7 +1107,7 @@ fn ternop_update_udt_unknown_field_name() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #19 79-81 "()" : Unit
             #21 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ Third <- 3;\n    }" : Unit
             #23 101-102 "p" : UDT<Item 1>
@@ -1122,7 +1122,7 @@ fn ternop_update_udt_unknown_field_name() {
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 133, hi: 148 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1142,7 +1142,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #19 81-83 "()" : Unit
             #21 89-91 "{}" : Unit
             #25 109-111 "()" : Unit
@@ -1159,7 +1159,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 163, hi: 178 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1168,11 +1168,24 @@ fn unop_bitwise_not_bool() {
     check(
         "",
         "~~~false",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-8 "~~~false" : Bool
             #2 3-8 "false" : Bool
-            Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 3, hi: 8 }))))
-        "##]],
+            Error(Type(Error(MissingClassInteger(Prim(Bool), Span { lo: 3, hi: 8 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn unop_bitwise_not_double() {
+    check(
+        "",
+        "~~~2.0",
+        &expect![[r#"
+            #1 0-6 "~~~2.0" : Double
+            #2 3-6 "2.0" : Double
+            Error(Type(Error(MissingClassInteger(Prim(Double), Span { lo: 3, hi: 6 }))))
+        "#]],
     );
 }
 
@@ -1181,11 +1194,11 @@ fn unop_not_int() {
     check(
         "",
         "not 0",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-5 "not 0" : Int
             #2 4-5 "0" : Int
             Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 4, hi: 5 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1194,11 +1207,11 @@ fn unop_neg_bool() {
     check(
         "",
         "-false",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-6 "-false" : Bool
             #2 1-6 "false" : Bool
             Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 1, hi: 6 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1207,11 +1220,11 @@ fn unop_pos_bool() {
     check(
         "",
         "+false",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-6 "+false" : Bool
             #2 1-6 "false" : Bool
             Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 1, hi: 6 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1220,12 +1233,12 @@ fn while_cond_error() {
     check(
         "",
         "while Zero {}",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-13 "while Zero {}" : Unit
             #2 6-10 "Zero" : Result
             #3 11-13 "{}" : Unit
             Error(Type(Error(TyMismatch(Prim(Bool), Prim(Result), Span { lo: 6, hi: 10 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1241,7 +1254,7 @@ fn controlled_spec_impl() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #17 72-75 "..." : Qubit
@@ -1250,7 +1263,7 @@ fn controlled_spec_impl() {
             #21 99-101 "cs" : (Qubit)[]
             #23 103-106 "..." : Qubit
             #24 108-110 "{}" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -1272,7 +1285,7 @@ fn call_controlled() {
                 Controlled A.Foo([q1], q2);
             }
         "},
-        &expect![[r##"
+        &expect![[r#"
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #17 72-75 "..." : Qubit
@@ -1294,7 +1307,7 @@ fn call_controlled() {
             #43 186-190 "[q1]" : (Qubit)[]
             #44 187-189 "q1" : Qubit
             #47 192-194 "q2" : Qubit
-        "##]],
+        "#]],
     );
 }
 
@@ -1317,7 +1330,7 @@ fn call_controlled_nested() {
                 Controlled Controlled A.Foo([q1], ([q2], q3));
             }
         "},
-        &expect![[r##"
+        &expect![[r#"
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #17 72-75 "..." : Qubit
@@ -1345,7 +1358,7 @@ fn call_controlled_nested() {
             #53 226-230 "[q2]" : (Qubit)[]
             #54 227-229 "q2" : Qubit
             #57 232-234 "q3" : Qubit
-        "##]],
+        "#]],
     );
 }
 
@@ -1366,7 +1379,7 @@ fn call_controlled_error() {
                 Controlled A.Foo([1], q);
             }
         "},
-        &expect![[r##"
+        &expect![[r#"
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #17 72-75 "..." : Qubit
@@ -1387,7 +1400,7 @@ fn call_controlled_error() {
             #40 164-165 "1" : Int
             #41 168-169 "q" : Qubit
             Error(Type(Error(TyMismatch(Prim(Qubit), Prim(Int), Span { lo: 146, hi: 170 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1400,12 +1413,12 @@ fn adj_requires_unit_return() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #11 47-52 "{ 1 }" : Int
             #13 49-50 "1" : Int
             Error(Type(Error(TyMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1418,12 +1431,12 @@ fn ctl_requires_unit_return() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #11 47-52 "{ 1 }" : Int
             #13 49-50 "1" : Int
             Error(Type(Error(TyMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1436,12 +1449,12 @@ fn adj_ctl_requires_unit_return() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #13 53-58 "{ 1 }" : Int
             #15 55-56 "1" : Int
             Error(Type(Error(TyMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1454,13 +1467,13 @@ fn adj_non_adj() {
             }
         "},
         "Adjoint A.Foo",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #9 46-48 "{}" : Unit
             #10 51-64 "Adjoint A.Foo" : (Unit => Unit is Ctl)
             #11 59-64 "A.Foo" : (Unit => Unit is Ctl)
             Error(Type(Error(MissingFunctor(Value(Adj), Value(Ctl), Span { lo: 59, hi: 64 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1473,13 +1486,13 @@ fn ctl_non_ctl() {
             }
         "},
         "Controlled A.Foo",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #9 46-48 "{}" : Unit
             #10 51-67 "Controlled A.Foo" : (((Qubit)[], Unit) => Unit is Adj)
             #11 62-67 "A.Foo" : (Unit => Unit is Adj)
             Error(Type(Error(MissingFunctor(Value(Ctl), Value(Adj), Span { lo: 62, hi: 67 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1494,7 +1507,7 @@ fn fail_diverges() {
                 4
             }
         "#},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-42 "if true {\n    fail \"true\"\n} else {\n    4\n}" : Int
             #2 3-7 "true" : Bool
             #3 8-27 "{\n    fail \"true\"\n}" : Int
@@ -1503,7 +1516,7 @@ fn fail_diverges() {
             #7 28-42 "else {\n    4\n}" : Int
             #8 33-42 "{\n    4\n}" : Int
             #10 39-40 "4" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1523,7 +1536,7 @@ fn return_diverges() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-153 "{\n        let x = if x {\n            return 1\n        } else {\n            true\n        };\n        2\n    }" : Int
@@ -1537,7 +1550,7 @@ fn return_diverges() {
             #28 108-136 "{\n            true\n        }" : Bool
             #30 122-126 "true" : Bool
             #32 146-147 "2" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1556,7 +1569,7 @@ fn return_diverges_stmt_after() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
@@ -1567,7 +1580,7 @@ fn return_diverges_stmt_after() {
             #23 86-87 "1" : Int
             #25 101-105 "true" : Bool
             #27 125-126 "x" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -1582,14 +1595,14 @@ fn return_mismatch() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-75 "{\n        return true;\n    }" : Int
             #17 57-68 "return true" : Unit
             #18 64-68 "true" : Bool
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1604,14 +1617,14 @@ fn array_unknown_field_error() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-43 "(x : Qubit[])" : (Qubit)[]
             #7 31-42 "x : Qubit[]" : (Qubit)[]
             #16 50-73 "{\n        x::Size\n    }" : Int
             #18 60-67 "x::Size" : Int
             #19 60-61 "x" : (Qubit)[]
             Error(Type(Error(MissingClassHasField(Array(Prim(Qubit)), "Size", Span { lo: 60, hi: 67 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1626,7 +1639,7 @@ fn range_fields_are_int() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-41 "(r : Range)" : Range
             #7 31-40 "r : Range" : Range
             #22 60-103 "{\n        (r::Start, r::Step, r::End)\n    }" : (Int, Int, Int)
@@ -1637,7 +1650,7 @@ fn range_fields_are_int() {
             #31 81-82 "r" : Range
             #35 90-96 "r::End" : Int
             #36 90-91 "r" : Range
-        "##]],
+        "#]],
     );
 }
 
@@ -1646,7 +1659,7 @@ fn range_to_field_start() {
     check(
         "",
         "(...2..8)::Start",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-16 "(...2..8)::Start" : ?0
             #2 0-9 "(...2..8)" : RangeTo
             #3 1-8 "...2..8" : RangeTo
@@ -1654,7 +1667,7 @@ fn range_to_field_start() {
             #5 7-8 "8" : Int
             Error(Type(Error(MissingClassHasField(Prim(RangeTo), "Start", Span { lo: 0, hi: 16 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 16 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1663,13 +1676,13 @@ fn range_to_field_step() {
     check(
         "",
         "(...2..8)::Step",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-15 "(...2..8)::Step" : Int
             #2 0-9 "(...2..8)" : RangeTo
             #3 1-8 "...2..8" : RangeTo
             #4 4-5 "2" : Int
             #5 7-8 "8" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1678,13 +1691,13 @@ fn range_to_field_end() {
     check(
         "",
         "(...2..8)::End",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-14 "(...2..8)::End" : Int
             #2 0-9 "(...2..8)" : RangeTo
             #3 1-8 "...2..8" : RangeTo
             #4 4-5 "2" : Int
             #5 7-8 "8" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1693,13 +1706,13 @@ fn range_from_field_start() {
     check(
         "",
         "(0..2...)::Start",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-16 "(0..2...)::Start" : Int
             #2 0-9 "(0..2...)" : RangeFrom
             #3 1-8 "0..2..." : RangeFrom
             #4 1-2 "0" : Int
             #5 4-5 "2" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1708,13 +1721,13 @@ fn range_from_field_step() {
     check(
         "",
         "(0..2...)::Step",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-15 "(0..2...)::Step" : Int
             #2 0-9 "(0..2...)" : RangeFrom
             #3 1-8 "0..2..." : RangeFrom
             #4 1-2 "0" : Int
             #5 4-5 "2" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1723,7 +1736,7 @@ fn range_from_field_end() {
     check(
         "",
         "(0..2...)::End",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-14 "(0..2...)::End" : ?0
             #2 0-9 "(0..2...)" : RangeFrom
             #3 1-8 "0..2..." : RangeFrom
@@ -1731,7 +1744,7 @@ fn range_from_field_end() {
             #5 4-5 "2" : Int
             Error(Type(Error(MissingClassHasField(Prim(RangeFrom), "End", Span { lo: 0, hi: 14 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 14 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1740,12 +1753,12 @@ fn range_full_field_start() {
     check(
         "",
         "...::Start",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-10 "...::Start" : ?0
             #2 0-3 "..." : RangeFull
             Error(Type(Error(MissingClassHasField(Prim(RangeFull), "Start", Span { lo: 0, hi: 10 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 10 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1754,10 +1767,10 @@ fn range_full_implicit_step() {
     check(
         "",
         "...::Step",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-9 "...::Step" : Int
             #2 0-3 "..." : RangeFull
-        "##]],
+        "#]],
     );
 }
 
@@ -1766,12 +1779,12 @@ fn range_full_explicit_step() {
     check(
         "",
         "(...2...)::Step",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-15 "(...2...)::Step" : Int
             #2 0-9 "(...2...)" : RangeFull
             #3 1-8 "...2..." : RangeFull
             #4 4-5 "2" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1780,12 +1793,12 @@ fn range_full_field_end() {
     check(
         "",
         "...::End",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-8 "...::End" : ?0
             #2 0-3 "..." : RangeFull
             Error(Type(Error(MissingClassHasField(Prim(RangeFull), "End", Span { lo: 0, hi: 8 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 8 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1794,10 +1807,10 @@ fn interpolate_int() {
     check(
         "",
         r#"$"{4}""#,
-        &expect![[r##"
+        &expect![[r#"
             #1 0-6 "$\"{4}\"" : String
             #2 3-4 "4" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1806,10 +1819,10 @@ fn interpolate_string() {
     check(
         "",
         r#"$"{"foo"}""#,
-        &expect![[r##"
+        &expect![[r#"
             #1 0-10 "$\"{\"foo\"}\"" : String
             #2 3-8 "\"foo\"" : String
-        "##]],
+        "#]],
     );
 }
 
@@ -1818,14 +1831,14 @@ fn interpolate_qubit() {
     check(
         "",
         r#"{ use q = Qubit(); $"{q}" }"#,
-        &expect![[r##"
+        &expect![[r#"
             #1 0-27 "{ use q = Qubit(); $\"{q}\" }" : String
             #2 0-27 "{ use q = Qubit(); $\"{q}\" }" : String
             #4 6-7 "q" : Qubit
             #6 10-17 "Qubit()" : Qubit
             #8 19-25 "$\"{q}\"" : String
             #9 22-23 "q" : Qubit
-        "##]],
+        "#]],
     );
 }
 
@@ -1838,13 +1851,13 @@ fn interpolate_function() {
             }
         "},
         r#"$"{A.Foo}""#,
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-40 "{}" : Unit
             #9 43-53 "$\"{A.Foo}\"" : String
             #10 46-51 "A.Foo" : (Unit -> Unit)
             Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 51 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1857,13 +1870,13 @@ fn interpolate_operation() {
             }
         "},
         r#"$"{A.Foo}""#,
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #8 39-41 "{}" : Unit
             #9 44-54 "$\"{A.Foo}\"" : String
             #10 47-52 "A.Foo" : (Unit => Unit)
             Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 47, hi: 52 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1872,13 +1885,13 @@ fn interpolate_int_array() {
     check(
         "",
         r#"$"{[1, 2, 3]}""#,
-        &expect![[r##"
+        &expect![[r#"
             #1 0-14 "$\"{[1, 2, 3]}\"" : String
             #2 3-12 "[1, 2, 3]" : (Int)[]
             #3 4-5 "1" : Int
             #4 7-8 "2" : Int
             #5 10-11 "3" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1892,7 +1905,7 @@ fn interpolate_function_array() {
             }
         "},
         r#"$"{[A.Foo, A.Bar]}""#,
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-40 "{}" : Unit
             #12 57-59 "()" : Unit
@@ -1902,7 +1915,7 @@ fn interpolate_function_array() {
             #17 74-79 "A.Foo" : (Unit -> Unit)
             #21 81-86 "A.Bar" : (Unit -> Unit)
             Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 87 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1911,12 +1924,12 @@ fn interpolate_int_string_tuple() {
     check(
         "",
         r#"$"{(1, "foo")}""#,
-        &expect![[r##"
+        &expect![[r#"
             #1 0-15 "$\"{(1, \"foo\")}\"" : String
             #2 3-13 "(1, \"foo\")" : (Int, String)
             #3 4-5 "1" : Int
             #4 7-12 "\"foo\"" : String
-        "##]],
+        "#]],
     );
 }
 
@@ -1929,7 +1942,7 @@ fn interpolate_int_function_tuple() {
             }
         "},
         r#"$"{(1, A.Foo)}""#,
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-40 "{}" : Unit
             #9 43-58 "$\"{(1, A.Foo)}\"" : String
@@ -1937,7 +1950,7 @@ fn interpolate_int_function_tuple() {
             #11 47-48 "1" : Int
             #12 50-55 "A.Foo" : (Unit -> Unit)
             Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 56 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1951,14 +1964,14 @@ fn newtype_cons() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #12 56-58 "()" : Unit
             #16 68-81 "{ NewInt(5) }" : UDT<Item 1>
             #18 70-79 "NewInt(5)" : UDT<Item 1>
             #19 70-76 "NewInt" : (Int -> UDT<Item 1>)
             #22 76-79 "(5)" : Int
             #23 77-78 "5" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1972,7 +1985,7 @@ fn newtype_cons_wrong_input() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #12 56-58 "()" : Unit
             #16 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
             #18 70-81 "NewInt(5.0)" : UDT<Item 1>
@@ -1980,7 +1993,7 @@ fn newtype_cons_wrong_input() {
             #22 76-81 "(5.0)" : Double
             #23 77-80 "5.0" : Double
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1994,7 +2007,7 @@ fn newtype_does_not_match_base_ty() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #12 56-58 "()" : Unit
             #16 65-78 "{ NewInt(5) }" : UDT<Item 1>
             #18 67-76 "NewInt(5)" : UDT<Item 1>
@@ -2002,7 +2015,7 @@ fn newtype_does_not_match_base_ty() {
             #22 73-76 "(5)" : Int
             #23 74-75 "5" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 67, hi: 76 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2017,7 +2030,7 @@ fn newtype_does_not_match_other_newtype() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #18 84-86 "()" : Unit
             #22 97-111 "{ NewInt1(5) }" : UDT<Item 1>
             #24 99-109 "NewInt1(5)" : UDT<Item 1>
@@ -2025,7 +2038,7 @@ fn newtype_does_not_match_other_newtype() {
             #28 106-109 "(5)" : Int
             #29 107-108 "5" : Int
             Error(Type(Error(TyMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 99, hi: 109 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2041,14 +2054,14 @@ fn newtype_unwrap() {
             }
         "},
         "",
-        &expect![[r##"
-            #17 61-70 "(x : Foo)" : UDT<Item 1>
-            #18 62-69 "x : Foo" : UDT<Item 1>
-            #24 76-103 "{\n        let y = x!;\n    }" : Unit
-            #26 90-91 "y" : (Int, Bool)
-            #28 94-96 "x!" : (Int, Bool)
-            #29 94-95 "x" : UDT<Item 1>
-        "##]],
+        &expect![[r#"
+            #16 61-70 "(x : Foo)" : UDT<Item 1>
+            #17 62-69 "x : Foo" : UDT<Item 1>
+            #23 76-103 "{\n        let y = x!;\n    }" : Unit
+            #25 90-91 "y" : (Int, Bool)
+            #27 94-96 "x!" : (Int, Bool)
+            #28 94-95 "x" : UDT<Item 1>
+        "#]],
     );
 }
 
@@ -2064,14 +2077,14 @@ fn newtype_field() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #13 59-68 "(x : Foo)" : UDT<Item 1>
             #14 60-67 "x : Foo" : UDT<Item 1>
             #20 74-105 "{\n        let y = x::Bar;\n    }" : Unit
             #22 88-89 "y" : Int
             #24 92-98 "x::Bar" : Int
             #25 92-93 "x" : UDT<Item 1>
-        "##]],
+        "#]],
     );
 }
 
@@ -2087,7 +2100,7 @@ fn newtype_field_invalid() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #13 59-68 "(x : Foo)" : UDT<Item 1>
             #14 60-67 "x : Foo" : UDT<Item 1>
             #20 74-106 "{\n        let y = x::Nope;\n    }" : Unit
@@ -2096,7 +2109,7 @@ fn newtype_field_invalid() {
             #25 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Nope", Span { lo: 92, hi: 99 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 92, hi: 99 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2105,7 +2118,7 @@ fn unknown_name_fits_any_ty() {
     check(
         "",
         "{ let x : Int = foo; let y : Qubit = foo; }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-43 "{ let x : Int = foo; let y : Qubit = foo; }" : Unit
             #2 0-43 "{ let x : Int = foo; let y : Qubit = foo; }" : Unit
             #4 6-13 "x : Int" : Int
@@ -2114,7 +2127,7 @@ fn unknown_name_fits_any_ty() {
             #18 37-40 "foo" : ?
             Error(Resolve(NotFound("foo", Span { lo: 16, hi: 19 })))
             Error(Resolve(NotFound("foo", Span { lo: 37, hi: 40 })))
-        "##]],
+        "#]],
     );
 }
 
@@ -2123,7 +2136,7 @@ fn unknown_name_has_any_class() {
     check(
         "",
         "{ foo(); foo + 1 }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-18 "{ foo(); foo + 1 }" : ?
             #2 0-18 "{ foo(); foo + 1 }" : ?
             #4 2-7 "foo()" : ?0
@@ -2135,7 +2148,7 @@ fn unknown_name_has_any_class() {
             Error(Resolve(NotFound("foo", Span { lo: 2, hi: 5 })))
             Error(Resolve(NotFound("foo", Span { lo: 9, hi: 12 })))
             Error(Type(Error(AmbiguousTy(Span { lo: 2, hi: 7 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2151,7 +2164,7 @@ fn local_function() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-99 "{\n        function Bar() : Int { 2 }\n        Bar() + 1\n    }" : Int
             #15 61-63 "()" : Unit
@@ -2162,7 +2175,7 @@ fn local_function() {
             #25 84-87 "Bar" : (Unit -> Int)
             #28 87-89 "()" : Unit
             #29 92-93 "1" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -2178,7 +2191,7 @@ fn local_function_error() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-97 "{\n        function Bar() : Int { 2.0 }\n        Bar()\n    }" : Int
             #15 61-63 "()" : Unit
@@ -2188,7 +2201,7 @@ fn local_function_error() {
             #24 86-89 "Bar" : (Unit -> Int)
             #27 89-91 "()" : Unit
             Error(Type(Error(TyMismatch(Prim(Int), Prim(Double), Span { lo: 72, hi: 75 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2204,7 +2217,7 @@ fn local_function_use_before_declare() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-91 "{\n        Bar();\n        function Bar() : () {}\n    }" : Unit
             #10 48-53 "Bar()" : Unit
@@ -2212,7 +2225,7 @@ fn local_function_use_before_declare() {
             #14 51-53 "()" : Unit
             #19 75-77 "()" : Unit
             #21 83-85 "{}" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -2228,7 +2241,7 @@ fn local_function_last_stmt_is_unit_block() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 39-96 "{\n        Bar();\n        function Bar() : Int { 4 }\n    }" : Unit
             #12 49-54 "Bar()" : Int
@@ -2238,7 +2251,7 @@ fn local_function_last_stmt_is_unit_block() {
             #25 85-90 "{ 4 }" : Int
             #27 87-88 "4" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 64, hi: 90 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2254,7 +2267,7 @@ fn local_type() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-96 "{\n        newtype Bar = Int;\n        let x = Bar(5);\n    }" : Unit
             #17 79-80 "x" : UDT<Item 2>
@@ -2262,7 +2275,7 @@ fn local_type() {
             #20 83-86 "Bar" : (Int -> UDT<Item 2>)
             #23 86-89 "(5)" : Int
             #24 87-88 "5" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -2274,7 +2287,7 @@ fn local_open() {
             namespace B { function Bar() : () {} }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 26-28 "()" : Unit
             #8 34-52 "{ open B; Bar(); }" : Unit
             #13 44-49 "Bar()" : Unit
@@ -2282,7 +2295,7 @@ fn local_open() {
             #17 47-49 "()" : Unit
             #23 81-83 "()" : Unit
             #25 89-91 "{}" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -2298,7 +2311,7 @@ fn infinite() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-97 "{\n        let x = invalid;\n        let xs = [x, [x]];\n    }" : Unit
             #10 52-53 "x" : ?0
@@ -2311,7 +2324,39 @@ fn infinite() {
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
             Error(Type(Error(TyMismatch(Infer(InferTyId(0)), Array(Infer(InferTyId(0))), Span { lo: 86, hi: 89 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 52, hi: 53 }))))
-        "##]],
+        "#]],
+    );
+}
+
+#[test]
+fn lambda_inner_return() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let f = () -> {
+                        return 42;
+                    };
+                    let r = f();
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 40-126 "{\n        let f = () -> {\n            return 42;\n        };\n        let r = f();\n    }" : Unit
+            #12 54-55 "f" : (Unit -> Int)
+            #14 58-98 "() -> {\n            return 42;\n        }" : (Unit -> Int)
+            #15 58-60 "()" : Unit
+            #16 64-98 "{\n            return 42;\n        }" : Int
+            #17 64-98 "{\n            return 42;\n        }" : Int
+            #19 78-87 "return 42" : Unit
+            #20 85-87 "42" : Int
+            #22 112-113 "r" : Int
+            #24 116-119 "f()" : Int
+            #25 116-117 "f" : (Unit -> Int)
+            #28 117-119 "()" : Unit
+        "#]],
     );
 }
 
@@ -2325,7 +2370,7 @@ fn lambda_adj() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-53 "(op : () => () is Adj)" : (Unit => Unit is Adj)
             #7 32-52 "op : () => () is Adj" : (Unit => Unit is Adj)
             #14 59-61 "{}" : Unit
@@ -2337,7 +2382,7 @@ fn lambda_adj() {
             #27 93-101 "() => ()" : (Unit => Unit is Adj)
             #28 93-95 "()" : Unit
             #29 99-101 "()" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -2351,7 +2396,7 @@ fn lambda_ctl() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-53 "(op : () => () is Ctl)" : (Unit => Unit is Ctl)
             #7 32-52 "op : () => () is Ctl" : (Unit => Unit is Ctl)
             #14 59-61 "{}" : Unit
@@ -2363,7 +2408,7 @@ fn lambda_ctl() {
             #27 93-101 "() => ()" : (Unit => Unit is Ctl)
             #28 93-95 "()" : Unit
             #29 99-101 "()" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -2377,7 +2422,7 @@ fn lambda_adj_ctl() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-59 "(op : () => () is Adj + Ctl)" : (Unit => Unit is Adj + Ctl)
             #7 32-58 "op : () => () is Adj + Ctl" : (Unit => Unit is Adj + Ctl)
             #16 65-67 "{}" : Unit
@@ -2389,7 +2434,7 @@ fn lambda_adj_ctl() {
             #29 99-107 "() => ()" : (Unit => Unit is Adj + Ctl)
             #30 99-101 "()" : Unit
             #31 105-107 "()" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -2404,14 +2449,14 @@ fn lambda_functors_let_binding() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-94 "{\n        let op : Qubit => Unit is Adj = q => ();\n    }" : Unit
             #10 52-77 "op : Qubit => Unit is Adj" : (Qubit => Unit is Adj)
             #20 80-87 "q => ()" : (Qubit => Unit is Adj)
             #21 80-81 "q" : Qubit
             #23 85-87 "()" : Unit
-        "##]],
+        "#]],
     );
 }
 
@@ -2427,7 +2472,7 @@ fn lambda_adjoint_before_functors_inferred() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #15 56-108 "{\n        let op = q => ();\n        Adjoint op\n    }" : (Qubit => Unit is Adj)
             #17 70-72 "op" : (Qubit => Unit is Adj)
@@ -2436,7 +2481,7 @@ fn lambda_adjoint_before_functors_inferred() {
             #22 80-82 "()" : Unit
             #24 92-102 "Adjoint op" : (Qubit => Unit is Adj)
             #25 100-102 "op" : (Qubit => Unit is Adj)
-        "##]],
+        "#]],
     );
 }
 
@@ -2452,7 +2497,7 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #15 56-108 "{\n        let op = q => ();\n        Adjoint op\n    }" : (Qubit => Unit is Ctl)
             #17 70-72 "op" : (Qubit => Unit is Ctl)
@@ -2462,7 +2507,7 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             #24 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
             #25 100-102 "op" : (Qubit => Unit is Ctl)
             Error(Type(Error(MissingFunctor(Value(Adj), Value(Ctl), Span { lo: 92, hi: 102 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2482,7 +2527,7 @@ fn lambda_multiple_uses_functors_inferred() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 35-60 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
             #7 36-59 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
             #16 66-68 "{}" : Unit
@@ -2506,7 +2551,7 @@ fn lambda_multiple_uses_functors_inferred() {
             #65 243-248 "opCtl" : (((Qubit)[], Qubit) => Unit is Adj + Ctl)
             #67 251-264 "Controlled op" : (((Qubit)[], Qubit) => Unit is Adj + Ctl)
             #68 262-264 "op" : (Qubit => Unit is Adj + Ctl)
-        "##]],
+        "#]],
     );
 }
 
@@ -2518,7 +2563,7 @@ fn partial_app_one_hole() {
             function Foo(x : Int) : Int { x }
             let f = Foo(_);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-85 "{\n            function Foo(x : Int) : Int { x }\n            let f = Foo(_);\n        }" : Unit
             #2 0-85 "{\n            function Foo(x : Int) : Int { x }\n            let f = Foo(_);\n        }" : Unit
             #7 26-35 "(x : Int)" : Int
@@ -2530,7 +2575,7 @@ fn partial_app_one_hole() {
             #25 68-71 "Foo" : (Int -> Int)
             #28 71-74 "(_)" : Int
             #29 72-73 "_" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -2542,7 +2587,7 @@ fn partial_app_one_given_one_hole() {
             function Foo(x : Int, y : Int) : Int { x + y }
             let f = Foo(2, _);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(2, _);\n}" : Unit
             #2 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(2, _);\n}" : Unit
             #7 18-36 "(x : Int, y : Int)" : (Int, Int)
@@ -2558,7 +2603,7 @@ fn partial_app_one_given_one_hole() {
             #37 68-74 "(2, _)" : (Int, Int)
             #38 69-70 "2" : Int
             #39 72-73 "_" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -2570,7 +2615,7 @@ fn partial_app_two_holes() {
             function Foo(x : Int, y : Int) : Int { x + y }
             let f = Foo(_, _);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(_, _);\n}" : Unit
             #2 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(_, _);\n}" : Unit
             #7 18-36 "(x : Int, y : Int)" : (Int, Int)
@@ -2586,7 +2631,7 @@ fn partial_app_two_holes() {
             #37 68-74 "(_, _)" : (Int, Int)
             #38 69-70 "_" : Int
             #39 72-73 "_" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -2598,7 +2643,7 @@ fn partial_app_nested_tuple() {
             function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}
             let f = Foo(_, (_, 1.0, _), _);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-121 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (_, 1.0, _), _);\n}" : Unit
             #2 0-121 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (_, 1.0, _), _);\n}" : Unit
             #7 18-75 "(a : Int, (b : Bool, c : Double, d : String), e : Result)" : (Int, (Bool, Double, String), Result)
@@ -2619,7 +2664,7 @@ fn partial_app_nested_tuple() {
             #47 107-110 "1.0" : Double
             #48 112-113 "_" : String
             #49 116-117 "_" : Result
-        "##]],
+        "#]],
     );
 }
 
@@ -2631,7 +2676,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
             function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}
             let f = Foo(_, (true, 1.0, _), _);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-124 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (true, 1.0, _), _);\n}" : Unit
             #2 0-124 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (true, 1.0, _), _);\n}" : Unit
             #7 18-75 "(a : Int, (b : Bool, c : Double, d : String), e : Result)" : (Int, (Bool, Double, String), Result)
@@ -2652,7 +2697,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
             #47 110-113 "1.0" : Double
             #48 115-116 "_" : String
             #49 119-120 "_" : Result
-        "##]],
+        "#]],
     );
 }
 
@@ -2664,7 +2709,7 @@ fn partial_app_too_many_args() {
             function Foo(x : Int) : Int { x }
             let f = Foo(1, _, _);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #1 0-67 "{\n    function Foo(x : Int) : Int { x }\n    let f = Foo(1, _, _);\n}" : Unit
             #2 0-67 "{\n    function Foo(x : Int) : Int { x }\n    let f = Foo(1, _, _);\n}" : Unit
             #7 18-27 "(x : Int)" : Int
@@ -2681,7 +2726,7 @@ fn partial_app_too_many_args() {
             Error(Type(Error(TyMismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTyId(1)), Infer(InferTyId(2))]), Span { lo: 52, hi: 64 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 59, hi: 60 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2690,12 +2735,12 @@ fn typed_hole_error_concrete_type() {
     check(
         "",
         "_ + 3",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-5 "_ + 3" : Int
             #2 0-1 "_" : Int
             #3 4-5 "3" : Int
             Error(Type(Error(TyHole(Prim(Int), Span { lo: 0, hi: 1 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2704,7 +2749,7 @@ fn typed_hole_error_ambiguous_type() {
     check(
         "",
         "_(3)",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-4 "_(3)" : ?1
             #2 0-1 "_" : ?0
             #3 1-4 "(3)" : Int
@@ -2712,7 +2757,7 @@ fn typed_hole_error_ambiguous_type() {
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 1 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 4 }))))
             Error(Type(Error(TyHole(Infer(InferTyId(0)), Span { lo: 0, hi: 1 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2725,7 +2770,7 @@ fn functors_in_arg_superset_of_empty() {
             operation Bar(q : Qubit) : () is Adj {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-137 "{\n            operation Foo(op : Qubit => ()) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
             #2 0-137 "{\n            operation Foo(op : Qubit => ()) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
             #7 27-45 "(op : Qubit => ())" : (Qubit => Unit)
@@ -2738,7 +2783,7 @@ fn functors_in_arg_superset_of_empty() {
             #32 118-121 "Foo" : ((Qubit => Unit is Adj) => Unit)
             #35 121-126 "(Bar)" : (Qubit => Unit is Adj)
             #36 122-125 "Bar" : (Qubit => Unit is Adj)
-        "##]],
+        "#]],
     );
 }
 
@@ -2751,7 +2796,7 @@ fn functors_in_arg_superset_of_adj() {
             operation Bar(q : Qubit) : () is Adj + Ctl {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-150 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo(Bar);\n        }" : Unit
             #2 0-150 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo(Bar);\n        }" : Unit
             #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
@@ -2764,7 +2809,7 @@ fn functors_in_arg_superset_of_adj() {
             #35 131-134 "Foo" : ((Qubit => Unit is Adj + Ctl) => Unit)
             #38 134-139 "(Bar)" : (Qubit => Unit is Adj + Ctl)
             #39 135-138 "Bar" : (Qubit => Unit is Adj + Ctl)
-        "##]],
+        "#]],
     );
 }
 
@@ -2777,7 +2822,7 @@ fn functors_in_arg_subset_of_ctl_adj() {
             operation Bar(q : Qubit) : () is Adj {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-150 "{\n            operation Foo(op : Qubit => () is Adj + Ctl) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
             #2 0-150 "{\n            operation Foo(op : Qubit => () is Adj + Ctl) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
             #7 27-58 "(op : Qubit => () is Adj + Ctl)" : (Qubit => Unit is Adj + Ctl)
@@ -2791,7 +2836,7 @@ fn functors_in_arg_subset_of_ctl_adj() {
             #38 134-139 "(Bar)" : (Qubit => Unit is Adj)
             #39 135-138 "Bar" : (Qubit => Unit is Adj)
             Error(Type(Error(MissingFunctor(Value(CtlAdj), Value(Adj), Span { lo: 131, hi: 139 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2804,7 +2849,7 @@ fn functors_in_arg_eq_to_adj() {
             operation Bar(q : Qubit) : () is Adj {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-144 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
             #2 0-144 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
             #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
@@ -2817,7 +2862,7 @@ fn functors_in_arg_eq_to_adj() {
             #33 125-128 "Foo" : ((Qubit => Unit is Adj) => Unit)
             #36 128-133 "(Bar)" : (Qubit => Unit is Adj)
             #37 129-132 "Bar" : (Qubit => Unit is Adj)
-        "##]],
+        "#]],
     );
 }
 
@@ -2830,7 +2875,7 @@ fn functors_in_arg_nested_arrow_superset_of_adj() {
             operation Bar(op : Qubit => () is Adj + Ctl) : () {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-165 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj + Ctl) : () {}\n            Foo(Bar);\n        }" : Unit
             #2 0-165 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj + Ctl) : () {}\n            Foo(Bar);\n        }" : Unit
             #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
@@ -2844,7 +2889,7 @@ fn functors_in_arg_nested_arrow_superset_of_adj() {
             #43 149-154 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
             #44 150-153 "Bar" : ((Qubit => Unit is Adj) => Unit)
             Error(Type(Error(MissingFunctor(Value(CtlAdj), Value(Adj), Span { lo: 146, hi: 154 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2857,7 +2902,7 @@ fn functors_in_arg_nested_arrow_subset_of_adj() {
             operation Bar(op : Qubit => ()) : () {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-152 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => ()) : () {}\n            Foo(Bar);\n        }" : Unit
             #2 0-152 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => ()) : () {}\n            Foo(Bar);\n        }" : Unit
             #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
@@ -2870,7 +2915,7 @@ fn functors_in_arg_nested_arrow_subset_of_adj() {
             #37 133-136 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
             #40 136-141 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
             #41 137-140 "Bar" : ((Qubit => Unit is Adj) => Unit)
-        "##]],
+        "#]],
     );
 }
 
@@ -2883,7 +2928,7 @@ fn functors_in_arg_nested_arrow_eq_to_adj() {
             operation Bar(op : Qubit => () is Adj) : () {}
             Foo(Bar);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-159 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj) : () {}\n            Foo(Bar);\n        }" : Unit
             #2 0-159 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj) : () {}\n            Foo(Bar);\n        }" : Unit
             #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
@@ -2896,7 +2941,7 @@ fn functors_in_arg_nested_arrow_eq_to_adj() {
             #38 140-143 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
             #41 143-148 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
             #42 144-147 "Bar" : ((Qubit => Unit is Adj) => Unit)
-        "##]],
+        "#]],
     );
 }
 
@@ -2909,7 +2954,7 @@ fn functors_in_arg_array_superset_of_adj() {
             operation Bar(q : Qubit) : () is Adj + Ctl {}
             Foo([Bar]);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-157 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo([Bar]);\n        }" : Unit
             #2 0-157 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo([Bar]);\n        }" : Unit
             #7 27-57 "(ops : (Qubit => () is Adj)[])" : ((Qubit => Unit is Adj))[]
@@ -2923,7 +2968,7 @@ fn functors_in_arg_array_superset_of_adj() {
             #40 139-146 "([Bar])" : ((Qubit => Unit is Adj + Ctl))[]
             #41 140-145 "[Bar]" : ((Qubit => Unit is Adj + Ctl))[]
             #42 141-144 "Bar" : (Qubit => Unit is Adj + Ctl)
-        "##]],
+        "#]],
     );
 }
 
@@ -2936,7 +2981,7 @@ fn functors_in_arg_array_subset_of_adj() {
             operation Bar(q : Qubit) : () {}
             Foo([Bar]);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-144 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () {}\n            Foo([Bar]);\n        }" : Unit
             #2 0-144 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () {}\n            Foo([Bar]);\n        }" : Unit
             #7 27-57 "(ops : (Qubit => () is Adj)[])" : ((Qubit => Unit is Adj))[]
@@ -2951,7 +2996,7 @@ fn functors_in_arg_array_subset_of_adj() {
             #38 127-132 "[Bar]" : ((Qubit => Unit))[]
             #39 128-131 "Bar" : (Qubit => Unit)
             Error(Type(Error(MissingFunctor(Value(Adj), Value(Empty), Span { lo: 123, hi: 133 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2963,7 +3008,7 @@ fn functors_in_array_all_same() {
             operation Foo(q : Qubit) : () is Adj {}
             let ops = [Foo, Foo, Foo];
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-102 "{\n            operation Foo(q : Qubit) : () is Adj {}\n            let ops = [Foo, Foo, Foo];\n        }" : Unit
             #2 0-102 "{\n            operation Foo(q : Qubit) : () is Adj {}\n            let ops = [Foo, Foo, Foo];\n        }" : Unit
             #7 27-38 "(q : Qubit)" : Qubit
@@ -2974,7 +3019,7 @@ fn functors_in_array_all_same() {
             #20 77-80 "Foo" : (Qubit => Unit is Adj)
             #23 82-85 "Foo" : (Qubit => Unit is Adj)
             #26 87-90 "Foo" : (Qubit => Unit is Adj)
-        "##]],
+        "#]],
     );
 }
 
@@ -2988,7 +3033,7 @@ fn functors_in_array_mixed() {
             operation Baz(q : Qubit) : () is Adj + Ctl {}
             let ops = [Foo, Bar, Baz];
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-205 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, Bar, Baz];\n        }" : Unit
             #2 0-205 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, Bar, Baz];\n        }" : Unit
             #7 27-38 "(q : Qubit)" : Qubit
@@ -3007,7 +3052,7 @@ fn functors_in_array_mixed() {
             #53 190-193 "Baz" : (Qubit => Unit is Adj + Ctl)
             Error(Type(Error(FunctorMismatch(Value(Empty), Value(Adj), Span { lo: 185, hi: 188 }))))
             Error(Type(Error(FunctorMismatch(Value(Empty), Value(CtlAdj), Span { lo: 190, hi: 193 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -3021,7 +3066,7 @@ fn functors_in_array_mixed_lambda_all_empty() {
             operation Baz(q : Qubit) : () is Adj + Ctl {}
             let ops = [Foo, q => Bar(q), q => Baz(q)];
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, q => Bar(q), q => Baz(q)];\n        }" : Unit
             #2 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, q => Bar(q), q => Baz(q)];\n        }" : Unit
             #7 27-38 "(q : Qubit)" : Qubit
@@ -3048,7 +3093,7 @@ fn functors_in_array_mixed_lambda_all_empty() {
             #65 203-206 "Baz" : (Qubit => Unit is Adj + Ctl)
             #68 206-209 "(q)" : Qubit
             #69 207-208 "q" : Qubit
-        "##]],
+        "#]],
     );
 }
 
@@ -3062,7 +3107,7 @@ fn functors_in_array_mixed_lambda_all_ctl_adj() {
             operation Baz(q : Qubit) : () is Adj + Ctl {}
             let ops = [q => Foo(q), q => Bar(q), Baz];
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [q => Foo(q), q => Bar(q), Baz];\n        }" : Unit
             #2 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [q => Foo(q), q => Bar(q), Baz];\n        }" : Unit
             #7 27-38 "(q : Qubit)" : Qubit
@@ -3089,7 +3134,7 @@ fn functors_in_array_mixed_lambda_all_ctl_adj() {
             #65 201-204 "(q)" : Qubit
             #66 202-203 "q" : Qubit
             #69 206-209 "Baz" : (Qubit => Unit is Adj + Ctl)
-        "##]],
+        "#]],
     );
 }
 
@@ -3105,7 +3150,7 @@ fn functors_in_arg_bound_to_let_becomes_monotype() {
             foo(Bar);
             foo(Baz);
         }",
-        &expect![[r##"
+        &expect![[r#"
             #1 0-251 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let foo = Foo;\n            foo(Bar);\n            foo(Baz);\n        }" : Unit
             #2 0-251 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let foo = Foo;\n            foo(Bar);\n            foo(Baz);\n        }" : Unit
             #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
@@ -3128,7 +3173,7 @@ fn functors_in_arg_bound_to_let_becomes_monotype() {
             #66 235-240 "(Baz)" : (Qubit => Unit is Adj + Ctl)
             #67 236-239 "Baz" : (Qubit => Unit is Adj + Ctl)
             Error(Type(Error(FunctorMismatch(Value(Adj), Value(CtlAdj), Span { lo: 232, hi: 240 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -3145,7 +3190,7 @@ fn duplicate_callable_decls_inferred_and_ignored() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 33-35 "()" : Unit
             #10 43-51 "{ true }" : Bool
             #12 45-49 "true" : Bool
@@ -3158,7 +3203,7 @@ fn duplicate_callable_decls_inferred_and_ignored() {
             #33 127-130 "Foo" : (Unit -> Bool)
             #36 130-132 "()" : Unit
             Error(Resolve(Duplicate("Foo", "Test", Span { lo: 65, hi: 68 })))
-        "##]],
+        "#]],
     );
 }
 
@@ -3175,7 +3220,7 @@ fn duplicate_type_decls_inferred_and_ignored() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #18 81-83 "()" : Unit
             #22 91-127 "{\n        let val = Foo(true);\n    }" : Unit
             #24 105-108 "val" : UDT<Item 1>
@@ -3184,7 +3229,7 @@ fn duplicate_type_decls_inferred_and_ignored() {
             #30 114-120 "(true)" : Bool
             #31 115-119 "true" : Bool
             Error(Resolve(Duplicate("Foo", "Test", Span { lo: 53, hi: 56 })))
-        "##]],
+        "#]],
     );
 }
 
@@ -3193,38 +3238,38 @@ fn instantiate_duplicate_ty_param_names() {
     check(
         "namespace Test { function Foo<'T, 'T>() : () { let f = Foo; } }",
         "",
-        &expect![[r##"
+        &expect![[r#"
             #8 37-39 "()" : Unit
             #10 45-61 "{ let f = Foo; }" : Unit
             #12 51-52 "f" : (Unit -> Unit)
             #14 55-58 "Foo" : (Unit -> Unit)
             Error(Type(Error(AmbiguousTy(Span { lo: 55, hi: 58 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 55, hi: 58 }))))
-        "##]],
+        "#]],
     );
 }
 #[test]
 fn ambiguous_generic() {
     check(
-        "namespace Test { 
+        "namespace Test {
             function Foo<'T>(x: 'T) : 'T { x }
-            function Bar() : () { let x = Foo([]); } 
+            function Bar() : () { let x = Foo([]); }
         }",
         "",
-        &expect![[r##"
-            #7 46-53 "(x: 'T)" : 0
-            #8 47-52 "x: 'T" : 0
-            #14 59-64 "{ x }" : 0
-            #16 61-62 "x" : 0
-            #22 89-91 "()" : Unit
-            #24 97-117 "{ let x = Foo([]); }" : Unit
-            #26 103-104 "x" : (?2)[]
-            #28 107-114 "Foo([])" : (?2)[]
-            #29 107-110 "Foo" : ((?2)[] -> (?2)[])
-            #32 110-114 "([])" : (?2)[]
-            #33 111-113 "[]" : (?2)[]
-            Error(Type(Error(AmbiguousTy(Span { lo: 111, hi: 113 }))))
-        "##]],
+        &expect![[r#"
+            #7 45-52 "(x: 'T)" : 0
+            #8 46-51 "x: 'T" : 0
+            #14 58-63 "{ x }" : 0
+            #16 60-61 "x" : 0
+            #22 88-90 "()" : Unit
+            #24 96-116 "{ let x = Foo([]); }" : Unit
+            #26 102-103 "x" : (?2)[]
+            #28 106-113 "Foo([])" : (?2)[]
+            #29 106-109 "Foo" : ((?2)[] -> (?2)[])
+            #32 109-113 "([])" : (?2)[]
+            #33 110-112 "[]" : (?2)[]
+            Error(Type(Error(AmbiguousTy(Span { lo: 110, hi: 112 }))))
+        "#]],
     );
 }
 #[test]
@@ -3237,13 +3282,13 @@ fn invalid_ident() {
 }
         "#,
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 31-33 "()" : Unit
             #8 39-76 "{\n        let x : 'invalid = 0;\n    }" : Unit
             #10 53-65 "x : 'invalid" : ?
             #14 68-69 "0" : Int
             Error(Resolve(NotFound("'invalid", Span { lo: 57, hi: 65 })))
-        "##]],
+        "#]],
     );
 }
 #[test]
@@ -3251,11 +3296,91 @@ fn undeclared_generic_param() {
     check(
         r#"namespace c{operation y(g: 'U): Unit {} }"#,
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
-        "##]],
+        "#]],
+    );
+}
+
+#[test]
+fn use_bound_item_in_another_bound_item() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    function C() : Unit {
+                        D();
+                    }
+                    function D() : Unit {}
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 28-30 "()" : Unit
+            #10 38-133 "{\n        function C() : Unit {\n            D();\n        }\n        function D() : Unit {}\n    }" : Unit
+            #15 58-60 "()" : Unit
+            #19 68-96 "{\n            D();\n        }" : Unit
+            #21 82-85 "D()" : Unit
+            #22 82-83 "D" : (Unit -> Unit)
+            #25 83-85 "()" : Unit
+            #30 115-117 "()" : Unit
+            #34 125-127 "{}" : Unit
+        "#]],
+    );
+}
+
+#[test]
+fn inferred_generic_tuple_arguments_for_passed_callable() {
+    check(
+        indoc! {"
+            namespace Test {
+                function Apply<'T>(f : 'T -> Unit, arg : 'T) : Unit {
+                    f(arg);
+                }
+                function Check(x : Int, y : Int) : Unit {}
+                function Test() : Unit {
+                    let x = (1, 2);
+                    Apply(Check, x);
+                    Apply(Check, (1, 2));
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #7 39-65 "(f : 'T -> Unit, arg : 'T)" : ((0 -> Unit), 0)
+            #8 40-54 "f : 'T -> Unit" : (0 -> Unit)
+            #16 56-64 "arg : 'T" : 0
+            #23 73-96 "{\n        f(arg);\n    }" : Unit
+            #25 83-89 "f(arg)" : Unit
+            #26 83-84 "f" : (0 -> Unit)
+            #29 84-89 "(arg)" : 0
+            #30 85-88 "arg" : 0
+            #36 115-133 "(x : Int, y : Int)" : (Int, Int)
+            #37 116-123 "x : Int" : Int
+            #42 125-132 "y : Int" : Int
+            #50 141-143 "{}" : Unit
+            #54 161-163 "()" : Unit
+            #58 171-257 "{\n        let x = (1, 2);\n        Apply(Check, x);\n        Apply(Check, (1, 2));\n    }" : Unit
+            #60 185-186 "x" : (Int, Int)
+            #62 189-195 "(1, 2)" : (Int, Int)
+            #63 190-191 "1" : Int
+            #64 193-194 "2" : Int
+            #66 205-220 "Apply(Check, x)" : Unit
+            #67 205-210 "Apply" : ((((Int, Int) -> Unit), (Int, Int)) -> Unit)
+            #70 210-220 "(Check, x)" : (((Int, Int) -> Unit), (Int, Int))
+            #71 211-216 "Check" : ((Int, Int) -> Unit)
+            #74 218-219 "x" : (Int, Int)
+            #78 230-250 "Apply(Check, (1, 2))" : Unit
+            #79 230-235 "Apply" : ((((Int, Int) -> Unit), (Int, Int)) -> Unit)
+            #82 235-250 "(Check, (1, 2))" : (((Int, Int) -> Unit), (Int, Int))
+            #83 236-241 "Check" : ((Int, Int) -> Unit)
+            #86 243-249 "(1, 2)" : (Int, Int)
+            #87 244-245 "1" : Int
+            #88 247-248 "2" : Int
+        "#]],
     );
 }

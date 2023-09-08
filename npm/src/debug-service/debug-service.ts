@@ -19,7 +19,11 @@ type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the debugger in the same thread the result will be synchronous (a resolved promise).
 export interface IDebugService {
-  loadSource(path: string, source: string): Promise<boolean>;
+  loadSource(
+    path: string,
+    source: string,
+    entry: string | undefined
+  ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
   captureQuantumState(): Promise<Array<IQuantumState>>;
@@ -58,16 +62,20 @@ export class QSharpDebugService implements IDebugService {
     this.debugService = new wasm.DebugService();
   }
 
-  async loadSource(path: string, source: string): Promise<boolean> {
+  async loadSource(
+    path: string,
+    source: string,
+    entry: string | undefined
+  ): Promise<string> {
     this.code[path] = source;
-    return this.debugService.load_source(path, source);
+    return this.debugService.load_source(path, source, entry);
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {
     const stack_frame_list = this.debugService.get_stack_frames();
 
     const stack_frames: IStackFrame[] = await Promise.all(
-      stack_frame_list.frames.map(async (frame: IStackFrame) => {
+      stack_frame_list.frames.map(async (frame) => {
         // get any missing sources if possible
         if (!(frame.path in this.code)) {
           const content = await this.wasm.get_library_source_content(
@@ -103,11 +111,7 @@ export class QSharpDebugService implements IDebugService {
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
-    const result = this.debugService.eval_next(
-      event_cb,
-      ids
-    ) as IStructStepResult;
-    return { id: result.id, value: result.value } as IStructStepResult;
+    return this.debugService.eval_next(event_cb, ids);
   }
 
   async evalStepIn(
@@ -116,11 +120,7 @@ export class QSharpDebugService implements IDebugService {
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
-    const result = this.debugService.eval_step_in(
-      event_cb,
-      ids
-    ) as IStructStepResult;
-    return { id: result.id, value: result.value } as IStructStepResult;
+    return this.debugService.eval_step_in(event_cb, ids);
   }
 
   async evalStepOut(
@@ -129,8 +129,7 @@ export class QSharpDebugService implements IDebugService {
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
-    const result = this.debugService.eval_step_out(event_cb, ids);
-    return { id: result.id, value: result.value } as IStructStepResult;
+    return this.debugService.eval_step_out(event_cb, ids);
   }
 
   async evalContinue(
@@ -139,11 +138,7 @@ export class QSharpDebugService implements IDebugService {
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
-    const result = this.debugService.eval_continue(
-      event_cb,
-      ids
-    ) as IStructStepResult;
-    return { id: result.id, value: result.value } as IStructStepResult;
+    return this.debugService.eval_continue(event_cb, ids);
   }
 
   async getBreakpoints(path: string): Promise<IBreakpointSpan[]> {
@@ -156,42 +151,23 @@ export class QSharpDebugService implements IDebugService {
     });
     const positionMap = mapUtf8UnitsToUtf16Units(positions, this.code[path]);
     const breakpoint_spans: IBreakpointSpan[] = breakpoint_list.spans.map(
-      (span: IBreakpointSpan) => {
-        const result = {} as IBreakpointSpan;
-        result.id = span.id;
-        result.lo = positionMap[span.lo];
-        result.hi = positionMap[span.hi];
-        return result;
-      }
+      (span) => ({
+        id: span.id,
+        lo: positionMap[span.lo],
+        hi: positionMap[span.hi],
+      })
     );
     return breakpoint_spans;
   }
 
   async captureQuantumState(): Promise<Array<IQuantumState>> {
     const state = this.debugService.capture_quantum_state();
-    const entries: IQuantumState[] = state.entries.map(
-      (entry: IQuantumState) => {
-        const result = {} as IQuantumState;
-        result.name = entry.name;
-        result.value = entry.value;
-        return result;
-      }
-    );
-    return entries;
+    return state.entries;
   }
 
   async getLocalVariables(): Promise<Array<IVariable>> {
     const variable_list = this.debugService.get_locals();
-    const variables: IVariable[] = variable_list.variables.map(
-      (variable: IVariable) => {
-        const result = {} as IVariable;
-        result.name = variable.name;
-        result.value = variable.value;
-        result.var_type = variable.var_type;
-        return result;
-      }
-    );
-    return variables;
+    return variable_list.variables;
   }
 
   async dispose() {

@@ -24,7 +24,7 @@ use qsc_ast::ast::{
     StringComponent, TernOp, UnOp,
 };
 use qsc_data_structures::span::Span;
-use std::{num::Wrapping, result, str::FromStr};
+use std::{result, str::FromStr};
 
 struct PrefixOp {
     kind: UnOp,
@@ -320,7 +320,11 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
         token.kind
     else {
-        return Err(Error(ErrorKind::Rule("interpolated string", token.kind, token.span)));
+        return Err(Error(ErrorKind::Rule(
+            "interpolated string",
+            token.kind,
+            token.span,
+        )));
     };
 
     let mut components = Vec::new();
@@ -337,7 +341,11 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
         let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
             token.kind
         else {
-            return Err(Error(ErrorKind::Rule("interpolated string", token.kind, token.span)));
+            return Err(Error(ErrorKind::Rule(
+                "interpolated string",
+                token.kind,
+                token.span,
+            )));
         };
 
         let lit = shorten(1, 1, s.read());
@@ -419,15 +427,30 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
 }
 
 fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
-    let multiplier = Wrapping(i64::from(radix));
+    let multiplier = i64::from(radix);
     lexeme
         .chars()
         .filter(|&c| c != '_')
-        .try_rfold((Wrapping(0), Wrapping(1)), |(value, place), c| {
-            let digit = Wrapping(i64::from(c.to_digit(radix)?));
-            Some((value + place * digit, place * multiplier))
+        .try_rfold((0i64, 1i64, false), |(value, place, overflow), c| {
+            if overflow {
+                return None;
+            }
+            let (increment, false) = i64::from(c.to_digit(radix)?).overflowing_mul(place) else {
+                return None;
+            };
+            let (new_value, overflow) = value.overflowing_add(increment);
+            // Only treat as overflow if the value is not i64::MIN, since we need to allow once special
+            // case of overflow to allow for minimum value literals.
+            if overflow && new_value != i64::MIN {
+                return None;
+            }
+            let (new_place, overflow) = place.overflowing_mul(multiplier);
+
+            // If the place overflows, we can still accept the value as long as it's the last digit.
+            // Pass the overflow forward so that it fails if there are more digits.
+            Some((new_value, new_place, overflow))
         })
-        .map(|(Wrapping(value), _)| value)
+        .map(|(value, _, _)| value)
 }
 
 fn prefix_op(name: OpName) -> Option<PrefixOp> {

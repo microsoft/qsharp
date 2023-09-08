@@ -1,4 +1,4 @@
-Exercises are problems that you have to solve by writing Q# code. On each exercise, you will be presented with placeholder code that you will have to fill in with the correct solution.
+Exercises are problems that you have to solve by writing Q# code. In each exercise, you will be presented with placeholder code that you will have to fill in with the correct solution.
 
 **Input:** A qubit in the $|0\rangle$ state.
 
@@ -6,5 +6,5 @@ Exercises are problems that you have to solve by writing Q# code. On each exerci
 
 <details>
 <summary><strong>Need a hint?</strong></summary>
-For some problems a hint will be provided to help you if you are stuck.
+For some problems a hint will be provided to help you if you are stuck. For this exercise, read line number 3 in the code below.
 </details>

@@ -7,15 +7,13 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
-use crate::{
-    compile::{self, compile},
-    error::WithSource,
-};
+use crate::compile::{self, compile};
+use crate::error::WithStack;
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::generate_qir_for_stmt;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_eval::backend::Backend;
 use qsc_eval::{
     backend::SparseSim,
@@ -32,12 +30,13 @@ use qsc_fir::{
     },
     visit::{self, Visitor},
 };
+use qsc_frontend::error::WithSource;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_passes::{PackageType, PassContext};
-use std::{collections::HashSet, sync::Arc};
+use std::collections::HashSet;
 use thiserror::Error;
 
 use super::{debug::format_call_stack, stateless};
@@ -45,12 +44,15 @@ use super::{debug::format_call_stack, stateless};
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(WithSource<Source, ErrorKind>);
+pub struct Error(WithSource<ErrorKind>);
 
 impl Error {
     #[must_use]
     pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
+        match &self.0.error() {
+            ErrorKind::Eval(err) => err.stack_trace(),
+            _ => &None,
+        }
     }
 }
 
@@ -64,7 +66,7 @@ enum ErrorKind {
     Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] qsc_eval::Error),
+    Eval(#[from] WithStack<qsc_eval::Error>),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
@@ -73,12 +75,7 @@ enum ErrorKind {
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct CompileError(WithSource<Source, compile::Error>);
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct LineError(WithSource<Arc<str>, LineErrorKind>);
+pub struct LineError(WithSource<LineErrorKind>);
 
 impl LineError {
     #[must_use]
@@ -88,7 +85,10 @@ impl LineError {
 
     #[must_use]
     pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
+        match &self.0.error() {
+            LineErrorKind::Eval(err) => err.stack_trace(),
+            _ => &None,
+        }
     }
 }
 
@@ -102,7 +102,7 @@ pub enum LineErrorKind {
     Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] qsc_eval::Error),
+    Eval(#[from] WithStack<qsc_eval::Error>),
     #[error("code generation target mismatch")]
     #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
     TargetMismatch,
@@ -166,8 +166,11 @@ pub struct Interpreter {
     fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
     state: State,
     source_package: PackageId,
+    lines: u32,
     target: TargetProfile,
 }
+
+pub type LineResult = Result<Value, Vec<LineError>>;
 
 impl Interpreter {
     /// # Errors
@@ -201,7 +204,7 @@ impl Interpreter {
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
+                .map(|error| Error(WithSource::from_map(&unit.sources, error.into())))
                 .collect());
         }
 
@@ -228,6 +231,7 @@ impl Interpreter {
             state: State::new(map_hir_package_to_fir(package)),
             lowerer,
             fir_store,
+            lines: 0,
             target,
         })
     }
@@ -246,6 +250,9 @@ impl Interpreter {
     /// Resumes execution with specified `StepAction`.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn eval_step(
         &mut self,
         receiver: &mut impl Receiver,
@@ -282,8 +289,7 @@ impl Interpreter {
 
                 vec![Error(WithSource::from_map(
                     &package.sources,
-                    error.into(),
-                    stack_trace,
+                    WithStack::new(error, stack_trace).into(),
                 ))]
             })
     }
@@ -291,6 +297,9 @@ impl Interpreter {
     /// Executes the entry expression until the end of execution.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
         let globals = Lookup {
@@ -322,8 +331,7 @@ impl Interpreter {
 
             vec![Error(WithSource::from_map(
                 &package.sources,
-                error.into(),
-                stack_trace,
+                WithStack::new(error, stack_trace).into(),
             ))]
         })
     }
@@ -343,7 +351,6 @@ impl Interpreter {
         Err(vec![Error(WithSource::from_map(
             &unit.sources,
             ErrorKind::NoEntryPoint,
-            None,
         ))])
     }
 
@@ -351,20 +358,24 @@ impl Interpreter {
     /// If the parsing of the line fails, an error is returned.
     /// If the compilation of the line fails, an error is returned.
     /// If there is a runtime error when interpreting the line, an error is returned.
-    pub fn interpret_line(
-        &mut self,
-        receiver: &mut impl Receiver,
-        line: &str,
-    ) -> Result<Value, Vec<LineError>> {
+    pub fn interpret_line(&mut self, receiver: &mut impl Receiver, line: &str) -> LineResult {
         let mut result = Value::unit();
 
-        let mut fragments = self.compiler.compile_fragments(line).map_err(|errors| {
-            let source = line.into();
-            errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect::<Vec<_>>()
-        })?;
+        let label = self.next_line_label();
+        let mut fragments = self
+            .compiler
+            .compile_fragments(&label, line)
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            error.into(),
+                        ))
+                    })
+                    .collect::<Vec<_>>()
+            })?;
 
         let pass_errors = fragments
             .iter_mut()
@@ -374,12 +385,23 @@ impl Interpreter {
             })
             .collect::<Vec<_>>();
         if !pass_errors.is_empty() {
-            let source = line.into();
             return Err(pass_errors
                 .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .map(|error| {
+                    LineError(WithSource::from_map(
+                        self.compiler.source_map(),
+                        error.into(),
+                    ))
+                })
                 .collect());
         }
+
+        // Items must be processed before top-level statements, so sort the fragments.
+        // Note that stable sorting is used here to preserve the order of top-level statements.
+        fragments.sort_by_key(|f| match f {
+            Fragment::Item(_) => 0,
+            Fragment::Stmt(_) => 1,
+        });
 
         for fragment in fragments {
             match fragment {
@@ -408,10 +430,9 @@ impl Interpreter {
                                 Some(self.render_call_stack(call_stack, &error))
                             };
 
-                            return Err(vec![LineError(WithSource::new(
-                                line.into(),
-                                error.into(),
-                                stack_trace,
+                            return Err(vec![LineError(WithSource::from_map(
+                                self.compiler.source_map(),
+                                WithStack::new(error, stack_trace).into(),
                             ))]);
                         }
                     }
@@ -420,6 +441,119 @@ impl Interpreter {
         }
 
         Ok(result)
+    }
+
+    /// Runs the given entry expression on a new instance of the environment and simulator,
+    /// but using the current compilation.
+    /// # Errors
+    /// If the parsing of the expr fails, an error is returned.
+    /// If the compilation of the expr fails, an error is returned.
+    /// If there is a runtime error when generating code for the expr, an error is returned.
+    /// # Panics
+    /// If internal compiler state is inconsistent, a panic may occur.
+    pub fn run(
+        &mut self,
+        receiver: &mut impl Receiver,
+        expr: &str,
+        shots: u32,
+    ) -> Result<Vec<LineResult>, Vec<LineError>> {
+        let mut fragments = self
+            .compiler
+            .compile_expr("<entry>", expr)
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            error.into(),
+                        ))
+                    })
+                    .collect::<Vec<_>>()
+            })?;
+
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
+            })
+            .collect::<Vec<_>>();
+        if !pass_errors.is_empty() {
+            return Err(pass_errors
+                .into_iter()
+                .map(|error| {
+                    LineError(WithSource::from_map(
+                        self.compiler.source_map(),
+                        error.into(),
+                    ))
+                })
+                .collect());
+        }
+
+        let mut stmt_id = None;
+        for fragment in fragments {
+            match fragment {
+                Fragment::Item(item) => match item.kind {
+                    qsc_hir::hir::ItemKind::Callable(callable) => {
+                        let callable = self.lower_callable_decl(&callable);
+
+                        self.callables
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                    }
+                    qsc_hir::hir::ItemKind::Namespace(..) => {}
+                    qsc_hir::hir::ItemKind::Ty(..) => {
+                        self.udts
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                    }
+                },
+                Fragment::Stmt(stmt) => assert!(
+                    stmt_id.replace(self.lower_stmt(&stmt)).is_none(),
+                    "expression should yield exactly one statement"
+                ),
+            }
+        }
+
+        let Some(stmt_id) = stmt_id else {
+            panic!("expression should yield exactly one statement");
+        };
+
+        let globals = Lookup {
+            fir_store: &self.fir_store,
+            package: self.package,
+            udts: &self.udts,
+            callables: &self.callables,
+        };
+
+        let mut results: Vec<LineResult> = Vec::new();
+        for _i in 0..shots {
+            results.push(
+                match eval_stmt(
+                    stmt_id,
+                    &globals,
+                    &mut Env::with_empty_scope(),
+                    &mut SparseSim::new(),
+                    self.package,
+                    receiver,
+                ) {
+                    Ok(value) => Ok(value),
+                    Err((error, call_stack)) => {
+                        let stack_trace = if call_stack.is_empty() {
+                            None
+                        } else {
+                            Some(self.render_call_stack(call_stack, &error))
+                        };
+
+                        Err(vec![LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            WithStack::new(error, stack_trace).into(),
+                        ))])
+                    }
+                },
+            );
+        }
+
+        Ok(results)
     }
 
     /// # Errors
@@ -431,61 +565,94 @@ impl Interpreter {
     /// If internal compiler state is inconsistent, a panic may occur.
     pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<LineError>> {
         if self.target != TargetProfile::Base {
-            return Err(vec![LineError(WithSource::new(
-                expr.into(),
+            return Err(vec![LineError(WithSource::from_map(
+                self.compiler.source_map(),
                 LineErrorKind::TargetMismatch,
-                None,
             ))]);
         }
 
-        let mut fragment = self.compiler.compile_expr(expr).map_err(|errors| {
-            let source = expr.into();
-            errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect::<Vec<_>>()
-        })?;
+        let mut fragments = self
+            .compiler
+            .compile_expr("<entry>", expr)
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::from_map(
+                            self.compiler.source_map(),
+                            error.into(),
+                        ))
+                    })
+                    .collect::<Vec<_>>()
+            })?;
 
-        let pass_errors = self.passes.run(
-            self.store.core(),
-            self.compiler.assigner_mut(),
-            &mut fragment,
-        );
+        let pass_errors = fragments
+            .iter_mut()
+            .flat_map(|fragment| {
+                self.passes
+                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
+            })
+            .collect::<Vec<_>>();
         if !pass_errors.is_empty() {
-            let source = expr.into();
             return Err(pass_errors
                 .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
+                .map(|error| {
+                    LineError(WithSource::from_map(
+                        self.compiler.source_map(),
+                        error.into(),
+                    ))
+                })
                 .collect());
         }
 
-        let Fragment::Stmt(stmt) = fragment else {
-            panic!("only a stmt fragment should reach here.")
-        };
+        let mut ret = Ok(String::new());
+        for fragment in fragments {
+            match fragment {
+                Fragment::Item(item) => match item.kind {
+                    qsc_hir::hir::ItemKind::Callable(callable) => {
+                        let callable = self.lower_callable_decl(&callable);
 
-        let stmt_id = self.lower_stmt(&stmt);
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
-        };
+                        self.callables
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                    }
+                    qsc_hir::hir::ItemKind::Namespace(..) => {}
+                    qsc_hir::hir::ItemKind::Ty(..) => {
+                        self.udts
+                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                    }
+                },
+                Fragment::Stmt(stmt) => {
+                    let stmt_id = self.lower_stmt(&stmt);
+                    let globals = Lookup {
+                        fir_store: &self.fir_store,
+                        package: self.package,
+                        udts: &self.udts,
+                        callables: &self.callables,
+                    };
 
-        generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
-            |(error, call_stack)| {
-                let stack_trace = if call_stack.is_empty() {
-                    None
-                } else {
-                    Some(self.render_call_stack(call_stack, &error))
-                };
+                    ret = generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package)
+                        .map_err(|(error, call_stack)| {
+                            let stack_trace = if call_stack.is_empty() {
+                                None
+                            } else {
+                                Some(self.render_call_stack(call_stack, &error))
+                            };
 
-                vec![LineError(WithSource::new(
-                    expr.into(),
-                    error.into(),
-                    stack_trace,
-                ))]
-            },
-        )
+                            vec![LineError(WithSource::from_map(
+                                self.compiler.source_map(),
+                                WithStack::new(error, stack_trace).into(),
+                            ))]
+                        });
+                }
+            }
+        }
+        ret
+    }
+
+    fn next_line_label(&mut self) -> String {
+        let label = format!("line_{}", self.lines);
+        self.lines += 1;
+        label
     }
 
     fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
@@ -541,6 +708,9 @@ impl Interpreter {
         format_call_stack(&self.store, &globals, call_stack, error)
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_stack_frames(&self) -> Vec<StackFrame> {
         let globals = Lookup {
@@ -585,6 +755,9 @@ impl Interpreter {
         self.sim.capture_quantum_state()
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_breakpoints(&self, path: &str) -> Vec<BreakpointSpan> {
         let unit = self
@@ -691,11 +864,15 @@ impl<'a> BreakpointCollector<'a> {
     fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
         let source: &Source = self.get_source(self.offset);
         if source.offset == self.offset {
-            self.statements.insert(BreakpointSpan {
+            let span = stmt.span - source.offset;
+            let bps = BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo - source.offset,
-                hi: stmt.span.hi - source.offset,
-            });
+                lo: span.lo,
+                hi: span.hi,
+            };
+            if span != Span::default() {
+                self.statements.insert(bps);
+            }
         }
     }
 }
