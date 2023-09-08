@@ -38,8 +38,8 @@ class QSharpSignatureHelpProvider implements vscode.SignatureHelpProvider {
       );
       return info;
     });
-    sigHelp.activeSignature = sigHelpLs.active_signature;
-    sigHelp.activeParameter = sigHelpLs.active_parameter;
+    sigHelp.activeSignature = sigHelpLs.activeSignature;
+    sigHelp.activeParameter = sigHelpLs.activeParameter;
 
     return sigHelp;
   }

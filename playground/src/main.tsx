@@ -311,8 +311,8 @@ function registerMonacoLanguageServiceProviders(
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         dispose: () => {},
         value: {
-          activeParameter: sigHelpLs.active_parameter,
-          activeSignature: sigHelpLs.active_signature,
+          activeParameter: sigHelpLs.activeParameter,
+          activeSignature: sigHelpLs.activeSignature,
           signatures: sigHelpLs.signatures.map((sig) => {
             return {
               label: sig.label,
