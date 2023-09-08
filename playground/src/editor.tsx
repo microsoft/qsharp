@@ -14,7 +14,7 @@ import {
   QscEventTarget,
   VSDiagnostic,
   log,
-} from "qsharp";
+} from "qsharp-lang";
 import { codeToCompressedBase64 } from "./utils.js";
 import { ActiveTab } from "./main.js";
 

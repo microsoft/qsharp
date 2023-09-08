@@ -1,7 +1,7 @@
 {
-  "name": "qsharp",
+  "name": "qsharp-lang",
   "description": "qsharp language package for quantum development",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "license": "MIT",
   "engines": {
     "node": ">=16.17.0"

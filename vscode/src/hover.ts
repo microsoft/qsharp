@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService } from "qsharp";
+import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
 
 export function createHoverProvider(languageService: ILanguageService) {
