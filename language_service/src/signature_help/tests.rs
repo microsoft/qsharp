@@ -156,7 +156,41 @@ fn second_argument() {
             is_retrigger: false,
             active_signature_help: None,
         },
-        &expect![[r#""#]],
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 20,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 31,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 33,
+                                    end: 42,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
     );
 }
 
@@ -180,6 +214,229 @@ fn last_argument() {
             is_retrigger: false,
             active_signature_help: None,
         },
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 20,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 31,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 33,
+                                    end: 42,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[ignore = "Parser needs updating to handle `(1,, \"Four\")`"]
+#[test]
+fn insert_second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+
+            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Bar(a: Int, b: Double) : Double { b }
+
+            operation Baz() : Unit {
+                Foo(1,↘, "Four")
+                let x = 3;
+            }
+        }
+    "#},
+        SignatureHelpContext {
+            trigger_kind: 2,
+            trigger_character: Some(",".to_string()),
+            is_retrigger: false,
+            active_signature_help: None,
+        },
         &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn revisit_second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+
+            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Bar(a: Int, b: Double) : Double { b }
+
+            operation Baz() : Unit {
+                Foo(1, 2.↘3, "Four")
+                let x = 3;
+            }
+        }
+    "#},
+        SignatureHelpContext {
+            trigger_kind: 2,
+            trigger_character: Some(",".to_string()),
+            is_retrigger: false,
+            active_signature_help: None,
+        },
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 20,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 31,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 33,
+                                    end: 42,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_call_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+
+            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Bar(a: Int, b: Double) : Double { b }
+
+            operation Baz() : Unit {
+                Foo(1, Bar(↘))
+                let x = 3;
+            }
+        }
+    "#},
+        SignatureHelpContext {
+            trigger_kind: 2,
+            trigger_character: Some(",".to_string()),
+            is_retrigger: false,
+            active_signature_help: None,
+        },
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Bar(a: Int, b: Double) : Double",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 20,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 31,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 0,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_call_second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+
+            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Bar(a: Int, b: Double) : Double { b }
+
+            operation Baz() : Unit {
+                Foo(1, Bar(2,↘))
+                let x = 3;
+            }
+        }
+    "#},
+        SignatureHelpContext {
+            trigger_kind: 2,
+            trigger_character: Some(",".to_string()),
+            is_retrigger: false,
+            active_signature_help: None,
+        },
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Bar(a: Int, b: Double) : Double",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 20,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 31,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
     );
 }
