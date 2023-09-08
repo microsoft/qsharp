@@ -80,3 +80,11 @@ pub struct ParameterInformation {
     pub label: Span,
     pub documentation: Option<String>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct SignatureHelpContext {
+    pub trigger_kind: u32,
+    pub trigger_character: Option<String>,
+    pub is_retrigger: bool,
+    pub active_signature_help: Option<SignatureHelp>,
+}

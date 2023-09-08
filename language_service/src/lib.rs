@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use log::trace;
-use protocol::{CompletionList, Definition, Hover, SignatureHelp};
+use protocol::{CompletionList, Definition, Hover, SignatureHelp, SignatureHelpContext};
 use qsc::PackageType;
 use qsc_utils::Compilation;
 
@@ -151,13 +151,18 @@ impl<'a> LanguageService<'a> {
     ///
     /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
-    pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<SignatureHelp> {
+    pub fn get_signature_help(
+        &self,
+        uri: &str,
+        offset: u32,
+        context: SignatureHelpContext,
+    ) -> Option<SignatureHelp> {
         trace!("get_signature_help: uri: {uri:?}, offset: {offset:?}");
         let res = signature_help::get_signature_help(
             &self
             .document_map.get(uri).as_ref()
                 .expect("get_signature_help should not be called before document has been initialized with update_document").compilation,
-                uri, offset);
+                uri, offset, context);
         trace!("get_signature_help result: {res:?}");
         res
     }

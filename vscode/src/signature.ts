@@ -15,11 +15,18 @@ class QSharpSignatureHelpProvider implements vscode.SignatureHelpProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
+    context: vscode.SignatureHelpContext
   ) {
     const sigHelpLs = await this.languageService.getSignatureHelp(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
+      {
+        triggerKind: context.triggerKind.valueOf(),
+        triggerCharacter: context.triggerCharacter,
+        isRetrigger: context.isRetrigger,
+        activeSignatureHelp: undefined, // todo
+      }
     );
     if (!sigHelpLs) return null;
 
