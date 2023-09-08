@@ -38,7 +38,7 @@ jobs:
       versionSpec: '3.11'
 
   - script: |
-      python ./prereqs.py --install && python ./build_version.py
+      python ./prereqs.py --install && python ./version.py
     displayName: Install Prereqs and set version
 
   - script: |
