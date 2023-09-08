@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp";
+import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp-lang";
 import { useEffect, useState } from "preact/hooks";
 
 import { Histogram } from "./histo.js";
