@@ -201,6 +201,12 @@ export class QSharpLanguageService implements ILanguageService {
       const code = this.code[uri];
       const empty = diagnostics.length === 0;
       if (code === undefined && !empty) {
+        // We need the contents of the document to convert error offsets to utf16.
+        // But the contents aren't available after a document is closed.
+        // It is possible to get a diagnostics event after a document is closed,
+        // but it will be done with an empty array, to clear the diagnostics.
+        // In that case, it's ok not to have the document contents available,
+        // because there are no offsets to convert.
         log.error(`onDiagnostics: expected ${uri} to be in the document map`);
         return;
       }

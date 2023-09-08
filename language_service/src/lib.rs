@@ -59,10 +59,10 @@ struct DocumentState {
     pub compilation: Compilation,
 }
 
-type DiagnosticsReceiver<'a> = dyn FnMut(&str, u32, &[qsc::compile::Error]) + 'a;
+type DiagnosticsReceiver<'a> = dyn Fn(&str, u32, &[qsc::compile::Error]) + 'a;
 
 impl<'a> LanguageService<'a> {
-    pub fn new(diagnostics_receiver: impl FnMut(&str, u32, &[qsc::compile::Error]) + 'a) -> Self {
+    pub fn new(diagnostics_receiver: impl Fn(&str, u32, &[qsc::compile::Error]) + 'a) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
             document_map: HashMap::new(),
@@ -197,32 +197,38 @@ impl<'a> LanguageService<'a> {
         need_recompile
     }
 
+    /// Recompiles the currently known documents with
+    /// the current configuration. Publishes updated
+    /// diagnostics for all documents.
     fn recompile_all(&mut self) {
-        let mut sources = Vec::new();
-        // Gather the sources from the current document map
-        for (uri, state) in &self.document_map {
-            sources.push((
-                uri.clone(),
-                state.version,
-                state
-                    .compilation
-                    .unit
-                    .sources
-                    .find_by_name(uri)
-                    .expect("source should be found")
-                    .contents
-                    .clone(),
-            ));
-        }
+        for (uri, state) in &mut self.document_map {
+            let version = state.version;
+            let contents = &state
+                .compilation
+                .unit
+                .sources
+                .find_by_name(uri)
+                .expect("source should be found")
+                .contents;
 
-        // Now recompile everything with current settings
-        for source in sources {
-            trace!(
-                "recompiling {:?} with settings {:?}",
-                source.0,
-                self.configuration
+            let compilation = compile_document(
+                uri,
+                contents,
+                self.configuration.package_type,
+                self.configuration.target_profile,
             );
-            self.update_document(&source.0, source.1, &source.2);
+
+            *state = DocumentState {
+                version,
+                compilation,
+            };
+
+            trace!(
+                "publishing diagnostics for {uri:?}: {:?}",
+                state.compilation.errors
+            );
+
+            (self.diagnostics_receiver)(uri, version, &state.compilation.errors);
         }
     }
 }
