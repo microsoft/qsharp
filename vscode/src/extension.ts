@@ -155,8 +155,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
-        document.getText(),
-        true // PackageType "exe"
+        document.getText()
       );
     }
   }
