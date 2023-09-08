@@ -106,10 +106,11 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
 impl SignatureHelpFinder<'_> {
     /// Takes a callable declaration node an generates the Parameter Information objects for it.
     /// Example:
-    ///
+    /// ```qsharp
     /// operation Foo(bar: Int, baz: Double) : Unit {}
     ///               └──┬───┘  └──┬──────┘
     ///               param 1    param 2
+    /// ```
     fn get_params(&self, decl: &hir::CallableDecl) -> Vec<ParameterInformation> {
         let offset = self.display.get_param_offset(decl);
 
