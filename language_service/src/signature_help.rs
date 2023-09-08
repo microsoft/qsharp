@@ -140,10 +140,9 @@ fn process_args(args: &ast::Expr, location: u32) -> u32 {
             while i < len && items.get(i).expect("").span.hi < location {
                 i += 1;
             }
-            let i = u32::try_from(i).expect(
+            u32::try_from(i).expect(
                 "failed to cast usize to u32 for parameter index while generating signature help",
-            );
-            i
+            )
         }
         _ => 0,
     }

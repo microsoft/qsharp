@@ -25,9 +25,7 @@ fn first_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
-
             operation Bar() : Unit {
                 Foo(↘)
                 let x = 3;
@@ -83,9 +81,7 @@ fn mid_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
-
             operation Bar() : Unit {
                 Foo(12↘)
                 let x = 3;
@@ -141,9 +137,7 @@ fn second_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
-
             operation Bar() : Unit {
                 Foo(1,↘)
                 let x = 3;
@@ -199,9 +193,7 @@ fn last_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
-
             operation Bar() : Unit {
                 Foo(1, 1.2,↘)
                 let x = 3;
@@ -258,11 +250,8 @@ fn insert_second_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar(a: Int, b: Double) : Double { b }
-
-            operation Baz() : Unit {
+            operation Bar() : Unit {
                 Foo(1,↘, "Four")
                 let x = 3;
             }
@@ -283,11 +272,8 @@ fn revisit_second_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar(a: Int, b: Double) : Double { b }
-
-            operation Baz() : Unit {
+            operation Bar() : Unit {
                 Foo(1, 2.↘3, "Four")
                 let x = 3;
             }
@@ -342,10 +328,8 @@ fn nested_call_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
             operation Bar(a: Int, b: Double) : Double { b }
-
             operation Baz() : Unit {
                 Foo(1, Bar(↘))
                 let x = 3;
@@ -394,10 +378,8 @@ fn nested_call_second_argument() {
     check(
         indoc! {r#"
         namespace Test {
-
             operation Foo(x: Int, y: Double, z: String) : Unit {}
             operation Bar(a: Int, b: Double) : Double { b }
-
             operation Baz() : Unit {
                 Foo(1, Bar(2,↘))
                 let x = 3;
