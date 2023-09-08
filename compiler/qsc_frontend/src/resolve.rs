@@ -81,6 +81,11 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.Duplicate"))]
     Duplicate(String, String, #[label] Span),
 
+    #[error("duplicate name `{0}` in pattern")]
+    #[diagnostic(help("a name cannot shadow another name in the same pattern"))]
+    #[diagnostic(code("Qsc.Resolve.DuplicateBinding"))]
+    DuplicateBinding(String, #[label] Span),
+
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
@@ -160,6 +165,7 @@ struct Open {
 pub(super) struct Resolver {
     names: Names,
     dropped_names: Vec<TrackedName>,
+    curr_params: Option<HashSet<Rc<str>>>,
     globals: GlobalScope,
     scopes: Vec<Scope>,
     errors: Vec<Error>,
@@ -170,6 +176,7 @@ impl Resolver {
         Self {
             names: globals.names,
             dropped_names,
+            curr_params: None,
             globals: globals.scope,
             scopes: Vec::new(),
             errors: Vec::new(),
@@ -183,6 +190,7 @@ impl Resolver {
         Self {
             names: globals.names,
             dropped_names,
+            curr_params: None,
             globals: globals.scope,
             scopes: vec![Scope::new(ScopeKind::Block)],
             errors: Vec::new(),
@@ -242,15 +250,26 @@ impl Resolver {
     }
 
     fn bind_pat(&mut self, pat: &ast::Pat) {
+        let mut bindings = HashSet::new();
+        self.bind_pat_recursive(pat, &mut bindings);
+    }
+
+    fn bind_pat_recursive(&mut self, pat: &ast::Pat, bindings: &mut HashSet<Rc<str>>) {
         match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
+                if !bindings.insert(Rc::clone(&name.name)) {
+                    self.errors
+                        .push(Error::DuplicateBinding(name.name.to_string(), name.span));
+                }
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 self.names.insert(name.id, Res::Local(name.id));
                 scope.vars.insert(Rc::clone(&name.name), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
-            ast::PatKind::Paren(pat) => self.bind_pat(pat),
-            ast::PatKind::Tuple(pats) => pats.iter().for_each(|p| self.bind_pat(p)),
+            ast::PatKind::Paren(pat) => self.bind_pat_recursive(pat, bindings),
+            ast::PatKind::Tuple(pats) => pats
+                .iter()
+                .for_each(|p| self.bind_pat_recursive(p, bindings)),
         }
     }
 
@@ -349,6 +368,18 @@ impl With<'_> {
             f(visitor);
         });
     }
+
+    fn with_spec_pat(&mut self, kind: ScopeKind, pat: &ast::Pat, f: impl FnOnce(&mut Self)) {
+        let mut bindings = self
+            .resolver
+            .curr_params
+            .as_ref()
+            .map_or_else(HashSet::new, std::clone::Clone::clone);
+        self.with_scope(kind, |visitor| {
+            visitor.resolver.bind_pat_recursive(pat, &mut bindings);
+            f(visitor);
+        });
+    }
 }
 
 impl AstVisitor<'_> for With<'_> {
@@ -371,16 +402,32 @@ impl AstVisitor<'_> for With<'_> {
     fn visit_attr(&mut self, _: &ast::Attr) {}
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+        fn collect_param_names(pat: &ast::Pat, names: &mut HashSet<Rc<str>>) {
+            match &*pat.kind {
+                ast::PatKind::Bind(name, _) => {
+                    names.insert(Rc::clone(&name.name));
+                }
+                ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
+                ast::PatKind::Paren(pat) => collect_param_names(pat, names),
+                ast::PatKind::Tuple(pats) => {
+                    pats.iter().for_each(|p| collect_param_names(p, names));
+                }
+            }
+        }
+        let mut param_names = HashSet::new();
+        collect_param_names(&decl.input, &mut param_names);
+        let prev_param_names = self.resolver.curr_params.replace(param_names);
         self.with_scope(ScopeKind::Callable, |visitor| {
             visitor.resolver.bind_type_parameters(decl);
             visitor.resolver.bind_pat(&decl.input);
             ast_visit::walk_callable_decl(visitor, decl);
         });
+        self.resolver.curr_params = prev_param_names;
     }
 
     fn visit_spec_decl(&mut self, decl: &ast::SpecDecl) {
         if let ast::SpecBody::Impl(input, block) = &decl.body {
-            self.with_pat(ScopeKind::Block, input, |visitor| {
+            self.with_spec_pat(ScopeKind::Block, input, |visitor| {
                 visitor.visit_block(block);
             });
         } else {
