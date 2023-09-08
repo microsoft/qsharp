@@ -8,6 +8,7 @@ import type {
   IHover,
   IDefinition,
   LanguageService,
+  IWorkspaceConfiguration,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -32,12 +33,8 @@ export type LanguageServiceEvent = {
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
-  updateDocument(
-    uri: string,
-    version: number,
-    code: string,
-    isExe: boolean
-  ): Promise<void>;
+  updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
+  updateDocument(uri: string, version: number, code: string): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
@@ -77,14 +74,17 @@ export class QSharpLanguageService implements ILanguageService {
     );
   }
 
+  async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
+    this.languageService.update_configuration(config);
+  }
+
   async updateDocument(
     documentUri: string,
     version: number,
-    code: string,
-    isExe: boolean
+    code: string
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code, isExe);
+    this.languageService.update_document(documentUri, version, code);
   }
 
   async closeDocument(documentUri: string): Promise<void> {
@@ -98,7 +98,9 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<ICompletionList> {
     const code = this.code[documentUri];
     if (code === undefined) {
-      log.error(`expected ${documentUri} to be in the document map`);
+      log.error(
+        `getCompletions: expected ${documentUri} to be in the document map`
+      );
       return { items: [] };
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
@@ -125,7 +127,7 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<IHover | undefined> {
     const code = this.code[documentUri];
     if (code === undefined) {
-      log.error(`expected ${documentUri} to be in the document map`);
+      log.error(`getHover: expected ${documentUri} to be in the document map`);
       return undefined;
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
@@ -147,7 +149,9 @@ export class QSharpLanguageService implements ILanguageService {
   ): Promise<IDefinition | undefined> {
     let code = this.code[documentUri];
     if (code === undefined) {
-      log.error(`expected ${documentUri} to be in the document map`);
+      log.error(
+        `getDefinition: expected ${documentUri} to be in the document map`
+      );
       return undefined;
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
@@ -163,7 +167,7 @@ export class QSharpLanguageService implements ILanguageService {
       if (url.protocol === qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
         if (code === undefined) {
-          log.error(`expected ${url} to be in the library`);
+          log.error(`getDefinition: expected ${url} to be in the library`);
           return undefined;
         }
       }
@@ -195,15 +199,22 @@ export class QSharpLanguageService implements ILanguageService {
   onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
     try {
       const code = this.code[uri];
-      if (code === undefined) {
-        log.error(`expected ${uri} to be in the document map`);
+      const empty = diagnostics.length === 0;
+      if (code === undefined && !empty) {
+        // We need the contents of the document to convert error offsets to utf16.
+        // But the contents aren't available after a document is closed.
+        // It is possible to get a diagnostics event after a document is closed,
+        // but it will be done with an empty array, to clear the diagnostics.
+        // In that case, it's ok not to have the document contents available,
+        // because there are no offsets to convert.
+        log.error(`onDiagnostics: expected ${uri} to be in the document map`);
         return;
       }
       const event = new Event("diagnostics") as LanguageServiceEvent & Event;
       event.detail = {
         uri,
         version,
-        diagnostics: mapDiagnostics(diagnostics, code),
+        diagnostics: empty ? [] : mapDiagnostics(diagnostics, code as string),
       };
       this.eventHandler.dispatchEvent(event);
     } catch (e) {

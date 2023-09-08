@@ -23,9 +23,10 @@ pub(crate) fn compile_document(
     source_name: &str,
     source_contents: &str,
     package_type: PackageType,
+    target_profile: TargetProfile,
 ) -> Compilation {
     let mut package_store = PackageStore::new(compile::core());
-    let std_package_id = package_store.insert(compile::std(&package_store, TargetProfile::Full));
+    let std_package_id = package_store.insert(compile::std(&package_store, target_profile));
 
     // Source map only contains the current document.
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
@@ -34,7 +35,7 @@ pub(crate) fn compile_document(
         &[std_package_id],
         source_map,
         package_type,
-        TargetProfile::Full,
+        target_profile,
     );
     Compilation {
         package_store,
