@@ -21,7 +21,6 @@ import {
 } from "./workspaceQuery";
 import { sampleWorkspace } from "./sampleData";
 import { QuantumUris } from "./azure";
-import { getResourcePath } from "../extension";
 import { getQirForActiveWindow } from "../qirGeneration";
 
 let workspaceTreeProvider: WorkspaceTreeProvider;
@@ -42,7 +41,10 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     "quantum-target-submit",
     async (arg: WorkspaceTreeItem) => {
       const target = arg.itemData as Target;
-      let qirFilePath: vscode.Uri;
+
+      const compilerService: string | undefined = vscode.workspace
+        .getConfiguration("Q#")
+        .get("compilerService"); // e.g. in settings.json: "Q#.compilerService": "https://qsx-proxy.azurewebsites.net/api/compile"
 
       const qir = await getQirForActiveWindow();
       if (!qir) return;
@@ -54,28 +56,43 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
         providerId = "quantinuum";
       } else if (target.id.startsWith("rigetti")) {
         providerId = "rigetti";
+      } else if (target.id.startsWith("ionq")) {
+        providerId = "ionq";
       } else {
+        vscode.window.showErrorMessage(
+          "Unsupported provider for QIR jobs: " + target.id
+        );
         return;
       }
 
-      // TODO(billti) wrap in try/catch and log error
-      // Convert the ll format qir to bitcode
-      const bitcodeRequest = await fetch(
-        "https://qsx-proxy.azurewebsites.net/api/compile",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "x-hardware-target": providerId,
-          },
-          body: qir,
-        }
-      );
+      let payload: Uint8Array | string = qir;
 
-      if (!bitcodeRequest.ok) {
-        // TODO log error and exit
+      if (compilerService) {
+        try {
+          log.info("Using compiler service at " + compilerService);
+          const bitcodeRequest = await fetch(compilerService, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "x-hardware-target": providerId,
+            },
+            body: qir,
+          });
+
+          if (!bitcodeRequest.ok) {
+            log.error("Failed to compile to QIR bitcode", bitcodeRequest);
+            vscode.window.showErrorMessage("Failed to compile to QIR bitcode");
+            return;
+          }
+          payload = new Uint8Array(await bitcodeRequest.arrayBuffer());
+        } catch (e) {
+          log.error("Failed to compile to QIR bitcode", e);
+          vscode.window.showErrorMessage(
+            "Failed to compile to QIR bitcode: " + e
+          );
+          return;
+        }
       }
-      const bitcode = new Uint8Array(await bitcodeRequest.arrayBuffer());
 
       const token = await getTokenForWorkspace(arg.workspace);
       const quantumUris = new QuantumUris(
@@ -83,7 +100,15 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
         arg.workspace.id
       );
 
-      await submitJob(token, quantumUris, bitcode, providerId, target.id);
+      const jobName = await submitJob(
+        token,
+        quantumUris,
+        payload,
+        providerId,
+        target.id
+      );
+
+      // TODO(billti) ensure the workspace tree regularly refreshes while a job is pending completion
       setTimeout(async () => {
         await queryWorkspace(arg.workspace);
         workspaceTreeProvider.updateWorkspace(arg.workspace);

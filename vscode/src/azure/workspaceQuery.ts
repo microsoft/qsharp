@@ -14,7 +14,10 @@ import {
   storageRequest,
 } from "./azure";
 import { WorkspaceConnection } from "./workspaceTree";
-import { getResourcePath } from "../extension";
+
+// TODO: Proper docs on the qsharp wiki
+const corsDocsUri =
+  "https://gist.github.com/billti/09637269db4bae86c0e3a552dd20eb9b";
 
 export async function queryWorkspaces(): Promise<
   WorkspaceConnection | undefined
@@ -240,7 +243,7 @@ export async function getJobFiles(
   blobName: string,
   token: string,
   quantumUris: QuantumUris
-) {
+): Promise<string> {
   log.debug(`Fetching job file from ${containerName}/${blobName}`);
 
   const body = JSON.stringify({ containerName, blobName });
@@ -263,7 +266,7 @@ export async function getJobFiles(
       vscode.window.showErrorMessage(
         "Unable to download the file. This could be due to cors issues on the storage account. " +
           "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
-          "See https://go.microsoft.com/fwlink/?LinkId=2221130 for more info."
+          `See ${corsDocsUri} for more info.`
       );
     }
     log.error(`Failed to get file: ${e}`);
@@ -274,7 +277,7 @@ export async function getJobFiles(
 export async function submitJob(
   token: string,
   quantumUris: QuantumUris,
-  qirFile: Uint8Array,
+  qirFile: Uint8Array | string,
   providerId: string,
   target: string
 ) {
@@ -295,6 +298,8 @@ export async function submitJob(
     idChars.substring(16, 20) +
     "-" +
     idChars.substring(20, 32);
+
+  const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
 
   // Get a sasUri for the container
   const body = JSON.stringify({ containerName });
@@ -322,8 +327,19 @@ x-ms-version: 2023-01-03
 x-ms-date: {{$datetime rfc1123}}
   */
   const containerPutUri = `${storageAccount}/${containerName}?restype=container&${sasTokenRaw}`;
-  const containerPutResponse = await storageRequest(containerPutUri, "PUT");
-  // TODO: Check for success
+  try {
+    const containerPutResponse = await storageRequest(containerPutUri, "PUT");
+  } catch (e) {
+    if ((e as any).name === "TypeError") {
+      vscode.window.showErrorMessage(
+        "Unable to create the job container. This could be due to cors issues on the storage account. " +
+          "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
+          `See ${corsDocsUri} for more info.`
+      );
+    }
+    log.error("Unable to put the storage container: ", e);
+    return;
+  }
 
   // Write the input data
   /*
@@ -336,13 +352,24 @@ Content-Type: application/octet-stream
   */
 
   const inputDataUri = `${storageAccount}/${containerName}/inputData?${sasTokenRaw}`;
-  // TODO: Extra headers on below and file body
-  const inputDataResponse = await storageRequest(
-    inputDataUri,
-    "PUT",
-    [["x-ms-blob-type", "BlockBlob"]],
-    qirFile
-  );
+  try {
+    const inputDataResponse = await storageRequest(
+      inputDataUri,
+      "PUT",
+      [["x-ms-blob-type", "BlockBlob"]],
+      qirFile
+    );
+  } catch (e) {
+    if ((e as any).name === "TypeError") {
+      vscode.window.showErrorMessage(
+        "Unable to upload the program. This could be due to cors issues on the storage account. " +
+          "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
+          `See ${corsDocsUri} for more info.`
+      );
+    }
+    log.error("Unable to put the qir file: ", e);
+    return;
+  }
 
   // PUT the job data
   /*
@@ -361,9 +388,6 @@ Authorization: Bearer {{QUANTUM_TOKEN}}
   */
   const putJobUri = quantumUris.jobs(containerName);
 
-  const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
-
-  // TODO: See if putting the Uris without the sas tokens works
   const payload = {
     id: containerName,
     name: jobName,
@@ -380,10 +404,18 @@ Authorization: Bearer {{QUANTUM_TOKEN}}
       count: 100,
     },
   };
-  const jobResponse = await azureRequest(
-    putJobUri,
-    token,
-    "PUT",
-    JSON.stringify(payload)
-  );
+  try {
+    const jobResponse = await azureRequest(
+      putJobUri,
+      token,
+      "PUT",
+      JSON.stringify(payload)
+    );
+  } catch (e) {
+    log.error("Unable to post the job metadate to Azure Quantum: ", e);
+    vscode.window.showErrorMessage("Unable to submit the job to Azure Quantum");
+    return;
+  }
+
+  vscode.window.showInformationMessage(`Job ${jobName} submitted`);
 }

@@ -2,12 +2,9 @@
 // Licensed under the MIT License.
 
 import { log } from "qsharp-lang";
+import { workspace } from "vscode";
 
 const publicMgmtEndpoint = "https://management.azure.com";
-
-// TODO: Remove once cors on quantum endpoint and storage accounts is fixed
-const proxy = ""; // "http://localhost:5555";
-const storageProxy = "https://qsx-proxy.azurewebsites.net/api/proxy";
 
 export async function azureRequest(
   uri: string,
@@ -19,13 +16,6 @@ export async function azureRequest(
     ["Authorization", `Bearer ${token}`],
     ["Content-Type", "application/json"],
   ];
-
-  if (proxy) {
-    // Replace the host with the proxy, and put the original host in a header
-    const url = new URL(uri);
-    uri = `${proxy}${url.pathname}${url.search}`;
-    headers.push(["x-proxy-to", url.origin]);
-  }
 
   try {
     log.debug(`Fetching ${uri} with method ${method}`);
@@ -54,6 +44,10 @@ export async function storageRequest(
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
   ];
+  const storageProxy: string | undefined = workspace
+    .getConfiguration("Q#")
+    .get("storageProxy"); // e.g. in settings.json: "Q#.storageProxy": "https://qsx-proxy.azurewebsites.net/api/proxy";
+
   if (extraHeaders?.length) headers.push(...extraHeaders);
   if (storageProxy) {
     headers.push(["x-proxy-to", uri]);

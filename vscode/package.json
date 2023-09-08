@@ -27,7 +27,7 @@
         "Q#.AzureQuantumIntegration": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Enable integration with the Azure Quantum service\n\n**NOTE**: This feature processes data in a U.S. based service for job submission and retrieval. See <https://aks.ms/qdk-azure-preview> for more information."
+          "markdownDescription": "Experimental: Enable integration with the Azure Quantum service. This feature is currently under development."
         }
       }
     },

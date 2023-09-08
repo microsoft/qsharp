@@ -13,6 +13,7 @@ export async function getQirForActiveWindow(): Promise<string> {
   const code = editor.document.getText();
 
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
+  // TODO: Could also start a timer here and kill it if running for too long without result.
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   try {
     result = await worker.getQir(code);
@@ -37,6 +38,8 @@ export function initCodegen(context: vscode.ExtensionContext) {
     vscode.StatusBarAlignment.Right,
     200
   );
+
+  // TODO: Fetch from the setting and update the language service on change with Mine's PR.
   statusBarItem.command = "quantum-set-target";
   statusBarItem.text = "QIR:Full";
 
@@ -60,6 +63,7 @@ export function initCodegen(context: vscode.ExtensionContext) {
         { placeHolder: "Select the QIR target profile" }
       );
       if (target) statusBarItem.text = target;
+      // TODO: Update the language service
     })
   );
 
