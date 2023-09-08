@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as vscode from "vscode";
-import { log } from "qsharp";
+import { log } from "qsharp-lang";
 import {
   azureRequest,
   scopes,

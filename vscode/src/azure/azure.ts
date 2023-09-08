@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp";
+import { log } from "qsharp-lang";
 
 const publicMgmtEndpoint = "https://management.azure.com";
 

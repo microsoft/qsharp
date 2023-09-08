@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import { getCompilerWorker, log } from "qsharp";
+import { getCompilerWorker, log } from "qsharp-lang";
 
 let compilerWorkerScriptPath: string;
 

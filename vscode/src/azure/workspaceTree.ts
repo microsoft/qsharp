@@ -3,7 +3,7 @@
 
 import * as vscode from "vscode";
 import { queryWorkspace } from "./workspaceQuery";
-import { log } from "qsharp";
+import { log } from "qsharp-lang";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
