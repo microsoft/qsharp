@@ -110,22 +110,8 @@ impl LanguageService {
         })
     }
 
-    pub fn get_signature_help(
-        &self,
-        uri: &str,
-        offset: u32,
-        context: ISignatureHelpContext,
-    ) -> Option<ISignatureHelp> {
-        let context = SignatureHelpContext::from(context);
-
-        let context = qsls::protocol::SignatureHelpContext {
-            trigger_kind: context.triggerKind,
-            trigger_character: context.triggerCharacter,
-            is_retrigger: context.isRetrigger,
-            active_signature_help: None, // todo
-        };
-
-        let sig_help = self.0.get_signature_help(uri, offset, context);
+    pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<ISignatureHelp> {
+        let sig_help = self.0.get_signature_help(uri, offset);
         sig_help.map(|sig_help| {
             SignatureHelp {
                 signatures: sig_help
@@ -261,23 +247,6 @@ serializable_type! {
         label: { start: number; end: number };
         documentation: string | undefined;
     }"#
-}
-
-serializable_type! {
-    SignatureHelpContext,
-    {
-        triggerKind: u32,
-        triggerCharacter: Option<String>,
-        isRetrigger: bool,
-        activeSignatureHelp: Option<SignatureHelp>,
-    },
-    r#"export interface ISignatureHelpContext {
-        triggerKind: number;
-        triggerCharacter: string | undefined;
-        isRetrigger: boolean;
-        activeSignatureHelp: ISignatureHelp | undefined;
-    }"#,
-    ISignatureHelpContext
 }
 
 serializable_type! {

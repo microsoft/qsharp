@@ -14,9 +14,7 @@ use qsc::{
 
 use crate::{
     display::CodeDisplay,
-    protocol::{
-        ParameterInformation, SignatureHelp, SignatureHelpContext, SignatureInformation, Span,
-    },
+    protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
     qsc_utils::{find_item, map_offset, span_contains, Compilation},
 };
 
@@ -24,7 +22,6 @@ pub(crate) fn get_signature_help(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
-    context: SignatureHelpContext,
 ) -> Option<SignatureHelp> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.unit.sources, source_name, offset);

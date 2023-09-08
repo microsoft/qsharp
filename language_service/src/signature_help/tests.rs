@@ -2,20 +2,17 @@
 // Licensed under the MIT License.
 
 use super::get_signature_help;
-use crate::{
-    protocol::SignatureHelpContext,
-    test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets},
-};
+use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
 /// Asserts that the hover text at the given cursor position matches the expected hover text.
 /// The cursor position is indicated by a `↘` marker in the source text.
 /// The expected hover span is indicated by two `◉` markers in the source text.
-fn check(source_with_markers: &str, context: SignatureHelpContext, expect: &Expect) {
+fn check(source_with_markers: &str, expect: &Expect) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_signature_help(&compilation, "<source>", cursor_offsets[0], context)
+    let actual = get_signature_help(&compilation, "<source>", cursor_offsets[0])
         .expect("Expected a signature help.");
     expect.assert_debug_eq(&actual);
 }
@@ -32,12 +29,6 @@ fn first_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some("(".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
@@ -88,12 +79,6 @@ fn mid_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 3,
-            trigger_character: None,
-            is_retrigger: true,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
@@ -144,12 +129,6 @@ fn second_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some(",".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
@@ -200,12 +179,6 @@ fn last_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some(",".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
@@ -257,12 +230,6 @@ fn insert_second_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some(",".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#""#]],
     );
 }
@@ -279,12 +246,6 @@ fn revisit_second_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some(",".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
@@ -336,12 +297,6 @@ fn nested_call_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some(",".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
@@ -386,12 +341,6 @@ fn nested_call_second_argument() {
             }
         }
     "#},
-        SignatureHelpContext {
-            trigger_kind: 2,
-            trigger_character: Some(",".to_string()),
-            is_retrigger: false,
-            active_signature_help: None,
-        },
         &expect![[r#"
             SignatureHelp {
                 signatures: [
