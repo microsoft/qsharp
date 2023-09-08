@@ -193,6 +193,24 @@ export class QSharpLanguageService implements ILanguageService {
       documentUri,
       convertedOffset
     ) as ISignatureHelp | undefined;
+    if (result) {
+      log.info("Before: ");
+      log.info(result);
+      result.signatures = result.signatures.map((sig) => {
+        sig.parameters = sig.parameters.map((param) => {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [param.label.start, param.label.end],
+            sig.label
+          );
+          param.label.start = mappedSpan[param.label.start];
+          param.label.end = mappedSpan[param.label.end];
+          return param;
+        });
+        return sig;
+      });
+      log.info("After: ");
+      log.info(result);
+    }
     return result;
   }
 
