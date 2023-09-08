@@ -4,68 +4,45 @@
 import {
   ILanguageService,
   getLanguageService,
+  getLibrarySourceContent,
   loadWasmModule,
   log,
-  getLibrarySourceContent,
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
+import {
+  isQsharpDocument,
+  isQsharpNotebookCell,
+  qsharpDocumentFilter,
+} from "./common.js";
 import { createCompletionItemProvider } from "./completion.js";
+import { activateDebugger } from "./debugger/activate.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
-import { activateDebugger } from "./debugger/activate.js";
-import {
-  qsharpDocumentFilter,
-  qsharpNotebookCellDocumentFilter,
-} from "./common.js";
+import { createQirStatusBarItem } from "./statusbar.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
 
-  vscode.workspace.registerTextDocumentContentProvider(
-    qsharpLibraryUriScheme,
-    new QsTextDocumentContentProvider()
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(
+      qsharpLibraryUriScheme,
+      new QsTextDocumentContentProvider()
+    )
   );
 
-  const languageService = await loadLanguageService(context.extensionUri);
+  context.subscriptions.push(...createQirStatusBarItem());
 
   context.subscriptions.push(
-    ...registerDocumentUpdateHandlers(languageService)
+    ...(await activateLanguageService(context.extensionUri))
   );
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  context.subscriptions.push(startCheckingQSharp(languageService));
-
-  // completions
-  context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider(
-      qsharpDocumentFilter,
-      createCompletionItemProvider(languageService),
-      "."
-    )
-  );
-
-  // hover
-  context.subscriptions.push(
-    vscode.languages.registerHoverProvider(
-      qsharpDocumentFilter,
-      createHoverProvider(languageService)
-    )
-  );
-
-  // go to def
-  context.subscriptions.push(
-    vscode.languages.registerDefinitionProvider(
-      "qsharp",
-      createDefinitionProvider(languageService)
-    )
-  );
-
-  activateDebugger(context);
+  await activateDebugger(context);
 
   log.info("Q# extension activated.");
 }
@@ -124,10 +101,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (
-        vscode.languages.match(qsharpDocumentFilter, document) &&
-        !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
-      ) {
+      if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
         // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
@@ -135,10 +109,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (
-      vscode.languages.match(qsharpDocumentFilter, document) &&
-      !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
-    ) {
+    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Notebook cells don't currently support the language service.
       languageService.updateDocument(
         document.uri.toString(),
@@ -151,14 +122,79 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   return subscriptions;
 }
 
-/**
- * Loads the Q# compiler including the WASM module
- */
+async function activateLanguageService(extensionUri: vscode.Uri) {
+  const subscriptions: vscode.Disposable[] = [];
+
+  const languageService = await loadLanguageService(extensionUri);
+
+  // synchronize document contents
+  subscriptions.push(...registerDocumentUpdateHandlers(languageService));
+
+  // synchronize configuration
+  subscriptions.push(registerConfigurationChangeHandlers(languageService));
+
+  // diagnostics
+  subscriptions.push(...startCheckingQSharp(languageService));
+
+  // completions
+  subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      qsharpDocumentFilter,
+      createCompletionItemProvider(languageService),
+      "."
+    )
+  );
+
+  // hover
+  subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      qsharpDocumentFilter,
+      createHoverProvider(languageService)
+    )
+  );
+
+  // go to def
+  subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      qsharpDocumentFilter,
+      createDefinitionProvider(languageService)
+    )
+  );
+
+  return subscriptions;
+}
+
 async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   return await getLanguageService();
+}
+
+function registerConfigurationChangeHandlers(
+  languageService: ILanguageService
+) {
+  return vscode.workspace.onDidChangeConfiguration((event) => {
+    if (event.affectsConfiguration("qsharp.targetProfile")) {
+      let targetProfile = vscode.workspace
+        .getConfiguration("qsharp")
+        .get<string>("targetProfile");
+      log.info(`Target profile changed: ${targetProfile}`);
+
+      switch (targetProfile) {
+        case "base":
+        case "full":
+          break;
+        default:
+          log.warn(`Invalid value for target profile: ${targetProfile}`);
+          targetProfile = "full";
+      }
+
+      languageService.updateConfiguration({
+        targetProfile: targetProfile as "base" | "full",
+      });
+    }
+  });
 }
 
 export class QsTextDocumentContentProvider

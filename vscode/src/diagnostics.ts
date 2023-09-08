@@ -9,7 +9,9 @@ import {
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 
-export function startCheckingQSharp(languageService: ILanguageService) {
+export function startCheckingQSharp(
+  languageService: ILanguageService
+): vscode.Disposable[] {
   const diagCollection =
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
 
@@ -65,9 +67,12 @@ export function startCheckingQSharp(languageService: ILanguageService) {
 
   languageService.addEventListener("diagnostics", onDiagnostics);
 
-  return {
-    dispose: () => {
-      languageService.removeEventListener("diagnostics", onDiagnostics);
+  return [
+    {
+      dispose: () => {
+        languageService.removeEventListener("diagnostics", onDiagnostics);
+      },
     },
-  };
+    diagCollection,
+  ];
 }
