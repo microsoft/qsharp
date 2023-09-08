@@ -194,8 +194,6 @@ export class QSharpLanguageService implements ILanguageService {
       convertedOffset
     ) as ISignatureHelp | undefined;
     if (result) {
-      log.info("Before: ");
-      log.info(result);
       result.signatures = result.signatures.map((sig) => {
         sig.parameters = sig.parameters.map((param) => {
           const mappedSpan = mapUtf8UnitsToUtf16Units(
@@ -208,8 +206,6 @@ export class QSharpLanguageService implements ILanguageService {
         });
         return sig;
       });
-      log.info("After: ");
-      log.info(result);
     }
     return result;
   }

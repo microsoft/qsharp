@@ -69,17 +69,13 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                                         // Check that the callee has parameters to give help for
                                         if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty())
                                         {
-                                            // Get signature information
                                             let sig_info = SignatureInformation {
                                                 label: self
                                                     .display
                                                     .hir_callable_decl(callee)
                                                     .to_string(),
                                                 documentation: None,
-                                                parameters: get_params(
-                                                    callee.span.lo,
-                                                    &callee.input,
-                                                ),
+                                                parameters: self.get_params(callee),
                                             };
 
                                             self.signature_help = Some(SignatureHelp {
@@ -107,26 +103,42 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
     }
 }
 
-fn get_params(offset: u32, input: &hir::Pat) -> Vec<ParameterInformation> {
-    fn populate_params(offset: u32, input: &hir::Pat, params: &mut Vec<ParameterInformation>) {
-        match &input.kind {
-            hir::PatKind::Bind(_) => params.push(ParameterInformation {
-                label: Span {
-                    start: input.span.lo - offset,
-                    end: input.span.hi - offset,
-                },
-                documentation: None,
-            }),
-            hir::PatKind::Discard => todo!(),
-            hir::PatKind::Tuple(items) => items
-                .iter()
-                .for_each(|item| populate_params(offset, item, params)),
+impl SignatureHelpFinder<'_> {
+    fn get_params(&self, decl: &hir::CallableDecl) -> Vec<ParameterInformation> {
+        let offset = self.display.get_param_offset(decl);
+
+        match &decl.input.kind {
+            hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+                vec![self.make_params_with_offset(offset, &decl.input)]
+            }
+            hir::PatKind::Tuple(items) => {
+                let mut cumulative_offset = offset;
+                items
+                    .iter()
+                    .map(|item| {
+                        let info = self.make_params_with_offset(cumulative_offset, item);
+                        cumulative_offset = info.label.end + 2; // 2 for the comma and space
+                        info
+                    })
+                    .collect()
+            }
         }
     }
 
-    let mut params: Vec<ParameterInformation> = vec![];
-    populate_params(offset, input, &mut params);
-    params
+    fn make_params_with_offset(&self, offset: u32, pat: &hir::Pat) -> ParameterInformation {
+        let length = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+        ParameterInformation {
+            label: Span {
+                start: offset,
+                end: offset + length,
+            },
+            documentation: None,
+        }
+    }
+}
+
+fn usize_to_u32(x: usize) -> u32 {
+    u32::try_from(x).expect("failed to cast usize to u32 while generating signature help")
 }
 
 fn process_args(args: &ast::Expr, location: u32) -> u32 {
@@ -137,9 +149,7 @@ fn process_args(args: &ast::Expr, location: u32) -> u32 {
             while i < len && items.get(i).expect("").span.hi < location {
                 i += 1;
             }
-            u32::try_from(i).expect(
-                "failed to cast usize to u32 for parameter index while generating signature help",
-            )
+            usize_to_u32(i)
         }
         _ => 0,
     }
