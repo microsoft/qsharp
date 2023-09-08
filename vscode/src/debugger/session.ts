@@ -32,7 +32,7 @@ import {
   IStructStepResult,
   QscEventTarget,
   qsharpLibraryUriScheme,
-} from "qsharp";
+} from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 const ErrorProgramHasErrors =

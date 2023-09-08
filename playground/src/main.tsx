@@ -15,7 +15,7 @@ import {
   samples,
   getLanguageServiceWorker,
   ILanguageService,
-} from "qsharp";
+} from "qsharp-lang";
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";

@@ -2746,9 +2746,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qsharp_jupyterlab@workspace:.":
+"qsharp-lang-jupyterlab@workspace:.":
   version: 0.0.0-use.local
-  resolution: "qsharp_jupyterlab@workspace:."
+  resolution: "qsharp-lang-jupyterlab@workspace:."
   dependencies:
     "@codemirror/language": 6.6.0
     "@codemirror/legacy-modes": 6.3.2

@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, VSDiagnostic, qsharpLibraryUriScheme } from "qsharp";
+import {
+  ILanguageService,
+  VSDiagnostic,
+  qsharpLibraryUriScheme,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 

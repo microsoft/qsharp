@@ -1,7 +1,7 @@
 [package]
 name = "qsc_wasm"
-version = "0.0.0"
 
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 # wasm-pack doesn't like the workspace format for the below, so copied in for now.

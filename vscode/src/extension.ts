@@ -8,7 +8,7 @@ import {
   log,
   getLibrarySourceContent,
   qsharpLibraryUriScheme,
-} from "qsharp";
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";

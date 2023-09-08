@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget, VSDiagnostic } from "qsharp";
+import { QscEventTarget, VSDiagnostic } from "qsharp-lang";
 import { ResultsTab } from "./results.js";
 import { ActiveTab } from "./main.js";
 

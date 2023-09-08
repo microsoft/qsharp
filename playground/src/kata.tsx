@@ -12,7 +12,7 @@ import {
   QscEventTarget,
   Question,
   VSDiagnostic,
-} from "qsharp";
+} from "qsharp-lang";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 
