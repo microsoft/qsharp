@@ -6,9 +6,8 @@ use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets}
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
-/// Asserts that the hover text at the given cursor position matches the expected hover text.
+/// Asserts that the signature help given at the cursor position matches the expected signature help.
 /// The cursor position is indicated by a `↘` marker in the source text.
-/// The expected hover span is indicated by two `◉` markers in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);

@@ -141,8 +141,8 @@ impl LanguageService {
                             .collect(),
                     })
                     .collect(),
-                active_signature: sig_help.active_signature,
-                active_parameter: sig_help.active_parameter,
+                activeSignature: sig_help.active_signature,
+                activeParameter: sig_help.active_parameter,
             }
             .into()
         })
@@ -233,13 +233,13 @@ serializable_type! {
     SignatureHelp,
     {
         signatures: Vec<SignatureInformation>,
-        active_signature: u32,
-        active_parameter: u32,
+        activeSignature: u32,
+        activeParameter: u32,
     },
     r#"export interface ISignatureHelp {
         signatures: ISignatureInformation[];
-        active_signature: number;
-        active_parameter: number;
+        activeSignature: number;
+        activeParameter: number;
     }"#,
     ISignatureHelp
 }
@@ -253,7 +253,7 @@ serializable_type! {
     },
     r#"export interface ISignatureInformation {
         label: string;
-        documentation: string | undefined;
+        documentation?: string;
         parameters: IParameterInformation[];
     }"#
 }
@@ -265,8 +265,8 @@ serializable_type! {
         documentation: Option<String>,
     },
     r#"export interface IParameterInformation {
-        label: { start: number; end: number };
-        documentation: string | undefined;
+        label: ISpan;
+        documentation?: string;
     }"#
 }
 

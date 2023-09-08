@@ -61,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // go to def
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createDefinitionProvider(languageService)
     )
   );
@@ -69,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // signature help
   context.subscriptions.push(
     vscode.languages.registerSignatureHelpProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createSignatureHelpProvider(languageService),
       "(",
       ","

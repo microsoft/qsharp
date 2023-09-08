@@ -104,19 +104,26 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
 }
 
 impl SignatureHelpFinder<'_> {
+    /// Takes a callable declaration node an generates the Parameter Information objects for it.
+    /// Example:
+    /// ```
+    /// operation Foo(bar: Int, baz: Double) : Unit {}
+    ///               └──┬───┘  └──┬──────┘
+    ///               param 1    param 2
+    /// ```
     fn get_params(&self, decl: &hir::CallableDecl) -> Vec<ParameterInformation> {
         let offset = self.display.get_param_offset(decl);
 
         match &decl.input.kind {
             hir::PatKind::Discard | hir::PatKind::Bind(_) => {
-                vec![self.make_params_with_offset(offset, &decl.input)]
+                vec![self.make_param_with_offset(offset, &decl.input)]
             }
             hir::PatKind::Tuple(items) => {
                 let mut cumulative_offset = offset;
                 items
                     .iter()
                     .map(|item| {
-                        let info = self.make_params_with_offset(cumulative_offset, item);
+                        let info = self.make_param_with_offset(cumulative_offset, item);
                         cumulative_offset = info.label.end + 2; // 2 for the comma and space
                         info
                     })
@@ -125,7 +132,7 @@ impl SignatureHelpFinder<'_> {
         }
     }
 
-    fn make_params_with_offset(&self, offset: u32, pat: &hir::Pat) -> ParameterInformation {
+    fn make_param_with_offset(&self, offset: u32, pat: &hir::Pat) -> ParameterInformation {
         let length = usize_to_u32(self.display.hir_pat(pat).to_string().len());
         ParameterInformation {
             label: Span {
