@@ -651,26 +651,35 @@ impl Solver {
 }
 
 fn substitute_ty(solution: &Solution, ty: &mut Ty) {
-    match ty {
-        Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-        Ty::Array(item) => substitute_ty(solution, item),
-        Ty::Arrow(arrow) => {
-            substitute_ty(solution, &mut arrow.input);
-            substitute_ty(solution, &mut arrow.output);
-            substitute_functor(solution, &mut arrow.functors);
+    fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) {
+        if limit == 0 {
+            // We've hit the recusion limit. Give up and leave the inferred types
+            // as is. This should trigger an abmiguous type error later.
+            return;
         }
-        Ty::Tuple(items) => {
-            for item in items {
-                substitute_ty(solution, item);
+        match ty {
+            Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
+            Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
+            Ty::Arrow(arrow) => {
+                substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
+                substitute_ty_recursive(solution, &mut arrow.output, limit - 1);
+                substitute_functor(solution, &mut arrow.functors);
             }
-        }
-        &mut Ty::Infer(infer) => {
-            if let Some(new_ty) = solution.tys.get(infer) {
-                *ty = new_ty.clone();
-                substitute_ty(solution, ty);
+            Ty::Tuple(items) => {
+                for item in items {
+                    substitute_ty_recursive(solution, item, limit - 1);
+                }
+            }
+            &mut Ty::Infer(infer) => {
+                if let Some(new_ty) = solution.tys.get(infer) {
+                    *ty = new_ty.clone();
+                    substitute_ty_recursive(solution, ty, limit - 1);
+                }
             }
         }
     }
+
+    substitute_ty_recursive(solution, ty, 100);
 }
 
 fn substituted_ty(solution: &Solution, mut ty: Ty) -> Ty {
