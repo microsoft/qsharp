@@ -199,6 +199,10 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     "quantinuum.qpu.h2-1",
     "rigetti.sim.qvm",
     "rigetti.qpu.aspen-m-3",
+    "ionq.qpu-preview",
+    "ionq.qpu.aria-1-preview",
+    "ionq.qpu.aria-2-preview",
+    "ionq.simulator-preview",
   ];
 
   // Update the providers with the target list
