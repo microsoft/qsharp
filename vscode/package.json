@@ -26,8 +26,21 @@
       "properties": {
         "Q#.AzureQuantumIntegration": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "markdownDescription": "Experimental: Enable integration with the Azure Quantum service. This feature is currently under development."
+        },
+        "Q#.targetProfile": {
+          "type": "string",
+          "default": "full",
+          "enum": [
+            "full",
+            "base"
+          ],
+          "enumDescriptions": [
+            "The full set of capabilities required to run any Q# program. This option maps to the Full Profile as defined by the QIR specification.",
+            "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification."
+          ],
+          "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
         }
       }
     },
