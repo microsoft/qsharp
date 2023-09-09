@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor, basename, qsharpDocumentFilter } from "../common";
+import { FileAccessor, basename, isQsharpDocument } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -464,7 +464,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const targetLineNumber = this.convertClientLineToDebugger(args.line);
     if (
       !file ||
-      !vscode.languages.match(qsharpDocumentFilter, file) ||
+      !isQsharpDocument(file) ||
       targetLineNumber >= file.lineCount
     ) {
       log.trace(`setBreakPointsResponse: %O`, response);
@@ -559,7 +559,7 @@ export class QscDebugSession extends LoggingDebugSession {
       });
 
     // If we couldn't find the file, or it wasn't a Q# file, just return
-    if (!file || !vscode.languages.match(qsharpDocumentFilter, file)) {
+    if (!file || !isQsharpDocument(file)) {
       log.trace(`setBreakPointsResponse: %O`, response);
       this.sendResponse(response);
       return;
