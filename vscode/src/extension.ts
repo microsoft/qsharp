@@ -138,14 +138,14 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 
   const languageService = await loadLanguageService(extensionUri);
 
+  // diagnostics
+  subscriptions.push(...startCheckingQSharp(languageService));
+
   // synchronize document contents
   subscriptions.push(...registerDocumentUpdateHandlers(languageService));
 
   // synchronize configuration
   subscriptions.push(registerConfigurationChangeHandlers(languageService));
-
-  // diagnostics
-  subscriptions.push(...startCheckingQSharp(languageService));
 
   // completions
   subscriptions.push(
