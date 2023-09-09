@@ -175,11 +175,32 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   return subscriptions;
 }
 
+async function updateLanguageServiceProfile(languageService: ILanguageService) {
+  const targetProfile = vscode.workspace
+    .getConfiguration("Q#")
+    .get<string>("targetProfile", "full");
+
+  switch (targetProfile) {
+    case "base":
+    case "full":
+      break;
+    default:
+      log.warn(`Invalid value for target profile: ${targetProfile}`);
+  }
+  log.debug("Target profile set to: " + targetProfile);
+
+  languageService.updateConfiguration({
+    targetProfile: targetProfile as "base" | "full",
+  });
+}
+
 async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  return await getLanguageService();
+  const languageService = await getLanguageService();
+  await updateLanguageServiceProfile(languageService);
+  return languageService;
 }
 
 function registerConfigurationChangeHandlers(
@@ -187,23 +208,7 @@ function registerConfigurationChangeHandlers(
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("Q#.targetProfile")) {
-      let targetProfile = vscode.workspace
-        .getConfiguration("Q#")
-        .get<string>("targetProfile", "full");
-      log.info(`Target profile changed: ${targetProfile}`);
-
-      switch (targetProfile) {
-        case "base":
-        case "full":
-          break;
-        default:
-          log.warn(`Invalid value for target profile: ${targetProfile}`);
-          targetProfile = "full";
-      }
-
-      languageService.updateConfiguration({
-        targetProfile: targetProfile as "base" | "full",
-      });
+      updateLanguageServiceProfile(languageService);
     }
   });
 }
