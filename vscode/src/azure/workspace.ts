@@ -19,7 +19,6 @@ import {
   queryWorkspaces,
   submitJob,
 } from "./workspaceQuery";
-import { sampleWorkspace } from "./sampleData";
 import { QuantumUris } from "./azure";
 import { getQirForActiveWindow } from "../qirGeneration";
 
@@ -120,50 +119,8 @@ export function setupWorkspaces(context: vscode.ExtensionContext) {
     workspaceTreeProvider.refresh();
   });
 
-  vscode.commands.registerCommand("quantum-workspace-getkey", async () => {
-    const rawPrompt = "Get access key only";
-    const pythonPrompt = "Get Python code with access key";
-    const result = await vscode.window.showQuickPick(
-      [rawPrompt, pythonPrompt],
-      { title: "Copy workspace access key" }
-    );
-    if (result === rawPrompt) {
-      await vscode.env.clipboard.writeText("asdlfkjwekj22343242lkdf");
-    } else {
-      await vscode.env.clipboard.writeText(`from azure.quantum import Workspace
-workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
-`);
-    }
-    vscode.window.showInformationMessage(
-      "Workspace key copied to the clipboard"
-    );
-  });
-
-  vscode.commands.registerCommand("quantum-job-cancel", async () => {
-    const confirm = await vscode.window.showWarningMessage(
-      "Are you sure you want to cancel the job?",
-      {
-        modal: true,
-      },
-      "Yes",
-      "No"
-    );
-    if (confirm === "Yes") vscode.window.showInformationMessage("Job deleted");
-  });
-
   vscode.commands.registerCommand("quantum-workspaces-add", async () => {
-    const accountPrompt = "Sign-in with a Microsoft account";
-    const tokenPrompt = "Connect using an access token";
-    const method = await vscode.window.showQuickPick(
-      [accountPrompt, tokenPrompt],
-      { title: "Select authentication method" }
-    );
-    if (!method) return;
-    if (method === tokenPrompt) {
-      vscode.commands.executeCommand("extension.qsharp.patSignin");
-    } else {
-      vscode.commands.executeCommand("extension.qsharp.aadSignin");
-    }
+    vscode.commands.executeCommand("extension.qsharp.aadSignin");
   });
 
   vscode.commands.registerCommand("extension.qsharp.aadSignin", async () => {
@@ -174,26 +131,6 @@ workspace = new Workspace(accessKey = "q23987dasdflkjwerw235")
     }
   });
 
-  vscode.commands.registerCommand("extension.qsharp.patSignin", async () => {
-    const _token = await vscode.window.showInputBox({
-      title: "Enter the workspace access token",
-    });
-    workspaceTreeProvider.updateWorkspace(sampleWorkspace);
-    workspaceTreeProvider.refresh();
-  });
-
-  vscode.commands.registerCommand("quantum-target-view", async () => {
-    // TODO: Open a webview or browser window for the target
-    vscode.window.showInformationMessage("All systems are go!");
-  });
-  vscode.commands.registerCommand("quantum-filter-results", async () => {
-    // TODO: Open a webview with a histogram similar to playground
-    vscode.window.showInformationMessage("TODO");
-  });
-  vscode.commands.registerCommand("quantum-result-histogram", async () => {
-    // TODO: Open a webview with a histogram similar to playground
-    vscode.window.showInformationMessage("TODO");
-  });
   vscode.commands.registerCommand(
     "quantum-result-download",
     async (arg: WorkspaceTreeItem) => {

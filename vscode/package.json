@@ -81,39 +81,14 @@
       ],
       "view/item/context": [
         {
-          "command": "quantum-workspace-getkey",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == workspace"
-        },
-        {
           "command": "quantum-target-submit",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == target"
         },
         {
-          "command": "quantum-target-view",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == target"
-        },
-        {
-          "command": "quantum-filter-results",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == jobHeader"
-        },
-        {
-          "command": "quantum-result-histogram",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == result"
-        },
-        {
           "command": "quantum-result-download",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == result"
-        },
-        {
-          "command": "quantum-job-cancel",
-          "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == job"
         }
       ]
     },
@@ -129,7 +104,7 @@
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:extension.qsharp.aadSignin)\n[Use connection string](command:extension.qsharp.patSignin)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:extension.qsharp.aadSignin)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
       }
     ],
     "commands": [
@@ -151,11 +126,6 @@
         "command": "extension.qsharp.aadSignin",
         "category": "Q#",
         "title": "Sign in to Azure Quantum with a Microsoft account"
-      },
-      {
-        "command": "extension.qsharp.patSignin",
-        "category": "Q#",
-        "title": "Sign in to Azure Quantum using an access token"
       },
       {
         "command": "quantum-workspaces-refresh",
@@ -181,40 +151,10 @@
         "title": "Get QIR for current Q# program"
       },
       {
-        "command": "quantum-filter-results",
-        "category": "Q#",
-        "title": "Filter Azure Quantum workspace job results",
-        "icon": "$(filter)"
-      },
-      {
-        "command": "quantum-result-histogram",
-        "category": "Q#",
-        "title": "View Azure Quantum results histogram",
-        "icon": "$(graph)"
-      },
-      {
         "command": "quantum-result-download",
         "category": "Q#",
         "title": "Download full Azure Quantum job results",
         "icon": "$(cloud-download)"
-      },
-      {
-        "command": "quantum-job-cancel",
-        "category": "Q#",
-        "title": "Cancel pending Azure Quantum job",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "quantum-workspace-getkey",
-        "category": "Q#",
-        "title": "Get access key for Azure Quantum workspace",
-        "icon": "$(key)"
-      },
-      {
-        "command": "quantum-target-view",
-        "category": "Q#",
-        "title": "View Azure Quantum target details",
-        "icon": "$(info)"
       },
       {
         "command": "quantum-set-target",
