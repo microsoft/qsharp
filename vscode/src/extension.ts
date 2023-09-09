@@ -21,7 +21,7 @@ import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
-import { createQirStatusBarItem } from "./statusbar.js";
+import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -34,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  context.subscriptions.push(...createQirStatusBarItem());
+  context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
   context.subscriptions.push(
     ...(await activateLanguageService(context.extensionUri))

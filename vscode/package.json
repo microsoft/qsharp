@@ -59,6 +59,12 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "quantum-set-target",
+        "category": "Q#",
+        "title": "Set the Azure Quantum QIR target profile",
+        "enablement": "resourceLangId == qsharp"
       }
     ],
     "breakpoints": [
