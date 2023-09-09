@@ -20,8 +20,8 @@ export function isQsharpDocument(document: TextDocument): boolean {
   return languages.match(qsharpDocumentFilter, document) > 0;
 }
 
-export function isQsharpNotebookCell(document: TextDocument) {
-  return languages.match(qsharpNotebookCellDocumentFilter, document);
+export function isQsharpNotebookCell(document: TextDocument): boolean {
+  return languages.match(qsharpNotebookCellDocumentFilter, document) > 0;
 }
 
 export const qsharpExtensionId = "qsharp-vscode";
