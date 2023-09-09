@@ -186,10 +186,10 @@ function registerConfigurationChangeHandlers(
   languageService: ILanguageService
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration("qsharp.targetProfile")) {
+    if (event.affectsConfiguration("Q#.targetProfile")) {
       let targetProfile = vscode.workspace
-        .getConfiguration("qsharp")
-        .get<string>("targetProfile");
+        .getConfiguration("Q#")
+        .get<string>("targetProfile", "full");
       log.info(`Target profile changed: ${targetProfile}`);
 
       switch (targetProfile) {

@@ -34,7 +34,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
       if (
         vscode.window.activeTextEditor &&
         isQsharpDocument(vscode.window.activeTextEditor.document) &&
-        event.affectsConfiguration("qsharp.targetProfile")
+        event.affectsConfiguration("Q#.targetProfile")
       ) {
         refreshStatusBarItemValue();
       }
@@ -57,8 +57,8 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     // if none was set by the user, so targetProfile should always
     // be a valid string.
     const targetProfile = vscode.workspace
-      .getConfiguration("qsharp")
-      .get<string>("targetProfile");
+      .getConfiguration("Q#")
+      .get<string>("targetProfile", "full");
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
     statusBarItem.show();
@@ -76,7 +76,7 @@ function registerTargetProfileCommand() {
 
     if (target) {
       vscode.workspace
-        .getConfiguration("qsharp")
+        .getConfiguration("Q#")
         .update(
           "targetProfile",
           getTargetProfileSetting(target),
