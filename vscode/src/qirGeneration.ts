@@ -34,15 +34,6 @@ export function initCodegen(context: vscode.ExtensionContext) {
     "./out/compilerWorker.js"
   ).toString();
 
-  const statusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    200
-  );
-
-  // TODO: Fetch from the setting and update the language service on change with Mine's PR.
-  statusBarItem.command = "quantum-set-target";
-  statusBarItem.text = "QIR:Full";
-
   context.subscriptions.push(
     vscode.commands.registerCommand("quantum-get-qir", async () => {
       const qir = await getQirForActiveWindow();
@@ -52,30 +43,6 @@ export function initCodegen(context: vscode.ExtensionContext) {
           content: qir,
         });
         await vscode.window.showTextDocument(qirDoc);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("quantum-set-target", async () => {
-      const target = await vscode.window.showQuickPick(
-        ["QIR:Base", "QIR:Adaptive", "QIR:Full"],
-        { placeHolder: "Select the QIR target profile" }
-      );
-      if (target) statusBarItem.text = target;
-      // TODO: Update the language service
-    })
-  );
-
-  if (vscode.window.activeTextEditor?.document.languageId === "qsharp") {
-    statusBarItem.show();
-  }
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor?.document.languageId === "qsharp") {
-        statusBarItem.show();
-      } else {
-        statusBarItem.hide();
       }
     })
   );
