@@ -295,6 +295,40 @@ function registerMonacoLanguageServiceProviders(
       };
     },
   });
+
+  monaco.languages.registerSignatureHelpProvider("qsharp", {
+    signatureHelpTriggerCharacters: ["(", ","],
+    provideSignatureHelp: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      const sigHelpLs = await languageService.getSignatureHelp(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+      if (!sigHelpLs) return null;
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        dispose: () => {},
+        value: {
+          activeParameter: sigHelpLs.activeParameter,
+          activeSignature: sigHelpLs.activeSignature,
+          signatures: sigHelpLs.signatures.map((sig) => {
+            return {
+              label: sig.label,
+              documentation: sig.documentation,
+              parameters: sig.parameters.map((param) => {
+                return {
+                  label: [param.label.start, param.label.end],
+                  documentation: param.documentation,
+                };
+              }),
+            };
+          }),
+        },
+      };
+    },
+  });
 }
 
 // Monaco provides the 'require' global for loading modules.
