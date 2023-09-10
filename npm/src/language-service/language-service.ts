@@ -7,6 +7,7 @@ import type {
   ICompletionList,
   IHover,
   IDefinition,
+  ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
 } from "../../lib/node/qsc_wasm.cjs";
@@ -43,6 +44,10 @@ export interface ILanguageService {
     offset: number
   ): Promise<IDefinition | undefined>;
   dispose(): Promise<void>;
+  getSignatureHelp(
+    documentUri: string,
+    offset: number
+  ): Promise<ISignatureHelp | undefined>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
@@ -174,6 +179,37 @@ export class QSharpLanguageService implements ILanguageService {
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
         result.offset
       ];
+    }
+    return result;
+  }
+
+  async getSignatureHelp(
+    documentUri: string,
+    offset: number
+  ): Promise<ISignatureHelp | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.get_signature_help(
+      documentUri,
+      convertedOffset
+    ) as ISignatureHelp | undefined;
+    if (result) {
+      result.signatures = result.signatures.map((sig) => {
+        sig.parameters = sig.parameters.map((param) => {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [param.label.start, param.label.end],
+            sig.label
+          );
+          param.label.start = mappedSpan[param.label.start];
+          param.label.end = mappedSpan[param.label.end];
+          return param;
+        });
+        return sig;
+      });
     }
     return result;
   }
