@@ -21,7 +21,7 @@ import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
-import { setupWorkspaces } from "./azure/workspace.js";
+import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 
@@ -44,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  setupWorkspaces(context);
+  initAzureWorkspaces();
   initCodegen(context);
   activateDebugger(context);
 

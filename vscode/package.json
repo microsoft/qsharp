@@ -104,7 +104,7 @@
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:extension.qsharp.aadSignin)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:quantum-workspaces-add)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
       }
     ],
     "commands": [
@@ -121,11 +121,6 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
-      },
-      {
-        "command": "extension.qsharp.aadSignin",
-        "category": "Q#",
-        "title": "Sign in to Azure Quantum with a Microsoft account"
       },
       {
         "command": "quantum-workspaces-refresh",

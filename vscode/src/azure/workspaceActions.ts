@@ -1,23 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import * as vscode from "vscode";
 import { log } from "qsharp-lang";
 import {
   azureRequest,
-  scopes,
   AzureUris,
   QuantumUris,
   ResponseTypes,
   storageRequest,
-} from "./azure";
-import { WorkspaceConnection } from "./workspaceTree";
+} from "./networkRequests";
+import { WorkspaceConnection } from "./treeView";
 
-// TODO: Proper docs on the qsharp wiki
-const corsDocsUri =
-  "https://gist.github.com/billti/09637269db4bae86c0e3a552dd20eb9b";
+export const scopes = {
+  armMgmt: "https://management.azure.com/user_impersonation",
+  quantum: "https://quantum.microsoft.com/user_impersonation",
+};
 
 export async function queryWorkspaces(): Promise<
   WorkspaceConnection | undefined
@@ -32,6 +30,11 @@ export async function queryWorkspaces(): Promise<
     [scopes.armMgmt],
     { createIfNone: true }
   );
+  if (!firstAuth) {
+    log.error("No authentication session returned");
+    return;
+  }
+
   log.trace(`Got first token: ${JSON.stringify(firstAuth, null, 2)}`);
   const firstToken = firstAuth.accessToken;
 
@@ -42,7 +45,13 @@ export async function queryWorkspaces(): Promise<
     firstToken
   );
   log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
-  if (!tenants?.value?.length) throw "No tenants returned";
+  if (!tenants?.value?.length) {
+    log.error("No tenants returned");
+    vscode.window.showErrorMessage(
+      "There a no tenants listed for the account. Ensure the account has an Azure subscription."
+    );
+    return;
+  }
 
   // Quick-pick if more than one
   let tenantId = tenants.value[0].tenantId;
@@ -70,6 +79,11 @@ export async function queryWorkspaces(): Promise<
       [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
       { createIfNone: true }
     );
+    if (!tenantAuth) {
+      // The user may have cancelled the login
+      log.debug("No AAD authentication session returned during 2nd auth");
+      return;
+    }
     log.trace(`Got tenant token: ${JSON.stringify(tenantAuth, null, 2)}`);
   }
   const tenantToken = tenantAuth.accessToken;
@@ -79,7 +93,13 @@ export async function queryWorkspaces(): Promise<
     tenantToken
   );
   log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
-  if (!subs?.value?.length) throw "No subscriptions returned";
+  if (!subs?.value?.length) {
+    log.info("No subscriptions returned for the AAD account and tenant");
+    vscode.window.showErrorMessage(
+      "No Azure subscriptions found for the account and tenant"
+    );
+    return;
+  }
 
   // Quick-pick if more than one
   let subId = subs.value[0].subscriptionId;
@@ -91,7 +111,7 @@ export async function queryWorkspaces(): Promise<
     const choice = await vscode.window.showQuickPick(pickItems, {
       title: "Select a subscription",
     });
-    if (!choice) return;
+    if (!choice) return; // User probably cancelled
     subId = choice.detail;
   }
 
@@ -103,7 +123,13 @@ export async function queryWorkspaces(): Promise<
   if (log.getLogLevel() >= 5) {
     log.trace(`Got workspaces: ${JSON.stringify(workspaces, null, 2)}`);
   }
-  if (!workspaces.value.length) throw "Failed to get any workspaces";
+  if (!workspaces.value.length) {
+    log.info("No workspaces returned for the subscription");
+    vscode.window.showErrorMessage(
+      "No Quantum Workspaces found in the Azure subscription"
+    );
+    return;
+  }
 
   // id will be similar to: "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
   // endpointUri will be like: "https://quantumworkspace1.westus.quantum.azure.com" (but first segment should be removed)
@@ -135,7 +161,7 @@ export async function queryWorkspaces(): Promise<
     name: workspace.name,
     endpointUri: fixedEndpoint,
     tenantId,
-    connection: "AAD", // TODO
+    connection: "AAD",
     storageAccount: workspace.properties.storageAccount,
     providers: workspace.properties.providers.map((provider) => ({
       providerId: provider.providerId,
@@ -172,12 +198,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
-  const quotas: ResponseTypes.Quotas = await azureRequest(
-    quantumUris.quotas(),
-    token
-  );
-
-  const providerStatus: ResponseTypes.ProviderStatus = await azureRequest(
+  const providerStatus: ResponseTypes.ProviderStatusList = await azureRequest(
     quantumUris.providerStatus(),
     token
   );
@@ -220,16 +241,19 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     (provider) => provider.targets.length > 0
   );
 
-  const jobs: ResponseTypes.Jobs = await azureRequest(
+  log.debug("Fetching the jobs for the workspace");
+  const jobs: ResponseTypes.JobList = await azureRequest(
     quantumUris.jobs(),
     token
   );
+  log.debug(`Query returned ${jobs.value.length} jobs`);
+
   if (log.getLogLevel() >= 5) {
     log.trace(`Got jobs: ${JSON.stringify(jobs, null, 2)}`);
   }
 
   if (jobs.nextLink) {
-    log.error("TODO: Handle pagination");
+    log.error("Jobs returned a nextLink. This is not supported yet.");
   }
 
   if (jobs.value.length === 0) return;
@@ -260,22 +284,10 @@ export async function getJobFiles(
   const sasUri = decodeURI(sasResponse.sasUri);
   log.trace(`Got SAS URI: ${sasUri}`);
 
-  try {
-    const file = await storageRequest(sasUri, "GET");
-    if (!file) throw "No file returned";
-    const blob = await file.text();
-    return blob;
-  } catch (e) {
-    if ((e as any).name === "TypeError") {
-      vscode.window.showErrorMessage(
-        "Unable to download the file. This could be due to cors issues on the storage account. " +
-          "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
-          `See ${corsDocsUri} for more info.`
-      );
-    }
-    log.error(`Failed to get file: ${e}`);
-    return "";
-  }
+  const file = await storageRequest(sasUri, "GET");
+  if (!file) throw "No file returned";
+  const blob = await file.text();
+  return blob;
 }
 
 export async function submitJob(
@@ -325,71 +337,19 @@ export async function submitJob(
   );
 
   // Create the container
-  /*
-PUT https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}?restype=container&{{BLOB_SASPARAMS}}
-x-ms-version: 2023-01-03
-x-ms-date: {{$datetime rfc1123}}
-  */
   const containerPutUri = `${storageAccount}/${containerName}?restype=container&${sasTokenRaw}`;
-  try {
-    const containerPutResponse = await storageRequest(containerPutUri, "PUT");
-  } catch (e) {
-    if ((e as any).name === "TypeError") {
-      vscode.window.showErrorMessage(
-        "Unable to create the job container. This could be due to cors issues on the storage account. " +
-          "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
-          `See ${corsDocsUri} for more info.`
-      );
-    }
-    log.error("Unable to put the storage container: ", e);
-    return;
-  }
+  await storageRequest(containerPutUri, "PUT");
 
   // Write the input data
-  /*
-// PUT {{InputSasUri.response.body.$.sasUri}}
-https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}/inputData?{{BLOB_SASPARAMS}}
-x-ms-version: 2023-01-03
-x-ms-date: {{$datetime rfc1123}}
-x-ms-blob-type: BlockBlob
-Content-Type: application/octet-stream
-  */
-
   const inputDataUri = `${storageAccount}/${containerName}/inputData?${sasTokenRaw}`;
-  try {
-    const inputDataResponse = await storageRequest(
-      inputDataUri,
-      "PUT",
-      [["x-ms-blob-type", "BlockBlob"]],
-      qirFile
-    );
-  } catch (e) {
-    if ((e as any).name === "TypeError") {
-      vscode.window.showErrorMessage(
-        "Unable to upload the program. This could be due to cors issues on the storage account. " +
-          "Please allow GET and PUT requests from all origins on the storage account for this workspace. " +
-          `See ${corsDocsUri} for more info.`
-      );
-    }
-    log.error("Unable to put the qir file: ", e);
-    return;
-  }
+  await storageRequest(
+    inputDataUri,
+    "PUT",
+    [["x-ms-blob-type", "BlockBlob"]],
+    qirFile
+  );
 
   // PUT the job data
-  /*
-PUT https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/jobs/{{JOB_ID}}?api-version=2022-09-12-preview
-Content-Type: application/json
-Authorization: Bearer {{QUANTUM_TOKEN}}
-
-{
-    "id": "{{JOB_ID}}}", "name": "{{JOB_NAME}}",
-    "providerId": "quantinuum", "target": "quantinuum.sim.h1-2e", "itemType": "Job",
-    "containerUri": "{{ContainerSasUri.response.body.$.sasUri}}",
-    "inputDataUri": "{{InputSasUri.response.body.$.sasUri}}",
-    "inputDataFormat": "qir.v1", "outputDataFormat": "microsoft.quantum-results.v1",
-    "inputParams": { "entryPoint": "program__main", "arguments": [], "count": 100 }
-}
-  */
   const putJobUri = quantumUris.jobs(containerName);
 
   const payload = {
@@ -408,18 +368,7 @@ Authorization: Bearer {{QUANTUM_TOKEN}}
       count: 100,
     },
   };
-  try {
-    const jobResponse = await azureRequest(
-      putJobUri,
-      token,
-      "PUT",
-      JSON.stringify(payload)
-    );
-  } catch (e) {
-    log.error("Unable to post the job metadate to Azure Quantum: ", e);
-    vscode.window.showErrorMessage("Unable to submit the job to Azure Quantum");
-    return;
-  }
+  await azureRequest(putJobUri, token, "PUT", JSON.stringify(payload));
 
   vscode.window.showInformationMessage(`Job ${jobName} submitted`);
 }

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import { queryWorkspace } from "./workspaceQuery";
+import { queryWorkspace } from "./workspaceActions";
 import { log } from "qsharp-lang";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
@@ -23,18 +23,21 @@ export class WorkspaceTreeProvider
   readonly onDidChangeTreeData: vscode.Event<WorkspaceTreeItem | undefined> =
     this._onDidChangeData.event;
 
-  async updateWorkspace(workspace: WorkspaceConnection) {
+  updateWorkspace(workspace: WorkspaceConnection) {
     this.treeState.set(workspace.id, workspace);
   }
 
   async refresh() {
     log.debug("Refreshing workspace tree");
-    this.treeState.forEach(async (workspace) => {
-      if (workspace.connection !== "PAT") {
-        await queryWorkspace(workspace);
-        await this.updateWorkspace(workspace);
-      }
-    });
+
+    const workspaces = [...this.treeState.values()];
+
+    for (const workspace of workspaces) {
+      await queryWorkspace(workspace).then(() =>
+        this.updateWorkspace(workspace)
+      );
+    }
+
     this._onDidChangeData.fire(undefined);
   }
 
@@ -43,6 +46,7 @@ export class WorkspaceTreeProvider
   ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return element;
   }
+
   getChildren(
     element?: WorkspaceTreeItem | undefined
   ): vscode.ProviderResult<WorkspaceTreeItem[]> {
