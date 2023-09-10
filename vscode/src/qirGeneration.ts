@@ -75,7 +75,7 @@ export function initCodegen(context: vscode.ExtensionContext) {
   ).toString();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("quantum-get-qir", async () => {
+    vscode.commands.registerCommand("qsharp-vscode.getQir", async () => {
       try {
         const qir = await getQirForActiveWindow();
         const qirDoc = await vscode.workspace.openTextDocument({

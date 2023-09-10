@@ -31,7 +31,7 @@ export function initAzureWorkspaces() {
   });
 
   vscode.commands.registerCommand(
-    "quantum-target-submit",
+    "qsharp-vscode.targetSubmit",
     async (arg: WorkspaceTreeItem) => {
       const target = arg.itemData as Target;
       const providerId = target.id.split(".")?.[0];
@@ -85,11 +85,11 @@ export function initAzureWorkspaces() {
     }
   );
 
-  vscode.commands.registerCommand("quantum-workspaces-refresh", () => {
+  vscode.commands.registerCommand("qsharp-vscode.workspacesRefresh", () => {
     workspaceTreeProvider.refresh();
   });
 
-  vscode.commands.registerCommand("quantum-workspaces-add", async () => {
+  vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
     const workspace = await queryWorkspaces();
     if (workspace) {
       workspaceTreeProvider.updateWorkspace(workspace);
@@ -98,7 +98,7 @@ export function initAzureWorkspaces() {
   });
 
   vscode.commands.registerCommand(
-    "quantum-result-download",
+    "qsharp-vscode.downloadResults",
     async (arg: WorkspaceTreeItem) => {
       const job = arg.itemData as Job;
 

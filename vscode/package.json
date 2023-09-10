@@ -69,24 +69,24 @@
       ],
       "view/title": [
         {
-          "command": "quantum-workspaces-refresh",
+          "command": "qsharp-vscode.workspacesRefresh",
           "when": "view == quantum-workspaces",
           "group": "navigation"
         },
         {
-          "command": "quantum-workspaces-add",
+          "command": "qsharp-vscode.workspacesAdd",
           "when": "view == quantum-workspaces",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "quantum-target-submit",
+          "command": "qsharp-vscode.targetSubmit",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == target"
         },
         {
-          "command": "quantum-result-download",
+          "command": "qsharp-vscode.downloadResults",
           "group": "inline",
           "when": "view == quantum-workspaces && viewItem == result"
         }
@@ -104,7 +104,7 @@
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:quantum-workspaces-add)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:qsharp-vscode.workspacesAdd)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
       }
     ],
     "commands": [
@@ -123,36 +123,36 @@
         "icon": "$(play)"
       },
       {
-        "command": "quantum-workspaces-refresh",
+        "command": "qsharp-vscode.workspacesRefresh",
         "category": "Q#",
         "title": "Refresh Azure Quantum workspaces",
         "icon": "$(refresh)"
       },
       {
-        "command": "quantum-workspaces-add",
+        "command": "qsharp-vscode.workspacesAdd",
         "category": "Q#",
         "title": "Add an Azure Quantum workspace",
         "icon": "$(add)"
       },
       {
-        "command": "quantum-target-submit",
+        "command": "qsharp-vscode.targetSubmit",
         "category": "Q#",
         "title": "Submit current Q# program",
         "icon": "$(run)"
       },
       {
-        "command": "quantum-get-qir",
+        "command": "qsharp-vscode.getQir",
         "category": "Q#",
         "title": "Get QIR for current Q# program"
       },
       {
-        "command": "quantum-result-download",
+        "command": "qsharp-vscode.downloadResults",
         "category": "Q#",
         "title": "Download full Azure Quantum job results",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "quantum-set-target",
+        "command": "qsharp-vscode.setTargetProfile",
         "category": "Q#",
         "title": "Set the Azure Quantum QIR target profile",
         "enablement": "resourceLangId == qsharp"

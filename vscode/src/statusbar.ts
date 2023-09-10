@@ -16,7 +16,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   );
   disposables.push(statusBarItem);
 
-  statusBarItem.command = "quantum-set-target";
+  statusBarItem.command = "qsharp-vscode.setTargetProfile";
 
   disposables.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
@@ -68,22 +68,25 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
 }
 
 function registerTargetProfileCommand() {
-  return vscode.commands.registerCommand("quantum-set-target", async () => {
-    const target = await vscode.window.showQuickPick(
-      targetProfiles.map((profile) => profile.uiText),
-      { placeHolder: "Select the QIR target profile" }
-    );
+  return vscode.commands.registerCommand(
+    "qsharp-vscode.setTargetProfile",
+    async () => {
+      const target = await vscode.window.showQuickPick(
+        targetProfiles.map((profile) => profile.uiText),
+        { placeHolder: "Select the QIR target profile" }
+      );
 
-    if (target) {
-      vscode.workspace
-        .getConfiguration("Q#")
-        .update(
-          "targetProfile",
-          getTargetProfileSetting(target),
-          vscode.ConfigurationTarget.Global
-        );
+      if (target) {
+        vscode.workspace
+          .getConfiguration("Q#")
+          .update(
+            "targetProfile",
+            getTargetProfileSetting(target),
+            vscode.ConfigurationTarget.Global
+          );
+      }
     }
-  });
+  );
 }
 
 const targetProfiles = [
