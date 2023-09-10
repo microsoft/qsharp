@@ -25,16 +25,9 @@ import { setupWorkspaces } from "./azure/workspace.js";
 import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 
-let extensionPath: vscode.Uri;
-
-export function getResourcePath(...parts: string[]) {
-  return vscode.Uri.joinPath(extensionPath, "resources", ...parts);
-}
-
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
-  extensionPath = context.extensionUri;
 
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
