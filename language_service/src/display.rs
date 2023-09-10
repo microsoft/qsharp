@@ -70,6 +70,21 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
+    pub(crate) fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + 'a {
+        HirPat {
+            compilation: self.compilation,
+            pat,
+        }
+    }
+
+    pub(crate) fn get_param_offset(&self, decl: &hir::CallableDecl) -> u32 {
+        HirCallableDecl {
+            compilation: self.compilation,
+            decl,
+        }
+        .get_param_offset()
+    }
+
     // The rest of the display implementations are not made public b/c they're not used,
     // but there's no reason they couldn't be
 }
@@ -130,6 +145,17 @@ impl<'a> Display for PathTyId<'a> {
 struct HirCallableDecl<'a, 'b> {
     compilation: &'a Compilation,
     decl: &'b hir::CallableDecl,
+}
+
+impl HirCallableDecl<'_, '_> {
+    fn get_param_offset(&self) -> u32 {
+        let offset = match self.decl.kind {
+            hir::CallableKind::Function => "function".len(),
+            hir::CallableKind::Operation => "operation".len(),
+        } + 2; // this is for the space between keyword and name plus the opening paren
+        u32::try_from(offset + self.decl.name.name.len())
+            .expect("failed to cast usize to u32 while calculating parameter offset")
+    }
 }
 
 impl Display for HirCallableDecl<'_, '_> {

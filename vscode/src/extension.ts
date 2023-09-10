@@ -24,6 +24,7 @@ import { registerQSharpNotebookHandlers } from "./notebook.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
+import { createSignatureHelpProvider } from "./signature.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -162,6 +163,16 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerDefinitionProvider(
       qsharpDocumentFilter,
       createDefinitionProvider(languageService)
+    )
+  );
+
+  // signature help
+  subscriptions.push(
+    vscode.languages.registerSignatureHelpProvider(
+      qsharpDocumentFilter,
+      createSignatureHelpProvider(languageService),
+      "(",
+      ","
     )
   );
 

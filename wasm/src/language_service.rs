@@ -117,6 +117,36 @@ impl LanguageService {
             .into()
         })
     }
+
+    pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<ISignatureHelp> {
+        let sig_help = self.0.get_signature_help(uri, offset);
+        sig_help.map(|sig_help| {
+            SignatureHelp {
+                signatures: sig_help
+                    .signatures
+                    .into_iter()
+                    .map(|sig| SignatureInformation {
+                        label: sig.label,
+                        documentation: sig.documentation,
+                        parameters: sig
+                            .parameters
+                            .into_iter()
+                            .map(|param| ParameterInformation {
+                                label: Span {
+                                    start: param.label.start,
+                                    end: param.label.end,
+                                },
+                                documentation: param.documentation,
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+                activeSignature: sig_help.active_signature,
+                activeParameter: sig_help.active_parameter,
+            }
+            .into()
+        })
+    }
 }
 
 serializable_type! {
@@ -197,6 +227,47 @@ serializable_type! {
         offset: number;
     }"#,
     IDefinition
+}
+
+serializable_type! {
+    SignatureHelp,
+    {
+        signatures: Vec<SignatureInformation>,
+        activeSignature: u32,
+        activeParameter: u32,
+    },
+    r#"export interface ISignatureHelp {
+        signatures: ISignatureInformation[];
+        activeSignature: number;
+        activeParameter: number;
+    }"#,
+    ISignatureHelp
+}
+
+serializable_type! {
+    SignatureInformation,
+    {
+        label: String,
+        documentation: Option<String>,
+        parameters: Vec<ParameterInformation>,
+    },
+    r#"export interface ISignatureInformation {
+        label: string;
+        documentation?: string;
+        parameters: IParameterInformation[];
+    }"#
+}
+
+serializable_type! {
+    ParameterInformation,
+    {
+        label: Span,
+        documentation: Option<String>,
+    },
+    r#"export interface IParameterInformation {
+        label: ISpan;
+        documentation?: string;
+    }"#
 }
 
 serializable_type! {

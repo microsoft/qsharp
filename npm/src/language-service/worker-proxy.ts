@@ -18,6 +18,7 @@ const requests: MethodMap<ILanguageService> = {
   getCompletions: "request",
   getHover: "request",
   getDefinition: "request",
+  getSignatureHelp: "request",
   dispose: "request",
   addEventListener: "addEventListener",
   removeEventListener: "removeEventListener",
