@@ -46,13 +46,17 @@ type WrappedTelemetryEvent = {
 };
 
 export function initTelemetry(context: vscode.ExtensionContext) {
-  log.info(JSON.stringify(vscode, null, 2));
+  const extension = vscode.extensions.getExtension("quantum.qsharp-vscode");
+  let packageJson = extension?.packageJSON;
+  if (!packageJson) {
+    return;
+  }
   // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/183
   // we cannot use the latest version of extension-telemetry until this is fixed
   const reporter = new TelemetryReporter(
     "qsharp-vscode",
     "0.0.0",
-    "test"
+    packageJson.aiKey
   );
   log.setTelemetryCollector(
     ({
