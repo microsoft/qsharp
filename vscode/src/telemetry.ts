@@ -4,7 +4,6 @@ import TelemetryReporter, {
   TelemetryEventProperties,
 } from "@vscode/extension-telemetry";
 import { log } from "qsharp";
-import { getPackageInfo } from "./packageInfo.js";
 
 export enum EventType {
   DebugSessionStart = "DebugSessionStart",
@@ -47,16 +46,13 @@ type WrappedTelemetryEvent = {
 };
 
 export function initTelemetry(context: vscode.ExtensionContext) {
-  const packageInfo = getPackageInfo(context);
-  if (!packageInfo) {
-    return;
-  }
+  log.info(JSON.stringify(vscode, null, 2));
   // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/183
   // we cannot use the latest version of extension-telemetry until this is fixed
   const reporter = new TelemetryReporter(
     "qsharp-vscode",
     "0.0.0",
-    packageInfo.aiKey
+    "test"
   );
   log.setTelemetryCollector(
     ({
