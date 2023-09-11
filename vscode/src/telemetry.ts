@@ -55,7 +55,7 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   // we cannot use the latest version of extension-telemetry until this is fixed
   const reporter = new TelemetryReporter(
     "qsharp-vscode",
-    "0.0.0",
+    packageJson.version,
     packageJson.aiKey
   );
   log.setTelemetryCollector(
