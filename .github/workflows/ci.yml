@@ -103,6 +103,10 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin
         if: matrix.os == 'macos-latest'
+      - name: Add additional Rust targets
+        run: |
+          rustup target add aarch64-pc-windows-msvc
+        if: matrix.os == 'windows-latest'
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -114,3 +118,6 @@ jobs:
         run: python ./prereqs.py --install
       - name: Build and Test
         run: python ./build.py --no-check
+      - name: Cross Build Windows ARM64
+        run: set "CARGO_BUILD_TARGET=aarch64-pc-windows-msvc" & python ./build.py --no-check --no-test
+        if: matrix.os == 'windows-latest'

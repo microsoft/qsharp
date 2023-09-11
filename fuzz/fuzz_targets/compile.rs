@@ -7,6 +7,7 @@
 use libfuzzer_sys::fuzz_target;
 use qsc::{hir::PackageId, PackageStore, SourceMap, TargetProfile};
 
+#[cfg(feature = "do_fuzz")]
 fn compile(data: &[u8]) {
     if let Ok(fuzzed_code) = std::str::from_utf8(data) {
         thread_local! {
@@ -36,6 +37,4 @@ fuzz_target!(|data: &[u8]| {
 
 #[cfg(not(feature = "do_fuzz"))]
 #[no_mangle]
-pub extern "C" fn main() {
-    compile(&[]);
-}
+pub extern "C" fn main() {}

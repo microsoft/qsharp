@@ -17,6 +17,7 @@ libfuzzer-sys = { workspace = true, optional = true }
 qsc = { path = "../compiler/qsc" }
 
 [features]
+default = []
 do_fuzz = [ "dep:libfuzzer-sys" ]
 
 [[bin]]
