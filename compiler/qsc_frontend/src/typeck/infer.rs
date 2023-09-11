@@ -15,6 +15,8 @@ use std::{
     fmt::Debug,
 };
 
+const MAX_TY_RECURSION_DEPTH: i8 = 100;
+
 #[derive(Debug, Default)]
 struct Solution {
     tys: IndexMap<InferTyId, Ty>,
@@ -679,7 +681,7 @@ fn substitute_ty(solution: &Solution, ty: &mut Ty) {
         }
     }
 
-    substitute_ty_recursive(solution, ty, 100);
+    substitute_ty_recursive(solution, ty, MAX_TY_RECURSION_DEPTH);
 }
 
 fn substituted_ty(solution: &Solution, mut ty: Ty) -> Ty {

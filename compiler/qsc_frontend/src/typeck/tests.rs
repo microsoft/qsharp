@@ -3386,13 +3386,16 @@ fn inferred_generic_tuple_arguments_for_passed_callable() {
 }
 
 #[test]
-fn inference_infinite_recursion() {
+fn inference_infinite_recursion_should_fail() {
+    // This creates an infinite recursion in the type inference algorithm, because it tries
+    // to prove that `'U1[]` is equal to `'U1`. This should hit the recursion limit configured
+    // in the solver.
     check(
         indoc! {"
             namespace Test{
-                function A<'T, 'U> (x : ('T -> 'U)) : 'U[] {
+                function A<'T1, 'U1> (x : ('T1 -> 'U1)) : 'U1[] {
                 }
-                function B<'T, 'U> (y : (('T, 'U) -> 'T)) : 'T {
+                function B<'T2, 'U2> (y : (('T2, 'U2) -> 'T2)) : 'T2 {
                 }
                 function Invalid() : Unit{
                     A and B
