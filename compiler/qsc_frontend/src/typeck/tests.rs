@@ -3403,7 +3403,7 @@ fn inference_infinite_recursion_should_fail() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #8 41-59 "(x : ('T1 -> 'U1))" : (0 -> 1)
             #9 42-58 "x : ('T1 -> 'U1)" : (0 -> 1)
             #20 68-75 "{\n    }" : Unit
@@ -3420,6 +3420,6 @@ fn inference_infinite_recursion_should_fail() {
             Error(Type(Error(TyMismatch(Prim(Bool), Arrow(Arrow { kind: Function, input: Arrow(Arrow { kind: Function, input: Tuple([Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(2)))))))))))))))))))))))))))))))))), Infer(InferTyId(3))]), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1)))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), Span { lo: 180, hi: 181 }))))
             Error(Type(Error(TyMismatch(Tuple([]), Arrow(Arrow { kind: Function, input: Arrow(Arrow { kind: Function, input: Tuple([Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(2)))))))))))))))))))))))))))))))))), Infer(InferTyId(3))]), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1)))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), Span { lo: 180, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
-        "##]],
+        "#]],
     );
 }
