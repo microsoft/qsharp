@@ -8,6 +8,7 @@ mod tests;
 
 pub mod backend;
 pub mod debug;
+mod error;
 mod intrinsic;
 pub mod lower;
 pub mod output;
@@ -16,6 +17,7 @@ pub mod val;
 use crate::val::{FunctorApp, Value};
 use backend::Backend;
 use debug::{CallStack, Frame};
+use error::GlobalSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
@@ -39,67 +41,96 @@ use val::GlobalId;
 pub enum Error {
     #[error("array too large")]
     #[diagnostic(code("Qsc.Eval.ArrayTooLarge"))]
-    ArrayTooLarge(#[label("this array has too many items")] Span),
+    ArrayTooLarge(#[label("this array has too many items")] GlobalSpan),
 
     #[error("invalid array length: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidArrayLength"))]
-    InvalidArrayLength(i64, #[label("cannot be used as a length")] Span),
+    InvalidArrayLength(i64, #[label("cannot be used as a length")] GlobalSpan),
 
     #[error("division by zero")]
     #[diagnostic(code("Qsc.Eval.DivZero"))]
-    DivZero(#[label("cannot divide by zero")] Span),
+    DivZero(#[label("cannot divide by zero")] GlobalSpan),
 
     #[error("empty range")]
     #[diagnostic(code("Qsc.Eval.EmptyRange"))]
-    EmptyRange(#[label("the range cannot be empty")] Span),
+    EmptyRange(#[label("the range cannot be empty")] GlobalSpan),
 
     #[error("value cannot be used as an index: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidIndex"))]
-    InvalidIndex(i64, #[label("invalid index")] Span),
+    InvalidIndex(i64, #[label("invalid index")] GlobalSpan),
 
     #[error("integer too large for operation")]
     #[diagnostic(code("Qsc.Eval.IntTooLarge"))]
-    IntTooLarge(i64, #[label("this value is too large")] Span),
+    IntTooLarge(i64, #[label("this value is too large")] GlobalSpan),
 
     #[error("missing specialization: {0}")]
     #[diagnostic(code("Qsc.Eval.MissingSpec"))]
-    MissingSpec(String, #[label("callable has no {0} specialization")] Span),
+    MissingSpec(
+        String,
+        #[label("callable has no {0} specialization")] GlobalSpan,
+    ),
 
     #[error("index out of range: {0}")]
     #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
-    IndexOutOfRange(i64, #[label("out of range")] Span),
+    IndexOutOfRange(i64, #[label("out of range")] GlobalSpan),
 
     #[error("negative integers cannot be used here: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
-    InvalidNegativeInt(i64, #[label("invalid negative integer")] Span),
+    InvalidNegativeInt(i64, #[label("invalid negative integer")] GlobalSpan),
 
     #[error("output failure")]
     #[diagnostic(code("Qsc.Eval.OutputFail"))]
-    OutputFail(#[label("failed to generate output")] Span),
+    OutputFail(#[label("failed to generate output")] GlobalSpan),
 
     #[error("qubits in gate invocation are not unique")]
     #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
-    QubitUniqueness(#[label] Span),
+    QubitUniqueness(#[label] GlobalSpan),
 
     #[error("range with step size of zero")]
     #[diagnostic(code("Qsc.Eval.RangeStepZero"))]
-    RangeStepZero(#[label("invalid range")] Span),
+    RangeStepZero(#[label("invalid range")] GlobalSpan),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
-    ReleasedQubitNotZero(usize),
+    ReleasedQubitNotZero(usize, #[label("Qubit{0}")] GlobalSpan),
 
     #[error("name is not bound")]
     #[diagnostic(code("Qsc.Eval.UnboundName"))]
-    UnboundName(#[label] Span),
+    UnboundName(#[label] GlobalSpan),
 
     #[error("unknown intrinsic `{0}`")]
     #[diagnostic(code("Qsc.Eval.UnknownIntrinsic"))]
-    UnknownIntrinsic(String, #[label("callable has no implementation")] Span),
+    UnknownIntrinsic(
+        String,
+        #[label("callable has no implementation")] GlobalSpan,
+    ),
 
     #[error("program failed: {0}")]
     #[diagnostic(code("Qsc.Eval.UserFail"))]
-    UserFail(String, #[label("explicit fail")] Span),
+    UserFail(String, #[label("explicit fail")] GlobalSpan),
+}
+
+impl Error {
+    pub fn spans(&self) -> impl Iterator<Item = &GlobalSpan> {
+        match self {
+            Error::ArrayTooLarge(span)
+            | Error::DivZero(span)
+            | Error::EmptyRange(span)
+            | Error::IndexOutOfRange(_, span)
+            | Error::InvalidIndex(_, span)
+            | Error::IntTooLarge(_, span)
+            | Error::InvalidNegativeInt(_, span)
+            | Error::MissingSpec(_, span)
+            | Error::OutputFail(span)
+            | Error::QubitUniqueness(span)
+            | Error::RangeStepZero(span)
+            | Error::ReleasedQubitNotZero(_, span)
+            | Error::UnboundName(span)
+            | Error::UnknownIntrinsic(_, span)
+            | Error::UserFail(_, span)
+            | Error::InvalidArrayLength(_, span) => iter::once(span),
+        }
+    }
 }
 
 /// A specialization that may be implemented for an operation.
@@ -194,16 +225,16 @@ pub fn eval_push_expr(state: &mut State, expr: ExprId) {
 trait AsIndex {
     type Output;
 
-    fn as_index(&self, span: Span) -> Self::Output;
+    fn as_index(&self, index_source: GlobalSpan) -> Self::Output;
 }
 
 impl AsIndex for i64 {
     type Output = Result<usize, Error>;
 
-    fn as_index(&self, span: Span) -> Self::Output {
+    fn as_index(&self, index_source: GlobalSpan) -> Self::Output {
         match (*self).try_into() {
             Ok(index) => Ok(index),
-            Err(_) => Err(Error::InvalidIndex(*self, span)),
+            Err(_) => Err(Error::InvalidIndex(*self, index_source)),
         }
     }
 }
@@ -774,8 +805,8 @@ impl State {
     }
 
     fn update_index(&mut self, globals: &impl NodeLookup, lhs: ExprId, mid: ExprId, rhs: ExprId) {
-        let mid_expr = globals.get_expr(self.package, mid);
-        self.push_action(Action::UpdateIndex(mid_expr.span));
+        let span = globals.get_expr(self.package, mid).span;
+        self.push_action(Action::UpdateIndex(span));
         self.push_expr(lhs);
         self.push_expr(rhs);
         self.push_expr(mid);
@@ -836,7 +867,7 @@ impl State {
             Action::Fail(span) => {
                 return Err(Error::UserFail(
                     self.pop_val().unwrap_string().to_string(),
-                    span,
+                    self.to_global_span(span),
                 ));
             }
             Action::Field(field) => self.eval_field(field),
@@ -867,7 +898,10 @@ impl State {
         let item_val = self.pop_val();
         let s = match size_val.try_into() {
             Ok(i) => Ok(i),
-            Err(_) => Err(Error::InvalidArrayLength(size_val, span)),
+            Err(_) => Err(Error::InvalidArrayLength(
+                size_val,
+                self.to_global_span(span),
+            )),
         }?;
         self.push_val(Value::Array(vec![item_val; s].into()));
         Ok(())
@@ -948,8 +982,9 @@ impl State {
     fn eval_binop_with_error(
         &mut self,
         span: Span,
-        binop_func: impl FnOnce(Value, Value, Span) -> Result<Value, Error>,
+        binop_func: impl FnOnce(Value, Value, GlobalSpan) -> Result<Value, Error>,
     ) -> Result<(), Error> {
+        let span = self.to_global_span(span);
         let rhs_val = self.pop_val();
         let lhs_val = self.pop_val();
         self.push_val(binop_func(lhs_val, rhs_val, span)?);
@@ -971,6 +1006,9 @@ impl State {
             Value::Global(id, functor) => (id, functor, None),
             _ => panic!("value is not callable"),
         };
+
+        let callee_span = self.to_global_span(callee_span);
+        let arg_span = self.to_global_span(arg_span);
 
         let callee = match globals.get(callee_id) {
             Some(Global::Callable(callable)) => callable,
@@ -1044,9 +1082,15 @@ impl State {
         let index_val = self.pop_val();
         let arr = self.pop_val().unwrap_array();
         match &index_val {
-            Value::Int(i) => self.push_val(index_array(&arr, *i, span)?),
+            Value::Int(i) => self.push_val(index_array(&arr, *i, self.to_global_span(span))?),
             &Value::Range(start, step, end) => {
-                self.push_val(slice_array(&arr, start, step, end, span)?);
+                self.push_val(slice_array(
+                    &arr,
+                    start,
+                    step,
+                    end,
+                    self.to_global_span(span),
+                )?);
             }
             _ => panic!("array should only be indexed by Int or Range"),
         }
@@ -1097,6 +1141,7 @@ impl State {
         let values = self.pop_val().unwrap_array();
         let update = self.pop_val();
         let index = self.pop_val().unwrap_int();
+        let span = self.to_global_span(span);
         if index < 0 {
             return Err(Error::InvalidNegativeInt(index, span));
         }
@@ -1237,7 +1282,7 @@ impl State {
                     var.value = rhs;
                 }
                 Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
-                None => return Err(Error::UnboundName(lhs.span)),
+                None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
                 for (expr, val) in var_tup.iter().zip(tup.iter()) {
@@ -1301,6 +1346,13 @@ impl State {
             ),
         }
     }
+
+    fn to_global_span(&self, span: Span) -> GlobalSpan {
+        GlobalSpan {
+            package: self.package,
+            span,
+        }
+    }
 }
 
 fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
@@ -1321,7 +1373,11 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
             },
             FunctorApp::default(),
         ),
-        Res::Local(node) => env.get(node).ok_or(Error::UnboundName(span))?.value.clone(),
+        Res::Local(node) => env
+            .get(node)
+            .ok_or(Error::UnboundName(GlobalSpan { package, span }))?
+            .value
+            .clone(),
     })
 }
 
@@ -1345,7 +1401,7 @@ fn resolve_closure(
         .iter()
         .map(|&arg| Some(env.get(arg)?.value.clone()))
         .collect();
-    let args: Vec<_> = args.ok_or(Error::UnboundName(span))?;
+    let args: Vec<_> = args.ok_or(Error::UnboundName(GlobalSpan { package, span }))?;
     let callable = GlobalId {
         package,
         item: callable,
@@ -1365,7 +1421,7 @@ fn lit_to_val(lit: &Lit) -> Value {
     }
 }
 
-fn index_array(arr: &[Value], index: i64, span: Span) -> Result<Value, Error> {
+fn index_array(arr: &[Value], index: i64, span: GlobalSpan) -> Result<Value, Error> {
     let i = index.as_index(span)?;
     match arr.get(i) {
         Some(v) => Ok(v.clone()),
@@ -1378,7 +1434,7 @@ fn slice_array(
     start: Option<i64>,
     step: i64,
     end: Option<i64>,
-    span: Span,
+    span: GlobalSpan,
 ) -> Result<Value, Error> {
     if step == 0 {
         Err(Error::RangeStepZero(span))
@@ -1444,7 +1500,7 @@ fn eval_binop_andb(lhs_val: Value, rhs_val: Value) -> Value {
     }
 }
 
-fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Value, Error> {
+fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: GlobalSpan) -> Result<Value, Error> {
     match lhs_val {
         Value::BigInt(val) => {
             let rhs = rhs_val.unwrap_big_int();
@@ -1474,7 +1530,7 @@ fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Valu
     }
 }
 
-fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: Span) -> Result<Value, Error> {
+fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: GlobalSpan) -> Result<Value, Error> {
     match lhs_val {
         Value::BigInt(val) => {
             let rhs_val = rhs_val.unwrap_int();

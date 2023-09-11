@@ -2,6 +2,12 @@
 // Licensed under the MIT License.
 
 use miette::Diagnostic;
+use qsc_eval::debug::map_fir_package_to_hir;
+use qsc_frontend::{
+    compile::{PackageStore, SourceMap},
+    error::WithSource,
+};
+use qsc_hir::hir::PackageId;
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -66,4 +72,47 @@ impl<E: Diagnostic> Diagnostic for WithStack<E> {
     fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
         self.error.diagnostic_source()
     }
+}
+
+pub type Eval = WithStack<WithSource<qsc_eval::Error>>;
+
+pub fn eval(
+    error: qsc_eval::Error,
+    source_map: Option<&SourceMap>,
+    store: &PackageStore,
+    stack_trace: Option<String>,
+) -> Eval {
+    // TODO: handle more than one span at some point...
+    let span = error.spans().next();
+
+    let error = match span {
+        Some(span) => {
+            let package_id = map_fir_package_to_hir(span.package);
+            // TODO: Workaround: the user package in the interpreter is never updated
+            // in the package store with each line. So if the package_id
+            // is not std or core, we assume the package_id is associated with
+            // the user package, but we return the up-to-date source map
+            // instead of the one from the package store.
+            let sources =
+                if package_id == PackageId::CORE || package_id == PackageId::CORE.successor() {
+                    &store
+                        .get(package_id)
+                        .expect("expected to find std or core package")
+                        .sources
+                } else {
+                    source_map.unwrap_or_else(|| {
+                        // stateless interpreter doesn't update the source map, instead it passes it in
+                        &store
+                            .get(package_id)
+                            .expect("expected to find package id in store")
+                            .sources
+                    })
+                };
+
+            WithSource::from_map(sources, error)
+        }
+        None => WithSource::no_sources(error),
+    };
+
+    WithStack::new(error, stack_trace)
 }

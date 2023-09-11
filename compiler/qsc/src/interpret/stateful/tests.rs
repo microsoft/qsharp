@@ -463,6 +463,20 @@ mod given_interpreter {
         }
 
         #[test]
+        fn runtime_error_from_stdlib() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "use q = Qubit(); CNOT(q,q)");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: qubits in gate invocation are not unique
+                       [intrinsic.qs] [(control, target)]
+                "#]],
+            );
+        }
+
+        #[test]
         fn items_usable_before_definition() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(
@@ -736,11 +750,11 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                name error: `Bar` not found
-                   [line_1] [Bar]
-                type error: insufficient type information to infer type
-                   [line_1] [Bar()]
-            "#]],
+                    name error: `Bar` not found
+                       [line_1] [Bar]
+                    type error: insufficient type information to infer type
+                       [line_1] [Bar()]
+                "#]],
             );
         }
 
@@ -764,9 +778,9 @@ mod given_interpreter {
             is_error(
                 &res,
                 &expect![[r#"
-                syntax error: expected EOF, found `;`
-                   [<entry>] [;]
-            "#]],
+                    syntax error: expected EOF, found `;`
+                       [<entry>] [;]
+                "#]],
             );
         }
 
@@ -848,11 +862,11 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                name error: `Bar` not found
-                   [line_2] [Bar]
-                type error: insufficient type information to infer type
-                   [line_2] [Bar()]
-            "#]],
+                    name error: `Bar` not found
+                       [line_2] [Bar]
+                    type error: insufficient type information to infer type
+                       [line_2] [Bar()]
+                "#]],
             );
         }
 
@@ -1010,6 +1024,7 @@ mod given_interpreter {
     #[cfg(test)]
     mod with_sources {
         use super::*;
+        use expect_test::expect;
         use indoc::indoc;
         use qsc_frontend::compile::{SourceMap, TargetProfile};
         use qsc_passes::PackageType;
@@ -1098,6 +1113,37 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
+        }
+
+        #[test]
+        fn runtime_error_from_stdlib() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace Foo {
+                        operation Bar(): Unit {
+                            let x = -1;
+                            use qs = Qubit[x];
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                Some("Foo.Bar()".into()),
+            );
+
+            let mut interpreter =
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                    .expect("interpreter should be created");
+            let (result, output) = entry(&mut interpreter);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: program failed: Cannot allocate qubit array with a negative length
+                      explicit fail [qir.qs] [fail "Cannot allocate qubit array with a negative length"]
+                "#]],
+            );
         }
     }
 

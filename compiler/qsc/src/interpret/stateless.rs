@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    compile::{self, compile},
-    error::WithStack,
-};
+use super::debug::format_call_stack;
+use crate::compile::{self, compile};
+use crate::error;
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::{Backend, SparseSim},
-    debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
+    debug::{map_hir_package_to_fir, Frame},
     eval_expr,
     output::Receiver,
     val::{self, GlobalId, Value},
@@ -24,17 +23,15 @@ use qsc_frontend::{
 use qsc_passes::PackageType;
 use thiserror::Error;
 
-use super::debug::format_call_stack;
-
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(WithSource<ErrorKind>);
+pub struct Error(#[from] ErrorKind);
 
 impl Error {
     #[must_use]
     pub fn stack_trace(&self) -> &Option<String> {
-        match &self.0.error() {
+        match &self.0 {
             ErrorKind::Eval(err) => err.stack_trace(),
             _ => &None,
         }
@@ -45,13 +42,14 @@ impl Error {
 enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Compile(#[from] compile::Error),
+    Compile(#[from] WithSource<compile::Error>),
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Pass(#[from] qsc_passes::Error),
+    Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] WithStack<qsc_eval::Error>),
+    Eval(#[from] error::Eval),
+    // Eval(#[from] WithStack<qsc_eval::Error>),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
@@ -158,7 +156,7 @@ impl Interpreter {
         } else {
             Err(errors
                 .into_iter()
-                .map(|error| Error(WithSource::from_map(&unit.sources, error.into())))
+                .map(|error| Error(WithSource::from_map(&unit.sources, error).into()))
                 .collect())
         }
     }
@@ -199,12 +197,6 @@ where
             receiver,
         )
         .map_err(|(error, call_stack)| {
-            let package = self
-                .interpreter
-                .store
-                .get(map_fir_package_to_hir(self.interpreter.package))
-                .expect("package should be in store");
-
             let stack_trace = if call_stack.is_empty() {
                 None
             } else {
@@ -218,10 +210,13 @@ where
                 ))
             };
 
-            vec![Error(WithSource::from_map(
-                &package.sources,
-                WithStack::new(error, stack_trace).into(),
-            ))]
+            vec![Error(
+                error::eval(error, None, &self.interpreter.store, stack_trace).into(),
+            )]
+            // vec![Error(WithSource::from_map(
+            //     &package.sources,
+            //     WithStack::new(error, stack_trace).into(),
+            // ))]
         })
     }
 
@@ -234,15 +229,7 @@ where
         if let Some(entry) = unit.entry {
             return Ok(entry);
         };
-        let unit = self
-            .interpreter
-            .store
-            .get(map_fir_package_to_hir(self.interpreter.package))
-            .expect("store should have package");
-        Err(vec![Error(WithSource::from_map(
-            &unit.sources,
-            ErrorKind::NoEntryPoint,
-        ))])
+        Err(vec![Error(ErrorKind::NoEntryPoint)])
     }
 }
 
