@@ -5,7 +5,7 @@ import TelemetryReporter, {
 } from "@vscode/extension-telemetry";
 import { log } from "qsharp";
 // the application insights key (also known as instrumentation key)
-const key = "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217";
+const key = "175861b7-3a41-4015-9571-1d930b8b0722";
 
 
 export enum EventType {
