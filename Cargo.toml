@@ -52,17 +52,6 @@ rand = "0.8.5"
 serde_json = { version = "1.0.96" }
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e96b9a12a43e98f83f2d4d499f46d651d0c6c341", default-features = false }
 
-[target.'cfg(not(windows))'.dependencies.pyo3]
-version = "0.19.2"
-default-features = false
-features = ["abi3-py37", "extension-module"]
-
-[target.'cfg(windows)'.dependencies.pyo3]
-version = "0.19.2"
-default-features = false
-features = ["abi3-py37", "extension-module", "generate-import-lib"]
-
-
 [profile.release]
 debug = 1
 strip = true
