@@ -5,6 +5,8 @@ import * as vscode from "vscode";
 import { getCompilerWorker, log } from "qsharp-lang";
 import { isQsharpDocument } from "./common";
 
+const generateQirTimeoutMs = 30000;
+
 let compilerWorkerScriptPath: string;
 
 export class QirGenerationError extends Error {
@@ -51,7 +53,7 @@ export async function getQirForActiveWindow(): Promise<string> {
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   const compilerTimeout = setTimeout(() => {
     worker.terminate();
-  }, 10000);
+  }, generateQirTimeoutMs);
   try {
     result = await worker.getQir(code);
     clearTimeout(compilerTimeout);
