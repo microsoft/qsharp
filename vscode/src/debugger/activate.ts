@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as vscode from "vscode";
-import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp";
+import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
 import {
   FileAccessor,
   qsharpExtensionId,

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { Dump } from "qsharp";
+import { Dump } from "qsharp-lang";
 
 function probability(real: number, imag: number) {
   return real * real + imag * imag;

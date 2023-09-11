@@ -1,6 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc::{PackageType, TargetProfile};
+
+/// Workspace configuration
+#[derive(Clone, Debug, Default)]
+pub struct WorkspaceConfigurationUpdate {
+    pub target_profile: Option<TargetProfile>,
+    pub package_type: Option<PackageType>,
+}
+
 /// Represents a span of text used by the Language Server API
 #[derive(Debug, PartialEq)]
 pub struct Span {
@@ -59,4 +68,24 @@ pub struct Definition {
 pub struct Hover {
     pub contents: String,
     pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SignatureHelp {
+    pub signatures: Vec<SignatureInformation>,
+    pub active_signature: u32,
+    pub active_parameter: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SignatureInformation {
+    pub label: String,
+    pub documentation: Option<String>,
+    pub parameters: Vec<ParameterInformation>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParameterInformation {
+    pub label: Span,
+    pub documentation: Option<String>,
 }

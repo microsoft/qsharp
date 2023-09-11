@@ -7,7 +7,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=16.17.0"
+    "node": ">=18.17.1"
   },
   "scripts": {
     "eslint:check": "eslint -c ./.eslintrc.cjs --max-warnings 0 ./",

@@ -8,7 +8,7 @@ import {
   log,
   getLibrarySourceContent,
   qsharpLibraryUriScheme,
-} from "qsharp";
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
@@ -21,6 +21,7 @@ import {
   qsharpDocumentFilter,
   qsharpNotebookCellDocumentFilter,
 } from "./common.js";
+import { createSignatureHelpProvider } from "./signature.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -62,8 +63,18 @@ export async function activate(context: vscode.ExtensionContext) {
   // go to def
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
-      "qsharp",
+      qsharpDocumentFilter,
       createDefinitionProvider(languageService)
+    )
+  );
+
+  // signature help
+  context.subscriptions.push(
+    vscode.languages.registerSignatureHelpProvider(
+      qsharpDocumentFilter,
+      createSignatureHelpProvider(languageService),
+      "(",
+      ","
     )
   );
 
@@ -145,8 +156,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
-        document.getText(),
-        true // PackageType "exe"
+        document.getText()
       );
     }
   }
