@@ -3,7 +3,7 @@ import TelemetryReporter, {
   TelemetryEventMeasurements,
   TelemetryEventProperties,
 } from "@vscode/extension-telemetry";
-import { log } from "qsharp";
+import { log } from "qsharp-lang";
 
 export enum EventType {
   DebugSessionStart = "DebugSessionStart",
