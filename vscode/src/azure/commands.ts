@@ -20,9 +20,7 @@ import {
 import { QuantumUris, compileToBitcode } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 
-// TODO: Proper docs on the qsharp wiki
-const corsDocsUri =
-  "https://gist.github.com/billti/09637269db4bae86c0e3a552dd20eb9b";
+const corsDocsUri = "https://github.com/microsoft/qsharp/wiki/Enabling-CORS";
 
 export function initAzureWorkspaces() {
   const workspaceTreeProvider = new WorkspaceTreeProvider();
@@ -77,7 +75,6 @@ export function initAzureWorkspaces() {
         return;
       }
 
-      // TODO(billti) ensure the workspace tree regularly refreshes while a job is pending completion
       setTimeout(async () => {
         await queryWorkspace(arg.workspace);
         workspaceTreeProvider.updateWorkspace(arg.workspace);

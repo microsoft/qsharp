@@ -24,11 +24,6 @@
     "configuration": {
       "title": "Q#",
       "properties": {
-        "Q#.AzureQuantumIntegration": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Experimental: Enable integration with the Azure Quantum service. This feature is currently under development."
-        },
         "Q#.targetProfile": {
           "type": "string",
           "default": "full",
@@ -96,8 +91,7 @@
       "explorer": [
         {
           "id": "quantum-workspaces",
-          "name": "Quantum Workspaces",
-          "when": "config.Q#.AzureQuantumIntegration == true"
+          "name": "Quantum Workspaces"
         }
       ]
     },

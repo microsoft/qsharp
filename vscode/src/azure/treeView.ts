@@ -17,11 +17,11 @@ export class WorkspaceTreeProvider
 {
   private treeState: Map<string, WorkspaceConnection> = new Map();
 
-  private _onDidChangeData = new vscode.EventEmitter<
+  private didChangeTreeDataEmitter = new vscode.EventEmitter<
     WorkspaceTreeItem | undefined
   >();
   readonly onDidChangeTreeData: vscode.Event<WorkspaceTreeItem | undefined> =
-    this._onDidChangeData.event;
+    this.didChangeTreeDataEmitter.event;
 
   updateWorkspace(workspace: WorkspaceConnection) {
     this.treeState.set(workspace.id, workspace);
@@ -38,7 +38,7 @@ export class WorkspaceTreeProvider
       );
     }
 
-    this._onDidChangeData.fire(undefined);
+    this.didChangeTreeDataEmitter.fire(undefined);
   }
 
   getTreeItem(
@@ -79,13 +79,13 @@ export type WorkspaceConnection = {
 };
 
 export type Provider = {
-  providerId: string; // ionq, quantinuum, rigetti, etc.
+  providerId: string;
   currentAvailability: "Available" | "Degraded" | "Unavailable";
   targets: Target[];
 };
 
 export type Target = {
-  id: string; // ionq.qpu, ionq.simulator, rigetti.sim.qvm, quantinuum.sim.h1-2e, etc.
+  id: string;
   currentAvailability: "Available" | "Degraded" | "Unavailable";
   averageQueueTime: number; // minutes
 };

@@ -12,7 +12,7 @@ use qsc::{
         output::{self, Receiver},
         stateless, Error, Frame,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, Span, TargetProfile,
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
@@ -52,6 +52,20 @@ fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame
         PackageType::Exe,
         TargetProfile::Base,
     );
+
+    // Ensure it compiles before trying to add it to the store.
+    if !unit.1.is_empty() {
+        // This should never happen, as the program should be checked for errors before trying to
+        // generate code for it. But just in case, simply report the entire source as 'fail to generate output'
+        return Err((
+            Error::OutputFail(Span {
+                lo: 0,
+                hi: code.len() as u32,
+            }),
+            vec![],
+        ));
+    }
+
     let package = store.insert(unit.0);
 
     generate_qir(&store, package)

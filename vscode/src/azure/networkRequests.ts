@@ -207,7 +207,7 @@ export namespace ResponseTypes {
   };
 
   export type Provider = {
-    providerId: string; // e.g., 'ionq', 'quantinuum', 'rigetti'
+    providerId: string;
     providerSku: string;
     provisioningState: string; // e.g. 'Succeeded'
     resourceUsageId: string;
@@ -244,14 +244,14 @@ export namespace ResponseTypes {
   };
 
   export type Target = {
-    id: string; // ionq.qpu, ionq.simulator, rigetti.sim.qvm, quantinuum.sim.h1-2e, etc.
+    id: string;
     currentAvailability: "Available" | "Degraded" | "Unavailable";
     averageQueueTime: number; // minutes
     statusPage: string; // url
   };
 
   export type ProviderStatus = {
-    id: string; // ionq, quantinuum, rigetti, etc.
+    id: string;
     currentAvailability: "Available" | "Degraded" | "Unavailable";
     targets: Array<Target>;
   };

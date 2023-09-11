@@ -3,6 +3,8 @@
 
 #![allow(clippy::too_many_lines)]
 
+use std::sync::Arc;
+
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
@@ -10,7 +12,7 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 use crate::qir_base::generate_qir;
 
-fn check(expr: &str, expect: &Expect) {
+fn check(program: &str, expr: Option<&str>, expect: &Expect) {
     let mut core = compile::core();
     assert!(run_core_passes(&mut core).is_empty());
     let mut store = PackageStore::new(core);
@@ -23,41 +25,9 @@ fn check(expr: &str, expect: &Expect) {
     )
     .is_empty());
     let std = store.insert(std);
-    let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
 
-    let mut unit = compile(&store, &[std], sources, TargetProfile::Base);
-    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    assert!(run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Exe,
-        TargetProfile::Base
-    )
-    .is_empty());
-    let package = store.insert(unit);
-
-    let qir = generate_qir(&store, package);
-    match qir {
-        Ok(qir) => expect.assert_eq(&qir),
-        Err((err, _)) => expect.assert_debug_eq(&err),
-    }
-}
-
-// TODO(billti) Remove duplication with above function
-fn check_prog(prog: &str, expect: &Expect) {
-    let mut core = compile::core();
-    assert!(run_core_passes(&mut core).is_empty());
-    let mut store = PackageStore::new(core);
-    let mut std = compile::std(&store, TargetProfile::Base);
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetProfile::Base
-    )
-    .is_empty());
-    let std = store.insert(std);
-    let sources = SourceMap::new([("test".into(), prog.into())], None);
+    let expr_as_arc: Option<Arc<str>> = expr.map(|s| Arc::from(s.to_string()));
+    let sources = SourceMap::new([("test".into(), program.into())], expr_as_arc);
 
     let mut unit = compile(&store, &[std], sources, TargetProfile::Base);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
@@ -79,7 +49,7 @@ fn check_prog(prog: &str, expect: &Expect) {
 
 #[test]
 fn simple_entry_program_is_valid() {
-    check_prog(
+    check(
         indoc! {r#"
     namespace Sample {
         @EntryPoint()
@@ -91,6 +61,7 @@ fn simple_entry_program_is_valid() {
         }
     }
         "#},
+        None,
         &expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -146,13 +117,14 @@ fn simple_entry_program_is_valid() {
 #[test]
 fn simple_program_is_valid() {
     check(
-        indoc! {r#"
+        "",
+        Some(indoc! {r#"
         {
             use q = Qubit();
             H(q);
             M(q)
         }
-        "#},
+        "#}),
         &expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -208,7 +180,8 @@ fn simple_program_is_valid() {
 #[test]
 fn output_recording_array() {
     check(
-        indoc! {"{use q = Qubit(); [M(q), M(q)]}"},
+        "",
+        Some(indoc! {"{use q = Qubit(); [M(q), M(q)]}"}),
         &expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -266,7 +239,8 @@ fn output_recording_array() {
 #[test]
 fn output_recording_tuple() {
     check(
-        indoc! {"{use q = Qubit(); (M(q), M(q))}"},
+        "",
+        Some(indoc! {"{use q = Qubit(); (M(q), M(q))}"}),
         &expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -324,7 +298,8 @@ fn output_recording_tuple() {
 #[test]
 fn verify_all_intrinsics() {
     check(
-        indoc! {"{
+        "",
+        Some(indoc! {"{
             use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
             CCNOT(q1, q2, q3);
             CX(q1, q2);
@@ -348,7 +323,7 @@ fn verify_all_intrinsics() {
             Reset(q1);
             (M(q1),
             Microsoft.Quantum.Measurement.MResetZ(q1))
-        }"},
+        }"}),
         &expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -426,7 +401,8 @@ fn verify_all_intrinsics() {
 #[test]
 fn complex_program_is_valid() {
     check(
-        indoc! {"{
+        "",
+        Some(indoc! {"{
             open Microsoft.Quantum.Measurement;
             open Microsoft.Quantum.Math;
 
@@ -449,7 +425,7 @@ fn complex_program_is_valid() {
             }
 
             MResetEachZ([aux] + ctls + qs)
-        }"},
+        }"}),
         &expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
