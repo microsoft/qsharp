@@ -86,9 +86,21 @@ jobs:
     name: CI Build and Test
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        platform:
+          - name: "Windows x64"
+            target: "x86_64-pc-windows-msvc"
+            os: "windows-latest"
+          - name: "Windows arm64"
+            target: "aarch64-pc-windows-msvc"
+            os: "windows-latest"
+          - name: "MacOS Universal"
+            target: "x86_64-apple-darwin"
+            os: "macos-latest"
+          - name: "Linux x64"
+            target: "x86_64-unknown-linux-gnu"
+            os: "ubuntu-latest"
 
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.platform.os}}
 
     steps:
       - uses: actions/checkout@v3
@@ -102,11 +114,7 @@ jobs:
       - name: Add additional Rust targets
         run: |
           rustup target add aarch64-apple-darwin
-        if: matrix.os == 'macos-latest'
-      - name: Add additional Rust targets
-        run: |
-          rustup target add aarch64-pc-windows-msvc
-        if: matrix.os == 'windows-latest'
+        if: matrix.platform.os == 'macos-latest'
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -118,6 +126,11 @@ jobs:
         run: python ./prereqs.py --install
       - name: Build and Test
         run: python ./build.py --no-check
+        if: matrix.platform.target != 'aarch64-pc-windows-msvc'
       - name: Cross Build Windows ARM64
-        run: set "CARGO_BUILD_TARGET=aarch64-pc-windows-msvc" & python ./build.py --no-check --no-test
-        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          rustup target add aarch64-pc-windows-msvc
+          echo "CARGO_BUILD_TARGET=aarch64-pc-windows-msvc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          python ./build.py --no-check --no-test
+        if: matrix.platform.target == 'aarch64-pc-windows-msvc'
