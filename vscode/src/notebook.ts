@@ -4,7 +4,6 @@
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 import { EventType, sendTelemetryEvent } from "./telemetry.js";
-import { log } from "qsharp";
 
 /**
  * Sets up handlers to detect Q# code cells in Jupyter notebooks and set the language to Q#.
@@ -56,7 +55,7 @@ export function registerQSharpNotebookHandlers() {
             cell.document,
             qsharpLanguageId
           );
-          sendTelemetryEvent(EventType.QSharpJupyterCellInitialized)
+          sendTelemetryEvent(EventType.QSharpJupyterCellInitialized);
         }
       }
     }

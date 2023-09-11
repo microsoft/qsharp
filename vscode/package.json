@@ -136,5 +136,6 @@
     "type": "git",
     "url": "https://github.com/microsoft/qsharp.git"
   },
-  "license": "SEE LICENSE IN LICENSE.txt"
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "aiKey": "175861b7-3a41-4015-9571-1d930b8b0722"
 }
