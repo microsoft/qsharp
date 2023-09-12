@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  initAzureWorkspaces();
+  initAzureWorkspaces(context);
   initCodegen(context);
   activateDebugger(context);
 

@@ -60,6 +60,22 @@
         {
           "command": "qsharp-vscode.runEditorContents",
           "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.targetSubmit",
+          "when": "qsharp-vscode.treeItemSupportsQir"
+        },
+        {
+          "command": "qsharp-vscode.downloadResults",
+          "when": "qsharp-vscode.treeItemSupportsDownload"
+        },
+        {
+          "command": "qsharp-vscode.getQir",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.setTargetProfile",
+          "when": "resourceLangId == qsharp"
         }
       ],
       "view/title": [
@@ -78,12 +94,12 @@
         {
           "command": "qsharp-vscode.targetSubmit",
           "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == target"
+          "when": "view == quantum-workspaces && viewItem == qir-target"
         },
         {
           "command": "qsharp-vscode.downloadResults",
           "group": "inline",
-          "when": "view == quantum-workspaces && viewItem == result"
+          "when": "view == quantum-workspaces && viewItem == result-download"
         }
       ]
     },
@@ -142,14 +158,13 @@
       {
         "command": "qsharp-vscode.downloadResults",
         "category": "Q#",
-        "title": "Download full Azure Quantum job results",
+        "title": "Download Azure Quantum job results",
         "icon": "$(cloud-download)"
       },
       {
         "command": "qsharp-vscode.setTargetProfile",
         "category": "Q#",
-        "title": "Set the Azure Quantum QIR target profile",
-        "enablement": "resourceLangId == qsharp"
+        "title": "Set the Azure Quantum QIR target profile"
       }
     ],
     "breakpoints": [
