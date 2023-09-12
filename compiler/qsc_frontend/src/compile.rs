@@ -212,6 +212,11 @@ impl PackageStore {
     }
 
     #[must_use]
+    pub fn get_mut(&mut self, id: PackageId) -> (&global::Table, Option<&mut CompileUnit>) {
+        (&self.core, self.units.get_mut(id))
+    }
+
+    #[must_use]
     pub fn iter(&self) -> Iter {
         Iter(self.units.iter())
     }

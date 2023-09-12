@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use miette::Diagnostic;
+use qsc_frontend::{compile::PackageStore, error::WithSource};
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -66,4 +67,19 @@ impl<E: Diagnostic> Diagnostic for WithStack<E> {
     fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
         self.error.diagnostic_source()
     }
+}
+
+pub fn from_eval(
+    error: qsc_eval::Error,
+    store: &PackageStore,
+    stack_trace: Option<String>,
+) -> WithStack<WithSource<qsc_eval::Error>> {
+    let span = error.span();
+
+    let sources = &store
+        .get(span.package)
+        .expect("expected to find package id in store")
+        .sources;
+
+    WithStack::new(WithSource::from_map(sources, error), stack_trace)
 }

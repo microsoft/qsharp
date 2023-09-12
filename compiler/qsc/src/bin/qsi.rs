@@ -9,7 +9,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
     interpret::{
-        stateful::{Interpreter, LineError},
+        stateful::{Interpreter, LineResult},
         stateless,
     },
     TargetProfile,
@@ -171,7 +171,7 @@ fn print_prompt(continuation: bool) {
     io::stdout().flush().expect("standard out should flush");
 }
 
-fn print_interpret_result(result: Result<Value, Vec<LineError>>) {
+fn print_interpret_result(result: LineResult) {
     match result {
         Ok(Value::Tuple(items)) if items.is_empty() => {}
         Ok(value) => println!("{value}"),
