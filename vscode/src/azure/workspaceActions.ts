@@ -165,8 +165,6 @@ export async function queryWorkspaces(): Promise<
     name: workspace.name,
     endpointUri: fixedEndpoint,
     tenantId,
-    connection: "AAD",
-    storageAccount: workspace.properties.storageAccount,
     providers: workspace.properties.providers.map((provider) => ({
       providerId: provider.providerId,
       currentAvailability:

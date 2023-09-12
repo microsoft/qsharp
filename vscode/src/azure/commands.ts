@@ -7,6 +7,7 @@ import { log } from "qsharp-lang";
 import {
   Job,
   Target,
+  WorkspaceConnection,
   WorkspaceTreeItem,
   WorkspaceTreeProvider,
 } from "./treeView";
@@ -21,23 +22,38 @@ import { QuantumUris, compileToBitcode } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
 
-const postSubmitRefreshDelayMs = 1000;
+const postSubmitRefreshDelayMs = 2000;
 const corsDocsUri = "https://github.com/microsoft/qsharp/wiki/Enabling-CORS";
+const workspacesSecret = "qsharp-vscode.workspaces";
 
-let currentTreeItem: WorkspaceTreeItem | undefined = undefined;
-
-export function initAzureWorkspaces(context: vscode.ExtensionContext) {
+export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   const workspaceTreeProvider = new WorkspaceTreeProvider();
   const treeView = vscode.window.createTreeView("quantum-workspaces", {
     treeDataProvider: workspaceTreeProvider,
   });
   context.subscriptions.push(treeView);
 
+  let currentTreeItem: WorkspaceTreeItem | undefined = undefined;
+
+  // Add any previously saved workspaces
+  const savedWorkspaces = await context.secrets.get(workspacesSecret);
+  if (savedWorkspaces) {
+    log.debug("Loading workspaces: ", savedWorkspaces);
+    const workspaces: WorkspaceConnection[] = JSON.parse(savedWorkspaces);
+    for (const workspace of workspaces) {
+      await queryWorkspace(workspace); // Fetch the providers and jobs
+      workspaceTreeProvider.updateWorkspace(workspace);
+    }
+  } else {
+    log.debug("No saved workspaces found.");
+  }
+
   context.subscriptions.push(
     treeView.onDidChangeSelection(async (e) => {
       // Capture the selected item and set context if the supports job submission or results download.
       let supportsQir = false;
       let supportsDownload = false;
+      let isWorkspace = false;
 
       if (e.selection.length === 1) {
         currentTreeItem = e.selection[0] as WorkspaceTreeItem;
@@ -53,6 +69,9 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
             supportsDownload = true;
           }
         }
+        if (currentTreeItem.type === "workspace") {
+          isWorkspace = true;
+        }
       } else {
         currentTreeItem = undefined;
       }
@@ -66,6 +85,11 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
         "setContext",
         "qsharp-vscode.treeItemSupportsDownload",
         supportsDownload
+      );
+      await vscode.commands.executeCommand(
+        "setContext",
+        "qsharp-vscode.treeItemIsWorkspace",
+        isWorkspace
       );
     })
   );
@@ -103,12 +127,12 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
           : await compileToBitcode(compilerService, qir, providerId);
         // End of compilation to be removed
 
-        const token = await getTokenForWorkspace(arg.workspace);
+        const token = await getTokenForWorkspace(treeItem.workspace);
         if (!token) return;
 
         const quantumUris = new QuantumUris(
-          arg.workspace.endpointUri,
-          arg.workspace.id
+          treeItem.workspace.endpointUri,
+          treeItem.workspace.id
         );
 
         try {
@@ -124,8 +148,8 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
         }
 
         setTimeout(async () => {
-          await queryWorkspace(arg.workspace);
-          workspaceTreeProvider.updateWorkspace(arg.workspace);
+          await queryWorkspace(treeItem.workspace);
+          workspaceTreeProvider.updateWorkspace(treeItem.workspace);
         }, postSubmitRefreshDelayMs);
       }
     )
@@ -137,14 +161,51 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
     })
   );
 
+  async function saveWorkspaceList() {
+    // Save the list of workspaces
+    const savedWorkspaces: WorkspaceConnection[] = [];
+    for (const elem of workspaceTreeProvider.treeState.values()) {
+      // Save only the general workspace information, not the providers and jobs
+      savedWorkspaces.push({
+        id: elem.id,
+        name: elem.name,
+        endpointUri: elem.endpointUri,
+        tenantId: elem.tenantId,
+        providers: [],
+        jobs: [],
+      });
+    }
+    log.debug("Saving workspaces: ", savedWorkspaces);
+    await context.secrets.store(
+      workspacesSecret,
+      JSON.stringify(savedWorkspaces)
+    );
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
       const workspace = await queryWorkspaces();
       if (workspace) {
+        await queryWorkspace(workspace); // To fetch the providers and jobs
         workspaceTreeProvider.updateWorkspace(workspace);
-        workspaceTreeProvider.refresh();
+        await saveWorkspaceList();
       }
     })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.workspacesRemove",
+      async (arg: WorkspaceTreeItem) => {
+        // Could be run via the treeItem icon or the menu command.
+        const treeItem = arg || currentTreeItem;
+        if (treeItem?.type !== "workspace") return;
+        const workspace = treeItem.itemData as WorkspaceConnection;
+        workspaceTreeProvider.treeState.delete(workspace.id);
+        await saveWorkspaceList();
+        await workspaceTreeProvider.refresh();
+      }
+    )
   );
 
   context.subscriptions.push(
@@ -165,12 +226,12 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
         const fileUri = vscode.Uri.parse(job.outputDataUri);
         const [, container, blob] = fileUri.path.split("/");
 
-        const token = await getTokenForWorkspace(arg.workspace);
+        const token = await getTokenForWorkspace(treeItem.workspace);
         if (!token) return;
 
         const quantumUris = new QuantumUris(
-          arg.workspace.endpointUri,
-          arg.workspace.id
+          treeItem.workspace.endpointUri,
+          treeItem.workspace.id
         );
 
         try {
