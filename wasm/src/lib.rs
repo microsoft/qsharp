@@ -45,7 +45,7 @@ fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame
     let std = store.insert(std);
     let sources = SourceMap::new([("test".into(), code.into())], None);
 
-    let unit = qsc::compile::compile(
+    let (unit, errors) = qsc::compile::compile(
         &store,
         &[std],
         sources,
@@ -54,7 +54,7 @@ fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame
     );
 
     // Ensure it compiles before trying to add it to the store.
-    if !unit.1.is_empty() {
+    if !errors.is_empty() {
         // This should never happen, as the program should be checked for errors before trying to
         // generate code for it. But just in case, simply report the entire source as 'fail to generate output'
         return Err((
@@ -66,7 +66,7 @@ fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame
         ));
     }
 
-    let package = store.insert(unit.0);
+    let package = store.insert(unit);
 
     generate_qir(&store, package)
 }
