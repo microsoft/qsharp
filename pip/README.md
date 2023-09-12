@@ -9,7 +9,7 @@ to simulate Q# programs within Python.
 To install the Q# language package, run:
 
 ```bash
-pip install qharp-lang
+pip install qsharp-lang
 ```
 
 ## Usage

@@ -9,10 +9,10 @@ cells in JupyterLab.
 To install the Q# JupyterLab extension, run:
 
 ```bash
-pip install qharp-jupyterlab
+pip install qsharp-jupyterlab
 ```
 
-To run Q# in Jupyter notebooks, remember to also install the `qharp-lang` package: [https://pypi.org/project/qsharp-lang].
+To run Q# in Jupyter notebooks, remember to also install the `qsharp-lang` package: [https://pypi.org/project/qsharp-lang].
 
 ## Support
 
