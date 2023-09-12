@@ -10,9 +10,9 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateless, Error, Frame,
+        stateless,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, Span, TargetProfile,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
@@ -267,7 +267,7 @@ pub fn check_exercise_solution(
 
 #[cfg(test)]
 mod test {
-    use crate::get_qir_internal;
+    use crate::get_qir;
 
     #[test]
     fn test_missing_type() {
@@ -292,7 +292,7 @@ mod test {
         H(q);
         M(q)
         }}";
-        let result = get_qir_internal(code);
+        let result = get_qir(code);
         assert!(result.is_ok());
     }
 
