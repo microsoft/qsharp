@@ -118,12 +118,12 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           : await compileToBitcode(compilerService, qir, providerId);
         // End of compilation to be removed
 
-        const token = await getTokenForWorkspace(arg.workspace);
+        const token = await getTokenForWorkspace(treeItem.workspace);
         if (!token) return;
 
         const quantumUris = new QuantumUris(
-          arg.workspace.endpointUri,
-          arg.workspace.id
+          treeItem.workspace.endpointUri,
+          treeItem.workspace.id
         );
 
         try {
@@ -139,8 +139,8 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         }
 
         setTimeout(async () => {
-          await queryWorkspace(arg.workspace);
-          workspaceTreeProvider.updateWorkspace(arg.workspace);
+          await queryWorkspace(treeItem.workspace);
+          workspaceTreeProvider.updateWorkspace(treeItem.workspace);
         }, postSubmitRefreshDelayMs);
       }
     )
@@ -215,12 +215,12 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         const fileUri = vscode.Uri.parse(job.outputDataUri);
         const [, container, blob] = fileUri.path.split("/");
 
-        const token = await getTokenForWorkspace(arg.workspace);
+        const token = await getTokenForWorkspace(treeItem.workspace);
         if (!token) return;
 
         const quantumUris = new QuantumUris(
-          arg.workspace.endpointUri,
-          arg.workspace.id
+          treeItem.workspace.endpointUri,
+          treeItem.workspace.id
         );
 
         try {
