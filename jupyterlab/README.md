@@ -1,57 +1,23 @@
-# Q# extension for JupyterLab
+# Q# Language Support for JupyterLab
 
-## Prerequisites
+Q# is an open-source, high-level programming language for developing and running quantum algorithms.
+The `qsharp-jupyterlab` extension provides syntax highlighting for Q# documents and Q# notebook
+cells in JupyterLab.
 
-You will need to install `jupyterlab` to build and develop the extension.
+## Installation
 
-```bash
-pip install jupyterlab==4.0.0
-```
-
-## A note about `yarn`
-
-The `jlpm` command used below is an alias for `yarn` which comes bundled with Jupyter.
-
-This folder is not part of the `npm` workspace that is defined at the root of this repo.
-This is intentional, since Jupyter extension tooling depends on `jlpm`, which expects a
-`yarn`-style workspace and a `yarn.lock` file.
-
-## Building
-
-To build and install the extension in development mode, from the `jupyterlab` directory run:
+To install the Q# JupyterLab extension, run:
 
 ```bash
-pip install -e .
-# The below command creates a symlink from JupyterLab's
-# extensions directory to the current source directory.
-jupyter labextension develop . --overwrite
+pip install qsharp-jupyterlab
 ```
 
-To start JupyterLab and use the extension, run:
+To run Q# in Jupyter notebooks, remember to also install the `qsharp-lang` package: [https://pypi.org/project/qsharp-lang].
 
-```bash
-jupyter lab
-```
+## Support
 
-To rebuild after making source changes, run:
+For more documentation and to browse issues, please visit the Q# project wiki at [https://github.com/microsoft/qsharp/wiki].
 
-```bash
-jlpm build
-```
+## Contributing
 
-Then refresh the browser.
-
-## Uninstalling
-
-Remove the `pip` package by running:
-
-```bash
-pip uninstall qsharp-jupyterlab
-```
-
-You will also need to remove the symlink created by `jupyter labextension develop`
-command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions` folder is located. Then you can remove the symlink named `qsharp-jupyterlab` within that folder.
-
-## Releasing
-
-The extension can be published to `PyPI` and `npm` manually or using the [Jupyter Releaser](https://github.com/jupyter-server/jupyter_releaser).
+Q# welcomes your contributions! Visit the Q# GitHub repository at [https://github.com/microsoft/qsharp] to find out more about the project.
