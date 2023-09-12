@@ -62,4 +62,9 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
     return;
   }
   reporter.sendTelemetryEvent(event, properties, measurements);
+  log.debug(
+    `Sent telemetry: ${event} ${JSON.stringify(properties)} ${JSON.stringify(
+      measurements
+    )}`
+  );
 }
