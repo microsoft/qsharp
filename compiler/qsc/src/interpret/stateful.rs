@@ -157,20 +157,23 @@ impl<'a> NodeLookup for Lookup<'a> {
 }
 
 pub struct Interpreter {
+    // compilation state (ast and hir)
     store: PackageStore,
-    package: PackageId,
     compiler: Compiler,
-    udts: HashSet<LocalItemId>,
-    callables: IndexMap<LocalItemId, CallableDecl>,
     passes: PassContext,
-    env: Env,
-    sim: SparseSim,
-    lowerer: qsc_eval::lower::Lowerer,
-    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
-    state: State,
-    source_package: PackageId,
     lines: u32,
     target: TargetProfile,
+    // fir state
+    source_package: PackageId,
+    package: PackageId,
+    udts: HashSet<LocalItemId>,
+    callables: IndexMap<LocalItemId, CallableDecl>,
+    lowerer: qsc_eval::lower::Lowerer,
+    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
+    // eval state
+    env: Env,
+    sim: SparseSim,
+    state: State,
 }
 
 pub type LineResult = Result<Value, Vec<LineError>>;
@@ -225,20 +228,20 @@ impl Interpreter {
         fir_store.insert(map_hir_package_to_fir(user_package), user_fir);
         let compiler = Compiler::new(&store, dependencies);
         Ok(Self {
+            compiler,
             store,
+            passes: PassContext::new(target),
+            lines: 0,
+            target,
             package: map_hir_package_to_fir(user_package),
             source_package: map_hir_package_to_fir(package),
-            compiler,
             udts: HashSet::new(),
             callables: IndexMap::new(),
-            passes: PassContext::new(target),
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
             state: State::new(map_hir_package_to_fir(package)),
             lowerer,
             fir_store,
-            lines: 0,
-            target,
         })
     }
 
@@ -288,15 +291,7 @@ impl Interpreter {
                     Some(self.render_call_stack(call_stack, &error))
                 };
 
-                vec![Error(
-                    error::eval(
-                        error,
-                        Some(self.compiler.source_map()),
-                        &self.store,
-                        stack_trace,
-                    )
-                    .into(),
-                )]
+                vec![Error(error::eval(error, &self.store, stack_trace).into())]
                 // vec![Error(WithSource::from_map(
                 //     &package.sources,
                 //     WithStack::new(error, stack_trace).into(),
@@ -334,15 +329,7 @@ impl Interpreter {
                 Some(self.render_call_stack(call_stack, &error))
             };
 
-            vec![Error(
-                error::eval(
-                    error,
-                    Some(self.compiler.source_map()),
-                    &self.store,
-                    stack_trace,
-                )
-                .into(),
-            )]
+            vec![Error(error::eval(error, &self.store, stack_trace).into())]
             // vec![Error(WithSource::from_map(
             //     &package.sources,
             //     WithStack::new(error, stack_trace).into(),
@@ -377,31 +364,31 @@ impl Interpreter {
         let mut result = Value::unit();
 
         let label = self.next_line_label();
+
+        let (core, package) = self
+            .store
+            .get_pass_context(map_fir_package_to_hir(self.package));
+
+        let package = package.expect("expected to find package");
+
         let mut fragments = self
             .compiler
-            .compile_fragments(&label, line)
+            .compile_fragments(package, &label, line)
             .map_err(|errors| {
                 errors
                     .into_iter()
-                    .map(|error| {
-                        LineError(WithSource::from_map(self.compiler.source_map(), error).into())
-                    })
+                    .map(|error| LineError(WithSource::from_map(&package.sources, error).into()))
                     .collect::<Vec<_>>()
             })?;
 
         let pass_errors = fragments
             .iter_mut()
-            .flat_map(|fragment| {
-                self.passes
-                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
-            })
+            .flat_map(|fragment| self.passes.run(core, &mut package.assigner, fragment))
             .collect::<Vec<_>>();
         if !pass_errors.is_empty() {
             return Err(pass_errors
                 .into_iter()
-                .map(|error| {
-                    LineError(WithSource::from_map(self.compiler.source_map(), error).into())
-                })
+                .map(|error| LineError(WithSource::from_map(&package.sources, error).into()))
                 .collect());
         }
 
@@ -440,18 +427,8 @@ impl Interpreter {
                             };
 
                             return Err(vec![LineError(
-                                error::eval(
-                                    error,
-                                    Some(self.compiler.source_map()),
-                                    &self.store,
-                                    stack_trace,
-                                )
-                                .into(),
+                                error::eval(error, &self.store, stack_trace).into(),
                             )]);
-                            // return Err(vec![LineError(WithSource::from_map(
-                            //     self.compiler.source_map(),
-                            //     WithStack::new(error, stack_trace).into(),
-                            // ))]);
                         }
                     }
                 }
@@ -475,33 +452,38 @@ impl Interpreter {
         expr: &str,
         shots: u32,
     ) -> Result<Vec<LineResult>, Vec<LineError>> {
-        let mut fragments = self
-            .compiler
-            .compile_expr("<entry>", expr)
-            .map_err(|errors| {
-                errors
-                    .into_iter()
-                    .map(|error| {
-                        LineError(WithSource::from_map(self.compiler.source_map(), error).into())
-                    })
-                    .collect::<Vec<_>>()
-            })?;
+        let fragments = {
+            let (core, package) = self
+                .store
+                .get_pass_context(map_fir_package_to_hir(self.package));
 
-        let pass_errors = fragments
-            .iter_mut()
-            .flat_map(|fragment| {
-                self.passes
-                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
-            })
-            .collect::<Vec<_>>();
-        if !pass_errors.is_empty() {
-            return Err(pass_errors
-                .into_iter()
-                .map(|error| {
-                    LineError(WithSource::from_map(self.compiler.source_map(), error).into())
-                })
-                .collect());
-        }
+            let package = package.expect("expected to find package");
+
+            let mut fragments = self
+                .compiler
+                .compile_expr(package, "<entry>", expr)
+                .map_err(|errors| {
+                    errors
+                        .into_iter()
+                        .map(|error| {
+                            LineError(WithSource::from_map(&package.sources, error).into())
+                        })
+                        .collect::<Vec<_>>()
+                })?;
+
+            let pass_errors = fragments
+                .iter_mut()
+                .flat_map(|fragment| self.passes.run(core, &mut package.assigner, fragment))
+                .collect::<Vec<_>>();
+            if !pass_errors.is_empty() {
+                return Err(pass_errors
+                    .into_iter()
+                    .map(|error| LineError(WithSource::from_map(&package.sources, error).into()))
+                    .collect());
+            }
+
+            fragments
+        };
 
         let mut stmt_id = None;
         for fragment in fragments {
@@ -557,13 +539,7 @@ impl Interpreter {
                         };
 
                         Err(vec![LineError(
-                            error::eval(
-                                error,
-                                Some(self.compiler.source_map()),
-                                &self.store,
-                                stack_trace,
-                            )
-                            .into(),
+                            error::eval(error, &self.store, stack_trace).into(),
                         )])
                     }
                 },
@@ -585,33 +561,40 @@ impl Interpreter {
             return Err(vec![LineError(LineErrorKind::TargetMismatch)]);
         }
 
-        let mut fragments = self
-            .compiler
-            .compile_expr("<entry>", expr)
-            .map_err(|errors| {
-                errors
+        let fragments = {
+            let (core, package) = self
+                .store
+                .get_pass_context(map_fir_package_to_hir(self.package));
+
+            let package = package.expect("expected to find package");
+
+            let mut fragments = self
+                .compiler
+                .compile_expr(package, "<entry>", expr)
+                .map_err(|errors| {
+                    errors
+                        .into_iter()
+                        .map(|error| {
+                            LineError(WithSource::from_map(&package.sources, error).into())
+                        })
+                        .collect::<Vec<_>>()
+                })?;
+
+            let pass_errors = fragments
+                .iter_mut()
+                .flat_map(|fragment| self.passes.run(core, &mut package.assigner, fragment))
+                .collect::<Vec<_>>();
+            if !pass_errors.is_empty() {
+                return Err(pass_errors
                     .into_iter()
                     .map(|error| {
-                        LineError(WithSource::from_map(self.compiler.source_map(), error).into())
+                        LineError(WithSource::from_map(&self.package_mut().sources, error).into())
                     })
-                    .collect::<Vec<_>>()
-            })?;
+                    .collect());
+            }
 
-        let pass_errors = fragments
-            .iter_mut()
-            .flat_map(|fragment| {
-                self.passes
-                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
-            })
-            .collect::<Vec<_>>();
-        if !pass_errors.is_empty() {
-            return Err(pass_errors
-                .into_iter()
-                .map(|error| {
-                    LineError(WithSource::from_map(self.compiler.source_map(), error).into())
-                })
-                .collect());
-        }
+            fragments
+        };
 
         let mut ret = Ok(String::new());
         for fragment in fragments {
@@ -647,23 +630,25 @@ impl Interpreter {
                             };
 
                             vec![LineError(
-                                error::eval(
-                                    error,
-                                    Some(self.compiler.source_map()),
-                                    &self.store,
-                                    stack_trace,
-                                )
-                                .into(),
+                                error::eval(error, &self.store, stack_trace).into(),
                             )]
-                            // vec![LineError(WithSource::from_map(
-                            //     self.compiler.source_map(),
-                            //     WithStack::new(error, stack_trace).into(),
-                            // ))]
                         });
                 }
             }
         }
         ret
+    }
+
+    fn package(&self) -> &CompileUnit {
+        self.store
+            .get(map_fir_package_to_hir(self.source_package))
+            .expect("Could not load package")
+    }
+
+    fn package_mut(&mut self) -> &mut CompileUnit {
+        self.store
+            .get_mut(map_fir_package_to_hir(self.source_package))
+            .expect("Could not load package")
     }
 
     fn next_line_label(&mut self) -> String {
@@ -777,10 +762,7 @@ impl Interpreter {
     /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_breakpoints(&self, path: &str) -> Vec<BreakpointSpan> {
-        let unit = self
-            .store
-            .get(map_fir_package_to_hir(self.source_package))
-            .expect("Could not load package");
+        let unit = self.package();
 
         if let Some(source) = unit.sources.find_by_name(path) {
             let package = self

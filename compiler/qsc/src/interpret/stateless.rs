@@ -211,12 +211,8 @@ where
             };
 
             vec![Error(
-                error::eval(error, None, &self.interpreter.store, stack_trace).into(),
+                error::eval(error, &self.interpreter.store, stack_trace).into(),
             )]
-            // vec![Error(WithSource::from_map(
-            //     &package.sources,
-            //     WithStack::new(error, stack_trace).into(),
-            // ))]
         })
     }
 
