@@ -35,6 +35,7 @@ import {
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
+import { EventType, sendTelemetryEvent } from "../telemetry";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -99,6 +100,7 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(): Promise<void> {
+    const start = performance.now();
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
 
@@ -146,6 +148,12 @@ export class QscDebugSession extends LoggingDebugSession {
       log.warn(`compilation failed. ${failureMessage}`);
       this.failureMessage = failureMessage;
     }
+    const end = performance.now();
+    sendTelemetryEvent(
+      EventType.DebugSessionStart,
+      {},
+      { timeToStartMs: end - start }
+    );
   }
 
   /**

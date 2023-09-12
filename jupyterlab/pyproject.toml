@@ -3,7 +3,7 @@ requires = ["hatchling>=1.4.0", "jupyterlab==4.0.0", "hatch-nodejs-version"]
 build-backend = "hatchling.build"
 
 [project]
-name = "qsharp-lang-jupyterlab"
+name = "qsharp-jupyterlab"
 version = "0.0.0"
 readme = "README.md"
 requires-python = ">=3.7"
