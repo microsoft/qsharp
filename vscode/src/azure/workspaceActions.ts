@@ -355,17 +355,17 @@ export async function submitJob(
   // validator for the user-provided number of shots input
   const validateShotsInput = (input: string) => {
     const result = parseInt(input);
-    if (isNaN(result)|| Math.floor(result) !== result) {
+    if (isNaN(result) || Math.floor(result) !== result) {
       return "Number of shots must be an integer";
     }
   };
 
-  const numberOfShots = await vscode.window.showInputBox({
-    value: "100",
-    prompt: "Number of shots",
-    validateInput: validateShotsInput,
-  }) || "100";
-
+  const numberOfShots =
+    (await vscode.window.showInputBox({
+      value: "100",
+      prompt: "Number of shots",
+      validateInput: validateShotsInput,
+    })) || "100";
 
   const payload = {
     id: containerName,
