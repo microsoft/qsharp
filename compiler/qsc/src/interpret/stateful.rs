@@ -257,7 +257,9 @@ impl Interpreter {
                     Some(self.render_call_stack(call_stack, &error))
                 };
 
-                vec![Error(error::eval(error, &self.store, stack_trace).into())]
+                vec![Error(
+                    error::from_eval(error, &self.store, stack_trace).into(),
+                )]
             })
     }
 
@@ -291,7 +293,9 @@ impl Interpreter {
                 Some(self.render_call_stack(call_stack, &error))
             };
 
-            vec![Error(error::eval(error, &self.store, stack_trace).into())]
+            vec![Error(
+                error::from_eval(error, &self.store, stack_trace).into(),
+            )]
         })
     }
 
@@ -347,7 +351,7 @@ impl Interpreter {
                     };
 
                     return Err(vec![Error(
-                        error::eval(error, &self.store, stack_trace).into(),
+                        error::from_eval(error, &self.store, stack_trace).into(),
                     )]);
                 }
             }
@@ -472,7 +476,7 @@ impl Interpreter {
                         };
 
                         Err(vec![Error(
-                            error::eval(error, &self.store, stack_trace).into(),
+                            error::from_eval(error, &self.store, stack_trace).into(),
                         )])
                     }
                 },
@@ -531,7 +535,9 @@ impl Interpreter {
                         Some(self.render_call_stack(call_stack, &error))
                     };
 
-                    vec![Error(error::eval(error, &self.store, stack_trace).into())]
+                    vec![Error(
+                        error::from_eval(error, &self.store, stack_trace).into(),
+                    )]
                 },
             );
         }

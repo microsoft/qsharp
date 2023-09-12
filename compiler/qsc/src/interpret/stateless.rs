@@ -210,7 +210,7 @@ where
             };
 
             vec![Error(
-                error::eval(error, &self.interpreter.store, stack_trace).into(),
+                error::from_eval(error, &self.interpreter.store, stack_trace).into(),
             )]
         })
     }

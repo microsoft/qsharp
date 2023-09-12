@@ -69,7 +69,7 @@ impl<E: Diagnostic> Diagnostic for WithStack<E> {
     }
 }
 
-pub fn eval(
+pub fn from_eval(
     error: qsc_eval::Error,
     store: &PackageStore,
     stack_trace: Option<String>,
