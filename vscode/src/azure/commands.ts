@@ -19,19 +19,62 @@ import {
 } from "./workspaceActions";
 import { QuantumUris, compileToBitcode } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
+import { targetSupportQir } from "./providerProperties";
 
 const corsDocsUri = "https://github.com/microsoft/qsharp/wiki/Enabling-CORS";
 
+let currentTreeItem: WorkspaceTreeItem | undefined = undefined;
+
 export function initAzureWorkspaces() {
   const workspaceTreeProvider = new WorkspaceTreeProvider();
-  vscode.window.createTreeView("quantum-workspaces", {
+  const treeView = vscode.window.createTreeView("quantum-workspaces", {
     treeDataProvider: workspaceTreeProvider,
+  });
+
+  treeView.onDidChangeSelection((e) => {
+    // Capture the selected item, and set context if if supports job submission or results download.
+    let supportsQir = false;
+    let supportsDownload = false;
+
+    if (e.selection.length === 1) {
+      currentTreeItem = e.selection[0] as WorkspaceTreeItem;
+      if (
+        currentTreeItem.type === "target" &&
+        targetSupportQir(currentTreeItem.label?.toString() || "")
+      ) {
+        supportsQir = true;
+      }
+      if (currentTreeItem.type === "job") {
+        const job = currentTreeItem.itemData as Job;
+        if (job.status === "Succeeded" && job.outputDataUri) {
+          supportsDownload = true;
+        }
+      }
+    } else {
+      currentTreeItem = undefined;
+    }
+
+    vscode.commands.executeCommand(
+      "setContext",
+      "qsharp-vscode.treeItemSupportsQir",
+      supportsQir
+    );
+    vscode.commands.executeCommand(
+      "setContext",
+      "qsharp-vscode.treeItemSupportsDownload",
+      supportsDownload
+    );
   });
 
   vscode.commands.registerCommand(
     "qsharp-vscode.targetSubmit",
     async (arg: WorkspaceTreeItem) => {
-      const target = arg.itemData as Target;
+      // Could be run via the treeItem icon or the menu command.
+      const treeItem = arg || currentTreeItem;
+      if (treeItem?.type !== "target") return;
+
+      const target = treeItem.itemData as Target;
+
       const providerId = target.id.split(".")?.[0];
 
       let qir = "";
@@ -97,7 +140,11 @@ export function initAzureWorkspaces() {
   vscode.commands.registerCommand(
     "qsharp-vscode.downloadResults",
     async (arg: WorkspaceTreeItem) => {
-      const job = arg.itemData as Job;
+      // Could be run via the treeItem icon or the menu command.
+      const treeItem = arg || currentTreeItem;
+      if (treeItem?.type !== "job") return;
+
+      const job = treeItem.itemData as Job;
 
       if (!job.outputDataUri) {
         log.error("Download called for job with null outputDataUri", job);
