@@ -66,6 +66,10 @@
           "when": "qsharp-vscode.treeItemSupportsQir"
         },
         {
+          "command": "qsharp-vscode.workspacesRemove",
+          "when": "qsharp-vscode.treeItemIsWorkspace"
+        },
+        {
           "command": "qsharp-vscode.downloadResults",
           "when": "qsharp-vscode.treeItemSupportsDownload"
         },
@@ -91,6 +95,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "qsharp-vscode.workspacesRemove",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == workspace"
+        },
         {
           "command": "qsharp-vscode.targetSubmit",
           "group": "inline",
@@ -143,6 +152,12 @@
         "category": "Q#",
         "title": "Add an Azure Quantum workspace",
         "icon": "$(add)"
+      },
+      {
+        "command": "qsharp-vscode.workspacesRemove",
+        "category": "Q#",
+        "title": "Remove the Azure Quantum workspace",
+        "icon": "$(remove)"
       },
       {
         "command": "qsharp-vscode.targetSubmit",
