@@ -3,7 +3,7 @@
 
 use super::debug::format_call_stack;
 use crate::compile::{self, compile};
-use crate::error;
+use crate::error::{self, WithStack};
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
@@ -48,8 +48,7 @@ enum ErrorKind {
     Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] error::Eval),
-    // Eval(#[from] WithStack<qsc_eval::Error>),
+    Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,

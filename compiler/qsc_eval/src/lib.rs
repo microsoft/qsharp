@@ -111,6 +111,7 @@ pub enum Error {
 }
 
 impl Error {
+    #[must_use]
     pub fn span(&self) -> &GlobalSpan {
         match self {
             Error::ArrayTooLarge(span)

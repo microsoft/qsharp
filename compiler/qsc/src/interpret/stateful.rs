@@ -10,7 +10,7 @@ mod stepping_tests;
 use super::debug::format_call_stack;
 use super::stateless;
 use crate::compile::{self, compile};
-use crate::error;
+use crate::error::{self, WithStack};
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
@@ -67,8 +67,7 @@ enum ErrorKind {
     Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] error::Eval),
-    // Eval(#[from] WithStack<qsc_eval::Error>),
+    Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
@@ -104,8 +103,7 @@ pub enum LineErrorKind {
     Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] error::Eval),
-    // Eval(#[from] WithStack<qsc_eval::Error>),
+    Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
     #[error("code generation target mismatch")]
     #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
     TargetMismatch,
@@ -170,7 +168,7 @@ pub struct Interpreter {
     callables: IndexMap<LocalItemId, CallableDecl>,
     lowerer: qsc_eval::lower::Lowerer,
     fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
-    // eval state
+    // evaluator state
     env: Env,
     sim: SparseSim,
     state: State,
@@ -292,10 +290,6 @@ impl Interpreter {
                 };
 
                 vec![Error(error::eval(error, &self.store, stack_trace).into())]
-                // vec![Error(WithSource::from_map(
-                //     &package.sources,
-                //     WithStack::new(error, stack_trace).into(),
-                // ))]
             })
     }
 
@@ -330,10 +324,6 @@ impl Interpreter {
             };
 
             vec![Error(error::eval(error, &self.store, stack_trace).into())]
-            // vec![Error(WithSource::from_map(
-            //     &package.sources,
-            //     WithStack::new(error, stack_trace).into(),
-            // ))]
         })
     }
 
@@ -346,14 +336,6 @@ impl Interpreter {
             return Ok(entry);
         };
         Err(vec![Error(ErrorKind::NoEntryPoint)])
-        // let unit = self
-        //     .store
-        //     .get(map_fir_package_to_hir(self.source_package))
-        //     .expect("store should have package");
-        // Err(vec![Error(WithSource::from_map(
-        //     &unit.sources,
-        //     ErrorKind::NoEntryPoint,
-        // ))])
     }
 
     /// # Errors

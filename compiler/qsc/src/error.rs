@@ -70,9 +70,11 @@ impl<E: Diagnostic> Diagnostic for WithStack<E> {
     }
 }
 
-pub type Eval = WithStack<WithSource<qsc_eval::Error>>;
-
-pub fn eval(error: qsc_eval::Error, store: &PackageStore, stack_trace: Option<String>) -> Eval {
+pub fn eval(
+    error: qsc_eval::Error,
+    store: &PackageStore,
+    stack_trace: Option<String>,
+) -> WithStack<WithSource<qsc_eval::Error>> {
     let span = error.span();
 
     let sources = &store
