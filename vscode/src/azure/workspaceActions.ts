@@ -316,6 +316,11 @@ export async function submitJob(
       validateInput: validateShotsInput,
     })) || "100";
 
+  // abort if the user hits <Esc> during shots entry
+  if (numberOfShots === undefined) {
+    return;
+  }
+
   // Get a sasUri for the container
   const body = JSON.stringify({ containerName });
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
