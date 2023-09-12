@@ -31,6 +31,7 @@ export function initAzureWorkspaces(context: vscode.ExtensionContext) {
   const treeView = vscode.window.createTreeView("quantum-workspaces", {
     treeDataProvider: workspaceTreeProvider,
   });
+  context.subscriptions.push(treeView);
 
   context.subscriptions.push(
     treeView.onDidChangeSelection(async (e) => {
