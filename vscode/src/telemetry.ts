@@ -41,7 +41,7 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   if (!packageJson) {
     return;
   }
-  // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/183
+  // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/185
   // we cannot use the latest version of extension-telemetry until this is fixed
   reporter = new TelemetryReporter(
     "qsharp-vscode",
