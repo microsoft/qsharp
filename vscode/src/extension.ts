@@ -21,6 +21,7 @@ import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
+import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
@@ -29,6 +30,7 @@ import { createSignatureHelpProvider } from "./signature.js";
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
+  initTelemetry(context);
 
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
@@ -199,11 +201,18 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
 }
 
 async function loadLanguageService(baseUri: vscode.Uri) {
+  const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   const languageService = await getLanguageService();
   await updateLanguageServiceProfile(languageService);
+  const end = performance.now();
+  sendTelemetryEvent(
+    EventType.LoadLanguageService,
+    {},
+    { timeToStartMs: end - start }
+  );
   return languageService;
 }
 
