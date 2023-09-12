@@ -20,15 +20,20 @@ import {
 } from "./workspaceActions";
 import { QuantumUris, compileToBitcode } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
+import { targetSupportQir } from "./providerProperties";
 
+const postSubmitRefreshDelayMs = 2000;
 const corsDocsUri = "https://github.com/microsoft/qsharp/wiki/Enabling-CORS";
 const workspacesSecret = "qsharp-vscode.workspaces";
 
 export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   const workspaceTreeProvider = new WorkspaceTreeProvider();
-  vscode.window.createTreeView("quantum-workspaces", {
+  const treeView = vscode.window.createTreeView("quantum-workspaces", {
     treeDataProvider: workspaceTreeProvider,
   });
+  context.subscriptions.push(treeView);
+
+  let currentTreeItem: WorkspaceTreeItem | undefined = undefined;
 
   // Add any previously saved workspaces
   const savedWorkspaces = await context.secrets.get(workspacesSecret);
@@ -43,62 +48,109 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     log.debug("No saved workspaces found.");
   }
 
-  vscode.commands.registerCommand(
-    "qsharp-vscode.targetSubmit",
-    async (arg: WorkspaceTreeItem) => {
-      const target = arg.itemData as Target;
-      const providerId = target.id.split(".")?.[0];
+  context.subscriptions.push(
+    treeView.onDidChangeSelection(async (e) => {
+      // Capture the selected item and set context if the supports job submission or results download.
+      let supportsQir = false;
+      let supportsDownload = false;
 
-      let qir = "";
-      try {
-        qir = await getQirForActiveWindow();
-      } catch (e: any) {
-        if (e?.name === "QirGenerationError") {
-          vscode.window.showErrorMessage(e.message);
-          return;
+      if (e.selection.length === 1) {
+        currentTreeItem = e.selection[0] as WorkspaceTreeItem;
+        if (
+          currentTreeItem.type === "target" &&
+          targetSupportQir(currentTreeItem.label?.toString() || "")
+        ) {
+          supportsQir = true;
         }
+        if (currentTreeItem.type === "job") {
+          const job = currentTreeItem.itemData as Job;
+          if (job.status === "Succeeded" && job.outputDataUri) {
+            supportsDownload = true;
+          }
+        }
+      } else {
+        currentTreeItem = undefined;
       }
-      if (!qir) return;
 
-      // Note: Below compilation to be removed when all regions support .ll text directly
-      const compilerService: string | undefined = vscode.workspace
-        .getConfiguration("Q#")
-        .get("compilerService"); // e.g. in settings.json: "Q#.compilerService": "https://qsx-proxy.azurewebsites.net/api/compile"
-
-      const payload = !compilerService
-        ? qir
-        : await compileToBitcode(compilerService, qir, providerId);
-      // End of compilation to be removed
-
-      const token = await getTokenForWorkspace(arg.workspace);
-      if (!token) return;
-
-      const quantumUris = new QuantumUris(
-        arg.workspace.endpointUri,
-        arg.workspace.id
+      await vscode.commands.executeCommand(
+        "setContext",
+        "qsharp-vscode.treeItemSupportsQir",
+        supportsQir
       );
-
-      try {
-        await submitJob(token, quantumUris, payload, providerId, target.id);
-      } catch (e: any) {
-        log.error("Failed to submit job. ", e);
-        vscode.window.showErrorMessage(
-          "Failed to submit the job to Azure. " +
-            "Ensure CORS is configured correctly on the workspace storage account. " +
-            `See ${corsDocsUri} for more information.`
-        );
-        return;
-      }
-
-      setTimeout(() => {
-        workspaceTreeProvider.refresh();
-      }, 2000);
-    }
+      await vscode.commands.executeCommand(
+        "setContext",
+        "qsharp-vscode.treeItemSupportsDownload",
+        supportsDownload
+      );
+    })
   );
 
-  vscode.commands.registerCommand("qsharp-vscode.workspacesRefresh", () => {
-    workspaceTreeProvider.refresh();
-  });
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.targetSubmit",
+      async (arg: WorkspaceTreeItem) => {
+        // Could be run via the treeItem icon or the menu command.
+        const treeItem = arg || currentTreeItem;
+        if (treeItem?.type !== "target") return;
+
+        const target = treeItem.itemData as Target;
+
+        const providerId = target.id.split(".")?.[0];
+
+        let qir = "";
+        try {
+          qir = await getQirForActiveWindow();
+        } catch (e: any) {
+          if (e?.name === "QirGenerationError") {
+            vscode.window.showErrorMessage(e.message);
+            return;
+          }
+        }
+        if (!qir) return;
+
+        // Note: Below compilation to be removed when all regions support .ll text directly
+        const compilerService: string | undefined = vscode.workspace
+          .getConfiguration("Q#")
+          .get("compilerService"); // e.g. in settings.json: "Q#.compilerService": "https://qsx-proxy.azurewebsites.net/api/compile"
+
+        const payload = !compilerService
+          ? qir
+          : await compileToBitcode(compilerService, qir, providerId);
+        // End of compilation to be removed
+
+        const token = await getTokenForWorkspace(arg.workspace);
+        if (!token) return;
+
+        const quantumUris = new QuantumUris(
+          arg.workspace.endpointUri,
+          arg.workspace.id
+        );
+
+        try {
+          await submitJob(token, quantumUris, payload, providerId, target.id);
+        } catch (e: any) {
+          log.error("Failed to submit job. ", e);
+          vscode.window.showErrorMessage(
+            "Failed to submit the job to Azure. " +
+              "Ensure CORS is configured correctly on the workspace storage account. " +
+              `See ${corsDocsUri} for more information.`
+          );
+          return;
+        }
+
+        setTimeout(async () => {
+          await queryWorkspace(arg.workspace);
+          workspaceTreeProvider.updateWorkspace(arg.workspace);
+        }, postSubmitRefreshDelayMs);
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("qsharp-vscode.workspacesRefresh", () => {
+      workspaceTreeProvider.refresh();
+    })
+  );
 
   async function saveWorkspaceList() {
     // Save the list of workspaces
@@ -121,65 +173,75 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     );
   }
 
-  vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
-    const workspace = await queryWorkspaces();
-    if (workspace) {
-      queryWorkspace(workspace); // To fetch the providers and jobs
-      workspaceTreeProvider.updateWorkspace(workspace);
-      await saveWorkspaceList();
-    }
-  });
-
-  vscode.commands.registerCommand(
-    "qsharp-vscode.workspacesRemove",
-    async (item: WorkspaceTreeItem) => {
-      if (!item || item.type !== "workspace") return;
-      const workspace = item.itemData as WorkspaceConnection;
-      workspaceTreeProvider.treeState.delete(workspace.id);
-      await saveWorkspaceList();
-      await workspaceTreeProvider.refresh();
-    }
+  context.subscriptions.push(
+    vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
+      const workspace = await queryWorkspaces();
+      if (workspace) {
+        queryWorkspace(workspace); // To fetch the providers and jobs
+        workspaceTreeProvider.updateWorkspace(workspace);
+        await saveWorkspaceList();
+      }
+    })
   );
 
-  vscode.commands.registerCommand(
-    "qsharp-vscode.downloadResults",
-    async (arg: WorkspaceTreeItem) => {
-      const job = arg.itemData as Job;
-
-      if (!job.outputDataUri) {
-        log.error("Download called for job with null outputDataUri", job);
-        return;
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.workspacesRemove",
+      async (item: WorkspaceTreeItem) => {
+        if (!item || item.type !== "workspace") return;
+        const workspace = item.itemData as WorkspaceConnection;
+        workspaceTreeProvider.treeState.delete(workspace.id);
+        await saveWorkspaceList();
+        await workspaceTreeProvider.refresh();
       }
+    )
+  );
 
-      const fileUri = vscode.Uri.parse(job.outputDataUri);
-      const [, container, blob] = fileUri.path.split("/");
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.downloadResults",
+      async (arg: WorkspaceTreeItem) => {
+        // Could be run via the treeItem icon or the menu command.
+        const treeItem = arg || currentTreeItem;
+        if (treeItem?.type !== "job") return;
 
-      const token = await getTokenForWorkspace(arg.workspace);
-      if (!token) return;
+        const job = treeItem.itemData as Job;
 
-      const quantumUris = new QuantumUris(
-        arg.workspace.endpointUri,
-        arg.workspace.id
-      );
-
-      try {
-        const file = await getJobFiles(container, blob, token, quantumUris);
-        if (file) {
-          const doc = await vscode.workspace.openTextDocument({
-            content: file,
-            language: "plaintext",
-          });
-          vscode.window.showTextDocument(doc);
+        if (!job.outputDataUri) {
+          log.error("Download called for job with null outputDataUri", job);
+          return;
         }
-      } catch (e: any) {
-        log.error("Failed to download result file. ", e);
-        vscode.window.showErrorMessage(
-          "Failed to download the results file. " +
-            "Ensure CORS is configured correctly on the workspace storage account. " +
-            `See ${corsDocsUri} for more information.`
+
+        const fileUri = vscode.Uri.parse(job.outputDataUri);
+        const [, container, blob] = fileUri.path.split("/");
+
+        const token = await getTokenForWorkspace(arg.workspace);
+        if (!token) return;
+
+        const quantumUris = new QuantumUris(
+          arg.workspace.endpointUri,
+          arg.workspace.id
         );
-        return;
+
+        try {
+          const file = await getJobFiles(container, blob, token, quantumUris);
+          if (file) {
+            const doc = await vscode.workspace.openTextDocument({
+              content: file,
+              language: "plaintext",
+            });
+            vscode.window.showTextDocument(doc);
+          }
+        } catch (e: any) {
+          log.error("Failed to download result file. ", e);
+          vscode.window.showErrorMessage(
+            "Failed to download the results file. " +
+              "Ensure CORS is configured correctly on the workspace storage account. " +
+              `See ${corsDocsUri} for more information.`
+          );
+          return;
+        }
       }
-    }
+    )
   );
 }

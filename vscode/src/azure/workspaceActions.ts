@@ -11,6 +11,10 @@ import {
   storageRequest,
 } from "./networkRequests";
 import { WorkspaceConnection } from "./treeView";
+import {
+  shouldExcludeProvider,
+  shouldExcludeTarget,
+} from "./providerProperties";
 
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
@@ -206,37 +210,19 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     );
   }
 
-  const supportedTargets = [
-    "quantinuum.sim.h1-1sc",
-    "quantinuum.sim.h1-1e",
-    "quantinuum.qpu.h1-1",
-    "quantinuum.sim.h1-2sc",
-    "quantinuum.sim.h1-2e",
-    "quantinuum.qpu.h1-2",
-    "quantinuum.sim.h2-1sc",
-    "quantinuum.sim.h2-1e",
-    "quantinuum.qpu.h2-1",
-    "rigetti.sim.qvm",
-    "rigetti.qpu.aspen-m-3",
-    "ionq.qpu-preview",
-    "ionq.qpu.aria-1-preview",
-    "ionq.qpu.aria-2-preview",
-    "ionq.simulator-preview",
-  ];
-
   // Update the providers with the target list
   workspace.providers = providerStatus.value.map((provider) => {
     return {
       providerId: provider.id,
       currentAvailability: provider.currentAvailability,
-      targets: provider.targets.filter((target) =>
-        supportedTargets.includes(target.id)
+      targets: provider.targets.filter(
+        (target) => !shouldExcludeTarget(target.id)
       ),
     };
   });
 
   workspace.providers = workspace.providers.filter(
-    (provider) => provider.targets.length > 0
+    (provider) => !shouldExcludeProvider(provider.providerId)
   );
 
   log.debug("Fetching the jobs for the workspace");

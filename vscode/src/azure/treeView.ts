@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { queryWorkspace } from "./workspaceActions";
 import { log } from "qsharp-lang";
+import { targetSupportQir } from "./providerProperties";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
@@ -153,6 +154,11 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
       }
       case "target": {
         const target = itemData as Target;
+
+        if (targetSupportQir(target.id)) {
+          this.contextValue = "qir-target";
+        }
+
         this.iconPath = new vscode.ThemeIcon("package");
         this.collapsibleState = vscode.TreeItemCollapsibleState.None;
         if (target.currentAvailability || target.averageQueueTime) {
@@ -194,7 +200,7 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
             break;
           case "Succeeded":
             this.iconPath = new vscode.ThemeIcon("pass");
-            this.contextValue = "result";
+            this.contextValue = "result-download";
             break;
         }
         // Tooltip
