@@ -177,7 +177,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
       const workspace = await queryWorkspaces();
       if (workspace) {
-        queryWorkspace(workspace); // To fetch the providers and jobs
+        await queryWorkspace(workspace); // To fetch the providers and jobs
         workspaceTreeProvider.updateWorkspace(workspace);
         await saveWorkspaceList();
       }
