@@ -6,7 +6,8 @@ pub mod stateful;
 pub mod stateless;
 
 pub use qsc_eval::{
+    debug::Frame,
     output::{self, GenericReceiver},
     val::Value,
-    StepAction, StepResult,
+    Error, StepAction, StepResult,
 };

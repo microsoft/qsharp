@@ -21,6 +21,24 @@
     "onDebugDynamicConfigurations:qsharp"
   ],
   "contributes": {
+    "configuration": {
+      "title": "Q#",
+      "properties": {
+        "Q#.targetProfile": {
+          "type": "string",
+          "default": "full",
+          "enum": [
+            "full",
+            "base"
+          ],
+          "enumDescriptions": [
+            "The full set of capabilities required to run any Q# program. This option maps to the Full Profile as defined by the QIR specification.",
+            "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification."
+          ],
+          "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
+        }
+      }
+    },
     "menus": {
       "editor/title/run": [
         {
@@ -43,8 +61,46 @@
           "command": "qsharp-vscode.runEditorContents",
           "when": "resourceLangId == qsharp"
         }
+      ],
+      "view/title": [
+        {
+          "command": "qsharp-vscode.workspacesRefresh",
+          "when": "view == quantum-workspaces",
+          "group": "navigation"
+        },
+        {
+          "command": "qsharp-vscode.workspacesAdd",
+          "when": "view == quantum-workspaces",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "qsharp-vscode.targetSubmit",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == target"
+        },
+        {
+          "command": "qsharp-vscode.downloadResults",
+          "group": "inline",
+          "when": "view == quantum-workspaces && viewItem == result"
+        }
       ]
     },
+    "views": {
+      "explorer": [
+        {
+          "id": "quantum-workspaces",
+          "name": "Quantum Workspaces"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "quantum-workspaces",
+        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:qsharp-vscode.workspacesAdd)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+      }
+    ],
     "commands": [
       {
         "command": "qsharp-vscode.debugEditorContents",
@@ -59,6 +115,41 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.workspacesRefresh",
+        "category": "Q#",
+        "title": "Refresh Azure Quantum workspaces",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "qsharp-vscode.workspacesAdd",
+        "category": "Q#",
+        "title": "Add an Azure Quantum workspace",
+        "icon": "$(add)"
+      },
+      {
+        "command": "qsharp-vscode.targetSubmit",
+        "category": "Q#",
+        "title": "Submit current Q# program",
+        "icon": "$(run)"
+      },
+      {
+        "command": "qsharp-vscode.getQir",
+        "category": "Q#",
+        "title": "Get QIR for current Q# program"
+      },
+      {
+        "command": "qsharp-vscode.downloadResults",
+        "category": "Q#",
+        "title": "Download full Azure Quantum job results",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "qsharp-vscode.setTargetProfile",
+        "category": "Q#",
+        "title": "Set the Azure Quantum QIR target profile",
+        "enablement": "resourceLangId == qsharp"
       }
     ],
     "breakpoints": [
@@ -130,6 +221,7 @@
   "scripts": {
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build": "npm run tsc:check && node build.mjs",
+    "build:watch": "node build.mjs --watch",
     "run:web": "npx @vscode/test-web --extensionDevelopmentPath . ../samples"
   },
   "repository": {

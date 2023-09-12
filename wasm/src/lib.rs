@@ -10,10 +10,11 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateless,
+        stateless, Error, Frame,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, Span, TargetProfile,
 };
+use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -35,6 +36,48 @@ thread_local! {
 pub fn git_hash() -> String {
     let git_hash = env!("QSHARP_GIT_HASH");
     git_hash.into()
+}
+
+fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame>)> {
+    let core = compile::core();
+    let mut store = PackageStore::new(core);
+    let std = compile::std(&store, TargetProfile::Base);
+    let std = store.insert(std);
+    let sources = SourceMap::new([("test".into(), code.into())], None);
+
+    let (unit, errors) = qsc::compile::compile(
+        &store,
+        &[std],
+        sources,
+        PackageType::Exe,
+        TargetProfile::Base,
+    );
+
+    // Ensure it compiles before trying to add it to the store.
+    if !errors.is_empty() {
+        // This should never happen, as the program should be checked for errors before trying to
+        // generate code for it. But just in case, simply report the entire source as 'fail to generate output'
+        return Err((
+            Error::OutputFail(Span {
+                lo: 0,
+                hi: code.len() as u32,
+            }),
+            vec![],
+        ));
+    }
+
+    let package = store.insert(unit);
+
+    generate_qir(&store, package)
+}
+
+#[wasm_bindgen]
+pub fn get_qir(code: &str) -> Result<JsValue, JsValue> {
+    let qir = get_qir_internal(code);
+    match qir {
+        Ok(qir) => Ok(JsValue::from_str(qir.as_str())),
+        Err((err, _)) => Err(JsValue::from_str(&err.to_string())),
+    }
 }
 
 #[wasm_bindgen]
@@ -238,6 +281,8 @@ pub fn check_exercise_solution(
 
 #[cfg(test)]
 mod test {
+    use crate::get_qir_internal;
+
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
@@ -252,6 +297,17 @@ mod test {
         assert_eq!(err_2.start_pos, 32);
         assert_eq!(err_2.end_pos, 33);
         assert_eq!(err_2.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
+    }
+
+    #[test]
+    fn test_compile() {
+        let code = "namespace test { @EntryPoint() operation Foo(): Result {
+        use q = Qubit();
+        H(q);
+        M(q)
+        }}";
+        let result = get_qir_internal(code);
+        assert!(result.is_ok());
     }
 
     #[test]
