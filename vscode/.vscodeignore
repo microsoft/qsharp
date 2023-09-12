@@ -3,3 +3,4 @@ src/**
 tsconfig.json
 **/*.map
 ../**/*
+build.mjs
