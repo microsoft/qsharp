@@ -66,6 +66,10 @@
           "when": "qsharp-vscode.treeItemSupportsQir"
         },
         {
+          "command": "qsharp-vscode.workspacesRemove",
+          "when": "qsharp-vscode.treeItemIsWorkspace"
+        },
+        {
           "command": "qsharp-vscode.downloadResults",
           "when": "qsharp-vscode.treeItemSupportsDownload"
         },

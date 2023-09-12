@@ -53,6 +53,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       // Capture the selected item and set context if the supports job submission or results download.
       let supportsQir = false;
       let supportsDownload = false;
+      let isWorkspace = false;
 
       if (e.selection.length === 1) {
         currentTreeItem = e.selection[0] as WorkspaceTreeItem;
@@ -68,6 +69,9 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
             supportsDownload = true;
           }
         }
+        if (currentTreeItem.type === "workspace") {
+          isWorkspace = true;
+        }
       } else {
         currentTreeItem = undefined;
       }
@@ -81,6 +85,11 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         "setContext",
         "qsharp-vscode.treeItemSupportsDownload",
         supportsDownload
+      );
+      await vscode.commands.executeCommand(
+        "setContext",
+        "qsharp-vscode.treeItemIsWorkspace",
+        isWorkspace
       );
     })
   );
@@ -187,9 +196,11 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "qsharp-vscode.workspacesRemove",
-      async (item: WorkspaceTreeItem) => {
-        if (!item || item.type !== "workspace") return;
-        const workspace = item.itemData as WorkspaceConnection;
+      async (arg: WorkspaceTreeItem) => {
+        // Could be run via the treeItem icon or the menu command.
+        const treeItem = arg || currentTreeItem;
+        if (treeItem?.type !== "workspace") return;
+        const workspace = treeItem.itemData as WorkspaceConnection;
         workspaceTreeProvider.treeState.delete(workspace.id);
         await saveWorkspaceList();
         await workspaceTreeProvider.refresh();
