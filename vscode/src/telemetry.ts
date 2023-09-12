@@ -7,7 +7,7 @@ import { log } from "qsharp-lang";
 
 export enum EventType {
   DebugSessionStart = "DebugSessionStart",
-  Initialize = "Initialize",
+  InitializePlugin = "InitializePlugin",
   LoadLanguageService = "LoadLanguageService",
   QSharpJupyterCellInitialized = "QSharpJupyterCellInitialized",
 }
@@ -15,7 +15,7 @@ export enum EventType {
 type Empty = { [K in any]: never };
 
 type EventTypes = {
-  [EventType.Initialize]: {
+  [EventType.InitializePlugin]: {
     properties: Empty;
     measurements: Empty;
   };
@@ -37,13 +37,7 @@ type EventTypes = {
   };
 };
 
-type WrappedTelemetryEvent = {
-  id: string;
-  data?: {
-    measurements: TelemetryEventMeasurements;
-    properties: TelemetryEventProperties;
-  };
-};
+let reporter: TelemetryReporter | undefined;
 
 export function initTelemetry(context: vscode.ExtensionContext) {
   const packageJson = context.extension?.packageJSON;
@@ -52,19 +46,13 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   }
   // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/183
   // we cannot use the latest version of extension-telemetry until this is fixed
-  const reporter = new TelemetryReporter(
+  reporter = new TelemetryReporter(
     "qsharp-vscode",
     packageJson.version,
     packageJson.aiKey
   );
-  log.setTelemetryCollector(
-    ({
-      id,
-      data: { properties, measurements } = { properties: {}, measurements: {} },
-    }: WrappedTelemetryEvent) =>
-      reporter.sendTelemetryEvent(id, properties, measurements)
-  );
-  sendTelemetryEvent(EventType.Initialize, {}, {});
+
+  sendTelemetryEvent(EventType.InitializePlugin, {}, {});
 }
 
 export function sendTelemetryEvent<E extends keyof EventTypes>(
@@ -72,5 +60,9 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
   properties: EventTypes[E]["properties"] = {},
   measurements: EventTypes[E]["measurements"] = {}
 ) {
-  log.logTelemetry({ id: event, data: { properties, measurements } });
+  if (reporter === undefined) {
+    log.trace(`No telemetry reporter. Omitting telemetry event ${event}`);
+    return;
+  }
+  reporter.sendTelemetryEvent(event, properties, measurements);
 }
