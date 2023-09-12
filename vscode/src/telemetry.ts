@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
-import TelemetryReporter, {
-  TelemetryEventMeasurements,
-  TelemetryEventProperties,
-} from "@vscode/extension-telemetry";
+import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
 
 export enum EventType {
