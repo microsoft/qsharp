@@ -1,8 +1,8 @@
 # Q# Language Support for VS Code
 
-_This extension is an unstable product that is still under active development. We do not recommend relying on this in production environments._
+_This is a development build and may be unstable. We do not recommend relying on this in production environments._
 
-This extension brings rich Q# language support to VSCode. Develop, build, and run your Q# code from VSCode either locally on simulators, or by submitting a job to Azure Quantum.
+This extension brings rich Q# language support to VS Code. Develop, build, and run your Q# code from VS Code either locally on simulators, or by submitting a job to Azure Quantum.
 
 ## Features
 
