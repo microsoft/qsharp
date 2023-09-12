@@ -9,63 +9,33 @@ from datetime import datetime, timezone
 # To be updated every time we start a new major.minor version.
 major_minor = "1.0"
 
-# Default to 'dev' builds with a YYMMDD build number
+# Default to 'dev' builds
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
-BUILD_NUMBER = os.environ.get("BUILD_NUMBER") or "YYMMDD"
-
-build_ver = datetime.now(timezone.utc).strftime("%y%m%d")
+BUILD_NUMBER = os.environ.get("BUILD_NUMBER")
 
 if BUILD_TYPE not in ["dev", "rc", "stable"]:
     print("BUILD_TYPE environment variable must be 'dev', 'rc', or 'stable'")
     exit(1)
 
+try:
+    build_ver = int(BUILD_NUMBER)
+except:
+    print("BUILD_NUMBER environment variable must be set to a valid integer")
+    exit(1)
+
 print("Build type: {}".format(BUILD_TYPE))
 
-# Override the dev build number if provided as an environment variable.
-if BUILD_TYPE == "dev" and BUILD_NUMBER != "YYMMDD":
-    try:
-        build_ver = int(BUILD_NUMBER)
-    except:
-        print("BUILD_NUMBER environment variable is not valid")
-        exit(1)
+version_triple = "{}.{}".format(major_minor, build_ver)
 
-# Default to the dev build formats
+pip_suffix = {"stable": "", "rc": "rc0", "dev": ".dev0"}
+npm_suffix = {"stable": "", "rc": "-rc", "dev": "-dev"}
 
-# Python dev version of the format "2.3.0.dev1440"
-pip_version = "{}.0.dev{}".format(major_minor, build_ver)
-
-# Npm dev version of the format "2.3.0-dev.1440"
-npm_version = "{}.0-dev.{}".format(major_minor, build_ver)
-
-# VS Code dev version of the format "2.3.1440" (they don't support pre-release versions)
-vscode_version = "{}.{}".format(major_minor, build_ver)
-
-# Check if the environment variable BUILD_TYPE is set to 'rc' or 'stable'.
-# If it is, we should only use a provided build number, not a default build number.
-if BUILD_TYPE in ["rc", "stable"]:
-    try:
-        # Ensure build number is an integer.
-        build_ver = int(BUILD_NUMBER)
-    except:
-        print("BUILD_NUMBER environment variable is not set to an integer")
-        exit(1)
-
-    # Python rc/stable version of the format "2.3.1rc0" or "2.3.1"
-    pip_version = "{}.{}{}".format(
-        major_minor, build_ver, "" if BUILD_TYPE == "stable" else "rc0"
-    )
-
-    # Npm rc/stable version of the format "2.3.1-rc" or "2.3.1"
-    npm_version = "{}.{}{}".format(
-        major_minor, build_ver, "" if BUILD_TYPE == "stable" else "-rc"
-    )
-
-    # VS Code rc/stable version of the format "2.3.1" (same for rc or stable)
-    vscode_version = "{}.{}".format(major_minor, build_ver)
+pip_version = "{}{}".format(version_triple, pip_suffix.get(BUILD_TYPE))
+npm_version = "{}{}".format(version_triple, npm_suffix.get(BUILD_TYPE))
 
 print("Pip version: {}".format(pip_version))
 print("Npm version: {}".format(npm_version))
-print("VS Code version: {}".format(vscode_version))
+print("VS Code version: {}".format(version_triple))
 
 
 def update_file(file, old_text, new_text):
@@ -100,7 +70,7 @@ update_file(
 update_file(
     os.path.join(root_dir, "vscode/package.json"),
     r'"version": "0.0.0",',
-    r'"version": "{}",'.format(vscode_version),
+    r'"version": "{}",'.format(version_triple),
 )
 
 # If not a 'dev' build, update the VS Code extension identifier to be the non-dev version
