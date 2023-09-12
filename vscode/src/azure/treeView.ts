@@ -15,30 +15,35 @@ function localDate(date: string) {
 export class WorkspaceTreeProvider
   implements vscode.TreeDataProvider<WorkspaceTreeItem>
 {
-  private treeState: Map<string, WorkspaceConnection> = new Map();
+  treeState: Map<string, WorkspaceConnection> = new Map();
 
   private didChangeTreeDataEmitter = new vscode.EventEmitter<
     WorkspaceTreeItem | undefined
   >();
+
   readonly onDidChangeTreeData: vscode.Event<WorkspaceTreeItem | undefined> =
     this.didChangeTreeDataEmitter.event;
 
   updateWorkspace(workspace: WorkspaceConnection) {
     this.treeState.set(workspace.id, workspace);
+    this.didChangeTreeDataEmitter.fire(undefined);
   }
 
   async refresh() {
     log.debug("Refreshing workspace tree");
 
     const workspaces = [...this.treeState.values()];
+    if (workspaces.length === 0) {
+      // May have removed the last one, so refresh the tree and return
+      this.didChangeTreeDataEmitter.fire(undefined);
+      return;
+    }
 
     for (const workspace of workspaces) {
       await queryWorkspace(workspace).then(() =>
         this.updateWorkspace(workspace)
       );
     }
-
-    this.didChangeTreeDataEmitter.fire(undefined);
   }
 
   getTreeItem(
@@ -67,13 +72,10 @@ export class WorkspaceTreeProvider
 }
 
 export type WorkspaceConnection = {
-  connection: any;
   id: string;
   name: string;
-  storageAccount: string;
   endpointUri: string;
   tenantId: string;
-  quota?: any;
   providers: Provider[];
   jobs: Job[];
 };
