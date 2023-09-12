@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{Compiler, Fragment};
-use crate::compile::{self, PackageStore};
+use crate::compile::{self, CompileUnit, PackageStore};
 use expect_test::{expect, Expect};
 use miette::Diagnostic;
 
@@ -11,7 +11,11 @@ fn one_callable() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(&store, vec![]);
     let fragments = compiler
-        .compile_fragments("test_1", "namespace Foo { operation Main() : Unit {} }")
+        .compile_fragments(
+            &mut CompileUnit::default(),
+            "test_1",
+            "namespace Foo { operation Main() : Unit {} }",
+        )
         .expect("compilation should succeed");
 
     check_fragment_kinds(
@@ -30,7 +34,7 @@ fn one_statement() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(&store, vec![]);
     let fragments = compiler
-        .compile_fragments("test_1", "use q = Qubit();")
+        .compile_fragments(&mut CompileUnit::default(), "test_1", "use q = Qubit();")
         .expect("compilation should succeed");
 
     check_fragment_kinds(
@@ -48,7 +52,7 @@ fn parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(&store, vec![]);
     let errors = compiler
-        .compile_fragments("test_1", "}}")
+        .compile_fragments(&mut CompileUnit::default(), "test_1", "}}")
         .expect_err("should fail");
 
     assert!(!errors.is_empty());
@@ -60,23 +64,25 @@ fn errors_across_multiple_lines() {
     let std = compile::std(&store, compile::TargetProfile::Full);
     let std_id = store.insert(std);
     let mut compiler = Compiler::new(&store, [std_id]);
+    let mut unit = CompileUnit::default();
     compiler
         .compile_fragments(
+            &mut unit,
             "line_1",
             "namespace Other { operation DumpMachine() : Unit { } }",
         )
         .expect("should succeed");
 
     compiler
-        .compile_fragments("line_2", "open Other;")
+        .compile_fragments(&mut unit, "line_2", "open Other;")
         .expect("should succeed");
 
     compiler
-        .compile_fragments("line_3", "open Microsoft.Quantum.Diagnostics;")
+        .compile_fragments(&mut unit, "line_3", "open Microsoft.Quantum.Diagnostics;")
         .expect("should succeed");
 
     let errors = compiler
-        .compile_fragments("line_4", "DumpMachine()")
+        .compile_fragments(&mut unit, "line_4", "DumpMachine()")
         .expect_err("should fail");
 
     // Here we're validating that the compiler is able to return
@@ -87,8 +93,7 @@ fn errors_across_multiple_lines() {
         .iter()
         .flat_map(|e| e.labels().into_iter().flatten())
         .map(|l| {
-            compiler
-                .source_map()
+            unit.sources
                 .find_by_offset(u32::try_from(l.offset()).expect("offset should fit into u32"))
                 .map(|s| &s.name)
         })

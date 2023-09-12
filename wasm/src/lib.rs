@@ -10,9 +10,9 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateless, Error, Frame,
+        stateless,
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, Span, TargetProfile,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
@@ -38,7 +38,8 @@ pub fn git_hash() -> String {
     git_hash.into()
 }
 
-fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame>)> {
+#[wasm_bindgen]
+pub fn get_qir(code: &str) -> Result<String, String> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
     let std = compile::std(&store, TargetProfile::Base);
@@ -56,28 +57,13 @@ fn get_qir_internal(code: &str) -> std::result::Result<String, (Error, Vec<Frame
     // Ensure it compiles before trying to add it to the store.
     if !errors.is_empty() {
         // This should never happen, as the program should be checked for errors before trying to
-        // generate code for it. But just in case, simply report the entire source as 'fail to generate output'
-        return Err((
-            Error::OutputFail(Span {
-                lo: 0,
-                hi: code.len() as u32,
-            }),
-            vec![],
-        ));
+        // generate code for it. But just in case, simply report the failure.
+        return Err("Failed to generate QIR".to_string());
     }
 
     let package = store.insert(unit);
 
-    generate_qir(&store, package)
-}
-
-#[wasm_bindgen]
-pub fn get_qir(code: &str) -> Result<JsValue, JsValue> {
-    let qir = get_qir_internal(code);
-    match qir {
-        Ok(qir) => Ok(JsValue::from_str(qir.as_str())),
-        Err((err, _)) => Err(JsValue::from_str(&err.to_string())),
-    }
+    generate_qir(&store, package).map_err(|e| e.0.to_string())
 }
 
 #[wasm_bindgen]
@@ -281,7 +267,7 @@ pub fn check_exercise_solution(
 
 #[cfg(test)]
 mod test {
-    use crate::get_qir_internal;
+    use crate::get_qir;
 
     #[test]
     fn test_missing_type() {
@@ -306,7 +292,7 @@ mod test {
         H(q);
         M(q)
         }}";
-        let result = get_qir_internal(code);
+        let result = get_qir(code);
         assert!(result.is_ok());
     }
 
