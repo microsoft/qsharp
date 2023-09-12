@@ -3,7 +3,7 @@
 
 use miette::SourceSpan;
 use qsc_data_structures::span::Span;
-use qsc_fir::fir::PackageId;
+use qsc_hir::hir::PackageId;
 use std::fmt::Debug;
 
 #[derive(Clone, Copy, Debug)]

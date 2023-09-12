@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use miette::Diagnostic;
-use qsc_eval::debug::map_fir_package_to_hir;
 use qsc_frontend::{compile::PackageStore, error::WithSource};
 use std::{
     error::Error,
@@ -78,7 +77,7 @@ pub fn eval(
     let span = error.span();
 
     let sources = &store
-        .get(map_fir_package_to_hir(span.package))
+        .get(span.package)
         .expect("expected to find package id in store")
         .sources;
 

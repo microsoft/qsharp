@@ -7,18 +7,18 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
-use super::debug::format_call_stack;
-use super::stateless;
-use crate::compile::{self, compile};
-use crate::error::{self, WithStack};
+use super::{debug::format_call_stack, stateless};
+use crate::{
+    compile::{self, compile},
+    error::{self, WithStack},
+};
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::generate_qir_for_stmt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_eval::backend::Backend;
 use qsc_eval::{
-    backend::SparseSim,
+    backend::{Backend, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_stmt,
     output::Receiver,
@@ -32,16 +32,15 @@ use qsc_fir::{
     },
     visit::{self, Visitor},
 };
-use qsc_frontend::error::WithSource;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
+    error::WithSource,
     incremental::{self, Compiler, Fragment},
 };
 use qsc_passes::{PackageType, PassContext};
 use std::collections::HashSet;
 use thiserror::Error;
 
-// TODO: it's really confusing that there's this error and LineError as well.
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
@@ -64,6 +63,9 @@ enum ErrorKind {
     Compile(#[from] WithSource<compile::Error>),
     #[error(transparent)]
     #[diagnostic(transparent)]
+    Incremental(#[from] WithSource<incremental::Error>),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
     Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
@@ -71,39 +73,6 @@ enum ErrorKind {
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
-}
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct LineError(#[from] LineErrorKind);
-
-impl LineError {
-    #[must_use]
-    pub fn kind(&self) -> &LineErrorKind {
-        &self.0
-    }
-
-    #[must_use]
-    pub fn stack_trace(&self) -> &Option<String> {
-        match &self.0 {
-            LineErrorKind::Eval(err) => err.stack_trace(),
-            _ => &None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-pub enum LineErrorKind {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Compile(#[from] WithSource<incremental::Error>),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Pass(#[from] WithSource<qsc_passes::Error>),
-    #[error("runtime error")]
-    #[diagnostic(transparent)]
-    Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
     #[error("code generation target mismatch")]
     #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
     TargetMismatch,
@@ -174,7 +143,7 @@ pub struct Interpreter {
     state: State,
 }
 
-pub type LineResult = Result<Value, Vec<LineError>>;
+pub type LineResult = Result<Value, Vec<Error>>;
 
 impl Interpreter {
     /// # Errors
@@ -359,7 +328,7 @@ impl Interpreter {
             .map_err(|errors| {
                 errors
                     .into_iter()
-                    .map(|error| LineError(WithSource::from_map(&package.sources, error).into()))
+                    .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
                     .collect::<Vec<_>>()
             })?;
 
@@ -370,7 +339,7 @@ impl Interpreter {
         if !pass_errors.is_empty() {
             return Err(pass_errors
                 .into_iter()
-                .map(|error| LineError(WithSource::from_map(&package.sources, error).into()))
+                .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
                 .collect());
         }
 
@@ -408,7 +377,7 @@ impl Interpreter {
                                 Some(self.render_call_stack(call_stack, &error))
                             };
 
-                            return Err(vec![LineError(
+                            return Err(vec![Error(
                                 error::eval(error, &self.store, stack_trace).into(),
                             )]);
                         }
@@ -433,7 +402,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: &str,
         shots: u32,
-    ) -> Result<Vec<LineResult>, Vec<LineError>> {
+    ) -> Result<Vec<LineResult>, Vec<Error>> {
         let fragments = {
             let (core, package) = self
                 .store
@@ -447,9 +416,7 @@ impl Interpreter {
                 .map_err(|errors| {
                     errors
                         .into_iter()
-                        .map(|error| {
-                            LineError(WithSource::from_map(&package.sources, error).into())
-                        })
+                        .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
                         .collect::<Vec<_>>()
                 })?;
 
@@ -460,7 +427,7 @@ impl Interpreter {
             if !pass_errors.is_empty() {
                 return Err(pass_errors
                     .into_iter()
-                    .map(|error| LineError(WithSource::from_map(&package.sources, error).into()))
+                    .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
                     .collect());
             }
 
@@ -520,7 +487,7 @@ impl Interpreter {
                             Some(self.render_call_stack(call_stack, &error))
                         };
 
-                        Err(vec![LineError(
+                        Err(vec![Error(
                             error::eval(error, &self.store, stack_trace).into(),
                         )])
                     }
@@ -538,9 +505,9 @@ impl Interpreter {
     /// If there is a runtime error when generating code for the expr, an error is returned.
     /// # Panics
     /// If internal compiler state is inconsistent, a panic may occur.
-    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<LineError>> {
+    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<Error>> {
         if self.target != TargetProfile::Base {
-            return Err(vec![LineError(LineErrorKind::TargetMismatch)]);
+            return Err(vec![Error(ErrorKind::TargetMismatch)]);
         }
 
         let fragments = {
@@ -556,9 +523,7 @@ impl Interpreter {
                 .map_err(|errors| {
                     errors
                         .into_iter()
-                        .map(|error| {
-                            LineError(WithSource::from_map(&package.sources, error).into())
-                        })
+                        .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
                         .collect::<Vec<_>>()
                 })?;
 
@@ -570,7 +535,7 @@ impl Interpreter {
                 return Err(pass_errors
                     .into_iter()
                     .map(|error| {
-                        LineError(WithSource::from_map(&self.package_mut().sources, error).into())
+                        Error(WithSource::from_map(&self.package_mut().sources, error).into())
                     })
                     .collect());
             }
@@ -611,9 +576,7 @@ impl Interpreter {
                                 Some(self.render_call_stack(call_stack, &error))
                             };
 
-                            vec![LineError(
-                                error::eval(error, &self.store, stack_trace).into(),
-                            )]
+                            vec![Error(error::eval(error, &self.store, stack_trace).into())]
                         });
                 }
             }

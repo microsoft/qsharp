@@ -13,7 +13,7 @@ use qsc::{
     fir,
     interpret::{
         output::{Error, Receiver},
-        stateful::{self, LineError},
+        stateful::{self},
         Value,
     },
     PackageType, SourceMap,
@@ -133,7 +133,7 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<LineError>) -> String {
+fn format_errors(errors: Vec<stateful::Error>) -> String {
     errors
         .into_iter()
         .map(|e| {

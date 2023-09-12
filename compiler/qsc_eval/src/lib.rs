@@ -16,7 +16,7 @@ pub mod val;
 
 use crate::val::{FunctorApp, Value};
 use backend::Backend;
-use debug::{CallStack, Frame};
+use debug::{map_fir_package_to_hir, CallStack, Frame};
 use error::GlobalSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
@@ -1350,7 +1350,7 @@ impl State {
 
     fn to_global_span(&self, span: Span) -> GlobalSpan {
         GlobalSpan {
-            package: self.package,
+            package: map_fir_package_to_hir(self.package),
             span,
         }
     }
@@ -1376,7 +1376,10 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
         ),
         Res::Local(node) => env
             .get(node)
-            .ok_or(Error::UnboundName(GlobalSpan { package, span }))?
+            .ok_or(Error::UnboundName(GlobalSpan {
+                package: map_fir_package_to_hir(package),
+                span,
+            }))?
             .value
             .clone(),
     })
@@ -1402,7 +1405,10 @@ fn resolve_closure(
         .iter()
         .map(|&arg| Some(env.get(arg)?.value.clone()))
         .collect();
-    let args: Vec<_> = args.ok_or(Error::UnboundName(GlobalSpan { package, span }))?;
+    let args: Vec<_> = args.ok_or(Error::UnboundName(GlobalSpan {
+        package: map_fir_package_to_hir(package),
+        span,
+    }))?;
     let callable = GlobalId {
         package,
         item: callable,

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 mod given_interpreter {
-    use crate::interpret::stateful::{Interpreter, LineError, LineResult};
+    use crate::interpret::stateful::{Error, Interpreter, LineResult};
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_eval::{output::CursorReceiver, val::Value};
@@ -23,7 +23,7 @@ mod given_interpreter {
         interpreter: &mut Interpreter,
         expr: &str,
         shots: u32,
-    ) -> (Result<Vec<LineResult>, Vec<LineError>>, String) {
+    ) -> (Result<Vec<LineResult>, Vec<Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.run(&mut receiver, expr, shots), receiver.dump())
@@ -1157,7 +1157,7 @@ mod given_interpreter {
         .expect("interpreter should be created")
     }
 
-    fn is_only_value(result: &Result<Value, Vec<LineError>>, output: &str, value: &Value) {
+    fn is_only_value(result: &LineResult, output: &str, value: &Value) {
         assert_eq!("", output);
 
         match result {
@@ -1179,11 +1179,7 @@ mod given_interpreter {
         }
     }
 
-    fn is_unit_with_output(
-        result: &Result<Value, Vec<LineError>>,
-        output: &str,
-        expected_output: &str,
-    ) {
+    fn is_unit_with_output(result: &LineResult, output: &str, expected_output: &str) {
         assert_eq!(expected_output, output);
 
         match result {
