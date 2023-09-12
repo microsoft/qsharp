@@ -22,9 +22,9 @@ const targetsThatSupportQir = [
   "ionq.simulator-preview",
 ];
 
-const excludeTargets: string[] = ["rigetti.qpu.aspen-m-2", "rigetti.echo"];
+const excludeTargets: string[] = ["rigetti.qpu.aspen-m-2"];
 
-const excludeProviders: string[] = ["microsoft-qc", "Microsoft.Test"];
+const excludeProviders: string[] = [];
 
 export function targetSupportQir(target: string) {
   return targetsThatSupportQir.includes(target);
