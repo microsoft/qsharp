@@ -73,20 +73,12 @@ impl<E: Diagnostic> Diagnostic for WithStack<E> {
 pub type Eval = WithStack<WithSource<qsc_eval::Error>>;
 
 pub fn eval(error: qsc_eval::Error, store: &PackageStore, stack_trace: Option<String>) -> Eval {
-    // TODO: handle more than one span at some point...
-    let span = error.spans().next();
+    let span = error.span();
 
-    let error = match span {
-        Some(span) => {
-            let sources = &store
-                .get(map_fir_package_to_hir(span.package))
-                .expect("expected to find package id in store")
-                .sources;
+    let sources = &store
+        .get(map_fir_package_to_hir(span.package))
+        .expect("expected to find package id in store")
+        .sources;
 
-            WithSource::from_map(sources, error)
-        }
-        None => WithSource::no_sources(error),
-    };
-
-    WithStack::new(error, stack_trace)
+    WithStack::new(WithSource::from_map(sources, error), stack_trace)
 }

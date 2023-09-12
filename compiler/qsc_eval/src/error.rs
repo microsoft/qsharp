@@ -14,7 +14,6 @@ pub struct GlobalSpan {
 
 impl From<GlobalSpan> for SourceSpan {
     fn from(value: GlobalSpan) -> Self {
-        // TODO: Offset for package pls
         Self::from((value.span.lo as usize)..(value.span.hi as usize))
     }
 }

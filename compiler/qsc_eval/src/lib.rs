@@ -111,7 +111,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn spans(&self) -> impl Iterator<Item = &GlobalSpan> {
+    pub fn span(&self) -> &GlobalSpan {
         match self {
             Error::ArrayTooLarge(span)
             | Error::DivZero(span)
@@ -128,7 +128,7 @@ impl Error {
             | Error::UnboundName(span)
             | Error::UnknownIntrinsic(_, span)
             | Error::UserFail(_, span)
-            | Error::InvalidArrayLength(_, span) => iter::once(span),
+            | Error::InvalidArrayLength(_, span) => span,
         }
     }
 }
