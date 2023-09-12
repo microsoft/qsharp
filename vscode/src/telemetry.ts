@@ -45,9 +45,8 @@ type WrappedTelemetryEvent = {
   };
 };
 
-export function initTelemetry() {
-  const extension = vscode.extensions.getExtension("quantum.qsharp-vscode");
-  const packageJson = extension?.packageJSON;
+export function initTelemetry(context: vscode.ExtensionContext) {
+  const packageJson = context.extension?.packageJSON;
   if (!packageJson) {
     return;
   }
