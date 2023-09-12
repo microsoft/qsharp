@@ -6,7 +6,7 @@ mod tests;
 
 use crate::{
     backend::Backend,
-    error::GlobalSpan,
+    error::PackageSpan,
     output::Receiver,
     val::{self, Qubit, Value},
     Error,
@@ -18,9 +18,9 @@ use std::array;
 #[allow(clippy::too_many_lines)]
 pub(crate) fn call(
     name: &str,
-    name_span: GlobalSpan,
+    name_span: PackageSpan,
     arg: Value,
-    arg_span: GlobalSpan,
+    arg_span: PackageSpan,
     sim: &mut dyn Backend<ResultType = impl Into<val::Result>>,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {
@@ -135,7 +135,7 @@ fn one_qubit_gate(mut gate: impl FnMut(usize), arg: Value) -> Value {
 fn two_qubit_gate(
     mut gate: impl FnMut(usize, usize),
     arg: Value,
-    arg_span: GlobalSpan,
+    arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y] = unwrap_tuple(arg);
     if x == y {
@@ -155,7 +155,7 @@ fn one_qubit_rotation(mut gate: impl FnMut(f64, usize), arg: Value) -> Value {
 fn three_qubit_gate(
     mut gate: impl FnMut(usize, usize, usize),
     arg: Value,
-    arg_span: GlobalSpan,
+    arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y, z] = unwrap_tuple(arg);
     if x == y || y == z || x == z {
@@ -169,7 +169,7 @@ fn three_qubit_gate(
 fn two_qubit_rotation(
     mut gate: impl FnMut(f64, usize, usize),
     arg: Value,
-    arg_span: GlobalSpan,
+    arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y, z] = unwrap_tuple(arg);
     if y == z {

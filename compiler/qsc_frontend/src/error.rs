@@ -60,13 +60,6 @@ impl<E: Diagnostic> WithSource<E> {
             error,
         }
     }
-
-    pub fn no_sources(error: E) -> Self {
-        Self {
-            sources: Vec::default(),
-            error,
-        }
-    }
 }
 
 impl<E: Diagnostic> Error for WithSource<E> {

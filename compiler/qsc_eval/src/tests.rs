@@ -393,7 +393,7 @@ fn block_qubit_use_array_invalid_count_expr() {
             (
                 UserFail(
                     "Cannot allocate qubit array with a negative length",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             0,
                         ),
@@ -513,7 +513,7 @@ fn binop_andl_no_shortcut() {
             (
                 UserFail(
                     "Should Fail",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -542,7 +542,7 @@ fn binop_div_bigint_zero() {
         &expect![[r#"
             (
                 DivZero(
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -571,7 +571,7 @@ fn binop_div_int_zero() {
         &expect![[r#"
             (
                 DivZero(
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -600,7 +600,7 @@ fn binop_div_double_zero() {
         &expect![[r#"
             (
                 DivZero(
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -750,7 +750,7 @@ fn binop_exp_bigint_negative_exp() {
             (
                 InvalidNegativeInt(
                     -3,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -775,7 +775,7 @@ fn binop_exp_bigint_too_large() {
             (
                 IntTooLarge(
                     9223372036854775807,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -825,7 +825,7 @@ fn binop_exp_int_negative_exp() {
             (
                 InvalidNegativeInt(
                     -3,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1274,7 +1274,7 @@ fn fail_expr() {
             (
                 UserFail(
                     "This is a failure",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1299,7 +1299,7 @@ fn fail_shortcut_expr() {
             (
                 UserFail(
                     "Got Here!",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1458,7 +1458,7 @@ fn array_slice_step_zero_expr() {
         &expect![[r#"
             (
                 RangeStepZero(
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1483,7 +1483,7 @@ fn array_slice_out_of_range_expr() {
             (
                 IndexOutOfRange(
                     5,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1508,7 +1508,7 @@ fn array_index_negative_expr() {
             (
                 InvalidIndex(
                     -2,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1533,7 +1533,7 @@ fn array_index_out_of_range_expr() {
             (
                 IndexOutOfRange(
                     4,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1805,7 +1805,7 @@ fn update_invalid_index_range_expr() {
             (
                 IndexOutOfRange(
                     7,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -1830,7 +1830,7 @@ fn update_invalid_index_negative_expr() {
             (
                 InvalidNegativeInt(
                     -1,
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -2340,7 +2340,7 @@ fn call_adjoint_expr() {
             (
                 UserFail(
                     "Adjoint Implementation",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -2404,7 +2404,7 @@ fn call_adjoint_adjoint_expr() {
             (
                 UserFail(
                     "Body Implementation",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
@@ -2463,7 +2463,7 @@ fn call_adjoint_self_expr() {
             (
                 UserFail(
                     "Body Implementation",
-                    GlobalSpan {
+                    PackageSpan {
                         package: PackageId(
                             2,
                         ),
