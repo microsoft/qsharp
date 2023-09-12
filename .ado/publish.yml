@@ -57,6 +57,18 @@ jobs:
     displayName: Build VSCode Extension
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
+  - script: |
+      mkdir -p '$(System.DefaultWorkingDirectory)/target/npm'
+      npm pack --pack-destination '$(System.DefaultWorkingDirectory)/target/npm'
+    displayName: Pack NPM Package
+    workingDirectory: '$(System.DefaultWorkingDirectory)/npm'
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
+
+  - publish: $(System.DefaultWorkingDirectory)/target/npm
+    artifact: NPM
+    displayName: Upload NPM Package Artifact
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
+
   # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       vsce package --pre-release
@@ -149,6 +161,16 @@ jobs:
 
   steps:
   - download: current
+    artifact: NPM
+    displayName: Download NPM Artifacts
+
+  - script: |
+      mkdir -p                            target/npm
+      mv ../NPM/*.tgz                     target/npm
+      ls                                  target/npm/*
+    displayName: Move NPM Artifacts to Publishing Dir
+
+  - download: current
     artifact: Wheels.Win
     displayName: Download Python Artifacts Win
 
@@ -198,6 +220,21 @@ jobs:
      MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
      DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
     displayName: Publish Py Packages
+
+  - task: EsrpRelease@2
+    inputs:
+     ConnectedServiceName: 'ESRP_Release'
+     Intent: 'PackageDistribution'
+     ContentType: 'NPM'
+     PackageLocation: '$(System.DefaultWorkingDirectory)/target/npm'
+     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
+                                                    #     Group email here fails the task with non-actionable output.
+     Approvers: 'billti@microsoft.com'
+     # Auto-inserted Debugging defaults:
+     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+    displayName: Publish NPM Package
 
   # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
