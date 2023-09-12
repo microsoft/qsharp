@@ -11,6 +11,7 @@ use super::{debug::format_call_stack, stateless};
 use crate::{
     compile::{self, compile},
     error::{self, WithStack},
+    hir,
 };
 use miette::Diagnostic;
 use num_bigint::BigUint;
@@ -124,19 +125,20 @@ impl<'a> NodeLookup for Lookup<'a> {
 }
 
 pub struct Interpreter {
-    // compilation state (ast and hir)
+    // compilation state (ast, hir)
     store: PackageStore,
     compiler: Compiler,
     passes: PassContext,
     lines: u32,
     target: TargetProfile,
     // fir state
-    source_package: PackageId,
-    package: PackageId,
+    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
     udts: HashSet<LocalItemId>,
     callables: IndexMap<LocalItemId, CallableDecl>,
     lowerer: qsc_eval::lower::Lowerer,
-    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
+    // package IDs (used to index into both ast/hir and fir package stores)
+    package: PackageId,
+    source_package: PackageId,
     // evaluator state
     env: Env,
     sim: SparseSim,
@@ -177,10 +179,7 @@ impl Interpreter {
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|error| {
-                    let e = ErrorKind::Compile(WithSource::from_map(&unit.sources, error));
-                    Error(e)
-                })
+                .map(|error| Error(WithSource::from_map(&unit.sources, error).into()))
                 .collect());
         }
 
@@ -195,20 +194,20 @@ impl Interpreter {
         fir_store.insert(map_hir_package_to_fir(user_package), user_fir);
         let compiler = Compiler::new(&store, dependencies);
         Ok(Self {
-            compiler,
             store,
+            compiler,
             passes: PassContext::new(target),
             lines: 0,
             target,
-            package: map_hir_package_to_fir(user_package),
-            source_package: map_hir_package_to_fir(package),
+            fir_store,
             udts: HashSet::new(),
             callables: IndexMap::new(),
+            lowerer,
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
             state: State::new(map_hir_package_to_fir(package)),
-            lowerer,
-            fir_store,
+            package: map_hir_package_to_fir(user_package),
+            source_package: map_hir_package_to_fir(package),
         })
     }
 
@@ -314,23 +313,66 @@ impl Interpreter {
     pub fn interpret_line(&mut self, receiver: &mut impl Receiver, line: &str) -> LineResult {
         let mut result = Value::unit();
 
-        let label = self.next_line_label();
+        let label = &self.next_line_label();
 
-        let (core, package) = self
-            .store
-            .get_pass_context(map_fir_package_to_hir(self.package));
+        let (items, stmts) =
+            self.compile_incremental(|c, p| c.compile_fragments(p, label, line))?;
+
+        for item in items {
+            match item.kind {
+                qsc_hir::hir::ItemKind::Callable(callable) => {
+                    let callable = self.lower_callable_decl(&callable);
+
+                    self.callables
+                        .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                }
+                qsc_hir::hir::ItemKind::Namespace(..) => {}
+                qsc_hir::hir::ItemKind::Ty(..) => {
+                    self.udts
+                        .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                }
+            }
+        }
+
+        for stmt in stmts {
+            let stmt_id = self.lower_stmt(&stmt);
+
+            match self.eval_stmt(receiver, stmt_id) {
+                Ok(value) => result = value,
+                Err((error, call_stack)) => {
+                    let stack_trace = if call_stack.is_empty() {
+                        None
+                    } else {
+                        Some(self.render_call_stack(call_stack, &error))
+                    };
+
+                    return Err(vec![Error(
+                        error::eval(error, &self.store, stack_trace).into(),
+                    )]);
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn compile_incremental(
+        &mut self,
+        mut compile: impl FnMut(
+            &mut Compiler,
+            &mut CompileUnit,
+        ) -> Result<Vec<Fragment>, Vec<incremental::Error>>,
+    ) -> Result<(Vec<hir::Item>, Vec<hir::Stmt>), Vec<Error>> {
+        let (core, package) = self.store.get_mut(map_fir_package_to_hir(self.package));
 
         let package = package.expect("expected to find package");
 
-        let mut fragments = self
-            .compiler
-            .compile_fragments(package, &label, line)
-            .map_err(|errors| {
-                errors
-                    .into_iter()
-                    .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
-                    .collect::<Vec<_>>()
-            })?;
+        let mut fragments = compile(&mut self.compiler, package).map_err(|errors| {
+            errors
+                .into_iter()
+                .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
+                .collect::<Vec<_>>()
+        })?;
 
         let pass_errors = fragments
             .iter_mut()
@@ -343,50 +385,19 @@ impl Interpreter {
                 .collect());
         }
 
-        // Items must be processed before top-level statements, so sort the fragments.
-        // Note that stable sorting is used here to preserve the order of top-level statements.
-        fragments.sort_by_key(|f| match f {
-            Fragment::Item(_) => 0,
-            Fragment::Stmt(_) => 1,
-        });
+        // Partition list into items and statements since items are always
+        // meant to be processed before statements.
+        let mut items = Vec::new();
+        let mut stmts = Vec::new();
 
-        for fragment in fragments {
-            match fragment {
-                Fragment::Item(item) => match item.kind {
-                    qsc_hir::hir::ItemKind::Callable(callable) => {
-                        let callable = self.lower_callable_decl(&callable);
-
-                        self.callables
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
-                    }
-                    qsc_hir::hir::ItemKind::Namespace(..) => {}
-                    qsc_hir::hir::ItemKind::Ty(..) => {
-                        self.udts
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
-                    }
-                },
-                Fragment::Stmt(stmt) => {
-                    let stmt_id = self.lower_stmt(&stmt);
-
-                    match self.eval_stmt(receiver, stmt_id) {
-                        Ok(value) => result = value,
-                        Err((error, call_stack)) => {
-                            let stack_trace = if call_stack.is_empty() {
-                                None
-                            } else {
-                                Some(self.render_call_stack(call_stack, &error))
-                            };
-
-                            return Err(vec![Error(
-                                error::eval(error, &self.store, stack_trace).into(),
-                            )]);
-                        }
-                    }
-                }
+        for f in fragments {
+            match f {
+                Fragment::Item(item) => items.push(item),
+                Fragment::Stmt(stmt) => stmts.push(stmt),
             }
         }
 
-        Ok(result)
+        Ok((items, stmts))
     }
 
     /// Runs the given entry expression on a new instance of the environment and simulator,
@@ -403,58 +414,31 @@ impl Interpreter {
         expr: &str,
         shots: u32,
     ) -> Result<Vec<LineResult>, Vec<Error>> {
-        let fragments = {
-            let (core, package) = self
-                .store
-                .get_pass_context(map_fir_package_to_hir(self.package));
-
-            let package = package.expect("expected to find package");
-
-            let mut fragments = self
-                .compiler
-                .compile_expr(package, "<entry>", expr)
-                .map_err(|errors| {
-                    errors
-                        .into_iter()
-                        .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
-                        .collect::<Vec<_>>()
-                })?;
-
-            let pass_errors = fragments
-                .iter_mut()
-                .flat_map(|fragment| self.passes.run(core, &mut package.assigner, fragment))
-                .collect::<Vec<_>>();
-            if !pass_errors.is_empty() {
-                return Err(pass_errors
-                    .into_iter()
-                    .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
-                    .collect());
-            }
-
-            fragments
-        };
+        let (items, stmts) = self.compile_incremental(|c, p| c.compile_expr(p, "<entry>", expr))?;
 
         let mut stmt_id = None;
-        for fragment in fragments {
-            match fragment {
-                Fragment::Item(item) => match item.kind {
-                    qsc_hir::hir::ItemKind::Callable(callable) => {
-                        let callable = self.lower_callable_decl(&callable);
 
-                        self.callables
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
-                    }
-                    qsc_hir::hir::ItemKind::Namespace(..) => {}
-                    qsc_hir::hir::ItemKind::Ty(..) => {
-                        self.udts
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
-                    }
-                },
-                Fragment::Stmt(stmt) => assert!(
-                    stmt_id.replace(self.lower_stmt(&stmt)).is_none(),
-                    "expression should yield exactly one statement"
-                ),
+        for item in items {
+            match item.kind {
+                qsc_hir::hir::ItemKind::Callable(callable) => {
+                    let callable = self.lower_callable_decl(&callable);
+
+                    self.callables
+                        .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                }
+                qsc_hir::hir::ItemKind::Namespace(..) => {}
+                qsc_hir::hir::ItemKind::Ty(..) => {
+                    self.udts
+                        .insert(qsc_eval::lower::lower_local_item_id(item.id));
+                }
             }
+        }
+
+        for stmt in stmts {
+            assert!(
+                stmt_id.replace(self.lower_stmt(&stmt)).is_none(),
+                "expression should yield exactly one statement"
+            );
         }
 
         let Some(stmt_id) = stmt_id else {
@@ -510,89 +494,54 @@ impl Interpreter {
             return Err(vec![Error(ErrorKind::TargetMismatch)]);
         }
 
-        let fragments = {
-            let (core, package) = self
-                .store
-                .get_pass_context(map_fir_package_to_hir(self.package));
-
-            let package = package.expect("expected to find package");
-
-            let mut fragments = self
-                .compiler
-                .compile_expr(package, "<entry>", expr)
-                .map_err(|errors| {
-                    errors
-                        .into_iter()
-                        .map(|error| Error(WithSource::from_map(&package.sources, error).into()))
-                        .collect::<Vec<_>>()
-                })?;
-
-            let pass_errors = fragments
-                .iter_mut()
-                .flat_map(|fragment| self.passes.run(core, &mut package.assigner, fragment))
-                .collect::<Vec<_>>();
-            if !pass_errors.is_empty() {
-                return Err(pass_errors
-                    .into_iter()
-                    .map(|error| {
-                        Error(WithSource::from_map(&self.package_mut().sources, error).into())
-                    })
-                    .collect());
-            }
-
-            fragments
-        };
+        let (items, stmts) = self.compile_incremental(|c, p| c.compile_expr(p, "<entry>", expr))?;
 
         let mut ret = Ok(String::new());
-        for fragment in fragments {
-            match fragment {
-                Fragment::Item(item) => match item.kind {
-                    qsc_hir::hir::ItemKind::Callable(callable) => {
-                        let callable = self.lower_callable_decl(&callable);
 
-                        self.callables
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
-                    }
-                    qsc_hir::hir::ItemKind::Namespace(..) => {}
-                    qsc_hir::hir::ItemKind::Ty(..) => {
-                        self.udts
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
-                    }
-                },
-                Fragment::Stmt(stmt) => {
-                    let stmt_id = self.lower_stmt(&stmt);
-                    let globals = Lookup {
-                        fir_store: &self.fir_store,
-                        package: self.package,
-                        udts: &self.udts,
-                        callables: &self.callables,
-                    };
+        for item in items {
+            match item.kind {
+                qsc_hir::hir::ItemKind::Callable(callable) => {
+                    let callable = self.lower_callable_decl(&callable);
 
-                    ret = generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package)
-                        .map_err(|(error, call_stack)| {
-                            let stack_trace = if call_stack.is_empty() {
-                                None
-                            } else {
-                                Some(self.render_call_stack(call_stack, &error))
-                            };
-
-                            vec![Error(error::eval(error, &self.store, stack_trace).into())]
-                        });
+                    self.callables
+                        .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
+                }
+                qsc_hir::hir::ItemKind::Namespace(..) => {}
+                qsc_hir::hir::ItemKind::Ty(..) => {
+                    self.udts
+                        .insert(qsc_eval::lower::lower_local_item_id(item.id));
                 }
             }
         }
+
+        for stmt in stmts {
+            let stmt_id = self.lower_stmt(&stmt);
+            let globals = Lookup {
+                fir_store: &self.fir_store,
+                package: self.package,
+                udts: &self.udts,
+                callables: &self.callables,
+            };
+
+            ret = generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
+                |(error, call_stack)| {
+                    let stack_trace = if call_stack.is_empty() {
+                        None
+                    } else {
+                        Some(self.render_call_stack(call_stack, &error))
+                    };
+
+                    vec![Error(error::eval(error, &self.store, stack_trace).into())]
+                },
+            );
+        }
+
         ret
     }
 
     fn package(&self) -> &CompileUnit {
         self.store
             .get(map_fir_package_to_hir(self.source_package))
-            .expect("Could not load package")
-    }
-
-    fn package_mut(&mut self) -> &mut CompileUnit {
-        self.store
-            .get_mut(map_fir_package_to_hir(self.source_package))
             .expect("Could not load package")
     }
 
