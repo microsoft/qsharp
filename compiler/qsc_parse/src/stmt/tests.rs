@@ -581,7 +581,7 @@ fn doc_at_end_of_block() {
                     FloatingDocComment(
                         Span {
                             lo: 14,
-                            hi: 49,
+                            hi: 40,
                         },
                     ),
                 ),
@@ -606,7 +606,7 @@ fn doc_followed_by_non_item() {
                     FloatingDocComment(
                         Span {
                             lo: 14,
-                            hi: 54,
+                            hi: 39,
                         },
                     ),
                 ),

@@ -983,7 +983,7 @@ fn doc_without_item() {
                     FloatingDocComment(
                         Span {
                             lo: 26,
-                            hi: 61,
+                            hi: 52,
                         },
                     ),
                 ),
