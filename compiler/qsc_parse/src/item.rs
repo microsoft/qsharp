@@ -45,14 +45,10 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         Box::new(ItemKind::Callable(callable))
     } else {
         if !doc.is_empty() {
-            return Err(Error(ErrorKind::Token(
-                TokenKind::Ident,
-                TokenKind::DocComment,
-                Span {
-                    lo,
-                    hi: s.peek().span.hi - 1,
-                },
-            )));
+            return Err(Error(ErrorKind::FloatingDocComment(Span {
+                lo,
+                hi: s.peek().span.hi - 1,
+            })));
         }
         return Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)));
     };
