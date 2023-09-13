@@ -54,7 +54,7 @@ enum ErrorKind {
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
-    #[error("expected namespace item, found {1}")]
+    #[error("expected namespace item, found {0}")]
     #[diagnostic(code("Qsc.Parse.EmptyNamespace"))]
     EmptyNamespace(TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
