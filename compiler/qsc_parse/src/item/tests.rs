@@ -980,26 +980,19 @@ fn doc_without_item() {
 
             [
                 Error(
-                    Rule(
-                        "item",
-                        Close(
-                            Brace,
-                        ),
+                    FloatingDocComment(
                         Span {
-                            lo: 61,
-                            hi: 62,
+                            lo: 26,
+                            hi: 61,
                         },
                     ),
                 ),
                 Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
+                    EmptyNamespace(
                         Eof,
                         Span {
-                            lo: 62,
-                            hi: 62,
+                            lo: 26,
+                            hi: 61,
                         },
                     ),
                 ),
@@ -1138,6 +1131,17 @@ fn callable_missing_parens() {
                         },
                     ),
                 ),
+                Error(
+                    EmptyNamespace(
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 22,
+                            hi: 53,
+                        },
+                    ),
+                ),
             ]"#]],
     )
 }
@@ -1166,6 +1170,17 @@ fn callable_missing_close_parens() {
                         },
                     ),
                 ),
+                Error(
+                    EmptyNamespace(
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 22,
+                            hi: 54,
+                        },
+                    ),
+                ),
             ]"#]],
     )
 }
@@ -1187,6 +1202,17 @@ fn callable_missing_open_parens() {
                         Span {
                             lo: 35,
                             hi: 42,
+                        },
+                    ),
+                ),
+                Error(
+                    EmptyNamespace(
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 22,
+                            hi: 54,
                         },
                     ),
                 ),

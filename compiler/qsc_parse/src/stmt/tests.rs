@@ -578,14 +578,10 @@ fn doc_at_end_of_block() {
 
             [
                 Error(
-                    Rule(
-                        "item",
-                        Close(
-                            Brace,
-                        ),
+                    FloatingDocComment(
                         Span {
-                            lo: 49,
-                            hi: 50,
+                            lo: 14,
+                            hi: 49,
                         },
                     ),
                 ),
@@ -607,14 +603,10 @@ fn doc_followed_by_non_item() {
 
             [
                 Error(
-                    Rule(
-                        "item",
-                        Keyword(
-                            Let,
-                        ),
+                    FloatingDocComment(
                         Span {
-                            lo: 52,
-                            hi: 55,
+                            lo: 14,
+                            hi: 54,
                         },
                     ),
                 ),
