@@ -144,8 +144,7 @@ fn check_empty_namespace(s: &mut Scanner, items: &[Box<Item>]) {
         .filter(|item| matches!(*item.kind, ItemKind::Err))
         .collect::<Vec<&Box<Item>>>();
     if err_items.len() == items.len() {
-        s.push_error(Error(ErrorKind::Rule(
-            "namespace item",
+        s.push_error(Error(ErrorKind::EmptyNamespace(
             s.peek().kind,
             s.peek().span,
         )));

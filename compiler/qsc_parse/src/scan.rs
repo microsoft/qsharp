@@ -102,7 +102,9 @@ impl<'a> Scanner<'a> {
     pub(super) fn push_error(&mut self, error: Error) {
         let is_eof_err = matches!(
             error.0,
-            ErrorKind::Token(_, TokenKind::Eof, _) | ErrorKind::Rule(_, TokenKind::Eof, _)
+            ErrorKind::Token(_, TokenKind::Eof, _)
+                | ErrorKind::Rule(_, TokenKind::Eof, _)
+                | ErrorKind::EmptyNamespace(TokenKind::Eof, _)
         );
         if !is_eof_err || !self.recovered_eof {
             self.errors.push(error);
