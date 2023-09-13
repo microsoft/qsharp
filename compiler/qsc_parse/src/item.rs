@@ -143,11 +143,12 @@ fn check_empty_namespace(s: &mut Scanner, items: &[Box<Item>]) {
         .iter()
         .filter(|item| matches!(*item.kind, ItemKind::Err))
         .collect::<Vec<&Box<Item>>>();
-    if err_items.len() == items.len() {
-        s.push_error(Error(ErrorKind::EmptyNamespace(
-            s.peek().kind,
-            s.peek().span,
-        )));
+
+    if !err_items.is_empty() && err_items.len() == items.len() {
+        let lo = err_items.first().unwrap().span.lo;
+        let hi = err_items.last().unwrap().span.hi;
+        let span = Span::range(lo, hi - 1);
+        s.push_error(Error(ErrorKind::EmptyNamespace(s.peek().kind, span)));
     }
 }
 

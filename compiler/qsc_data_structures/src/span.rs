@@ -16,6 +16,12 @@ pub struct Span {
     pub hi: u32,
 }
 
+impl Span {
+    pub fn range(lo: u32, hi: u32) -> Self {
+        Self { lo, hi }
+    }
+}
+
 impl Add<u32> for Span {
     type Output = Self;
 
