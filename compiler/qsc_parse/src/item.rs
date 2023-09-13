@@ -155,7 +155,7 @@ fn check_empty_namespace(s: &mut Scanner, items: &[Box<Item>]) {
         let hi = err_items.last().unwrap().span.hi;
         s.push_error(Error(ErrorKind::EmptyNamespace(
             s.peek().kind,
-            Span::range(lo, hi - 1),
+            Span { lo, hi: hi - 1 },
         )));
     }
 }
