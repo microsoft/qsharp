@@ -87,6 +87,7 @@ impl<'a> Scanner<'a> {
     /// barrier token is found first, it is not consumed.
     pub(super) fn recover(&mut self, tokens: &[TokenKind]) {
         loop {
+            // println!("recovering");
             let peek = self.peek.kind;
             if contains(peek, tokens) {
                 self.advance();

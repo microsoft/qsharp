@@ -33,7 +33,7 @@ pub enum Fragment {
 }
 
 pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
-    let lo = s.peek().span.lo;
+    let t = s.peek();
     let doc = parse_doc(s);
     let attrs = many(s, parse_attr)?;
     let visibility = opt(s, parse_visibility)?;
@@ -45,17 +45,14 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         Box::new(ItemKind::Callable(callable))
     } else {
         if !doc.is_empty() {
-            return Err(Error(ErrorKind::FloatingDocComment(Span {
-                lo,
-                hi: s.peek().span.hi - 1,
-            })));
+            return Err(Error(ErrorKind::FloatingDocComment(t.span)));
         }
         return Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)));
     };
 
     Ok(Box::new(Item {
         id: NodeId::default(),
-        span: s.span(lo),
+        span: s.span(t.span.lo),
         doc: doc.into(),
         attrs: attrs.into_boxed_slice(),
         visibility,

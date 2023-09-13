@@ -34,6 +34,7 @@ impl FinalSep {
 }
 
 pub(super) fn token(s: &mut Scanner, t: TokenKind) -> Result<()> {
+    // println!("s: {} , t: {}", s.peek().kind, t);
     if s.peek().kind == t {
         s.advance();
         Ok(())
@@ -218,6 +219,16 @@ pub(super) fn recovering_token(s: &mut Scanner, t: TokenKind) -> Result<()> {
     match token(s, t) {
         Ok(()) => Ok(()),
         Err(error) => {
+            // if matches!(
+            //     error,
+            //     Error(ErrorKind::Token(
+            //         TokenKind::Close(Delim::Brace),
+            //         TokenKind::Eof,
+            //         _
+            //     ))
+            // ) {
+            //     return Ok(());
+            // }
             s.push_error(error);
             s.recover(&[t]);
             Ok(())
