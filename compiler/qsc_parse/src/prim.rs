@@ -219,16 +219,6 @@ pub(super) fn recovering_token(s: &mut Scanner, t: TokenKind) -> Result<()> {
     match token(s, t) {
         Ok(()) => Ok(()),
         Err(error) => {
-            // if matches!(
-            //     error,
-            //     Error(ErrorKind::Token(
-            //         TokenKind::Close(Delim::Brace),
-            //         TokenKind::Eof,
-            //         _
-            //     ))
-            // ) {
-            //     return Ok(());
-            // }
             s.push_error(error);
             s.recover(&[t]);
             Ok(())
