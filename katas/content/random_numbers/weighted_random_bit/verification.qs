@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for x in [0.0, 0.25, 0.5, 0.75, 1.0] {
             Message($"Testing generating zero with {x*100.0}% probability...");
             let randomnessVerifier = () => CheckXPercentZero(() => Kata.WeightedRandomBit(x), x);
@@ -46,10 +46,10 @@ namespace Kata.Verification {
             }
         } else {
             if zeroCount < goalZeroCount - 4 * nRuns / 100 {
-                Message($"Unexpectedly low number of 0's generated: expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
+                Message($"Unexpectedly low number of 0's generated : expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
                 return 0x3;
             } elif zeroCount > goalZeroCount + 4 * nRuns / 100 {
-                Message($"Unexpectedly high number of 0's generated: expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
+                Message($"Unexpectedly high number of 0's generated : expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
                 return 0x4;
             }
         }

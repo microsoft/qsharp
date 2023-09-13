@@ -2,9 +2,9 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
 
     operation ApplyMarkingOracleAsPhaseOracle_Reference(
-        markingOracle: ((Qubit[], Qubit) => Unit is Adj + Ctl),
-        qubits: Qubit[]) : Unit is Adj + Ctl {
-            
+        markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),
+        qubits : Qubit[]) : Unit is Adj + Ctl {
+
         use minus = Qubit();
         within {
             X(minus);
@@ -15,7 +15,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for N in 1..5 {
             for k in 0..(2^N-1) {
                 let pattern = IntAsBoolArray(k, N);
