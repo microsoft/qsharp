@@ -57,9 +57,6 @@ enum ErrorKind {
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
-    #[error("expected namespace item")]
-    #[diagnostic(code("Qsc.Parse.EmptyNamespace"))]
-    EmptyNamespace(TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Convert"))]
     Convert(&'static str, &'static str, #[label] Span),
@@ -82,7 +79,6 @@ impl ErrorKind {
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
             Self::MissingParens(span) => Self::MissingParens(span + offset),
-            Self::EmptyNamespace(expected, span) => Self::EmptyNamespace(expected, span + offset),
             Self::FloatingDocComment(span) => Self::FloatingDocComment(span + offset),
         }
     }
