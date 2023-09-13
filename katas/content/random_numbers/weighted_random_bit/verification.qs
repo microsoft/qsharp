@@ -46,10 +46,10 @@ namespace Kata.Verification {
             }
         } else {
             if zeroCount < goalZeroCount - 4 * nRuns / 100 {
-                Message($"Unexpectedly low number of 0's generated : expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
+                Message($"Unexpectedly low number of 0's generated: expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
                 return 0x3;
             } elif zeroCount > goalZeroCount + 4 * nRuns / 100 {
-                Message($"Unexpectedly high number of 0's generated : expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
+                Message($"Unexpectedly high number of 0's generated: expected around {x * IntAsDouble(nRuns)} 0's, got {zeroCount} out of {nRuns}");
                 return 0x4;
             }
         }
