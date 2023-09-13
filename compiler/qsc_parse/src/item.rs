@@ -127,15 +127,7 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
-    items.iter().for_each(|item| {
-        if matches!(*item.kind, ItemKind::Err) {
-            s.push_error(Error(ErrorKind::Rule(
-                "namespace item",
-                s.peek().kind,
-                s.peek().span,
-            )));
-        }
-    });
+    check_empty_namespace(s, items.as_ref());
     recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::default(),
@@ -144,6 +136,20 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
         name,
         items: items.into_boxed_slice(),
     })
+}
+
+fn check_empty_namespace(s: &mut Scanner, items: &[Box<Item>]) {
+    let err_items = &items
+        .iter()
+        .filter(|item| matches!(*item.kind, ItemKind::Err))
+        .collect::<Vec<&Box<Item>>>();
+    if err_items.len() == items.len() {
+        s.push_error(Error(ErrorKind::Rule(
+            "namespace item",
+            s.peek().kind,
+            s.peek().span,
+        )));
+    }
 }
 
 fn parse_doc(s: &mut Scanner) -> String {
