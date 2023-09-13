@@ -23,7 +23,7 @@ namespace MyQuantumApp {
 
         // UDTs can also be updated with copy-and-update expressions (`w/`)
         // or evaluate-and-reassign expressions (`w/=`).
-        newtype Point3d = (X: Double, Y: Double, Z: Double);
+        newtype Point3d = (X : Double, Y : Double, Z : Double);
 
         mutable point = Point3d(0.0, 0.0, 0.0);
 
@@ -34,7 +34,7 @@ namespace MyQuantumApp {
         // The below line also mutates `point`, moving the X coordinate by -1.0,
         // using copy-and-update.
         set point = point w/ X <- point::X + 1.0;
-         
+
     }
 
 }
