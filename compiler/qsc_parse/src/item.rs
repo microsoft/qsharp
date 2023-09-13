@@ -127,6 +127,15 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
+    items.iter().for_each(|item| {
+        if matches!(*item.kind, ItemKind::Err) {
+            s.push_error(Error(ErrorKind::Rule(
+                "namespace item",
+                s.peek().kind,
+                s.peek().span,
+            )));
+        }
+    });
     recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::default(),
