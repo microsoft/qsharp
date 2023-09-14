@@ -214,7 +214,7 @@ jobs:
   - Node
   - VSCode
   - JupyterLab
-  - PlatformSpecificPython
+  - Python
 
   pool: server
   timeoutInMinutes: 1440 # job times out in 1 day
