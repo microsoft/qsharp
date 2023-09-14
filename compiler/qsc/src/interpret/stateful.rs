@@ -192,7 +192,7 @@ impl Interpreter {
         let user_fir = lowerer.lower_package(&unit.package);
         let user_package = store.insert(unit);
         fir_store.insert(map_hir_package_to_fir(user_package), user_fir);
-        let compiler = Compiler::new(&store, dependencies);
+        let compiler = Compiler::new(&store, dependencies, target);
         Ok(Self {
             store,
             compiler,

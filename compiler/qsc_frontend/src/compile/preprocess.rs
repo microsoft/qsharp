@@ -3,7 +3,7 @@
 
 use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, ExprKind, ItemKind, Namespace},
+    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind},
     mut_visit::MutVisitor,
 };
 use std::rc::Rc;
@@ -79,6 +79,41 @@ impl MutVisitor for Conditional {
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();
+    }
+
+    fn visit_stmt(&mut self, stmt: &mut Stmt) {
+        if let StmtKind::Item(item) = stmt.kind.as_mut() {
+            if matches_target(&item.attrs, self.target) {
+                match item.kind.as_ref() {
+                    ItemKind::Callable(callable) => {
+                        self.included_names.push(TrackedName {
+                            name: callable.name.name.clone(),
+                            namespace: Rc::from(""),
+                        });
+                    }
+                    ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
+                        name: ident.name.clone(),
+                        namespace: Rc::from(""),
+                    }),
+                    _ => {}
+                }
+            } else {
+                match item.kind.as_ref() {
+                    ItemKind::Callable(callable) => {
+                        self.dropped_names.push(TrackedName {
+                            name: callable.name.name.clone(),
+                            namespace: Rc::from(""),
+                        });
+                    }
+                    ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
+                        name: ident.name.clone(),
+                        namespace: Rc::from(""),
+                    }),
+                    _ => {}
+                }
+                stmt.kind = Box::new(StmtKind::Empty);
+            }
+        }
     }
 }
 
