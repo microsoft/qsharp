@@ -251,6 +251,7 @@ function checkForOldQdk() {
 
   if (extension) {
     log.warn(warningMessage);
-    vscode.window.showErrorMessage(warningMessage);
+    // we don't await so we don't block extension initialization
+    vscode.window.showWarningMessage(warningMessage);
   }
 }
