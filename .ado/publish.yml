@@ -9,23 +9,37 @@ name: $(BuildId)
 trigger: none
 pr: none
 
+variables:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN_VERSION: "1.72"
+
+# variables set by pipeline
+# - BUILD_NUMBER
+# - BUILD_TYPE
+# - cratesIoFeedOverride
+# - OwnerPersonalAlias
+# - PAT
+# - toolchainFeed
+
 jobs:
 - job: "Build"
   strategy:
     matrix:
-      linux_x64:                        # 2023.06.30 ESRP Publishing of Py packs is not supported for linux_x86_64.
-                                        # The "manylinux" approach is used.
-        imageName: 'ubuntu-latest'      # Manylinux Py (x86_64) + VSCode Ext.
-        arch: x86_64
-      linux_ARM64:
-        imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
-        arch: aarch64
+      # linux_x64:                        # 2023.06.30 ESRP Publishing of Py packs is not supported for linux_x86_64.
+      #                                   # The "manylinux" approach is used.
+      #   imageName: 'ubuntu-latest'      # Manylinux Py (x86_64) + VSCode Ext.
+      #   arch: x86_64
+      # linux_ARM64:
+      #   imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
+      #   arch: aarch64
       mac:
         imageName: 'macOS-latest'       # MacOS-specific Py (Mac is usually quite limited).
         arch: x86_64
+        additionalRustTargets: aarch64-apple-darwin
       windows:
         imageName: 'windows-latest'     # Win-specific Py + Platform-independent Py.
         arch: x86_64
+        additionalRustTargets: aarch64-pc-windows-msvc
   pool:
     vmImage: $(imageName)
   variables:
@@ -33,6 +47,14 @@ jobs:
   timeoutInMinutes: 90
 
   steps:
+  - task: RustInstaller@1
+    inputs:
+      rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
+      additionalTargets: $(additionalRustTargets)
+      cratesIoFeedOverride: $(cratesIoFeedOverride)
+      toolchainFeed: $(toolchainFeed)
+    displayName: Install Rust toolchain
+
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.11'
@@ -40,11 +62,6 @@ jobs:
   - script: |
       python ./prereqs.py --install && python ./version.py
     displayName: Install Prereqs and set version
-
-  - script: |
-      rustup target add aarch64-apple-darwin
-    displayName: Add aarch64 Rust target on macOS
-    condition: eq(variables['Agent.OS'], 'Darwin')
 
   # Below VS Code extension build only needs to run on one platform (Linux x86_64 for now)
   - script: |
@@ -86,170 +103,9 @@ jobs:
     displayName: Build Platform-Dependent Py Packages, non-Linux
     condition: ne(variables['Agent.OS'], 'Linux')
 
-  - script: |
-      set -x -e
-
-      export ARCH=${{ variables['arch'] }}
-
-      if [ "$ARCH" == "aarch64" ]; then
-        # The aarch64 (ARM64) emulation support:
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          qemu qemu-system-misc qemu-user-static qemu-user
-      fi
-
-      chmod +x pip/build_manylinux.sh
-
-      # images: https://github.com/pypa/manylinux#docker-images
-      docker run \
-        --env ARCH=$ARCH --rm -i -v `pwd`:/io \
-        quay.io/pypa/manylinux_2_28_$ARCH \
-        /io/pip/build_manylinux.sh
-
-      ls target/wheels
-    displayName: Build Platform-Dependent Py Packages, Linux
-    condition: eq(variables['Agent.OS'], 'Linux')
-
   # Build JupyterLab on Windows (was seeing some Access Denied errors on Linux)
   - script: |
       python build.py --jupyterlab --no-check
     displayName: Build Platform-Independent Py Packages
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
-  - script: |
-      dir target\wheels\*
-    displayName: List Py Packages on Win
-    condition: eq(variables['Agent.OS'], 'Windows_NT')
-
-  - script: |
-      ls target/wheels/*
-    displayName: List Py Packages on non-Win
-    condition: ne(variables['Agent.OS'], 'Windows_NT')
-
-  - publish: $(System.DefaultWorkingDirectory)/target/wheels
-    artifact: Wheels.Mac
-    displayName: Upload Python Artifacts Mac
-    condition: eq(variables['Agent.OS'], 'Darwin')
-
-  - publish: $(System.DefaultWorkingDirectory)/target/wheels
-    artifact: Wheels.Win
-    displayName: Upload Python Artifacts Win
-    condition: eq(variables['Agent.OS'], 'Windows_NT')
-
-  - publish: $(System.DefaultWorkingDirectory)/target/wheels
-    artifact: Wheels.Linux.${{ variables['arch'] }}
-    displayName: Upload Python Artifacts Linux
-    condition: eq(variables['Agent.OS'], 'Linux')
-
-# TODO: For an automated nightly release, the approval requirement should be skipped
-- job: "Approval"
-  dependsOn: Build
-  pool: server
-  timeoutInMinutes: 1440 # job times out in 1 day
-  steps:
-  - task: ManualValidation@0
-    timeoutInMinutes: 1440 # task times out in 1 day
-    inputs:
-      notifyUsers: ''
-      instructions: 'Please verify artifacts and approve the release'
-      onTimeout: 'reject'
-
-- job: "Publish"
-  dependsOn: Approval
-  pool:
-    vmImage: 'ubuntu-latest'
-
-  steps:
-  - download: current
-    artifact: NPM
-    displayName: Download NPM Artifacts
-
-  - script: |
-      mkdir -p                            target/npm
-      mv ../NPM/*.tgz                     target/npm
-      ls                                  target/npm/*
-    displayName: Move NPM Artifacts to Publishing Dir
-
-  - download: current
-    artifact: Wheels.Win
-    displayName: Download Python Artifacts Win
-
-  - download: current
-    artifact: Wheels.Mac
-    displayName: Download Python Artifacts Mac
-
-  - download: current
-    artifact: Wheels.Linux.x86_64
-    displayName: Download Python Artifacts Linux
-
-  - download: current
-    artifact: Wheels.Linux.aarch64
-    displayName: Download Python Artifacts Linux
-
-  - script: |
-      mkdir -p                            target/wheels
-      mv ../Wheels.Linux.x86_64/*.whl     target/wheels
-      mv ../Wheels.Linux.aarch64/*.whl    target/wheels
-      mv ../Wheels.Win/*.whl              target/wheels
-      mv ../Wheels.Mac/*.whl              target/wheels
-      ls                                  target/wheels/*
-    displayName: Move Py Artifacts to Publishing Dir
-
-  - download: current
-    artifact: VSIX
-    displayName: Download VSCode Extension Artifact
-
-  - script: |
-      npm install -g @vscode/vsce
-    displayName: Install Prereqs for VSCode Ext Publishing
-
-
-  # NB: Publishing must be the last thing (done only if all previous steps are successful).
-
-  - task: EsrpRelease@2
-    inputs:
-     ConnectedServiceName: 'ESRP_Release'
-     Intent: 'PackageDistribution'
-     ContentType: 'PyPi'
-     PackageLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
-     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
-                                                    #     Group email here fails the task with non-actionable output.
-     Approvers: 'billti@microsoft.com'
-     # Auto-inserted Debugging defaults:
-     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
-     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-    displayName: Publish Py Packages
-
-  - task: EsrpRelease@2
-    inputs:
-     ConnectedServiceName: 'ESRP_Release'
-     Intent: 'PackageDistribution'
-     ContentType: 'NPM'
-     PackageLocation: '$(System.DefaultWorkingDirectory)/target/npm'
-     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
-                                                    #     Group email here fails the task with non-actionable output.
-     Approvers: 'billti@microsoft.com'
-     # Auto-inserted Debugging defaults:
-     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
-     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-    displayName: Publish NPM Package
-
-  # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
-  - script: |
-      VSIX_RPATH=../VSIX
-      VSIX_FNAME=`ls $VSIX_RPATH`
-      vsce publish --pre-release --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
-    displayName: Publish VSCode Extension
-    env:
-      VSCE_PAT: $(PAT)
-
-  - script: |
-      dir
-      cat pub.log
-    displayName: If failed, display VSCode Publishing Results
-    condition: failed()
-    workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
-
-# TODO: npm package publishing, and JupyterLab extension publishing.
