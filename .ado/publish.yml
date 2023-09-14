@@ -49,19 +49,17 @@ jobs:
   - script: |
       python build.py --npm --wasm
     displayName: Build VSCode Extension
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   - script: |
       mkdir -p '$(System.DefaultWorkingDirectory)/target/npm'
       npm pack --pack-destination '$(System.DefaultWorkingDirectory)/target/npm'
     displayName: Pack NPM Package
     workingDirectory: '$(System.DefaultWorkingDirectory)/npm'
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   - publish: $(System.DefaultWorkingDirectory)/target/npm
     artifact: NPM
     displayName: Upload NPM Package Artifact
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
+
 
 - job: "VSCode"
   pool:
@@ -89,27 +87,22 @@ jobs:
   - script: |
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Extension
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   # build steps
 
   - script: |
       python build.py --wasm --npm --vscode
     displayName: Build VSCode Extension
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       vsce package --pre-release
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
 
   - publish: $(System.DefaultWorkingDirectory)/vscode
     artifact: VSIX
     displayName: Upload VSCode Extension Artifact
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
-
 
 - job: "JupyterLab"
   pool:
