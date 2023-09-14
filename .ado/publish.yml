@@ -25,13 +25,9 @@ jobs:
 - job: "Build"
   strategy:
     matrix:
-      # linux_x64:                        # 2023.06.30 ESRP Publishing of Py packs is not supported for linux_x86_64.
-      #                                   # The "manylinux" approach is used.
-      #   imageName: 'ubuntu-latest'      # Manylinux Py (x86_64) + VSCode Ext.
-      #   arch: x86_64
-      # linux_ARM64:
-      #   imageName: 'ubuntu-latest'      # Manylinux Py (ARM64). Takes 45 - 65 minutes, hence is in a separate job.
-      #   arch: aarch64
+      linux_x64:
+        imageName: 'ubuntu-20.04'
+        arch: x86_64
       mac:
         imageName: 'macOS-latest'       # MacOS-specific Py (Mac is usually quite limited).
         arch: x86_64
@@ -47,6 +43,7 @@ jobs:
   timeoutInMinutes: 90
 
   steps:
+  # common init steps
   - task: RustInstaller@1
     inputs:
       rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
@@ -68,6 +65,8 @@ jobs:
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Extension
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
+
+  # build steps
 
   - script: |
       python build.py --wasm --npm --vscode
@@ -103,9 +102,41 @@ jobs:
     displayName: Build Platform-Dependent Py Packages, non-Linux
     condition: ne(variables['Agent.OS'], 'Linux')
 
+  - script: |
+      python build.py --pip --no-check --no-test --no-check-prereqs
+      ls target/wheels
+      ls target/wheels/*.whl | echo "$(pwd)/$_" | xargs python -m auditwheel repair --wheel-dir ./target/wheels/
+      ls target/wheels
+    displayName: Build Linux Wheels
+    condition: eq(variables['Agent.OS'], 'Linux')
+
   # Build JupyterLab on Windows (was seeing some Access Denied errors on Linux)
   - script: |
       python build.py --jupyterlab --no-check
     displayName: Build Platform-Independent Py Packages
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
+  - script: |
+      dir target\wheels\*
+    displayName: List Py Packages on Win
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - script: |
+      ls target/wheels/*
+    displayName: List Py Packages on non-Win
+    condition: ne(variables['Agent.OS'], 'Windows_NT')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+    artifact: Wheels.Mac
+    displayName: Upload Python Artifacts Mac
+    condition: eq(variables['Agent.OS'], 'Darwin')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+    artifact: Wheels.Win
+    displayName: Upload Python Artifacts Win
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels/*manylinux*.whl
+    artifact: Wheels.Linux.${{ variables['arch'] }}
+    displayName: Upload Python Artifacts Linux
+    condition: eq(variables['Agent.OS'], 'Linux')
