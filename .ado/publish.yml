@@ -31,6 +31,7 @@ jobs:
   # common init steps
   - script: |
       rustup override set $(RUST_TOOLCHAIN_VERSION)
+      rustup component add rustfmt clippy
       cargo --version
       rustc --version
     displayName: Install Rust toolchain
@@ -71,6 +72,7 @@ jobs:
   # common init steps
   - script: |
       rustup override set $(RUST_TOOLCHAIN_VERSION)
+      rustup component add rustfmt clippy
       cargo --version
       rustc --version
     displayName: Install Rust toolchain
