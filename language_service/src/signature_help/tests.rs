@@ -620,3 +620,74 @@ fn argument_after_nested_tuple() {
         "#]],
     );
 }
+
+#[test]
+fn foo() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(  1  ,   (   2.3   ,   "Four"   )   ,  ↘ )
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 59,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 15,
+                                    end: 22,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 48,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 25,
+                                    end: 35,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 37,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 50,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}

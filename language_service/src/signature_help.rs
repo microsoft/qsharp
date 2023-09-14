@@ -75,7 +75,7 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                                                     .hir_callable_decl(callee)
                                                     .to_string(),
                                                 documentation: None,
-                                                parameters: self.get_params(callee),
+                                                parameters: self.get_params2(callee),
                                             };
 
                                             self.signature_help = Some(SignatureHelp {
@@ -142,6 +142,55 @@ impl SignatureHelpFinder<'_> {
             documentation: None,
         }
     }
+
+    fn get_params2(&self, decl: &hir::CallableDecl) -> Vec<ParameterInformation> {
+        let mut offset = self.display.get_param_offset(decl);
+
+        self.make_param_with_offset2(&mut offset, &decl.input)
+    }
+
+    fn make_param_with_offset2(
+        &self,
+        offset: &mut u32,
+        pat: &hir::Pat,
+    ) -> Vec<ParameterInformation> {
+        match &pat.kind {
+            hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+                let start = *offset;
+                *offset += len;
+                vec![ParameterInformation {
+                    label: Span {
+                        start,
+                        end: *offset,
+                    },
+                    documentation: None,
+                }]
+            }
+            hir::PatKind::Tuple(items) => {
+                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+                let mut rtrn = vec![ParameterInformation {
+                    label: Span {
+                        start: *offset,
+                        end: *offset + len,
+                    },
+                    documentation: None,
+                }];
+                *offset += 1; // for the open parenthesis
+                let mut is_first = true;
+                for item in items {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        *offset += 2; // 2 for the comma and space
+                    }
+                    rtrn.extend(self.make_param_with_offset2(offset, item));
+                }
+                *offset += 1; // for the close parenthesis
+                rtrn
+            }
+        }
+    }
 }
 
 fn usize_to_u32(x: usize) -> u32 {
@@ -160,4 +209,32 @@ fn process_args(args: &ast::Expr, location: u32) -> u32 {
         }
         _ => 0,
     }
+}
+
+fn process_args2(args: &ast::Expr, location: u32) -> u32 {
+    fn foo(args: &ast::Expr, location: u32, i: &mut usize) {
+        if let ast::ExprKind::Tuple(items) = &*args.kind {
+            if !items.is_empty() {
+                if location < args.span.hi // in item
+                && (location < items.first().expect("expected an item in non-empty tuple").span.lo // before first
+                || items.last().expect("expected an item in non-empty tuple").span.hi < location)
+                // after last
+                {
+                } else {
+                    *i += 1;
+                    for item in items.iter() {
+                        foo(item, location, i);
+                        if location < item.span.hi {
+                            break; //ToDo: not sure about the condition for this
+                        }
+                        *i += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut i = 0;
+    foo(args, location, &mut i);
+    usize_to_u32(i)
 }
