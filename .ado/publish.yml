@@ -230,7 +230,7 @@ jobs:
       onTimeout: 'reject'
 
 
-- job: "Publish VSIX Package"
+- job: "Publish_VSIX_Package"
   dependsOn: Approval
   pool:
     vmImage: 'ubuntu-latest'
@@ -261,7 +261,7 @@ jobs:
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
 
 
-- job: "Publish Python Packages"
+- job: "Publish_Python_Packages"
   dependsOn: Approval
   pool:
     vmImage: 'ubuntu-latest'
@@ -308,7 +308,7 @@ jobs:
     displayName: Publish Py Packages
 
 
-- job: "Publish NPM Package"
+- job: "Publish_NPM_Package"
   dependsOn: Approval
   pool:
     vmImage: 'ubuntu-latest'
