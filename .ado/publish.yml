@@ -184,7 +184,7 @@ jobs:
   - script: |
       python -m pip install auditwheel
       ls target/wheels
-      ls target/wheels/*.whl | echo "$(pwd)/$_" | xargs auditwheel repair --wheel-dir ./target/wheels/
+      ls target/wheels/*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/
       ls target/wheels
     displayName: Run auditwheel for Linux Wheels
     condition: eq(variables['Agent.OS'], 'Linux')
