@@ -34,7 +34,6 @@ impl FinalSep {
 }
 
 pub(super) fn token(s: &mut Scanner, t: TokenKind) -> Result<()> {
-    // println!("s: {} , t: {}", s.peek().kind, t);
     if s.peek().kind == t {
         s.advance();
         Ok(())
