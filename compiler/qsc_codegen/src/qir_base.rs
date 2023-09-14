@@ -170,25 +170,39 @@ impl BaseProfSim {
     }
 
     fn write_output_recording(&mut self, val: &Value) -> std::fmt::Result {
-        match val {
-            Value::Array(arr) => {
-                self.write_array_recording(arr.len())?;
-                for val in arr.iter() {
-                    self.write_output_recording(val)?;
+        fn write_output_recording_recursive(
+            this: &mut BaseProfSim,
+            val: &Value,
+        ) -> std::fmt::Result {
+            match val {
+                Value::Array(arr) => {
+                    this.write_array_recording(arr.len())?;
+                    for val in arr.iter() {
+                        write_output_recording_recursive(this, val)?;
+                    }
                 }
-            }
-            Value::Result(r) => {
-                self.write_result_recording(r.unwrap_id());
-            }
-            Value::Tuple(tup) => {
-                self.write_tuple_recording(tup.len())?;
-                for val in tup.iter() {
-                    self.write_output_recording(val)?;
+                Value::Result(r) => {
+                    this.write_result_recording(r.unwrap_id());
                 }
+                Value::Tuple(tup) => {
+                    this.write_tuple_recording(tup.len())?;
+                    for val in tup.iter() {
+                        write_output_recording_recursive(this, val)?;
+                    }
+                }
+                _ => panic!("unexpected value type: {val:?}"),
             }
-            _ => panic!("unexpected value type: {val:?}"),
+            Ok(())
         }
-        Ok(())
+
+        if matches!(val, Value::Result(_)) {
+            // This is a temporary workaround to avoid output recording bug
+            // that fails when only a result is returned. This treats a single
+            // result as if it were a tuple of arity 1.
+            self.write_tuple_recording(1)?;
+        }
+
+        write_output_recording_recursive(self, val)
     }
 
     fn write_result_recording(&mut self, res: usize) {
