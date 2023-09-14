@@ -179,6 +179,7 @@ jobs:
       ls target/wheels
       ls target/wheels/*.whl | xargs auditwheel show
       ls target/wheels/*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/ --plat manylinux_2_31_x86_64
+      rm target/wheels/*-linux_x86_64.whl
       ls target/wheels
     displayName: Run auditwheel for Linux Wheels
     condition: eq(variables['Agent.OS'], 'Linux')
@@ -203,7 +204,7 @@ jobs:
     displayName: Upload Python Artifacts Win
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
-  - publish: $(System.DefaultWorkingDirectory)/target/wheels/*manylinux*.whl
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
     artifact: Wheels.Linux.${{ variables['arch'] }}
     displayName: Upload Python Artifacts Linux
     condition: eq(variables['Agent.OS'], 'Linux')
