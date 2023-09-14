@@ -228,3 +228,113 @@ jobs:
       notifyUsers: ''
       instructions: 'Please verify artifacts and approve the release'
       onTimeout: 'reject'
+
+
+- job: "Publish VSIX Package"
+  dependsOn: Approval
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - download: current
+    artifact: VSIX
+    displayName: Download VSCode Extension Artifact
+
+  - script: |
+      npm install -g @vscode/vsce
+    displayName: Install Prereqs for VSCode Ext Publishing
+
+  # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
+  - script: |
+      VSIX_RPATH=../VSIX
+      VSIX_FNAME=`ls $VSIX_RPATH`
+      vsce publish --pre-release --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
+    displayName: Publish VSCode Extension
+    env:
+      VSCE_PAT: $(PAT)
+
+  - script: |
+      dir
+      cat pub.log
+    displayName: If failed, display VSCode Publishing Results
+    condition: failed()
+    workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+
+
+- job: "Publish Python Packages"
+  dependsOn: Approval
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - download: current
+    artifact: Wheels.Win
+    displayName: Download Python Artifacts Win
+
+  - download: current
+    artifact: Wheels.Mac
+    displayName: Download Python Artifacts Mac
+
+  - download: current
+    artifact: Wheels.Linux.x86_64
+    displayName: Download Python Artifacts Linux
+
+  - download: current
+    artifact: Wheels.JupyterLab
+    displayName: Download JupyterLab Artifacts
+
+  - script: |
+      mkdir -p                            target/wheels
+      mv ../Wheels.JupyterLab/*.whl       target/wheels
+      mv ../Wheels.Linux.x86_64/*.whl     target/wheels
+      mv ../Wheels.Win/*.whl              target/wheels
+      mv ../Wheels.Mac/*.whl              target/wheels
+      ls                                  target/wheels/*
+    displayName: Move Py Artifacts to Publishing Dir
+
+  - task: EsrpRelease@2
+    inputs:
+     ConnectedServiceName: 'ESRP_Release'
+     Intent: 'PackageDistribution'
+     ContentType: 'PyPi'
+     PackageLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
+                                                    #     Group email here fails the task with non-actionable output.
+     Approvers: 'billti@microsoft.com'
+     # Auto-inserted Debugging defaults:
+     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+    displayName: Publish Py Packages
+
+
+- job: "Publish NPM Package"
+  dependsOn: Approval
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - download: current
+    artifact: NPM
+    displayName: Download NPM Artifacts
+
+  - script: |
+      mkdir -p                            target/npm
+      mv ../NPM/*.tgz                     target/npm
+      ls                                  target/npm/*
+    displayName: Move NPM Artifacts to Publishing Dir
+
+  - task: EsrpRelease@2
+    inputs:
+     ConnectedServiceName: 'ESRP_Release'
+     Intent: 'PackageDistribution'
+     ContentType: 'NPM'
+     PackageLocation: '$(System.DefaultWorkingDirectory)/target/npm'
+     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
+                                                    #     Group email here fails the task with non-actionable output.
+     Approvers: 'billti@microsoft.com'
+     # Auto-inserted Debugging defaults:
+     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+    displayName: Publish NPM Package
