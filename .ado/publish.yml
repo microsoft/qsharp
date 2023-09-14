@@ -29,10 +29,10 @@ jobs:
 
   steps:
   # common init steps
-  - task: RustInstaller@1
-    inputs:
-      rustVersion: $(RUST_TOOLCHAIN_VERSION)
-      cratesIoFeedOverride: $(cratesIoFeedOverride)
+  - script: |
+      rustup override set $(RUST_TOOLCHAIN_VERSION)
+      cargo --version
+      rustc --version
     displayName: Install Rust toolchain
 
   - task: UsePythonVersion@0
@@ -69,11 +69,10 @@ jobs:
 
   steps:
   # common init steps
-  - task: RustInstaller@1
-    inputs:
-      rustVersion: $(RUST_TOOLCHAIN_VERSION)
-      additionalTargets: $(additionalRustTargets)
-      cratesIoFeedOverride: $(cratesIoFeedOverride)
+  - script: |
+      rustup override set $(RUST_TOOLCHAIN_VERSION)
+      cargo --version
+      rustc --version
     displayName: Install Rust toolchain
 
   - task: UsePythonVersion@0
@@ -112,7 +111,7 @@ jobs:
 
 - job: "JupyterLab"
   pool:
-    vmImage: 'windows-latest'
+    vmImage: 'ubuntu-latest'
   timeoutInMinutes: 90
 
   steps:
@@ -127,11 +126,11 @@ jobs:
     displayName: Install Prereqs and set version
 
   - script: |
-      python build.py --jupyterlab --no-check
+      python ./build.py --jupyterlab --no-check
     displayName: Build JupyterLab Package
 
   - script: |
-      dir target/wheels/*
+      ls target/wheels/*
 
   - publish: $(System.DefaultWorkingDirectory)/target/wheels/
     artifact: Wheels.JupyterLab
@@ -181,8 +180,9 @@ jobs:
     displayName: Build Platform-Dependent Py Packages, non-Linux
 
   - script: |
+      python -m pip install auditwheel
       ls target/wheels
-      ls target/wheels/*.whl | echo "$(pwd)/$_" | xargs python -m auditwheel repair --wheel-dir ./target/wheels/
+      ls target/wheels/*.whl | echo "$(pwd)/$_" | xargs auditwheel repair --wheel-dir ./target/wheels/
       ls target/wheels
     displayName: Run auditwheel for Linux Wheels
     condition: eq(variables['Agent.OS'], 'Linux')
