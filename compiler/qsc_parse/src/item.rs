@@ -44,7 +44,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
     } else {
-        if !doc.is_empty() {
+        if matches!(t.kind, TokenKind::DocComment) {
             return Err(Error(ErrorKind::FloatingDocComment(t.span)));
         }
         return Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)));
