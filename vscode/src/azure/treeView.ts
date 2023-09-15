@@ -8,6 +8,8 @@ import { targetSupportQir } from "./providerProperties";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
+const pendingStatuses = ["Waiting", "Executing", "Finishing"];
+
 // Convert a date such as "2023-07-24T17:25:09.1309979Z" into local time
 function localDate(date: string) {
   return new Date(date).toLocaleString();
@@ -45,6 +47,32 @@ export class WorkspaceTreeProvider
         this.updateWorkspace(workspace)
       );
     }
+  }
+
+  async refreshWorkspace(workspace: WorkspaceConnection) {
+    await queryWorkspace(workspace).then(() => this.updateWorkspace(workspace));
+  }
+
+  getWorkspace(workspaceId: string) {
+    return this.treeState.get(workspaceId);
+  }
+
+  hasWorkspace(workspaceId: string) {
+    return this.treeState.has(workspaceId);
+  }
+
+  workspaceHasJob(workspaceId: string, jobId: string): boolean {
+    const workspace = this.getWorkspace(workspaceId);
+    if (!workspace) return false;
+
+    return workspace.jobs.some((job) => job.id === jobId);
+  }
+
+  areJobsPending(workspaceId: string): boolean {
+    const workspace = this.getWorkspace(workspaceId);
+    if (!workspace) return false;
+
+    return workspace.jobs.some((job) => pendingStatuses.includes(job.status));
   }
 
   getTreeItem(

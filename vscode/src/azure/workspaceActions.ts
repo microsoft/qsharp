@@ -370,9 +370,12 @@ export async function submitJob(
       entryPoint: "ENTRYPOINT__main",
       arguments: [],
       count: parseInt(numberOfShots),
+      // TODO: shots as well?
     },
   };
   await azureRequest(putJobUri, token, "PUT", JSON.stringify(payload));
 
   vscode.window.showInformationMessage(`Job ${jobName} submitted`);
+
+  return containerName; // The jobId
 }

@@ -14,15 +14,14 @@ import {
 import {
   getJobFiles,
   getTokenForWorkspace,
-  queryWorkspace,
   queryWorkspaces,
   submitJob,
 } from "./workspaceActions";
 import { QuantumUris, compileToBitcode } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
+import { refreshUntilJobsAreFinished } from "./treeRefresher";
 
-const postSubmitRefreshDelayMs = 2000;
 const corsDocsUri = "https://github.com/microsoft/qsharp/wiki/Enabling-CORS";
 const workspacesSecret = "qsharp-vscode.workspaces";
 
@@ -41,8 +40,8 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     log.debug("Loading workspaces: ", savedWorkspaces);
     const workspaces: WorkspaceConnection[] = JSON.parse(savedWorkspaces);
     for (const workspace of workspaces) {
-      await queryWorkspace(workspace); // Fetch the providers and jobs
-      workspaceTreeProvider.updateWorkspace(workspace);
+      // Start refreshing each workspace until pending jobs are complete
+      refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
     }
   } else {
     log.debug("No saved workspaces found.");
@@ -136,7 +135,22 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         );
 
         try {
-          await submitJob(token, quantumUris, payload, providerId, target.id);
+          const jobId = await submitJob(
+            token,
+            quantumUris,
+            payload,
+            providerId,
+            target.id
+          );
+          if (jobId) {
+            // The job submitted fine. Refresh the workspace until it shows up
+            // and all jobs are finished. Don't await on this, just let it run
+            refreshUntilJobsAreFinished(
+              workspaceTreeProvider,
+              treeItem.workspace,
+              jobId
+            );
+          }
         } catch (e: any) {
           log.error("Failed to submit job. ", e);
           vscode.window.showErrorMessage(
@@ -146,11 +160,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           );
           return;
         }
-
-        setTimeout(async () => {
-          await queryWorkspace(treeItem.workspace);
-          workspaceTreeProvider.updateWorkspace(treeItem.workspace);
-        }, postSubmitRefreshDelayMs);
       }
     )
   );
@@ -186,9 +195,9 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
       const workspace = await queryWorkspaces();
       if (workspace) {
-        await queryWorkspace(workspace); // To fetch the providers and jobs
-        workspaceTreeProvider.updateWorkspace(workspace);
         await saveWorkspaceList();
+        // Just kick off the refresh loop, no need to await
+        refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
       }
     })
   );
