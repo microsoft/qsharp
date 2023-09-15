@@ -6,7 +6,7 @@ export enum EventType {
   DebugSessionStart = "Qsharp.DebugSessionStart",
   InitializePlugin = "Qsharp.InitializePlugin",
   LoadLanguageService = "Qsharp.LoadLanguageService",
-  QSharpJupyterCellInitialized = "Wsharp.JupyterCellInitialized",
+  QSharpJupyterCellInitialized = "Qsharp.JupyterCellInitialized",
 }
 
 type Empty = { [K in any]: never };
@@ -43,9 +43,7 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   }
   // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/185
   // we cannot use the latest version of extension-telemetry until this is fixed
-  reporter = new TelemetryReporter(
-    packageJson.aiKey
-  );
+  reporter = new TelemetryReporter(packageJson.aiKey);
 
   sendTelemetryEvent(EventType.InitializePlugin, {}, {});
 }
