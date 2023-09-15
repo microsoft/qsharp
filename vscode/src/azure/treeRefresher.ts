@@ -73,8 +73,8 @@ export async function refreshUntilJobsAreFinished(
   // Stop any other refreshes for this workspace
   stopTimeout(workspace.id);
 
-  // Initially refresh every 5 seconds, backing off up to 5 minutes, and only
-  // keep refreshing for 1 hour, or until all jobs are completed
+  // Initial refresh at 5 seconds, backing off up to 5 minutes between requests (doubling the latency each time),
+  // and only keep refreshing for up to 1 hour, or until all jobs report as completed
   const iter = refreshRangeIterator(5000, 5 * 60 * 1000, 2, 60 * 60 * 1000);
   const predicate = () => {
     if (!treeProvider.hasWorkspace(workspace.id)) return true;

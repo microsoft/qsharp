@@ -40,6 +40,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     log.debug("Loading workspaces: ", savedWorkspaces);
     const workspaces: WorkspaceConnection[] = JSON.parse(savedWorkspaces);
     for (const workspace of workspaces) {
+      workspaceTreeProvider.updateWorkspace(workspace);
       // Start refreshing each workspace until pending jobs are complete
       refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
     }
@@ -208,6 +209,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
       const workspace = await queryWorkspaces();
       if (workspace) {
+        workspaceTreeProvider.updateWorkspace(workspace);
         await saveWorkspaceList();
         // Just kick off the refresh loop, no need to await
         refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);

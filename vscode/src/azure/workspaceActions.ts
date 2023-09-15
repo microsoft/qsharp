@@ -286,9 +286,8 @@ export async function submitJob(
   const idChars = Array.from(id)
     .map((b) => b.toString(16))
     .join("");
-  // Guid format such as "job-00000000-1111-2222-3333-444444444444"
+  // Guid format such as "00000000-1111-2222-3333-444444444444"
   const containerName =
-    "job-" +
     idChars.substring(0, 8) +
     "-" +
     idChars.substring(8, 12) +
@@ -370,7 +369,7 @@ export async function submitJob(
       entryPoint: "ENTRYPOINT__main",
       arguments: [],
       count: parseInt(numberOfShots),
-      // TODO: shots as well?
+      shots: parseInt(numberOfShots),
     },
   };
   await azureRequest(putJobUri, token, "PUT", JSON.stringify(payload));
