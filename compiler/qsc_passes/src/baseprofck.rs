@@ -131,6 +131,7 @@ fn any_non_result_ty(ty: &Ty) -> bool {
     match ty {
         Ty::Array(ty) => any_non_result_ty(ty),
         Ty::Prim(Prim::Result) => false,
+        Ty::Tuple(tys) if tys.is_empty() => true,
         Ty::Tuple(tys) => tys.iter().any(any_non_result_ty),
         _ => true,
     }
