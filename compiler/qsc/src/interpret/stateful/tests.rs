@@ -1141,7 +1141,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: program failed: Cannot allocate qubit array with a negative length
-                      explicit fail [qir.qs] [fail "Cannot allocate qubit array with a negative length"]
+                      explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
         }
