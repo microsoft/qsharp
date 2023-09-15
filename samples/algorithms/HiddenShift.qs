@@ -16,7 +16,7 @@ namespace Sample {
     open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
-    operation Main(): Int[] {
+    operation Main() : Int[] {
         let nQubits = 10;
 
         // Consider the case of finding a hidden shift 𝑠 between two Boolean
@@ -85,7 +85,7 @@ namespace Sample {
     operation FindHiddenShift (
         Ufstar : (Qubit[] => Unit),
         Ug : (Qubit[] => Unit),
-        n: Int)
+        n : Int)
     : Result[] {
         // We allocate n clean qubits. Note that the function Ufstar and Ug are
         // unitary operations on n qubits defined via phase encoding.
@@ -163,7 +163,7 @@ namespace Sample {
     /// applying the diagonal operation, and then undoing the bit flips to the
     /// |x〉 register. We use this principle to define shifted versions of the IP
     /// operation.
-    operation ShiftedBentFunction(shift: Int, register: Qubit[]) : Unit {
+    operation ShiftedBentFunction(shift : Int, register : Qubit[]) : Unit {
         Fact(Length(register) % 2 == 0, "Length of register must be even.");
         let u = Length(register) / 2;
         within {

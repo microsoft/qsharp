@@ -1,7 +1,7 @@
 namespace Kata.Verification {
 
     // Distinguish orthogonal states using partial measurements
-    operation StatePrep_IsPlusPlusMinus(qs: Qubit[], state: Int, dummyVar: Double): Unit is Adj {
+    operation StatePrep_IsPlusPlusMinus(qs : Qubit[], state : Int, dummyVar : Double) : Unit is Adj {
         if state == 0 {
             // prepare the state |++-⟩
             H(qs[0]);
@@ -20,7 +20,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         return DistinguishStates_MultiQubit(
             3,
             2,

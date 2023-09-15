@@ -7,7 +7,7 @@
 /// copied version of the structure.
 namespace MyQuantumApp {
 
-    newtype Pair = (first: Int, second: Int);
+    newtype Pair = (first : Int, second : Int);
 
     @EntryPoint()
     operation Main() : Unit {

@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// This operation resets its input register to the |00...0> state,
     /// suitable for releasing back to a target machine.
     @Config(Full)
-    operation MeasureInteger(target: Qubit[]): Int {
+    operation MeasureInteger(target : Qubit[]) : Int {
         let nBits = Length(target);
         Fact(nBits < 64, $"`Length(target)` must be less than 64, but was {nBits}.");
 
@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Automatically chooses between addition with
     /// carry and without, depending on the register size of `ys`,
     /// which holds the result after operation is complete.
-    operation AddI (xs: Qubit[], ys: Qubit[]) : Unit is Adj + Ctl {
+    operation AddI (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         if Length(xs) == Length(ys) {
             RippleCarryAdderNoCarryTTK(xs, ys);
         }

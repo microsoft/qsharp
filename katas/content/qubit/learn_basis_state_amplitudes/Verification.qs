@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         use qs = Qubit[2];
 
         // Prepare the state that will be passed to the solution.
@@ -15,7 +15,7 @@ namespace Kata.Verification {
         let (x1, x2) = Kata.LearnBasisStateAmplitudes(qs);
 
         // Calculate the expected values based on the rotation angle.
-        // We convert |00⟩ + |10⟩ to |0⟩ Ry(1.0)|0⟩ + |1⟩ Ry(2.0)|0⟩, so 
+        // We convert |00⟩ + |10⟩ to |0⟩ Ry(1.0)|0⟩ + |1⟩ Ry(2.0)|0⟩, so
         // * the amplitude of |1⟩ = |10⟩ is 1st amp of Ry(2.0)|0⟩
         // * the amplitude of |2⟩ = |01⟩ is 2nd amp of Ry(1.0)|0⟩
         let (x1_exp, x2_exp) = (
