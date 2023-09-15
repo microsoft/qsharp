@@ -240,9 +240,6 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
               ? `__Completed__: ${localDate(job.endExecutionTime)}<br>`
               : ""
           }
-          ${
-            job.costEstimate ? `__Cost estimate__: ${job.costEstimate}<br>` : ""
-          }
         `
         );
         hover.supportHtml = true;
