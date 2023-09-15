@@ -198,7 +198,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   */
   log.debug("Checking GET requests are allowed");
   // This will throw if it fails the CORS check, but not if it's a 404 or 200
-  const getResponse = await fetch(sasUri, {
+  await fetch(sasUri, {
     method: "GET",
     headers: [
       ["x-ms-date", new Date().toUTCString()],
