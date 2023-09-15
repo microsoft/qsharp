@@ -246,12 +246,12 @@ function checkForOldQdk() {
     "quantum.quantum-devkit-vscode"
   );
 
-  const warningMessage =
-    "Previous QDK Extension `quantum.quantum-devkit-vscode` found. We recommend uninstalling the prior QDK before using this release.";
+  const previousQdkWarningMessage =
+    'Extension "Microsoft Quantum Development Kit for Visual Studio" (`quantum.quantum-devkit-vscode`) found. We recommend uninstalling the prior QDK before using this release.';
 
   if (extension) {
-    log.warn(warningMessage);
+    log.warn(previousQdkWarningMessage);
     // we don't await so we don't block extension initialization
-    vscode.window.showWarningMessage(warningMessage);
+    vscode.window.showWarningMessage(previousQdkWarningMessage);
   }
 }
