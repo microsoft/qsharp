@@ -80,4 +80,11 @@ if BUILD_TYPE != "dev":
         r'"name": "qsharp-lang-vscode-dev",',
         r'"name": "qsharp-lang-vscode",',
     )
-    # TODO: Update the description and/or readme also for the different extension channels
+else:
+    # Update the README to contain the dev version contents
+    with open(
+        os.path.join(root_dir, "vscode/README-DEV.md"), "r", newline=""
+    ) as dev_readme:
+        contents = dev_readme.read()
+    with open(os.path.join(root_dir, "vscode/README.md"), "w", newline="") as readme:
+        readme.write(contents)
