@@ -32,6 +32,8 @@ export async function activate(context: vscode.ExtensionContext) {
   log.info("Q# extension activating.");
   initTelemetry(context);
 
+  checkForOldQdk();
+
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
       qsharpLibraryUriScheme,
@@ -236,5 +238,20 @@ export class QsTextDocumentContentProvider
     token: vscode.CancellationToken
   ): vscode.ProviderResult<string> {
     return getLibrarySourceContent(uri.path);
+  }
+}
+
+function checkForOldQdk() {
+  const extension = vscode.extensions.getExtension(
+    "quantum.quantum-devkit-vscode"
+  );
+
+  const warningMessage =
+    "Previous QDK Extension `quantum.quantum-devkit-vscode` found. We recommend uninstalling the prior QDK before using this release.";
+
+  if (extension) {
+    log.warn(warningMessage);
+    // we don't await so we don't block extension initialization
+    vscode.window.showWarningMessage(warningMessage);
   }
 }
