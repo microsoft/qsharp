@@ -2,14 +2,15 @@
 // Licensed under the MIT License.
 
 use super::{Compiler, Fragment};
-use crate::compile::{self, CompileUnit, PackageStore};
+use crate::compile::{self, CompileUnit, PackageStore, TargetProfile};
 use expect_test::{expect, Expect};
+use indoc::indoc;
 use miette::Diagnostic;
 
 #[test]
 fn one_callable() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![]);
+    let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
     let fragments = compiler
         .compile_fragments(
             &mut CompileUnit::default(),
@@ -32,7 +33,7 @@ fn one_callable() {
 #[test]
 fn one_statement() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![]);
+    let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
     let fragments = compiler
         .compile_fragments(&mut CompileUnit::default(), "test_1", "use q = Qubit();")
         .expect("compilation should succeed");
@@ -50,7 +51,7 @@ fn one_statement() {
 #[test]
 fn parse_error() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![]);
+    let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
     let errors = compiler
         .compile_fragments(&mut CompileUnit::default(), "test_1", "}}")
         .expect_err("should fail");
@@ -59,11 +60,33 @@ fn parse_error() {
 }
 
 #[test]
+fn conditional_compilation_not_available() {
+    let store = PackageStore::new(compile::core());
+    let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
+    let errors = compiler
+        .compile_fragments(
+            &mut CompileUnit::default(),
+            "test_1",
+            indoc! {"
+                @Config(Base)
+                function Dropped() : Unit {}
+
+                function Usage() : Unit {
+                    Dropped();
+                }
+            "},
+        )
+        .expect_err("should fail");
+
+    assert!(!errors.is_empty());
+}
+
+#[test]
 fn errors_across_multiple_lines() {
     let mut store = PackageStore::new(compile::core());
-    let std = compile::std(&store, compile::TargetProfile::Full);
+    let std = compile::std(&store, TargetProfile::Full);
     let std_id = store.insert(std);
-    let mut compiler = Compiler::new(&store, [std_id]);
+    let mut compiler = Compiler::new(&store, [std_id], TargetProfile::Full);
     let mut unit = CompileUnit::default();
     compiler
         .compile_fragments(

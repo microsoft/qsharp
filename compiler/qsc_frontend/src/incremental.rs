@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    compile::{CompileUnit, Offsetter, PackageStore},
+    compile::{preprocess, CompileUnit, Offsetter, PackageStore, TargetProfile},
     lower::{self, Lowerer},
     resolve::{self, Resolver},
     typeck::{self, Checker},
@@ -47,13 +47,18 @@ pub struct Compiler {
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
+    target: TargetProfile,
 }
 
 impl Compiler {
     /// # Panics
     ///
     /// This function will panic if compiler state is invalid or in out-of-memory conditions.
-    pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
+    pub fn new(
+        store: &PackageStore,
+        dependencies: impl IntoIterator<Item = PackageId>,
+        target: TargetProfile,
+    ) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
@@ -77,6 +82,7 @@ impl Compiler {
             resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
+            target,
         }
     }
 
@@ -149,6 +155,20 @@ impl Compiler {
                 qsc_parse::Fragment::Stmt(stmt) => offsetter.visit_stmt(stmt),
             }
         }
+
+        let mut cond_compile = preprocess::Conditional::new(self.target);
+        for fragment in &mut fragments {
+            match fragment {
+                qsc_parse::Fragment::Namespace(namespace) => {
+                    cond_compile.visit_namespace(namespace);
+                }
+                qsc_parse::Fragment::Stmt(stmt) => {
+                    cond_compile.visit_stmt(stmt);
+                }
+            }
+        }
+        self.resolver
+            .extend_dropped_names(cond_compile.into_names());
 
         // Namespaces must be processed before top-level statements, so sort the fragments.
         // Note that stable sorting is used here to preserve the order of top-level statements.
