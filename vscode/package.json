@@ -123,7 +123,7 @@
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to your Azure Quantum workspaces\n[Sign in](command:qsharp-vscode.workspacesAdd)\nTo learn more visit the [Azure Quantum Portal](https://quantum.microsoft.com)"
+        "contents": "Connect to Azure Quantum\n[Add an existing workspace](command:qsharp-vscode.workspacesAdd)\nNote: For the first workspace added there may be several consent prompts to grant VS Code access.\nTo learn more visit the [Azure Quantum Development Kit wiki](https://github.com/microsoft/qsharp/wiki)"
       }
     ],
     "commands": [

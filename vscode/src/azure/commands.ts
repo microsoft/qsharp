@@ -14,7 +14,6 @@ import {
 import {
   getJobFiles,
   getTokenForWorkspace,
-  queryWorkspace,
   queryWorkspaces,
   submitJob,
 } from "./workspaceActions";
@@ -25,8 +24,8 @@ import {
 } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
+import { startRefreshCycle } from "./treeRefresher";
 
-const postSubmitRefreshDelayMs = 2000;
 const corsDocsUri = "https://aka.ms/qdk.cors";
 const workspacesSecret = "qsharp-vscode.workspaces";
 
@@ -45,8 +44,9 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     log.debug("Loading workspaces: ", savedWorkspaces);
     const workspaces: WorkspaceConnection[] = JSON.parse(savedWorkspaces);
     for (const workspace of workspaces) {
-      await queryWorkspace(workspace); // Fetch the providers and jobs
       workspaceTreeProvider.updateWorkspace(workspace);
+      // Start refreshing each workspace until pending jobs are complete
+      startRefreshCycle(workspaceTreeProvider, workspace);
     }
   } else {
     log.debug("No saved workspaces found.");
@@ -140,7 +140,18 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         );
 
         try {
-          await submitJob(token, quantumUris, payload, providerId, target.id);
+          const jobId = await submitJob(
+            token,
+            quantumUris,
+            payload,
+            providerId,
+            target.id
+          );
+          if (jobId) {
+            // The job submitted fine. Refresh the workspace until it shows up
+            // and all jobs are finished. Don't await on this, just let it run
+            startRefreshCycle(workspaceTreeProvider, treeItem.workspace, jobId);
+          }
         } catch (e: any) {
           log.error("Failed to submit job. ", e);
           vscode.window.showErrorMessage(
@@ -150,25 +161,33 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           );
           return;
         }
-
-        setTimeout(async () => {
-          await queryWorkspace(treeItem.workspace);
-          workspaceTreeProvider.updateWorkspace(treeItem.workspace);
-        }, postSubmitRefreshDelayMs);
       }
     )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("qsharp-vscode.workspacesRefresh", () => {
-      workspaceTreeProvider.refresh();
+      // The user manually triggered a refresh. Start a cycle for each workspace
+      const workspaceIds = workspaceTreeProvider.getWorkspaceIds();
+
+      workspaceIds.forEach((id) => {
+        const workspace = workspaceTreeProvider.getWorkspace(id);
+        if (workspace) {
+          startRefreshCycle(workspaceTreeProvider, workspace);
+        }
+      });
     })
   );
 
   async function saveWorkspaceList() {
     // Save the list of workspaces
     const savedWorkspaces: WorkspaceConnection[] = [];
-    for (const elem of workspaceTreeProvider.treeState.values()) {
+    const workspaces = workspaceTreeProvider
+      .getWorkspaceIds()
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      .map((id) => workspaceTreeProvider.getWorkspace(id)!);
+
+    for (const elem of workspaces) {
       // Save only the general workspace information, not the providers and jobs
       savedWorkspaces.push({
         id: elem.id,
@@ -190,9 +209,10 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
       const workspace = await queryWorkspaces();
       if (workspace) {
-        await queryWorkspace(workspace); // To fetch the providers and jobs
         workspaceTreeProvider.updateWorkspace(workspace);
         await saveWorkspaceList();
+        // Just kick off the refresh loop, no need to await
+        startRefreshCycle(workspaceTreeProvider, workspace);
 
         // Check if the storage account has CORS configured correctly.
         // NOTE: This should be removed once talking directly to Azure storage is no longer required.
@@ -231,9 +251,9 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         const treeItem = arg || currentTreeItem;
         if (treeItem?.type !== "workspace") return;
         const workspace = treeItem.itemData as WorkspaceConnection;
-        workspaceTreeProvider.treeState.delete(workspace.id);
+
+        workspaceTreeProvider.removeWorkspace(workspace.id);
         await saveWorkspaceList();
-        await workspaceTreeProvider.refresh();
       }
     )
   );
