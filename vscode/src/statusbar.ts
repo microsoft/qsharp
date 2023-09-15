@@ -22,8 +22,14 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor && isQsharpDocument(editor.document)) {
         refreshStatusBarItemValue();
-      } else {
-        // Could still be showing if the document language was changed away from Q#
+      } else if (editor?.document.uri.scheme !== "output") {
+        // The output window counts as a text editor.
+        // Avoid hiding the status bar if the focus is
+        // on the output window.
+        // https://github.com/Microsoft/vscode/issues/58869
+
+        // Hide the status bar if we switched away from a
+        // Q# document.
         statusBarItem.hide();
       }
     })
