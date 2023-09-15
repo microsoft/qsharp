@@ -17,12 +17,16 @@ import {
   queryWorkspaces,
   submitJob,
 } from "./workspaceActions";
-import { QuantumUris, compileToBitcode } from "./networkRequests";
+import {
+  QuantumUris,
+  checkCorsConfig,
+  compileToBitcode,
+} from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
 import { refreshUntilJobsAreFinished } from "./treeRefresher";
 
-const corsDocsUri = "https://github.com/microsoft/qsharp/wiki/Enabling-CORS";
+const corsDocsUri = "https://aka.ms/qdk.cors";
 const workspacesSecret = "qsharp-vscode.workspaces";
 
 export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
@@ -211,6 +215,32 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       if (workspace) {
         workspaceTreeProvider.updateWorkspace(workspace);
         await saveWorkspaceList();
+
+        // Check if the storage account has CORS configured correctly.
+        // NOTE: This should be removed once talking directly to Azure storage is no longer required.
+        const quantumUris = new QuantumUris(
+          workspace.endpointUri,
+          workspace.id
+        );
+
+        const token = await getTokenForWorkspace(workspace);
+        if (!token) return;
+        try {
+          await checkCorsConfig(token, quantumUris);
+        } catch (e: any) {
+          log.debug("CORS check failed. ", e);
+
+          const selection = await vscode.window.showWarningMessage(
+            "The Quantum Workspace added needs to have CORS configured to be able to submit jobs or fetch results. " +
+              `Would you like to visit the documentation page at ${corsDocsUri} for details on how to configure this?`,
+            { modal: true },
+            { title: "Open CORS documentation", action: "open" },
+            { title: "Cancel", action: "cancel", isCloseAffordance: true }
+          );
+          if (selection?.action === "open") {
+            vscode.env.openExternal(vscode.Uri.parse(corsDocsUri));
+          }
+        }
         // Just kick off the refresh loop, no need to await
         refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
       }
