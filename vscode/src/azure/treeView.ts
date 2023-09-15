@@ -18,7 +18,7 @@ function localDate(date: string) {
 export class WorkspaceTreeProvider
   implements vscode.TreeDataProvider<WorkspaceTreeItem>
 {
-  treeState: Map<string, WorkspaceConnection> = new Map();
+  private treeState: Map<string, WorkspaceConnection> = new Map();
 
   private didChangeTreeDataEmitter = new vscode.EventEmitter<
     WorkspaceTreeItem | undefined
@@ -32,25 +32,17 @@ export class WorkspaceTreeProvider
     this.didChangeTreeDataEmitter.fire(undefined);
   }
 
-  async refresh() {
-    log.debug("Refreshing workspace tree");
-
-    const workspaces = [...this.treeState.values()];
-    if (workspaces.length === 0) {
-      // May have removed the last one, so refresh the tree and return
-      this.didChangeTreeDataEmitter.fire(undefined);
-      return;
-    }
-
-    for (const workspace of workspaces) {
-      await queryWorkspace(workspace).then(() =>
-        this.updateWorkspace(workspace)
-      );
-    }
+  removeWorkspace(workspaceId: string) {
+    this.treeState.delete(workspaceId);
+    this.didChangeTreeDataEmitter.fire(undefined);
   }
 
   async refreshWorkspace(workspace: WorkspaceConnection) {
     await queryWorkspace(workspace).then(() => this.updateWorkspace(workspace));
+  }
+
+  getWorkspaceIds() {
+    return [...this.treeState.keys()];
   }
 
   getWorkspace(workspaceId: string) {
@@ -68,7 +60,7 @@ export class WorkspaceTreeProvider
     return workspace.jobs.some((job) => job.id === jobId);
   }
 
-  areJobsPending(workspaceId: string): boolean {
+  hasJobsPending(workspaceId: string): boolean {
     const workspace = this.getWorkspace(workspaceId);
     if (!workspace) return false;
 

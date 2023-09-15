@@ -166,14 +166,27 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("qsharp-vscode.workspacesRefresh", () => {
-      workspaceTreeProvider.refresh();
+      // The user manually triggered a refresh. Start a cycle for each workspace
+      const workspaceIds = workspaceTreeProvider.getWorkspaceIds();
+
+      workspaceIds.forEach((id) => {
+        const workspace = workspaceTreeProvider.getWorkspace(id);
+        if (workspace) {
+          refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
+        }
+      });
     })
   );
 
   async function saveWorkspaceList() {
     // Save the list of workspaces
     const savedWorkspaces: WorkspaceConnection[] = [];
-    for (const elem of workspaceTreeProvider.treeState.values()) {
+    const workspaces = workspaceTreeProvider
+      .getWorkspaceIds()
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      .map((id) => workspaceTreeProvider.getWorkspace(id)!);
+
+    for (const elem of workspaces) {
       // Save only the general workspace information, not the providers and jobs
       savedWorkspaces.push({
         id: elem.id,
@@ -210,9 +223,9 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         const treeItem = arg || currentTreeItem;
         if (treeItem?.type !== "workspace") return;
         const workspace = treeItem.itemData as WorkspaceConnection;
-        workspaceTreeProvider.treeState.delete(workspace.id);
+
+        workspaceTreeProvider.removeWorkspace(workspace.id);
         await saveWorkspaceList();
-        await workspaceTreeProvider.refresh();
       }
     )
   );

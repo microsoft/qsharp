@@ -90,7 +90,7 @@ export async function refreshUntilJobsAreFinished(
     }
 
     // Else just check if there are any pending jobs to keep checking
-    if (treeProvider.areJobsPending(workspace.id)) {
+    if (treeProvider.hasJobsPending(workspace.id)) {
       log.debug("Still waiting for jobs to complete");
       return false;
     } else {
