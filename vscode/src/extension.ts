@@ -242,16 +242,32 @@ export class QsTextDocumentContentProvider
 }
 
 function checkForOldQdk() {
-  const extension = vscode.extensions.getExtension(
+  const oldQdkExtension = vscode.extensions.getExtension(
     "quantum.quantum-devkit-vscode"
+  );
+
+  const prereleaseQdkExtension = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode-dev"
+  );
+
+  const releaseQdkExtension = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode"
   );
 
   const previousQdkWarningMessage =
     'Extension "Microsoft Quantum Development Kit for Visual Studio" (`quantum.quantum-devkit-vscode`) found. We recommend uninstalling the prior QDK before using this release.';
 
-  if (extension) {
+  const bothReleaseAndPrereleaseWarningMessage =
+    'Extension "Azure Quantum Developer Kit (QDK)" has both release and pre-release versions installed. We recommend uninstalling one of these versions.';
+
+  // we don't await the warnings below so we don't block extension initialization
+  if (oldQdkExtension) {
     log.warn(previousQdkWarningMessage);
-    // we don't await so we don't block extension initialization
     vscode.window.showWarningMessage(previousQdkWarningMessage);
+  }
+
+  if (prereleaseQdkExtension && releaseQdkExtension) {
+    log.warn(bothReleaseAndPrereleaseWarningMessage);
+    vscode.window.showWarningMessage(bothReleaseAndPrereleaseWarningMessage);
   }
 }
