@@ -24,7 +24,7 @@ import {
 } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
-import { refreshUntilJobsAreFinished } from "./treeRefresher";
+import { startRefreshCycle } from "./treeRefresher";
 
 const corsDocsUri = "https://aka.ms/qdk.cors";
 const workspacesSecret = "qsharp-vscode.workspaces";
@@ -46,7 +46,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     for (const workspace of workspaces) {
       workspaceTreeProvider.updateWorkspace(workspace);
       // Start refreshing each workspace until pending jobs are complete
-      refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
+      startRefreshCycle(workspaceTreeProvider, workspace);
     }
   } else {
     log.debug("No saved workspaces found.");
@@ -150,11 +150,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           if (jobId) {
             // The job submitted fine. Refresh the workspace until it shows up
             // and all jobs are finished. Don't await on this, just let it run
-            refreshUntilJobsAreFinished(
-              workspaceTreeProvider,
-              treeItem.workspace,
-              jobId
-            );
+            startRefreshCycle(workspaceTreeProvider, treeItem.workspace, jobId);
           }
         } catch (e: any) {
           log.error("Failed to submit job. ", e);
@@ -177,7 +173,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       workspaceIds.forEach((id) => {
         const workspace = workspaceTreeProvider.getWorkspace(id);
         if (workspace) {
-          refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
+          startRefreshCycle(workspaceTreeProvider, workspace);
         }
       });
     })
@@ -215,6 +211,8 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
       if (workspace) {
         workspaceTreeProvider.updateWorkspace(workspace);
         await saveWorkspaceList();
+        // Just kick off the refresh loop, no need to await
+        startRefreshCycle(workspaceTreeProvider, workspace);
 
         // Check if the storage account has CORS configured correctly.
         // NOTE: This should be removed once talking directly to Azure storage is no longer required.
@@ -241,8 +239,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
             vscode.env.openExternal(vscode.Uri.parse(corsDocsUri));
           }
         }
-        // Just kick off the refresh loop, no need to await
-        refreshUntilJobsAreFinished(workspaceTreeProvider, workspace);
       }
     })
   );

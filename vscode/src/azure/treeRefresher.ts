@@ -36,18 +36,18 @@ function* refreshRangeIterator(
 }
 
 // Iterate with the delays until the predicate is true for the workspace
-function iterateUntilTrue(
+async function iterateUntilTrue(
   iter: Generator<number>,
   id: string,
-  predicate: () => boolean,
+  predicate: () => Promise<boolean>,
   onDone?: () => void
 ) {
   const nextDelay = iter.next();
-  if (nextDelay.value && !predicate()) {
+  if (nextDelay.value && !(await predicate())) {
     // Schedule the next iteration
     log.debug("Scheduling next workspace refresh in ", nextDelay.value, "ms");
     const timeoutId = setTimeout(
-      () => iterateUntilTrue(iter, id, predicate),
+      () => iterateUntilTrue(iter, id, predicate, onDone),
       nextDelay.value
     );
     runningTimeouts.set(id, timeoutId);
@@ -63,23 +63,32 @@ function iterateUntilTrue(
   }
 }
 
-export async function refreshUntilJobsAreFinished(
+export function startRefreshCycle(
   treeProvider: WorkspaceTreeProvider,
   workspace: WorkspaceConnection,
   newJobId?: string,
   onDone?: () => void
 ) {
-  log.debug("In refreshUntilJobsAreFinished for workspace: ", workspace.id);
+  log.debug(
+    "Refreshing jobs list until they are all finished for workspace: ",
+    workspace.id
+  );
   // Stop any other refreshes for this workspace
   stopTimeout(workspace.id);
 
   // Initial refresh at 5 seconds, backing off up to 5 minutes between requests (doubling the latency each time),
   // and only keep refreshing for up to 1 hour, or until all jobs report as completed
   const iter = refreshRangeIterator(5000, 5 * 60 * 1000, 2, 60 * 60 * 1000);
-  const predicate = () => {
+  const predicate = async () => {
     if (!treeProvider.hasWorkspace(workspace.id)) return true;
 
-    treeProvider.refreshWorkspace(workspace);
+    try {
+      await treeProvider.refreshWorkspace(workspace);
+    } catch (e: any) {
+      log.error("Error refreshing in workspace refresh cycle: ", e);
+      // The above could throw due to transient network errors, etc. so just keep trying next time
+      return false;
+    }
 
     // If we're waiting for a new job to appear, check for that
     if (newJobId) {

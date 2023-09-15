@@ -39,7 +39,8 @@ export class WorkspaceTreeProvider
 
   async refreshWorkspace(workspace: WorkspaceConnection) {
     log.debug("In refreshWorkspace for workspace: ", workspace.id);
-    await queryWorkspace(workspace).then(() => this.updateWorkspace(workspace));
+    await queryWorkspace(workspace);
+    this.updateWorkspace(workspace);
   }
 
   getWorkspaceIds() {
