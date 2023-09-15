@@ -311,11 +311,11 @@ pub fn core() -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
-                "core.qs".into(),
+                "core/core.qs".into(),
                 include_str!("../../../library/core/core.qs").into(),
             ),
             (
-                "qir.qs".into(),
+                "core/qir.qs".into(),
                 include_str!("../../../library/core/qir.qs").into(),
             ),
         ],
