@@ -567,7 +567,6 @@ mod given_interpreter {
                 define void @ENTRYPOINT__main() #0 {
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-                  call void @__quantum__rt__tuple_record_output(i64 1, i8* null)
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -634,7 +633,6 @@ mod given_interpreter {
                 define void @ENTRYPOINT__main() #0 {
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-                  call void @__quantum__rt__tuple_record_output(i64 1, i8* null)
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -703,7 +701,6 @@ mod given_interpreter {
                 define void @ENTRYPOINT__main() #0 {
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-                  call void @__quantum__rt__tuple_record_output(i64 1, i8* null)
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -811,7 +808,6 @@ mod given_interpreter {
                 define void @ENTRYPOINT__main() #0 {
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-                  call void @__quantum__rt__tuple_record_output(i64 1, i8* null)
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -893,7 +889,6 @@ mod given_interpreter {
                 define void @ENTRYPOINT__main() #0 {
                   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-                  call void @__quantum__rt__tuple_record_output(i64 1, i8* null)
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -1146,7 +1141,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: program failed: Cannot allocate qubit array with a negative length
-                      explicit fail [qir.qs] [fail "Cannot allocate qubit array with a negative length"]
+                      explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
         }
