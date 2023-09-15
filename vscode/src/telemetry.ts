@@ -3,10 +3,10 @@ import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
 
 export enum EventType {
-  DebugSessionStart = "DebugSessionStart",
-  InitializePlugin = "InitializePlugin",
-  LoadLanguageService = "LoadLanguageService",
-  QSharpJupyterCellInitialized = "QSharpJupyterCellInitialized",
+  DebugSessionStart = "Qsharp.DebugSessionStart",
+  InitializePlugin = "Qsharp.InitializePlugin",
+  LoadLanguageService = "Qsharp.LoadLanguageService",
+  QSharpJupyterCellInitialized = "Wsharp.JupyterCellInitialized",
 }
 
 type Empty = { [K in any]: never };
@@ -44,8 +44,6 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/185
   // we cannot use the latest version of extension-telemetry until this is fixed
   reporter = new TelemetryReporter(
-    "qsharp-vscode",
-    packageJson.version,
     packageJson.aiKey
   );
 
