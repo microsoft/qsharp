@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use std::iter::zip;
+
 use qsc::{
     ast::{
         self,
@@ -65,7 +67,7 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                                 self.compilation.unit.ast.names.get(path.id)
                             {
                                 if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                    if let qsc::hir::ItemKind::Callable(callee) = &item.kind {
+                                    if let hir::ItemKind::Callable(callee) = &item.kind {
                                         // Check that the callee has parameters to give help for
                                         if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty())
                                         {
@@ -81,7 +83,12 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                                             self.signature_help = Some(SignatureHelp {
                                                 signatures: vec![sig_info],
                                                 active_signature: 0,
-                                                active_parameter: process_args(args, self.offset),
+                                                //active_parameter: process_args(args, self.offset),
+                                                active_parameter: process_args5(
+                                                    args,
+                                                    self.offset,
+                                                    &callee.input,
+                                                ),
                                             });
                                         }
                                     }
@@ -237,4 +244,134 @@ fn process_args2(args: &ast::Expr, location: u32) -> u32 {
     let mut i = 0;
     foo(args, location, &mut i);
     usize_to_u32(i)
+}
+
+fn process_args3(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
+    fn foo(args: &ast::Expr, location: u32, params: &hir::Pat, i: &mut usize) {
+        if let (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) =
+            (&*args.kind, &params.kind)
+        {
+            let extra = Box::new(ast::Expr {
+                id: ast::NodeId::default(),
+                span: qsc::Span { lo: 0, hi: 0 },
+                kind: Box::new(ast::ExprKind::Err),
+            });
+            let args_with_extra = arg_items.iter().chain(Some(&extra));
+
+            let items: Vec<(&Box<ast::Expr>, &hir::Pat)> =
+                zip(args_with_extra, param_items).collect();
+            if !arg_items.is_empty() {
+                let temp = arg_items
+                    .last()
+                    .expect("expected an item in non-empty tuple")
+                    .span
+                    .hi;
+
+                if location < args.span.hi // in item
+                && location < arg_items.first().expect("expected an item in non-empty tuple").span.lo
+                // before first
+                {
+                    // highlight the tuple
+                } else if location < args.span.hi // in item
+                    && arg_items.last().expect("expected an item in non-empty tuple").span.hi < location
+                // after last
+                {
+                    *i += 1;
+                } else {
+                    *i += 1;
+                    for (arg, param) in items {
+                        foo(arg, location, param, i);
+                        if matches!(*arg.kind, ast::ExprKind::Err) || location < arg.span.hi {
+                            break; //ToDo: not sure about the condition for this
+                        }
+                        *i += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut i = 0;
+    foo(args, location, params, &mut i);
+    usize_to_u32(i)
+}
+
+fn process_args4(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
+    fn increment_until_cursor(args: &ast::Expr, cursor: u32, params: &hir::Pat, i: &mut i32) {
+        if let (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) =
+            (&*args.kind, &params.kind)
+        {
+            let items: Vec<(&Box<ast::Expr>, &hir::Pat)> =
+                zip(arg_items.iter(), param_items).collect();
+
+            if cursor
+                < items
+                    .last()
+                    .expect("expected an item in non-empty tuple")
+                    .0
+                    .span
+                    .hi
+                || args.span.hi < cursor
+            {
+                for (arg, param) in items {
+                    if arg.span.lo <= cursor {
+                        increment_until_cursor(arg, cursor, param, i);
+                    }
+                    if cursor < arg.span.hi {
+                        break;
+                    }
+                    *i += 1;
+                }
+            }
+        }
+    }
+
+    let mut i = 0;
+    increment_until_cursor(args, location, params, &mut i);
+    i.try_into().expect("")
+}
+
+fn process_args5(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
+    fn increment_until_cursor(args: &ast::Expr, cursor: u32, params: &hir::Pat, i: &mut i32) {
+        if let (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) =
+            (&*args.kind, &params.kind)
+        {
+            let items: Vec<(&Box<ast::Expr>, &hir::Pat)> =
+                zip(arg_items.iter(), param_items).collect();
+
+            if let Some(last) = items.last() {
+                // Case Tuple, cursor after last elem but before end:
+                if last.0.span.hi < cursor && cursor < args.span.hi {
+                    // - if params > args: increment, recurse over elems
+                    if param_items.len() > arg_items.len() {
+                        *i += 1;
+                        for (arg, param) in items {
+                            increment_until_cursor(arg, cursor, param, i);
+                        }
+                    }
+                    // - else: do nothing
+                } else if args.span.lo < cursor {
+                    // Case Tuple, cursor *after* starting '(': increment, recurse over elems
+                    *i += 1;
+                    for (arg, param) in items {
+                        increment_until_cursor(arg, cursor, param, i);
+                    }
+                }
+                // Case Tuple, cursor before or *at* starting '(': do nothing
+            } else if args.span.lo < cursor {
+                // Case Empty Tuple, cursor after starting `(`: increment
+                *i += 1;
+            }
+        } else {
+            // Case Non-Tuple, cursor after: increment
+            if args.span.hi < cursor {
+                *i += 1;
+            }
+            // Case Non-Tuple, cursor before end (cursor inside): do nothing
+        }
+    }
+
+    let mut i = 0;
+    increment_until_cursor(args, location, params, &mut i);
+    i.try_into().expect("")
 }

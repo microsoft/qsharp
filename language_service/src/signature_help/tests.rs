@@ -626,9 +626,9 @@ fn foo() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Foo(w: Int, (x: Double, y: String ), z: Bool) : Unit {}
             operation Bar() : Unit {
-                Foo(  1  ,   (   2.3   ,   "Four"   )   ,  ↘ )
+                Foo(   123 ,   (  ↘   2.3   ,  "Four"     )   ,    )
                 let x = 3;
             }
         }
@@ -637,48 +637,48 @@ fn foo() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        label: "operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 59,
+                                    end: 55,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
                                     start: 15,
-                                    end: 22,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 45,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
                                     start: 24,
-                                    end: 48,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 25,
-                                    end: 35,
+                                    start: 35,
+                                    end: 44,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 37,
-                                    end: 47,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 50,
-                                    end: 58,
+                                    start: 47,
+                                    end: 54,
                                 },
                                 documentation: None,
                             },
@@ -686,7 +686,7 @@ fn foo() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 2,
+                active_parameter: 1,
             }
         "#]],
     );
