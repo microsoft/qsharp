@@ -45,7 +45,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         Box::new(ItemKind::Callable(callable))
     } else {
         let p = s.peek();
-        if !doc.is_empty() && matches!(p.kind, TokenKind::Close(Delim::Brace)) {
+        if !doc.is_empty() {
             s.push_error(Error(ErrorKind::FloatingDocComment(t.span)));
             return Ok(Box::new(Item::default()));
         }
