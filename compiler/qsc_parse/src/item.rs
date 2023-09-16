@@ -44,10 +44,12 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
     } else {
-        if matches!(t.kind, TokenKind::DocComment) {
-            return Err(Error(ErrorKind::FloatingDocComment(t.span)));
+        let p = s.peek();
+        if !doc.is_empty() && matches!(p.kind, TokenKind::Close(Delim::Brace)) {
+            s.push_error(Error(ErrorKind::FloatingDocComment(t.span)));
+            return Ok(Box::new(Item::default()));
         }
-        return Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)));
+        return Err(Error(ErrorKind::Rule("item", p.kind, p.span)));
     };
 
     Ok(Box::new(Item {

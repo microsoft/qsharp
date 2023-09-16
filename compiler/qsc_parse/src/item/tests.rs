@@ -855,6 +855,42 @@ fn namespace_doc() {
 }
 
 #[test]
+fn floating_doc_comment_in_namespace() {
+    check_vec(
+        parse_namespaces,
+        "namespace MyQuantumProgram {
+    @EntryPoint()
+    function Main() : Unit {}
+    /// hi
+}
+",
+        &expect![[r#"
+            Namespace _id_ [0-89] (Ident _id_ [10-26] "MyQuantumProgram"):
+                Item _id_ [33-76]:
+                    Attr _id_ [33-46] (Ident _id_ [34-44] "EntryPoint"):
+                        Expr _id_ [44-46]: Unit
+                    Callable _id_ [51-76] (Function):
+                        name: Ident _id_ [60-64] "Main"
+                        input: Pat _id_ [64-66]: Unit
+                        output: Type _id_ [69-73]: Path: Path _id_ [69-73] (Ident _id_ [69-73] "Unit")
+                        body: Block: Block _id_ [74-76]: <empty>
+                Item _id_ [0-0]:
+                    Err
+
+            [
+                Error(
+                    FloatingDocComment(
+                        Span {
+                            lo: 81,
+                            hi: 87,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn two_namespaces() {
     check_vec(
         parse_namespaces,
@@ -975,7 +1011,7 @@ fn doc_without_item() {
         }",
         &expect![[r#"
             Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):
-                Item _id_ [26-62]:
+                Item _id_ [0-0]:
                     Err
 
             [
@@ -984,18 +1020,6 @@ fn doc_without_item() {
                         Span {
                             lo: 26,
                             hi: 52,
-                        },
-                    ),
-                ),
-                Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
-                        Eof,
-                        Span {
-                            lo: 62,
-                            hi: 62,
                         },
                     ),
                 ),

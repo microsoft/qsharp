@@ -574,7 +574,8 @@ fn doc_at_end_of_block() {
         }",
         &expect![[r#"
             Block _id_ [0-50]:
-                Stmt _id_ [14-40]: Err
+                Stmt _id_ [14-40]: Item: Item _id_ [0-0]:
+                    Err
 
             [
                 Error(
@@ -603,10 +604,14 @@ fn doc_followed_by_non_item() {
 
             [
                 Error(
-                    FloatingDocComment(
+                    Rule(
+                        "item",
+                        Keyword(
+                            Let,
+                        ),
                         Span {
-                            lo: 14,
-                            hi: 39,
+                            lo: 52,
+                            hi: 55,
                         },
                     ),
                 ),
