@@ -289,7 +289,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           if (file) {
             const doc = await vscode.workspace.openTextDocument({
               content: file,
-              language: "plaintext",
+              language: "json",
             });
             vscode.window.showTextDocument(doc);
           }
