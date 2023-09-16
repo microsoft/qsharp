@@ -18,12 +18,12 @@ namespace Kata.Verification {
     }
 
     // We can use the StatePrep_IsQubitA operation for the testing
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for i in 0 .. 10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
             let isCorrect = DistinguishTwoStates(
-                StatePrep_IsQubitA(alpha, _, _), 
-                q => Kata.MeasureInABBasis(alpha, q) == Zero, 
+                StatePrep_IsQubitA(alpha, _, _),
+                q => Kata.MeasureInABBasis(alpha, q) == Zero,
                 [$"|B⟩=(-i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩)", $"|A⟩=(cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩)"],
                 true);
             if not isCorrect {

@@ -66,7 +66,7 @@ fn in_block_contains_std_functions() {
                             "0600FakeWithParam",
                         ),
                         detail: Some(
-                            "operation FakeWithParam(x: Int) : Unit",
+                            "operation FakeWithParam(x : Int) : Unit",
                         ),
                         additional_text_edits: Some(
                             [

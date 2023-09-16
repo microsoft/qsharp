@@ -1,12 +1,12 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
 
-    function IsSeven_Reference(x: Bool[]): Bool {
+    function IsSeven_Reference(x : Bool[]) : Bool {
         return BoolArrayAsInt(x) == 7;
     }
 
     @EntryPoint()
-    function CheckSolution(): Bool {
+    function CheckSolution() : Bool {
         let N = 3;
         for k in 0..((2^N)-1) {
             let x = IntAsBoolArray(k, N);

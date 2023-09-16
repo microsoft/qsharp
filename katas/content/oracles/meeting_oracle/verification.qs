@@ -2,12 +2,12 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
 
-    operation Or_Oracle_Reference(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+    operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);
         ApplyControlledOnInt(0, X, x, y);
     }
 
-    operation Meeting_Oracle_Reference(x: Qubit[], jasmine: Qubit[], y: Qubit): Unit is Adj + Ctl {
+    operation Meeting_Oracle_Reference(x : Qubit[], jasmine : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         use q = Qubit[Length(x)];
         within {
             for i in IndexRange(q) {
@@ -22,7 +22,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for N in 1..4 {
             use jasmine = Qubit[N];
             for k in 0..(2^N-1) {

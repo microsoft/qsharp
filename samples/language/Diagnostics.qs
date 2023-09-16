@@ -9,7 +9,7 @@
 namespace MyQuantumApp {
     open Microsoft.Quantum.Diagnostics;
     @EntryPoint()
-    operation Main(): Unit {
+    operation Main() : Unit {
         // `Message` emits a debug log.
         Message("Program is starting.");
 
