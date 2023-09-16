@@ -332,12 +332,23 @@ fn process_args4(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
 }
 
 fn process_args5(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
+    fn is_tuple<'a, 'b>(
+        args: &'a ast::Expr,
+        params: &'b hir::Pat,
+    ) -> Option<(Vec<&'a ast::Expr>, &'b Vec<hir::Pat>)> {
+        match (&*args.kind, &params.kind) {
+            (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) => {
+                let temp: Vec<&ast::Expr> = arg_items.iter().map(|i| &**i).collect();
+                Some((temp, param_items))
+            }
+            (_, hir::PatKind::Tuple(param_items)) => Some((vec![args], param_items)),
+            _ => None,
+        }
+    }
+
     fn increment_until_cursor(args: &ast::Expr, cursor: u32, params: &hir::Pat, i: &mut i32) {
-        if let (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) =
-            (&*args.kind, &params.kind)
-        {
-            let items: Vec<(&Box<ast::Expr>, &hir::Pat)> =
-                zip(arg_items.iter(), param_items).collect();
+        if let Some((arg_items, param_items)) = is_tuple(args, params) {
+            let items: Vec<(&&ast::Expr, &hir::Pat)> = zip(&arg_items, param_items).collect();
 
             if let Some(last) = items.last() {
                 // Case Tuple, cursor after last elem but before end:

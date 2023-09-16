@@ -152,7 +152,7 @@ impl HirCallableDecl<'_, '_> {
         let offset = match self.decl.kind {
             hir::CallableKind::Function => "function".len(),
             hir::CallableKind::Operation => "operation".len(),
-        } + 2; // this is for the space between keyword and name plus the opening paren
+        } + 1; // this is for the space between keyword and name
         u32::try_from(offset + self.decl.name.name.len())
             .expect("failed to cast usize to u32 while calculating parameter offset")
     }
