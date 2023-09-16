@@ -154,6 +154,61 @@ export class StorageUris {
   }
 }
 
+export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
+  log.debug("Checking CORS configuration for the workspace");
+
+  // Get a sasUri for a container to check (it's name doesn't matter, CORS is service wide on a storage account)
+  const body: any = JSON.stringify({ containerName: "test" });
+  const sasResponse: ResponseTypes.SasUri = await azureRequest(
+    quantumUris.sasUri(),
+    token,
+    "POST",
+    body
+  );
+  const sasUri = decodeURI(sasResponse.sasUri);
+
+  /*
+  The below doesn't appear to work as it looks like CORS is pre-flighting the manual OPTIONS request!
+  See https://stackoverflow.com/questions/77108984/manually-pre-flighting-a-cors-request-is-failing-due-to-cors-issues
+  for any better solution. Until then, we'll just try a GET request with the headers we need and see if it works.
+  It will throw an exception if it fails due to CORS errors, else should just return a 200, or likely a 404.
+
+  // Check if GET and PUT requests to the storage account are allowed
+  log.debug("Checking GET requests are allowed");
+  const getResponse = await fetch(sasUri, {
+    method: "OPTIONS",
+    headers: [
+      ["Access-Control-Request-Method", "GET"],
+      ["Access-Control-Request-Headers", "x-ms-date,x-ms-version"],
+    ],
+  });
+  if (!getResponse.ok) throw Error("CORS preflight request failed");
+  log.debug("Checking PUT requests are allowed");
+  const putResponse = await fetch(sasUri, {
+    method: "OPTIONS",
+    headers: [
+      ["Access-Control-Request-Method", "PUT"],
+      [
+        "Access-Control-Request-Headers",
+        "x-ms-date,x-ms-version,x-ms-blob-type",
+      ],
+    ],
+  });
+  if (!putResponse.ok) throw Error("CORS preflight request failed");
+  */
+  log.debug("Checking GET requests are allowed");
+  // This will throw if it fails the CORS check, but not if it's a 404 or 200
+  await fetch(sasUri, {
+    method: "GET",
+    headers: [
+      ["x-ms-date", new Date().toUTCString()],
+      ["x-ms-version", "2023-01-03"],
+      ["x-ms-blob-type", "BlockBlob"],
+    ],
+  });
+  log.debug("Pre-flighted GET request didn't throw, so CORS seems good");
+}
+
 export async function compileToBitcode(
   compilerService: string,
   providerId: string,

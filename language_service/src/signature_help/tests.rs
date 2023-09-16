@@ -32,27 +32,27 @@ fn first_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 33,
-                                    end: 42,
+                                    start: 35,
+                                    end: 45,
                                 },
                                 documentation: None,
                             },
@@ -82,27 +82,27 @@ fn mid_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 33,
-                                    end: 42,
+                                    start: 35,
+                                    end: 45,
                                 },
                                 documentation: None,
                             },
@@ -132,27 +132,27 @@ fn second_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 33,
-                                    end: 42,
+                                    start: 35,
+                                    end: 45,
                                 },
                                 documentation: None,
                             },
@@ -182,27 +182,27 @@ fn last_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 33,
-                                    end: 42,
+                                    start: 35,
+                                    end: 45,
                                 },
                                 documentation: None,
                             },
@@ -249,27 +249,27 @@ fn revisit_second_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(x: Int, y: Double, z: String) : Unit",
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 33,
-                                    end: 42,
+                                    start: 35,
+                                    end: 45,
                                 },
                                 documentation: None,
                             },
@@ -300,20 +300,20 @@ fn nested_call_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Bar(a: Int, b: Double) : Double",
+                        label: "operation Bar(a : Int, b : Double) : Double",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
@@ -344,20 +344,20 @@ fn nested_call_second_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Bar(a: Int, b: Double) : Double",
+                        label: "operation Bar(a : Int, b : Double) : Double",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 31,
+                                    start: 23,
+                                    end: 33,
                                 },
                                 documentation: None,
                             },
@@ -387,27 +387,27 @@ fn tuple_argument() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(x: Int, y: (Int, Double), z: String) : Unit",
+                        label: "operation Foo(x : Int, y : (Int, Double), z : String) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 38,
+                                    start: 23,
+                                    end: 40,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 40,
-                                    end: 49,
+                                    start: 42,
+                                    end: 52,
                                 },
                                 documentation: None,
                             },
@@ -437,27 +437,27 @@ fn arguments_in_nested_tuple() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit",
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 44,
+                                    start: 23,
+                                    end: 47,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 46,
-                                    end: 53,
+                                    start: 49,
+                                    end: 57,
                                 },
                                 documentation: None,
                             },
@@ -487,27 +487,27 @@ fn first_inner_argument_in_nested_tuple() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit",
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 44,
+                                    start: 23,
+                                    end: 47,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 46,
-                                    end: 53,
+                                    start: 49,
+                                    end: 57,
                                 },
                                 documentation: None,
                             },
@@ -537,27 +537,27 @@ fn second_inner_argument_in_nested_tuple() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit",
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 44,
+                                    start: 23,
+                                    end: 47,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 46,
-                                    end: 53,
+                                    start: 49,
+                                    end: 57,
                                 },
                                 documentation: None,
                             },
@@ -587,27 +587,27 @@ fn argument_after_nested_tuple() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit",
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
-                                    end: 20,
+                                    end: 21,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 22,
-                                    end: 44,
+                                    start: 23,
+                                    end: 47,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 46,
-                                    end: 53,
+                                    start: 49,
+                                    end: 57,
                                 },
                                 documentation: None,
                             },

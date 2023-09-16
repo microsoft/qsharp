@@ -22,7 +22,7 @@ namespace MyQuantumApp {
     operation Main() : Int[] {
 
         // A basic Int Array literal
-        let intArray: Int[] = [1, 2, 3, 4];
+        let intArray : Int[] = [1, 2, 3, 4];
         // A basic String Array literal
         let stringArray = ["a", "string", "array"];
 
@@ -30,7 +30,7 @@ namespace MyQuantumApp {
         let intArray = Repeated(0, 10);
 
         // Arrays can be sliced with ranges.
-        let slice = intArray[1..2..4];  // contains [2,4] 
+        let slice = intArray[1..2..4];  // contains [2,4]
         let slice = intArray[2..-1..0]; // contains [3,2,1]
         let slice = intArray[...]; // contains [1, 2, 3, 4];
 

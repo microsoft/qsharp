@@ -5,7 +5,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         let isCorrect = AssertEqualOnZeroState(Kata.PrepareSuperposition, PrepareSuperposition_Reference);
         if isCorrect {
             Message("Correct!");

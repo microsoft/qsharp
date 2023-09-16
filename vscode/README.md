@@ -1,6 +1,10 @@
-# Q# Language Support for VS Code
+# Azure Quantum Development Kit (QDK) Preview
 
-_This is a development build and may be unstable. We do not recommend relying on this in production environments._
+**This extension is currently in preview. If you are looking for the current stable QDK, see the documentation
+at <https://learn.microsoft.com/en-us/azure/quantum/install-overview-qdk>**
+
+_Note: To install pre-release versions of this extension, you must click the drop-down
+next to the 'Install' button and select 'Install Pre-Release Version'_
 
 This extension brings rich Q# language support to VS Code. Develop, build, and run your Q# code from VS Code either locally on simulators, or by submitting a job to Azure Quantum.
 
@@ -12,13 +16,15 @@ The Q# extension currently supports:
 - Q# cell support in Jupyter notebooks. The extension will detect `%%qsharp` magic cells and automatically update the cell language to Q#
 - Error checking in Q# source files
 - Breakpoint debugging and script execution for Q# source files
-- Integration with Azure Quantum for quantum job submission
+- Integration with Azure Quantum for job submission to quantum hardware providers
 - Hover-definition and docs
 - Go-to-definition
 - Function signature help
 - Snippet and sample support
 - Completions
 
-## Building the Extension Locally
+For more documentation and walkthroughs, see the wiki at <https://github.com/microsoft/qsharp/wiki>
 
-To build the extension locally, see [BUILDING.md](https://github.com/microsoft/qsharp/blob/main/vscode/BUILDING.md).
+## Contributing
+
+To log issues, contribute to the project, or build the extension yourself, visit the repository at <https://github.com/microsoft/qsharp>

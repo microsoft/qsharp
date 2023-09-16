@@ -98,7 +98,7 @@ struct IdentTy<'a> {
 
 impl<'a> Display for IdentTy<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}: {}", self.ident.name, AstTy { ty: self.ty },)
+        write!(f, "{} : {}", self.ident.name, AstTy { ty: self.ty },)
     }
 }
 
@@ -112,7 +112,7 @@ impl<'a> Display for IdentTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}: {}",
+            "{} : {}",
             self.ident.name,
             TyId {
                 ty_id: self.ty_id,
@@ -132,7 +132,7 @@ impl<'a> Display for PathTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}: {}",
+            "{} : {}",
             &Path { path: self.path },
             TyId {
                 ty_id: self.ty_id,
@@ -237,8 +237,8 @@ impl<'a> Display for HirPat<'a> {
             compilation: self.compilation,
         };
         match &self.pat.kind {
-            hir::PatKind::Bind(name) => write!(f, "{}: {ty}", name.name),
-            hir::PatKind::Discard => write!(f, "_: {ty}"),
+            hir::PatKind::Bind(name) => write!(f, "{} : {ty}", name.name),
+            hir::PatKind::Discard => write!(f, "_ : {ty}"),
             hir::PatKind::Tuple(items) => {
                 let mut elements = items.iter();
                 if let Some(elem) = elements.next() {
@@ -293,7 +293,7 @@ impl<'a> Display for AstPat<'a> {
                 Some(ty) => write!(f, "{}", AstTy { ty }),
                 None => write!(
                     f,
-                    "_: {}",
+                    "_ : {}",
                     TyId {
                         ty_id: self.pat.id,
                         compilation: self.compilation
@@ -638,7 +638,7 @@ impl<'a> Display for TyDef<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
-                Some(name) => write!(f, "{}: {}", name.name, AstTy { ty }),
+                Some(name) => write!(f, "{} : {}", name.name, AstTy { ty }),
                 None => write!(f, "{}", AstTy { ty }),
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),

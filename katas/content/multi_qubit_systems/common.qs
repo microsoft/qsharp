@@ -2,7 +2,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
 
     operation AssertEqualOnZeroState(
-        testImpl: (Qubit[] => Unit is Ctl),
+        testImpl : (Qubit[] => Unit is Ctl),
         refImpl : (Qubit[] => Unit is Adj+Ctl)) : Bool {
 
         use qs = Qubit[3];

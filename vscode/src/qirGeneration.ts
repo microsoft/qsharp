@@ -25,15 +25,28 @@ export async function getQirForActiveWindow(): Promise<string> {
     );
   }
 
+  const configuration = vscode.workspace.getConfiguration("Q#");
   // Check that the current target is base profile, and current doc has no errors.
-  const targetProfile = vscode.workspace
-    .getConfiguration("Q#")
-    .get<string>("targetProfile", "full");
+  const targetProfile = configuration.get<string>("targetProfile", "full");
   if (targetProfile !== "base") {
-    throw new QirGenerationError(
-      "Submitting to Azure is only supported when targeting the QIR base profile. " +
-        "Please update the QIR target via the status bar selector or extension settings."
+    const result = await vscode.window.showWarningMessage(
+      "Submitting to Azure is only supported when targeting the QIR base profile.",
+      { modal: true },
+      { title: "Change the QIR target profile and continue", action: "set" },
+      { title: "Cancel", action: "cancel", isCloseAffordance: true }
     );
+    if (result?.action !== "set") {
+      throw new QirGenerationError(
+        "Submitting to Azure is only supported when targeting the QIR base profile. " +
+          "Please update the QIR target via the status bar selector or extension settings."
+      );
+    } else {
+      await configuration.update(
+        "targetProfile",
+        "base",
+        vscode.ConfigurationTarget.Global
+      );
+    }
   }
 
   // Get the diagnostics for the current document.
