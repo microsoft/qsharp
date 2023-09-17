@@ -65,6 +65,10 @@ namespace Sample {
                 // fractions classical algorithm succeeds.
                 set (foundFactors, factors) =
                     MaybeFactorsFromPeriod(number, generator, period);
+                if  (factors == (1, number) or factors == (number, 1)) {
+                   set foundFactors = false;
+                   Message("Found trivial factors, retrying...");
+                }
             }
             // In this case, we guessed a divisor by accident.
             else {
