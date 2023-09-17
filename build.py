@@ -14,6 +14,9 @@ import functools
 
 from prereqs import check_prereqs
 
+if sys.version_info < (3, 9):
+    raise SystemError("You need Python 3.9 or later to use this script.")
+
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
 
