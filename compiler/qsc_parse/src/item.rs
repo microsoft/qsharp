@@ -47,7 +47,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         let p = s.peek();
         if !doc.is_empty() {
             s.push_error(Error(ErrorKind::FloatingDocComment(t.span)));
-            return Ok(Box::new(Item::default()));
+            return Ok(Box::default());
         }
         return Err(Error(ErrorKind::Rule("item", p.kind, p.span)));
     };
