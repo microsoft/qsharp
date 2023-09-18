@@ -43,4 +43,7 @@ namespace MyQuantumApp {
             CNOT(q1, q2);            
         } 
     }
+
+    /// The main function cannot be Adj or Ctl. 
+    operation Main() : Unit {}
 }
