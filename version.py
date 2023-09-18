@@ -80,6 +80,12 @@ if BUILD_TYPE != "dev":
         r'"name": "qsharp-lang-vscode-dev",',
         r'"name": "qsharp-lang-vscode",',
     )
+    update_file(
+        os.path.join(root_dir, "vscode/package.json"),
+        r"[DEV BUILD] Azure Quantum Development Kit",
+        r"Azure Quantum Development Kit",
+    )
+
 else:
     # Update the README to contain the dev version contents
     with open(
