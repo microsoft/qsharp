@@ -69,7 +69,7 @@ fn callable_with_callable_types() {
         &expect![[r#"
             ```qsharp
             Test
-            operation Foo(x: (Int => Int)) : (Int => Int)
+            operation Foo(x : (Int => Int)) : (Int => Int)
             ```
             ---
             Doc comment!
@@ -128,7 +128,7 @@ fn callable_with_callable_types_functors() {
         &expect![[r#"
             ```qsharp
             Test
-            operation Foo(x: (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
+            operation Foo(x : (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
             ```
             ---
             Doc comment!
@@ -156,6 +156,80 @@ fn callable_ref_functors() {
 }
 
 #[test]
+fn callable_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(◉↘x◉: Int) : Unit { let y = x; }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x: Int) : Unit { let y = ◉↘x◉; }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_spec_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x: Int): Unit is Ctl {
+                body ... { let y = x; }
+                controlled (◉↘ctrl◉, ...) { let z = ctrl; }
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            ctrl : Qubit[]
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_spec_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x: Int): Unit is Ctl {
+                body ... { let y = x; }
+                controlled (ctrl, ...) { let z = ◉↘ctrl◉; }
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            ctrl : Qubit[]
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn identifier() {
     check(
         indoc! {r#"
@@ -166,8 +240,9 @@ fn identifier() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            x: Int
+            x : Int
             ```
         "#]],
     );
@@ -185,8 +260,9 @@ fn identifier_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            x: Int
+            x : Int
             ```
         "#]],
     );
@@ -203,8 +279,9 @@ fn identifier_tuple() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            y: Double
+            y : Double
             ```
         "#]],
     );
@@ -222,8 +299,9 @@ fn identifier_tuple_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            y: Double
+            y : Double
             ```
         "#]],
     );
@@ -242,8 +320,9 @@ fn identifier_for_loop() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            i: Int
+            i : Int
             ```
         "#]],
     );
@@ -262,8 +341,9 @@ fn identifier_for_loop_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            i: Int
+            i : Int
             ```
         "#]],
     );
@@ -283,8 +363,9 @@ fn identifier_nested_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            x: Int
+            x : Int
             ```
         "#]],
     );
@@ -303,8 +384,9 @@ fn lambda() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            lambda: ((Double, String) => Int)
+            lambda : ((Double, String) => Int)
             ```
         "#]],
     );
@@ -323,8 +405,9 @@ fn lambda_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            lambda: ((Double, String) => Int)
+            lambda : ((Double, String) => Int)
             ```
         "#]],
     );
@@ -343,8 +426,9 @@ fn lambda_param() {
         }
     "#},
         &expect![[r#"
+            lambda parameter
             ```qsharp
-            y: String
+            y : String
             ```
         "#]],
     );
@@ -362,8 +446,9 @@ fn lambda_param_ref() {
         }
     "#},
         &expect![[r#"
+            lambda parameter
             ```qsharp
-            y: String
+            y : String
             ```
         "#]],
     );
@@ -382,8 +467,9 @@ fn lambda_closure_ref() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            a: Int
+            a : Int
             ```
         "#]],
     );
@@ -402,8 +488,9 @@ fn identifier_udt() {
         }
     "#},
         &expect![[r#"
+            local
             ```qsharp
-            a: Pair
+            a : Pair
             ```
         "#]],
     );
@@ -419,7 +506,7 @@ fn udt() {
     "#},
         &expect![[r#"
             ```qsharp
-            newtype Pair = (Int, snd: Int)
+            newtype Pair = (Int, snd : Int)
             ```
         "#]],
     );
@@ -512,7 +599,7 @@ fn udt_field() {
     "#},
         &expect![[r#"
             ```qsharp
-            snd: Int
+            snd : Int
             ```
         "#]],
     );
@@ -532,7 +619,7 @@ fn udt_field_ref() {
     "#},
         &expect![[r#"
             ```qsharp
-            snd: Int
+            snd : Int
             ```
         "#]],
     );
@@ -605,7 +692,7 @@ fn foreign_call_with_param() {
         &expect![[r#"
             ```qsharp
             FakeStdLib
-            operation FakeWithParam(x: Int) : Unit
+            operation FakeWithParam(x : Int) : Unit
             ```
         "#]],
     );
@@ -828,6 +915,43 @@ fn callable_empty_summary() {
             Test
             operation Foo() : Unit
             ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_param_doc() {
+    check(
+        indoc! {r#"
+        namespace Test {
+
+            /// Doc string
+            /// # Summary
+            /// This is the summary
+            /// # Input
+            /// Input string
+            /// ## x
+            /// Doc string for `x`
+            /// ### Note
+            /// note for `x`
+            /// ## other
+            /// Doc string for `other`
+            /// # Last
+            /// Last string
+            operation Foo(x: Int) : Unit {
+                let y = ◉↘x◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x : Int
+            ```
+            ---
+            Doc string for `x`
+            ### Note
+            note for `x`
         "#]],
     );
 }

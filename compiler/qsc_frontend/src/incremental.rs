@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    compile::{Offsetter, PackageStore, SourceMap},
+    compile::{preprocess, CompileUnit, Offsetter, PackageStore, TargetProfile},
     lower::{self, Lowerer},
     resolve::{self, Resolver},
     typeck::{self, Checker},
@@ -43,19 +43,22 @@ pub enum Fragment {
 }
 
 pub struct Compiler {
-    sources: SourceMap,
     ast_assigner: AstAssigner,
-    hir_assigner: HirAssigner,
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
+    target: TargetProfile,
 }
 
 impl Compiler {
     /// # Panics
     ///
     /// This function will panic if compiler state is invalid or in out-of-memory conditions.
-    pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
+    pub fn new(
+        store: &PackageStore,
+        dependencies: impl IntoIterator<Item = PackageId>,
+        target: TargetProfile,
+    ) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
@@ -75,22 +78,12 @@ impl Compiler {
         }
 
         Self {
-            sources: SourceMap::default(),
             ast_assigner: AstAssigner::new(),
-            hir_assigner: HirAssigner::new(),
             resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
+            target,
         }
-    }
-
-    pub fn assigner_mut(&mut self) -> &mut qsc_hir::assigner::Assigner {
-        &mut self.hir_assigner
-    }
-
-    #[must_use]
-    pub fn source_map(&self) -> &SourceMap {
-        &self.sources
     }
 
     /// Compile a string with a single fragment of Q# code that is an expression.
@@ -98,10 +91,11 @@ impl Compiler {
     /// Returns a vector of errors if the input fails compilation.
     pub fn compile_expr(
         &mut self,
+        unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
     ) -> Result<Vec<Fragment>, Vec<Error>> {
-        let fragments = self.compile(source_name, source_contents, |s| {
+        let fragments = self.compile(unit, source_name, source_contents, |s| {
             let (expr, errors) = qsc_parse::expr(s);
             if !errors.is_empty() {
                 return (Vec::new(), errors);
@@ -124,14 +118,16 @@ impl Compiler {
     /// Returns a vector of errors if any of the input fails compilation.
     pub fn compile_fragments(
         &mut self,
+        unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
     ) -> Result<Vec<Fragment>, Vec<Error>> {
-        self.compile(source_name, source_contents, qsc_parse::fragments)
+        self.compile(unit, source_name, source_contents, qsc_parse::fragments)
     }
 
     fn compile<F>(
         &mut self,
+        unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
         parse: F,
@@ -140,7 +136,7 @@ impl Compiler {
         F: Fn(&str) -> (Vec<qsc_parse::Fragment>, Vec<qsc_parse::Error>),
     {
         // Append the line to the source map with the appropriate offset
-        let offset = self
+        let offset = unit
             .sources
             .push(source_name.into(), source_contents.into());
 
@@ -160,6 +156,20 @@ impl Compiler {
             }
         }
 
+        let mut cond_compile = preprocess::Conditional::new(self.target);
+        for fragment in &mut fragments {
+            match fragment {
+                qsc_parse::Fragment::Namespace(namespace) => {
+                    cond_compile.visit_namespace(namespace);
+                }
+                qsc_parse::Fragment::Stmt(stmt) => {
+                    cond_compile.visit_stmt(stmt);
+                }
+            }
+        }
+        self.resolver
+            .extend_dropped_names(cond_compile.into_names());
+
         // Namespaces must be processed before top-level statements, so sort the fragments.
         // Note that stable sorting is used here to preserve the order of top-level statements.
         fragments.sort_by_key(|f| match f {
@@ -169,9 +179,9 @@ impl Compiler {
 
         self.assign_ast_ids(&mut fragments);
 
-        self.bind_items(&fragments);
+        self.bind_items(&mut unit.assigner, &fragments);
 
-        self.resolve(&fragments);
+        self.resolve(&mut unit.assigner, &fragments);
 
         self.collect_items(&fragments);
 
@@ -179,7 +189,7 @@ impl Compiler {
 
         let fragments = fragments
             .into_iter()
-            .flat_map(|f| self.lower_fragment(f))
+            .flat_map(|f| self.lower_fragment(&mut unit.assigner, f))
             .collect();
 
         let errors = self.drain_errors();
@@ -219,29 +229,28 @@ impl Compiler {
         }
     }
 
-    fn resolve(&mut self, fragments: &Vec<qsc_parse::Fragment>) {
+    fn resolve(&mut self, hir_assigner: &mut HirAssigner, fragments: &Vec<qsc_parse::Fragment>) {
         for fragment in fragments {
             match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => self
-                    .resolver
-                    .with(&mut self.hir_assigner)
-                    .visit_namespace(namespace),
+                qsc_parse::Fragment::Namespace(namespace) => {
+                    self.resolver.with(hir_assigner).visit_namespace(namespace);
+                }
                 qsc_parse::Fragment::Stmt(stmt) => {
-                    self.resolver.with(&mut self.hir_assigner).visit_stmt(stmt);
+                    self.resolver.with(hir_assigner).visit_stmt(stmt);
                 }
             }
         }
     }
 
-    fn bind_items(&mut self, fragments: &Vec<qsc_parse::Fragment>) {
+    fn bind_items(&mut self, hir_assigner: &mut HirAssigner, fragments: &Vec<qsc_parse::Fragment>) {
         for fragment in fragments {
             match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => self
-                    .resolver
-                    .bind_namespace_items(&mut self.hir_assigner, namespace),
+                qsc_parse::Fragment::Namespace(namespace) => {
+                    self.resolver.bind_namespace_items(hir_assigner, namespace);
+                }
                 qsc_parse::Fragment::Stmt(stmt) => {
                     if let ast::StmtKind::Item(item) = stmt.kind.as_ref() {
-                        self.resolver.bind_local_item(&mut self.hir_assigner, item);
+                        self.resolver.bind_local_item(hir_assigner, item);
                     }
                 }
             }
@@ -259,13 +268,17 @@ impl Compiler {
         }
     }
 
-    fn lower_fragment(&mut self, fragment: qsc_parse::Fragment) -> Vec<Fragment> {
+    fn lower_fragment(
+        &mut self,
+        hir_assigner: &mut HirAssigner,
+        fragment: qsc_parse::Fragment,
+    ) -> Vec<Fragment> {
         let fragment = match fragment {
             qsc_parse::Fragment::Namespace(namespace) => {
-                self.lower_namespace(&namespace);
+                self.lower_namespace(hir_assigner, &namespace);
                 None
             }
-            qsc_parse::Fragment::Stmt(stmt) => self.lower_stmt(&stmt),
+            qsc_parse::Fragment::Stmt(stmt) => self.lower_stmt(hir_assigner, &stmt),
         };
 
         self.lowerer
@@ -275,23 +288,15 @@ impl Compiler {
             .collect()
     }
 
-    fn lower_namespace(&mut self, namespace: &ast::Namespace) {
+    fn lower_namespace(&mut self, hir_assigner: &mut HirAssigner, namespace: &ast::Namespace) {
         self.lowerer
-            .with(
-                &mut self.hir_assigner,
-                self.resolver.names(),
-                self.checker.table(),
-            )
+            .with(hir_assigner, self.resolver.names(), self.checker.table())
             .lower_namespace(namespace);
     }
 
-    fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Option<Fragment> {
+    fn lower_stmt(&mut self, hir_assigner: &mut HirAssigner, stmt: &ast::Stmt) -> Option<Fragment> {
         self.lowerer
-            .with(
-                &mut self.hir_assigner,
-                self.resolver.names(),
-                self.checker.table(),
-            )
+            .with(hir_assigner, self.resolver.names(), self.checker.table())
             .lower_stmt(stmt)
             .map(Fragment::Stmt)
     }

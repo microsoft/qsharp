@@ -520,7 +520,7 @@ fn spec_param() {
 }
 
 #[test]
-fn spec_param_shadow() {
+fn spec_param_shadow_disallowed() {
     check(
         indoc! {"
             namespace Foo {
@@ -545,6 +545,8 @@ fn spec_param_shadow() {
                     }
                 }
             }
+
+            // DuplicateBinding("qs", Span { lo: 78, hi: 80 })
         "#]],
     );
 }
@@ -673,6 +675,90 @@ fn open_alias_shadows_global() {
                     item1();
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_parameters() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo(x: Int, y: Double, x: Bool) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1(local8: Int, local13: Double, local18: Bool) : Unit {}
+            }
+
+            // DuplicateBinding("x", Span { lo: 54, hi: 55 })
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_local_binding() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit {
+                    let (first, second, first) = (1, 2, 3);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    let (local14, local16, local18) = (1, 2, 3);
+                }
+            }
+
+            // DuplicateBinding("first", Span { lo: 74, hi: 79 })
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_for_loop() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit {
+                    for (key, val, key) in [(1, 1, 1)] {}
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    for (local15, local17, local19) in [(1, 1, 1)] {}
+                }
+            }
+
+            // DuplicateBinding("key", Span { lo: 69, hi: 72 })
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_lambda_param() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit {
+                    let f = (x, y, x) -> x + y + 1;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    let local13 = (local17, local19, local21) -> local21 + local19 + 1;
+                }
+            }
+
+            // DuplicateBinding("x", Span { lo: 69, hi: 70 })
         "#]],
     );
 }

@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for x in [0.0, 0.25, 0.5, 0.75, 1.0] {
             Message($"Testing generating zero with {x*100.0}% probability...");
             let randomnessVerifier = () => CheckXPercentZero(() => Kata.WeightedRandomBit(x), x);

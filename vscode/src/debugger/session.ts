@@ -22,7 +22,7 @@ import {
   Scope,
 } from "@vscode/debugadapter";
 
-import { FileAccessor, basename, qsharpDocumentFilter } from "../common";
+import { FileAccessor, basename, isQsharpDocument } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IBreakpointSpan,
@@ -32,9 +32,10 @@ import {
   IStructStepResult,
   QscEventTarget,
   qsharpLibraryUriScheme,
-} from "qsharp";
+} from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
+import { EventType, sendTelemetryEvent } from "../telemetry";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -99,6 +100,7 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(): Promise<void> {
+    const start = performance.now();
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
 
@@ -146,6 +148,12 @@ export class QscDebugSession extends LoggingDebugSession {
       log.warn(`compilation failed. ${failureMessage}`);
       this.failureMessage = failureMessage;
     }
+    const end = performance.now();
+    sendTelemetryEvent(
+      EventType.DebugSessionStart,
+      {},
+      { timeToStartMs: end - start }
+    );
   }
 
   /**
@@ -464,7 +472,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const targetLineNumber = this.convertClientLineToDebugger(args.line);
     if (
       !file ||
-      !vscode.languages.match(qsharpDocumentFilter, file) ||
+      !isQsharpDocument(file) ||
       targetLineNumber >= file.lineCount
     ) {
       log.trace(`setBreakPointsResponse: %O`, response);
@@ -559,7 +567,7 @@ export class QscDebugSession extends LoggingDebugSession {
       });
 
     // If we couldn't find the file, or it wasn't a Q# file, just return
-    if (!file || !vscode.languages.match(qsharpDocumentFilter, file)) {
+    if (!file || !isQsharpDocument(file)) {
       log.trace(`setBreakPointsResponse: %O`, response);
       this.sendResponse(response);
       return;

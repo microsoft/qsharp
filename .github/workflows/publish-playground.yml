@@ -45,7 +45,7 @@ jobs:
           python-version: '3.11'
       - uses: actions/setup-node@v3
         with:
-          node-version: '16.17.1'
+          node-version: '18.17.1'
       - uses: Swatinem/rust-cache@v2
       - name: Prereqs
         run: python ./prereqs.py --install

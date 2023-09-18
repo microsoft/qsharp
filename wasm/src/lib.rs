@@ -14,6 +14,7 @@ use qsc::{
     },
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
+use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -21,6 +22,7 @@ use wasm_bindgen::prelude::*;
 mod debug_service;
 mod language_service;
 mod logging;
+mod serializable_type;
 
 thread_local! {
     static STORE_CORE_STD: (PackageStore, PackageId) = {
@@ -31,13 +33,41 @@ thread_local! {
 }
 
 #[wasm_bindgen]
-pub fn git_hash() -> JsValue {
+pub fn git_hash() -> String {
     let git_hash = env!("QSHARP_GIT_HASH");
-    JsValue::from_str(git_hash)
+    git_hash.into()
 }
 
 #[wasm_bindgen]
-pub fn get_library_source_content(name: &str) -> JsValue {
+pub fn get_qir(code: &str) -> Result<String, String> {
+    let core = compile::core();
+    let mut store = PackageStore::new(core);
+    let std = compile::std(&store, TargetProfile::Base);
+    let std = store.insert(std);
+    let sources = SourceMap::new([("test".into(), code.into())], None);
+
+    let (unit, errors) = qsc::compile::compile(
+        &store,
+        &[std],
+        sources,
+        PackageType::Exe,
+        TargetProfile::Base,
+    );
+
+    // Ensure it compiles before trying to add it to the store.
+    if !errors.is_empty() {
+        // This should never happen, as the program should be checked for errors before trying to
+        // generate code for it. But just in case, simply report the failure.
+        return Err("Failed to generate QIR".to_string());
+    }
+
+    let package = store.insert(unit);
+
+    generate_qir(&store, package).map_err(|e| e.0.to_string())
+}
+
+#[wasm_bindgen]
+pub fn get_library_source_content(name: &str) -> Option<String> {
     STORE_CORE_STD.with(|(store, std)| {
         for id in [PackageId::CORE, *std] {
             if let Some(source) = store
@@ -46,19 +76,18 @@ pub fn get_library_source_content(name: &str) -> JsValue {
                 .sources
                 .find_by_name(name)
             {
-                return JsValue::from_str(source.contents.as_ref());
+                return Some(source.contents.to_string());
             }
         }
 
-        JsValue::undefined()
+        None
     })
 }
 
 #[wasm_bindgen]
-pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
+pub fn get_hir(code: &str) -> String {
     let (package, _) = compile(code);
-    let hir = package.to_string();
-    Ok(serde_wasm_bindgen::to_value(&hir)?)
+    package.to_string()
 }
 
 fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
@@ -173,7 +202,7 @@ pub fn run(
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
-) -> Result<JsValue, JsValue> {
+) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
@@ -187,7 +216,7 @@ pub fn run(
         },
         shots,
     ) {
-        Ok(()) => Ok(JsValue::TRUE),
+        Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
 }
@@ -224,22 +253,22 @@ pub fn check_exercise_solution(
     solution_code: &str,
     exercise_sources_js: JsValue,
     event_cb: &js_sys::Function,
-) -> Result<JsValue, JsValue> {
+) -> bool {
     let exercise_soruces_strs: Vec<String> = serde_wasm_bindgen::from_value(exercise_sources_js)
         .expect("Deserializing code dependencies should succeed");
     let mut exercise_sources: Vec<(SourceName, SourceContents)> = vec![];
     for (index, code) in exercise_soruces_strs.into_iter().enumerate() {
         exercise_sources.push((index.to_string().into(), code.into()));
     }
-    let success = check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
+    check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-    });
-
-    Ok(JsValue::from_bool(success))
+    })
 }
 
 #[cfg(test)]
 mod test {
+    use crate::get_qir;
+
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
@@ -254,6 +283,17 @@ mod test {
         assert_eq!(err_2.start_pos, 32);
         assert_eq!(err_2.end_pos, 33);
         assert_eq!(err_2.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
+    }
+
+    #[test]
+    fn test_compile() {
+        let code = "namespace test { @EntryPoint() operation Foo(): Result {
+        use q = Qubit();
+        H(q);
+        M(q)
+        }}";
+        let result = get_qir(code);
+        assert!(result.is_ok());
     }
 
     #[test]

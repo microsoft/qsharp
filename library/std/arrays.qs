@@ -395,7 +395,7 @@ namespace Microsoft.Quantum.Arrays {
     /// let flattened = Flattened([[1, 2], [3], [4, 5, 6]]);
     /// // flattened = [1, 2, 3, 4, 5, 6]
     /// ```
-    function Flattened<'T>(arrays : 'T[][]): 'T[] {
+    function Flattened<'T>(arrays : 'T[][]) : 'T[] {
         mutable output = [];
         for array in arrays {
             set output += array;
@@ -934,7 +934,7 @@ namespace Microsoft.Quantum.Arrays {
     /// // The following returns [[2, 3], [5, 7], []];
     /// let split = Partitioned([2, 2], [2, 3, 5, 7]);
     /// ```
-    function Partitioned<'T>(partitionSizes: Int[], array: 'T[]) : 'T[][] {
+    function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][] {
         mutable output = Repeated([], Length(partitionSizes) + 1);
         mutable partitionStartIndex = 0;
         for index in IndexRange(partitionSizes) {

@@ -4,12 +4,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as vscode from "vscode";
-import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp";
-import {
-  FileAccessor,
-  qsharpExtensionId,
-  qsharpDocumentFilter,
-} from "../common";
+import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
+import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
@@ -98,10 +94,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     // if launch.json is missing or empty
     if (!config.type && !config.request && !config.name) {
       const editor = vscode.window.activeTextEditor;
-      if (
-        editor &&
-        vscode.languages.match(qsharpDocumentFilter, editor.document)
-      ) {
+      if (editor && isQsharpDocument(editor.document)) {
         config.type = "qsharp";
         config.name = "Launch";
         config.request = "launch";
@@ -121,10 +114,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
       } else {
         // Use the active editor if no program or ${file} is specified.
         const editor = vscode.window.activeTextEditor;
-        if (
-          editor &&
-          vscode.languages.match(qsharpDocumentFilter, editor.document)
-        ) {
+        if (editor && isQsharpDocument(editor.document)) {
           config.program = editor.document.uri.toString();
         }
       }

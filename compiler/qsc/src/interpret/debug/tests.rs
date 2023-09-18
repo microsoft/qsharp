@@ -9,14 +9,11 @@ use qsc_passes::PackageType;
 use std::io::Cursor;
 
 use crate::interpret::{
-    stateful::{Interpreter, LineError},
+    stateful::{Interpreter, LineResult},
     stateless::{self},
 };
 
-fn line(
-    interpreter: &mut Interpreter,
-    line: impl AsRef<str>,
-) -> (Result<Value, Vec<LineError>>, String) {
+fn line(interpreter: &mut Interpreter, line: impl AsRef<str>) -> (LineResult, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (

@@ -12,11 +12,13 @@ import {
 import { ILanguageService, LanguageServiceEvent } from "./language-service.js";
 
 const requests: MethodMap<ILanguageService> = {
+  updateConfiguration: "request",
   updateDocument: "request",
   closeDocument: "request",
   getCompletions: "request",
   getHover: "request",
   getDefinition: "request",
+  getSignatureHelp: "request",
   dispose: "request",
   addEventListener: "addEventListener",
   removeEventListener: "removeEventListener",

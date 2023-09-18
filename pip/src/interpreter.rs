@@ -5,12 +5,15 @@ use crate::displayable_output::{DisplayableOutput, DisplayableState};
 use miette::Report;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use pyo3::{create_exception, exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
+use pyo3::{
+    create_exception, exceptions::PyException, prelude::*, pyclass::CompareOp, types::PyList,
+    types::PyTuple,
+};
 use qsc::{
     fir,
     interpret::{
         output::{Error, Receiver},
-        stateful::{self, LineError},
+        stateful::{self},
         Value,
     },
     PackageType, SourceMap,
@@ -94,7 +97,27 @@ impl Interpreter {
         }
     }
 
-    #[allow(clippy::unused_self)]
+    fn run(
+        &mut self,
+        py: Python,
+        entry_expr: &str,
+        shots: u32,
+        callback: Option<PyObject>,
+    ) -> PyResult<Py<PyList>> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+        match self.interpreter.run(&mut receiver, entry_expr, shots) {
+            Ok(results) => Ok(PyList::new(
+                py,
+                results.into_iter().map(|res| match res {
+                    Ok(v) => ValueWrapper(v).into_py(py),
+                    Err(errors) => QSharpError::new_err(format_errors(errors)).into_py(py),
+                }),
+            )
+            .into_py(py)),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
     fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
         match self.interpreter.qirgen(entry_expr) {
             Ok(qir) => Ok(qir),
@@ -110,7 +133,7 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<LineError>) -> String {
+fn format_errors(errors: Vec<stateful::Error>) -> String {
     errors
         .into_iter()
         .map(|e| {
@@ -152,10 +175,45 @@ impl Output {
 }
 
 #[pyclass(unsendable)]
+#[derive(PartialEq)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
     One,
+}
+
+#[pymethods]
+impl Result {
+    fn __repr__(&self) -> String {
+        match self {
+            Result::Zero => "Zero".to_owned(),
+            Result::One => "One".to_owned(),
+        }
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn __hash__(&self) -> u32 {
+        match self {
+            Result::Zero => 0,
+            Result::One => 1,
+        }
+    }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
+        let this = i32::from(*self == Result::One);
+        let other = i32::from(*other == Result::One);
+        match op {
+            CompareOp::Lt => this < other,
+            CompareOp::Le => this <= other,
+            CompareOp::Eq => this == other,
+            CompareOp::Ne => this != other,
+            CompareOp::Gt => this > other,
+            CompareOp::Ge => this >= other,
+        }
+    }
 }
 
 #[pyclass(unsendable)]

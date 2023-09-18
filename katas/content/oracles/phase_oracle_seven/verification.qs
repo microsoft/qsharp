@@ -6,7 +6,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         let N = 3;
         let isCorrect = CheckOperationsEqualReferenced(
             N,

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService } from "qsharp";
+import { ILanguageService, samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
 
@@ -12,7 +12,18 @@ export function createCompletionItemProvider(
 }
 
 class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
-  constructor(public languageService: ILanguageService) {}
+  private samples: vscode.CompletionItem[] = [];
+
+  constructor(public languageService: ILanguageService) {
+    this.samples = samples.map((s) => {
+      const item = new CompletionItem(
+        s.title + " sample",
+        vscode.CompletionItemKind.Snippet
+      );
+      item.insertText = s.code;
+      return item;
+    });
+  }
 
   async provideCompletionItems(
     document: vscode.TextDocument,
@@ -26,7 +37,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       document.uri.toString(),
       document.offsetAt(position)
     );
-    return completions.items.map((c) => {
+    const results = completions.items.map((c) => {
       let kind;
       switch (c.kind) {
         case "function":
@@ -56,5 +67,6 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       });
       return item;
     });
+    return results.concat(this.samples);
   }
 }

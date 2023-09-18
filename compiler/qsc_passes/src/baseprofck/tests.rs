@@ -63,6 +63,12 @@ fn result_comparison_error() {
         }"},
         &expect![[r#"
             [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 78,
+                    },
+                ),
                 ResultComparison(
                     Span {
                         lo: 41,
@@ -120,6 +126,26 @@ fn non_result_return_error() {
 }
 
 #[test]
+fn unit_return_error() {
+    check(
+        indoc! {"{
+            operation Foo() : Unit {}
+            Foo()
+        }"},
+        &expect![[r#"
+            [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 43,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn unsupported_intrsinsic_error() {
     check(
         indoc! {"{
@@ -129,6 +155,12 @@ fn unsupported_intrsinsic_error() {
         }"},
         &expect![[r#"
             [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 62,
+                    },
+                ),
                 UnsupportedIntrinsic(
                     Span {
                         lo: 16,

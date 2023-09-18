@@ -70,6 +70,21 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
+    pub(crate) fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + 'a {
+        HirPat {
+            compilation: self.compilation,
+            pat,
+        }
+    }
+
+    pub(crate) fn get_param_offset(&self, decl: &hir::CallableDecl) -> u32 {
+        HirCallableDecl {
+            compilation: self.compilation,
+            decl,
+        }
+        .get_param_offset()
+    }
+
     // The rest of the display implementations are not made public b/c they're not used,
     // but there's no reason they couldn't be
 }
@@ -83,7 +98,7 @@ struct IdentTy<'a> {
 
 impl<'a> Display for IdentTy<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}: {}", self.ident.name, AstTy { ty: self.ty },)
+        write!(f, "{} : {}", self.ident.name, AstTy { ty: self.ty },)
     }
 }
 
@@ -97,7 +112,7 @@ impl<'a> Display for IdentTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}: {}",
+            "{} : {}",
             self.ident.name,
             TyId {
                 ty_id: self.ty_id,
@@ -117,7 +132,7 @@ impl<'a> Display for PathTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}: {}",
+            "{} : {}",
             &Path { path: self.path },
             TyId {
                 ty_id: self.ty_id,
@@ -130,6 +145,17 @@ impl<'a> Display for PathTyId<'a> {
 struct HirCallableDecl<'a, 'b> {
     compilation: &'a Compilation,
     decl: &'b hir::CallableDecl,
+}
+
+impl HirCallableDecl<'_, '_> {
+    fn get_param_offset(&self) -> u32 {
+        let offset = match self.decl.kind {
+            hir::CallableKind::Function => "function".len(),
+            hir::CallableKind::Operation => "operation".len(),
+        } + 2; // this is for the space between keyword and name plus the opening paren
+        u32::try_from(offset + self.decl.name.name.len())
+            .expect("failed to cast usize to u32 while calculating parameter offset")
+    }
 }
 
 impl Display for HirCallableDecl<'_, '_> {
@@ -211,8 +237,8 @@ impl<'a> Display for HirPat<'a> {
             compilation: self.compilation,
         };
         match &self.pat.kind {
-            hir::PatKind::Bind(name) => write!(f, "{}: {ty}", name.name),
-            hir::PatKind::Discard => write!(f, "_: {ty}"),
+            hir::PatKind::Bind(name) => write!(f, "{} : {ty}", name.name),
+            hir::PatKind::Discard => write!(f, "_ : {ty}"),
             hir::PatKind::Tuple(items) => {
                 let mut elements = items.iter();
                 if let Some(elem) = elements.next() {
@@ -267,7 +293,7 @@ impl<'a> Display for AstPat<'a> {
                 Some(ty) => write!(f, "{}", AstTy { ty }),
                 None => write!(
                     f,
-                    "_: {}",
+                    "_ : {}",
                     TyId {
                         ty_id: self.pat.id,
                         compilation: self.compilation
@@ -612,7 +638,7 @@ impl<'a> Display for TyDef<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
-                Some(name) => write!(f, "{}: {}", name.name, AstTy { ty }),
+                Some(name) => write!(f, "{} : {}", name.name, AstTy { ty }),
                 None => write!(f, "{}", AstTy { ty }),
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),

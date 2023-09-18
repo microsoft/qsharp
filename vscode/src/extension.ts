@@ -4,67 +4,53 @@
 import {
   ILanguageService,
   getLanguageService,
+  getLibrarySourceContent,
   loadWasmModule,
   log,
-  getLibrarySourceContent,
   qsharpLibraryUriScheme,
-} from "qsharp";
+} from "qsharp-lang";
 import * as vscode from "vscode";
+import {
+  isQsharpDocument,
+  isQsharpNotebookCell,
+  qsharpDocumentFilter,
+} from "./common.js";
 import { createCompletionItemProvider } from "./completion.js";
+import { activateDebugger } from "./debugger/activate.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebook.js";
-import { activateDebugger } from "./debugger/activate.js";
-import {
-  qsharpDocumentFilter,
-  qsharpNotebookCellDocumentFilter,
-} from "./common.js";
+import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
+import { initAzureWorkspaces } from "./azure/commands.js";
+import { initCodegen } from "./qirGeneration.js";
+import { activateTargetProfileStatusBarItem } from "./statusbar.js";
+import { createSignatureHelpProvider } from "./signature.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
   log.info("Q# extension activating.");
+  initTelemetry(context);
 
-  vscode.workspace.registerTextDocumentContentProvider(
-    qsharpLibraryUriScheme,
-    new QsTextDocumentContentProvider()
-  );
-
-  const languageService = await loadLanguageService(context.extensionUri);
+  checkForOldQdk();
 
   context.subscriptions.push(
-    ...registerDocumentUpdateHandlers(languageService)
+    vscode.workspace.registerTextDocumentContentProvider(
+      qsharpLibraryUriScheme,
+      new QsTextDocumentContentProvider()
+    )
+  );
+
+  context.subscriptions.push(...activateTargetProfileStatusBarItem());
+
+  context.subscriptions.push(
+    ...(await activateLanguageService(context.extensionUri))
   );
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  context.subscriptions.push(startCheckingQSharp(languageService));
-
-  // completions
-  context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider(
-      qsharpDocumentFilter,
-      createCompletionItemProvider(languageService),
-      "."
-    )
-  );
-
-  // hover
-  context.subscriptions.push(
-    vscode.languages.registerHoverProvider(
-      qsharpDocumentFilter,
-      createHoverProvider(languageService)
-    )
-  );
-
-  // go to def
-  context.subscriptions.push(
-    vscode.languages.registerDefinitionProvider(
-      "qsharp",
-      createDefinitionProvider(languageService)
-    )
-  );
-
+  initAzureWorkspaces(context);
+  initCodegen(context);
   activateDebugger(context);
 
   log.info("Q# extension activated.");
@@ -124,10 +110,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (
-        vscode.languages.match(qsharpDocumentFilter, document) &&
-        !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
-      ) {
+      if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
         // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
@@ -135,16 +118,12 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (
-      vscode.languages.match(qsharpDocumentFilter, document) &&
-      !vscode.languages.match(qsharpNotebookCellDocumentFilter, document)
-    ) {
+    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Notebook cells don't currently support the language service.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
-        document.getText(),
-        true // PackageType "exe"
+        document.getText()
       );
     }
   }
@@ -152,14 +131,101 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   return subscriptions;
 }
 
-/**
- * Loads the Q# compiler including the WASM module
- */
+async function activateLanguageService(extensionUri: vscode.Uri) {
+  const subscriptions: vscode.Disposable[] = [];
+
+  const languageService = await loadLanguageService(extensionUri);
+
+  // diagnostics
+  subscriptions.push(...startCheckingQSharp(languageService));
+
+  // synchronize document contents
+  subscriptions.push(...registerDocumentUpdateHandlers(languageService));
+
+  // synchronize configuration
+  subscriptions.push(registerConfigurationChangeHandlers(languageService));
+
+  // completions
+  subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      qsharpDocumentFilter,
+      createCompletionItemProvider(languageService),
+      "."
+    )
+  );
+
+  // hover
+  subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      qsharpDocumentFilter,
+      createHoverProvider(languageService)
+    )
+  );
+
+  // go to def
+  subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      qsharpDocumentFilter,
+      createDefinitionProvider(languageService)
+    )
+  );
+
+  // signature help
+  subscriptions.push(
+    vscode.languages.registerSignatureHelpProvider(
+      qsharpDocumentFilter,
+      createSignatureHelpProvider(languageService),
+      "(",
+      ","
+    )
+  );
+
+  return subscriptions;
+}
+
+async function updateLanguageServiceProfile(languageService: ILanguageService) {
+  const targetProfile = vscode.workspace
+    .getConfiguration("Q#")
+    .get<string>("targetProfile", "full");
+
+  switch (targetProfile) {
+    case "base":
+    case "full":
+      break;
+    default:
+      log.warn(`Invalid value for target profile: ${targetProfile}`);
+  }
+  log.debug("Target profile set to: " + targetProfile);
+
+  languageService.updateConfiguration({
+    targetProfile: targetProfile as "base" | "full",
+  });
+}
+
 async function loadLanguageService(baseUri: vscode.Uri) {
+  const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  return await getLanguageService();
+  const languageService = await getLanguageService();
+  await updateLanguageServiceProfile(languageService);
+  const end = performance.now();
+  sendTelemetryEvent(
+    EventType.LoadLanguageService,
+    {},
+    { timeToStartMs: end - start }
+  );
+  return languageService;
+}
+
+function registerConfigurationChangeHandlers(
+  languageService: ILanguageService
+) {
+  return vscode.workspace.onDidChangeConfiguration((event) => {
+    if (event.affectsConfiguration("Q#.targetProfile")) {
+      updateLanguageServiceProfile(languageService);
+    }
+  });
 }
 
 export class QsTextDocumentContentProvider
@@ -172,5 +238,36 @@ export class QsTextDocumentContentProvider
     token: vscode.CancellationToken
   ): vscode.ProviderResult<string> {
     return getLibrarySourceContent(uri.path);
+  }
+}
+
+function checkForOldQdk() {
+  const oldQdkExtension = vscode.extensions.getExtension(
+    "quantum.quantum-devkit-vscode"
+  );
+
+  const prereleaseQdkExtension = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode-dev"
+  );
+
+  const releaseQdkExtension = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode"
+  );
+
+  const previousQdkWarningMessage =
+    'Extension "Microsoft Quantum Development Kit for Visual Studio" (`quantum.quantum-devkit-vscode`) found. We recommend uninstalling the prior QDK before using this release.';
+
+  const bothReleaseAndPrereleaseWarningMessage =
+    'Extension "Azure Quantum Development Kit (QDK)" has both release and pre-release versions installed. We recommend uninstalling one of these versions.';
+
+  // we don't await the warnings below so we don't block extension initialization
+  if (oldQdkExtension) {
+    log.warn(previousQdkWarningMessage);
+    vscode.window.showWarningMessage(previousQdkWarningMessage);
+  }
+
+  if (prereleaseQdkExtension && releaseQdkExtension) {
+    log.warn(bothReleaseAndPrereleaseWarningMessage);
+    vscode.window.showWarningMessage(bothReleaseAndPrereleaseWarningMessage);
   }
 }

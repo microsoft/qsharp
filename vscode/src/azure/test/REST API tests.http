@@ -1,0 +1,134 @@
+// For use with the "REST Client" VS Code extension https://github.com/Huachao/vscode-restclient
+// to test the Azure management and Quantum REST API.
+
+@ARM_EP = management.azure.com
+
+// Set the following either in settings.json, or as variables in this file.
+// See https://github.com/Huachao/vscode-restclient#environment-variables
+// Note: To get the auth tokens, it's easiest to set breakpoints in the VS Code extension and grab them from there.
+// The tokens and the SAS URI are only valid for a short time, so you'll need to get new ones each time you run this.
+//
+//   @ARM_AAD_TOKEN = eyJ0eXAiOi...
+//   @QUANTUM_TOKEN = eyJhbGciOi...
+//   @BLOB_SASPARAMS = sv=2019-07-07&sig=5vxLvO...
+//   @QUANTUM_SUBID = 916dfd6d-030c-...
+//   @QUANTUM_RG = MyAzResourceGroup
+//   @QUANTUM_WORKSPACE = MyWorkspace
+//   @QUANTUM_ENDPOINT = westus2.quantum.azure.com
+//   @BLOB_ENDPOINT = storageaccountname.blob.core.windows.net
+//   @BLOB_CONTAINER = job-b639b6e7-...
+
+### Get the tenants for a user
+
+// Use an AAD or MSA token here that should have scope 'https://management.azure.com/user_impersonation'
+
+GET https://{{ARM_EP}}/tenants?api-version=2020-01-01
+Authorization: Bearer {{ARM_AAD_TOKEN}}
+Content-type: application/json
+
+### Request all subscriptions for a user
+
+// Need to use an AAD token for here on (not MSA). This should have 'https://management.azure.com/user_impersonation' scope.
+// If prior request was done with an MSA account/token, need to get an AAD token for the tenant of the subscription.
+
+GET https://{{ARM_EP}}/subscriptions?api-version=2020-01-01
+Authorization: Bearer {{ARM_AAD_TOKEN}}
+Content-type: application/json
+
+### Get all Quantum workspaces for a subscription
+
+GET https://{{ARM_EP}}/subscriptions/{{QUANTUM_SUBID}}/providers/Microsoft.Quantum/workspaces?api-version=2022-01-10-preview
+Authorization: Bearer {{ARM_AAD_TOKEN}}
+Content-type: application/json
+
+### Get the quotas for a workspace
+
+// Note change of endpoint and token from here on. This should be for the account used above, but have the 'https://quantum.microsoft.com/user_impersonation' scope.
+
+GET https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/quotas?api-version=2022-09-12-preview
+Authorization: Bearer {{QUANTUM_TOKEN}}
+Content-type: application/json
+
+### Provider status
+GET https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/providerStatus?api-version=2022-09-12-preview
+Authorization: Bearer {{QUANTUM_TOKEN}}
+Content-type: application/json
+
+### Get jobs for the workspace
+GET https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/jobs?api-version=2022-09-12-preview
+Authorization: Bearer {{QUANTUM_TOKEN}}
+Content-type: application/json
+
+### Get a container sasURI
+
+POST https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/storage/sasUri?api-version=2022-09-12-preview
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{QUANTUM_TOKEN}}
+
+{"containerName": "{{BLOB_CONTAINER}}"}
+
+
+// === Working with blob storage ===
+
+// From here on, the requests are to blob storage, not the quantum endpoint.
+
+// Currently you need to PUT the job file, and GET results, directly from Azure Blob storage.
+// You query the quantum endpoint to get SAS URIs to access the blob storage.
+
+// To submit a job
+// - Get a blob storage SAS URI from the quantum endpoint via a POST with the container name in the body
+// - PUT on the blob storage SAS URI to create the container
+// - [optional?] Check via a GET that it was created
+// - PUT the job file directly into the blob storage container
+// - PUT on the quantum endpoint the job data to submit the job
+// - GET the job status from the quantum endpoint until it is complete (Succeeded, Failed, or Cancelled)
+// - GET the job output data from the blob storage container.
+
+// To just get the output data
+// - Get a blob storage SAS URI from the quantum endpoint via a POST with the container name in the body
+// - GET the output data from the blob storage container
+
+
+# Below are requests to blob storage for the job file and output data.
+
+// SAS URI fields (see https://learn.microsoft.com/en-us/rest/api/storageservices/create-account-sas):
+// - "sv=2019-07-07" is the API version (signed version)
+// - "srt=co" means access to container and objects (signed resource types)
+// - "sp=racw" means read, add, create, write (signed permissions)
+// - "ss=b" means access to blob storage (signed services)
+// - "se=2023-07-28T17:25:07Z" is the expiry date (signed expiry)
+// - "sig=..." is the signature
+
+### Cors check (note that x-ms-* headers must be enabled on the storage account)
+OPTIONS https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}/outputData?{{BLOB_SASPARAMS}}
+Access-Control-Request-Method: GET
+Host: swernlitest.blob.core.windows.net
+Origin: vscode-file://vscode-app
+Accept: */*
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US
+Access-Control-Request-Headers: x-ms-date,x-ms-version
+Cache-Control: no-cache
+Connection: keep-alive
+Pragma: no-cache
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: cross-site
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_0) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.81.1 Chrome/108.0.5359.215 Electron/22.3.18 Safari/537.36
+
+
+### Container properties (not that useful)
+GET https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}?restype=container&{{BLOB_SASPARAMS}}
+x-ms-version: 2023-01-03
+x-ms-date: {{$datetime rfc1123}}
+
+### Input data (QIR)
+GET https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}/inputData?{{BLOB_SASPARAMS}}
+x-ms-version: 2023-01-03
+x-ms-date: {{$datetime rfc1123}}
+
+### Output data (histogram)
+GET https://{{BLOB_ENDPOINT}}/{{BLOB_CONTAINER}}/outputData?{{BLOB_SASPARAMS}}
+x-ms-version: 2023-01-03
+x-ms-date: {{$datetime rfc1123}}

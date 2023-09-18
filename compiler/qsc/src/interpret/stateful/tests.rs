@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 mod given_interpreter {
-    use crate::interpret::stateful::{Interpreter, LineError};
+    use crate::interpret::stateful::{Error, Interpreter, LineResult};
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_eval::{output::CursorReceiver, val::Value};
@@ -10,13 +10,23 @@ mod given_interpreter {
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
-    fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
+    fn line(interpreter: &mut Interpreter, line: &str) -> (LineResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (
             interpreter.interpret_line(&mut receiver, line),
             receiver.dump(),
         )
+    }
+
+    fn run(
+        interpreter: &mut Interpreter,
+        expr: &str,
+        shots: u32,
+    ) -> (Result<Vec<LineResult>, Vec<Error>>, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        (interpreter.run(&mut receiver, expr, shots), receiver.dump())
     }
 
     fn entry(
@@ -448,6 +458,20 @@ mod given_interpreter {
                       and also in this namespace [line_2] [Microsoft.Quantum.Diagnostics]
                     type error: insufficient type information to infer type
                        [line_3] [DumpMachine()]
+                "#]],
+            );
+        }
+
+        #[test]
+        fn runtime_error_from_stdlib() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "use q = Qubit(); CNOT(q,q)");
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: qubits in gate invocation are not unique
+                       [intrinsic.qs] [(control, target)]
                 "#]],
             );
         }
@@ -908,11 +932,99 @@ mod given_interpreter {
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
             "#]].assert_eq(&res);
         }
+
+        #[test]
+        fn run_with_shots() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "Foo()", 5);
+            assert_eq!(output, String::new());
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                let val = r.expect("individual run should succeed");
+                assert_eq!(val, Value::Int(1));
+            }
+        }
+
+        #[test]
+        fn run_parse_error() {
+            let mut interpreter = get_interpreter();
+            let (results, _) = run(&mut interpreter, "Foo)", 5);
+            results.expect_err("run() should fail");
+        }
+
+        #[test]
+        fn run_compile_error() {
+            let mut interpreter = get_interpreter();
+            let (results, _) = run(&mut interpreter, "Foo()", 5);
+            results.expect_err("run() should fail");
+        }
+
+        #[test]
+        fn run_multiple_statements() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "operation Bar() : Int { 2 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "{ Foo(); Bar() }", 5);
+            assert_eq!(output, String::new());
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                let val = r.expect("individual run should succeed");
+                assert_eq!(val, Value::Int(2));
+            }
+        }
+
+        #[test]
+        fn run_runtime_failure() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                r#"operation Foo() : Int { fail "failed" }"#,
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "Foo()", 5);
+            assert_eq!(output, String::new());
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                r.expect_err("individual run should fail");
+            }
+        }
+
+        #[test]
+        fn run_output_merged() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                r#"operation Foo() : Unit { Message("hello!") }"#,
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (results, output) = run(&mut interpreter, "Foo()", 5);
+            expect![[r#"
+                hello!
+                hello!
+                hello!
+                hello!
+                hello!"#]]
+            .assert_eq(&output);
+            let results = results.expect("run() should succeed");
+            assert_eq!(results.len(), 5);
+            for r in results {
+                let val = r.expect("individual run should succeed");
+                assert_eq!(val, Value::unit());
+            }
+        }
     }
 
     #[cfg(test)]
     mod with_sources {
         use super::*;
+        use expect_test::expect;
         use indoc::indoc;
         use qsc_frontend::compile::{SourceMap, TargetProfile};
         use qsc_passes::PackageType;
@@ -1002,6 +1114,37 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "Test2.Main()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
         }
+
+        #[test]
+        fn runtime_error_from_stdlib() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace Foo {
+                        operation Bar(): Unit {
+                            let x = -1;
+                            use qs = Qubit[x];
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                Some("Foo.Bar()".into()),
+            );
+
+            let mut interpreter =
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                    .expect("interpreter should be created");
+            let (result, output) = entry(&mut interpreter);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: program failed: Cannot allocate qubit array with a negative length
+                      explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
+                "#]],
+            );
+        }
     }
 
     fn get_interpreter() -> Interpreter {
@@ -1014,7 +1157,7 @@ mod given_interpreter {
         .expect("interpreter should be created")
     }
 
-    fn is_only_value(result: &Result<Value, Vec<LineError>>, output: &str, value: &Value) {
+    fn is_only_value(result: &LineResult, output: &str, value: &Value) {
         assert_eq!("", output);
 
         match result {
@@ -1036,11 +1179,7 @@ mod given_interpreter {
         }
     }
 
-    fn is_unit_with_output(
-        result: &Result<Value, Vec<LineError>>,
-        output: &str,
-        expected_output: &str,
-    ) {
+    fn is_unit_with_output(result: &LineResult, output: &str, expected_output: &str) {
         assert_eq!(expected_output, output);
 
         match result {

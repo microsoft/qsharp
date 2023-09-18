@@ -7,6 +7,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Cancel in-progress run when a pull request is updated
+# Code taken from:
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.72"
@@ -69,7 +76,7 @@ jobs:
           submodules: "true"
       - uses: actions/setup-node@v3
         with:
-          node-version: '16.17.1'
+          node-version: '18.17.1'
       - name: npm install
         run: npm install
       - name: npm check
@@ -92,12 +99,16 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Add additional Rust targets
+        run: |
+          rustup target add aarch64-apple-darwin
+        if: matrix.os == 'macos-latest'
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - uses: actions/setup-node@v3
         with:
-          node-version: '16.17.1'
+          node-version: '18.17.1'
       - uses: Swatinem/rust-cache@v2
       - name: Prereqs
         run: python ./prereqs.py --install

@@ -1,29 +1,30 @@
-# Q# Language Support for VS Code
+# Azure Quantum Development Kit (QDK) Preview
 
-This VS Code extension contains:
+**This extension is currently in preview. If you are looking for the current stable QDK, see the documentation
+at <https://learn.microsoft.com/en-us/azure/quantum/install-overview-qdk>**
 
-- The TextMate grammar and language configuration for Q#. This enables syntax highlighting
-  and basic syntactic features (brace matching, etc.).
-- Q# cell support in Jupyter Notebooks. The extension will detect `%%qsharp` magic cells
-  and automatically update the cell language to Q#.
-- Error checking in Q# source files.
-- Breakpoint debugging and script execution for Q# source files.
+_Note: To install pre-release versions of this extension, you must click the drop-down
+next to the 'Install' button and select 'Install Pre-Release Version'_
 
-To install locally:
+This extension brings rich Q# language support to VS Code. Develop, build, and run your Q# code from VS Code either locally on simulators, or by submitting a job to Azure Quantum.
 
-- Build the extension by running `build.py` or `build.py --wasm --npm --vscode` from the repo root.
-- Package the `VSIX` with `vsce package` while in the `vscode` directory. To get `vsce`, run `npm install -g @vscode/vsce`
-- In VS Code, run command "Extensions: Install from VSIX..."
-- Select the `VSIX` you just packaged (`qsharp.vscode-0.0.0.vsix` for example) in the directory.
-- Reload your VS Code window.
+## Features
 
-This will enable the extension for all instances of VS Code.
+The Q# extension currently supports:
 
-To scope the extension to only a specific workspace (for example, the `qsharp` repo):
+- Syntax highlighting and basic syntax features (e.g. brace matching)
+- Q# cell support in Jupyter notebooks. The extension will detect `%%qsharp` magic cells and automatically update the cell language to Q#
+- Error checking in Q# source files
+- Breakpoint debugging and script execution for Q# source files
+- Integration with Azure Quantum for job submission to quantum hardware providers
+- Hover-definition and docs
+- Go-to-definition
+- Function signature help
+- Snippet and sample support
+- Completions
 
-- In VS Code, find and open the "Q# (new)" extension in the Extensions view.
-- Click the "Disable" button to disable the extension globally.
-- Click the dropdown next to "Enable" button and select "Enable (Workspace)".
+For more documentation and walkthroughs, see the wiki at <https://github.com/microsoft/qsharp/wiki>
 
-This will enable the extension for only the current workspace. The extension will remain
-enabled for that workspace across restarts.
+## Contributing
+
+To log issues, contribute to the project, or build the extension yourself, visit the repository at <https://github.com/microsoft/qsharp>

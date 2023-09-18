@@ -1,11 +1,11 @@
 namespace Kata.Verification {
 
-    operation Or_Oracle_Reference(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+    operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);
         ApplyControlledOnInt(0, X, x, y);
     }
 
-    operation OrOfBitsExceptKth_Oracle_Reference(x: Qubit[], k: Int): Unit is Adj + Ctl {
+    operation OrOfBitsExceptKth_Oracle_Reference(x : Qubit[], k : Int) : Unit is Adj + Ctl {
         use minus = Qubit();
         within {
             X(minus);
@@ -16,7 +16,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for N in 1..5 {
             for k in 0..(N-1) {
                 let isCorrect = CheckOperationsEqualReferenced(

@@ -212,6 +212,11 @@ impl PackageStore {
     }
 
     #[must_use]
+    pub fn get_mut(&mut self, id: PackageId) -> (&global::Table, Option<&mut CompileUnit>) {
+        (&self.core, self.units.get_mut(id))
+    }
+
+    #[must_use]
     pub fn iter(&self) -> Iter {
         Iter(self.units.iter())
     }
@@ -306,11 +311,11 @@ pub fn core() -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
-                "core.qs".into(),
+                "core/core.qs".into(),
                 include_str!("../../../library/core/core.qs").into(),
             ),
             (
-                "qir.qs".into(),
+                "core/qir.qs".into(),
                 include_str!("../../../library/core/qir.qs").into(),
             ),
         ],

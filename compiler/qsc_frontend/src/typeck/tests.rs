@@ -2055,12 +2055,12 @@ fn newtype_unwrap() {
         "},
         "",
         &expect![[r#"
-            #17 61-70 "(x : Foo)" : UDT<Item 1>
-            #18 62-69 "x : Foo" : UDT<Item 1>
-            #24 76-103 "{\n        let y = x!;\n    }" : Unit
-            #26 90-91 "y" : (Int, Bool)
-            #28 94-96 "x!" : (Int, Bool)
-            #29 94-95 "x" : UDT<Item 1>
+            #16 61-70 "(x : Foo)" : UDT<Item 1>
+            #17 62-69 "x : Foo" : UDT<Item 1>
+            #23 76-103 "{\n        let y = x!;\n    }" : Unit
+            #25 90-91 "y" : (Int, Bool)
+            #27 94-96 "x!" : (Int, Bool)
+            #28 94-95 "x" : UDT<Item 1>
         "#]],
     );
 }
@@ -2324,6 +2324,38 @@ fn infinite() {
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
             Error(Type(Error(TyMismatch(Infer(InferTyId(0)), Array(Infer(InferTyId(0))), Span { lo: 86, hi: 89 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 52, hi: 53 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn lambda_inner_return() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let f = () -> {
+                        return 42;
+                    };
+                    let r = f();
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 40-126 "{\n        let f = () -> {\n            return 42;\n        };\n        let r = f();\n    }" : Unit
+            #12 54-55 "f" : (Unit -> Int)
+            #14 58-98 "() -> {\n            return 42;\n        }" : (Unit -> Int)
+            #15 58-60 "()" : Unit
+            #16 64-98 "{\n            return 42;\n        }" : Int
+            #17 64-98 "{\n            return 42;\n        }" : Int
+            #19 78-87 "return 42" : Unit
+            #20 85-87 "42" : Int
+            #22 112-113 "r" : Int
+            #24 116-119 "f()" : Int
+            #25 116-117 "f" : (Unit -> Int)
+            #28 117-119 "()" : Unit
         "#]],
     );
 }
@@ -3349,6 +3381,45 @@ fn inferred_generic_tuple_arguments_for_passed_callable() {
             #86 243-249 "(1, 2)" : (Int, Int)
             #87 244-245 "1" : Int
             #88 247-248 "2" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn inference_infinite_recursion_should_fail() {
+    // This creates an infinite recursion in the type inference algorithm, because it tries
+    // to prove that `'U1[]` is equal to `'U1`. This should hit the recursion limit configured
+    // in the solver.
+    check(
+        indoc! {"
+            namespace Test{
+                function A<'T1, 'U1> (x : ('T1 -> 'U1)) : 'U1[] {
+                }
+                function B<'T2, 'U2> (y : (('T2, 'U2) -> 'T2)) : 'T2 {
+                }
+                function Invalid() : Unit{
+                    A and B
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #8 41-59 "(x : ('T1 -> 'U1))" : (0 -> 1)
+            #9 42-58 "x : ('T1 -> 'U1)" : (0 -> 1)
+            #20 68-75 "{\n    }" : Unit
+            #26 101-126 "(y : (('T2, 'U2) -> 'T2))" : ((0, 1) -> 0)
+            #27 102-125 "y : (('T2, 'U2) -> 'T2)" : ((0, 1) -> 0)
+            #40 133-140 "{\n    }" : Unit
+            #44 161-163 "()" : Unit
+            #48 170-193 "{\n        A and B\n    }" : (((((((((((((((((((((((((((((((((((?2)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[], ?3) -> (((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[]) -> ((((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])
+            #50 180-187 "A and B" : (((((((((((((((((((((((((((((((((((?2)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[], ?3) -> (((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[]) -> ((((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])
+            #51 180-181 "A" : (((((((((((((((((((((((((((((((((((?2)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[], ?3) -> (((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[]) -> ((((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])
+            #54 186-187 "B" : ((((((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[], ?3) -> (((((((((((((((((((((((((((((((((?1)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[]) -> (((((((((((((((((((((((((((((((((?2)[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])[])
+            Error(Type(Error(TyMismatch(Array(Param(ParamId(1))), Tuple([]), Span { lo: 68, hi: 75 }))))
+            Error(Type(Error(TyMismatch(Param(ParamId(0)), Tuple([]), Span { lo: 133, hi: 140 }))))
+            Error(Type(Error(TyMismatch(Prim(Bool), Arrow(Arrow { kind: Function, input: Arrow(Arrow { kind: Function, input: Tuple([Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(2)))))))))))))))))))))))))))))))))), Infer(InferTyId(3))]), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1)))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), Span { lo: 180, hi: 181 }))))
+            Error(Type(Error(TyMismatch(Tuple([]), Arrow(Arrow { kind: Function, input: Arrow(Arrow { kind: Function, input: Tuple([Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(2)))))))))))))))))))))))))))))))))), Infer(InferTyId(3))]), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), output: Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Infer(InferTyId(1)))))))))))))))))))))))))))))))))))), functors: Value(Empty) }), Span { lo: 180, hi: 187 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
         "#]],
     );
 }

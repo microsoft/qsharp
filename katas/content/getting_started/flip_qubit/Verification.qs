@@ -2,7 +2,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
-    operation FlipQubit(q : Qubit): Unit is Adj + Ctl {
+    operation FlipQubit(q : Qubit) : Unit is Adj + Ctl {
         X(q);
     }
 
