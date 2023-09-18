@@ -1,10 +1,4 @@
-# Publishing VSCode Extensions: https://code.visualstudio.com/api/working-with-extensions/publishing-extension
-#   * $(PAT): https://stackoverflow.com/questions/58192624/publishing-vs-code-extension-via-azure-devops/58195815#58195815
-#   * Extension Manifest (package.json): https://code.visualstudio.com/api/references/extension-manifest
-# Building Py .whl for multiple Linux distros - manylinux: https://github.com/pypa/manylinux
-# aarch64 (ARM64) support for manylinux builds: https://codepyre.com/2019/12/arming-yourself/
-
-name: $(BuildId)
+name: qsharp-publish-$(BuildId)
 
 trigger: none
 pr: none
@@ -298,8 +292,7 @@ jobs:
      Intent: 'PackageDistribution'
      ContentType: 'PyPi'
      PackageLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
-     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
-                                                    #     Group email here fails the task with non-actionable output.
+     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
      Approvers: 'billti@microsoft.com'
      # Auto-inserted Debugging defaults:
      ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
@@ -330,8 +323,7 @@ jobs:
      Intent: 'PackageDistribution'
      ContentType: 'NPM'
      PackageLocation: '$(System.DefaultWorkingDirectory)/target/npm'
-     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: ESRP corrected from group email `qdevtools` to personal one.
-                                                    #     Group email here fails the task with non-actionable output.
+     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
      Approvers: 'billti@microsoft.com'
      # Auto-inserted Debugging defaults:
      ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
