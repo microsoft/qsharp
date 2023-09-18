@@ -286,7 +286,7 @@ jobs:
       ls                                  target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
 
-  - task: EsrpRelease@2
+  - task: EsrpRelease@4
     inputs:
      ConnectedServiceName: 'ESRP_Release'
      Intent: 'PackageDistribution'
@@ -317,7 +317,7 @@ jobs:
       ls                                  target/npm/*
     displayName: Move NPM Artifacts to Publishing Dir
 
-  - task: EsrpRelease@2
+  - task: EsrpRelease@4
     inputs:
      ConnectedServiceName: 'ESRP_Release'
      Intent: 'PackageDistribution'
