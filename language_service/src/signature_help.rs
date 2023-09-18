@@ -172,6 +172,13 @@ fn usize_to_u32(x: usize) -> u32 {
     u32::try_from(x).expect("failed to cast usize to u32 while generating signature help")
 }
 
+fn count_params(params: &hir::Pat) -> i32 {
+    match &params.kind {
+        hir::PatKind::Bind(_) | hir::PatKind::Discard => 1,
+        hir::PatKind::Tuple(items) => items.iter().map(count_params).sum(),
+    }
+}
+
 fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
     fn is_tuple<'a, 'b>(
         args: &'a ast::Expr,
@@ -182,7 +189,9 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
                 let temp: Vec<&ast::Expr> = arg_items.iter().map(|i| &**i).collect();
                 Some((temp, param_items))
             }
-            (_, hir::PatKind::Tuple(param_items)) => Some((vec![args], param_items)),
+            (ast::ExprKind::Paren(arg), hir::PatKind::Tuple(param_items)) => {
+                Some((vec![arg], param_items))
+            }
             _ => None,
         }
     }
@@ -193,28 +202,49 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
 
             if let Some(last) = items.last() {
                 // Case Tuple, cursor after last elem but before end:
-                // - if params > args: increment, recurse over elems
-                // Case Tuple, cursor *after* starting '(': increment, recurse over elems
-                if (last.0.span.hi < cursor
-                    && cursor < args.span.hi
-                    && param_items.len() > arg_items.len())
-                    || args.span.lo < cursor
-                {
+                if last.0.span.hi < cursor && cursor < args.span.hi {
+                    // - if params > args: increment, recurse over elems
+                    if param_items.len() > arg_items.len() {
+                        *i += 1;
+                        for (arg, param) in items {
+                            increment_until_cursor(arg, cursor, param, i);
+                        }
+                    }
+                    // - else: do nothing
+                } else if args.span.lo < cursor && cursor < args.span.hi {
+                    // Case Tuple, cursor inside tuple: increment, recurse over elems
                     *i += 1;
                     for (arg, param) in items {
                         increment_until_cursor(arg, cursor, param, i);
                     }
+                } else if args.span.hi < cursor {
+                    // Case Tuple, cursor after tuple: increment past all sub params
+                    *i += 1;
+                    *i += count_params(params);
                 }
                 // Case Tuple, cursor before or *at* starting '(': do nothing
-            } else if args.span.lo < cursor {
-                // Case Empty Tuple, cursor after starting `(`: increment
-                *i += 1;
+            } else {
+                // Case Empty Tuple
+                if args.span.lo < cursor && cursor < args.span.hi && !param_items.is_empty() {
+                    // cursor inside tuple: increment
+                    *i += 1;
+                } else if args.span.hi < cursor {
+                    // cursor after tuple: increment past all sub params
+                    *i += 1;
+                    *i += count_params(params);
+                }
             }
-        } else if args.span.hi < cursor {
+        } else {
             // Case Non-Tuple, cursor after: increment
-            *i += 1;
+            if args.span.hi < cursor {
+                *i += 1;
+                if matches!(params.kind, hir::PatKind::Tuple(_)) {
+                    // Case Non-Tuple mismatch: increment past all sub params
+                    *i += count_params(params);
+                }
+            }
+            // Case Non-Tuple, cursor before end (cursor inside): do nothing
         }
-        // Case Non-Tuple, cursor before end (cursor inside): do nothing
     }
 
     let mut i = 0;

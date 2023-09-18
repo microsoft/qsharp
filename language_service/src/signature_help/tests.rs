@@ -931,3 +931,1026 @@ fn argument_after_nested_tuple() {
         "#]],
     );
 }
+
+#[test]
+fn argument_end_of_nested_tuple() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2.3, "Four")↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn argument_nested_tuple_after_last() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2.3, "Four" ↘))
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_mismatch_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, 2,↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 5,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_mismatch_mid() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, 12↘3)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_mismatch_before() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1↘2, 123)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_not_enough_end() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(v : Int, (w : Double, x : String, y : Int), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2.0, "Three")↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(v : Int, (w : Double, x : String, y : Int), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 67,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 56,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 48,
+                                    end: 55,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 58,
+                                    end: 66,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_not_enough_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(v : Int, (w : Double, x : String, y : Int), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2.0, "Three"),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(v : Int, (w : Double, x : String, y : Int), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 67,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 56,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 48,
+                                    end: 55,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 58,
+                                    end: 66,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 6,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_not_enough_single_end() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2.0)↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_not_enough_single_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2.0),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 5,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_not_enough_empty_end() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, ()↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_tuple_not_enough_empty_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 47,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 49,
+                                    end: 57,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 5,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_empty_tuple() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, (), y : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1,↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, (), y : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 25,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 27,
+                                    end: 35,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_empty_tuple_mid() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, (), y : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (↘))
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, (), y : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 25,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 27,
+                                    end: 35,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_empty_tuple_end() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, (), y : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, ()↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, (), y : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 25,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 27,
+                                    end: 35,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_empty_tuple_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, (), y : Bool) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, (), y : Bool) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 25,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 27,
+                                    end: 35,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 3,
+            }
+        "#]],
+    );
+}
