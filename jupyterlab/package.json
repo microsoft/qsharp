@@ -36,7 +36,7 @@
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "@codemirror/language": "6.6.0",
+    "@codemirror/language": "6.7.0",
     "@codemirror/legacy-modes": "6.3.2",
     "@jupyterlab/application": "^4.0.0",
     "@jupyterlab/codemirror": "^4.0.0",

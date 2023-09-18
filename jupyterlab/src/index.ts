@@ -4,9 +4,7 @@ import {
 } from "@jupyterlab/application";
 
 import { IEditorLanguageRegistry } from "@jupyterlab/codemirror";
-// @ts-expect-error No typings avaiable for @codemirror/legacy-modes
 import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode";
-// @ts-expect-error No typings avaiable for @codemirror/language
 import { LanguageSupport, StreamLanguage } from "@codemirror/language";
 import { INotebookTracker, NotebookPanel } from "@jupyterlab/notebook";
 import { ICellModel } from "@jupyterlab/cells/lib/model";
