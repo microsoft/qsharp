@@ -21,7 +21,7 @@ fn first_argument() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
             operation Bar() : Unit {
                 Foo(↘)
                 let x = 3;
@@ -37,104 +37,11 @@ fn first_argument() {
                         parameters: [
                             ParameterInformation {
                                 label: Span {
-                                    start: 14,
-                                    end: 21,
+                                    start: 13,
+                                    end: 46,
                                 },
                                 documentation: None,
                             },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
-                                documentation: None,
-                            },
-                        ],
-                    },
-                ],
-                active_signature: 0,
-                active_parameter: 0,
-            }
-        "#]],
-    );
-}
-
-#[test]
-fn mid_argument() {
-    check(
-        indoc! {r#"
-        namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar() : Unit {
-                Foo(12↘)
-                let x = 3;
-            }
-        }
-    "#},
-        &expect![[r#"
-            SignatureHelp {
-                signatures: [
-                    SignatureInformation {
-                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
-                        documentation: None,
-                        parameters: [
-                            ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
-                                documentation: None,
-                            },
-                        ],
-                    },
-                ],
-                active_signature: 0,
-                active_parameter: 0,
-            }
-        "#]],
-    );
-}
-
-#[test]
-fn second_argument() {
-    check(
-        indoc! {r#"
-        namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar() : Unit {
-                Foo(1,↘)
-                let x = 3;
-            }
-        }
-    "#},
-        &expect![[r#"
-            SignatureHelp {
-                signatures: [
-                    SignatureInformation {
-                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
-                        documentation: None,
-                        parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
@@ -167,13 +74,13 @@ fn second_argument() {
 }
 
 #[test]
-fn last_argument() {
+fn mid_argument() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
             operation Bar() : Unit {
-                Foo(1, 1.2,↘)
+                Foo(12↘)
                 let x = 3;
             }
         }
@@ -185,6 +92,70 @@ fn last_argument() {
                         label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 33,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 35,
+                                    end: 45,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
+            operation Bar() : Unit {
+                Foo(1,↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
@@ -216,31 +187,14 @@ fn last_argument() {
     );
 }
 
-#[ignore = "Parser needs updating to handle `(1,, \"Four\")`"]
 #[test]
-fn insert_second_argument() {
+fn last_argument() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
             operation Bar() : Unit {
-                Foo(1,↘, "Four")
-                let x = 3;
-            }
-        }
-    "#},
-        &expect![[r#""#]],
-    );
-}
-
-#[test]
-fn revisit_second_argument() {
-    check(
-        indoc! {r#"
-        namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar() : Unit {
-                Foo(1, 2.↘3, "Four")
+                Foo(1, 1.2,↘)
                 let x = 3;
             }
         }
@@ -252,6 +206,13 @@ fn revisit_second_argument() {
                         label: "operation Foo(x : Int, y : Double, z : String) : Unit",
                         documentation: None,
                         parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
@@ -277,7 +238,81 @@ fn revisit_second_argument() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 1,
+                active_parameter: 3,
+            }
+        "#]],
+    );
+}
+
+#[ignore = "Parser needs updating to handle `(1,, \"Four\")`"]
+#[test]
+fn insert_second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
+            operation Bar() : Unit {
+                Foo(1,↘, "Four")
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn revisit_second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, 2.↘3, "Four")
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 33,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 35,
+                                    end: 45,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
             }
         "#]],
     );
@@ -288,8 +323,8 @@ fn nested_call_argument() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar(a: Int, b: Double) : Double { b }
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
+            operation Bar(a : Int, b : Double) : Double { b }
             operation Baz() : Unit {
                 Foo(1, Bar(↘))
                 let x = 3;
@@ -305,48 +340,11 @@ fn nested_call_argument() {
                         parameters: [
                             ParameterInformation {
                                 label: Span {
-                                    start: 14,
-                                    end: 21,
+                                    start: 13,
+                                    end: 34,
                                 },
                                 documentation: None,
                             },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
-                                documentation: None,
-                            },
-                        ],
-                    },
-                ],
-                active_signature: 0,
-                active_parameter: 0,
-            }
-        "#]],
-    );
-}
-
-#[test]
-fn nested_call_second_argument() {
-    check(
-        indoc! {r#"
-        namespace Test {
-            operation Foo(x: Int, y: Double, z: String) : Unit {}
-            operation Bar(a: Int, b: Double) : Double { b }
-            operation Baz() : Unit {
-                Foo(1, Bar(2,↘))
-                let x = 3;
-            }
-        }
-    "#},
-        &expect![[r#"
-            SignatureHelp {
-                signatures: [
-                    SignatureInformation {
-                        label: "operation Bar(a : Int, b : Double) : Double",
-                        documentation: None,
-                        parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
@@ -372,11 +370,62 @@ fn nested_call_second_argument() {
 }
 
 #[test]
+fn nested_call_second_argument() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Double, z : String) : Unit {}
+            operation Bar(a : Int, b : Double) : Double { b }
+            operation Baz() : Unit {
+                Foo(1, Bar(2,↘))
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Bar(a : Int, b : Double) : Double",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 33,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn tuple_argument() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(x: Int, y: (Int, Double), z: String) : Unit {}
+            operation Foo(x : Int, y : (Int, Double), z : String) : Unit {}
             operation Bar() : Unit {
                 Foo(1, ↘)
                 let x = 3;
@@ -390,6 +439,13 @@ fn tuple_argument() {
                         label: "operation Foo(x : Int, y : (Int, Double), z : String) : Unit",
                         documentation: None,
                         parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 53,
+                                },
+                                documentation: None,
+                            },
                             ParameterInformation {
                                 label: Span {
                                     start: 14,
@@ -415,7 +471,178 @@ fn tuple_argument() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 1,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn tuple_argument_first_item() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : (Int, Double), z : String) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (↘))
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, y : (Int, Double), z : String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 53,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 40,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 42,
+                                    end: 52,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn tuple_argument_last_item() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : (Int, Double), z : String) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2,↘))
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, y : (Int, Double), z : String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 53,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 40,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 42,
+                                    end: 52,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn tuple_argument_after_tuple() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : (Int, Double), z : String) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2, 3.0),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, y : (Int, Double), z : String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 53,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 40,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 42,
+                                    end: 52,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 3,
             }
         "#]],
     );
@@ -426,7 +653,7 @@ fn arguments_in_nested_tuple() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit {}
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
             operation Bar() : Unit {
                 Foo(1, ↘)
                 let x = 3;
@@ -442,6 +669,13 @@ fn arguments_in_nested_tuple() {
                         parameters: [
                             ParameterInformation {
                                 label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 14,
                                     end: 21,
                                 },
@@ -456,6 +690,20 @@ fn arguments_in_nested_tuple() {
                             },
                             ParameterInformation {
                                 label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 49,
                                     end: 57,
                                 },
@@ -465,7 +713,7 @@ fn arguments_in_nested_tuple() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 1,
+                active_parameter: 2,
             }
         "#]],
     );
@@ -476,7 +724,7 @@ fn first_inner_argument_in_nested_tuple() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit {}
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
             operation Bar() : Unit {
                 Foo(1, (↘))
                 let x = 3;
@@ -492,6 +740,13 @@ fn first_inner_argument_in_nested_tuple() {
                         parameters: [
                             ParameterInformation {
                                 label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 14,
                                     end: 21,
                                 },
@@ -506,6 +761,20 @@ fn first_inner_argument_in_nested_tuple() {
                             },
                             ParameterInformation {
                                 label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 49,
                                     end: 57,
                                 },
@@ -515,7 +784,7 @@ fn first_inner_argument_in_nested_tuple() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 1,
+                active_parameter: 3,
             }
         "#]],
     );
@@ -526,7 +795,7 @@ fn second_inner_argument_in_nested_tuple() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(w: Int, (x: Double, y: String), z: Bool) : Unit {}
+            operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit {}
             operation Bar() : Unit {
                 Foo(1, (2.3,↘))
                 let x = 3;
@@ -542,6 +811,13 @@ fn second_inner_argument_in_nested_tuple() {
                         parameters: [
                             ParameterInformation {
                                 label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 14,
                                     end: 21,
                                 },
@@ -556,6 +832,20 @@ fn second_inner_argument_in_nested_tuple() {
                             },
                             ParameterInformation {
                                 label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 49,
                                     end: 57,
                                 },
@@ -565,7 +855,7 @@ fn second_inner_argument_in_nested_tuple() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 1,
+                active_parameter: 4,
             }
         "#]],
     );
@@ -592,6 +882,13 @@ fn argument_after_nested_tuple() {
                         parameters: [
                             ParameterInformation {
                                 label: Span {
+                                    start: 13,
+                                    end: 58,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 14,
                                     end: 21,
                                 },
@@ -606,6 +903,20 @@ fn argument_after_nested_tuple() {
                             },
                             ParameterInformation {
                                 label: Span {
+                                    start: 24,
+                                    end: 34,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 36,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
                                     start: 49,
                                     end: 57,
                                 },
@@ -615,79 +926,7 @@ fn argument_after_nested_tuple() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 2,
-            }
-        "#]],
-    );
-}
-
-#[test]
-fn foo() {
-    check(
-        indoc! {r#"
-        namespace Test {
-            operation Foo(w : Int, (x : Double, y : String ), z : Bool) : Unit {}
-            operation Bar() : Unit {
-                //Foo(   123 ,   (     2.3   ,  "Four"     )   ,    )
-                Foo(   123 ,   (     2.3↘   )       )
-                let x = 3;
-            }
-        }
-    "#},
-        &expect![[r#"
-            SignatureHelp {
-                signatures: [
-                    SignatureInformation {
-                        label: "operation Foo(w : Int, (x : Double, y : String), z : Bool) : Unit",
-                        documentation: None,
-                        parameters: [
-                            ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 59,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 15,
-                                    end: 22,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 48,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 25,
-                                    end: 35,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 37,
-                                    end: 47,
-                                },
-                                documentation: None,
-                            },
-                            ParameterInformation {
-                                label: Span {
-                                    start: 50,
-                                    end: 58,
-                                },
-                                documentation: None,
-                            },
-                        ],
-                    },
-                ],
-                active_signature: 0,
-                active_parameter: 3,
+                active_parameter: 5,
             }
         "#]],
     );
