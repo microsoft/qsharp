@@ -100,7 +100,6 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(): Promise<void> {
-    const start = performance.now();
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
 
@@ -148,12 +147,6 @@ export class QscDebugSession extends LoggingDebugSession {
       log.warn(`compilation failed. ${failureMessage}`);
       this.failureMessage = failureMessage;
     }
-    const end = performance.now();
-    sendTelemetryEvent(
-      EventType.DebugSessionStart,
-      {},
-      { timeToStartMs: end - start }
-    );
   }
 
   /**

@@ -190,6 +190,7 @@ class InlineDebugAdapterFactory
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    const start = performance.now();
     const worker = debugServiceWorkerFactory();
     const qscSession = new QscDebugSession(
       workspaceFileAccessor,
@@ -197,6 +198,13 @@ class InlineDebugAdapterFactory
       session.configuration
     );
     return qscSession.init().then(() => {
+      const end = performance.now();
+
+      sendTelemetryEvent(
+        EventType.DebugSessionStart,
+        {},
+        { timeToStartMs: end - start }
+      );
       return new vscode.DebugAdapterInlineImplementation(qscSession);
     });
   }
