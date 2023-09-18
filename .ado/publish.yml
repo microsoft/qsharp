@@ -291,7 +291,7 @@ jobs:
      ConnectedServiceName: 'ESRP_Release'
      Intent: 'PackageDistribution'
      ContentType: 'PyPi'
-     PackageLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+     FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
      Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
      Approvers: 'billti@microsoft.com'
      # Auto-inserted Debugging defaults:
@@ -322,7 +322,7 @@ jobs:
      ConnectedServiceName: 'ESRP_Release'
      Intent: 'PackageDistribution'
      ContentType: 'NPM'
-     PackageLocation: '$(System.DefaultWorkingDirectory)/target/npm'
+     FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm'
      Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
      Approvers: 'billti@microsoft.com'
      # Auto-inserted Debugging defaults:
