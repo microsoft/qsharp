@@ -15,7 +15,7 @@ use qsc::{
 };
 
 use crate::{
-    display::CodeDisplay,
+    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
     qsc_utils::{find_item, map_offset, span_contains, Compilation},
 };
@@ -71,19 +71,22 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                                         // Check that the callee has parameters to give help for
                                         if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty())
                                         {
+                                            let documentation = parse_doc_for_summary(&item.doc);
+                                            let documentation = (!documentation.is_empty())
+                                                .then_some(documentation);
+
                                             let sig_info = SignatureInformation {
                                                 label: self
                                                     .display
                                                     .hir_callable_decl(callee)
                                                     .to_string(),
-                                                documentation: None,
-                                                parameters: self.get_params(callee),
+                                                documentation,
+                                                parameters: self.get_params(callee, &item.doc),
                                             };
 
                                             self.signature_help = Some(SignatureHelp {
                                                 signatures: vec![sig_info],
                                                 active_signature: 0,
-                                                //active_parameter: process_args(args, self.offset),
                                                 active_parameter: process_args(
                                                     args,
                                                     self.offset,
@@ -111,26 +114,28 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
 }
 
 impl SignatureHelpFinder<'_> {
-    /// Takes a callable declaration node an generates the Parameter Information objects for it.
+    /// Takes a callable declaration node and the callable's doc string and
+    /// generates the Parameter Information objects for the callable.
     /// Example:
     /// ```qsharp
     /// operation Foo(bar: Int, baz: Double) : Unit {}
     ///               └──┬───┘  └──┬──────┘
     ///               param 1    param 2
     /// ```
-    fn get_params(&self, decl: &hir::CallableDecl) -> Vec<ParameterInformation> {
+    fn get_params(&self, decl: &hir::CallableDecl, doc: &str) -> Vec<ParameterInformation> {
         let mut offset = self.display.get_param_offset(decl);
 
-        self.make_param_with_offset(&mut offset, &decl.input)
+        self.make_param_with_offset(&mut offset, &decl.input, doc)
     }
 
     fn make_param_with_offset(
         &self,
         offset: &mut u32,
         pat: &hir::Pat,
+        doc: &str,
     ) -> Vec<ParameterInformation> {
         match &pat.kind {
-            hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+            hir::PatKind::Discard => {
                 let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
                 let start = *offset;
                 *offset += len;
@@ -140,6 +145,20 @@ impl SignatureHelpFinder<'_> {
                         end: *offset,
                     },
                     documentation: None,
+                }]
+            }
+            hir::PatKind::Bind(name) => {
+                let documentation = parse_doc_for_param(doc, &name.name);
+                let documentation = (!documentation.is_empty()).then_some(documentation);
+                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+                let start = *offset;
+                *offset += len;
+                vec![ParameterInformation {
+                    label: Span {
+                        start,
+                        end: *offset,
+                    },
+                    documentation,
                 }]
             }
             hir::PatKind::Tuple(items) => {
@@ -159,7 +178,7 @@ impl SignatureHelpFinder<'_> {
                     } else {
                         *offset += 2; // 2 for the comma and space
                     }
-                    rtrn.extend(self.make_param_with_offset(offset, item));
+                    rtrn.extend(self.make_param_with_offset(offset, item, doc));
                 }
                 *offset += 1; // for the close parenthesis
                 rtrn

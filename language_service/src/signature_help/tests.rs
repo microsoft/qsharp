@@ -2046,3 +2046,124 @@ fn multi_nested_tuple() {
         "#]],
     );
 }
+
+#[test]
+fn documentation_test() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// # Summary
+            /// This is the operation `Foo`.
+            /// # Input
+            /// ## a
+            /// This is the parameter `a`.
+            /// ## b
+            /// This is the parameter `b`.
+            /// ## c
+            /// This is the parameter `c`.
+            /// ## d
+            /// This is the parameter `d`.
+            /// ## e
+            /// This is the parameter `e`.
+            /// ## f
+            /// This is the parameter `f`.
+            operation Foo(a : Int, (b : Int, (c : Int, d : Int), e : Int), f : Int) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2, (3, 4), 5),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(a : Int, (b : Int, (c : Int, d : Int), e : Int), f : Int) : Unit",
+                        documentation: Some(
+                            "This is the operation `Foo`.",
+                        ),
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 71,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: Some(
+                                    "This is the parameter `a`.",
+                                ),
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 61,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 31,
+                                },
+                                documentation: Some(
+                                    "This is the parameter `b`.",
+                                ),
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 33,
+                                    end: 51,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 34,
+                                    end: 41,
+                                },
+                                documentation: Some(
+                                    "This is the parameter `c`.",
+                                ),
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 43,
+                                    end: 50,
+                                },
+                                documentation: Some(
+                                    "This is the parameter `d`.",
+                                ),
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 53,
+                                    end: 60,
+                                },
+                                documentation: Some(
+                                    "This is the parameter `e`.",
+                                ),
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 63,
+                                    end: 70,
+                                },
+                                documentation: Some(
+                                    "This is the parameter `f`.",
+                                ),
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 8,
+            }
+        "#]],
+    );
+}
