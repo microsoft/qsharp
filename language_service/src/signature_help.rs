@@ -214,10 +214,10 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
             if args.span.lo < cursor && cursor < args.span.hi {
                 let items = zip(&arg_items, param_items).collect::<Vec<_>>();
 
-                // is the cursor after the last item of a *finished* parameter tuple, but before the closing `)`?
+                // is the cursor after the last item of a *finished* parameter tuple?
                 let is_inside_coda = param_items.len() <= arg_items.len()
                     && match items.last() {
-                        Some(last) => last.0.span.hi < cursor && cursor < args.span.hi,
+                        Some(last) => last.0.span.hi < cursor,
                         None => true,
                     };
 
