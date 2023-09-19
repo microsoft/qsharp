@@ -45,5 +45,6 @@ namespace MyQuantumApp {
     }
 
     /// The main function cannot be Adj or Ctl. 
+    @EntryPoint()
     operation Main() : Unit {}
 }
