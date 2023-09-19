@@ -4,7 +4,7 @@ namespace Kata.Verification {
     // Distinguish specific orthogonal states
     // |ψ₊⟩ =   0.6 * |0⟩ + 0.8 * |1⟩,
     // |ψ₋⟩ =  -0.8 * |0⟩ + 0.6 * |1⟩.
-    operation StatePrep_IsQubitPsiPlus(q: Qubit, state: Int): Unit is Adj {
+    operation StatePrep_IsQubitPsiPlus(q : Qubit, state : Int) : Unit is Adj {
         if state == 0 {
             // convert |0⟩ to |ψ₋⟩
             X(q);
@@ -15,10 +15,10 @@ namespace Kata.Verification {
         }
     }
 
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         let isCorrect = DistinguishTwoStates(
             StatePrep_IsQubitPsiPlus,
-            Kata.IsQubitPsiPlus, 
+            Kata.IsQubitPsiPlus,
             ["|ψ₋⟩", "|ψ₊⟩"],
             false);
         if isCorrect {

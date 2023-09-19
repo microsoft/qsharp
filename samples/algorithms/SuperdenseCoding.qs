@@ -13,7 +13,7 @@ namespace Sample {
     open Microsoft.Quantum.Random;
 
     @EntryPoint()
-    operation Main(): (Bool, Bool) {
+    operation Main() : (Bool, Bool) {
         use (aliceQubit, bobQubit) = (Qubit(), Qubit());
 
         // The protocol starts with the preparation of an entangled state, which

@@ -2,7 +2,7 @@ namespace Kata {
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
-    operation MultiQubitDumpMachineDemo(): Unit {
+    operation MultiQubitDumpMachineDemo() : Unit {
         // This line allocates two qubits in state |00⟩.
         use qs = Qubit[2];
         Message("State |00⟩:");
