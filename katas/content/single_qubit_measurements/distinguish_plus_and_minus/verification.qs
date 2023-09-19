@@ -13,7 +13,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         let isCorrect = DistinguishTwoStates(
             StatePrep_IsQubitMinus,
             Kata.IsQubitMinus,

@@ -8,13 +8,13 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
         // UDTs are defined with the `newtype` keyword.
-        newtype Point3d = (X: Double, Y: Double, Z: Double);
+        newtype Point3d = (X : Double, Y : Double, Z : Double);
 
         // The items within a UDT can be either named or unnamed.
-        newtype DoubleInt = (Double, ItemName: Int);
+        newtype DoubleInt = (Double, ItemName : Int);
 
         // UDTs can also be nested.
-        newtype Nested = (Double, (ItemName: Int, String));
+        newtype Nested = (Double, (ItemName : Int, String));
 
         let point = Point3d(1.0, 2.0, 3.0);
 
@@ -22,7 +22,7 @@ namespace MyQuantumApp {
         // or by deconstruction.
         // The below line accesses the field `x` on `point` by
         // name, using the item access operator `::`:
-        let x: Double = point::X;
+        let x : Double = point::X;
 
         // The below line accesses the field `x` via deconstruction:
         let (x, _, _) = point!;

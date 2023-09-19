@@ -8,6 +8,9 @@ import { targetSupportQir } from "./providerProperties";
 
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
+const pendingStatuses = ["Waiting", "Executing", "Finishing"];
+const noQirMsq = `Note: As this target does not currently support QIR, this VS Code extension cannot submit jobs to it. See https://aka.ms/qdk.qir for more info`;
+
 // Convert a date such as "2023-07-24T17:25:09.1309979Z" into local time
 function localDate(date: string) {
   return new Date(date).toLocaleString();
@@ -16,7 +19,7 @@ function localDate(date: string) {
 export class WorkspaceTreeProvider
   implements vscode.TreeDataProvider<WorkspaceTreeItem>
 {
-  treeState: Map<string, WorkspaceConnection> = new Map();
+  private treeState: Map<string, WorkspaceConnection> = new Map();
 
   private didChangeTreeDataEmitter = new vscode.EventEmitter<
     WorkspaceTreeItem | undefined
@@ -30,21 +33,41 @@ export class WorkspaceTreeProvider
     this.didChangeTreeDataEmitter.fire(undefined);
   }
 
-  async refresh() {
-    log.debug("Refreshing workspace tree");
+  removeWorkspace(workspaceId: string) {
+    this.treeState.delete(workspaceId);
+    this.didChangeTreeDataEmitter.fire(undefined);
+  }
 
-    const workspaces = [...this.treeState.values()];
-    if (workspaces.length === 0) {
-      // May have removed the last one, so refresh the tree and return
-      this.didChangeTreeDataEmitter.fire(undefined);
-      return;
-    }
+  async refreshWorkspace(workspace: WorkspaceConnection) {
+    log.debug("In refreshWorkspace for workspace: ", workspace.id);
+    await queryWorkspace(workspace);
+    this.updateWorkspace(workspace);
+  }
 
-    for (const workspace of workspaces) {
-      await queryWorkspace(workspace).then(() =>
-        this.updateWorkspace(workspace)
-      );
-    }
+  getWorkspaceIds() {
+    return [...this.treeState.keys()];
+  }
+
+  getWorkspace(workspaceId: string) {
+    return this.treeState.get(workspaceId);
+  }
+
+  hasWorkspace(workspaceId: string) {
+    return this.treeState.has(workspaceId);
+  }
+
+  workspaceHasJob(workspaceId: string, jobId: string): boolean {
+    const workspace = this.getWorkspace(workspaceId);
+    if (!workspace) return false;
+
+    return workspace.jobs.some((job) => job.id === jobId);
+  }
+
+  hasJobsPending(workspaceId: string): boolean {
+    const workspace = this.getWorkspace(workspaceId);
+    if (!workspace) return false;
+
+    return workspace.jobs.some((job) => pendingStatuses.includes(job.status));
   }
 
   getTreeItem(
@@ -154,8 +177,9 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
       }
       case "target": {
         const target = itemData as Target;
+        const supportsQir = targetSupportQir(target.id);
 
-        if (targetSupportQir(target.id)) {
+        if (supportsQir) {
           this.contextValue = "qir-target";
         }
 
@@ -172,7 +196,8 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
               target.averageQueueTime
                 ? `__Queue time__: ${target.averageQueueTime}mins<br>`
                 : ""
-            }`
+            }
+            ${supportsQir ? "" : "\n" + noQirMsq}`
           );
           hover.supportHtml = true;
           this.tooltip = hover;
@@ -217,9 +242,6 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
             job.endExecutionTime
               ? `__Completed__: ${localDate(job.endExecutionTime)}<br>`
               : ""
-          }
-          ${
-            job.costEstimate ? `__Cost estimate__: ${job.costEstimate}<br>` : ""
           }
         `
         );

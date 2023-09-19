@@ -45,7 +45,7 @@ namespace Kata {
         Message($"Simulated measurement probabilities are {simulated_probabilities}");
     }
 
-    operation PrepareEx1State(q: Qubit[]): Unit {
+    operation PrepareEx1State(q : Qubit[]) : Unit {
         Ry(-ArcCos(1.0/9.0), q[0]);
         within {
             S(q[1]);

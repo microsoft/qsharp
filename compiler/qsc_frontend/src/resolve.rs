@@ -216,6 +216,10 @@ impl Resolver {
         (self.names, self.errors)
     }
 
+    pub(super) fn extend_dropped_names(&mut self, dropped_names: Vec<TrackedName>) {
+        self.dropped_names.extend(dropped_names);
+    }
+
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
