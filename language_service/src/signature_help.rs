@@ -172,22 +172,25 @@ fn usize_to_u32(x: usize) -> u32 {
     u32::try_from(x).expect("failed to cast usize to u32 while generating signature help")
 }
 
-fn count_params(params: &hir::Pat) -> i32 {
-    match &params.kind {
-        hir::PatKind::Bind(_) | hir::PatKind::Discard => 1,
-        hir::PatKind::Tuple(items) => items.iter().map(count_params).sum(),
-    }
-}
-
 fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
-    fn is_tuple<'a, 'b>(
+    fn count_params(params: &hir::Pat) -> i32 {
+        match &params.kind {
+            hir::PatKind::Bind(_) | hir::PatKind::Discard => 1,
+            hir::PatKind::Tuple(items) => items.iter().map(count_params).sum::<i32>() + 1,
+        }
+    }
+
+    fn try_as_tuple<'a, 'b>(
         args: &'a ast::Expr,
         params: &'b hir::Pat,
     ) -> Option<(Vec<&'a ast::Expr>, &'b Vec<hir::Pat>)> {
         match (&*args.kind, &params.kind) {
             (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) => {
-                let temp: Vec<&ast::Expr> = arg_items.iter().map(|i| &**i).collect();
-                Some((temp, param_items))
+                let unboxed = arg_items
+                    .iter()
+                    .map(std::convert::AsRef::as_ref)
+                    .collect::<Vec<_>>();
+                Some((unboxed, param_items))
             }
             (ast::ExprKind::Paren(arg), hir::PatKind::Tuple(param_items)) => {
                 Some((vec![arg], param_items))
@@ -197,57 +200,38 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
     }
 
     fn increment_until_cursor(args: &ast::Expr, cursor: u32, params: &hir::Pat, i: &mut i32) {
-        if let Some((arg_items, param_items)) = is_tuple(args, params) {
-            let items: Vec<(&&ast::Expr, &hir::Pat)> = zip(&arg_items, param_items).collect();
+        if cursor < args.span.lo {
+            return;
+        }
 
-            if let Some(last) = items.last() {
-                // Case Tuple, cursor after last elem but before end:
-                if last.0.span.hi < cursor && cursor < args.span.hi {
-                    // - if params > args: increment, recurse over elems
-                    if param_items.len() > arg_items.len() {
-                        *i += 1;
-                        for (arg, param) in items {
-                            increment_until_cursor(arg, cursor, param, i);
-                        }
-                    }
-                    // - else: do nothing
-                } else if args.span.lo < cursor && cursor < args.span.hi {
-                    // Case Tuple, cursor inside tuple: increment, recurse over elems
+        if args.span.hi < cursor {
+            *i += count_params(params);
+            return;
+        }
+
+        if let Some((arg_items, param_items)) = try_as_tuple(args, params) {
+            // check to see if cursor is inside of tuple, past the starting `(` but before the ending `)`
+            if args.span.lo < cursor && cursor < args.span.hi {
+                let items = zip(&arg_items, param_items).collect::<Vec<_>>();
+
+                // is the cursor after the last item of a *finished* parameter tuple, but before the closing `)`?
+                let is_inside_coda = param_items.len() <= arg_items.len()
+                    && match items.last() {
+                        Some(last) => last.0.span.hi < cursor && cursor < args.span.hi,
+                        None => true,
+                    };
+
+                if !is_inside_coda {
                     *i += 1;
                     for (arg, param) in items {
                         increment_until_cursor(arg, cursor, param, i);
                     }
-                } else if args.span.hi < cursor {
-                    // Case Tuple, cursor after tuple: increment past all sub params
-                    *i += 1;
-                    *i += count_params(params);
-                }
-                // Case Tuple, cursor before or *at* starting '(': do nothing
-            } else {
-                // Case Empty Tuple
-                if args.span.lo < cursor && cursor < args.span.hi && !param_items.is_empty() {
-                    // cursor inside tuple: increment
-                    *i += 1;
-                } else if args.span.hi < cursor {
-                    // cursor after tuple: increment past all sub params
-                    *i += 1;
-                    *i += count_params(params);
                 }
             }
-        } else {
-            // Case Non-Tuple, cursor after: increment
-            if args.span.hi < cursor {
-                *i += 1;
-                if matches!(params.kind, hir::PatKind::Tuple(_)) {
-                    // Case Non-Tuple mismatch: increment past all sub params
-                    *i += count_params(params);
-                }
-            }
-            // Case Non-Tuple, cursor before end (cursor inside): do nothing
         }
     }
 
     let mut i = 0;
     increment_until_cursor(args, location, params, &mut i);
-    i.try_into().expect("")
+    i.try_into().expect("got negative param index")
 }

@@ -1954,3 +1954,95 @@ fn nested_empty_tuple_after() {
         "#]],
     );
 }
+
+#[test]
+fn multi_nested_tuple() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(a : Int, (b : Int, (c : Int, d : Int), e : Int), f : Int) : Unit {}
+            operation Bar() : Unit {
+                Foo(1, (2, (3, 4), 5),↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(a : Int, (b : Int, (c : Int, d : Int), e : Int), f : Int) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 71,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 61,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 24,
+                                    end: 31,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 33,
+                                    end: 51,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 34,
+                                    end: 41,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 43,
+                                    end: 50,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 53,
+                                    end: 60,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 63,
+                                    end: 70,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 8,
+            }
+        "#]],
+    );
+}
