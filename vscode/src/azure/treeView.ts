@@ -9,6 +9,7 @@ import { targetSupportQir } from "./providerProperties";
 // See docs at https://code.visualstudio.com/api/extension-guides/tree-view
 
 const pendingStatuses = ["Waiting", "Executing", "Finishing"];
+const noQirMsq = `Note: As this target does not currently support QIR, this VS Code extension cannot submit jobs to it. See https://aka.ms/qdk.qir for more info`;
 
 // Convert a date such as "2023-07-24T17:25:09.1309979Z" into local time
 function localDate(date: string) {
@@ -176,8 +177,9 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
       }
       case "target": {
         const target = itemData as Target;
+        const supportsQir = targetSupportQir(target.id);
 
-        if (targetSupportQir(target.id)) {
+        if (supportsQir) {
           this.contextValue = "qir-target";
         }
 
@@ -194,7 +196,8 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
               target.averageQueueTime
                 ? `__Queue time__: ${target.averageQueueTime}mins<br>`
                 : ""
-            }`
+            }
+            ${supportsQir ? "" : "\n" + noQirMsq}`
           );
           hover.supportHtml = true;
           this.tooltip = hover;
