@@ -2047,6 +2047,7 @@ fn multi_nested_tuple() {
     );
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn documentation_test() {
     check(
