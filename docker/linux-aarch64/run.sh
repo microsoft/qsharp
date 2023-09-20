@@ -14,5 +14,5 @@ echo "TAG: ${TAG}"
 VOLUME_ROOT=$(realpath ${SCRIPT_DIR}/../..)
 echo "VOLUME_ROOT: ${VOLUME_ROOT}"
 
-echo "docker run --rm -it -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${TAG} bash /qhsarp/docker/linux-aarch64/entrypoint.sh"
-docker run --rm -it -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${TAG} bash /qsharp/docker/linux-aarch64/entrypoint.sh
+echo "docker run -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${TAG} bash /qhsarp/docker/linux-aarch64/entrypoint.sh"
+docker run -v ${VOLUME_ROOT}:/qsharp -e WHEEL_DIR='/qsharp/target/wheels' ${TAG} bash /qsharp/docker/linux-aarch64/entrypoint.sh

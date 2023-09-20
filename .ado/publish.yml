@@ -227,12 +227,12 @@ jobs:
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
   - script: |
-      echo "##vso[task.setvariable variable=CARGO_BUILD_TARGET]aarch64-pc-windows-msvc"
+      echo ##vso[task.setvariable variable=CARGO_BUILD_TARGET]aarch64-pc-windows-msvc
     displayName: Set cargo build target for Windows aarch64
     condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
   - script: |
-      python build.py --pip --no-check-prereqs --no-test --no-samples
+      python build.py --pip --no-check-prereqs --no-check --no-test --no-samples
     displayName: Cross Build Windows aarch64 Py Packages
     condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
