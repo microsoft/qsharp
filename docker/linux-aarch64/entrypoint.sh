@@ -5,8 +5,6 @@
 
 set -e
 
-alias python=python3
-
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "SCRIPT_DIR: ${SCRIPT_DIR}"
 
@@ -29,21 +27,19 @@ ls ${WHEEL_DIR}/*.whl | xargs auditwheel repair --wheel-dir ${WHEEL_DIR}/ --plat
 rm ${WHEEL_DIR}/*-linux_${WHEEL_ARCH}.whl
 ls ${WHEEL_DIR}
 
+echo "Setting up the virtual environment"
+python3 -m venv /tmp/.venv
+. /tmp/.venv/bin/activate
+
 echo "Installing the wheels"
 ls ${WHEEL_DIR}/*.whl | xargs pip install
 
 pushd ${PIP_DIR}
 
-python -m venv /tmp/.venv
-
-. /tmp/.venv/bin/activate
+pip install auditwheel patchelf
 
 pip install -r test_requirements.txt
 
-python -m pytest
+python3 -m pytest
 
 popd
-
-
-
-

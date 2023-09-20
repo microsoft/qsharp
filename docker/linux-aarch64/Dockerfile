@@ -12,7 +12,6 @@ RUN apt-get update && \
     apt-get clean
 
 # Update pip and install required packages
-RUN pip install -U pip && \
-    pip install auditwheel patchelf
+RUN pip install -U pip
 
 ENTRYPOINT ["sh", "-c", "$*", "--"]
