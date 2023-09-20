@@ -148,7 +148,7 @@ jobs:
       windows_aarch64:
         imageName: 'windows-latest'     # Win-specific Py + Platform-independent Py.
         arch: aarch64
-      additionalRustTargets: aarch64-pc-windows-msvc
+        additionalRustTargets: aarch64-pc-windows-msvc
   pool:
     vmImage: $(imageName)
   variables:
