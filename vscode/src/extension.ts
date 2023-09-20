@@ -32,6 +32,8 @@ export async function activate(context: vscode.ExtensionContext) {
   log.info("Q# extension activating.");
   initTelemetry(context);
 
+  checkForOldQdk();
+
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
       qsharpLibraryUriScheme,
@@ -236,5 +238,36 @@ export class QsTextDocumentContentProvider
     token: vscode.CancellationToken
   ): vscode.ProviderResult<string> {
     return getLibrarySourceContent(uri.path);
+  }
+}
+
+function checkForOldQdk() {
+  const oldQdkExtension = vscode.extensions.getExtension(
+    "quantum.quantum-devkit-vscode"
+  );
+
+  const prereleaseQdkExtension = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode-dev"
+  );
+
+  const releaseQdkExtension = vscode.extensions.getExtension(
+    "quantum.qsharp-lang-vscode"
+  );
+
+  const previousQdkWarningMessage =
+    'Extension "Microsoft Quantum Development Kit for Visual Studio" (`quantum.quantum-devkit-vscode`) found. We recommend uninstalling the prior QDK before using this release.';
+
+  const bothReleaseAndPrereleaseWarningMessage =
+    'Extension "Azure Quantum Development Kit (QDK)" has both release and pre-release versions installed. We recommend uninstalling one of these versions.';
+
+  // we don't await the warnings below so we don't block extension initialization
+  if (oldQdkExtension) {
+    log.warn(previousQdkWarningMessage);
+    vscode.window.showWarningMessage(previousQdkWarningMessage);
+  }
+
+  if (prereleaseQdkExtension && releaseQdkExtension) {
+    log.warn(bothReleaseAndPrereleaseWarningMessage);
+    vscode.window.showWarningMessage(bothReleaseAndPrereleaseWarningMessage);
   }
 }

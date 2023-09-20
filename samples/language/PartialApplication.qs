@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
     open Microsoft.Quantum.Arrays;
     @EntryPoint()
-    operation Main(): Unit {
+    operation Main() : Unit {
         // This takes our adding function and partially applies it,
         // filling the second argument with `1` and returning another
         // function that takes one argument and passes it in to `Add`.
@@ -32,11 +32,11 @@ namespace MyQuantumApp {
         let incremented = Mapped(Add(_, 1), intArray);
     }
 
-    function Add(x: Int, y: Int): Int {
+    function Add(x : Int, y : Int) : Int {
         return x + y;
     }
 
-    function AddMany(a: Int, b: Int, c: Int, d: Int): Int {
+    function AddMany(a : Int, b : Int, c : Int, d : Int) : Int {
         return a + b + c + d;
     }
 }

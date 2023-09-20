@@ -1,5 +1,5 @@
 namespace Kata {
-    operation IsQubitMinus(q : Qubit): Bool {
+    operation IsQubitMinus(q : Qubit) : Bool {
         return Measure([PauliX], [q]) == One;
     }
 
