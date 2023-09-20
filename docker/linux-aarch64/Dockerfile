@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 ARG BASE_IMAGE
-FROM --platform=arm64 ${BASE_IMAGE}
+FROM --platform=linux/arm64 ${BASE_IMAGE}
 
 # install python and pip
 RUN apt-get update && \
