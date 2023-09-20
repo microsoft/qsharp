@@ -20,6 +20,13 @@ echo "PIP_DIR: ${PIP_DIR}"
 WHEEL_DIR="${WHEEL_DIR:-${SCRIPT_DIR}/../../target/wheels}"
 echo "WHEEL_DIR: ${WHEEL_DIR}"
 
+echo "Setting up the virtual environment"
+python3 -m venv /tmp/.venv
+. /tmp/.venv/bin/activate
+
+echo "Installing auditwheel and patchelf"
+pip install auditwheel patchelf
+
 echo "Repairing the wheels"
 ls ${WHEEL_DIR}
 ls ${WHEEL_DIR}/*.whl | xargs auditwheel show
@@ -27,16 +34,10 @@ ls ${WHEEL_DIR}/*.whl | xargs auditwheel repair --wheel-dir ${WHEEL_DIR}/ --plat
 rm ${WHEEL_DIR}/*-linux_${WHEEL_ARCH}.whl
 ls ${WHEEL_DIR}
 
-echo "Setting up the virtual environment"
-python3 -m venv /tmp/.venv
-. /tmp/.venv/bin/activate
-
 echo "Installing the wheels"
 ls ${WHEEL_DIR}/*.whl | xargs pip install
 
 pushd ${PIP_DIR}
-
-pip install auditwheel patchelf
 
 pip install -r test_requirements.txt
 
