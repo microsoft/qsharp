@@ -32,6 +32,10 @@ ls ${WHEEL_DIR}/*.whl | xargs pip install
 
 pushd ${PIP_DIR}
 
+python -m venv /tmp/.venv
+
+. /tmp/.venv/bin/activate
+
 pip install -r test_requirements.txt
 
 python -m pytest
