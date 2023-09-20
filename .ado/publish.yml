@@ -137,7 +137,7 @@ jobs:
       linux_aarch64:
         imageName: 'ubuntu-20.04'
         arch: aarch64
-        target: aarch64-unknown-linux-gnu
+        additionalRustTargets: aarch64-unknown-linux-gnu
       mac:
         imageName: 'macOS-latest'       # MacOS-specific Py (Mac is usually quite limited).
         arch: x86_64
