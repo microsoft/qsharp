@@ -161,7 +161,7 @@ jobs:
       cratesIoFeedOverride: $(cratesIoFeedOverride)
       toolchainFeed: $(toolchainFeed)
     displayName: Install Rust toolchain
-    condition: ne(additionalRustTargets, '')
+    condition: ne(variables['additionalRustTargets'], '')
 
   # otherwise just install the default toolchain
   - task: RustInstaller@1
@@ -170,7 +170,7 @@ jobs:
       cratesIoFeedOverride: $(cratesIoFeedOverride)
       toolchainFeed: $(toolchainFeed)
     displayName: Install Rust toolchain
-    condition: eq(additionalRustTargets, '')
+    condition: eq(variables['additionalRustTargets'], '')
 
   - task: UsePythonVersion@0
     inputs:
