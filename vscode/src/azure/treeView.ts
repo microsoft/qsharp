@@ -135,6 +135,26 @@ export type Job = {
   costEstimate?: any;
 };
 
+function shouldShowQueueTime(target: Target) {
+  return (
+    target.currentAvailability !== "Unavailable" &&
+    typeof target.averageQueueTime === "number"
+  ); // Could be 0 seconds
+}
+
+function getQueueTimeText(seconds: number): string {
+  // If the queue time is less than 2 minute, show it in seconds
+  if (seconds < 120) {
+    return `${seconds} seconds`;
+  } else if (seconds < 60 * 60 * 4) {
+    // Otherwise, show it in minutes if less than 4 hours
+    return `${Math.round(seconds / 60)} minutes`;
+  } else {
+    // Otherwise, show it in hours
+    return `${Math.round(seconds / (60 * 60))} hours`;
+  }
+}
+
 // A workspace has an array in properties.providers, each of which has a 'providerId' property,
 // e.g. 'ionq', and a 'provisioningState' property, e.g. 'Succeeded'. Filter the list to only
 // include those that have succeeded. Then, when querying the providerStatus, only add the targets
@@ -193,8 +213,10 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
                 : ""
             }
             ${
-              target.averageQueueTime
-                ? `__Queue time__: ${target.averageQueueTime}mins<br>`
+              shouldShowQueueTime(target)
+                ? `__Queue time__: ${getQueueTimeText(
+                    target.averageQueueTime
+                  )}<br>`
                 : ""
             }
             ${supportsQir ? "" : "\n" + noQirMsq}`
