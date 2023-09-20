@@ -15,6 +15,4 @@ RUN apt-get update && \
 RUN pip install -U pip && \
     pip install auditwheel patchelf
 
-RUN alias python=python3
-
 ENTRYPOINT ["sh", "-c", "$*", "--"]
