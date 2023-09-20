@@ -176,6 +176,11 @@ jobs:
     displayName: Install Rust toolchain
     condition: eq(variables['additionalRustTargets'], '')
 
+  - script: |
+      rustc --version
+      rustc --print target-list
+    displayName: View rust target info
+
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.11'
@@ -186,7 +191,7 @@ jobs:
 
   - script: |
       chmod +x ./docker/linux-aarch64/install_prereqs.sh
-      ./docker/linux-aarch64/install_prereqs.sh
+      sudo ./docker/linux-aarch64/install_prereqs.sh
     displayName: Install Linux aarch64 cross prereqs
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
