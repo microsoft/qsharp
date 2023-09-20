@@ -63,40 +63,7 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);
                         if let ast::ExprKind::Path(path) = &*callee.kind {
-                            if let Some(resolve::Res::Item(item_id)) =
-                                self.compilation.unit.ast.names.get(path.id)
-                            {
-                                if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                    if let hir::ItemKind::Callable(callee) = &item.kind {
-                                        // Check that the callee has parameters to give help for
-                                        if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty())
-                                        {
-                                            let documentation = parse_doc_for_summary(&item.doc);
-                                            let documentation = (!documentation.is_empty())
-                                                .then_some(documentation);
-
-                                            let sig_info = SignatureInformation {
-                                                label: self
-                                                    .display
-                                                    .hir_callable_decl(callee)
-                                                    .to_string(),
-                                                documentation,
-                                                parameters: self.get_params(callee, &item.doc),
-                                            };
-
-                                            self.signature_help = Some(SignatureHelp {
-                                                signatures: vec![sig_info],
-                                                active_signature: 0,
-                                                active_parameter: process_args(
-                                                    args,
-                                                    self.offset,
-                                                    &callee.input,
-                                                ),
-                                            });
-                                        }
-                                    }
-                                }
-                            }
+                            self.process_direct_callee(path, args);
                         }
                     }
                 }
@@ -106,14 +73,34 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
     }
 }
 
-fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
-    match &*expr.kind {
-        ast::ExprKind::Paren(inner) => unwrap_parens(inner),
-        _ => expr,
-    }
-}
-
 impl SignatureHelpFinder<'_> {
+    fn process_direct_callee(&mut self, callee: &ast::Path, args: &ast::Expr) {
+        if let Some(resolve::Res::Item(item_id)) = self.compilation.unit.ast.names.get(callee.id) {
+            if let (Some(item), _) = find_item(self.compilation, item_id) {
+                if let hir::ItemKind::Callable(callee) = &item.kind {
+                    // Check that the callee has parameters to give help for
+                    if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty())
+                    {
+                        let documentation = parse_doc_for_summary(&item.doc);
+                        let documentation = (!documentation.is_empty()).then_some(documentation);
+
+                        let sig_info = SignatureInformation {
+                            label: self.display.hir_callable_decl(callee).to_string(),
+                            documentation,
+                            parameters: self.get_params(callee, &item.doc),
+                        };
+
+                        self.signature_help = Some(SignatureHelp {
+                            signatures: vec![sig_info],
+                            active_signature: 0,
+                            active_parameter: process_args(args, self.offset, &callee.input),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     /// Takes a callable declaration node and the callable's doc string and
     /// generates the Parameter Information objects for the callable.
     /// Example:
@@ -184,6 +171,13 @@ impl SignatureHelpFinder<'_> {
                 rtrn
             }
         }
+    }
+}
+
+fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
+    match &*expr.kind {
+        ast::ExprKind::Paren(inner) => unwrap_parens(inner),
+        _ => expr,
     }
 }
 
