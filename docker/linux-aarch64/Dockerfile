@@ -7,7 +7,7 @@ FROM --platform=arm64 ${BASE_IMAGE}
 # install python and pip
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install \
-    python3-minimal python3-pip \
+    python3-minimal python3-pip python3-venv \
     --no-install-recommends -y && \
     apt-get clean
 
