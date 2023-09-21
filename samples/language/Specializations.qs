@@ -43,4 +43,39 @@ namespace MyQuantumApp {
             CNOT(q1, q2);            
         } 
     }
+
+    /// The main function cannot be Adj or Ctl. 
+    @EntryPoint()
+    operation Main() : Unit {
+
+        // We invoke specializations using functors at the call site. 
+        // In order to call these operations and their specializations, we need
+        // to allocate some qubits.
+        use (q1, q2) = (Qubit(), Qubit());
+
+        // We can call `SWAP` in the normal way, without any functors or
+        // specializations.
+        SWAP(q1, q2);
+
+        // We use the functor `Adjoint` on the operation `SWAP` to invoke the
+        // adjoint specialization of `SWAP`.
+        Adjoint SWAP(q1, q2);
+        
+        // Now,we will use the `Controlled` functor. To use this functor, we
+        // need some control qubits. 
+
+        // The `Controlled` functor invokes the control specialization of the
+        // operation. Note that the control specialization has a different 
+        // signature than the regular operation: first, the control qubits;
+        // second, the parameters for the regular operation.
+        // For a singly controlled invocation, only pass one control qubit
+        // in the first array.
+        use ctl = Qubit();
+        Controlled SWAP([ctl], (q1, q2));
+
+        // For a multi controlled invocation, pass an array of multiple qubits
+        // in as the first argument.
+        use ctls = Qubit[3];
+        Controlled SWAP(ctls, (q1, q2));
+    }
 }
