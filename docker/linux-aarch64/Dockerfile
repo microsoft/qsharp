@@ -11,7 +11,9 @@ RUN apt-get update && \
     --no-install-recommends -y && \
     apt-get clean
 
-# Update pip and install required packages
-RUN pip install -U pip
+# We don't update pip here as we need to update it
+# inside the virtual environment. Otherwise, we get two versions
+# of pip installed, and the one outside the virtual environment
+# causes problems.
 
 ENTRYPOINT ["sh", "-c", "$*", "--"]

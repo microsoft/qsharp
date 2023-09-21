@@ -25,10 +25,8 @@ python3 -m venv /tmp/.venv
 . /tmp/.venv/bin/activate
 
 
-echo "Get pip compatible tags"
-pip --version
+echo "Update pip"
 pip install -U pip
-pip debug --verbose
 
 echo "Installing auditwheel and patchelf"
 pip install auditwheel patchelf
@@ -47,6 +45,10 @@ pushd ${PIP_DIR}
 
 pip install -r test_requirements.txt
 
+pushd tests
+
 python3 -m pytest
+
+popd
 
 popd
