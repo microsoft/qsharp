@@ -17,7 +17,7 @@ pub mod val;
 use crate::val::{FunctorApp, Value};
 use backend::Backend;
 use debug::{map_fir_package_to_hir, CallStack, Frame};
-use error::PackageSpan;
+pub use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
@@ -50,6 +50,13 @@ pub enum Error {
     #[error("division by zero")]
     #[diagnostic(code("Qsc.Eval.DivZero"))]
     DivZero(#[label("cannot divide by zero")] PackageSpan),
+
+    #[error("cannot record output for empty array")]
+    #[diagnostic(help(
+        "returning an empty array in the final result of a program is not supported"
+    ))]
+    #[diagnostic(code("Qsc.Eval.EmptyArrayOutput"))]
+    EmptyArrayOutput(PackageSpan),
 
     #[error("empty range")]
     #[diagnostic(code("Qsc.Eval.EmptyRange"))]
@@ -117,6 +124,7 @@ impl Error {
         match self {
             Error::ArrayTooLarge(span)
             | Error::DivZero(span)
+            | Error::EmptyArrayOutput(span)
             | Error::EmptyRange(span)
             | Error::IndexOutOfRange(_, span)
             | Error::InvalidIndex(_, span)

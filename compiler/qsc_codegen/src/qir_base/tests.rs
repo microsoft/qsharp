@@ -237,6 +237,64 @@ fn output_recording_array() {
 }
 
 #[test]
+fn output_recording_empty_array_fails() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation ResultArray(n : Int) : Result[] {
+                    use qs = Qubit[n];
+                    Microsoft.Quantum.Measurement.MResetEachZ(qs)
+                }
+            }
+        "},
+        Some(indoc! {"Test.ResultArray(0)"}),
+        &expect![[r#"
+        EmptyArrayOutput(
+            PackageSpan {
+                package: PackageId(
+                    2,
+                ),
+                span: Span {
+                    lo: 0,
+                    hi: 19,
+                },
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn output_recording_nested_empty_array_fails() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation ResultArrayTuple(n : Int) : (Result, Result[]) {
+                    open Microsoft.Quantum.Measurement;
+                    open Microsoft.Quantum.Arrays;
+                    use qs = Qubit[1];
+                    (MResetZ(Head(qs)), MResetEachZ(Rest(qs)))
+                }
+            }
+        "},
+        Some(indoc! {"Test.ResultArrayTuple(1)"}),
+        &expect![[r#"
+        EmptyArrayOutput(
+            PackageSpan {
+                package: PackageId(
+                    2,
+                ),
+                span: Span {
+                    lo: 0,
+                    hi: 24,
+                },
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
 fn output_recording_tuple() {
     check(
         "",

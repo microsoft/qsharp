@@ -9,11 +9,11 @@ use num_complex::Complex;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
-    debug::{map_hir_package_to_fir, Frame},
+    debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_expr, eval_stmt,
     output::GenericReceiver,
     val::{GlobalId, Value},
-    Env, Error, Global, NodeLookup, State,
+    Env, Error, Global, NodeLookup, PackageSpan, State,
 };
 use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
 use qsc_frontend::compile::PackageStore;
@@ -52,6 +52,14 @@ pub fn generate_qir(
 
     let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
+    let entry_span = PackageSpan {
+        package: map_fir_package_to_hir(package),
+        span: unit
+            .exprs
+            .get(entry_expr)
+            .expect("entry expr should be present in map")
+            .span,
+    };
     let result = eval_expr(
         &mut State::new(package),
         entry_expr,
@@ -64,8 +72,7 @@ pub fn generate_qir(
     );
     match result {
         Ok(val) => {
-            sim.write_output_recording(&val)
-                .expect("writing to string should succeed");
+            sim.write_output_recording(&val, entry_span)?;
             sim.instrs.push_str(POSTFIX);
             Ok(sim.instrs)
         }
@@ -88,10 +95,13 @@ pub fn generate_qir_for_stmt(
     sim.instrs.push_str(PREFIX);
     let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
+    let stmt_span = PackageSpan {
+        package: map_fir_package_to_hir(package),
+        span: globals.get_stmt(package, stmt).span,
+    };
     match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
         Ok(val) => {
-            sim.write_output_recording(&val)
-                .expect("writing to string should succeed");
+            sim.write_output_recording(&val, stmt_span)?;
             sim.instrs.push_str(POSTFIX);
             Ok(sim.instrs)
         }
@@ -169,21 +179,28 @@ impl BaseProfSim {
         id
     }
 
-    fn write_output_recording(&mut self, val: &Value) -> std::fmt::Result {
+    fn write_output_recording(
+        &mut self,
+        val: &Value,
+        entry_span: PackageSpan,
+    ) -> std::result::Result<(), (Error, Vec<Frame>)> {
         match val {
             Value::Array(arr) => {
-                self.write_array_recording(arr.len())?;
+                if arr.is_empty() {
+                    return Err((qsc_eval::Error::EmptyArrayOutput(entry_span), Vec::new()));
+                }
+                self.write_array_recording(arr.len());
                 for val in arr.iter() {
-                    self.write_output_recording(val)?;
+                    self.write_output_recording(val, entry_span)?;
                 }
             }
             Value::Result(r) => {
                 self.write_result_recording(r.unwrap_id());
             }
             Value::Tuple(tup) => {
-                self.write_tuple_recording(tup.len())?;
+                self.write_tuple_recording(tup.len());
                 for val in tup.iter() {
-                    self.write_output_recording(val)?;
+                    self.write_output_recording(val, entry_span)?;
                 }
             }
             _ => panic!("unexpected value type: {val:?}"),
@@ -200,18 +217,20 @@ impl BaseProfSim {
         .expect("writing to string should succeed");
     }
 
-    fn write_tuple_recording(&mut self, size: usize) -> std::fmt::Result {
+    fn write_tuple_recording(&mut self, size: usize) {
         writeln!(
             self.instrs,
             "  call void @__quantum__rt__tuple_record_output(i64 {size}, i8* null)"
         )
+        .expect("writing to string should succeed");
     }
 
-    fn write_array_recording(&mut self, size: usize) -> std::fmt::Result {
+    fn write_array_recording(&mut self, size: usize) {
         writeln!(
             self.instrs,
             "  call void @__quantum__rt__array_record_output(i64 {size}, i8* null)"
         )
+        .expect("writing to string should succeed");
     }
 }
 
