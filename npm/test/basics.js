@@ -71,33 +71,45 @@ namespace Test {
 });
 
 test("one syntax error", async () => {
-  const compiler = getCompiler();
-
-  const diags = await compiler.checkCode("namespace Foo []");
-  assert.equal(diags.length, 1);
-  assert.equal(diags[0].start_pos, 14);
-  assert.equal(diags[0].end_pos, 15);
+  const languageService = getLanguageService();
+  let gotDiagnostics = false;
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 1);
+    assert.equal(event.detail.diagnostics[0].start_pos, 14);
+    assert.equal(event.detail.diagnostics[0].end_pos, 15);
+  });
+  await languageService.updateDocument("test.qs", 1, "namespace Foo []");
+  assert(gotDiagnostics);
 });
 
 test("error with newlines", async () => {
-  const compiler = getCompiler();
-
-  const diags = await compiler.checkCode(
+  const languageService = getLanguageService();
+  let gotDiagnostics = false;
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, 2);
+    assert.equal(event.detail.diagnostics[0].start_pos, 32);
+    assert.equal(event.detail.diagnostics[0].end_pos, 33);
+    assert.equal(event.detail.diagnostics[1].start_pos, 32);
+    assert.equal(event.detail.diagnostics[1].end_pos, 33);
+    assert.equal(
+      event.detail.diagnostics[1].message,
+      "type error: insufficient type information to infer type\n\nhelp: provide a type annotation"
+    );
+    assert.equal(
+      event.detail.diagnostics[0].message,
+      "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations"
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
     "namespace input { operation Foo(a) : Unit {} }"
   );
-  assert.equal(diags.length, 2);
-  assert.equal(diags[0].start_pos, 32);
-  assert.equal(diags[0].end_pos, 33);
-  assert.equal(diags[1].start_pos, 32);
-  assert.equal(diags[1].end_pos, 33);
-  assert.equal(
-    diags[1].message,
-    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation"
-  );
-  assert.equal(
-    diags[0].message,
-    "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations"
-  );
+  assert(gotDiagnostics);
 });
 
 test("dump and message output", async () => {
@@ -435,15 +447,6 @@ test("cancel worker", () => {
       resolve(null);
     }, 4);
   });
-});
-
-test("check code", async () => {
-  const compiler = getCompiler();
-
-  const diags = await compiler.checkCode("namespace Foo []");
-  assert.equal(diags.length, 1);
-  assert.equal(diags[0].start_pos, 14);
-  assert.equal(diags[0].end_pos, 15);
 });
 
 test("language service diagnostics", async () => {
