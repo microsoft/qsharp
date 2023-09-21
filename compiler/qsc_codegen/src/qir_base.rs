@@ -60,7 +60,8 @@ pub fn generate_qir(
             .expect("entry expr should be present in map")
             .span,
     };
-    let result = eval_expr(
+
+    let val = eval_expr(
         &mut State::new(package),
         entry_expr,
         &Lookup {
@@ -69,15 +70,12 @@ pub fn generate_qir(
         &mut Env::with_empty_scope(),
         &mut sim,
         &mut out,
-    );
-    match result {
-        Ok(val) => {
-            sim.write_output_recording(&val, entry_span)?;
-            sim.instrs.push_str(POSTFIX);
-            Ok(sim.instrs)
-        }
-        Err((err, stack)) => Err((err, stack)),
-    }
+    )?;
+
+    sim.write_output_recording(&val, entry_span)?;
+    sim.instrs.push_str(POSTFIX);
+
+    Ok(sim.instrs)
 }
 
 /// # Errors
@@ -99,14 +97,10 @@ pub fn generate_qir_for_stmt(
         package: map_fir_package_to_hir(package),
         span: globals.get_stmt(package, stmt).span,
     };
-    match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
-        Ok(val) => {
-            sim.write_output_recording(&val, stmt_span)?;
-            sim.instrs.push_str(POSTFIX);
-            Ok(sim.instrs)
-        }
-        Err((err, stack)) => Err((err, stack)),
-    }
+    let val = eval_stmt(stmt, globals, env, &mut sim, package, &mut out)?;
+    sim.write_output_recording(&val, stmt_span)?;
+    sim.instrs.push_str(POSTFIX);
+    Ok(sim.instrs)
 }
 
 struct Lookup<'a> {
