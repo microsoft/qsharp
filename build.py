@@ -33,7 +33,7 @@ parser.add_argument(
     "--samples",
     action=argparse.BooleanOptionalAction,
     default=True,
-    help="Build the samples (default is --samples)",
+    help="Compile the Q# samples (default is --samples)",
 )
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
