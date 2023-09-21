@@ -24,7 +24,10 @@ echo "Setting up the virtual environment"
 python3 -m venv /tmp/.venv
 . /tmp/.venv/bin/activate
 
+
 echo "Get pip compatible tags"
+pip --version
+pip install -U pip
 pip debug --verbose
 
 echo "Installing auditwheel and patchelf"
