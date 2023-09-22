@@ -2168,3 +2168,132 @@ fn documentation_test() {
         "#]],
     );
 }
+
+#[test]
+fn single_parameter_end() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(a : Int) : Unit {}
+            operation Bar() : Unit {
+                Foo(1↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(a : Int) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 22,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn single_parameter_after() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(a : Int) : Unit {}
+            operation Bar() : Unit {
+                Foo(1,↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(a : Int) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 22,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 0,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn single_parameter_before() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(a : Int) : Unit {}
+            operation Bar() : Unit {
+                Foo(↘ 1)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(a : Int) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 22,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
