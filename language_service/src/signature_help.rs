@@ -112,7 +112,47 @@ impl SignatureHelpFinder<'_> {
     fn get_params(&self, decl: &hir::CallableDecl, doc: &str) -> Vec<ParameterInformation> {
         let mut offset = self.display.get_param_offset(decl);
 
-        self.make_param_with_offset(&mut offset, &decl.input, doc)
+        match &decl.input.kind {
+            hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+                self.make_wrapped_params(offset, &decl.input, doc)
+            }
+            hir::PatKind::Tuple(_) => self.make_param_with_offset(&mut offset, &decl.input, doc),
+        }
+    }
+
+    /// Callables with a single parameter in their parameter list are special-cased
+    /// because we need to re-wrap the parameter into a tuple.
+    fn make_wrapped_params(
+        &self,
+        offset: u32,
+        pat: &hir::Pat,
+        doc: &str,
+    ) -> Vec<ParameterInformation> {
+        let documentation = if let hir::PatKind::Bind(name) = &pat.kind {
+            let documentation = parse_doc_for_param(doc, &name.name);
+            (!documentation.is_empty()).then_some(documentation)
+        } else {
+            None
+        };
+
+        let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+        let param = ParameterInformation {
+            label: Span {
+                start: offset + 1,
+                end: offset + len + 1,
+            },
+            documentation,
+        };
+
+        let wrapper = ParameterInformation {
+            label: Span {
+                start: offset,
+                end: offset + len + 2,
+            },
+            documentation: None,
+        };
+
+        vec![wrapper, param]
     }
 
     fn make_param_with_offset(
@@ -122,21 +162,14 @@ impl SignatureHelpFinder<'_> {
         doc: &str,
     ) -> Vec<ParameterInformation> {
         match &pat.kind {
-            hir::PatKind::Discard => {
-                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
-                let start = *offset;
-                *offset += len;
-                vec![ParameterInformation {
-                    label: Span {
-                        start,
-                        end: *offset,
-                    },
-                    documentation: None,
-                }]
-            }
-            hir::PatKind::Bind(name) => {
-                let documentation = parse_doc_for_param(doc, &name.name);
-                let documentation = (!documentation.is_empty()).then_some(documentation);
+            hir::PatKind::Bind(_) | hir::PatKind::Discard => {
+                let documentation = if let hir::PatKind::Bind(name) = &pat.kind {
+                    let documentation = parse_doc_for_param(doc, &name.name);
+                    (!documentation.is_empty()).then_some(documentation)
+                } else {
+                    None
+                };
+
                 let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
                 let start = *offset;
                 *offset += len;
@@ -196,23 +229,40 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
     fn try_as_tuple<'a, 'b>(
         args: &'a ast::Expr,
         params: &'b hir::Pat,
-    ) -> Option<(Vec<&'a ast::Expr>, &'b Vec<hir::Pat>)> {
-        match (&*args.kind, &params.kind) {
-            (ast::ExprKind::Tuple(arg_items), hir::PatKind::Tuple(param_items)) => {
-                let unboxed = arg_items
+        top: bool,
+    ) -> Option<(Vec<&'a ast::Expr>, Vec<&'b hir::Pat>)> {
+        let args = match &*args.kind {
+            ast::ExprKind::Tuple(arg_items) => Some(
+                arg_items
                     .iter()
                     .map(std::convert::AsRef::as_ref)
-                    .collect::<Vec<_>>();
-                Some((unboxed, param_items))
-            }
-            (ast::ExprKind::Paren(arg), hir::PatKind::Tuple(param_items)) => {
-                Some((vec![arg], param_items))
-            }
+                    .collect::<Vec<_>>(),
+            ),
+            ast::ExprKind::Paren(arg) => Some(vec![arg.as_ref()]),
+            _ => None,
+        };
+
+        let params = if let hir::PatKind::Tuple(param_items) = &params.kind {
+            Some(param_items.iter().collect::<Vec<_>>())
+        } else if top {
+            Some(vec![params])
+        } else {
+            None
+        };
+
+        match (args, params) {
+            (Some(args), Some(params)) => Some((args, params)),
             _ => None,
         }
     }
 
-    fn increment_until_cursor(args: &ast::Expr, cursor: u32, params: &hir::Pat, i: &mut i32) {
+    fn increment_until_cursor(
+        args: &ast::Expr,
+        cursor: u32,
+        params: &hir::Pat,
+        i: &mut i32,
+        top: bool,
+    ) {
         if cursor < args.span.lo {
             return;
         }
@@ -222,10 +272,10 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
             return;
         }
 
-        if let Some((arg_items, param_items)) = try_as_tuple(args, params) {
+        if let Some((arg_items, param_items)) = try_as_tuple(args, params, top) {
             // check to see if cursor is inside of tuple, past the starting `(` but before the ending `)`
             if args.span.lo < cursor && cursor < args.span.hi {
-                let items = zip(&arg_items, param_items).collect::<Vec<_>>();
+                let items = zip(&arg_items, &param_items).collect::<Vec<_>>();
 
                 // is the cursor after the last item of a *finished* parameter tuple?
                 let is_inside_coda = param_items.len() <= arg_items.len()
@@ -237,7 +287,7 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
                 if !is_inside_coda {
                     *i += 1;
                     for (arg, param) in items {
-                        increment_until_cursor(arg, cursor, param, i);
+                        increment_until_cursor(arg, cursor, param, i, false);
                     }
                 }
             }
@@ -245,6 +295,6 @@ fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
     }
 
     let mut i = 0;
-    increment_until_cursor(args, location, params, &mut i);
+    increment_until_cursor(args, location, params, &mut i, true);
     i.try_into().expect("got negative param index")
 }
