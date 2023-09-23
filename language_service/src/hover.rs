@@ -4,12 +4,11 @@
 #[cfg(test)]
 mod tests;
 
-use crate::display::CodeDisplay;
+use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::protocol::{self, Hover};
 use crate::qsc_utils::{find_ident, find_item, map_offset, span_contains, Compilation};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve, SourceMap};
-use regex_lite::Regex;
 use std::fmt::Display;
 use std::mem::replace;
 use std::rc::Rc;
@@ -388,49 +387,6 @@ fn display_callable(doc: &str, namespace: &str, code: impl Display) -> String {
     };
     code = markdown_fenced_block(code);
     with_doc(&summary, code)
-}
-
-fn parse_doc_for_summary(doc: &str) -> String {
-    let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
-    match re.captures(doc) {
-        Some(captures) => {
-            let capture = captures
-                .get(1)
-                .expect("Didn't find the capture for the given regex");
-            capture.as_str()
-        }
-        None => doc,
-    }
-    .trim()
-    .to_string()
-}
-
-fn parse_doc_for_param(doc: &str, param: &str) -> String {
-    let re = Regex::new(r"(?mi)(?:^# Input$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
-    let input = match re.captures(doc) {
-        Some(captures) => {
-            let capture = captures
-                .get(1)
-                .expect("Didn't find the capture for the given regex");
-            capture.as_str()
-        }
-        None => return String::new(),
-    }
-    .trim();
-
-    let re = Regex::new(format!(r"(?mi)(?:^## {param}$)([\s\S]*?)(?:(^(#|##) .*)|\z)").as_str())
-        .expect("Invalid regex");
-    match re.captures(input) {
-        Some(captures) => {
-            let capture = captures
-                .get(1)
-                .expect("Didn't find the capture for the given regex");
-            capture.as_str()
-        }
-        None => return String::new(),
-    }
-    .trim()
-    .to_string()
 }
 
 fn with_doc(doc: &String, code: impl Display) -> String {

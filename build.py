@@ -29,7 +29,12 @@ parser.add_argument("--pip", action="store_true", help="Build the pip wheel")
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
-parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
+parser.add_argument(
+    "--samples",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="Compile the Q# samples (default is --samples)",
+)
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -79,7 +84,6 @@ build_all = (
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_wasm = build_all or args.wasm
-build_samples = build_all or args.samples
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -94,6 +98,7 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
+build_samples = args.samples
 
 # TODO: This requires that both targets are installed on macOS to build Python packages. Add to prereqs checks.
 pip_archflags = "-arch x86_64 -arch arm64" if platform.system() == "Darwin" else None
