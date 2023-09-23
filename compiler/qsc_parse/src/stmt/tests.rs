@@ -574,7 +574,7 @@ fn doc_at_end_of_block() {
         }",
         &expect![[r#"
             Block _id_ [0-50]:
-                Stmt _id_ [14-40]: Item: Item _id_ [0-0]:
+                Stmt _id_ [14-40]: Item: Item _id_ [14-40]:
                     Err
 
             [
@@ -600,7 +600,7 @@ fn doc_followed_by_non_item() {
         }",
         &expect![[r#"
             Block _id_ [0-72]:
-                Stmt _id_ [14-39]: Item: Item _id_ [0-0]:
+                Stmt _id_ [14-39]: Item: Item _id_ [14-39]:
                     Err
                 Stmt _id_ [52-62]: Local (Immutable):
                     Pat _id_ [56-57]: Bind:
