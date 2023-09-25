@@ -6,6 +6,7 @@ use qsc::{
     ast,
     hir::{self},
 };
+use regex_lite::Regex;
 use std::{
     fmt::{Display, Formatter, Result},
     rc::Rc,
@@ -152,7 +153,7 @@ impl HirCallableDecl<'_, '_> {
         let offset = match self.decl.kind {
             hir::CallableKind::Function => "function".len(),
             hir::CallableKind::Operation => "operation".len(),
-        } + 2; // this is for the space between keyword and name plus the opening paren
+        } + 1; // this is for the space between keyword and name
         u32::try_from(offset + self.decl.name.name.len())
             .expect("failed to cast usize to u32 while calculating parameter offset")
     }
@@ -701,4 +702,51 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
         ast::FunctorExprKind::Lit(ast::Functor::Ctl) => hir::ty::FunctorSetValue::Ctl,
         ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
+}
+
+//
+// parsing functions for working with doc comments
+//
+
+pub fn parse_doc_for_summary(doc: &str) -> String {
+    let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
+    match re.captures(doc) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => doc,
+    }
+    .trim()
+    .to_string()
+}
+
+pub fn parse_doc_for_param(doc: &str, param: &str) -> String {
+    let re = Regex::new(r"(?mi)(?:^# Input$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
+    let input = match re.captures(doc) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => return String::new(),
+    }
+    .trim();
+
+    let re = Regex::new(format!(r"(?mi)(?:^## {param}$)([\s\S]*?)(?:(^(#|##) .*)|\z)").as_str())
+        .expect("Invalid regex");
+    match re.captures(input) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => return String::new(),
+    }
+    .trim()
+    .to_string()
 }

@@ -25,17 +25,19 @@ class QSharpSignatureHelpProvider implements vscode.SignatureHelpProvider {
 
     const sigHelp = new vscode.SignatureHelp();
     sigHelp.signatures = sigHelpLs.signatures.map((sig) => {
-      const info = new vscode.SignatureInformation(
-        sig.label,
-        sig.documentation
-      );
-      info.parameters = sig.parameters.map(
-        (param) =>
-          new vscode.ParameterInformation(
-            [param.label.start, param.label.end],
-            param.documentation
-          )
-      );
+      const documentation = sig.documentation
+        ? new vscode.MarkdownString(sig.documentation)
+        : undefined;
+      const info = new vscode.SignatureInformation(sig.label, documentation);
+      info.parameters = sig.parameters.map((param) => {
+        const documentation = param.documentation
+          ? new vscode.MarkdownString(param.documentation)
+          : undefined;
+        return new vscode.ParameterInformation(
+          [param.label.start, param.label.end],
+          documentation
+        );
+      });
       return info;
     });
     sigHelp.activeSignature = sigHelpLs.activeSignature;

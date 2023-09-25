@@ -91,6 +91,7 @@ pub enum Error {
     RangeStepZero(#[label("invalid range")] PackageSpan),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
+    #[diagnostic(help("qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state"))]
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize, #[label("Qubit{0}")] PackageSpan),
 

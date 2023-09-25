@@ -8,6 +8,7 @@ variables:
   RUST_TOOLCHAIN_VERSION: "1.72"
 
 # variables set by pipeline
+# - BASE_IMAGE
 # - BUILD_NUMBER
 # - BUILD_TYPE
 # - cratesIoFeedOverride
@@ -133,6 +134,9 @@ jobs:
       linux_x64:
         imageName: 'ubuntu-20.04'
         arch: x86_64
+      linux_aarch64:
+        imageName: 'ubuntu-20.04'
+        arch: aarch64
         additionalRustTargets: aarch64-unknown-linux-gnu
       mac:
         imageName: 'macOS-latest'       # MacOS-specific Py (Mac is usually quite limited).
@@ -141,6 +145,9 @@ jobs:
       windows:
         imageName: 'windows-latest'     # Win-specific Py + Platform-independent Py.
         arch: x86_64
+      windows_aarch64:
+        imageName: 'windows-latest'     # Win-specific Py + Platform-independent Py.
+        arch: aarch64
         additionalRustTargets: aarch64-pc-windows-msvc
   pool:
     vmImage: $(imageName)
@@ -150,6 +157,7 @@ jobs:
 
   steps:
   # common init steps
+  # if we have additional rust targets, we need to install them
   - task: RustInstaller@1
     inputs:
       rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
@@ -157,6 +165,21 @@ jobs:
       cratesIoFeedOverride: $(cratesIoFeedOverride)
       toolchainFeed: $(toolchainFeed)
     displayName: Install Rust toolchain
+    condition: ne(variables['additionalRustTargets'], '')
+
+  # otherwise just install the default toolchain
+  - task: RustInstaller@1
+    inputs:
+      rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
+      cratesIoFeedOverride: $(cratesIoFeedOverride)
+      toolchainFeed: $(toolchainFeed)
+    displayName: Install Rust toolchain
+    condition: eq(variables['additionalRustTargets'], '')
+
+  - script: |
+      rustc --version
+      rustc --print target-list
+    displayName: View rust target info
 
   - task: UsePythonVersion@0
     inputs:
@@ -167,8 +190,15 @@ jobs:
     displayName: Install Prereqs and set version
 
   - script: |
+      chmod +x ./docker/linux-aarch64/install_prereqs.sh
+      sudo ./docker/linux-aarch64/install_prereqs.sh
+    displayName: Install Linux aarch64 cross prereqs
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
+
+  - script: |
       python build.py --pip --no-check-prereqs
-    displayName: Build Platform-Dependent Py Packages, non-Linux
+    displayName: Build Platform-Dependent Py Packages
+    condition: ne(variables['arch'], 'aarch64')
 
   - script: |
       python -m pip install auditwheel patchelf
@@ -178,7 +208,33 @@ jobs:
       rm target/wheels/*-linux_x86_64.whl
       ls target/wheels
     displayName: Run auditwheel for Linux Wheels
-    condition: eq(variables['Agent.OS'], 'Linux')
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'))
+
+  # for linux aarch64 cross build we want to skip tests as we can't run the code.
+  # and we can't run the samples as qsc is currently cross compiled.
+  - script: |
+      env CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu python build.py --pip --no-check-prereqs --no-check --no-test --no-samples
+    displayName: Cross Build Linux aarch64 Py Packages
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
+
+  - script: |
+      chmod +x ./docker/linux-aarch64/build.sh
+      chmod +x ./docker/linux-aarch64/run.sh
+
+      ./docker/linux-aarch64/build.sh
+      ./docker/linux-aarch64/run.sh
+    displayName: Run auditwheel and python tests for Linux aarch64 Wheels
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
+
+  - script: |
+      echo ##vso[task.setvariable variable=CARGO_BUILD_TARGET]aarch64-pc-windows-msvc
+    displayName: Set cargo build target for Windows aarch64
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
+
+  - script: |
+      python build.py --pip --no-check-prereqs --no-check --no-test --no-samples
+    displayName: Cross Build Windows aarch64 Py Packages
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
   - script: |
       dir target\wheels\*
@@ -196,7 +252,7 @@ jobs:
     condition: eq(variables['Agent.OS'], 'Darwin')
 
   - publish: $(System.DefaultWorkingDirectory)/target/wheels
-    artifact: Wheels.Win
+    artifact: Wheels.Win.${{ variables['arch'] }}
     displayName: Upload Python Artifacts Win
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
@@ -262,8 +318,12 @@ jobs:
 
   steps:
   - download: current
-    artifact: Wheels.Win
-    displayName: Download Python Artifacts Win
+    artifact: Wheels.Win.x86_64
+    displayName: Download x86_64 Python Artifacts Win
+
+  - download: current
+    artifact: Wheels.Win.aarch64
+    displayName: Download aarch64 Python Artifacts Win
 
   - download: current
     artifact: Wheels.Mac
@@ -271,7 +331,11 @@ jobs:
 
   - download: current
     artifact: Wheels.Linux.x86_64
-    displayName: Download Python Artifacts Linux
+    displayName: Download x86_64 Python Artifacts Linux
+
+  - download: current
+    artifact: Wheels.Linux.aarch64
+    displayName: Download aarch64 Python Artifacts Linux
 
   - download: current
     artifact: Wheels.JupyterLab
@@ -281,7 +345,9 @@ jobs:
       mkdir -p                            target/wheels
       mv ../Wheels.JupyterLab/*.whl       target/wheels
       mv ../Wheels.Linux.x86_64/*.whl     target/wheels
-      mv ../Wheels.Win/*.whl              target/wheels
+      mv ../Wheels.Linux.aarch64/*.whl    target/wheels
+      mv ../Wheels.Win.x86_64/*.whl       target/wheels
+      mv ../Wheels.Win.aarch64/*.whl      target/wheels
       mv ../Wheels.Mac/*.whl              target/wheels
       ls                                  target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
