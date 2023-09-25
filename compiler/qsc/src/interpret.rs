@@ -3,7 +3,6 @@
 
 mod debug;
 pub mod stateful;
-pub mod stateless;
 
 pub use qsc_eval::{
     debug::Frame,

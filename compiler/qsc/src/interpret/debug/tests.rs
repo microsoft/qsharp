@@ -8,25 +8,21 @@ use qsc_frontend::compile::{SourceMap, TargetProfile};
 use qsc_passes::PackageType;
 use std::io::Cursor;
 
-use crate::interpret::{
-    stateful::{Interpreter, LineResult},
-    stateless::{self},
-};
+use crate::interpret::stateful::{self, InterpretResult, Interpreter};
 
-fn line(interpreter: &mut Interpreter, line: impl AsRef<str>) -> (LineResult, String) {
+fn line(interpreter: &mut Interpreter, line: impl AsRef<str>) -> (InterpretResult, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (
-        interpreter.interpret_line(&mut receiver, line.as_ref()),
+        interpreter.eval_fragments(&mut receiver, line.as_ref()),
         receiver.dump(),
     )
 }
 
-fn eval(interpreter: &stateless::Interpreter) -> (Result<Value, Vec<stateless::Error>>, String) {
+fn eval(interpreter: &mut stateful::Interpreter) -> (Result<Value, Vec<stateful::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    let mut eval_ctx = interpreter.new_eval_context();
-    (eval_ctx.eval_entry(&mut receiver), receiver.dump())
+    (interpreter.eval_entry(&mut receiver), receiver.dump())
 }
 
 #[test]
@@ -136,10 +132,10 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         ],
         Some("Adjoint Test2.A(0)".into()),
     );
-    let interpreter =
-        stateless::Interpreter::new(true, source_map).expect("Failed to compile base environment.");
+    let mut interpreter = Interpreter::new(true, source_map, PackageType::Exe, TargetProfile::Full)
+        .expect("Failed to compile base environment.");
 
-    let (result, _) = eval(&interpreter);
+    let (result, _) = eval(&mut interpreter);
 
     match result {
         Ok(_) => panic!("Expected error"),

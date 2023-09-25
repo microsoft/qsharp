@@ -14,8 +14,8 @@ mod test_measurement;
 mod tests;
 
 use qsc::{
-    interpret::{stateless, GenericReceiver, Value},
-    SourceMap,
+    interpret::{stateful, GenericReceiver, Value},
+    PackageType, SourceMap, TargetProfile,
 };
 
 /// # Panics
@@ -27,9 +27,10 @@ pub fn test_expression(expr: &str, expected: &Value) {
 
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
 
-    let interpreter = stateless::Interpreter::new(true, sources).expect("test should compile");
-    let mut eval_ctx = interpreter.new_eval_context();
-    let result = eval_ctx
+    let mut interpreter =
+        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+            .expect("test should compile");
+    let result = interpreter
         .eval_entry(&mut out)
         .expect("test should run successfully");
 
