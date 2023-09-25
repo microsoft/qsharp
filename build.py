@@ -105,9 +105,6 @@ def build(argv):
     # build samples by default, unless --no-samples is passed
     build_samples = args.samples is not False
 
-    # TODO: This requires that both targets are installed on macOS to build Python packages. Add to prereqs checks.
-    pip_archflags = "-arch x86_64 -arch arm64" if platform.system() == "Darwin" else None
-
     root_dir = os.path.dirname(os.path.abspath(__file__))
     wasm_src = os.path.join(root_dir, "wasm")
     wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
@@ -195,9 +192,9 @@ def build(argv):
 
         # copy the process env vars
         pip_env: dict[str, str] = os.environ.copy()
-        if pip_archflags is not None:
+        if platform.system() == "Darwin":
             # if on mac, add the arch flags for universal binary
-            pip_env["ARCHFLAGS"] = pip_archflags
+            pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
         pip_build_args = [
             python_bin,
