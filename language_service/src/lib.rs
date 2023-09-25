@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 use crate::qsc_utils::compile_document;
 use log::trace;
