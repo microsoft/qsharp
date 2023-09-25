@@ -32,8 +32,8 @@ parser.add_argument("--play", action="store_true", help="Build the web playgroun
 parser.add_argument(
     "--samples",
     action=argparse.BooleanOptionalAction,
-    default=True,
-    help="Compile the Q# samples (default is --samples)",
+    default=False,
+    help="Compile the Q# samples (default is --no-samples)",
 )
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
@@ -98,7 +98,7 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
-build_samples = args.samples
+build_samples = build_all or args.samples
 
 # TODO: This requires that both targets are installed on macOS to build Python packages. Add to prereqs checks.
 pip_archflags = "-arch x86_64 -arch arm64" if platform.system() == "Darwin" else None
