@@ -251,7 +251,7 @@
   "scripts": {
     "build": "npm run tsc:check && node build.mjs",
     "build:watch": "node build.mjs --watch",
-    "run:web": "npx @vscode/test-web --extensionDevelopmentPath . ../samples",
+    "run:web": "npm exec --no @vscode/test-web --extensionDevelopmentPath . ../samples",
     "start": "npm exec --no @vscode/test-web --extensionDevelopmentPath . ../samples",
     "test": "node ./test/runTests.mjs",
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json"
