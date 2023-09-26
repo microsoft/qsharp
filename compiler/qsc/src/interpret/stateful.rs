@@ -446,8 +446,8 @@ impl Interpreter {
         let val = self
             .run_with_sim(&mut sim, &mut out, expr, 1)?
             .into_iter()
-            .next()
-            .expect("execution should have exactly one result")?;
+            .last()
+            .expect("execution should have at least one result")?;
 
         Ok(sim.finish(&val))
     }
