@@ -147,6 +147,21 @@ impl LanguageService {
             .into()
         })
     }
+
+    pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
+        //let rename = self.0.get_hover(uri, offset);
+
+        let rename = WorkspaceEdit {
+            changes: vec![(
+                uri.to_string(),
+                vec![TextEdit {
+                    range: Span { start: 5, end: 8 },
+                    newText: "You Renamed Something!".to_string(),
+                }],
+            )],
+        };
+        rename.into()
+    }
 }
 
 serializable_type! {
@@ -268,6 +283,17 @@ serializable_type! {
         label: ISpan;
         documentation?: string;
     }"#
+}
+
+serializable_type! {
+    WorkspaceEdit,
+    {
+        changes: Vec<(String, Vec<TextEdit>)>,
+    },
+    r#"export interface IWorkspaceEdit {
+        changes: [string, ITextEdit[]][];
+    }"#,
+    IWorkspaceEdit
 }
 
 serializable_type! {
