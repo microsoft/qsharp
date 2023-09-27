@@ -123,7 +123,13 @@ pub(crate) fn call(
         "__quantum__qis__mresetz__body" => {
             Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0).into()))
         }
-        _ => Err(Error::UnknownIntrinsic(name.to_string(), name_span)),
+        _ => {
+            if let Some(result) = sim.custom_intrinsic(name, arg) {
+                Ok(result)
+            } else {
+                Err(Error::UnknownIntrinsic(name.to_string(), name_span))
+            }
+        }
     }
 }
 
