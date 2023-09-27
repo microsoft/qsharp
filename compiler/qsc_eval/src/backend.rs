@@ -40,7 +40,7 @@ pub trait Backend {
     fn qubit_is_zero(&mut self, q: usize) -> bool;
     fn reinit(&mut self);
 
-    fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Value> {
+    fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
     }
 }

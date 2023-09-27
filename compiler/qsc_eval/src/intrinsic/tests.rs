@@ -180,9 +180,10 @@ impl Backend for CustomSim {
         self.sim.reinit();
     }
 
-    fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Value> {
+    fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
-            "Add1" => Some(Value::Int(arg.unwrap_int() + 1)),
+            "Add1" => Some(Ok(Value::Int(arg.unwrap_int() + 1))),
+            "Check" => Some(Err("cannot verify input".to_string())),
             _ => None,
         }
     }
@@ -1048,7 +1049,7 @@ fn unknown_intrinsic() {
 }
 
 #[test]
-fn custom_intrinsic() {
+fn custom_intrinsic_success() {
     check_intrinsic_result(
         indoc! {"
             namespace Test {
@@ -1059,6 +1060,21 @@ fn custom_intrinsic() {
         "},
         "Test.Add1(1)",
         &expect!["2"],
+    );
+}
+
+#[test]
+fn custom_intrinsic_failure() {
+    check_intrinsic_result(
+        indoc! {"
+            namespace Test {
+                function Check(input : Int) : Int {
+                    body intrinsic;
+                }
+            }
+        "},
+        "Test.Check(1)",
+        &expect!["intrinsic callable `Check` failed: cannot verify input"],
     );
 }
 
