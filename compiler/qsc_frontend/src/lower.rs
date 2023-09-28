@@ -74,10 +74,6 @@ impl Lowerer {
         self.items.clear();
     }
 
-    pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
-        self.items.drain(..)
-    }
-
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
         self.errors.drain(..)
     }
@@ -106,13 +102,25 @@ pub(super) struct With<'a> {
 
 impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
-        for namespace in &*package.namespaces {
-            self.lower_namespace(namespace);
+        let mut stmts = Vec::new();
+        for node in &*package.nodes {
+            match node {
+                ast::TopLevelNode::Namespace(namespace) => self.lower_namespace(namespace),
+                ast::TopLevelNode::Stmt(stmt) => {
+                    if let Some(stmt) = self.lower_stmt(stmt) {
+                        stmts.push(stmt);
+                    }
+                }
+            }
         }
 
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
-        hir::Package { items, entry }
+        hir::Package {
+            items,
+            stmts,
+            entry,
+        }
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {

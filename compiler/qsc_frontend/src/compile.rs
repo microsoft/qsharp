@@ -15,8 +15,11 @@ use crate::{
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
-    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor,
-    validate::Validator as AstValidator, visit::Visitor as _,
+    assigner::Assigner as AstAssigner,
+    ast::{self, TopLevelNode},
+    mut_visit::MutVisitor,
+    validate::Validator as AstValidator,
+    visit::Visitor as _,
 };
 use qsc_data_structures::{
     index_map::{self, IndexMap},
@@ -68,10 +71,11 @@ impl FromStr for TargetProfile {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
 pub struct CompileUnit {
-    pub package: hir::Package,
-    pub ast: AstPackage,
     pub assigner: HirAssigner,
+    pub ast_assigner: AstAssigner,
     pub sources: SourceMap,
+    pub ast: AstPackage,
+    pub package: hir::Package,
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
 }
@@ -212,13 +216,67 @@ impl PackageStore {
     }
 
     #[must_use]
-    pub fn get_mut(&mut self, id: PackageId) -> (&global::Table, Option<&mut CompileUnit>) {
-        (&self.core, self.units.get_mut(id))
-    }
-
-    #[must_use]
     pub fn iter(&self) -> Iter {
         Iter(self.units.iter())
+    }
+
+    /// "Opens" the package store. This inserts an empty
+    /// package into the store, which will be considered
+    /// the open package and which can be incrementally updated.
+    #[must_use]
+    pub fn open(mut self) -> OpenPackageStore {
+        let id = self.next_id;
+        self.next_id = id.successor();
+        self.units.insert(id, CompileUnit::default());
+
+        OpenPackageStore {
+            store: self,
+            open: id,
+        }
+    }
+}
+
+/// A package store that contains one mutable `CompileUnit`.
+pub struct OpenPackageStore {
+    store: PackageStore,
+    open: PackageId,
+}
+
+impl OpenPackageStore {
+    /// Returns a reference to the underlying, immutable,
+    /// package store.
+    #[must_use]
+    pub fn package_store(&self) -> &PackageStore {
+        &self.store
+    }
+
+    /// Returns the ID of the open package.
+    #[must_use]
+    pub fn open_package_id(&self) -> PackageId {
+        self.open
+    }
+
+    /// Returns a mutable reference to the open package,
+    /// along with a reference to the core library that can be used
+    /// to perform passes.
+    #[must_use]
+    pub fn get_open_mut(&mut self) -> (&global::Table, &mut CompileUnit) {
+        let id = self.open;
+
+        (
+            &self.store.core,
+            self.store
+                .units
+                .get_mut(id)
+                .expect("open package id should exist in store"),
+        )
+    }
+
+    /// Consumes the `OpenPackageStore` and returns a `PackageStore`
+    /// along with the id of the formerly open package.
+    #[must_use]
+    pub fn into_package_store(self) -> (PackageStore, PackageId) {
+        (self.store, self.open)
     }
 }
 
@@ -283,12 +341,13 @@ pub fn compile(
 
     CompileUnit {
         package,
+        assigner: hir_assigner,
         ast: AstPackage {
             package: ast_package,
             tys,
             names,
         },
-        assigner: hir_assigner,
+        ast_assigner,
         sources,
         errors,
         dropped_names,
@@ -400,7 +459,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
         let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
-            namespaces.push(namespace);
+            namespaces.push(TopLevelNode::Namespace(namespace));
         }
 
         append_parse_errors(&mut errors, source.offset, source_errors);
@@ -419,7 +478,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
 
     let package = ast::Package {
         id: ast::NodeId::default(),
-        namespaces: namespaces.into_boxed_slice(),
+        nodes: namespaces.into_boxed_slice(),
         entry,
     };
 

@@ -790,7 +790,7 @@ pub(super) fn expr(
     context.solve()
 }
 
-pub(super) fn stmt_fragment(
+pub(super) fn stmt(
     names: &Names,
     globals: &HashMap<ItemId, Scheme>,
     table: &mut Table,

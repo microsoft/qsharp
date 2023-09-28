@@ -12,10 +12,7 @@ use std::{
 };
 
 #[derive(Clone, Debug)]
-pub struct WithSource<E>
-where
-    E: Diagnostic,
-{
+pub struct WithSource<E> {
     sources: Vec<Source>,
     error: E,
 }
@@ -24,6 +21,10 @@ impl<E: Diagnostic> WithSource<E> {
     pub fn error(&self) -> &E {
         &self.error
     }
+
+    pub fn into_error(self) -> E {
+        self.error
+    }
 }
 
 impl<E: Diagnostic> WithSource<E> {
@@ -31,8 +32,6 @@ impl<E: Diagnostic> WithSource<E> {
     /// Since errors may contain labeled spans from any source file in the
     /// compilation, the entire source map is needed to resolve offsets.
     /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     pub fn from_map(sources: &SourceMap, error: E) -> Self {
         // Filter the source map to the relevant sources
         // to avoid cloning all of them.
@@ -58,6 +57,16 @@ impl<E: Diagnostic> WithSource<E> {
         Self {
             sources: filtered,
             error,
+        }
+    }
+
+    pub fn into_with_source<T>(self) -> WithSource<T>
+    where
+        T: From<E>,
+    {
+        WithSource {
+            sources: self.sources,
+            error: self.error.into(),
         }
     }
 }

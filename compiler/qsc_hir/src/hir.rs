@@ -215,8 +215,23 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
+    /// The top-level statements in the package.
+    pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
+}
+
+impl Package {
+    /// Extends the `Package` with the contents of another `Package`.
+    /// `other` should not contain any `LocalItemId`s
+    /// that conflict with the current `Package`.
+    pub fn extend(&mut self, mut other: Package) {
+        for (k, v) in other.items.drain() {
+            self.items.insert(k, v);
+        }
+
+        self.stmts.extend(other.stmts);
+    }
 }
 
 impl Display for Package {

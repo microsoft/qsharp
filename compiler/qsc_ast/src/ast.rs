@@ -68,6 +68,12 @@ impl Display for NodeId {
     }
 }
 
+impl From<usize> for NodeId {
+    fn from(value: usize) -> Self {
+        Self(u32::try_from(value).expect("node ID should fit in u32"))
+    }
+}
+
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
         assert!(!value.is_default(), "default node ID should be replaced");
@@ -109,10 +115,26 @@ impl Hash for NodeId {
 pub struct Package {
     /// The node ID.
     pub id: NodeId,
-    /// The namespaces in the package.
-    pub namespaces: Box<[Namespace]>,
+    /// The top-level syntax nodes in the package.
+    pub nodes: Box<[TopLevelNode]>,
     /// The entry expression for an executable package.
     pub entry: Option<Box<Expr>>,
+}
+
+fn take_and_concat<T>(left: &mut Box<[T]>, right: &mut Box<[T]>) -> Box<[T]> {
+    let mut v = std::mem::take(left).into_vec();
+    v.reserve_exact(right.len());
+    v.extend(std::mem::take(right).into_vec());
+    v.into_boxed_slice()
+}
+
+impl Package {
+    /// Extends the `Package` with the contents of another `Package`.
+    /// `other` should not contain any `NodeId`s
+    /// that conflict with the current `Package`.
+    pub fn extend(&mut self, mut other: Package) {
+        self.nodes = take_and_concat(&mut self.nodes, &mut other.nodes);
+    }
 }
 
 impl Display for Package {
@@ -123,10 +145,28 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in &*self.namespaces {
-            write!(indent, "\n{ns}")?;
+        for node in &*self.nodes {
+            write!(indent, "\n{node}")?;
         }
         Ok(())
+    }
+}
+
+/// A node that can exist at the top level of a package.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TopLevelNode {
+    /// A namespace
+    Namespace(Namespace),
+    /// A statement
+    Stmt(Box<Stmt>),
+}
+
+impl Display for TopLevelNode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Namespace(n) => n.fmt(f),
+            Self::Stmt(s) => s.fmt(f),
+        }
     }
 }
 

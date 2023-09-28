@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, CallableDecl, Ident, NodeId},
+    ast::{self, CallableDecl, Ident, NodeId, TopLevelNode},
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -550,26 +550,31 @@ impl GlobalTable {
         package: &ast::Package,
     ) -> Vec<Error> {
         let mut errors = Vec::new();
-        for namespace in &*package.namespaces {
-            self.names.insert(
-                namespace.name.id,
-                Res::Item(intrapackage(assigner.next_item())),
-            );
-            self.scope
-                .namespaces
-                .insert(Rc::clone(&namespace.name.name));
+        for node in &*package.nodes {
+            match node {
+                TopLevelNode::Namespace(namespace) => {
+                    self.names.insert(
+                        namespace.name.id,
+                        Res::Item(intrapackage(assigner.next_item())),
+                    );
+                    self.scope
+                        .namespaces
+                        .insert(Rc::clone(&namespace.name.name));
 
-            for item in &*namespace.items {
-                match bind_global_item(
-                    &mut self.names,
-                    &mut self.scope,
-                    &namespace.name.name,
-                    || intrapackage(assigner.next_item()),
-                    item,
-                ) {
-                    Ok(()) => {}
-                    Err(error) => errors.push(error),
+                    for item in &*namespace.items {
+                        match bind_global_item(
+                            &mut self.names,
+                            &mut self.scope,
+                            &namespace.name.name,
+                            || intrapackage(assigner.next_item()),
+                            item,
+                        ) {
+                            Ok(()) => {}
+                            Err(error) => errors.push(error),
+                        }
+                    }
                 }
+                TopLevelNode::Stmt(_) => todo!("Not yet supported for top-level statements"),
             }
         }
         errors

@@ -11,7 +11,7 @@ use crate::{
     typeck::convert::{self, MissingTyError},
 };
 use qsc_ast::{
-    ast::{self, NodeId},
+    ast::{self, NodeId, TopLevelNode},
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -102,6 +102,18 @@ impl Checker {
                 entry,
             ));
         }
+
+        for top_level_node in &*package.nodes {
+            if let TopLevelNode::Stmt(stmt) = top_level_node {
+                self.new.append(&mut rules::stmt(
+                    names,
+                    &self.globals,
+                    &mut self.table,
+                    &mut self.inferrer,
+                    stmt,
+                ));
+            }
+        }
     }
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
@@ -157,30 +169,6 @@ impl Checker {
             &self.globals,
             &mut self.table,
             spec,
-        ));
-    }
-
-    pub(crate) fn collect_namespace_items(&mut self, names: &Names, namespace: &ast::Namespace) {
-        ItemCollector::new(self, names).visit_namespace(namespace);
-    }
-
-    pub(crate) fn collect_stmt_items(&mut self, names: &Names, stmt: &ast::Stmt) {
-        ItemCollector::new(self, names).visit_stmt(stmt);
-    }
-
-    pub(crate) fn check_namespace_fragment(&mut self, names: &Names, namespace: &ast::Namespace) {
-        ItemChecker::new(self, names).visit_namespace(namespace);
-    }
-
-    pub(crate) fn check_stmt_fragment(&mut self, names: &Names, stmt: &ast::Stmt) {
-        ItemChecker::new(self, names).visit_stmt(stmt);
-
-        self.new.append(&mut rules::stmt_fragment(
-            names,
-            &self.globals,
-            &mut self.table,
-            &mut self.inferrer,
-            stmt,
         ));
     }
 

@@ -384,7 +384,7 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
 
     fn visit_stmt(&mut self, stmt: &mut Stmt) {
         // This function is not called by visit_block above, so the only time it will be used is for
-        // top-level statement fragments. Given that, the qubits allocated will always be live for
+        // top-level statements. Given that, the qubits allocated will always be live for
         // the entirety of a global scope, so only qubit allocations need to be generated.
         match stmt.kind.clone() {
             StmtKind::Qubit(_, pat, qubit_init, None) => {
