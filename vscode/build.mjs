@@ -13,6 +13,12 @@ const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
+  entryPoints: [
+    join(thisDir, "src", "extension.ts"),
+    join(thisDir, "src", "compilerWorker.ts"),
+    join(thisDir, "src", "debugger/debug-service-worker.ts"),
+  ],
+  outdir: join(thisDir, "out"),
   bundle: true,
   mainFields: ["browser", "module", "main"],
   external: ["vscode"],
@@ -22,24 +28,6 @@ const buildOptions = {
   sourcemap: "linked",
   //logLevel: "debug",
   define: { "import.meta.url": "undefined" },
-};
-
-/** @type {import("esbuild").BuildOptions} */
-const extensionOptions = {
-  ...buildOptions,
-  entryPoints: [
-    join(thisDir, "src", "extension.ts"),
-    join(thisDir, "src", "compilerWorker.ts"),
-    join(thisDir, "src", "debugger", "debug-service-worker.ts"),
-  ],
-  outdir: join(thisDir, "out"),
-};
-
-/** @type {import("esbuild").BuildOptions} */
-const testOptions = {
-  ...buildOptions,
-  entryPoints: [join(thisDir, "test", "suite", "index.ts")],
-  outdir: join(thisDir, "test", "out"),
 };
 
 function copyWasm() {
@@ -52,19 +40,11 @@ function copyWasm() {
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
 
-function buildProduct() {
+function buildBundle() {
   console.log("Running esbuild");
 
-  build(extensionOptions).then(() =>
-    console.log(`Built product to ${extensionOptions.outdir}`)
-  );
-}
-
-function buildTests() {
-  console.log("Running esbuild");
-
-  build(testOptions).then(() =>
-    console.log(`Built tests to ${testOptions.outdir}`)
+  build(buildOptions).then(() =>
+    console.log(`Built bundle to ${join(thisDir, "out")}`)
   );
 }
 
@@ -81,7 +61,7 @@ async function buildWatch() {
     },
   };
   let ctx = await context({
-    ...extensionOptions,
+    ...buildOptions,
     plugins: [buildPlugin],
     color: false,
   });
@@ -93,6 +73,5 @@ if (isWatch) {
   buildWatch();
 } else {
   copyWasm();
-  buildProduct();
-  buildTests();
+  buildBundle();
 }

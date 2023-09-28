@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 import { assert } from "chai";
 
-suite("Q# Extension Test Suite", () => {
+suite("Q# Language Service Tests", () => {
   const workspaceFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
   assert(workspaceFolder, "Expecting an open folder");
