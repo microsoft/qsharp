@@ -21,7 +21,7 @@ export function runMochaTests(requireTestModules: () => void): Promise<void> {
     // Load the test suites. This needs to come
     // after the call to mocha.setup() so that the
     // suite() global is defined by mocha.
-    requireTestModules()
+    requireTestModules();
 
     try {
       // Run the mocha test

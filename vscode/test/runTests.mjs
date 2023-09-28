@@ -27,30 +27,16 @@ async function main() {
     );
 
     // Language service tests
-    await runSuite(join(
-      thisDir,
-      "out",
-      "language-service",
-      "index"
-    ), join(
-      thisDir,
-      "suites",
-      "language-service",
-      "test-workspace"
-    ));
+    await runSuite(
+      join(thisDir, "out", "language-service", "index"),
+      join(thisDir, "suites", "language-service", "test-workspace")
+    );
 
     // Debugger tests
-    await runSuite(join(
-      thisDir,
-      "out",
-      "debugger",
-      "index"
-    ), join(
-      thisDir,
-      "..",
-      "..",
-      "samples",
-    ));
+    await runSuite(
+      join(thisDir, "out", "debugger", "index"),
+      join(thisDir, "..", "..", "samples")
+    );
 
     /**
      * @param {string} extensionTestsPath - The path to module with the test runner and tests
@@ -69,7 +55,6 @@ async function main() {
           : undefined,
       });
     }
-
   } catch (err) {
     console.error("Failed to run tests", err);
     process.exit(1);

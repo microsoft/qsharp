@@ -10,5 +10,6 @@ suite("Q# Debugger Tests", () => {
   assert(workspaceFolder, "Expecting an open folder");
 
   test("Placeholder - success", async () => {
+    assert.equal(1, 1);
   });
 });
