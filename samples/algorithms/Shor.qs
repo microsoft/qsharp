@@ -133,16 +133,17 @@ namespace Sample {
                     GreatestCommonDivisorI(halfPower + 1, modulus)
                 );
 
-                // Add a flag that we found the factors, and return computed
-                // non-trivial factors.
-                Message($"Found factor={factor}");
-                return (true, (factor, modulus / factor));
-            } else {
-                // Return a flag indicating we hit a trivial case and didn't get
-                // any factors.
-                Message($"Found trivial factors.");
-                return (false, (1, 1));
-            }
+                // Add a flag that we found the factors, and return only if computed
+                // non-trivial factors (not like 1:n or n:1)
+                if (factor != 1) and (factor != modulus) {
+                    Message($"Found factor={factor}");
+                    return (true, (factor, modulus / factor));
+                }
+            } 
+            // Return a flag indicating we hit a trivial case and didn't get
+            // any factors.
+            Message($"Found trivial factors.");
+            return (false, (1, 1));
         } else {
             // When period is odd we have to pick another generator to estimate
             // period of and start over.

@@ -574,18 +574,15 @@ fn doc_at_end_of_block() {
         }",
         &expect![[r#"
             Block _id_ [0-50]:
-                Stmt _id_ [14-40]: Err
+                Stmt _id_ [14-40]: Item: Item _id_ [14-40]:
+                    Err
 
             [
                 Error(
-                    Rule(
-                        "item",
-                        Close(
-                            Brace,
-                        ),
+                    FloatingDocComment(
                         Span {
-                            lo: 49,
-                            hi: 50,
+                            lo: 14,
+                            hi: 40,
                         },
                     ),
                 ),
@@ -603,18 +600,19 @@ fn doc_followed_by_non_item() {
         }",
         &expect![[r#"
             Block _id_ [0-72]:
-                Stmt _id_ [14-62]: Err
+                Stmt _id_ [14-39]: Item: Item _id_ [14-39]:
+                    Err
+                Stmt _id_ [52-62]: Local (Immutable):
+                    Pat _id_ [56-57]: Bind:
+                        Ident _id_ [56-57] "x"
+                    Expr _id_ [60-61]: Lit: Int(2)
 
             [
                 Error(
-                    Rule(
-                        "item",
-                        Keyword(
-                            Let,
-                        ),
+                    FloatingDocComment(
                         Span {
-                            lo: 52,
-                            hi: 55,
+                            lo: 14,
+                            hi: 39,
                         },
                     ),
                 ),

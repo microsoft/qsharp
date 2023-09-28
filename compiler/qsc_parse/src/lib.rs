@@ -51,6 +51,9 @@ enum ErrorKind {
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Token"))]
     Token(TokenKind, TokenKind, #[label] Span),
+    #[error("expected item after doc comment")]
+    #[diagnostic(code("Qsc.Parse.FloatingDocComment"))]
+    FloatingDocComment(#[label] Span),
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
@@ -76,6 +79,7 @@ impl ErrorKind {
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
             Self::MissingParens(span) => Self::MissingParens(span + offset),
+            Self::FloatingDocComment(span) => Self::FloatingDocComment(span + offset),
         }
     }
 }

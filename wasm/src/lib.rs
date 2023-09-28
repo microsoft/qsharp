@@ -10,7 +10,7 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateless,
+        stateful,
     },
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
@@ -158,13 +158,14 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateless::Error>
+fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateful::Error>
 where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
-    let interpreter = stateless::Interpreter::new(true, sources);
+    let interpreter =
+        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full);
     if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
@@ -175,10 +176,9 @@ where
         (out.event_cb)(&msg.to_string());
         return Err(e);
     }
-    let interpreter = interpreter.expect("context should be valid");
+    let mut interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {
-        let mut eval_ctx = interpreter.new_eval_context();
-        let result = eval_ctx.eval_entry(&mut out);
+        let result = interpreter.eval_entry(&mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),

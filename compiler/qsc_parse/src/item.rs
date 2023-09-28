@@ -43,14 +43,19 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if doc.is_some() {
+        let err_item = default(s.span(lo));
+        s.push_error(Error(ErrorKind::FloatingDocComment(err_item.span)));
+        return Ok(err_item);
     } else {
-        return Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)));
+        let p = s.peek();
+        return Err(Error(ErrorKind::Rule("item", p.kind, p.span)));
     };
 
     Ok(Box::new(Item {
         id: NodeId::default(),
         span: s.span(lo),
-        doc: doc.into(),
+        doc: doc.unwrap_or_default().into(),
         attrs: attrs.into_boxed_slice(),
         visibility,
         kind,
@@ -103,7 +108,7 @@ fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
     // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
     // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
     // opt. This pattern can be dropped along with namespaces once we have a module-based design.
-    let doc = parse_doc(s);
+    let doc = parse_doc(s).unwrap_or_default();
     if let Some(mut namespace) = opt(s, parse_namespace)? {
         namespace.doc = doc.into();
         Ok(Fragment::Namespace(namespace))
@@ -122,7 +127,7 @@ fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
 
 fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
-    let doc = parse_doc(s);
+    let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -137,7 +142,7 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     })
 }
 
-fn parse_doc(s: &mut Scanner) -> String {
+fn parse_doc(s: &mut Scanner) -> Option<String> {
     let mut content = String::new();
     while s.peek().kind == TokenKind::DocComment {
         if !content.is_empty() {
@@ -150,7 +155,7 @@ fn parse_doc(s: &mut Scanner) -> String {
         s.advance();
     }
 
-    content
+    (!content.is_empty()).then_some(content)
 }
 
 fn parse_attr(s: &mut Scanner) -> Result<Box<Attr>> {
