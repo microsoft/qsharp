@@ -71,11 +71,10 @@ impl FromStr for TargetProfile {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
 pub struct CompileUnit {
-    pub assigner: HirAssigner,
-    pub ast_assigner: AstAssigner,
-    pub sources: SourceMap,
-    pub ast: AstPackage,
     pub package: hir::Package,
+    pub ast: AstPackage,
+    pub assigner: HirAssigner,
+    pub sources: SourceMap,
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
 }
@@ -341,13 +340,12 @@ pub fn compile(
 
     CompileUnit {
         package,
-        assigner: hir_assigner,
         ast: AstPackage {
             package: ast_package,
             tys,
             names,
         },
-        ast_assigner,
+        assigner: hir_assigner,
         sources,
         errors,
         dropped_names,

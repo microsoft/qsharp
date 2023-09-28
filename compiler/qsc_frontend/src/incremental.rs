@@ -29,6 +29,7 @@ use qsc_hir::{
 /// It is used to update a single `CompileUnit`
 /// with additional sources.
 pub struct Compiler {
+    pub ast_assigner: AstAssigner,
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
@@ -72,6 +73,7 @@ impl Compiler {
         }
 
         Self {
+            ast_assigner: AstAssigner::new(),
             resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
@@ -169,7 +171,7 @@ impl Compiler {
         self.resolver
             .extend_dropped_names(cond_compile.into_names());
 
-        self.check(&mut unit.ast_assigner, &mut unit.assigner, ast);
+        self.check(&mut unit.assigner, ast);
         self.checker.solve(self.resolver.names());
 
         let package = self.lower(&mut unit.assigner, &*ast);
@@ -242,13 +244,8 @@ impl Compiler {
             .lower_package(package)
     }
 
-    fn check(
-        &mut self,
-        ast_assigner: &mut AstAssigner,
-        hir_assigner: &mut HirAssigner,
-        package: &mut ast::Package,
-    ) {
-        ast_assigner.visit_package(package);
+    fn check(&mut self, hir_assigner: &mut HirAssigner, package: &mut ast::Package) {
+        self.ast_assigner.visit_package(package);
 
         // bind_items
         for node in &mut package.nodes.iter() {
