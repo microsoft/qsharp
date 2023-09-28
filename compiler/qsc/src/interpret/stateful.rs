@@ -277,6 +277,12 @@ impl Interpreter {
 
         let stmts = self.lower(&increment);
 
+        // Updating the compiler state with the new AST/HIR nodes
+        // is not necessary for the interpreter to function, as all
+        // the state required for evaluation already exists in the
+        // FIR store. It could potentially save some memory
+        // *not* to do hold on to the AST/HIR, but it is done
+        // here to keep the package stores consistent.
         self.compiler.update(increment);
 
         let mut result = Value::unit();
@@ -401,6 +407,12 @@ impl Interpreter {
 
         let stmts = self.lower(&increment);
 
+        // Updating the compiler state with the new AST/HIR nodes
+        // is not necessary for the interpreter to function, as all
+        // the state required for evaluation already exists in the
+        // FIR store. It could potentially save some memory
+        // *not* to do hold on to the AST/HIR, but it is done
+        // here to keep the package stores consistent.
         self.compiler.update(increment);
 
         assert!(stmts.len() == 1, "expected exactly one statement");
