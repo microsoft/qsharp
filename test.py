@@ -17,7 +17,6 @@ print = functools.partial(print, flush=True)
 
 parser = argparse.ArgumentParser(
     description="Runs integration tests for the repo.",
-
 )
 
 parser.add_argument(
@@ -50,7 +49,7 @@ def step_end():
 if args.build:
     step_start("Building repo")
     # Pass the rest of the arguments to build.py
-    build(['--no-check', '--no-test', '--no-samples', *args.build_args])
+    build(['--no-check', '--no-test', *args.build_args])
     step_end()
 
 npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
