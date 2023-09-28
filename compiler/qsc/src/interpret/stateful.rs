@@ -270,14 +270,14 @@ impl Interpreter {
     ) -> InterpretResult {
         let label = self.next_line_label();
 
-        let unit_addition = self
+        let increment = self
             .compiler
             .compile_fragments(&label, fragments)
             .map_err(into_errors)?;
 
-        let stmts = self.lower(&unit_addition);
+        let stmts = self.lower(&increment);
 
-        self.compiler.update(unit_addition);
+        self.compiler.update(increment);
 
         let mut result = Value::unit();
 
@@ -397,11 +397,11 @@ impl Interpreter {
     }
 
     fn compile_expr_to_stmt(&mut self, expr: &str) -> Result<StmtId, Vec<Error>> {
-        let unit_addition = self.compiler.compile_expr(expr).map_err(into_errors)?;
+        let increment = self.compiler.compile_expr(expr).map_err(into_errors)?;
 
-        let stmts = self.lower(&unit_addition);
+        let stmts = self.lower(&increment);
 
-        self.compiler.update(unit_addition);
+        self.compiler.update(increment);
 
         assert!(stmts.len() == 1, "expected exactly one statement");
         let stmt_id = stmts.get(0).expect("expected exactly one statement");
@@ -409,10 +409,7 @@ impl Interpreter {
         Ok(*stmt_id)
     }
 
-    fn lower(
-        &mut self,
-        unit_addition: &qsc_frontend::incremental::CompileUnitAddition,
-    ) -> Vec<StmtId> {
+    fn lower(&mut self, unit_addition: &qsc_frontend::incremental::Increment) -> Vec<StmtId> {
         let fir_package = self
             .fir_store
             .get_mut(self.package)

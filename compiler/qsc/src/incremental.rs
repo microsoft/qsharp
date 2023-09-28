@@ -6,7 +6,7 @@ use miette::Diagnostic;
 use qsc_frontend::{
     compile::{OpenPackageStore, PackageStore, SourceMap, TargetProfile},
     error::WithSource,
-    incremental::CompileUnitAddition,
+    incremental::Increment,
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::{PackageType, PassContext};
@@ -81,16 +81,16 @@ impl Compiler {
         &mut self,
         source_name: &str,
         source_contents: &str,
-    ) -> Result<CompileUnitAddition, Errors> {
+    ) -> Result<Increment, Errors> {
         let (core, unit) = self.store.get_open_mut();
 
-        let mut unit_addition = self
+        let mut increment = self
             .frontend
             .compile_fragments(unit, source_name, source_contents)
             .map_err(into_errors)?;
 
         let pass_errors = self.passes.run_default_passes(
-            &mut unit_addition.hir,
+            &mut increment.hir,
             &mut unit.assigner,
             core,
             PackageType::Lib,
@@ -100,7 +100,7 @@ impl Compiler {
             return Err(into_errors_with_source(pass_errors, &unit.sources));
         }
 
-        Ok(unit_addition)
+        Ok(increment)
     }
 
     /// Compiles an entry expression.
@@ -112,16 +112,16 @@ impl Compiler {
     /// get information about the newly added items, or do other modifications.
     /// It is then the caller's responsibility to merge
     /// these packages into the current `CompileUnit` using the `update()` method.
-    pub fn compile_expr(&mut self, expr: &str) -> Result<CompileUnitAddition, Errors> {
+    pub fn compile_expr(&mut self, expr: &str) -> Result<Increment, Errors> {
         let (core, unit) = self.store.get_open_mut();
 
-        let mut unit_addition = self
+        let mut increment = self
             .frontend
             .compile_expr(unit, "<entry>", expr)
             .map_err(into_errors)?;
 
         let pass_errors = self.passes.run_default_passes(
-            &mut unit_addition.hir,
+            &mut increment.hir,
             &mut unit.assigner,
             core,
             PackageType::Lib,
@@ -131,23 +131,23 @@ impl Compiler {
             return Err(into_errors_with_source(pass_errors, &unit.sources));
         }
 
-        Ok(unit_addition)
+        Ok(increment)
     }
 
     /// Updates the current compilation with the AST and HIR packages,
     /// and any associated context, returned from a previous incremental compilation.
-    pub fn update(&mut self, addition: CompileUnitAddition) {
+    pub fn update(&mut self, new: Increment) {
         let (_, unit) = self.store.get_open_mut();
 
         // Extend the AST and HIR packages
-        unit.ast.package.extend(addition.ast.package);
-        unit.package.extend(addition.hir);
+        unit.ast.package.extend(new.ast.package);
+        unit.package.extend(new.hir);
 
-        // The other package will contain the names and tys
+        // The new `Increment` will contain the names and tys
         // from the original package as well, so just
         // replace the current tables instead of extending.
-        unit.ast.names = addition.ast.names;
-        unit.ast.tys = addition.ast.tys;
+        unit.ast.names = new.ast.names;
+        unit.ast.tys = new.ast.tys;
     }
 
     /// Returns a reference to the underlying package store.

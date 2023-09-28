@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{CompileUnitAddition, Compiler};
+use super::{Compiler, Increment};
 use crate::compile::{self, CompileUnit, PackageStore, TargetProfile};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -173,7 +173,7 @@ fn errors_across_multiple_lines() {
     .assert_debug_eq(&labels);
 }
 
-fn check_unit(expect: &Expect, actual: &CompileUnitAddition) {
+fn check_unit(expect: &Expect, actual: &Increment) {
     let ast = format!("ast:\n{}", actual.ast.package);
 
     let names = format!(

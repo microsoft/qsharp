@@ -41,7 +41,7 @@ pub type Error = WithSource<compile::Error>;
 /// These packages can be merged into the original
 /// `CompileUnit` that was used for the incremental compilation.
 #[derive(Debug)]
-pub struct CompileUnitAddition {
+pub struct Increment {
     pub ast: AstPackage,
     pub hir: hir::Package,
 }
@@ -94,7 +94,7 @@ impl Compiler {
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-    ) -> Result<CompileUnitAddition, Vec<Error>> {
+    ) -> Result<Increment, Vec<Error>> {
         let (mut ast, parse_errors) =
             Self::parse_fragments(&mut unit.sources, source_name, source_contents);
 
@@ -105,7 +105,7 @@ impl Compiler {
         let (hir, lower_errors) = self.resolve_check_lower(unit, &mut ast);
 
         if lower_errors.is_empty() {
-            Ok(CompileUnitAddition {
+            Ok(Increment {
                 ast: AstPackage {
                     package: ast,
                     names: self.resolver.names().clone(),
@@ -134,7 +134,7 @@ impl Compiler {
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-    ) -> Result<CompileUnitAddition, Vec<Error>> {
+    ) -> Result<Increment, Vec<Error>> {
         let (mut ast, parse_errors) =
             Self::parse_expr(&mut unit.sources, source_name, source_contents);
 
@@ -145,7 +145,7 @@ impl Compiler {
         let (package, errors) = self.resolve_check_lower(unit, &mut ast);
 
         if errors.is_empty() {
-            Ok(CompileUnitAddition {
+            Ok(Increment {
                 ast: AstPackage {
                     package: ast,
                     names: self.resolver.names().clone(),
