@@ -89,3 +89,8 @@ pub struct ParameterInformation {
     pub label: Span,
     pub documentation: Option<String>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct WorkspaceEdit {
+    pub changes: Vec<(String, Vec<(Span, String)>)>,
+}

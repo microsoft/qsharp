@@ -17,6 +17,7 @@ mod display;
 pub mod hover;
 pub mod protocol;
 mod qsc_utils;
+pub mod rename;
 pub mod signature_help;
 #[cfg(test)]
 mod test_utils;
