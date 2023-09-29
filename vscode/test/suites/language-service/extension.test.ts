@@ -38,7 +38,7 @@ suite("Q# Language Service Tests", () => {
   test("Definition", async () => {
     await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
-    let text = doc.getText(
+    const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19))
     );
     // Sanity check the test setup - is this the correct position?
@@ -69,7 +69,7 @@ suite("Q# Language Service Tests", () => {
   test("Hover", async () => {
     await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
-    let text = doc.getText(
+    const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19))
     );
     // Sanity check the test setup - is this the correct position?
@@ -90,7 +90,7 @@ suite("Q# Language Service Tests", () => {
   test("Signature Help", async () => {
     await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
-    let text = doc.getText(
+    const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19))
     );
     // Sanity check the test setup - is this the correct position?
@@ -111,6 +111,7 @@ suite("Q# Language Service Tests", () => {
 });
 
 async function activate() {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const ext = vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev")!;
   await ext.activate();
 }
