@@ -75,6 +75,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
     IndexOutOfRange(i64, #[label("out of range")] PackageSpan),
 
+    #[error("intrinsic callable `{0}` failed: {1}")]
+    #[diagnostic(code("Qsc.Eval.IntrinsicFail"))]
+    IntrinsicFail(String, String, #[label] PackageSpan),
+
     #[error("negative integers cannot be used here: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
     InvalidNegativeInt(i64, #[label("invalid negative integer")] PackageSpan),
@@ -121,6 +125,7 @@ impl Error {
             | Error::EmptyRange(span)
             | Error::IndexOutOfRange(_, span)
             | Error::InvalidIndex(_, span)
+            | Error::IntrinsicFail(_, _, span)
             | Error::IntTooLarge(_, span)
             | Error::InvalidNegativeInt(_, span)
             | Error::MissingSpec(_, span)
