@@ -198,6 +198,21 @@ impl<'a> LanguageService<'a> {
         res
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
+    #[must_use]
+    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
+        trace!("get_rename: uri: {uri:?}, offset: {offset:?}");
+        let res = rename::get_rename(
+            &self
+            .document_map.get(uri).as_ref()
+                .expect("get_rename should not be called before document has been initialized with update_document").compilation,
+                uri, offset);
+        trace!("get_rename result: {res:?}");
+        res
+    }
+
     fn apply_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) -> bool {
         let mut need_recompile = false;
 

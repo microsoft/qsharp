@@ -90,7 +90,7 @@ pub struct ParameterInformation {
     pub documentation: Option<String>,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct WorkspaceEdit {
-    pub changes: Vec<(String, Vec<(Span, String)>)>,
-}
+// #[derive(Debug, PartialEq)]
+// pub struct WorkspaceEdit {
+//     pub changes: Vec<Span>,
+// }

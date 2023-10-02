@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::serializable_type;
+use log::info;
 use miette::{Diagnostic, Severity};
 use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
@@ -149,18 +150,25 @@ impl LanguageService {
     }
 
     pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
-        //let rename = self.0.get_hover(uri, offset);
+        let locations = self.0.get_rename(uri, offset);
 
-        let rename = WorkspaceEdit {
-            changes: vec![(
-                uri.to_string(),
-                vec![TextEdit {
-                    range: Span { start: 5, end: 8 },
-                    newText: "You Renamed Something!".to_string(),
-                }],
-            )],
+        info!("locations: {locations:?}");
+
+        let renames = locations
+            .into_iter()
+            .map(|s| TextEdit {
+                range: Span {
+                    start: s.start,
+                    end: s.end,
+                },
+                newText: new_name.to_string(),
+            })
+            .collect::<Vec<_>>();
+
+        let workspace_edit = WorkspaceEdit {
+            changes: vec![(uri.to_string(), renames)],
         };
-        rename.into()
+        workspace_edit.into()
     }
 }
 
