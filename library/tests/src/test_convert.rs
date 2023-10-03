@@ -102,15 +102,30 @@ fn check_bool_array_as_result_array() {
     );
 }
 
-// fn test_complex_as_complex_polar() {
-//     test_expression(
-//         {
-//             "{
-//             open Microsoft.Quantum.Math;
-//             let a = Complex(2.0*Cos(1.0), 2.0*Sin(1.0));
-//             Microsoft.Quantum.Convert.ComplexAsComplexPolar(a)
-//         }"
-//         },
-//         &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into()),
-//     );
-// }
+#[test]
+fn test_complex_as_complex_polar() {
+    test_expression(
+        {
+            "{
+            open Microsoft.Quantum.Math;
+            let a = Complex(2.0*Cos(1.0), 2.0*Sin(1.0));
+            Microsoft.Quantum.Convert.ComplexAsComplexPolar(a)
+        }"
+        },
+        &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into()),
+    );
+}
+
+#[test]
+fn test_complex_polar_as_complex() {
+    test_expression(
+        {
+            "{
+            open Microsoft.Quantum.Math;
+            let a = ComplexPolar(Sqrt(5.0), ArcTan2(1.0, 2.0));
+            Microsoft.Quantum.Convert.ComplexPolarAsComplex(a)
+        }"
+        },
+        &Value::Tuple(vec![Value::Double(2.0), Value::Double(1.0)].into()),
+    );
+}
