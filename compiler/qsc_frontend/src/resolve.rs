@@ -32,6 +32,7 @@ const PRELUDE: &[&str] = &[
 ];
 
 // All AST Path nodes get mapped
+// Ident Ids from Callable and Ty Items are mapped
 pub(super) type Names = IndexMap<NodeId, Res>;
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely

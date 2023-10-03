@@ -16,13 +16,278 @@ fn check(source_with_markers: &str, expect: &Expect) {
 }
 
 #[test]
-fn foo() {
+fn callable_def() {
     check(
         indoc! {r#"
         namespace Test {
-            operation F↘oo(x : Int, y : Double, z : String) : Unit {}
+            operation Fo↘o(x : Int, y : Int, z : Int) : Unit {
+                Foo(x, y, z);
+            }
+            operation Bar(x : Int, y : Int, z : Int) : Unit {
+                Foo(x, y, z);
+            }
         }
     "#},
-        &expect![[r#""#]],
+        &expect![[r#"
+            [
+                Span {
+                    start: 79,
+                    end: 82,
+                },
+                Span {
+                    start: 161,
+                    end: 164,
+                },
+                Span {
+                    start: 31,
+                    end: 34,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn callable_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {
+                Foo(x, y, z);
+            }
+            operation Bar(x : Int, y : Int, z : Int) : Unit {
+                Fo↘o(x, y, z);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 79,
+                    end: 82,
+                },
+                Span {
+                    start: 161,
+                    end: 164,
+                },
+                Span {
+                    start: 31,
+                    end: 34,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn parameter_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(↘x : Int, y : Int, z : Int) : Unit {
+                let temp = x;
+                Foo(x, y, z);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 35,
+                    end: 36,
+                },
+                Span {
+                    start: 90,
+                    end: 91,
+                },
+                Span {
+                    start: 105,
+                    end: 106,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn parameter_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {
+                let temp = x;
+                Foo(↘x, y, z);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 35,
+                    end: 36,
+                },
+                Span {
+                    start: 90,
+                    end: 91,
+                },
+                Span {
+                    start: 105,
+                    end: 106,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn local_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {
+                let t↘emp = x;
+                Foo(temp, y, temp);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 83,
+                    end: 87,
+                },
+                Span {
+                    start: 105,
+                    end: 109,
+                },
+                Span {
+                    start: 114,
+                    end: 118,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn local_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {
+                let temp = x;
+                Foo(t↘emp, y, temp);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 83,
+                    end: 87,
+                },
+                Span {
+                    start: 105,
+                    end: 109,
+                },
+                Span {
+                    start: 114,
+                    end: 118,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn udt_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype F↘oo = (fst : Int, snd : Int);
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                Bar(temp);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 81,
+                    end: 84,
+                },
+                Span {
+                    start: 114,
+                    end: 117,
+                },
+                Span {
+                    start: 29,
+                    end: 32,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn udt_constructor_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (fst : Int, snd : Int);
+            operation Bar(x : Foo) : Unit {
+                let temp = F↘oo(1, 2);
+                Bar(temp);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 81,
+                    end: 84,
+                },
+                Span {
+                    start: 114,
+                    end: 117,
+                },
+                Span {
+                    start: 29,
+                    end: 32,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn udt_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (fst : Int, snd : Int);
+            operation Bar(x : F↘oo) : Unit {
+                let temp = Foo(1, 2);
+                Bar(temp);
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 81,
+                    end: 84,
+                },
+                Span {
+                    start: 114,
+                    end: 117,
+                },
+                Span {
+                    start: 29,
+                    end: 32,
+                },
+            ]
+        "#]],
     );
 }

@@ -14,7 +14,7 @@ use qsc::{
 
 use crate::{
     protocol,
-    qsc_utils::{find_item, map_offset, span_contains, Compilation},
+    qsc_utils::{find_item, map_offset, Compilation},
 };
 
 pub(crate) fn get_rename(
@@ -54,6 +54,10 @@ impl<'a> Rename<'a> {
             locations: vec![],
         }
     }
+}
+
+fn span_contains(span: Span, offset: u32) -> bool {
+    offset >= span.lo && offset <= span.hi
 }
 
 fn get_spans_for_item_rename(item_id: &hir::ItemId, compilation: &Compilation) -> Vec<Span> {
@@ -129,7 +133,8 @@ impl<'a> Visitor<'a> for Rename<'a> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_contains(decl.name.span, self.offset) {
-                        if let Some(item_id) = ast_item_id_to_hir_item_id(item.id, self.compilation)
+                        if let Some(item_id) =
+                            ast_item_id_to_hir_item_id(decl.name.id, self.compilation)
                         {
                             self.locations = get_spans_for_item_rename(item_id, self.compilation);
                         }
@@ -149,7 +154,8 @@ impl<'a> Visitor<'a> for Rename<'a> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if span_contains(ident.span, self.offset) {
-                        if let Some(item_id) = ast_item_id_to_hir_item_id(item.id, self.compilation)
+                        if let Some(item_id) =
+                            ast_item_id_to_hir_item_id(ident.id, self.compilation)
                         {
                             self.locations = get_spans_for_item_rename(item_id, self.compilation);
                         }
