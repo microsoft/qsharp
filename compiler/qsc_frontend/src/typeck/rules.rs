@@ -363,9 +363,7 @@ impl<'a> Context<'a> {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
                     let scheme = self.globals.get(item).expect("item should have scheme");
-                    let (ty, args) = self
-                        .inferrer
-                        .instantiate(&scheme.with_package(item.package), expr.span);
+                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }

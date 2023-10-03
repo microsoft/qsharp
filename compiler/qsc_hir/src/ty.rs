@@ -52,7 +52,7 @@ impl Ty {
     pub const UNIT: Self = Self::Tuple(Vec::new());
 
     #[must_use]
-    pub fn with_package(&self, package: Option<PackageId>) -> Self {
+    pub fn with_package(&self, package: PackageId) -> Self {
         match self {
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
@@ -118,7 +118,7 @@ impl Scheme {
     }
 
     #[must_use]
-    pub fn with_package(&self, package: Option<PackageId>) -> Self {
+    pub fn with_package(&self, package: PackageId) -> Self {
         Self {
             params: self.params.clone(),
             ty: Box::new(Arrow {
@@ -297,7 +297,7 @@ pub struct Arrow {
 
 impl Arrow {
     #[must_use]
-    pub fn with_package(&self, package: Option<PackageId>) -> Self {
+    pub fn with_package(&self, package: PackageId) -> Self {
         Self {
             kind: self.kind,
             input: Box::new(self.input.with_package(package)),

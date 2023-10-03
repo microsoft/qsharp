@@ -203,12 +203,15 @@ pub enum Res {
 impl Res {
     /// Returns an updated resolution with the given package ID.
     #[must_use]
-    pub fn with_package(&self, package: Option<PackageId>) -> Self {
+    pub fn with_package(&self, package: PackageId) -> Self {
         match self {
             Res::Item(id) if id.package.is_none() => Res::Item(ItemId {
-                package,
+                package: Some(package),
                 item: id.item,
             }),
+            Res::Item(id) if id.package.expect("none case should be handled above") != package => {
+                panic!("should not try to update Res with existing package id")
+            }
             _ => *self,
         }
     }
