@@ -3,7 +3,6 @@
 
 use crate::test_expression;
 use indoc::indoc;
-use num_bigint::BigInt;
 use qsc::interpret::Value;
 
 //

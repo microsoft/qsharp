@@ -9,6 +9,8 @@ mod test_arrays;
 #[cfg(test)]
 mod test_convert;
 #[cfg(test)]
+mod test_math;
+#[cfg(test)]
 mod test_measurement;
 #[cfg(test)]
 mod tests;
