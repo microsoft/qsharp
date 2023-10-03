@@ -336,6 +336,7 @@ fn replace_node() {
         sources,
         TargetProfile::Full,
     );
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
 
@@ -417,6 +418,7 @@ fn insert_core_call() {
 
     let store = PackageStore::new(super::core());
     let mut unit = compile(&store, &[], sources, TargetProfile::Full);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     let mut inserter = Inserter { core: store.core() };
     inserter.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
@@ -461,7 +463,9 @@ fn package_dependency() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1, TargetProfile::Full));
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
 
     let sources2 = SourceMap::new(
         [(
@@ -478,40 +482,32 @@ fn package_dependency() {
         None,
     );
     let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
-    let foo_id = LocalItemId::from(1);
-    let ItemKind::Callable(callable) = &unit2
-        .package
-        .items
-        .get(foo_id)
-        .expect("package should have item")
-        .kind
-    else {
-        panic!("item should be a callable");
-    };
-    let SpecBody::Impl(_, block) = &callable.body.body else {
-        panic!("callable body have a block")
-    };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else {
-        panic!("statement should be an expression")
-    };
-    let ExprKind::Call(callee, _) = &expr.kind else {
-        panic!("expression should be a call")
-    };
-    let ExprKind::Var(res, _) = &callee.kind else {
-        panic!("callee should be a variable")
-    };
-    assert_eq!(
-        &Res::Item(ItemId {
-            package: Some(package1),
-            item: foo_id,
-        }),
-        res
-    );
+    expect![[r#"
+        Package:
+            Item 0 [0-78] (Public):
+                Namespace (Ident 9 [10-18] "Package2"): Item 1
+            Item 1 [25-76] (Public):
+                Parent: 0
+                Callable 0 [25-76] (function):
+                    name: Ident 1 [34-37] "Bar"
+                    input: Pat 2 [37-39] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-76]: Impl:
+                        Block 4 [46-76] [Type Int]:
+                            Stmt 5 [56-70]: Expr: Expr 6 [56-70] [Type Int]: Call:
+                                Expr 7 [56-68] [Type (Unit -> Int)]: Var: Item 1 (Package 1)
+                                Expr 8 [68-70] [Type Unit]: Unit
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
 }
 
 #[test]
-fn package_dependency_internal() {
+fn package_dependency_internal_error() {
     let mut store = PackageStore::new(super::core());
 
     let sources1 = SourceMap::new(
@@ -528,7 +524,9 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1, TargetProfile::Full));
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
 
     let sources2 = SourceMap::new(
         [(
@@ -546,28 +544,97 @@ fn package_dependency_internal() {
     );
     let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
 
-    let ItemKind::Callable(callable) = &unit2
-        .package
-        .items
-        .get(LocalItemId::from(1))
-        .expect("package should have item")
-        .kind
-    else {
-        panic!("item should be a callable");
-    };
-    let SpecBody::Impl(_, block) = &callable.body.body else {
-        panic!("callable body have a block")
-    };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else {
-        panic!("statement should be an expression")
-    };
-    let ExprKind::Call(callee, _) = &expr.kind else {
-        panic!("expression should be a call")
-    };
-    let ExprKind::Var(res, _) = &callee.kind else {
-        panic!("callee should be a variable")
-    };
-    assert_eq!(&Res::Err, res);
+    let errors: Vec<_> = unit2
+        .errors
+        .iter()
+        .map(|error| source_span(&unit2.sources, error))
+        .collect();
+    assert_eq!(vec![("test", Span { lo: 65, hi: 68 }),], errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-78] (Public):
+                Namespace (Ident 9 [10-18] "Package2"): Item 1
+            Item 1 [25-76] (Public):
+                Parent: 0
+                Callable 0 [25-76] (function):
+                    name: Ident 1 [34-37] "Bar"
+                    input: Pat 2 [37-39] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-76]: Impl:
+                        Block 4 [46-76] [Type Int]:
+                            Stmt 5 [56-70]: Expr: Expr 6 [56-70] [Type Int]: Call:
+                                Expr 7 [56-68] [Type ?]: Var: Err
+                                Expr 8 [68-70] [Type Unit]: Unit
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
+}
+
+#[test]
+fn package_dependency_udt() {
+    let mut store = PackageStore::new(super::core());
+
+    let sources1 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package1 {
+                    newtype Bar = Int;
+                    function Foo(bar : Bar) : Int {
+                        bar!
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
+
+    let sources2 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package2 {
+                    function Baz() : Int {
+                        Package1.Foo(Package1.Bar(1))
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-93] (Public):
+                Namespace (Ident 11 [10-18] "Package2"): Item 1
+            Item 1 [25-91] (Public):
+                Parent: 0
+                Callable 0 [25-91] (function):
+                    name: Ident 1 [34-37] "Baz"
+                    input: Pat 2 [37-39] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-91]: Impl:
+                        Block 4 [46-91] [Type Int]:
+                            Stmt 5 [56-85]: Expr: Expr 6 [56-85] [Type Int]: Call:
+                                Expr 7 [56-68] [Type (UDT<Item 1 (Package 1)> -> Int)]: Var: Item 2 (Package 1)
+                                Expr 8 [69-84] [Type UDT<Item 1 (Package 1)>]: Call:
+                                    Expr 9 [69-81] [Type (Int -> UDT<Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                    Expr 10 [82-83] [Type Int]: Lit: Int(1)
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
 }
 
 #[test]

@@ -200,6 +200,23 @@ pub enum Res {
     Local(NodeId),
 }
 
+impl Res {
+    /// Returns an updated resolution with the given package ID.
+    #[must_use]
+    pub fn with_package(&self, package: PackageId) -> Self {
+        match self {
+            Res::Item(id) if id.package.is_none() => Res::Item(ItemId {
+                package: Some(package),
+                item: id.item,
+            }),
+            Res::Item(id) if id.package.expect("none case should be handled above") != package => {
+                panic!("should not try to update Res with existing package id")
+            }
+            _ => *self,
+        }
+    }
+}
+
 impl Display for Res {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
