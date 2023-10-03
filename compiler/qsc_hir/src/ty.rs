@@ -4,7 +4,7 @@
 use indenter::{indented, Format, Indented};
 use qsc_data_structures::span::Span;
 
-use crate::hir::{CallableKind, FieldPath, Functor, ItemId, Res};
+use crate::hir::{CallableKind, FieldPath, Functor, ItemId, PackageId, Res};
 use std::{
     collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -50,6 +50,22 @@ pub enum Ty {
 impl Ty {
     /// The unit type.
     pub const UNIT: Self = Self::Tuple(Vec::new());
+
+    #[must_use]
+    pub fn with_package(&self, package: PackageId) -> Self {
+        match self {
+            Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
+            Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
+            Ty::Tuple(items) => Ty::Tuple(
+                items
+                    .iter()
+                    .map(|item| item.with_package(package))
+                    .collect(),
+            ),
+            Ty::Udt(res) => Ty::Udt(res.with_package(package)),
+        }
+    }
 }
 
 impl Display for Ty {
@@ -96,6 +112,19 @@ impl Scheme {
     #[must_use]
     pub fn new(params: Vec<GenericParam>, ty: Box<Arrow>) -> Self {
         Self { params, ty }
+    }
+
+    #[must_use]
+    pub fn with_package(&self, package: PackageId) -> Self {
+        Self {
+            params: self.params.clone(),
+            ty: Box::new(Arrow {
+                kind: self.ty.kind,
+                input: Box::new(self.ty.input.with_package(package)),
+                output: Box::new(self.ty.output.with_package(package)),
+                functors: self.ty.functors,
+            }),
+        }
     }
 
     /// The generic parameters to the type.
@@ -261,6 +290,18 @@ pub struct Arrow {
     pub output: Box<Ty>,
     /// The functors supported by the callable.
     pub functors: FunctorSet,
+}
+
+impl Arrow {
+    #[must_use]
+    pub fn with_package(&self, package: PackageId) -> Self {
+        Self {
+            kind: self.kind,
+            input: Box::new(self.input.with_package(package)),
+            output: Box::new(self.output.with_package(package)),
+            functors: self.functors,
+        }
+    }
 }
 
 impl Display for Arrow {
