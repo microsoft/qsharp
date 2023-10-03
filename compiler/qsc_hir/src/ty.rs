@@ -54,11 +54,9 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
+            Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
-            Ty::Infer(infer) => Ty::Infer(*infer),
-            Ty::Param(param) => Ty::Param(*param),
-            Ty::Prim(prim) => Ty::Prim(*prim),
             Ty::Tuple(items) => Ty::Tuple(
                 items
                     .iter()
@@ -66,7 +64,6 @@ impl Ty {
                     .collect(),
             ),
             Ty::Udt(res) => Ty::Udt(res.with_package(package)),
-            Ty::Err => Ty::Err,
         }
     }
 }
