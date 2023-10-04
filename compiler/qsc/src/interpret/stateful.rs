@@ -259,7 +259,7 @@ impl Interpreter {
         Err(vec![Error::NoEntryPoint])
     }
 
-    /// # Errors    
+    /// # Errors
     /// If the parsing of the fragments fails, an error is returned.
     /// If the compilation of the fragments fails, an error is returned.
     /// If there is a runtime error when interpreting the fragments, an error is returned.
