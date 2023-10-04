@@ -139,15 +139,7 @@ impl Compiler {
     pub fn update(&mut self, new: Increment) {
         let (_, unit) = self.store.get_open_mut();
 
-        // Extend the AST and HIR packages
-        unit.ast.package.extend(new.ast.package);
-        unit.package.extend(new.hir);
-
-        // The new `Increment` will contain the names and tys
-        // from the original package as well, so just
-        // replace the current tables instead of extending.
-        unit.ast.names = new.ast.names;
-        unit.ast.tys = new.ast.tys;
+        self.frontend.update(unit, new);
     }
 
     /// Returns a reference to the underlying package store.

@@ -238,19 +238,6 @@ pub struct Package {
     pub entry: Option<Expr>,
 }
 
-impl Package {
-    /// Extends the `Package` with the contents of another `Package`.
-    /// `other` should not contain any `LocalItemId`s
-    /// that conflict with the current `Package`.
-    pub fn extend(&mut self, mut other: Package) {
-        for (k, v) in other.items.drain() {
-            self.items.insert(k, v);
-        }
-
-        self.stmts.extend(other.stmts);
-    }
-}
-
 impl Display for Package {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);

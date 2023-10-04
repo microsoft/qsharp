@@ -18,18 +18,22 @@ use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{self, Stmt, TopLevelNode},
     mut_visit::MutVisitor,
-    visit::Visitor,
+    validate::Validator as AstValidator,
+    visit::Visitor as AstVisitor,
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
+    validate::Validator as HirValidator,
+    visit::Visitor as HirVisitor,
 };
+use std::mem::take;
 
 /// The frontend for an incremental compiler.
 /// It is used to update a single `CompileUnit`
 /// with additional sources.
 pub struct Compiler {
-    pub ast_assigner: AstAssigner,
+    ast_assigner: AstAssigner,
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
@@ -161,6 +165,20 @@ impl Compiler {
         }
     }
 
+    pub fn update(&mut self, unit: &mut CompileUnit, new: Increment) {
+        // Update the AST
+        unit.ast.package = self.concat_ast(take(&mut unit.ast.package), new.ast.package);
+
+        // The new `Increment` will contain the names and tys
+        // from the original package as well, so just
+        // replace the current tables instead of extending.
+        unit.ast.names = new.ast.names;
+        unit.ast.tys = new.ast.tys;
+
+        // Update the HIR
+        extend_hir(&mut unit.package, new.hir);
+    }
+
     fn resolve_check_lower(
         &mut self,
         unit: &mut CompileUnit,
@@ -188,6 +206,24 @@ impl Compiler {
             .collect();
 
         (package, errors)
+    }
+
+    /// Creates a new `Package` by combining two packages.
+    /// The two packages should not contain any conflicting `NodeId`s.
+    /// Entry expressions are ignored.
+    #[must_use]
+    fn concat_ast(&mut self, mut left: ast::Package, right: ast::Package) -> ast::Package {
+        assert!(right.entry.is_none(), "package should not have entry expr");
+        assert!(left.entry.is_none(), "package should not have entry expr");
+
+        let mut nodes = Vec::with_capacity(left.nodes.len() + right.nodes.len());
+        nodes.extend(left.nodes.into_vec());
+        nodes.extend(right.nodes.into_vec());
+        left.id = self.ast_assigner.next_id();
+        left.nodes = nodes.into_boxed_slice();
+
+        AstValidator::default().visit_package(&left);
+        left
     }
 
     fn parse_expr(
@@ -265,6 +301,20 @@ impl Compiler {
             )
             .collect()
     }
+}
+
+/// Extends the `Package` with the contents of another `Package`.
+/// `other` should not contain any `LocalItemId`s
+/// that conflict with the current `Package`.
+/// The entry expression from `other` will be ignored.
+fn extend_hir(this: &mut hir::Package, mut other: hir::Package) {
+    for (k, v) in other.items.drain() {
+        this.items.insert(k, v);
+    }
+
+    this.stmts.extend(other.stmts);
+
+    HirValidator::default().visit_package(this);
 }
 
 fn with_source(

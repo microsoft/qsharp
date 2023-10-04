@@ -121,22 +121,6 @@ pub struct Package {
     pub entry: Option<Box<Expr>>,
 }
 
-fn take_and_concat<T>(left: &mut Box<[T]>, right: &mut Box<[T]>) -> Box<[T]> {
-    let mut v = std::mem::take(left).into_vec();
-    v.reserve_exact(right.len());
-    v.extend(std::mem::take(right).into_vec());
-    v.into_boxed_slice()
-}
-
-impl Package {
-    /// Extends the `Package` with the contents of another `Package`.
-    /// `other` should not contain any `NodeId`s
-    /// that conflict with the current `Package`.
-    pub fn extend(&mut self, mut other: Package) {
-        self.nodes = take_and_concat(&mut self.nodes, &mut other.nodes);
-    }
-}
-
 impl Display for Package {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
