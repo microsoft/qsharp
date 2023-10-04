@@ -106,6 +106,12 @@ fn check_apply_to_each_ca_not_applied() {
 //
 
 #[test]
+fn check_fst_snd() {
+    test_expression("Fst(7,6)", &Value::Int(7));
+    test_expression("Snd(7,6)", &Value::Int(6));
+}
+
+#[test]
 fn check_repeated() {
     test_expression("Repeated(Zero, 0)", &Value::Array(vec![].into()));
     test_expression(
