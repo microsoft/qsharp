@@ -10,9 +10,6 @@
       "include": "#keywords"
     },
     {
-      "include": "#library"
-    },
-    {
       "include": "#operations"
     },
     {
@@ -42,11 +39,11 @@
       "patterns": [
         {
           "name": "keyword.control.qsharp",
-          "match": "\\b(use|using|borrow|borrowing|mutable|let|set|if|elif|else|repeat|until|fixup|for|in|while|return|fail|within|apply)\\b"
+          "match": "\\b(use|borrow|mutable|let|set|if|elif|else|repeat|until|fixup|for|in|while|return|fail|within|apply)\\b"
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(new|not|and|or|w/)\\b"
+          "match": "\\b(not|and|or)\\b"
         }
       ]
     },
@@ -63,18 +60,6 @@
         {
           "name": "storage.type.qsharp",
           "match": "\\b(Int|BigInt|Double|Bool|Qubit|Pauli|Result|Range|String|Unit|Ctl|Adj|is)\\b"
-        }
-      ]
-    },
-    "library": {
-      "patterns": [
-        {
-          "name": "support.function.quantum.qsharp",
-          "match": "\\b(I|X|Y|Z|H|HY|S|T|SWAP|CNOT|CCNOT|MultiX|R|RFrac|Rx|Ry|Rz|R1|R1Frac|Exp|ExpFrac|Measure|M|MultiM)\\b"
-        },
-        {
-          "name": "support.function.builtin.qsharp",
-          "match": "\\b(Message|Length|Floor)\\b"
         }
       ]
     },
