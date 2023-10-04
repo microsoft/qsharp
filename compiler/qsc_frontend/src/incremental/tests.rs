@@ -75,7 +75,10 @@ fn one_statement() {
             terms:
             node_id:1,node_id:2,node_id:3,node_id:4,
             hir:
-            Package:"#]],
+            Package:
+                Stmt 0 [0-16]: Qubit (Fresh)
+                    Pat 1 [4-5] [Type Qubit]: Bind: Ident 2 [4-5] "q"
+                    QubitInit 3 [8-15] [Type Qubit]: Single"#]],
         &unit,
     );
 }

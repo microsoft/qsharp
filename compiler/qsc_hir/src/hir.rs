@@ -249,6 +249,9 @@ impl Display for Package {
         for item in self.items.values() {
             write!(indent, "\n{item}")?;
         }
+        for stmt in &self.stmts {
+            write!(indent, "\n{stmt}")?;
+        }
         Ok(())
     }
 }
