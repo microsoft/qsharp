@@ -17,6 +17,14 @@ use crate::{
     qsc_utils::{find_item, map_offset, Compilation},
 };
 
+pub(crate) fn prepare_rename(
+    compilation: &Compilation,
+    source_name: &str,
+    offset: u32,
+) -> Option<(protocol::Span, String)> {
+    None
+}
+
 pub(crate) fn get_rename(
     compilation: &Compilation,
     source_name: &str,

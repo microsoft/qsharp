@@ -372,8 +372,27 @@ function registerMonacoLanguageServiceProviders(
       model: monaco.editor.ITextModel,
       position: monaco.Position
     ) => {
-      return { rejectReason: "no rename" } as monaco.languages.RenameLocation &
-        monaco.languages.Rejection;
+      const prepareRename = await languageService.prepareRename(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+      if (prepareRename) {
+        const start = model.getPositionAt(prepareRename.range.start);
+        const end = model.getPositionAt(prepareRename.range.end);
+        return {
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          text: prepareRename.newText,
+        } as monaco.languages.RenameLocation;
+      } else {
+        return {
+          rejectReason: "no rename",
+        } as monaco.languages.RenameLocation & monaco.languages.Rejection;
+      }
     },
   });
 }

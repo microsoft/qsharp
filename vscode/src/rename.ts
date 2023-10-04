@@ -49,7 +49,20 @@ class QSharpRenameProvider implements vscode.RenameProvider {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken
   ) {
-    throw "no rename";
-    return undefined;
+    const prepareRename = await this.languageService.prepareRename(
+      document.uri.toString(),
+      document.offsetAt(position)
+    );
+    if (prepareRename) {
+      return {
+        range: new vscode.Range(
+          document.positionAt(prepareRename.range.start),
+          document.positionAt(prepareRename.range.end)
+        ),
+        placeholder: prepareRename.newText,
+      };
+    } else {
+      throw "no rename";
+    }
   }
 }

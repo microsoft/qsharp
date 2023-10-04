@@ -213,6 +213,21 @@ impl<'a> LanguageService<'a> {
         res
     }
 
+    /// # Panics
+    ///
+    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
+    #[must_use]
+    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<(protocol::Span, String)> {
+        trace!("prepare_rename: uri: {uri:?}, offset: {offset:?}");
+        let res = rename::prepare_rename(
+            &self
+            .document_map.get(uri).as_ref()
+                .expect("prepare_rename should not be called before document has been initialized with update_document").compilation,
+                uri, offset);
+        trace!("prepare_rename result: {res:?}");
+        res
+    }
+
     fn apply_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) -> bool {
         let mut need_recompile = false;
 

@@ -55,6 +55,10 @@ export interface ILanguageService {
     offset: number,
     newName: string
   ): Promise<IWorkspaceEdit | undefined>;
+  prepareRename(
+    documentUri: string,
+    offset: number
+  ): Promise<ITextEdit | undefined>;
 
   dispose(): Promise<void>;
 
@@ -257,6 +261,31 @@ export class QSharpLanguageService implements ILanguageService {
       }
     }
     result.changes = mappedChanges;
+    return result;
+  }
+
+  async prepareRename(
+    documentUri: string,
+    offset: number
+  ): Promise<ITextEdit | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.prepare_rename(
+      documentUri,
+      convertedOffset
+    );
+    if (result) {
+      const mappedSpan = mapUtf8UnitsToUtf16Units(
+        [result.range.start, result.range.end],
+        code
+      );
+      result.range.start = mappedSpan[result.range.start];
+      result.range.end = mappedSpan[result.range.end];
+    }
     return result;
   }
 

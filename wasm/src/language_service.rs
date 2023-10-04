@@ -167,6 +167,20 @@ impl LanguageService {
         };
         workspace_edit.into()
     }
+
+    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<ITextEdit> {
+        let result = self.0.prepare_rename(uri, offset);
+        result.map(|r| {
+            TextEdit {
+                range: Span {
+                    start: r.0.start,
+                    end: r.0.end,
+                },
+                newText: r.1,
+            }
+            .into()
+        })
+    }
 }
 
 serializable_type! {
@@ -220,7 +234,8 @@ serializable_type! {
     r#"export interface ITextEdit {
         range: ISpan;
         newText: string;
-    }"#
+    }"#,
+    ITextEdit
 }
 
 serializable_type! {
