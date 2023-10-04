@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use std::rc::Rc;
+
 use qsc::{
     ast::{
         self,
@@ -22,7 +24,21 @@ pub(crate) fn prepare_rename(
     source_name: &str,
     offset: u32,
 ) -> Option<(protocol::Span, String)> {
-    None
+    // Map the file offset into a SourceMap offset
+    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let package = &compilation.unit.ast.package;
+
+    let mut prepare_rename = Rename::new(compilation, offset, true);
+    prepare_rename.visit_package(package);
+    prepare_rename.prepare.map(|p| {
+        (
+            protocol::Span {
+                start: p.0.lo,
+                end: p.0.hi,
+            },
+            p.1.to_string(),
+        )
+    })
 }
 
 pub(crate) fn get_rename(
@@ -34,7 +50,7 @@ pub(crate) fn get_rename(
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
     let package = &compilation.unit.ast.package;
 
-    let mut rename_visitor = Rename::new(compilation, offset);
+    let mut rename_visitor = Rename::new(compilation, offset, false);
     rename_visitor.visit_package(package);
     rename_visitor
         .locations
@@ -51,15 +67,19 @@ struct Rename<'a> {
     offset: u32,
     current_callable: Option<&'a ast::CallableDecl>,
     locations: Vec<Span>,
+    is_prepare: bool,
+    prepare: Option<(Span, Rc<str>)>,
 }
 
 impl<'a> Rename<'a> {
-    fn new(compilation: &'a Compilation, offset: u32) -> Self {
+    fn new(compilation: &'a Compilation, offset: u32, is_prepare: bool) -> Self {
         Self {
             compilation,
             offset,
             current_callable: None,
             locations: vec![],
+            is_prepare,
+            prepare: None,
         }
     }
 }
@@ -144,7 +164,12 @@ impl<'a> Visitor<'a> for Rename<'a> {
                         if let Some(item_id) =
                             ast_item_id_to_hir_item_id(decl.name.id, self.compilation)
                         {
-                            self.locations = get_spans_for_item_rename(item_id, self.compilation);
+                            if self.is_prepare {
+                                self.prepare = Some((decl.name.span, decl.name.name.clone()));
+                            } else {
+                                self.locations =
+                                    get_spans_for_item_rename(item_id, self.compilation);
+                            }
                         }
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.current_callable;
@@ -165,7 +190,12 @@ impl<'a> Visitor<'a> for Rename<'a> {
                         if let Some(item_id) =
                             ast_item_id_to_hir_item_id(ident.id, self.compilation)
                         {
-                            self.locations = get_spans_for_item_rename(item_id, self.compilation);
+                            if self.is_prepare {
+                                self.prepare = Some((ident.span, ident.name.clone()));
+                            } else {
+                                self.locations =
+                                    get_spans_for_item_rename(item_id, self.compilation);
+                            }
                         }
                     } else {
                         self.visit_ty_def(def);
@@ -202,8 +232,12 @@ impl<'a> Visitor<'a> for Rename<'a> {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_contains(ident.span, self.offset) {
                         if let Some(curr) = self.current_callable {
-                            self.locations =
-                                get_spans_for_local_rename(ident.id, curr, self.compilation);
+                            if self.is_prepare {
+                                self.prepare = Some((ident.span, ident.name.clone()));
+                            } else {
+                                self.locations =
+                                    get_spans_for_local_rename(ident.id, curr, self.compilation);
+                            }
                         }
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -256,12 +290,20 @@ impl<'a> Visitor<'a> for Rename<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        self.locations = get_spans_for_item_rename(item_id, self.compilation);
+                        if self.is_prepare {
+                            self.prepare = Some((path.name.span, path.name.name.clone()));
+                        } else {
+                            self.locations = get_spans_for_item_rename(item_id, self.compilation);
+                        }
                     }
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.current_callable {
-                            self.locations =
-                                get_spans_for_local_rename(*node_id, curr, self.compilation);
+                            if self.is_prepare {
+                                self.prepare = Some((path.name.span, path.name.name.clone()));
+                            } else {
+                                self.locations =
+                                    get_spans_for_local_rename(*node_id, curr, self.compilation);
+                            }
                         }
                     }
                     _ => {}
