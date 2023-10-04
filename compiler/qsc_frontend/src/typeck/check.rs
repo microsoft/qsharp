@@ -44,11 +44,14 @@ impl GlobalTable {
             };
 
             match &item.kind {
-                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.scheme()),
+                hir::ItemKind::Callable(decl) => {
+                    self.terms.insert(item_id, decl.scheme().with_package(id))
+                }
                 hir::ItemKind::Namespace(..) => None,
                 hir::ItemKind::Ty(_, udt) => {
                     self.udts.insert(item_id, udt.clone());
-                    self.terms.insert(item_id, udt.cons_scheme(item_id))
+                    self.terms
+                        .insert(item_id, udt.cons_scheme(item_id).with_package(id))
                 }
             };
         }
