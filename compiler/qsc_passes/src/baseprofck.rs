@@ -7,9 +7,12 @@ mod tests;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{BinOp, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody, SpecGen},
+    hir::{
+        BinOp, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody, SpecGen,
+        StmtKind,
+    },
     ty::{Prim, Ty},
-    visit::{walk_expr, walk_item, Visitor},
+    visit::{walk_expr, walk_item, walk_package, Visitor},
 };
 use thiserror::Error;
 
@@ -62,6 +65,16 @@ struct Checker {
 }
 
 impl<'a> Visitor<'a> for Checker {
+    fn visit_package(&mut self, package: &'a Package) {
+        if let Some(StmtKind::Expr(expr)) = &package.stmts.last().map(|stmt| &stmt.kind) {
+            if any_non_result_ty(&expr.ty) {
+                self.errors.push(Error::ReturnNonResult(expr.span));
+            }
+        }
+
+        walk_package(self, package);
+    }
+
     fn visit_item(&mut self, item: &'a Item) {
         match &item.kind {
             ItemKind::Callable(callable)

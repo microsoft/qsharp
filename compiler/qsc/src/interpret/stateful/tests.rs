@@ -934,6 +934,27 @@ mod given_interpreter {
         }
 
         #[test]
+        fn qirgen_entry_expr_profile_incompatible() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetProfile::Base,
+            )
+            .expect("interpreter should be created");
+            let res = interpreter
+                .qirgen("1")
+                .expect_err("expected qirgen to fail");
+            is_error(
+                &res,
+                &expect![[r#"
+                non-Result return type in entry expression
+                   [<entry>] [1]
+            "#]],
+            );
+        }
+
+        #[test]
         fn run_with_shots() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");

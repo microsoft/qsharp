@@ -117,6 +117,7 @@ impl PassContext {
             .collect()
     }
 }
+
 /// Run the default set of passes required for evaluation.
 pub fn run_default_passes(
     core: &Table,
