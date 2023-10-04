@@ -368,6 +368,13 @@ function registerMonacoLanguageServiceProviders(
       });
       return { edits: edits } as monaco.languages.WorkspaceEdit;
     },
+    resolveRenameLocation: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      return { rejectReason: "no rename" } as monaco.languages.RenameLocation &
+        monaco.languages.Rejection;
+    },
   });
 }
 

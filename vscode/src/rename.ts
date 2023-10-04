@@ -42,4 +42,14 @@ class QSharpRenameProvider implements vscode.RenameProvider {
 
     return workspaceEdit;
   }
+
+  async prepareRename(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    token: vscode.CancellationToken
+  ) {
+    throw "no rename";
+    return undefined;
+  }
 }

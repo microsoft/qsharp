@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use crate::serializable_type;
-use log::info;
 use miette::{Diagnostic, Severity};
 use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
@@ -151,8 +150,6 @@ impl LanguageService {
 
     pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
         let locations = self.0.get_rename(uri, offset);
-
-        info!("locations: {locations:?}");
 
         let renames = locations
             .into_iter()
