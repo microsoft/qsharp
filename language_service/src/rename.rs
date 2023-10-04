@@ -89,24 +89,19 @@ fn span_contains(span: Span, offset: u32) -> bool {
 }
 
 fn get_spans_for_item_rename(item_id: &hir::ItemId, compilation: &Compilation) -> Vec<Span> {
-    // Only rename items that are part of the local package
-    if item_id.package.is_none() {
-        if let Some(def) = compilation.unit.package.items.get(item_id.item) {
-            let def_span = match &def.kind {
-                hir::ItemKind::Callable(decl) => decl.name.span,
-                hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
-            };
-            let mut rename = ItemRename {
-                item_id,
-                compilation,
-                locations: vec![],
-            };
-            rename.visit_package(&compilation.unit.ast.package);
-            rename.locations.push(def_span);
-            rename.locations
-        } else {
-            vec![]
-        }
+    if let Some(def) = compilation.unit.package.items.get(item_id.item) {
+        let def_span = match &def.kind {
+            hir::ItemKind::Callable(decl) => decl.name.span,
+            hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
+        };
+        let mut rename = ItemRename {
+            item_id,
+            compilation,
+            locations: vec![],
+        };
+        rename.visit_package(&compilation.unit.ast.package);
+        rename.locations.push(def_span);
+        rename.locations
     } else {
         vec![]
     }
@@ -164,11 +159,14 @@ impl<'a> Visitor<'a> for Rename<'a> {
                         if let Some(item_id) =
                             ast_item_id_to_hir_item_id(decl.name.id, self.compilation)
                         {
-                            if self.is_prepare {
-                                self.prepare = Some((decl.name.span, decl.name.name.clone()));
-                            } else {
-                                self.locations =
-                                    get_spans_for_item_rename(item_id, self.compilation);
+                            // Only rename items that are part of the local package
+                            if item_id.package.is_none() {
+                                if self.is_prepare {
+                                    self.prepare = Some((decl.name.span, decl.name.name.clone()));
+                                } else {
+                                    self.locations =
+                                        get_spans_for_item_rename(item_id, self.compilation);
+                                }
                             }
                         }
                     } else if span_contains(decl.span, self.offset) {
@@ -190,11 +188,14 @@ impl<'a> Visitor<'a> for Rename<'a> {
                         if let Some(item_id) =
                             ast_item_id_to_hir_item_id(ident.id, self.compilation)
                         {
-                            if self.is_prepare {
-                                self.prepare = Some((ident.span, ident.name.clone()));
-                            } else {
-                                self.locations =
-                                    get_spans_for_item_rename(item_id, self.compilation);
+                            // Only rename items that are part of the local package
+                            if item_id.package.is_none() {
+                                if self.is_prepare {
+                                    self.prepare = Some((ident.span, ident.name.clone()));
+                                } else {
+                                    self.locations =
+                                        get_spans_for_item_rename(item_id, self.compilation);
+                                }
                             }
                         }
                     } else {
@@ -290,10 +291,14 @@ impl<'a> Visitor<'a> for Rename<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if self.is_prepare {
-                            self.prepare = Some((path.name.span, path.name.name.clone()));
-                        } else {
-                            self.locations = get_spans_for_item_rename(item_id, self.compilation);
+                        // Only rename items that are part of the local package
+                        if item_id.package.is_none() {
+                            if self.is_prepare {
+                                self.prepare = Some((path.name.span, path.name.name.clone()));
+                            } else {
+                                self.locations =
+                                    get_spans_for_item_rename(item_id, self.compilation);
+                            }
                         }
                     }
                     resolve::Res::Local(node_id) => {
