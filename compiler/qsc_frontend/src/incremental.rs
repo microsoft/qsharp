@@ -168,10 +168,15 @@ impl Compiler {
     ) -> (hir::Package, Vec<Error>) {
         let mut cond_compile = preprocess::Conditional::new(self.target);
         cond_compile.visit_package(ast);
+
+        self.ast_assigner.visit_package(ast);
+
         self.resolver
             .extend_dropped_names(cond_compile.into_names());
+        self.resolver.bind_fragments(ast, &mut unit.assigner);
+        self.resolver.with(&mut unit.assigner).visit_package(ast);
 
-        self.check(&mut unit.assigner, ast);
+        self.checker.check_package(self.resolver.names(), ast);
         self.checker.solve(self.resolver.names());
 
         let package = self.lower(&mut unit.assigner, &*ast);
@@ -242,29 +247,6 @@ impl Compiler {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
             .lower_package(package)
-    }
-
-    fn check(&mut self, hir_assigner: &mut HirAssigner, package: &mut ast::Package) {
-        self.ast_assigner.visit_package(package);
-
-        // bind_items
-        for node in &mut package.nodes.iter() {
-            match node {
-                ast::TopLevelNode::Namespace(ns) => {
-                    self.resolver.bind_namespace_items(hir_assigner, ns);
-                }
-                ast::TopLevelNode::Stmt(stmt) => {
-                    if let ast::StmtKind::Item(item) = stmt.kind.as_ref() {
-                        self.resolver.bind_local_item(hir_assigner, item);
-                    }
-                }
-            }
-        }
-
-        // resolve
-        self.resolver.with(hir_assigner).visit_package(package);
-
-        self.checker.check_package(self.resolver.names(), package);
     }
 
     fn drain_errors(&mut self) -> Vec<compile::Error> {
