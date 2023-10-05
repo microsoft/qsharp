@@ -62,7 +62,7 @@ class QSharpRenameProvider implements vscode.RenameProvider {
         placeholder: prepareRename.newText,
       };
     } else {
-      throw "no rename";
+      throw "Rename is unavailable at this location.";
     }
   }
 }

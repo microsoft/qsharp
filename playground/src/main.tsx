@@ -390,7 +390,7 @@ function registerMonacoLanguageServiceProviders(
         } as monaco.languages.RenameLocation;
       } else {
         return {
-          rejectReason: "no rename",
+          rejectReason: "Rename is unavailable at this location.",
         } as monaco.languages.RenameLocation & monaco.languages.Rejection;
       }
     },
