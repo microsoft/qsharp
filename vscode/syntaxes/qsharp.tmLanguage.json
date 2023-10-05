@@ -10,7 +10,7 @@
       "include": "#keywords"
     },
     {
-      "include": "#operations"
+      "include": "#operators"
     },
     {
       "include": "#types"
@@ -43,15 +43,15 @@
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(not|and|or)\\b|\\b(w/)|(<-)"
+          "match": "\\b(namespace|open|as|internal|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
         }
       ]
     },
-    "operations": {
+    "operators": {
       "patterns": [
         {
-          "name": "keyword.other.qsharp",
-          "match": "\\b(namespace|open|as|internal|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
+          "name": "keyword.other.operator.qsharp",
+          "match": "\\b(not|and|or)\\b|\\b(w/)|(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)"
         }
       ]
     },
@@ -67,7 +67,11 @@
       "patterns": [
         {
           "name": "constant.language.qsharp",
-          "match": "\\b(true|false|Pauli(I|X|Y|Z)|One|Zero)\\b"
+          "match": "\\b(true|false|Pauli(I|X|Y|Z))\\b"
+        },
+        {
+          "name": "constant.other.result.qsharp",
+          "match": "\\b(One|Zero)\\b"
         }
       ]
     },

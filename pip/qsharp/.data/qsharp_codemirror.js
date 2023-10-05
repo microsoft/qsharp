@@ -37,8 +37,18 @@ if (window.require && window.CodeMirror && window.Jupyter) {
       },
       {
         token: "keyword",
-        regex: String.raw`(let|set|w\/|\<-|not|and|or|use|borrow|mutable)\b`,
+        regex: String.raw`(let|set|use|borrow|mutable)\b`,
         beginWord: true,
+      },
+      {
+        token: "operatorKeyword",
+        regex: String.raw`(not|and|or)\b|(w/)`,
+        beginWord: true,
+      },
+      {
+        token: "operatorKeyword",
+        regex: String.raw`(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)`,
+        beginWord: false,
       },
       {
         token: "meta",
