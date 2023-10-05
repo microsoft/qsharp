@@ -23,6 +23,8 @@ use qsc::{
 /// # Panics
 ///
 /// Will panic if compilation fails or the result is not the same as expected.
+/// NOTE: Doubles in tuples are compared taking precision into account so that
+/// results of calculations can also be compared.
 pub fn test_expression(expr: &str, expected: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
@@ -36,5 +38,33 @@ pub fn test_expression(expr: &str, expected: &Value) {
         .eval_entry(&mut out)
         .expect("test should run successfully");
 
-    assert_eq!(expected, &result);
+    match (&expected, result) {
+        (&Value::Tuple(tup1), Value::Tuple(tup2)) if tup1.len() == tup2.len() => {
+            // If both values are tuples of the same length, we crack them open and compare elements
+            for (value1, value2) in tup1.iter().zip(tup2.iter()) {
+                if let (Value::Double(double1), Value::Double(double2)) = (value1, value2) {
+                    // If both elements are doubles, we use approximate comparison
+                    assert_doubles_almost_equal(*double1, *double2);
+                } else {
+                    assert_eq!(value1, value2);
+                }
+            }
+        }
+        (&expected, result) => assert_eq!(expected, &result),
+    }
+}
+
+/// # Panics
+///
+/// Will panic if f64 values are significantly different.
+fn assert_doubles_almost_equal(val1: f64, val2: f64) {
+    let val1_abs = val1.abs();
+    let val2_abs = val2.abs();
+    if val1_abs < f64::MIN_POSITIVE && val2_abs < f64::MIN_POSITIVE {
+        return;
+    }
+    assert!(
+        ((val1 - val2).abs() / (val1_abs + val2_abs)) < 1e-12,
+        "Significant difference between expected and actual values: val1={val1}, val2={val2}."
+    );
 }
