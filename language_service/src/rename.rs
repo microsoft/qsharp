@@ -4,12 +4,15 @@
 #[cfg(test)]
 mod tests;
 
+use std::rc::Rc;
+
 use qsc::{
     ast::{
         self,
         visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor},
     },
-    hir, resolve, Span,
+    hir::{self, ty::Ty, Res},
+    resolve, Span,
 };
 
 use crate::{
@@ -64,6 +67,7 @@ struct Rename<'a> {
     compilation: &'a Compilation,
     offset: u32,
     current_callable: Option<&'a ast::CallableDecl>,
+    current_udt_id: Option<&'a hir::ItemId>,
     locations: Vec<Span>,
     is_prepare: bool,
     prepare: Option<(Span, String)>,
@@ -75,6 +79,7 @@ impl<'a> Rename<'a> {
             compilation,
             offset,
             current_callable: None,
+            current_udt_id: None,
             locations: vec![],
             is_prepare,
             prepare: None,
@@ -100,6 +105,34 @@ impl<'a> Rename<'a> {
                     rename.visit_package(&self.compilation.unit.ast.package);
                     rename.locations.push(def_span);
                     self.locations = rename.locations;
+                }
+            }
+        }
+    }
+
+    fn get_spans_for_field_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
+        // Only rename items that are part of the local package
+        if item_id.package.is_none() {
+            if let Some(def) = self.compilation.unit.package.items.get(item_id.item) {
+                if let hir::ItemKind::Ty(_, udt) = &def.kind {
+                    if let Some(ty_field) = udt.find_field_by_name(&ast_name.name) {
+                        if self.is_prepare {
+                            self.prepare = Some((ast_name.span, ast_name.name.to_string()));
+                        } else {
+                            let def_span = ty_field
+                                .name_span
+                                .expect("field found via name should have a name");
+                            let mut rename = FieldRename {
+                                item_id,
+                                field_name: ast_name.name.clone(),
+                                compilation: self.compilation,
+                                locations: vec![],
+                            };
+                            rename.visit_package(&self.compilation.unit.ast.package);
+                            rename.locations.push(def_span);
+                            self.locations = rename.locations;
+                        }
+                    }
                 }
             }
         }
@@ -164,14 +197,15 @@ impl<'a> Visitor<'a> for Rename<'a> {
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if span_contains(ident.span, self.offset) {
-                        if let Some(item_id) =
-                            ast_item_id_to_hir_item_id(ident.id, self.compilation)
-                        {
+                    if let Some(item_id) = ast_item_id_to_hir_item_id(ident.id, self.compilation) {
+                        if span_contains(ident.span, self.offset) {
                             self.get_spans_for_item_rename(item_id, ident);
+                        } else if span_contains(def.span, self.offset) {
+                            let context = self.current_udt_id;
+                            self.current_udt_id = Some(item_id);
+                            self.visit_ty_def(def);
+                            self.current_udt_id = context;
                         }
-                    } else {
-                        self.visit_ty_def(def);
                     }
                 }
                 _ => {}
@@ -185,7 +219,9 @@ impl<'a> Visitor<'a> for Rename<'a> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_contains(ident.span, self.offset) {
-                        // ToDo: Handle UDT Field Name
+                        if let Some(item_id) = self.current_udt_id {
+                            self.get_spans_for_field_rename(item_id, ident);
+                        }
                     } else {
                         self.visit_ty(ty);
                     }
@@ -224,21 +260,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
                     {
                         match res {
                             hir::Res::Item(item_id) => {
-                                if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                    match &item.kind {
-                                        hir::ItemKind::Ty(_, udt) => {
-                                            if let Some(field) = udt.find_field_by_name(&field.name)
-                                            {
-                                                let span = field.name_span.expect(
-                                                    "field found via name should have a name",
-                                                );
-
-                                                // ToDo: Handle UDT Field Refs
-                                            }
-                                        }
-                                        _ => panic!("UDT has invalid resolution."),
-                                    }
-                                }
+                                self.get_spans_for_field_rename(item_id, field);
                             }
                             _ => panic!("UDT has invalid resolution."),
                         }
@@ -276,7 +298,6 @@ struct ItemRename<'a> {
 
 impl<'a> Visitor<'_> for ItemRename<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        // ToDo: Handle Namespace Renames
         let res = self.compilation.unit.ast.names.get(path.id);
         if let Some(resolve::Res::Item(item_id)) = res {
             if *item_id == *self.item_id {
@@ -295,6 +316,32 @@ impl<'a> Visitor<'_> for ItemRename<'a> {
             }
         } else {
             walk_ty(self, ty);
+        }
+    }
+}
+
+struct FieldRename<'a> {
+    item_id: &'a hir::ItemId,
+    field_name: Rc<str>,
+    compilation: &'a Compilation,
+    locations: Vec<Span>,
+}
+
+impl<'a> Visitor<'_> for FieldRename<'a> {
+    fn visit_expr(&mut self, expr: &'_ ast::Expr) {
+        if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
+            self.visit_expr(qualifier);
+            if field_name.name == self.field_name {
+                if let Some(Ty::Udt(Res::Item(id))) =
+                    self.compilation.unit.ast.tys.terms.get(qualifier.id)
+                {
+                    if id == self.item_id {
+                        self.locations.push(field_name.span);
+                    }
+                }
+            }
+        } else {
+            walk_expr(self, expr);
         }
     }
 }
