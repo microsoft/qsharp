@@ -29,7 +29,7 @@ pub(crate) fn get_completions(
     // Determine context for the offset
     let mut context_finder = ContextFinder {
         offset,
-        context: if compilation.unit.ast.package.namespaces.as_ref().is_empty() {
+        context: if compilation.unit.ast.package.nodes.is_empty() {
             // The parser failed entirely, no context to go on
             Context::NoCompilation
         } else {

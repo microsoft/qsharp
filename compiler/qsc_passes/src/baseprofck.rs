@@ -8,11 +8,11 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        BinOp, CallableDecl, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody,
-        SpecGen, Stmt, StmtKind,
+        BinOp, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody, SpecGen,
+        StmtKind,
     },
     ty::{Prim, Ty},
-    visit::{walk_expr, walk_item, Visitor},
+    visit::{walk_expr, walk_item, walk_package, Visitor},
 };
 use thiserror::Error;
 
@@ -60,32 +60,21 @@ pub fn check_base_profile_compliance(package: &Package) -> Vec<Error> {
     checker.errors
 }
 
-#[must_use]
-pub fn check_base_profile_compliance_for_stmt(stmt: &Stmt) -> Vec<Error> {
-    let mut checker = Checker { errors: Vec::new() };
-    checker.visit_stmt(stmt);
-    if let StmtKind::Expr(expr) = &stmt.kind {
-        if any_non_result_ty(&expr.ty) {
-            checker.errors.push(Error::ReturnNonResult(stmt.span));
-        }
-    }
-
-    checker.errors
-}
-
-#[must_use]
-pub fn check_base_profile_compliance_for_callable(decl: &CallableDecl) -> Vec<Error> {
-    let mut checker = Checker { errors: Vec::new() };
-    checker.visit_callable_decl(decl);
-
-    checker.errors
-}
-
 struct Checker {
     errors: Vec<Error>,
 }
 
 impl<'a> Visitor<'a> for Checker {
+    fn visit_package(&mut self, package: &'a Package) {
+        if let Some(StmtKind::Expr(expr)) = &package.stmts.last().map(|stmt| &stmt.kind) {
+            if any_non_result_ty(&expr.ty) {
+                self.errors.push(Error::ReturnNonResult(expr.span));
+            }
+        }
+
+        walk_package(self, package);
+    }
+
     fn visit_item(&mut self, item: &'a Item) {
         match &item.kind {
             ItemKind::Callable(callable)

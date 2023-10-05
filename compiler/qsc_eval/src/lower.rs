@@ -39,27 +39,6 @@ impl Lowerer {
         }
     }
 
-    /// Used to update the package with the lowered items.
-    /// Incremental compilation requires that we update the package
-    /// instead of returning a new one.
-    pub fn update_package(&mut self, package: &mut fir::Package) {
-        for (id, value) in self.blocks.drain() {
-            package.blocks.insert(id, value);
-        }
-
-        for (id, value) in self.exprs.drain() {
-            package.exprs.insert(id, value);
-        }
-
-        for (id, value) in self.pats.drain() {
-            package.pats.insert(id, value);
-        }
-
-        for (id, value) in self.stmts.drain() {
-            package.stmts.insert(id, value);
-        }
-    }
-
     pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let items: IndexMap<LocalItemId, fir::Item> = package
@@ -68,6 +47,11 @@ impl Lowerer {
             .map(|i| self.lower_item(i))
             .map(|i| (i.id, i))
             .collect();
+
+        // Lower top-level statements
+        for stmt in &package.stmts {
+            self.lower_stmt(stmt);
+        }
 
         let blocks: IndexMap<_, _> = self.blocks.drain().collect();
         let exprs: IndexMap<_, _> = self.exprs.drain().collect();
@@ -84,6 +68,57 @@ impl Lowerer {
         };
         qsc_fir::validate::validate(&package);
         package
+    }
+
+    /// Used to update the package with the lowered items.
+    /// Incremental compilation requires that we update the package
+    /// instead of returning a new one.
+    #[allow(clippy::similar_names)]
+    pub fn lower_and_update_package(
+        &mut self,
+        fir_package: &mut fir::Package,
+        hir_package: &hir::Package,
+    ) -> Vec<StmtId> {
+        let items: IndexMap<LocalItemId, fir::Item> = hir_package
+            .items
+            .values()
+            .map(|i| self.lower_item(i))
+            .map(|i| (i.id, i))
+            .collect();
+
+        let new_stmts = hir_package
+            .stmts
+            .iter()
+            .map(|s| self.lower_stmt(s))
+            .collect();
+
+        self.update_package(fir_package);
+
+        for (k, v) in items {
+            fir_package.items.insert(k, v);
+        }
+
+        qsc_fir::validate::validate(fir_package);
+
+        new_stmts
+    }
+
+    fn update_package(&mut self, package: &mut fir::Package) {
+        for (id, value) in self.blocks.drain() {
+            package.blocks.insert(id, value);
+        }
+
+        for (id, value) in self.exprs.drain() {
+            package.exprs.insert(id, value);
+        }
+
+        for (id, value) in self.pats.drain() {
+            package.pats.insert(id, value);
+        }
+
+        for (id, value) in self.stmts.drain() {
+            package.stmts.insert(id, value);
+        }
     }
 
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
@@ -117,7 +152,7 @@ impl Lowerer {
         }
     }
 
-    pub fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
+    fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
         let id = self.lower_id(decl.id);
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
@@ -197,7 +232,7 @@ impl Lowerer {
         id
     }
 
-    pub fn lower_stmt(&mut self, stmt: &hir::Stmt) -> fir::StmtId {
+    fn lower_stmt(&mut self, stmt: &hir::Stmt) -> fir::StmtId {
         let id = self.assigner.next_stmt();
         let kind = match &stmt.kind {
             hir::StmtKind::Expr(expr) => fir::StmtKind::Expr(self.lower_expr(expr)),
@@ -658,6 +693,6 @@ fn lower_functor_set_value(value: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::
 
 #[must_use]
 #[allow(clippy::module_name_repetitions)]
-pub fn lower_local_item_id(id: qsc_hir::hir::LocalItemId) -> LocalItemId {
+fn lower_local_item_id(id: qsc_hir::hir::LocalItemId) -> LocalItemId {
     LocalItemId::from(usize::from(id))
 }

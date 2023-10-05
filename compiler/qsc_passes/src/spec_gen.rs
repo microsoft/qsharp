@@ -12,7 +12,6 @@ use crate::{id_update::NodeIdRefresher, invert_block::adj_invert_block};
 use self::{adj_gen::AdjDistrib, ctl_gen::CtlDistrib};
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     global::Table,
@@ -42,26 +41,17 @@ pub enum Error {
 }
 
 /// Generates specializations for the given compile unit, updating it in-place.
-pub(super) fn generate_specs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
-    generate_placeholders(&mut unit.package, &mut unit.assigner);
-    generate_spec_impls(core, unit)
-}
-
-pub(super) fn generate_specs_for_callable(
+pub(super) fn generate_specs(
     core: &Table,
+    package: &mut Package,
     assigner: &mut Assigner,
-    decl: &mut CallableDecl,
 ) -> Vec<Error> {
-    generate_placeholders_for_callable(decl, assigner);
-    generate_spec_impls_for_decl(core, assigner, decl)
+    generate_placeholders(package, assigner);
+    generate_spec_impls(core, package, assigner)
 }
 
 fn generate_placeholders(package: &mut Package, assigner: &mut Assigner) {
     SpecPlacePass { assigner }.visit_package(package);
-}
-
-fn generate_placeholders_for_callable(decl: &mut CallableDecl, assigner: &mut Assigner) {
-    SpecPlacePass { assigner }.visit_callable_decl(decl);
 }
 
 struct SpecPlacePass<'a> {
@@ -125,27 +115,13 @@ fn is_self_adjoint(decl: &CallableDecl) -> bool {
     matches!(&decl.adj, Some(s) if matches!(&s.body, SpecBody::Gen(SpecGen::Slf)))
 }
 
-fn generate_spec_impls(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
-    let mut pass = SpecImplPass {
-        core,
-        assigner: &mut unit.assigner,
-        errors: Vec::new(),
-    };
-    pass.visit_package(&mut unit.package);
-    pass.errors
-}
-
-fn generate_spec_impls_for_decl(
-    core: &Table,
-    assigner: &mut Assigner,
-    decl: &mut CallableDecl,
-) -> Vec<Error> {
+fn generate_spec_impls(core: &Table, package: &mut Package, assigner: &mut Assigner) -> Vec<Error> {
     let mut pass = SpecImplPass {
         core,
         assigner,
         errors: Vec::new(),
     };
-    pass.visit_callable_decl(decl);
+    pass.visit_package(package);
     pass.errors
 }
 
