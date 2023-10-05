@@ -291,3 +291,108 @@ fn udt_ref() {
         "#]],
     );
 }
+
+#[test]
+fn udt_field_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (f↘st : Int, snd : Int);
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let a = temp::fst;
+                let b = Zip()::fst;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 147,
+                    end: 150,
+                },
+                Span {
+                    start: 175,
+                    end: 178,
+                },
+                Span {
+                    start: 36,
+                    end: 39,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn udt_field_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (fst : Int, snd : Int);
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let a = temp::f↘st;
+                let b = Zip()::fst;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 147,
+                    end: 150,
+                },
+                Span {
+                    start: 175,
+                    end: 178,
+                },
+                Span {
+                    start: 36,
+                    end: 39,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn udt_field_complex_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (fst : Int, snd : Int);
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let a = temp::fst;
+                let b = Zip()::f↘st;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Span {
+                    start: 147,
+                    end: 150,
+                },
+                Span {
+                    start: 175,
+                    end: 178,
+                },
+                Span {
+                    start: 36,
+                    end: 39,
+                },
+            ]
+        "#]],
+    );
+}

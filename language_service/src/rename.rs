@@ -17,7 +17,7 @@ use qsc::{
 
 use crate::{
     protocol,
-    qsc_utils::{find_item, map_offset, Compilation},
+    qsc_utils::{map_offset, Compilation},
 };
 
 pub(crate) fn prepare_rename(
