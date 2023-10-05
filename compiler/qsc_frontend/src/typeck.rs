@@ -20,7 +20,7 @@ use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Table {
     pub udts: HashMap<ItemId, Udt>,
 

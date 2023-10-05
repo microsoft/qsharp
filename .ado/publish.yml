@@ -213,7 +213,7 @@ jobs:
   # for linux aarch64 cross build we want to skip tests as we can't run the code.
   # and we can't run the samples as qsc is currently cross compiled.
   - script: |
-      env CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu python build.py --pip --no-check-prereqs --no-check --no-test --no-samples
+      env CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu python build.py --pip --no-check-prereqs --no-check --no-test
     displayName: Cross Build Linux aarch64 Py Packages
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
@@ -232,7 +232,7 @@ jobs:
     condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
   - script: |
-      python build.py --pip --no-check-prereqs --no-check --no-test --no-samples
+      python build.py --pip --no-check-prereqs --no-check --no-test
     displayName: Cross Build Windows aarch64 Py Packages
     condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 

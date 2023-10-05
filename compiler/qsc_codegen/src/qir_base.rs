@@ -10,7 +10,7 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     debug::{map_hir_package_to_fir, Frame},
-    eval_expr, eval_stmt,
+    eval_expr,
     output::GenericReceiver,
     val::{GlobalId, Value},
     Env, Error, Global, NodeLookup, State,
@@ -38,7 +38,6 @@ pub fn generate_qir(
     let mut fir_store = IndexMap::new();
     let package = map_hir_package_to_fir(package);
     let mut sim = BaseProfSim::default();
-    sim.instrs.push_str(PREFIX);
 
     for (id, unit) in store.iter() {
         fir_store.insert(
@@ -63,38 +62,7 @@ pub fn generate_qir(
         &mut out,
     );
     match result {
-        Ok(val) => {
-            sim.write_output_recording(&val)
-                .expect("writing to string should succeed");
-            sim.instrs.push_str(POSTFIX);
-            Ok(sim.instrs)
-        }
-        Err((err, stack)) => Err((err, stack)),
-    }
-}
-
-/// # Errors
-/// This function will return an error if execution was unable to complete.
-/// # Panics
-///
-/// This function will panic if compiler state is invalid or in out-of-memory conditions.
-pub fn generate_qir_for_stmt(
-    stmt: StmtId,
-    globals: &impl NodeLookup,
-    env: &mut Env,
-    package: PackageId,
-) -> std::result::Result<String, (Error, Vec<Frame>)> {
-    let mut sim = BaseProfSim::default();
-    sim.instrs.push_str(PREFIX);
-    let mut stdout = std::io::sink();
-    let mut out = GenericReceiver::new(&mut stdout);
-    match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
-        Ok(val) => {
-            sim.write_output_recording(&val)
-                .expect("writing to string should succeed");
-            sim.instrs.push_str(POSTFIX);
-            Ok(sim.instrs)
-        }
+        Ok(val) => Ok(sim.finish(&val)),
         Err((err, stack)) => Err((err, stack)),
     }
 }
@@ -154,14 +122,37 @@ pub(super) fn get_global(
         })
 }
 
-#[derive(Default)]
-struct BaseProfSim {
+pub struct BaseProfSim {
     next_meas_id: usize,
     sim: QuantumSim,
     instrs: String,
 }
 
+impl Default for BaseProfSim {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BaseProfSim {
+    #[must_use]
+    pub fn new() -> Self {
+        let mut sim = BaseProfSim {
+            next_meas_id: 0,
+            sim: QuantumSim::new(),
+            instrs: String::new(),
+        };
+        sim.instrs.push_str(PREFIX);
+        sim
+    }
+
+    pub fn finish(mut self, val: &Value) -> String {
+        self.write_output_recording(val)
+            .expect("writing to string should succeed");
+        self.instrs.push_str(POSTFIX);
+        self.instrs
+    }
+
     #[must_use]
     fn get_meas_id(&mut self) -> usize {
         let id = self.next_meas_id;
@@ -453,6 +444,10 @@ impl Backend for BaseProfSim {
         // Because `qubit_is_zero` is called on every qubit release, this must return
         // true to avoid a panic.
         true
+    }
+
+    fn reinit(&mut self) {
+        *self = Self::default();
     }
 }
 

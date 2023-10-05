@@ -53,6 +53,7 @@ pub trait MutVisitor: Sized {
 
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
     package.items.values_mut().for_each(|i| vis.visit_item(i));
+    package.stmts.iter_mut().for_each(|s| vis.visit_stmt(s));
     package.entry.iter_mut().for_each(|e| vis.visit_expr(e));
 }
 

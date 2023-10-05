@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
-    backend::SparseSim,
+    backend::{Backend, SparseSim},
     debug::{map_hir_package_to_fir, Frame},
     output::{GenericReceiver, Receiver},
-    val::GlobalId,
+    val::{self, GlobalId},
     Env, Error, Global, NodeLookup, State, StepAction, StepResult, Value,
 };
 use expect_test::{expect, Expect};
@@ -22,16 +22,16 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Returns the first error encountered during execution.
 pub(super) fn eval_expr(
     expr: ExprId,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     globals: &impl NodeLookup,
     package: PackageId,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     let mut env = Env::with_empty_scope();
-    let mut sim = SparseSim::new();
     state.push_expr(expr);
     let StepResult::Return(value) =
-        state.eval(globals, &mut env, &mut sim, out, &[], StepAction::Continue)?
+        state.eval(globals, &mut env, sim, out, &[], StepAction::Continue)?
     else {
         unreachable!("eval_expr should always return a value");
     };
@@ -140,6 +140,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     };
     match eval_expr(
         entry,
+        &mut SparseSim::new(),
         &lookup,
         map_hir_package_to_fir(id),
         &mut GenericReceiver::new(&mut out),

@@ -7,6 +7,7 @@ import argparse
 import os
 import platform
 import sys
+import time
 import venv
 import shutil
 import subprocess
@@ -29,12 +30,7 @@ parser.add_argument("--pip", action="store_true", help="Build the pip wheel")
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
-parser.add_argument(
-    "--samples",
-    action=argparse.BooleanOptionalAction,
-    default=None,
-    help="Compile the Q# samples (default is --no-samples)",
-)
+parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -65,6 +61,13 @@ parser.add_argument(
     help="Run the prerequisites check (default is --check-prereqs)",
 )
 
+parser.add_argument(
+    "--integration-tests",
+    action=argparse.BooleanOptionalAction,
+    default=False,
+    help="Build and run the integration tests (default is --no-integration-tests)",
+)
+
 args = parser.parse_args()
 
 if args.check_prereqs:
@@ -75,16 +78,16 @@ build_all = (
     not args.cli
     and not args.pip
     and not args.wasm
+    and not args.samples
     and not args.npm
     and not args.play
     and not args.vscode
     and not args.jupyterlab
-    # allow --no-samples to be passed and still build all
-    and not args.samples is True
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_wasm = build_all or args.wasm
+build_samples = build_all or args.samples
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -100,12 +103,6 @@ npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 build_type = "debug" if args.debug else "release"
 run_tests = args.test
 
-# build samples by default, unless --no-samples is passed
-build_samples = args.samples is not False
-
-# TODO: This requires that both targets are installed on macOS to build Python packages. Add to prereqs checks.
-pip_archflags = "-arch x86_64 -arch arm64" if platform.system() == "Darwin" else None
-
 root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
@@ -117,11 +114,26 @@ wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
 jupyterlab_src = os.path.join(root_dir, "jupyterlab")
 
+
+def step_start(description):
+    global start_time
+    print(f"build.py step: {description}")
+    start_time = time.time()
+
+
+def step_end():
+    global start_time
+    duration = time.time() - start_time
+    print(f"build.py step: Finished in {duration:.3f}s.")
+
+
 if npm_install_needed:
+    step_start("Running npm install")
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
+    step_end()
 
 if args.check:
-    print("Running eslint and prettier checks")
+    step_start("Running eslint and prettier checks")
     subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
 
     if build_wasm or build_cli:
@@ -147,9 +159,10 @@ if args.check:
             text=True,
             cwd=root_dir,
         )
+    step_end()
 
 if build_cli:
-    print("Building the command line compiler")
+    step_start("Building the command line compiler")
     cargo_build_args = ["cargo", "build"]
     if build_type == "release":
         cargo_build_args.append("--release")
@@ -161,9 +174,10 @@ if build_cli:
         if build_type == "release":
             cargo_test_args.append("--release")
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
+    step_end()
 
 if build_pip:
-    print("Building the pip package")
+    step_start("Building the pip package")
     # Check if in a virtual environment
     if (
         os.environ.get("VIRTUAL_ENV") is None
@@ -189,9 +203,9 @@ if build_pip:
 
     # copy the process env vars
     pip_env: dict[str, str] = os.environ.copy()
-    if pip_archflags is not None:
+    if platform.system() == "Darwin":
         # if on mac, add the arch flags for universal binary
-        pip_env["ARCHFLAGS"] = pip_archflags
+        pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
     pip_build_args = [
         python_bin,
@@ -255,9 +269,10 @@ if build_pip:
             subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
         else:
             print("Could not import PyQIR, skipping tests")
+    step_end()
 
 if build_wasm:
-    print("Building the wasm crate")
+    step_start("Building the wasm crate")
     # wasm-pack can't build for web and node in the same build, so need to run twice.
     # Hopefully not needed if https://github.com/rustwasm/wasm-pack/issues/313 lands.
     build_flag = "--release" if build_type == "release" else "--dev"
@@ -274,23 +289,25 @@ if build_wasm:
     subprocess.run(
         wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
     )
+    step_end()
 
 if build_samples:
-    print("Building qsharp samples")
+    step_start("Building qsharp samples")
     files = [
         os.path.join(dp, f)
         for dp, _, filenames in os.walk(samples_src)
         for f in filenames
         if os.path.splitext(f)[1] == ".qs"
     ]
-    args = ["cargo", "run", "--bin", "qsc"]
+    cargo_args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":
-        args.append("--release")
+        cargo_args.append("--release")
     for file in files:
-        subprocess.run((args + ["--", file]), check=True, text=True, cwd=root_dir)
+        subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
+    step_end()
 
 if build_npm:
-    print("Building the npm package")
+    step_start("Building the npm package")
     # Copy the wasm build files over for web and node targets
     for target in ["web", "node"]:
         lib_dir = os.path.join(npm_src, "lib", target)
@@ -315,19 +332,22 @@ if build_npm:
         print("Running tests for the npm package")
         npm_test_args = ["node", "--test"]
         subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
+    step_end()
 
 if build_play:
-    print("Building the playground")
+    step_start("Building the playground")
     play_args = [npm_cmd, "run", "build"]
     subprocess.run(play_args, check=True, text=True, cwd=play_src)
+    step_end()
 
 if build_vscode:
-    print("Building the VS Code extension")
+    step_start("Building the VS Code extension")
     vscode_args = [npm_cmd, "run", "build"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+    step_end()
 
 if build_jupyterlab:
-    print("Building the JupyterLab extension")
+    step_start("Building the JupyterLab extension")
 
     # Check if in a virtual environment
     if (
@@ -362,3 +382,10 @@ if build_jupyterlab:
         jupyterlab_src,
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
+    step_end()
+
+if args.integration_tests:
+    step_start("Running the VS Code integration tests")
+    vscode_args = [npm_cmd, "test"]
+    subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+    step_end()

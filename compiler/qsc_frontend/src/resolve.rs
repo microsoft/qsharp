@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, CallableDecl, Ident, NodeId},
+    ast::{self, CallableDecl, Ident, NodeId, TopLevelNode},
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -221,6 +221,27 @@ impl Resolver {
         self.dropped_names.extend(dropped_names);
     }
 
+    pub(super) fn bind_fragments(&mut self, ast: &mut ast::Package, assigner: &mut Assigner) {
+        for node in &mut ast.nodes.iter() {
+            match node {
+                ast::TopLevelNode::Namespace(namespace) => {
+                    bind_global_items(
+                        &mut self.names,
+                        &mut self.globals,
+                        namespace,
+                        assigner,
+                        &mut self.errors,
+                    );
+                }
+                ast::TopLevelNode::Stmt(stmt) => {
+                    if let ast::StmtKind::Item(item) = stmt.kind.as_ref() {
+                        self.bind_local_item(assigner, item);
+                    }
+                }
+            }
+        }
+    }
+
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
@@ -312,34 +333,6 @@ impl Resolver {
         }
     }
 
-    pub(super) fn bind_namespace_items(
-        &mut self,
-        assigner: &mut Assigner,
-        namespace: &ast::Namespace,
-    ) {
-        if !self.names.contains_key(namespace.name.id) {
-            let id = assigner.next_item();
-            self.names
-                .insert(namespace.name.id, Res::Item(intrapackage(id)));
-            self.globals
-                .namespaces
-                .insert(Rc::clone(&namespace.name.name));
-
-            for item in &*namespace.items {
-                match bind_global_item(
-                    &mut self.names,
-                    &mut self.globals,
-                    &namespace.name.name,
-                    || intrapackage(assigner.next_item()),
-                    item,
-                ) {
-                    Ok(()) => {}
-                    Err(error) => self.errors.push(error),
-                }
-            }
-        }
-    }
-
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
         decl.generics.iter().enumerate().for_each(|(ix, ident)| {
             let scope = self
@@ -389,8 +382,6 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        self.resolver.bind_namespace_items(self.assigner, namespace);
-
         let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
         self.with_scope(kind, |visitor| {
             for item in &*namespace.items {
@@ -551,25 +542,19 @@ impl GlobalTable {
         package: &ast::Package,
     ) -> Vec<Error> {
         let mut errors = Vec::new();
-        for namespace in &*package.namespaces {
-            self.names.insert(
-                namespace.name.id,
-                Res::Item(intrapackage(assigner.next_item())),
-            );
-            self.scope
-                .namespaces
-                .insert(Rc::clone(&namespace.name.name));
-
-            for item in &*namespace.items {
-                match bind_global_item(
-                    &mut self.names,
-                    &mut self.scope,
-                    &namespace.name.name,
-                    || intrapackage(assigner.next_item()),
-                    item,
-                ) {
-                    Ok(()) => {}
-                    Err(error) => errors.push(error),
+        for node in &*package.nodes {
+            match node {
+                TopLevelNode::Namespace(namespace) => {
+                    bind_global_items(
+                        &mut self.names,
+                        &mut self.scope,
+                        namespace,
+                        assigner,
+                        &mut errors,
+                    );
+                }
+                TopLevelNode::Stmt(_) => {
+                    unimplemented!("did not expect top-level statements in the ast")
                 }
             }
         }
@@ -599,6 +584,33 @@ impl GlobalTable {
                     self.scope.namespaces.insert(global.name);
                 }
             }
+        }
+    }
+}
+
+fn bind_global_items(
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+    namespace: &ast::Namespace,
+    assigner: &mut Assigner,
+    errors: &mut Vec<Error>,
+) {
+    names.insert(
+        namespace.name.id,
+        Res::Item(intrapackage(assigner.next_item())),
+    );
+    scope.namespaces.insert(Rc::clone(&namespace.name.name));
+
+    for item in &*namespace.items {
+        match bind_global_item(
+            names,
+            scope,
+            &namespace.name.name,
+            || intrapackage(assigner.next_item()),
+            item,
+        ) {
+            Ok(()) => {}
+            Err(error) => errors.push(error),
         }
     }
 }

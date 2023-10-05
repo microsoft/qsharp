@@ -18,13 +18,11 @@ mod ty;
 
 use lex::TokenKind;
 use miette::Diagnostic;
-use qsc_ast::ast::{Expr, Namespace};
+use qsc_ast::ast::{Expr, Namespace, TopLevelNode};
 use qsc_data_structures::span::Span;
 use scan::Scanner;
 use std::result;
 use thiserror::Error;
-
-pub use item::Fragment;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 #[error(transparent)]
@@ -102,10 +100,10 @@ pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-pub fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
+pub fn top_level_nodes(input: &str) -> (Vec<TopLevelNode>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match item::parse_fragments(&mut scanner) {
-        Ok(fragments) => (fragments, scanner.into_errors()),
+    match item::parse_top_level_nodes(&mut scanner) {
+        Ok(nodes) => (nodes, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();
             errors.push(error);

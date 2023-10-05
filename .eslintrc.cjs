@@ -13,6 +13,7 @@ module.exports = {
     "/jupyterlab/lib",
     "/jupyterlab/qsharp-jupyterlab/labextension",
     "/vscode/out/",
+    "/vscode/test/out/",
   ],
   env: {
     browser: true,
