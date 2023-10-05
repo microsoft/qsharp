@@ -316,11 +316,15 @@ function registerMonacoLanguageServiceProviders(
           signatures: sigHelpLs.signatures.map((sig) => {
             return {
               label: sig.label,
-              documentation: sig.documentation,
+              documentation: {
+                value: sig.documentation,
+              } as monaco.IMarkdownString,
               parameters: sig.parameters.map((param) => {
                 return {
                   label: [param.label.start, param.label.end],
-                  documentation: param.documentation,
+                  documentation: {
+                    value: param.documentation,
+                  } as monaco.IMarkdownString,
                 };
               }),
             };

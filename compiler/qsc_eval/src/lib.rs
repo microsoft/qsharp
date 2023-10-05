@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 #[cfg(test)]
 mod tests;
@@ -74,6 +75,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
     IndexOutOfRange(i64, #[label("out of range")] PackageSpan),
 
+    #[error("intrinsic callable `{0}` failed: {1}")]
+    #[diagnostic(code("Qsc.Eval.IntrinsicFail"))]
+    IntrinsicFail(String, String, #[label] PackageSpan),
+
     #[error("negative integers cannot be used here: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
     InvalidNegativeInt(i64, #[label("invalid negative integer")] PackageSpan),
@@ -91,6 +96,7 @@ pub enum Error {
     RangeStepZero(#[label("invalid range")] PackageSpan),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
+    #[diagnostic(help("qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state"))]
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize, #[label("Qubit{0}")] PackageSpan),
 
@@ -119,6 +125,7 @@ impl Error {
             | Error::EmptyRange(span)
             | Error::IndexOutOfRange(_, span)
             | Error::InvalidIndex(_, span)
+            | Error::IntrinsicFail(_, _, span)
             | Error::IntTooLarge(_, span)
             | Error::InvalidNegativeInt(_, span)
             | Error::MissingSpec(_, span)

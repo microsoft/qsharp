@@ -200,6 +200,23 @@ pub enum Res {
     Local(NodeId),
 }
 
+impl Res {
+    /// Returns an updated resolution with the given package ID.
+    #[must_use]
+    pub fn with_package(&self, package: PackageId) -> Self {
+        match self {
+            Res::Item(id) if id.package.is_none() => Res::Item(ItemId {
+                package: Some(package),
+                item: id.item,
+            }),
+            Res::Item(id) if id.package.expect("none case should be handled above") != package => {
+                panic!("should not try to update Res with existing package id")
+            }
+            _ => *self,
+        }
+    }
+}
+
 impl Display for Res {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
@@ -215,6 +232,8 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
+    /// The top-level statements in the package.
+    pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
 }
@@ -229,6 +248,9 @@ impl Display for Package {
         }
         for item in self.items.values() {
             write!(indent, "\n{item}")?;
+        }
+        for stmt in &self.stmts {
+            write!(indent, "\n{stmt}")?;
         }
         Ok(())
     }

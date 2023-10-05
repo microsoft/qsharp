@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::interpret::{output::CursorReceiver, stateless};
+use qsc::interpret::{output::CursorReceiver, stateful};
 use std::{
     env, fs,
     io::Cursor,
@@ -14,7 +14,7 @@ fn test_cases_dir() -> PathBuf {
         .join("test_cases")
 }
 
-fn run_check_solution(solution: &str, verification: &str) -> Result<bool, Vec<stateless::Error>> {
+fn run_check_solution(solution: &str, verification: &str) -> Result<bool, Vec<stateful::Error>> {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     let result = crate::check_solution(

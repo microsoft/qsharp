@@ -91,7 +91,7 @@ impl Interpreter {
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.interpret_line(&mut receiver, input) {
+        match self.interpreter.eval_fragments(&mut receiver, input) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }

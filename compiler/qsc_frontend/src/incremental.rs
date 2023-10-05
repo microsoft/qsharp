@@ -5,43 +5,33 @@
 mod tests;
 
 use crate::{
-    compile::{preprocess, CompileUnit, Offsetter, PackageStore, TargetProfile},
-    lower::{self, Lowerer},
+    compile::{
+        self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap,
+        TargetProfile,
+    },
+    error::WithSource,
+    lower::Lowerer,
     resolve::{self, Resolver},
     typeck::{self, Checker},
 };
-use miette::Diagnostic;
-use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
+use qsc_ast::{
+    assigner::Assigner as AstAssigner,
+    ast::{self, Stmt, TopLevelNode},
+    mut_visit::MutVisitor,
+    validate::Validator as AstValidator,
+    visit::Visitor as AstVisitor,
+};
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
+    validate::Validator as HirValidator,
+    visit::Visitor as HirVisitor,
 };
-use thiserror::Error;
+use std::mem::take;
 
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct Error(ErrorKind);
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-enum ErrorKind {
-    #[error("syntax error")]
-    Parse(#[from] qsc_parse::Error),
-    #[error("name error")]
-    Resolve(#[from] resolve::Error),
-    #[error("type error")]
-    Type(#[from] typeck::Error),
-    #[error(transparent)]
-    Lower(#[from] lower::Error),
-}
-
-#[derive(Debug)]
-pub enum Fragment {
-    Stmt(hir::Stmt),
-    Item(hir::Item),
-}
-
+/// The frontend for an incremental compiler.
+/// It is used to update a single `CompileUnit`
+/// with additional sources.
 pub struct Compiler {
     ast_assigner: AstAssigner,
     resolver: Resolver,
@@ -50,10 +40,19 @@ pub struct Compiler {
     target: TargetProfile,
 }
 
+pub type Error = WithSource<compile::Error>;
+
+/// The result of an incremental compilation.
+/// These packages can be merged into the original
+/// `CompileUnit` that was used for the incremental compilation.
+#[derive(Debug)]
+pub struct Increment {
+    pub ast: AstPackage,
+    pub hir: hir::Package,
+}
+
 impl Compiler {
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
+    /// Creates a new compiler.
     pub fn new(
         store: &PackageStore,
         dependencies: impl IntoIterator<Item = PackageId>,
@@ -86,227 +85,250 @@ impl Compiler {
         }
     }
 
-    /// Compile a string with a single fragment of Q# code that is an expression.
-    /// # Errors
-    /// Returns a vector of errors if the input fails compilation.
-    pub fn compile_expr(
-        &mut self,
-        unit: &mut CompileUnit,
-        source_name: &str,
-        source_contents: &str,
-    ) -> Result<Vec<Fragment>, Vec<Error>> {
-        let fragments = self.compile(unit, source_name, source_contents, |s| {
-            let (expr, errors) = qsc_parse::expr(s);
-            if !errors.is_empty() {
-                return (Vec::new(), errors);
-            }
-
-            let fragment = qsc_parse::Fragment::Stmt(Box::new(ast::Stmt {
-                id: ast::NodeId::default(),
-                span: expr.span,
-                kind: Box::new(ast::StmtKind::Expr(expr)),
-            }));
-
-            (vec![fragment], errors)
-        })?;
-
-        Ok(fragments)
-    }
-
-    /// Compile a string with one or more fragments of Q# code.
-    /// # Errors
-    /// Returns a vector of errors if any of the input fails compilation.
+    /// Compiles Q# fragments.
+    ///
+    /// Uses the assigners and other mutable state from the passed in
+    /// `CompileUnit` to guarantee uniqueness, however does not
+    /// update the `CompileUnit` with the resulting AST and HIR packages.
+    ///
+    /// The caller can use the returned packages to perform passes,
+    /// get information about the newly added items, or do other modifications.
+    /// It is then the caller's responsibility to merge
+    /// these packages into the current `CompileUnit`.
     pub fn compile_fragments(
         &mut self,
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-    ) -> Result<Vec<Fragment>, Vec<Error>> {
-        self.compile(unit, source_name, source_contents, qsc_parse::fragments)
+    ) -> Result<Increment, Vec<Error>> {
+        let (mut ast, parse_errors) =
+            Self::parse_fragments(&mut unit.sources, source_name, source_contents);
+
+        if !parse_errors.is_empty() {
+            return Err(parse_errors);
+        }
+
+        let (hir, lower_errors) = self.resolve_check_lower(unit, &mut ast);
+
+        if lower_errors.is_empty() {
+            Ok(Increment {
+                ast: AstPackage {
+                    package: ast,
+                    names: self.resolver.names().clone(),
+                    tys: self.checker.table().clone(),
+                },
+                hir,
+            })
+        } else {
+            self.lowerer.clear_items();
+            Err(lower_errors)
+        }
     }
 
-    fn compile<F>(
+    /// Compiles an entry expression.
+    ///
+    /// Uses the assigners and other mutable state from the passed in
+    /// `CompileUnit` to guarantee uniqueness, however does not
+    /// update the `CompileUnit` with the resulting AST and HIR packages.
+    ///
+    /// The caller can use the returned packages to perform passes,
+    /// get information about the newly added items, or do other modifications.
+    /// It is then the caller's responsibility to merge
+    /// these packages into the current `CompileUnit`.
+    pub fn compile_expr(
         &mut self,
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-        parse: F,
-    ) -> Result<Vec<Fragment>, Vec<Error>>
-    where
-        F: Fn(&str) -> (Vec<qsc_parse::Fragment>, Vec<qsc_parse::Error>),
-    {
-        // Append the line to the source map with the appropriate offset
-        let offset = unit
-            .sources
-            .push(source_name.into(), source_contents.into());
+    ) -> Result<Increment, Vec<Error>> {
+        let (mut ast, parse_errors) =
+            Self::parse_expr(&mut unit.sources, source_name, source_contents);
 
-        let (mut fragments, errors) = parse(source_contents);
-        if !errors.is_empty() {
-            return Err(errors
-                .into_iter()
-                .map(|e| Error(ErrorKind::Parse(e.with_offset(offset))))
-                .collect());
+        if !parse_errors.is_empty() {
+            return Err(parse_errors);
         }
 
-        let mut offsetter = Offsetter(offset);
-        for fragment in &mut fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => offsetter.visit_namespace(namespace),
-                qsc_parse::Fragment::Stmt(stmt) => offsetter.visit_stmt(stmt),
-            }
-        }
+        let (package, errors) = self.resolve_check_lower(unit, &mut ast);
 
-        let mut cond_compile = preprocess::Conditional::new(self.target);
-        for fragment in &mut fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => {
-                    cond_compile.visit_namespace(namespace);
-                }
-                qsc_parse::Fragment::Stmt(stmt) => {
-                    cond_compile.visit_stmt(stmt);
-                }
-            }
-        }
-        self.resolver
-            .extend_dropped_names(cond_compile.into_names());
-
-        // Namespaces must be processed before top-level statements, so sort the fragments.
-        // Note that stable sorting is used here to preserve the order of top-level statements.
-        fragments.sort_by_key(|f| match f {
-            qsc_parse::Fragment::Namespace(_) => 0,
-            qsc_parse::Fragment::Stmt(_) => 1,
-        });
-
-        self.assign_ast_ids(&mut fragments);
-
-        self.bind_items(&mut unit.assigner, &fragments);
-
-        self.resolve(&mut unit.assigner, &fragments);
-
-        self.collect_items(&fragments);
-
-        self.type_check(&fragments);
-
-        let fragments = fragments
-            .into_iter()
-            .flat_map(|f| self.lower_fragment(&mut unit.assigner, f))
-            .collect();
-
-        let errors = self.drain_errors();
         if errors.is_empty() {
-            Ok(fragments)
+            Ok(Increment {
+                ast: AstPackage {
+                    package: ast,
+                    names: self.resolver.names().clone(),
+                    tys: self.checker.table().clone(),
+                },
+                hir: package,
+            })
         } else {
             self.lowerer.clear_items();
             Err(errors)
         }
     }
 
-    fn type_check(&mut self, fragments: &Vec<qsc_parse::Fragment>) {
-        for fragment in fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => self
-                    .checker
-                    .check_namespace_fragment(self.resolver.names(), namespace),
-                qsc_parse::Fragment::Stmt(stmt) => self
-                    .checker
-                    .check_stmt_fragment(self.resolver.names(), stmt),
-            }
-        }
+    pub fn update(&mut self, unit: &mut CompileUnit, new: Increment) {
+        // Update the AST
+        unit.ast.package = self.concat_ast(take(&mut unit.ast.package), new.ast.package);
 
-        self.checker.solve(self.resolver.names());
+        // The new `Increment` will contain the names and tys
+        // from the original package as well, so just
+        // replace the current tables instead of extending.
+        unit.ast.names = new.ast.names;
+        unit.ast.tys = new.ast.tys;
+
+        // Update the HIR
+        extend_hir(&mut unit.package, new.hir);
     }
 
-    fn collect_items(&mut self, fragments: &Vec<qsc_parse::Fragment>) {
-        for fragment in fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => self
-                    .checker
-                    .collect_namespace_items(self.resolver.names(), namespace),
-                qsc_parse::Fragment::Stmt(stmt) => {
-                    self.checker.collect_stmt_items(self.resolver.names(), stmt);
-                }
-            }
-        }
-    }
-
-    fn resolve(&mut self, hir_assigner: &mut HirAssigner, fragments: &Vec<qsc_parse::Fragment>) {
-        for fragment in fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => {
-                    self.resolver.with(hir_assigner).visit_namespace(namespace);
-                }
-                qsc_parse::Fragment::Stmt(stmt) => {
-                    self.resolver.with(hir_assigner).visit_stmt(stmt);
-                }
-            }
-        }
-    }
-
-    fn bind_items(&mut self, hir_assigner: &mut HirAssigner, fragments: &Vec<qsc_parse::Fragment>) {
-        for fragment in fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => {
-                    self.resolver.bind_namespace_items(hir_assigner, namespace);
-                }
-                qsc_parse::Fragment::Stmt(stmt) => {
-                    if let ast::StmtKind::Item(item) = stmt.kind.as_ref() {
-                        self.resolver.bind_local_item(hir_assigner, item);
-                    }
-                }
-            }
-        }
-    }
-
-    fn assign_ast_ids(&mut self, fragments: &mut Vec<qsc_parse::Fragment>) {
-        for fragment in fragments {
-            match fragment {
-                qsc_parse::Fragment::Namespace(namespace) => {
-                    self.ast_assigner.visit_namespace(namespace);
-                }
-                qsc_parse::Fragment::Stmt(stmt) => self.ast_assigner.visit_stmt(stmt),
-            }
-        }
-    }
-
-    fn lower_fragment(
+    fn resolve_check_lower(
         &mut self,
-        hir_assigner: &mut HirAssigner,
-        fragment: qsc_parse::Fragment,
-    ) -> Vec<Fragment> {
-        let fragment = match fragment {
-            qsc_parse::Fragment::Namespace(namespace) => {
-                self.lower_namespace(hir_assigner, &namespace);
-                None
-            }
-            qsc_parse::Fragment::Stmt(stmt) => self.lower_stmt(hir_assigner, &stmt),
+        unit: &mut CompileUnit,
+        ast: &mut ast::Package,
+    ) -> (hir::Package, Vec<Error>) {
+        let mut cond_compile = preprocess::Conditional::new(self.target);
+        cond_compile.visit_package(ast);
+
+        self.ast_assigner.visit_package(ast);
+
+        self.resolver
+            .extend_dropped_names(cond_compile.into_names());
+        self.resolver.bind_fragments(ast, &mut unit.assigner);
+        self.resolver.with(&mut unit.assigner).visit_package(ast);
+
+        self.checker.check_package(self.resolver.names(), ast);
+        self.checker.solve(self.resolver.names());
+
+        let package = self.lower(&mut unit.assigner, &*ast);
+
+        let errors: Vec<Error> = self
+            .drain_errors()
+            .into_iter()
+            .map(|e| WithSource::from_map(&unit.sources, e))
+            .collect();
+
+        (package, errors)
+    }
+
+    /// Creates a new `Package` by combining two packages.
+    /// The two packages should not contain any conflicting `NodeId`s.
+    /// Entry expressions are ignored.
+    #[must_use]
+    fn concat_ast(&mut self, mut left: ast::Package, right: ast::Package) -> ast::Package {
+        assert!(right.entry.is_none(), "package should not have entry expr");
+        assert!(left.entry.is_none(), "package should not have entry expr");
+
+        let mut nodes = Vec::with_capacity(left.nodes.len() + right.nodes.len());
+        nodes.extend(left.nodes.into_vec());
+        nodes.extend(right.nodes.into_vec());
+        left.id = self.ast_assigner.next_id();
+        left.nodes = nodes.into_boxed_slice();
+
+        AstValidator::default().visit_package(&left);
+        left
+    }
+
+    fn parse_expr(
+        sources: &mut SourceMap,
+        source_name: &str,
+        source_contents: &str,
+    ) -> (ast::Package, Vec<Error>) {
+        let offset = sources.push(source_name.into(), source_contents.into());
+
+        let (expr, errors) = qsc_parse::expr(source_contents);
+        let mut stmt = Box::new(Stmt {
+            id: ast::NodeId::default(),
+            span: expr.span,
+            kind: Box::new(ast::StmtKind::Expr(expr)),
+        });
+
+        let mut offsetter = Offsetter(offset);
+        offsetter.visit_stmt(&mut stmt);
+
+        let top_level_nodes = Box::new([TopLevelNode::Stmt(stmt)]);
+
+        let package = ast::Package {
+            id: ast::NodeId::default(),
+            nodes: top_level_nodes,
+            entry: None,
         };
 
-        self.lowerer
-            .drain_items()
-            .map(Fragment::Item)
-            .chain(fragment)
-            .collect()
+        (package, with_source(errors, sources, offset))
     }
 
-    fn lower_namespace(&mut self, hir_assigner: &mut HirAssigner, namespace: &ast::Namespace) {
+    fn parse_fragments(
+        sources: &mut SourceMap,
+        source_name: &str,
+        source_contents: &str,
+    ) -> (ast::Package, Vec<Error>) {
+        let offset = sources.push(source_name.into(), source_contents.into());
+
+        let (mut top_level_nodes, errors) = qsc_parse::top_level_nodes(source_contents);
+        let mut offsetter = Offsetter(offset);
+        for node in &mut top_level_nodes {
+            match node {
+                ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
+                ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
+            }
+        }
+
+        let package = ast::Package {
+            id: ast::NodeId::default(),
+            nodes: top_level_nodes.into_boxed_slice(),
+            entry: None,
+        };
+
+        (package, with_source(errors, sources, offset))
+    }
+
+    fn lower(&mut self, hir_assigner: &mut HirAssigner, package: &ast::Package) -> hir::Package {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_namespace(namespace);
+            .lower_package(package)
     }
 
-    fn lower_stmt(&mut self, hir_assigner: &mut HirAssigner, stmt: &ast::Stmt) -> Option<Fragment> {
-        self.lowerer
-            .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_stmt(stmt)
-            .map(Fragment::Stmt)
-    }
-
-    fn drain_errors(&mut self) -> Vec<Error> {
+    fn drain_errors(&mut self) -> Vec<compile::Error> {
         self.resolver
             .drain_errors()
-            .map(|e| Error(e.into()))
-            .chain(self.checker.drain_errors().map(|e| Error(e.into())))
-            .chain(self.lowerer.drain_errors().map(|e| Error(e.into())))
+            .map(|e| compile::Error(e.into()))
+            .chain(
+                self.checker
+                    .drain_errors()
+                    .map(|e| compile::Error(e.into())),
+            )
+            .chain(
+                self.lowerer
+                    .drain_errors()
+                    .map(|e| compile::Error(e.into())),
+            )
             .collect()
     }
+}
+
+/// Extends the `Package` with the contents of another `Package`.
+/// `other` should not contain any `LocalItemId`s
+/// that conflict with the current `Package`.
+/// The entry expression from `other` will be ignored.
+fn extend_hir(this: &mut hir::Package, mut other: hir::Package) {
+    for (k, v) in other.items.drain() {
+        this.items.insert(k, v);
+    }
+
+    this.stmts.extend(other.stmts);
+
+    HirValidator::default().visit_package(this);
+}
+
+fn with_source(
+    errors: Vec<qsc_parse::Error>,
+    sources: &SourceMap,
+    offset: u32,
+) -> Vec<WithSource<compile::Error>> {
+    errors
+        .into_iter()
+        .map(|e| {
+            WithSource::from_map(
+                sources,
+                compile::Error(compile::ErrorKind::Parse(e.with_offset(offset))),
+            )
+        })
+        .collect()
 }

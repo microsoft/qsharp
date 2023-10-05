@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 #[cfg(test)]
 mod tests;
@@ -9,10 +10,10 @@ mod tests;
 use qsc::{
     interpret::{
         output::Receiver,
-        stateless::{self, Interpreter},
+        stateful::{self, Interpreter},
         Value,
     },
-    SourceContents, SourceMap, SourceName,
+    PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
@@ -29,11 +30,11 @@ pub const EXERCISE_ENTRY: &str = "Kata.Verification.CheckSolution()";
 pub fn check_solution(
     exercise_sources: Vec<(SourceName, SourceContents)>,
     receiver: &mut impl Receiver,
-) -> Result<bool, Vec<stateless::Error>> {
+) -> Result<bool, Vec<stateful::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
-    let interpreter: Interpreter = Interpreter::new(true, source_map)?;
-    let mut eval_ctx = interpreter.new_eval_context();
-    eval_ctx.eval_entry(receiver).map(|value| {
+    let mut interpreter: Interpreter =
+        Interpreter::new(true, source_map, PackageType::Exe, TargetProfile::Full)?;
+    interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success
         } else {

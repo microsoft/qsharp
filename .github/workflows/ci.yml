@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
   workflow_dispatch:
 
 # Cancel in-progress run when a pull request is updated
@@ -16,6 +17,8 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  NODE_VERSION: "18.17.1"
+  PYTHON_VERSION: "3.11"
   RUST_TOOLCHAIN_VERSION: "1.72"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
@@ -76,14 +79,14 @@ jobs:
           submodules: "true"
       - uses: actions/setup-node@v3
         with:
-          node-version: '18.17.1'
+          node-version: ${{ env.NODE_VERSION }}
       - name: npm install
         run: npm install
       - name: npm check
         run: npm run check
 
   build:
-    name: CI Build and Test
+    name: Build and test
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
@@ -105,12 +108,45 @@ jobs:
         if: matrix.os == 'macos-latest'
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
       - uses: actions/setup-node@v3
         with:
-          node-version: '18.17.1'
+          node-version: ${{ env.NODE_VERSION }}
       - uses: Swatinem/rust-cache@v2
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
         run: python ./build.py --no-check
+
+  integration-tests:
+    name: Integration tests
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Add additional Rust targets
+        run: |
+          rustup target add aarch64-apple-darwin
+        if: matrix.os == 'macos-latest'
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Prereqs
+        run: python ./prereqs.py --install
+      - name: Run integration tests
+        run: python ./build.py --no-check --no-test --wasm --npm --vscode --integration-tests

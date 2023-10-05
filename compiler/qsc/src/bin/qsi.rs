@@ -2,16 +2,14 @@
 // Licensed under the MIT License.
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
-    interpret::{
-        stateful::{Interpreter, LineResult},
-        stateless,
-    },
+    interpret::stateful::{self, InterpretResult, Interpreter},
     TargetProfile,
 };
 use qsc_eval::{
@@ -81,9 +79,11 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     if cli.exec {
-        let interpreter = match stateless::Interpreter::new(
+        let mut interpreter = match Interpreter::new(
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
+            PackageType::Exe,
+            TargetProfile::Full,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -93,9 +93,8 @@ fn main() -> miette::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
         };
-        let mut eval_ctx = interpreter.new_eval_context();
         return Ok(print_exec_result(
-            eval_ctx.eval_entry(&mut TerminalReceiver),
+            interpreter.eval_entry(&mut TerminalReceiver),
         ));
     }
 
@@ -115,7 +114,7 @@ fn main() -> miette::Result<ExitCode> {
     };
 
     if let Some(entry) = cli.entry {
-        print_interpret_result(interpreter.interpret_line(&mut TerminalReceiver, &entry));
+        print_interpret_result(interpreter.eval_fragments(&mut TerminalReceiver, &entry));
     }
 
     repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
@@ -142,7 +141,7 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut impl Receiver) -> io::Resu
         }
 
         if !line.trim().is_empty() {
-            print_interpret_result(interpreter.interpret_line(receiver, &line));
+            print_interpret_result(interpreter.eval_fragments(receiver, &line));
         }
 
         print_prompt(false);
@@ -171,7 +170,7 @@ fn print_prompt(continuation: bool) {
     io::stdout().flush().expect("standard out should flush");
 }
 
-fn print_interpret_result(result: LineResult) {
+fn print_interpret_result(result: InterpretResult) {
     match result {
         Ok(Value::Tuple(items)) if items.is_empty() => {}
         Ok(value) => println!("{value}"),
@@ -187,7 +186,7 @@ fn print_interpret_result(result: LineResult) {
     }
 }
 
-fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) -> ExitCode {
+fn print_exec_result(result: Result<Value, Vec<stateful::Error>>) -> ExitCode {
     match result {
         Ok(value) => {
             println!("{value}");

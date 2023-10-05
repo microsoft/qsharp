@@ -22,15 +22,10 @@ use crate::{
 };
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, Ty, TyDef,
-    TyDefKind, TyKind, Visibility, VisibilityKind,
+    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
+    TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::span::Span;
-
-pub enum Fragment {
-    Namespace(Namespace),
-    Stmt(Box<Stmt>),
-}
 
 pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
@@ -43,14 +38,19 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if doc.is_some() {
+        let err_item = default(s.span(lo));
+        s.push_error(Error(ErrorKind::FloatingDocComment(err_item.span)));
+        return Ok(err_item);
     } else {
-        return Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)));
+        let p = s.peek();
+        return Err(Error(ErrorKind::Rule("item", p.kind, p.span)));
     };
 
     Ok(Box::new(Item {
         id: NodeId::default(),
         span: s.span(lo),
-        doc: doc.into(),
+        doc: doc.unwrap_or_default().into(),
         attrs: attrs.into_boxed_slice(),
         visibility,
         kind,
@@ -92,21 +92,21 @@ pub(super) fn parse_namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
     Ok(namespaces)
 }
 
-pub(super) fn parse_fragments(s: &mut Scanner) -> Result<Vec<Fragment>> {
-    let fragments = many(s, parse_fragment)?;
+pub(super) fn parse_top_level_nodes(s: &mut Scanner) -> Result<Vec<TopLevelNode>> {
+    let nodes = many(s, parse_top_level_node)?;
     recovering_token(s, TokenKind::Eof)?;
-    Ok(fragments)
+    Ok(nodes)
 }
 
-fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
+fn parse_top_level_node(s: &mut Scanner) -> Result<TopLevelNode> {
     // Here we parse any doc comments ahead of calling `parse_namespace` or `stmt::parse` in order
     // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
     // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
     // opt. This pattern can be dropped along with namespaces once we have a module-based design.
-    let doc = parse_doc(s);
+    let doc = parse_doc(s).unwrap_or_default();
     if let Some(mut namespace) = opt(s, parse_namespace)? {
         namespace.doc = doc.into();
-        Ok(Fragment::Namespace(namespace))
+        Ok(TopLevelNode::Namespace(namespace))
     } else {
         let kind = s.peek().kind;
         let span = s.peek().span;
@@ -116,13 +116,13 @@ fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
         } else if !doc.is_empty() {
             return Err(Error(ErrorKind::Rule("item", kind, span)));
         }
-        Ok(Fragment::Stmt(stmt))
+        Ok(TopLevelNode::Stmt(stmt))
     }
 }
 
 fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
-    let doc = parse_doc(s);
+    let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -137,7 +137,7 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     })
 }
 
-fn parse_doc(s: &mut Scanner) -> String {
+fn parse_doc(s: &mut Scanner) -> Option<String> {
     let mut content = String::new();
     while s.peek().kind == TokenKind::DocComment {
         if !content.is_empty() {
@@ -150,7 +150,7 @@ fn parse_doc(s: &mut Scanner) -> String {
         s.advance();
     }
 
-    content
+    (!content.is_empty()).then_some(content)
 }
 
 fn parse_attr(s: &mut Scanner) -> Result<Box<Attr>> {
