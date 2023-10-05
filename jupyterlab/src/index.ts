@@ -70,7 +70,7 @@ function registerQSharpLanguage(
     },
     {
       token: "operatorKeyword",
-      regex: String.raw`(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)`,
+      regex: String.raw`(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)|(\\|)|(\\&\\&\\&)|(\\~\\~\\~)|(\\.\\.\\.)|(\\.\\.)|(\\?)`,
       beginWord: false,
     },
     {
