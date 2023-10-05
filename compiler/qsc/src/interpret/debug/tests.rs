@@ -87,7 +87,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
                              at Adjoint Test.C in 1.qs
                              at Adjoint Test.B in 1.qs
                              at Adjoint Test2.A in 2.qs
-                             at Z in <expression>
+                             at Z in line_0
                     "#};
             assert_eq!(expectation, stack_trace);
         }

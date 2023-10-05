@@ -10,7 +10,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Block, Expr, NodeId, Package, Pat, QubitInit},
+    ast::{Block, Expr, NodeId, Package, Pat, QubitInit, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -122,7 +122,11 @@ fn parse(input: &str, entry_expr: &str) -> Package {
 
     Package {
         id: NodeId::default(),
-        namespaces: namespaces.into_boxed_slice(),
+        nodes: namespaces
+            .into_iter()
+            .map(TopLevelNode::Namespace)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         entry,
     }
 }
