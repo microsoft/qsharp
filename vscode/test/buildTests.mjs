@@ -27,12 +27,8 @@ const buildOptions = {
   define: { "import.meta.url": "undefined" },
 };
 
-function buildTests() {
-  console.log("Running esbuild");
+console.log("Running esbuild");
 
-  build(buildOptions).then(() =>
-    console.log(`Built tests to ${join(thisDir, "out")}`)
-  );
-}
-
-buildTests();
+build(buildOptions).then(() =>
+  console.log(`Built tests to ${join(thisDir, "out")}`)
+);

@@ -15,50 +15,44 @@ import { fileURLToPath } from "node:url";
 import { runTests } from "@vscode/test-web";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+// The folder containing the Extension Manifest package.json
+const extensionDevelopmentPath = join(thisDir, "..");
+const attachArgName = "--waitForDebugger=";
+const waitForDebugger = process.argv.find((arg) =>
+  arg.startsWith(attachArgName)
+);
 
-async function main() {
-  try {
-    // The folder containing the Extension Manifest package.json
-    const extensionDevelopmentPath = join(thisDir, "..");
+try {
+  // Language service tests
+  await runSuite(
+    join(thisDir, "out", "language-service", "index"),
+    join(thisDir, "suites", "language-service", "test-workspace")
+  );
 
-    const attachArgName = "--waitForDebugger=";
-    const waitForDebugger = process.argv.find((arg) =>
-      arg.startsWith(attachArgName)
-    );
-
-    // Language service tests
-    await runSuite(
-      join(thisDir, "out", "language-service", "index"),
-      join(thisDir, "suites", "language-service", "test-workspace")
-    );
-
-    // Debugger tests
-    await runSuite(
-      join(thisDir, "out", "debugger", "index"),
-      join(thisDir, "..", "..", "samples")
-    );
-
-    /**
-     * @param {string} extensionTestsPath - The path to module with the test runner and tests
-     * @param {string} workspacePath - The path to the workspace to be opened in VS Code
-     */
-    async function runSuite(extensionTestsPath, workspacePath) {
-      // Start a web server that serves VS Code in a browser, run the tests
-      await runTests({
-        headless: true, // pass false to see VS Code UI
-        browserType: "chromium",
-        extensionDevelopmentPath,
-        extensionTestsPath,
-        folderPath: workspacePath,
-        waitForDebugger: waitForDebugger
-          ? Number(waitForDebugger.slice(attachArgName.length))
-          : undefined,
-      });
-    }
-  } catch (err) {
-    console.error("Failed to run tests", err);
-    process.exit(1);
-  }
+  // Debugger tests
+  await runSuite(
+    join(thisDir, "out", "debugger", "index"),
+    join(thisDir, "..", "..", "samples")
+  );
+} catch (err) {
+  console.error("Failed to run tests", err);
+  process.exit(1);
 }
 
-main();
+/**
+ * @param {string} extensionTestsPath - The path to module with the test runner and tests
+ * @param {string} workspacePath - The path to the workspace to be opened in VS Code
+ */
+async function runSuite(extensionTestsPath, workspacePath) {
+  // Start a web server that serves VS Code in a browser, run the tests
+  await runTests({
+    headless: true, // pass false to see VS Code UI
+    browserType: "chromium",
+    extensionDevelopmentPath,
+    extensionTestsPath,
+    folderPath: workspacePath,
+    waitForDebugger: waitForDebugger
+      ? Number(waitForDebugger.slice(attachArgName.length))
+      : undefined,
+  });
+}

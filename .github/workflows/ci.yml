@@ -149,4 +149,4 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Run integration tests
-        run: python ./test.py
+        run: python ./build.py --no-check --no-test --integration-tests
