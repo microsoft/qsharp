@@ -43,7 +43,7 @@
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(not|and|or)\\b"
+          "match": "\\b(not|and|or)\\b|\\b(w/)|(<-)"
         }
       ]
     },
