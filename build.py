@@ -299,11 +299,11 @@ if build_samples:
         for f in filenames
         if os.path.splitext(f)[1] == ".qs"
     ]
-    args = ["cargo", "run", "--bin", "qsc"]
+    cargo_args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":
-        args.append("--release")
+        cargo_args.append("--release")
     for file in files:
-        subprocess.run((args + ["--", file]), check=True, text=True, cwd=root_dir)
+        subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
     step_end()
 
 if build_npm:
