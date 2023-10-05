@@ -21,4 +21,5 @@ __pycache__/
 /samples/
 /target/
 /vscode/out/
+/vscode/test/out/
 /wasm/

@@ -7,7 +7,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Ident, NodeId, Package, Path},
+    ast::{Ident, NodeId, Package, Path, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -85,7 +85,11 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
-        namespaces: namespaces.into_boxed_slice(),
+        nodes: namespaces
+            .into_iter()
+            .map(TopLevelNode::Namespace)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         entry: None,
     };
 

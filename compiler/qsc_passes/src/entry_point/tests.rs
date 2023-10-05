@@ -16,7 +16,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let errors = generate_entry_expr(&mut unit);
+    let errors = generate_entry_expr(&mut unit.package, &mut unit.assigner);
     if errors.is_empty() {
         expect.assert_eq(
             &unit

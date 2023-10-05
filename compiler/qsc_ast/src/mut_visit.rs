@@ -4,7 +4,8 @@
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, StringComponent, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -79,10 +80,10 @@ pub trait MutVisitor: Sized {
 }
 
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
-    package
-        .namespaces
-        .iter_mut()
-        .for_each(|n| vis.visit_namespace(n));
+    package.nodes.iter_mut().for_each(|n| match n {
+        TopLevelNode::Namespace(ns) => vis.visit_namespace(ns),
+        TopLevelNode::Stmt(stmt) => vis.visit_stmt(stmt),
+    });
     package.entry.iter_mut().for_each(|e| vis.visit_expr(e));
 }
 
