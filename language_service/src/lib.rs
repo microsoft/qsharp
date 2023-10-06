@@ -136,9 +136,6 @@ impl<'a> LanguageService<'a> {
         );
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_completions(&self, uri: &str, offset: u32) -> CompletionList {
         trace!("get_completions: uri: {uri:?}, offset: {offset:?}");
@@ -153,9 +150,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
         trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
@@ -168,9 +162,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
         trace!("get_hover: uri: {uri:?}, offset: {offset:?}");
@@ -183,9 +174,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<SignatureHelp> {
         trace!("get_signature_help: uri: {uri:?}, offset: {offset:?}");
@@ -198,9 +186,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
         trace!("get_rename: uri: {uri:?}, offset: {offset:?}");
@@ -213,9 +198,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<(protocol::Span, String)> {
         trace!("prepare_rename: uri: {uri:?}, offset: {offset:?}");

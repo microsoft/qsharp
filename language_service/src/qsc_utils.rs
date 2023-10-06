@@ -8,6 +8,8 @@ use qsc::{
     CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
 };
 
+use crate::protocol;
+
 pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
 
 /// Represents an immutable compilation state that can be used
@@ -47,6 +49,23 @@ pub(crate) fn compile_document(
 
 pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset < span.hi
+}
+
+pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Span {
+    // Note that lo and hi offsets will usually be the same as
+    // the span will usually come from a single source.
+    let lo_offset = source_map
+        .find_by_offset(span.lo)
+        .expect("source should exist for offset")
+        .offset;
+    let hi_offset = source_map
+        .find_by_offset(span.hi)
+        .expect("source should exist for offset")
+        .offset;
+    protocol::Span {
+        start: span.lo - lo_offset,
+        end: span.hi - hi_offset,
+    }
 }
 
 pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offset: u32) -> u32 {

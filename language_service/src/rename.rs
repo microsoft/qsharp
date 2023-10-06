@@ -17,7 +17,7 @@ use qsc::{
 
 use crate::{
     protocol,
-    qsc_utils::{map_offset, Compilation},
+    qsc_utils::{map_offset, protocol_span, Compilation},
 };
 
 pub(crate) fn prepare_rename(
@@ -31,15 +31,9 @@ pub(crate) fn prepare_rename(
 
     let mut prepare_rename = Rename::new(compilation, offset, true);
     prepare_rename.visit_package(package);
-    prepare_rename.prepare.map(|p| {
-        (
-            protocol::Span {
-                start: p.0.lo,
-                end: p.0.hi,
-            },
-            p.1,
-        )
-    })
+    prepare_rename
+        .prepare
+        .map(|p| (protocol_span(p.0, &compilation.unit.sources), p.1))
 }
 
 pub(crate) fn get_rename(
@@ -56,10 +50,7 @@ pub(crate) fn get_rename(
     rename_visitor
         .locations
         .into_iter()
-        .map(|i| protocol::Span {
-            start: i.lo,
-            end: i.hi,
-        })
+        .map(|s| protocol_span(s, &compilation.unit.sources))
         .collect::<Vec<_>>()
 }
 
@@ -155,6 +146,9 @@ impl<'a> Rename<'a> {
     }
 }
 
+// Note: this is slightly different from qsc_utils::span_contains. This version
+// includes the span.hi position so that renames can be triggered with the cursor
+// at the end of an identifier.
 fn span_contains(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset <= span.hi
 }

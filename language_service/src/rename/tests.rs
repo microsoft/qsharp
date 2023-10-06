@@ -500,3 +500,20 @@ fn no_rename_std_item() {
         "#]],
     );
 }
+
+#[test]
+fn no_rename_non_id_character() {
+    check_prepare(
+        indoc! {r#"
+        namespace Test {
+            operation Foo() ↘: Unit {
+                Fake();
+            }
+
+        }
+    "#},
+        &expect![[r#"
+            None
+        "#]],
+    );
+}

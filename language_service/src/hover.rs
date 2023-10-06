@@ -5,10 +5,12 @@
 mod tests;
 
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
-use crate::protocol::{self, Hover};
-use crate::qsc_utils::{find_ident, find_item, map_offset, span_contains, Compilation};
+use crate::protocol::Hover;
+use crate::qsc_utils::{
+    find_ident, find_item, map_offset, protocol_span, span_contains, Compilation,
+};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
-use qsc::{ast, hir, resolve, SourceMap};
+use qsc::{ast, hir, resolve};
 use std::fmt::Display;
 use std::mem::replace;
 use std::rc::Rc;
@@ -304,23 +306,6 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                 };
             }
         }
-    }
-}
-
-fn protocol_span(span: qsc::Span, source_map: &SourceMap) -> protocol::Span {
-    // Note that lo and hi offsets will usually be the same as
-    // the span will usually come from a single source.
-    let lo_offset = source_map
-        .find_by_offset(span.lo)
-        .expect("source should exist for offset")
-        .offset;
-    let hi_offset = source_map
-        .find_by_offset(span.hi)
-        .expect("source should exist for offset")
-        .offset;
-    protocol::Span {
-        start: span.lo - lo_offset,
-        end: span.hi - hi_offset,
     }
 }
 
