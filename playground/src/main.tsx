@@ -290,7 +290,7 @@ function registerMonacoLanguageServiceProviders(
           startLineNumber: definitionPosition.lineNumber,
           startColumn: definitionPosition.column,
           endLineNumber: definitionPosition.lineNumber,
-          endColumn: definitionPosition.column + 1,
+          endColumn: definitionPosition.column,
         },
       };
     },
