@@ -12,7 +12,9 @@ import {
   WorkspaceTreeProvider,
 } from "./treeView";
 import {
+  getAzurePortalWorkspaceLink,
   getJobFiles,
+  getPythonCodeForWorkspace,
   getTokenForWorkspace,
   queryWorkspaces,
   submitJob,
@@ -302,6 +304,44 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           );
           return;
         }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.workspacePythonCode",
+      async (arg: WorkspaceTreeItem) => {
+        // Could be run via the treeItem icon or the menu command.
+        const treeItem = arg || currentTreeItem;
+        if (treeItem?.type !== "workspace") return;
+        const workspace = treeItem.itemData as WorkspaceConnection;
+        const str = getPythonCodeForWorkspace(workspace);
+        if (str) {
+          vscode.env.clipboard.writeText(str);
+          vscode.window.showInformationMessage(
+            "Python code has been copied to the clipboard"
+          );
+        } else {
+          vscode.window.showErrorMessage(
+            "Failed to generate Python code for workspace"
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.workspaceOpenPortal",
+      async (arg: WorkspaceTreeItem) => {
+        // Could be run via the treeItem icon or the menu command.
+        const treeItem = arg || currentTreeItem;
+        if (treeItem?.type !== "workspace") return;
+        const workspace = treeItem.itemData as WorkspaceConnection;
+
+        const link = getAzurePortalWorkspaceLink(workspace);
+        vscode.env.openExternal(vscode.Uri.parse(link));
       }
     )
   );
