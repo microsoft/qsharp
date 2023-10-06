@@ -7,7 +7,7 @@ mod tests;
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::protocol::Hover;
 use crate::qsc_utils::{
-    find_ident, find_item, map_offset, protocol_span, span_contains, Compilation,
+    find_ident, find_item, map_offset, protocol_span, span_contains, span_touches, Compilation,
 };
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
@@ -85,7 +85,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             let context = replace(&mut self.current_item_doc, item.doc.clone());
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
-                    if span_contains(decl.name.span, self.offset) {
+                    if span_touches(decl.name.span, self.offset) {
                         let contents = display_callable(
                             &item.doc,
                             &self.current_namespace,
@@ -116,7 +116,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                     }
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         let contents = markdown_fenced_block(self.display.ident_ty_def(ident, def));
                         self.hover = Some(Hover {
                             contents,
@@ -149,7 +149,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
         if span_contains(def.span, self.offset) {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         let contents = markdown_fenced_block(self.display.ident_ty(ident, ty));
                         self.hover = Some(Hover {
                             contents,
@@ -168,10 +168,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
     }
 
     fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        if span_contains(pat.span, self.offset) {
+        if span_touches(pat.span, self.offset) {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
                         let kind = if self.in_params {
                             LocalKind::Param
@@ -205,9 +205,9 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
     }
 
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_contains(expr.span, self.offset) {
+        if span_touches(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(_, field) if span_contains(field.span, self.offset) => {
+                ast::ExprKind::Field(_, field) if span_touches(field.span, self.offset) => {
                     let contents = markdown_fenced_block(self.display.ident_ty_id(field, expr.id));
                     self.hover = Some(Hover {
                         contents,
@@ -228,7 +228,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
     }
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        if span_contains(path.span, self.offset) {
+        if span_touches(path.span, self.offset) {
             let res = self.compilation.unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {

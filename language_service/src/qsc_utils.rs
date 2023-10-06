@@ -51,6 +51,10 @@ pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset < span.hi
 }
 
+pub(crate) fn span_touches(span: Span, offset: u32) -> bool {
+    offset >= span.lo && offset <= span.hi
+}
+
 pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Span {
     // Note that lo and hi offsets will usually be the same as
     // the span will usually come from a single source.

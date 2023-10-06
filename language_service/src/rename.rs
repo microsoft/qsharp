@@ -17,7 +17,7 @@ use qsc::{
 
 use crate::{
     protocol,
-    qsc_utils::{map_offset, protocol_span, Compilation},
+    qsc_utils::{map_offset, protocol_span, span_contains, span_touches, Compilation},
 };
 
 pub(crate) fn prepare_rename(
@@ -146,33 +146,15 @@ impl<'a> Rename<'a> {
     }
 }
 
-// Note: this is slightly different from qsc_utils::span_contains. This version
-// includes the span.hi position so that renames can be triggered with the cursor
-// at the end of an identifier.
-fn span_contains(span: Span, offset: u32) -> bool {
-    offset >= span.lo && offset <= span.hi
-}
-
-fn ast_item_id_to_hir_item_id(
-    item_id: ast::NodeId,
-    compilation: &Compilation,
-) -> Option<&hir::ItemId> {
-    if let Some(resolve::Res::Item(item_id)) = compilation.unit.ast.names.get(item_id) {
-        Some(item_id)
-    } else {
-        None
-    }
-}
-
 impl<'a> Visitor<'a> for Rename<'a> {
     // Handles callable and UDT definitions
     fn visit_item(&mut self, item: &'a ast::Item) {
         if span_contains(item.span, self.offset) {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
-                    if span_contains(decl.name.span, self.offset) {
-                        if let Some(item_id) =
-                            ast_item_id_to_hir_item_id(decl.name.id, self.compilation)
+                    if span_touches(decl.name.span, self.offset) {
+                        if let Some(resolve::Res::Item(item_id)) =
+                            self.compilation.unit.ast.names.get(decl.name.id)
                         {
                             self.get_spans_for_item_rename(item_id, &decl.name);
                         }
@@ -191,8 +173,10 @@ impl<'a> Visitor<'a> for Rename<'a> {
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if let Some(item_id) = ast_item_id_to_hir_item_id(ident.id, self.compilation) {
-                        if span_contains(ident.span, self.offset) {
+                    if let Some(resolve::Res::Item(item_id)) =
+                        self.compilation.unit.ast.names.get(ident.id)
+                    {
+                        if span_touches(ident.span, self.offset) {
                             self.get_spans_for_item_rename(item_id, ident);
                         } else if span_contains(def.span, self.offset) {
                             let context = self.current_udt_id;
@@ -209,31 +193,29 @@ impl<'a> Visitor<'a> for Rename<'a> {
 
     // Handles UDT field definitions
     fn visit_ty_def(&mut self, def: &'a ast::TyDef) {
-        if span_contains(def.span, self.offset) {
-            if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
-                if let Some(ident) = ident {
-                    if span_contains(ident.span, self.offset) {
-                        if let Some(item_id) = self.current_udt_id {
-                            self.get_spans_for_field_rename(item_id, ident);
-                        }
-                    } else {
-                        self.visit_ty(ty);
+        if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
+            if let Some(ident) = ident {
+                if span_touches(ident.span, self.offset) {
+                    if let Some(item_id) = self.current_udt_id {
+                        self.get_spans_for_field_rename(item_id, ident);
                     }
                 } else {
                     self.visit_ty(ty);
                 }
             } else {
-                walk_ty_def(self, def);
+                self.visit_ty(ty);
             }
+        } else {
+            walk_ty_def(self, def);
         }
     }
 
     // Handles local variable definitions
     fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        if span_contains(pat.span, self.offset) {
+        if span_touches(pat.span, self.offset) {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         self.get_spans_for_local_rename(ident.id, ident);
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -246,9 +228,9 @@ impl<'a> Visitor<'a> for Rename<'a> {
 
     // Handles UDT field references
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_contains(expr.span, self.offset) {
+        if span_touches(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(udt, field) if span_contains(field.span, self.offset) => {
+                ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) =
                         self.compilation.unit.ast.tys.terms.get(udt.id)
                     {
@@ -267,7 +249,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
 
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        if span_contains(path.span, self.offset) {
+        if span_touches(path.span, self.offset) {
             let res = self.compilation.unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
