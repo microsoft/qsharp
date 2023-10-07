@@ -17,6 +17,7 @@ mod display;
 pub mod hover;
 pub mod protocol;
 mod qsc_utils;
+pub mod rename;
 pub mod signature_help;
 #[cfg(test)]
 mod test_utils;
@@ -135,9 +136,6 @@ impl<'a> LanguageService<'a> {
         );
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_completions(&self, uri: &str, offset: u32) -> CompletionList {
         trace!("get_completions: uri: {uri:?}, offset: {offset:?}");
@@ -152,9 +150,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
         trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
@@ -167,9 +162,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
         trace!("get_hover: uri: {uri:?}, offset: {offset:?}");
@@ -182,9 +174,6 @@ impl<'a> LanguageService<'a> {
         res
     }
 
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
     #[must_use]
     pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<SignatureHelp> {
         trace!("get_signature_help: uri: {uri:?}, offset: {offset:?}");
@@ -194,6 +183,30 @@ impl<'a> LanguageService<'a> {
                 .expect("get_signature_help should not be called before document has been initialized with update_document").compilation,
                 uri, offset);
         trace!("get_signature_help result: {res:?}");
+        res
+    }
+
+    #[must_use]
+    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
+        trace!("get_rename: uri: {uri:?}, offset: {offset:?}");
+        let res = rename::get_rename(
+            &self
+            .document_map.get(uri).as_ref()
+                .expect("get_rename should not be called before document has been initialized with update_document").compilation,
+                uri, offset);
+        trace!("get_rename result: {res:?}");
+        res
+    }
+
+    #[must_use]
+    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<(protocol::Span, String)> {
+        trace!("prepare_rename: uri: {uri:?}, offset: {offset:?}");
+        let res = rename::prepare_rename(
+            &self
+            .document_map.get(uri).as_ref()
+                .expect("prepare_rename should not be called before document has been initialized with update_document").compilation,
+                uri, offset);
+        trace!("prepare_rename result: {res:?}");
         res
     }
 
