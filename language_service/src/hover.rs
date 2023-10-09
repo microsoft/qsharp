@@ -207,12 +207,35 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
         if span_touches(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(_, field) if span_touches(field.span, self.offset) => {
-                    let contents = markdown_fenced_block(self.display.ident_ty_id(field, expr.id));
-                    self.hover = Some(Hover {
-                        contents,
-                        span: protocol_span(field.span, &self.compilation.unit.sources),
-                    });
+                ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
+                    if let Some(hir::ty::Ty::Udt(res)) =
+                        self.compilation.unit.ast.tys.terms.get(udt.id)
+                    {
+                        match res {
+                            hir::Res::Item(item_id) => {
+                                if let (Some(item), _) = find_item(self.compilation, item_id) {
+                                    match &item.kind {
+                                        hir::ItemKind::Ty(_, udt) => {
+                                            if udt.find_field_by_name(&field.name).is_some() {
+                                                let contents = markdown_fenced_block(
+                                                    self.display.ident_ty_id(field, expr.id),
+                                                );
+                                                self.hover = Some(Hover {
+                                                    contents,
+                                                    span: protocol_span(
+                                                        field.span,
+                                                        &self.compilation.unit.sources,
+                                                    ),
+                                                });
+                                            }
+                                        }
+                                        _ => panic!("UDT has invalid resolution."),
+                                    }
+                                }
+                            }
+                            _ => panic!("UDT has invalid resolution."),
+                        }
+                    }
                 }
                 ast::ExprKind::Lambda(_, pat, expr) => {
                     self.in_lambda_params = true;

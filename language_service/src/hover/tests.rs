@@ -955,3 +955,18 @@ fn callable_param_doc() {
         "#]],
     );
 }
+
+#[test]
+fn udt_field_incorrect() {
+    check_none(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (fst : Int, snd : Int);
+            operation Bar() : Unit {
+                let foo = Foo(1, 2);
+                let x : Int = foo::◉n↘one◉;
+            }
+        }
+    "#}
+    );
+}
