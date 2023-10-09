@@ -3,7 +3,6 @@
 
 namespace Microsoft.Quantum.Math {
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
 
     //
     // Sign, Abs, Min, Max, etc.
@@ -442,6 +441,7 @@ namespace Microsoft.Quantum.Math {
     /// Returns a tuple (u,v) such that u*a+v*b=GCD(a,b)
     /// Note: GCD is always positive except that GCD(0,0)=0.
     function ExtendedGreatestCommonDivisorL(a : BigInt, b : BigInt) : (BigInt, BigInt) {
+        open Microsoft.Quantum.Convert;
         let signA = IntAsBigInt(SignL(a));
         let signB = IntAsBigInt(SignL(b));
         mutable (s1, s2) = (1L, 0L);
@@ -501,4 +501,337 @@ namespace Microsoft.Quantum.Math {
         }
         return size;
     }
+
+    //
+    // Complex numbers
+    //
+
+    /// # Summary
+    /// Represents a complex number by its real and imaginary components.
+    /// The first element of the tuple is the real component,
+    /// the second one - the imaginary component.
+    ///
+    /// # Example
+    /// The following snippet defines the imaginary unit 𝑖 = 0 + 1𝑖:
+    /// ```qsharp
+    /// let imagUnit = Complex(0.0, 1.0);
+    /// ```
+    newtype Complex = (Real: Double, Imag: Double);
+
+    /// # Summary
+    /// Represents a complex number in polar form.
+    /// The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
+    ///
+    /// # Named Items
+    /// ## Magnitude
+    /// The absolute value r>0 of c.
+    /// ## Argument
+    /// The phase t ∈ ℝ of c.
+    newtype ComplexPolar = (Magnitude: Double, Argument: Double);
+
+    /// # Summary
+    /// Returns the squared absolute value of a complex number of type
+    /// `Complex`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = x + y𝑖.
+    ///
+    /// # Output
+    /// Squared absolute value |c|² = x² + y².
+    function AbsSquaredComplex(input : Complex) : Double {
+        return input::Real * input::Real + input::Imag * input::Imag;
+    }
+
+    /// # Summary
+    /// Returns the absolute value of a complex number of type
+    /// `Complex`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = x + y𝑖.
+    ///
+    /// # Output
+    /// Absolute value |c| = √(x² + y²).
+    function AbsComplex(input : Complex) : Double {
+        Sqrt(AbsSquaredComplex(input))
+    }
+
+    /// # Summary
+    /// Returns the phase of a complex number of type
+    /// `Complex`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = x + y𝑖.
+    ///
+    /// # Output
+    /// Phase Arg(c) = ArcTan(y,x) ∈ (-𝜋,𝜋].
+    function ArgComplex(input : Complex) : Double {
+        ArcTan2(input::Imag, input::Real)
+    }
+
+    /// # Summary
+    /// Returns the squared absolute value of a complex number of type
+    /// `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = r⋅𝑒^(t𝑖).
+    ///
+    /// # Output
+    /// Squared absolute value |c|² = r².
+    function AbsSquaredComplexPolar(input : ComplexPolar) : Double {
+        input::Magnitude * input::Magnitude
+    }
+
+    /// # Summary
+    /// Returns the absolute value of a complex number of type
+    /// `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = r⋅𝑒^(t𝑖).
+    ///
+    /// # Output
+    /// Absolute value |c| = r.
+    function AbsComplexPolar(input : ComplexPolar) : Double {
+        input::Magnitude
+    }
+
+    /// # Summary
+    /// Returns the phase of a complex number of type `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = r⋅𝑒^(t𝑖).
+    ///
+    /// # Output
+    /// Phase Arg(c) = t.
+    function ArgComplexPolar(input : ComplexPolar) : Double {
+        input::Argument
+    }
+
+    /// # Summary
+    /// Returns the unary negation of an input of type `Complex`.
+    ///
+    /// # Input
+    /// ## input
+    /// A value whose negation is to be returned.
+    ///
+    /// # Output
+    /// The unary negation of `input`.
+    function NegationC(input : Complex) : Complex {
+        Complex(-input::Real, -input::Imag)
+    }
+
+    /// # Summary
+    /// Returns the unary negation of an input of type `ComplexPolar`
+    ///
+    /// # Input
+    /// ## input
+    /// A value whose negation is to be returned.
+    ///
+    /// # Output
+    /// The unary negation of `input`.
+    function NegationCP(input : ComplexPolar) : ComplexPolar {
+        return ComplexPolar(input::Magnitude, input::Argument + PI());
+    }
+
+    /// # Summary
+    /// Returns the sum of two inputs of type `Complex`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be summed.
+    /// ## b
+    /// The second input b to be summed.
+    ///
+    /// # Output
+    /// The sum a + b.
+    function PlusC(a : Complex, b : Complex) : Complex {
+        Complex(a::Real + b::Real, a::Imag + b::Imag)
+    }
+
+    /// # Summary
+    /// Returns the sum of two inputs of type `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be summed.
+    /// ## b
+    /// The second input b to be summed.
+    ///
+    /// # Output
+    /// The sum a + b.
+    function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
+        open Microsoft.Quantum.Convert;
+        return ComplexAsComplexPolar(
+            PlusC(
+                ComplexPolarAsComplex(a),
+                ComplexPolarAsComplex(b)
+            )
+        );
+    }
+
+    /// # Summary
+    /// Returns the difference between two inputs of type `Complex`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be subtracted.
+    /// ## b
+    /// The second input b to be subtracted.
+    ///
+    /// # Output
+    /// The difference a - b.
+    function MinusC(a : Complex, b : Complex) : Complex {
+        Complex(a::Real - b::Real, a::Imag - b::Imag)
+    }
+
+    /// # Summary
+    /// Returns the difference between two inputs of type `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be subtracted.
+    /// ## b
+    /// The second input b to be subtracted.
+    ///
+    /// # Output
+    /// The difference a - b.
+    function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
+        PlusCP(a, NegationCP(b))
+    }
+
+    /// # Summary
+    /// Returns the product of two inputs of type `Complex`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be multiplied.
+    /// ## b
+    /// The second input b to be multiplied.
+    ///
+    /// # Output
+    /// The product a⋅b.
+    function TimesC(a : Complex, b : Complex) : Complex {
+        Complex(
+            a::Real * b::Real - a::Imag * b::Imag,
+            a::Real * b::Imag + a::Imag * b::Real
+        )
+    }
+
+    /// # Summary
+    /// Returns the product of two inputs of type `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be multiplied.
+    /// ## b
+    /// The second input b to be multiplied.
+    ///
+    /// # Output
+    /// The product a⋅b.
+    function TimesCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
+        ComplexPolar(
+            a::Magnitude * b::Magnitude,
+            a::Argument + b::Argument
+        )
+    }
+
+    /// # Summary
+    /// Internal. Since it is easiest to define the power of two complex numbers
+    /// in cartesian form as returning in polar form, we define that here, then
+    /// convert as needed.
+    /// Note that this is a multi-valued function, but only one value is returned.
+    internal function PowCAsCP(base : Complex, power : Complex) : ComplexPolar {
+        let ((a, b), (c, d)) = (base!, power!);
+        let baseSqNorm = a*a + b*b;
+        let baseNorm = Sqrt(baseSqNorm);
+        let baseArg = ArgComplex(base);
+
+        // We pick the principal value of the multi-valued complex function ㏑ as
+        // ㏑(a+b𝑖) = ln(|a+b𝑖|) + 𝑖⋅arg(a+b𝑖) = ln(baseNorm) + 𝑖⋅baseArg
+        // Therefore
+        // base^power = (a+b𝑖)^(c+d𝑖) = 𝑒^( (c+d𝑖)⋅㏑(a+b𝑖) ) =
+        // = 𝑒^( (c+d𝑖)⋅(ln(baseNorm)+𝑖⋅baseArg) ) = 
+        // = e^( (c⋅ln(baseNorm) - d⋅baseArg) + 𝑖⋅(c⋅baseArg + d⋅ln(baseNorm)) )
+        // magnitude = e^((c⋅ln(baseNorm) - d⋅baseArg)) = baseNorm^c / e^(d⋅baseArg)
+        // angle = d⋅ln(baseNorm) + c⋅baseArg
+
+        let magnitude = baseNorm^c / E()^(d * baseArg);
+        let angle = d * Log(baseNorm) + c * baseArg;
+
+        ComplexPolar(magnitude, angle)
+    }
+
+    /// # Summary
+    /// Returns a number raised to a given power of type `Complex`.
+    /// Note that this is a multi-valued function, but only one value is returned.
+    ///
+    /// # Input
+    /// ## a
+    /// The number a that is to be raised.
+    /// ## power
+    /// The power b to which a should be raised.
+    ///
+    /// # Output
+    /// The power a^b
+    function PowC(a : Complex, power : Complex) : Complex {
+        open Microsoft.Quantum.Convert;
+        ComplexPolarAsComplex(PowCAsCP(a, power))
+    }
+
+    /// # Summary
+    /// Returns a number raised to a given power of type `ComplexPolar`.
+    /// Note that this is a multi-valued function, but only one value is returned.
+    ///
+    /// # Input
+    /// ## a
+    /// The number a that is to be raised.
+    /// ## power
+    /// The power b to which a should be raised.
+    ///
+    /// # Output
+    /// The power a^b
+    function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar {
+        open Microsoft.Quantum.Convert;
+        PowCAsCP(ComplexPolarAsComplex(a), ComplexPolarAsComplex(power))
+    }
+
+    /// # Summary
+    /// Returns the quotient of two inputs of type `Complex`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be divided.
+    /// ## b
+    /// The second input b to be divided.
+    ///
+    /// # Output
+    /// The quotient a / b.
+    function DividedByC(a : Complex, b : Complex) : Complex {
+        let sqNorm = b::Real * b::Real + b::Imag * b::Imag;
+        Complex(
+            (a::Real * b::Real + a::Imag * b::Imag) / sqNorm,
+            (a::Imag * b::Real - a::Real * b::Imag) / sqNorm
+        )
+    }
+
+    /// # Summary
+    /// Returns the quotient of two inputs of type `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## a
+    /// The first input a to be divided.
+    /// ## b
+    /// The second input b to be divided.
+    ///
+    /// # Output
+    /// The quotient a / b.
+    function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
+        ComplexPolar(a::Magnitude / b::Magnitude, a::Argument - b::Argument)
+    }
+
 }

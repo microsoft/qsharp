@@ -17,7 +17,7 @@ use qsc::{
 use crate::{
     display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
-    qsc_utils::{find_item, map_offset, span_contains, Compilation},
+    qsc_utils::{find_item, map_offset, span_contains, span_touches, Compilation},
 };
 
 pub(crate) fn get_signature_help(
@@ -56,9 +56,9 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
     }
 
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_contains(expr.span, self.offset) {
+        if span_touches(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Call(callee, args) if span_contains(args.span, self.offset) => {
+                ast::ExprKind::Call(callee, args) if span_touches(args.span, self.offset) => {
                     walk_expr(self, args);
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);

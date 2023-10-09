@@ -147,6 +147,40 @@ impl LanguageService {
             .into()
         })
     }
+
+    pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
+        let locations = self.0.get_rename(uri, offset);
+
+        let renames = locations
+            .into_iter()
+            .map(|s| TextEdit {
+                range: Span {
+                    start: s.start,
+                    end: s.end,
+                },
+                newText: new_name.to_string(),
+            })
+            .collect::<Vec<_>>();
+
+        let workspace_edit = WorkspaceEdit {
+            changes: vec![(uri.to_string(), renames)],
+        };
+        workspace_edit.into()
+    }
+
+    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<ITextEdit> {
+        let result = self.0.prepare_rename(uri, offset);
+        result.map(|r| {
+            TextEdit {
+                range: Span {
+                    start: r.0.start,
+                    end: r.0.end,
+                },
+                newText: r.1,
+            }
+            .into()
+        })
+    }
 }
 
 serializable_type! {
@@ -200,7 +234,8 @@ serializable_type! {
     r#"export interface ITextEdit {
         range: ISpan;
         newText: string;
-    }"#
+    }"#,
+    ITextEdit
 }
 
 serializable_type! {
@@ -268,6 +303,17 @@ serializable_type! {
         label: ISpan;
         documentation?: string;
     }"#
+}
+
+serializable_type! {
+    WorkspaceEdit,
+    {
+        changes: Vec<(String, Vec<TextEdit>)>,
+    },
+    r#"export interface IWorkspaceEdit {
+        changes: [string, ITextEdit[]][];
+    }"#,
+    IWorkspaceEdit
 }
 
 serializable_type! {
