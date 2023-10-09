@@ -958,8 +958,7 @@ fn callable_param_doc() {
 
 #[test]
 fn udt_field_incorrect() {
-    check_none(
-        indoc! {r#"
+    check_none(indoc! {r#"
         namespace Test {
             newtype Foo = (fst : Int, snd : Int);
             operation Bar() : Unit {
@@ -967,6 +966,5 @@ fn udt_field_incorrect() {
                 let x : Int = foo::◉n↘one◉;
             }
         }
-    "#}
-    );
+    "#});
 }
