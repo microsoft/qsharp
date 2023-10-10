@@ -7,18 +7,19 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{self, CallableDecl, Ident, NodeId, TopLevelNode},
-    visit::{self as ast_visit, Visitor as AstVisitor},
+    visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global,
-    hir::{self, ItemId, LocalItemId, PackageId},
+    hir::{self, Attr, ItemId, LocalItemId, PackageId},
     ty::{ParamId, Prim},
 };
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     rc::Rc,
+    str::FromStr,
     vec,
 };
 use thiserror::Error;
@@ -39,7 +40,7 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// A global item.
-    Item(ItemId),
+    Item(ItemId, ItemInfo),
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
@@ -48,6 +49,30 @@ pub enum Res {
     PrimTy(Prim),
     /// The unit type.
     UnitTy,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct ItemInfo {
+    deprecated: Option<Span>,
+    unimplemented: bool,
+}
+
+impl ItemInfo {
+    #[must_use]
+    pub fn new(attrs: &[Attr]) -> Self {
+        let mut info = Self {
+            deprecated: None,
+            unimplemented: false,
+        };
+        for attr in attrs {
+            match attr {
+                Attr::Deprecated(span) => info.deprecated = Some(*span),
+                Attr::Unimplemented => info.unimplemented = true,
+                _ => {}
+            }
+        }
+        info
+    }
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -77,6 +102,14 @@ pub(super) enum Error {
         span: Span,
     },
 
+    #[error("use of deprecated item `{0}`")]
+    #[diagnostic(help(
+        "check the `Deprecated` attribute on the item definition for recommended alternatives"
+    ))]
+    #[diagnostic(severity(Warning))]
+    #[diagnostic(code("Qsc.Resolve.Deprecated"))]
+    Deprecated(String, #[label] Span),
+
     #[error("duplicate declaration of `{0}` in namespace `{1}`")]
     #[diagnostic(code("Qsc.Resolve.Duplicate"))]
     Duplicate(String, String, #[label] Span),
@@ -96,6 +129,11 @@ pub(super) enum Error {
     ))]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotAvailable(String, String, #[label] Span),
+
+    #[error("use of unimplemented item `{0}`")]
+    #[diagnostic(help("this item is not implemented and cannot be used"))]
+    #[diagnostic(code("Qsc.Resolve.Unimplemented"))]
+    Unimplemented(String, #[label] Span),
 }
 
 struct Scope {
@@ -244,7 +282,12 @@ impl Resolver {
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
-            Ok(id) => self.names.insert(name.id, id),
+            Ok((id, err)) => {
+                if let Some(err) = err {
+                    self.errors.push(err);
+                }
+                self.names.insert(name.id, id);
+            }
             Err(err) => self.errors.push(err),
         }
     }
@@ -253,7 +296,12 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
-            Ok(id) => self.names.insert(path.id, id),
+            Ok((id, err)) => {
+                if let Some(err) = err {
+                    self.errors.push(err);
+                }
+                self.names.insert(path.id, id);
+            }
             Err(err) => {
                 if let Error::NotFound(name, span) = err {
                     if let Some(dropped_name) =
@@ -317,13 +365,15 @@ impl Resolver {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(decl.name.id, Res::Item(id));
+                self.names
+                    .insert(decl.name.id, Res::Item(id, ItemInfo::default()));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(name.id, Res::Item(id));
+                self.names
+                    .insert(name.id, Res::Item(id, ItemInfo::default()));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
@@ -393,8 +443,13 @@ impl AstVisitor<'_> for With<'_> {
         });
     }
 
-    // We do not perform name resolution on attributes, as those are checking during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {}
+    fn visit_attr(&mut self, attr: &ast::Attr) {
+        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
+            // The Config attribute arguments do not go through name resolution.
+            return;
+        }
+        walk_attr(self, attr);
+    }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         fn collect_param_names(pat: &ast::Pat, names: &mut HashSet<Rc<str>>) {
@@ -570,14 +625,17 @@ impl GlobalTable {
                         .tys
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(ty.id));
+                        .insert(global.name, Res::Item(ty.id, ItemInfo::new(&global.attrs)));
                 }
                 global::Kind::Term(term) => {
                     self.scope
                         .terms
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(term.id));
+                        .insert(
+                            global.name,
+                            Res::Item(term.id, ItemInfo::new(&global.attrs)),
+                        );
                 }
                 global::Kind::Namespace => {
                     self.scope.namespaces.insert(global.name);
@@ -596,7 +654,7 @@ fn bind_global_items(
 ) {
     names.insert(
         namespace.name.id,
-        Res::Item(intrapackage(assigner.next_item())),
+        Res::Item(intrapackage(assigner.next_item()), ItemInfo::default()),
     );
     scope.namespaces.insert(Rc::clone(&namespace.name.name));
 
@@ -639,7 +697,7 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
                 let namespace = &path.namespace;
                 resolve(NameKind::Term, globals, scopes, name, namespace)
             },
-            Ok(Res::Local(_))
+            Ok((Res::Local(_), _))
         ),
         _ => false,
     }
@@ -654,7 +712,7 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let res = Res::Item(next_id());
+            let res = Res::Item(next_id(), ItemInfo::default());
             names.insert(decl.name.id, res);
             match scope
                 .terms
@@ -674,7 +732,7 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let res = Res::Item(next_id());
+            let res = Res::Item(next_id(), ItemInfo::default());
             names.insert(name.id, res);
             match (
                 scope
@@ -710,7 +768,7 @@ fn resolve(
     locals: &[Scope],
     name: &Ident,
     namespace: &Option<Box<Ident>>,
-) -> Result<Res, Error> {
+) -> Result<(Res, Option<Error>), Error> {
     let mut candidates = HashMap::new();
     let mut vars = true;
     let name_str = &(*name.name);
@@ -719,7 +777,7 @@ fn resolve(
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
                 // Local declarations shadow everything.
-                return Ok(res);
+                return Ok((res, None));
             }
         }
 
@@ -760,14 +818,14 @@ fn resolve(
             });
         }
         if let Some((res, _)) = single(candidates) {
-            return Ok(res);
+            return Ok((res, None));
         }
     }
 
     if candidates.is_empty() {
         if let Some(&res) = globals.get(kind, namespace, name_str) {
             // An unopened global is the last resort.
-            return Ok(res);
+            return Ok((res, None));
         }
     }
 
@@ -783,8 +841,20 @@ fn resolve(
             second_open_span: opens[1].span,
         })
     } else {
-        single(candidates.into_keys())
-            .ok_or_else(|| Error::NotFound(name_str.to_string(), name.span))
+        let Some(res) = single(candidates.into_keys()) else {
+            return Err(Error::NotFound(name_str.to_string(), name.span));
+        };
+        match res {
+            Res::Item(_, info) if info.deprecated.is_some() => Ok((
+                res,
+                Some(Error::Deprecated(name_str.to_string(), name.span)),
+            )),
+            Res::Item(_, info) if info.unimplemented => Ok((
+                res,
+                Some(Error::Unimplemented(name_str.to_string(), name.span)),
+            )),
+            _ => Ok((res, None)),
+        }
     }
 }
 
@@ -819,7 +889,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id));
+        return Some(Res::Item(id, ItemInfo::default()));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {

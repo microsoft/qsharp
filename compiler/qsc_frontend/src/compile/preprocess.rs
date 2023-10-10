@@ -6,6 +6,7 @@ use qsc_ast::{
     ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind},
     mut_visit::MutVisitor,
 };
+use qsc_hir::hir;
 use std::rc::Rc;
 
 use super::TargetProfile;
@@ -119,7 +120,7 @@ impl MutVisitor for Conditional {
 
 fn matches_target(attrs: &[Box<Attr>], target: TargetProfile) -> bool {
     attrs.iter().all(|attr| {
-        if attr.name.name.as_ref() == "Config" {
+        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
             if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
                 match inner.kind.as_ref() {
                     ExprKind::Path(path) => {

@@ -1126,8 +1126,28 @@ impl Display for Ident {
 /// An attribute.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Attr {
+    /// Provide pre-processing information about when an item should be included in compilation.
+    Config,
     /// Indicates that a callable is an entry point to a program.
     EntryPoint,
+    /// Indicates that an item has been deprecated and may eventually be removed.
+    Deprecated(Span),
+    /// Indicates that an item does not have an implementation available for use.
+    Unimplemented,
+}
+
+impl FromStr for Attr {
+    type Err = ();
+
+    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+        match s {
+            "Config" => Ok(Self::Config),
+            "EntryPoint" => Ok(Self::EntryPoint),
+            "Deprecated" => Ok(Self::Deprecated(Span::default())),
+            "Unimplemented" => Ok(Self::Unimplemented),
+            _ => Err(()),
+        }
+    }
 }
 
 /// A field.

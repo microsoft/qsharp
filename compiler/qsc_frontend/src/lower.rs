@@ -19,7 +19,7 @@ use qsc_hir::{
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, Ty},
 };
-use std::{clone::Clone, rc::Rc, vec};
+use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -124,7 +124,7 @@ impl With<'_> {
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) =
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
             self.names.get(namespace.name.id)
         else {
             panic!("namespace should have item ID");
@@ -167,7 +167,7 @@ impl With<'_> {
         };
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
+            Some(&resolve::Res::Item(hir::ItemId { item, .. }, _)) => item,
             _ => panic!("item should have item ID"),
         };
 
@@ -210,8 +210,8 @@ impl With<'_> {
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
-        if attr.name.name.as_ref() == "EntryPoint" {
-            match &*attr.arg.kind {
+        match hir::Attr::from_str(attr.name.name.as_ref()) {
+            Ok(hir::Attr::EntryPoint) => match &*attr.arg.kind {
                 ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
                 _ => {
                     self.lowerer
@@ -219,23 +219,43 @@ impl With<'_> {
                         .push(Error::InvalidAttrArgs("()", attr.arg.span));
                     None
                 }
+            },
+            Ok(hir::Attr::Unimplemented) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::Unimplemented),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span));
+                    None
+                }
+            },
+            Ok(hir::Attr::Config) => {
+                if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
+                    if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                        if TargetProfile::from_str(path.name.name.as_ref()).is_ok()))
+                {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
+                }
+                None
             }
-        } else if attr.name.name.as_ref() == "Config" {
-            if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
-                if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                    if TargetProfile::is_target_str(path.name.name.as_ref())))
-            {
-                self.lowerer
-                    .errors
-                    .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
+            Ok(hir::Attr::Deprecated(..)) => {
+                let arg = self.lower_expr(&attr.arg);
+                if !matches!(arg.ty, Ty::Arrow(..)) {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("callable expression", attr.arg.span));
+                }
+                Some(hir::Attr::Deprecated(attr.arg.span))
             }
-            None
-        } else {
-            self.lowerer.errors.push(Error::UnknownAttr(
-                attr.name.name.to_string(),
-                attr.name.span,
-            ));
-            None
+            Err(_) => {
+                self.lowerer.errors.push(Error::UnknownAttr(
+                    attr.name.name.to_string(),
+                    attr.name.span,
+                ));
+                None
+            }
         }
     }
 
@@ -704,7 +724,7 @@ impl With<'_> {
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.names.get(path.id) {
-            Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
+            Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,

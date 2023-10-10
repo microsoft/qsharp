@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Item, ItemId, ItemKind, Package, PackageId, Visibility},
+    hir::{Attr, Item, ItemId, ItemKind, Package, PackageId, Visibility},
     ty::Scheme,
 };
 use qsc_data_structures::index_map;
@@ -13,6 +13,7 @@ pub struct Global {
     pub name: Rc<str>,
     pub visibility: Visibility,
     pub kind: Kind,
+    pub attrs: Vec<Attr>,
 }
 
 pub enum Kind {
@@ -104,6 +105,7 @@ impl PackageIter<'_> {
                     id,
                     scheme: decl.scheme(),
                 }),
+                attrs: item.attrs.clone(),
             }),
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
@@ -114,6 +116,7 @@ impl PackageIter<'_> {
                         id,
                         scheme: def.cons_scheme(id),
                     }),
+                    attrs: item.attrs.clone(),
                 });
 
                 Some(Global {
@@ -121,6 +124,7 @@ impl PackageIter<'_> {
                     name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     kind: Kind::Ty(Ty { id }),
+                    attrs: item.attrs.clone(),
                 })
             }
             (ItemKind::Namespace(ident, _), None) => Some(Global {
@@ -128,6 +132,7 @@ impl PackageIter<'_> {
                 name: Rc::clone(&ident.name),
                 visibility: Visibility::Public,
                 kind: Kind::Namespace,
+                attrs: item.attrs.clone(),
             }),
             _ => None,
         }
