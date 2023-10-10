@@ -24,6 +24,9 @@ mod language_service;
 mod logging;
 mod serializable_type;
 
+#[cfg(test)]
+mod tests;
+
 thread_local! {
     static STORE_CORE_STD: (PackageStore, PackageId) = {
         let mut store = PackageStore::new(compile::core());
@@ -109,14 +112,14 @@ fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
 
 struct CallbackReceiver<F>
 where
-    F: Fn(&str),
+    F: FnMut(&str),
 {
     event_cb: F,
 }
 
 impl<F> Receiver for CallbackReceiver<F>
 where
-    F: Fn(&str),
+    F: FnMut(&str),
 {
     fn state(
         &mut self,
@@ -160,7 +163,7 @@ where
 
 fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateful::Error>
 where
-    F: Fn(&str),
+    F: FnMut(&str),
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
