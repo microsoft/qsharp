@@ -508,7 +508,7 @@ test("diagnostics with related spans", async () => {
         related: event.detail.diagnostics[0].related?.map((r) => ({
           start_pos: r.start_pos,
           message: r.message,
-          end_pos: r.end_pos
+          end_pos: r.end_pos,
         })),
       }
     );

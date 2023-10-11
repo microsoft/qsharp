@@ -102,10 +102,7 @@ fn main() -> miette::Result<ExitCode> {
         Ok(ExitCode::SUCCESS)
     } else {
         for error in errors {
-            eprintln!(
-                "{:?}",
-                Report::new(WithSource::from_map(&unit.sources, error))
-            );
+            eprintln!("{:?}", Report::new(error));
         }
 
         Ok(ExitCode::FAILURE)

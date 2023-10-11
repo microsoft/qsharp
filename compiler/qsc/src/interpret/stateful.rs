@@ -51,7 +51,7 @@ impl Error {
 pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Compile(#[from] WithSource<crate::compile::Error>),
+    Compile(#[from] crate::compile::Error),
     #[error(transparent)]
     #[diagnostic(transparent)]
     Pass(#[from] WithSource<qsc_passes::Error>),
@@ -663,7 +663,7 @@ fn eval_error(
     vec![error::from_eval(error, package_store, stack_trace).into()]
 }
 
-fn into_errors(errors: Vec<WithSource<crate::compile::Error>>) -> Vec<Error> {
+fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
     errors
         .into_iter()
         .map(|error| Error::Compile(error.into_with_source()))
