@@ -125,7 +125,7 @@ fn matches_target(attrs: &[Box<Attr>], target: TargetProfile) -> bool {
                     ExprKind::Path(path) => {
                         match TargetProfile::from_str(path.name.name.as_ref()) {
                             Ok(t) => t == target,
-                            Err(_) => true,
+                            Err(()) => true,
                         }
                     }
                     _ => true,

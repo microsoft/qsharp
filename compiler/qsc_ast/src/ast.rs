@@ -92,8 +92,7 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be replaced");
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
