@@ -12,10 +12,6 @@
 			"installTools": true,
 			"installJupyterlab": true,
 			"version": "3.11"
-		},
-		"ghcr.io/devcontainers/features/azure-cli:1": {
-			"version": "latest",
-			"extensions": "quantum"
 		}
 	},
 	"postCreateCommand": "npm install -g wasm-pack",
