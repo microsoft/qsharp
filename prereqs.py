@@ -13,7 +13,7 @@ import tempfile
 import functools
 
 python_ver = (3, 11)  # Python support for Windows on ARM64 requires v3.11 or later
-rust_ver = (1, 73)  # Ensure Rust version 1.69 or later is installed
+rust_ver = (1, 73)  # Ensure Rust version 1.73 or later is installed
 node_ver = (
     18,
     17,
