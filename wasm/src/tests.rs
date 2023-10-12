@@ -11,17 +11,19 @@ use crate::get_qir;
 #[test]
 fn test_missing_type() {
     let code = "namespace input { operation Foo(a) : Unit {} }";
-    let (_, mut diag) = crate::compile(code);
-    assert_eq!(diag.len(), 2, "{diag:#?}");
-    let err_1 = diag.pop().unwrap();
-    let err_2 = diag.pop().unwrap();
+    let expr = "";
+    let count = std::cell::Cell::new(0);
 
-    assert_eq!(err_1.start_pos, 32);
-    assert_eq!(err_1.end_pos, 33);
-    assert_eq!(err_1.message, "type error: insufficient type information to infer type\n\nhelp: provide a type annotation");
-    assert_eq!(err_2.start_pos, 32);
-    assert_eq!(err_2.end_pos, 33);
-    assert_eq!(err_2.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
+    let _ = run_internal(
+        code,
+        expr,
+        |msg| {
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","end_pos":33,"message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","severity":"error","start_pos":32},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            count.set(count.get() + 1);
+        },
+        1,
+    );
+    assert_eq!(count.get(), 1);
 }
 
 #[test]
@@ -69,17 +71,19 @@ fn fail_ry() {
             return [m1];
         }
     }";
+    let expr = "";
+    let count = std::cell::Cell::new(0);
 
-    let (_, errors) = crate::compile(code);
-    assert_eq!(errors.len(), 1, "{errors:#?}");
-
-    let error = errors.first().unwrap();
-    assert_eq!(error.start_pos, 99);
-    assert_eq!(error.end_pos, 105);
-    assert_eq!(
-        error.message,
-        "type error: expected (Double, Qubit), found Qubit"
+    let _result = run_internal(
+        code,
+        expr,
+        |msg| {
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.TyMismatch","end_pos":105,"message":"type error: expected (Double, Qubit), found Qubit","severity":"error","start_pos":99},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            count.set(count.get() + 1);
+        },
+        1,
     );
+    assert_eq!(count.get(), 1);
 }
 
 #[test]
@@ -238,8 +242,102 @@ fn test_run_error_program_multiple_shots() {
     )
     .expect("code should compile and run");
     expect![[r#"
-        {"result":{"code":{"target":"","value":"Qsc.Eval.QubitUniqueness"},"end_pos":89260,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":89243},"success":false,"type":"Result"}
-        {"result":{"code":{"target":"","value":"Qsc.Eval.QubitUniqueness"},"end_pos":89260,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":89243},"success":false,"type":"Result"}
-        {"result":{"code":{"target":"","value":"Qsc.Eval.QubitUniqueness"},"end_pos":89260,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":89243},"success":false,"type":"Result"}"#]]
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]]
+    .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_runtime_error_with_span() {
+    let mut output = Vec::new();
+    run_internal(
+        indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    fail "hello"
+                }
+            }"#
+        },
+        "",
+        |s| output.push(s.to_string()),
+        3,
+    )
+    .expect("code should compile and run");
+    expect![[r#"
+        {"result":{"code":"Qsc.Eval.UserFail","end_pos":85,"message":"runtime error: program failed: hello","related":[{"end_pos":85,"message":"explicit fail","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.UserFail","end_pos":85,"message":"runtime error: program failed: hello","related":[{"end_pos":85,"message":"explicit fail","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.UserFail","end_pos":85,"message":"runtime error: program failed: hello","related":[{"end_pos":85,"message":"explicit fail","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]]
+    .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_compile_error_related_spans() {
+    let mut output = Vec::new();
+    run_internal(
+        indoc! {r#"
+            namespace Other { operation DumpMachine() : Unit { } }
+            namespace Test {
+                open Other;
+                open Microsoft.Quantum.Diagnostics;
+                @EntryPoint()
+                operation Main() : Unit {
+                    DumpMachine()
+                }
+            }
+        "#
+        },
+        "",
+        |s| output.push(s.to_string()),
+        1,
+    )
+    .expect_err("code should fail to compile");
+    expect![[r#"{"result":{"code":"Qsc.Resolve.Ambiguous","end_pos":195,"message":"name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`","related":[{"end_pos":195,"message":"ambiguous name","source":"code","start_pos":184},{"end_pos":86,"message":"found in this namespace","source":"code","start_pos":81},{"end_pos":126,"message":"and also in this namespace","source":"code","start_pos":97}],"severity":"error","start_pos":184},"success":false,"type":"Result"}"#]]
+    .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_runtime_error_related_spans() {
+    let mut output = Vec::new();
+    run_internal(
+        indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    X(q);
+                }
+            }
+        "#
+        },
+        "",
+        |s| output.push(s.to_string()),
+        1,
+    )
+    .expect("code should compile and run");
+    expect![[r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]]
+    .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_runtime_error_default_span() {
+    let mut output = Vec::new();
+    run_internal(
+        indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use qs = Qubit[-1];
+                }
+            }
+        "#
+        },
+        "",
+        |s| output.push(s.to_string()),
+        1,
+    )
+    .expect("code should compile and run");
+    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","end_pos":1,"message":"runtime error: program failed: Cannot allocate qubit array with a negative length","related":[{"end_pos":429,"message":"explicit fail","source":"core/qir.qs","start_pos":372}],"severity":"error","start_pos":0},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
