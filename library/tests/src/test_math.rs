@@ -153,6 +153,7 @@ fn check_min() {
         &Value::Int(-5),
     );
     test_expression("Microsoft.Quantum.Math.Min([5, 7, 1, 10])", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.Min([1])", &Value::Int(1));
 }
 
 #[test]
@@ -162,6 +163,7 @@ fn check_max() {
         &Value::Int(10),
     );
     test_expression("Microsoft.Quantum.Math.Max([5, 7, 1, 20])", &Value::Int(20));
+    test_expression("Microsoft.Quantum.Math.Max([1])", &Value::Int(1));
 }
 
 //

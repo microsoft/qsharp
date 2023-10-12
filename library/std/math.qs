@@ -136,6 +136,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The largest element of `values`.
     function Max (values : Int[]) : Int {
+        Fact(Length(values) > 0, "Array must contain at least one element.");
         mutable max = values[0];
         for idx in 1 .. Length(values) - 1 {
             if values[idx] > max {
@@ -156,6 +157,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The smallest element of `values`.
     function Min (values : Int[]) : Int {
+        Fact(Length(values) > 0, "Array must contain at least one element.");
         mutable min = values[0];
         for idx in 1 .. Length(values) - 1 {
             if values[idx] < min {
@@ -290,7 +292,7 @@ namespace Microsoft.Quantum.Math {
 
     internal function ExtendedTruncation(value : Double) : (Int, Double, Bool) {
         let truncated = Truncate(value);
-        return (truncated, Microsoft.Quantum.Convert.IntAsDouble(truncated) - value, value >= 0.0);
+        return (truncated, IntAsDouble(truncated) - value, value >= 0.0);
     }
 
     /// # Summary
@@ -508,7 +510,6 @@ namespace Microsoft.Quantum.Math {
     /// Returns a tuple (u,v) such that u*a+v*b=GCD(a,b)
     /// Note: GCD is always positive except that GCD(0,0)=0.
     function ExtendedGreatestCommonDivisorL(a : BigInt, b : BigInt) : (BigInt, BigInt) {
-        open Microsoft.Quantum.Convert;
         let signA = IntAsBigInt(SignL(a));
         let signB = IntAsBigInt(SignL(b));
         mutable (s1, s2) = (1L, 0L);
@@ -1105,7 +1106,6 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The sum a + b.
     function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
-        open Microsoft.Quantum.Convert;
         return ComplexAsComplexPolar(
             PlusC(
                 ComplexPolarAsComplex(a),
@@ -1219,7 +1219,6 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The power a^b
     function PowC(a : Complex, power : Complex) : Complex {
-        open Microsoft.Quantum.Convert;
         ComplexPolarAsComplex(PowCAsCP(a, power))
     }
 
@@ -1236,7 +1235,6 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The power a^b
     function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar {
-        open Microsoft.Quantum.Convert;
         PowCAsCP(ComplexPolarAsComplex(a), ComplexPolarAsComplex(power))
     }
 
@@ -1290,7 +1288,6 @@ namespace Microsoft.Quantum.Math {
     /// # Remark
     /// The value can be computed as -2^(p-1), where p is the number of integer bits.
     function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
-        open Microsoft.Quantum.Convert;
         -(2.0^IntAsDouble(integerBits - 1))
     }
 
@@ -1307,7 +1304,6 @@ namespace Microsoft.Quantum.Math {
     /// The value can be computed as 2^(p-1) - 2^(-q), where p
     /// is the number of integer bits and q is the number of fractional bits.
     function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
-        open Microsoft.Quantum.Convert;
         2.0^IntAsDouble(integerBits - 1) - 2.0^(-IntAsDouble(fractionalBits))
     }
 
