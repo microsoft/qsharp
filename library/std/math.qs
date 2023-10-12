@@ -2,7 +2,48 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Math {
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
+
+    //
+    // Constants PI, E, LogOf2.
+    //
+
+    /// # Summary
+    /// Represents the ratio of the circumference of a circle to its diameter.
+    ///
+    /// # Ouptut
+    /// A double-precision approximation of the the circumference of a circle
+    /// to its diameter, π ≈ 3.14159265358979323846.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.E
+    function PI() : Double {
+        3.14159265358979323846
+    }
+
+    /// # Summary
+    /// Returns the natural logarithmic base to double-precision.
+    ///
+    /// # Output
+    /// A double-precision approximation of the natural logarithic base,
+    /// e ≈ 2.7182818284590452354.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.PI
+    function E() : Double {
+        2.7182818284590452354
+    }
+
+    /// # Summary
+    /// Returns the natural logarithm of 2.
+    ///
+    /// # Output
+    /// Returns a `Double` equal to 0.6931471805599453.
+    function LogOf2 () : Double
+    {
+        return 0.6931471805599453;
+    }
 
     //
     // Sign, Abs, Min, Max, etc.
@@ -85,35 +126,49 @@ namespace Microsoft.Quantum.Math {
         a < b ? a | b
     }
 
+    /// # Summary
+    /// Given an array of integers, returns the largest element.
+    ///
+    /// # Input
+    /// ## values
+    /// An array to take the maximum of.
+    ///
+    /// # Output
+    /// The largest element of `values`.
+    function Max (values : Int[]) : Int {
+        mutable max = values[0];
+        for idx in 1 .. Length(values) - 1 {
+            if values[idx] > max {
+                set max = values[idx];
+            }
+        }
+
+        return max;
+    }
+
+    /// # Summary
+    /// Given an array of integers, returns the smallest element.
+    ///
+    /// # Input
+    /// ## values
+    /// An array to take the minimum of.
+    ///
+    /// # Output
+    /// The smallest element of `values`.
+    function Min (values : Int[]) : Int {
+        mutable min = values[0];
+        for idx in 1 .. Length(values) - 1 {
+            if values[idx] < min {
+                set min = values[idx];
+            }
+        }
+
+        return min;
+    }
+
     //
     // Trigonometric functions
     //
-
-    /// # Summary
-    /// Represents the ratio of the circumference of a circle to its diameter.
-    ///
-    /// # Ouptut
-    /// A double-precision approximation of the the circumference of a circle
-    /// to its diameter, π ≈ 3.14159265358979323846.
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Math.E
-    function PI() : Double {
-        3.14159265358979323846
-    }
-
-    /// # Summary
-    /// Returns the natural logarithmic base to double-precision.
-    ///
-    /// # Output
-    /// A double-precision approximation of the natural logarithic base,
-    /// e ≈ 2.7182818284590452354.
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Math.PI
-    function E() : Double {
-        2.7182818284590452354
-    }
 
     /// # Summary
     /// Returns the angle whose cosine is the specified number.
@@ -278,6 +333,18 @@ namespace Microsoft.Quantum.Math {
     //
     // Modular arithmetic
     //
+
+    /// # Summary
+    /// Divides one Integer value by another, returns the result and the remainder as a tuple.
+    function DivRemI(dividend : Int, divisor : Int) : (Int, Int) {
+        (dividend / divisor, dividend % divisor)
+    }
+
+    /// # Summary
+    /// Divides one BigInteger value by another, returns the result and the remainder as a tuple.
+    function DivRemL(dividend : BigInt, divisor : BigInt) : (BigInt, BigInt) {
+        (dividend / divisor, dividend % divisor)
+    }
 
     /// # Summary
     /// Computes the canonical residue of `value` modulo `modulus`.
@@ -459,6 +526,44 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
+    /// Returns if two integers are co-prime.
+    ///
+    /// # Description
+    /// Returns true if a and b are co-prime and false otherwise.
+    ///
+    /// # Input
+    /// ## a
+    /// the first number of which co-primality is being tested
+    /// ## b
+    /// the second number of which co-primality is being tested
+    ///
+    /// # Output
+    /// True, if a and b are co-prime (e.g. their greatest common divisor is 1),
+    /// and false otherwise
+    function IsCoprimeI(a : Int, b : Int) : Bool {
+        GreatestCommonDivisorI(a, b) == 1
+    }
+
+    /// # Summary
+    /// Returns if two integers are co-prime.
+    ///
+    /// # Description
+    /// Returns true if a and b are co-prime and false otherwise.
+    ///
+    /// # Input
+    /// ## a
+    /// the first number of which co-primality is being tested
+    /// ## b
+    /// the second number of which co-primality is being tested
+    ///
+    /// # Output
+    /// True, if a and b are co-prime (e.g. their greatest common divisor is 1),
+    /// and false otherwise
+    function IsCoprimeL(a : BigInt, b : BigInt) : Bool {
+        GreatestCommonDivisorL(a, b) == 1L
+    }
+
+    /// # Summary
     /// Finds the continued fraction convergent closest to `fraction`
     /// with the denominator less or equal to `denominatorBound`
     /// Using process similar to this: https://nrich.maths.org/1397
@@ -484,6 +589,32 @@ namespace Microsoft.Quantum.Math {
                 | (-t1 * signB, s1 * signA);
     }
 
+    /// # Summary
+    /// Computes the modulus between two real numbers.
+    ///
+    /// # Input
+    /// ## value
+    /// A real number x to take the modulus of.
+    /// ## modulo
+    /// A real number to take the modulus of x with respect to.
+    /// ## minValue
+    /// The smallest value to be returned by this function.
+    ///
+    /// # Example
+    /// ```qsharp
+    ///     // Returns 3 π / 2.
+    ///     let y = RealMod(5.5 * PI(), 2.0 * PI(), 0.0);
+    ///     // Returns -1.2, since +3.6 and -1.2 are 4.8 apart on the real line,
+    ///     // which is a multiple of 2.4.
+    ///     let z = RealMod(3.6, 2.4, -1.2);
+    /// ```
+    function RealMod(value : Double, modulo : Double, minValue : Double) : Double
+    {
+        let timesModuloInSegment = (value - minValue) / modulo;
+        let fractionalPart = timesModuloInSegment - IntAsDouble(Truncate(timesModuloInSegment));
+        modulo * fractionalPart + minValue
+    }
+
     //
     // Binary, bits, etc.
     //
@@ -500,6 +631,290 @@ namespace Microsoft.Quantum.Math {
             set number = number >>> 1;
         }
         return size;
+    }
+
+    /// # Summary
+    /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
+    /// NOTE: This function returns the smallest n such that a < 2^n.
+    function BitSizeL(a : BigInt) : Int {
+        Fact(a >= 0L, "`a` must be non-negative.");
+        mutable number = a;
+        mutable size = 0;
+        while (number != 0L) {
+            set size = size + 1;
+            set number = number >>> 1;
+        }
+        return size;
+    }
+
+    //
+    // Combinatorics
+    //
+
+    /// # Summary
+    /// Returns the factorial of a given number.
+    ///
+    /// # Description
+    /// Returns the factorial of a given nonnegative integer n, where 0 ≤ n ≤ 20.
+    ///
+    /// # Input
+    /// ## n
+    /// The number to take the factorial of.
+    ///
+    /// # Output
+    /// The factorial of `n`.
+    ///
+    /// # Remarks
+    /// For inputs greater than 20, please use `Microsoft.Quantum.Math.FactorialL`.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.FactorialL
+    /// - Microsoft.Quantum.Math.ApproximateFactorial
+    function FactorialI(n : Int) : Int {
+        Fact(n >= 0, "The factorial is not defined for negative inputs.");
+        Fact(n <= 20, "The largest factorial that be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
+
+        mutable result = 1;
+        for i in 1 .. n {
+            set result *= i;
+        }
+        result
+    }
+
+    /// # Summary
+    /// Returns the factorial of a given number.
+    ///
+    /// # Description
+    /// Returns the factorial of a given nonnegative integer n, where 0 ≤ n ≤ 20.
+    ///
+    /// # Input
+    /// ## n
+    /// The number to take the factorial of.
+    ///
+    /// # Output
+    /// The factorial of `n`.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.FactorialI
+    /// - Microsoft.Quantum.Math.ApproximateFactorial
+    function FactorialL(n : Int) : BigInt {
+        Fact(n >= 0, "The factorial is not defined for negative inputs.");
+
+        mutable result = 1L;
+        for i in 1 .. n {
+            set result *= IntAsBigInt(i);
+        }
+        result
+    }
+
+    /// # Summary
+    /// Returns an approximate factorial of a given number.
+    ///
+    /// # Description
+    /// Returns the factorial as `Double`, given an input `n`.
+    /// The domain of inputs for this function is `n <= 169`.
+    ///
+    /// # Remarks
+    /// For n > 10, this function uses the Ramanujan approximation with a
+    /// relative error of the order of 1 / n⁵.
+    ///
+    /// # Input
+    /// ## n
+    /// The number to take the approximate factorial of. Must not be negative.
+    ///
+    /// # Output
+    /// The approximate factorial of `n`.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.FactorialI
+    /// - Microsoft.Quantum.Math.FactorialL
+    function ApproximateFactorial(n : Int) : Double {
+        Fact(n >= 0, "The factorial is not defined for negative inputs.");
+        Fact(n <= 169, "The largest approximate factorial that be stored as an Double is 169!. Use FactorialL.");
+
+        // For small enough n, use the exact factorial instead.
+        if n < 10 {
+            return IntAsDouble(FactorialI(n));
+        }
+
+        let absN = IntAsDouble(n);
+        let a = Sqrt(2.0 * PI() * absN);
+        let b = (absN / E()) ^ absN;
+        let c = E() ^ (1.0 / (12.0 * absN) - (1.0 / (360.0 * (absN ^ 3.0))));
+
+        a * b * c
+    }
+
+    /// # Summary
+    /// Returns the natural logarithm of the gamma function (aka the log-gamma
+    /// function).
+    ///
+    /// # Description
+    /// The gamma function Γ(x) generalizes the factorial function
+    /// to the positive real numbers and is defined as
+    /// $$
+    /// \begin{align}
+    ///     \Gamma(x) \mathrel{:=} \int_0^{\infty} t^{x - 1} e^{-t} dt.
+    /// \end{align}
+    /// $$
+    ///
+    /// The gamma function has the property that for all positive real numbers
+    /// $x$, $\Gamma(x + 1) = x \Gamma(x)$, such that the factorial function
+    /// is a special case of $\Gamma$,
+    /// $n! = \Gamma(n + 1)$ for all natural numbers $n$.
+    ///
+    /// # Input
+    /// ## x
+    /// The point $x$ at which the log-gamma function is to be evaluated.
+    ///
+    /// # Output
+    /// The value $\ln \Gamma(x)$.
+    function LogGammaD(x : Double) : Double {
+        // Here, we use the approximation described in Numerical Recipes in C.
+        let coefficients = [
+            57.1562356658629235, -59.5979603554754912,
+            14.1360979747417471, -0.491913816097620199, 0.339946499848118887e-4,
+            0.465236289270485756e-4, -0.983744753048795646e-4, 0.158088703224912494e-3,
+            -0.210264441724104883e-3, 0.217439618115212643e-3, -0.164318106536763890e-3,
+            0.844182239838527433e-4, -0.261908384015814087e-4, 0.368991826595316234e-5
+        ];
+
+        Fact(x > 0.0, "Γ(x) not defined for x <= 0.");
+
+        mutable y = x;
+        let tmp = x + 5.2421875000000000;
+
+        mutable acc = 0.99999999999999709;
+        for coeff in coefficients {
+            set y += 1.0;
+            set acc += coeff / y;
+        }
+
+        Log(2.506628274631000 * acc / x) + ((x + 0.5) * Log(tmp) - tmp)
+    }
+
+    /// # Summary
+    /// Returns the approximate natural logarithm of the factorial of a given
+    /// integer.
+    ///
+    /// # Input
+    /// ## n
+    /// The number to take the log-factorial of.
+    ///
+    /// # Output
+    /// The natural logarithm of the factorial of the provided input.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.ApproximateFactorial
+    /// - Microsoft.Quantum.Math.FactorialI
+    /// - Microsoft.Quantum.Math.FactorialL
+    function LogFactorialD(n : Int) : Double {
+        return LogGammaD(IntAsDouble(n) + 1.0);
+    }
+
+    /// # Summary
+    /// Returns the approximate binomial coefficient of two integers.
+    ///
+    /// # Description
+    /// Given two integers n and k, returns the binomial coefficient
+    /// binom(n, k), also known as n-choose-k. Computed approximately.
+    ///
+    /// # Input
+    /// ## n
+    /// The first of the two integers to compute the binomial coefficient of.
+    /// ## k
+    /// The second of the two integers to compute the binomial coefficient of.
+    ///
+    /// # Output
+    /// The binomial coefficient $(n k)$.
+    function Binom(n : Int, k : Int) : Int {
+        // Here, we use the approximation described in Numerical Recipes in C.
+        if n < 171 {
+            return Floor(0.5 + ApproximateFactorial(n) / (ApproximateFactorial(k) * ApproximateFactorial(n - k)));
+        } else {
+            return Floor(0.5 + E()^(LogFactorialD(n) - LogFactorialD(k) - LogFactorialD(n - k)));
+        }
+    }
+
+    //
+    // Norms
+    //
+
+    /// # Summary
+    /// Returns the squared 2-norm of a vector.
+    ///
+    /// # Description
+    /// Returns the squared 2-norm of a vector; that is, given an input
+    /// $\vec{x}$, returns $\sum_i x_i^2$.
+    ///
+    /// # Input
+    /// ## array
+    /// The vector whose squared 2-norm is to be returned.
+    ///
+    /// # Output
+    /// The squared 2-norm of `array`.
+    function SquaredNorm (array : Double[]) : Double {
+        mutable sum = 0.0;
+        for element in array {
+            set sum += element * element;
+        }
+
+        sum
+    }
+
+    /// # Summary
+    /// Returns the `L(p)` norm of a vector of `Double`s.
+    ///
+    /// That is, given an array $x$ of type `Double[]`, this returns the $p$-norm
+    /// $\|x\|\_p= (\sum_{j}|x_j|^{p})^{1/p}$.
+    ///
+    /// # Input
+    /// ## p
+    /// The exponent $p$ in the $p$-norm.
+    ///
+    /// # Output
+    /// The $p$-norm $\|x\|_p$.
+    function PNorm (p : Double, array : Double[]) : Double {
+        if p < 1.0 {
+            fail $"p must be >= 1.0";
+        }
+
+        mutable sum = 0.0;
+        for element in array {
+            set sum += AbsD(element)^p;
+        }
+
+        sum^(1.0 / p)
+    }
+
+    /// # Summary
+    /// Normalizes a vector of `Double`s in the `L(p)` norm.
+    ///
+    /// That is, given an array $x$ of type `Double[]`, this returns an array where
+    /// all elements are divided by the $p$-norm $\|x\|_p$.
+    /// Leaves array with norm 0 unchanged.
+    ///
+    /// # Input
+    /// ## p
+    /// The exponent $p$ in the $p$-norm.
+    ///
+    /// # Output
+    /// The array $x$ normalized by the $p$-norm $\|x\|_p$.
+    ///
+    /// # See Also
+    /// - PNorm
+    function PNormalized (p : Double, array : Double[]) : Double[] {
+        let norm = PNorm(p, array);
+        if (norm == 0.0) {
+            return array;
+        }
+
+        mutable result = [];
+        for element in array {
+            set result += [element / norm];
+        }
+
+        result
     }
 
     //
@@ -832,6 +1247,43 @@ namespace Microsoft.Quantum.Math {
     /// The quotient a / b.
     function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
         ComplexPolar(a::Magnitude / b::Magnitude, a::Argument - b::Argument)
+    }
+
+    //
+    // Fixed point
+    //
+
+    /// # Summary
+    /// Returns the smallest representable number for specific fixed point dimensions.
+    ///
+    /// # Input
+    /// ## integerBits
+    /// Number of integer bits (including the sign bit).
+    /// ## fractionalBits
+    /// Number of fractional bits.
+    ///
+    /// # Remark
+    /// The value can be computed as -2^(p-1), where p is the number of integer bits.
+    function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
+        open Microsoft.Quantum.Convert;
+        -(2.0^IntAsDouble(integerBits - 1))
+    }
+
+    /// # Summary
+    /// Returns the largest representable number for specific fixed point dimensions.
+    ///
+    /// # Input
+    /// ## integerBits
+    /// Number of integer bits (including the sign bit).
+    /// ## fractionalBits
+    /// Number of fractional bits.
+    ///
+    /// # Remark
+    /// The value can be computed as 2^(p-1) - 2^(-q), where p
+    /// is the number of integer bits and q is the number of fractional bits.
+    function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
+        open Microsoft.Quantum.Convert;
+        2.0^IntAsDouble(integerBits - 1) - 2.0^(-IntAsDouble(fractionalBits))
     }
 
 }
