@@ -658,29 +658,16 @@ fn check_log_factorial_d() {
     );
 }
 
-
 #[test]
 fn check_binom() {
     test_expression(
         "Microsoft.Quantum.Math.Binom(31, 7)",
         &Value::Int(2_629_575),
     );
-    test_expression(
-        "Microsoft.Quantum.Math.Binom(23, 9)",
-        &Value::Int(817_190),
-    );
-    test_expression(
-        "Microsoft.Quantum.Math.Binom(13, 5)",
-        &Value::Int(1_287),
-    );
-    test_expression(
-        "Microsoft.Quantum.Math.Binom(4, 0)",
-        &Value::Int(1),
-    );
-    test_expression(
-        "Microsoft.Quantum.Math.Binom(4, 4)",
-        &Value::Int(1),
-    );
+    test_expression("Microsoft.Quantum.Math.Binom(23, 9)", &Value::Int(817_190));
+    test_expression("Microsoft.Quantum.Math.Binom(13, 5)", &Value::Int(1_287));
+    test_expression("Microsoft.Quantum.Math.Binom(4, 0)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.Binom(4, 4)", &Value::Int(1));
 }
 
 #[test]
@@ -723,7 +710,14 @@ fn check_p_norm() {
 fn check_p_normalized() {
     test_expression(
         "Microsoft.Quantum.Math.PNormalized(1.0, [-0.1, 0.2, 0.5])",
-        &Value::Array(vec![Value::Double(-0.125), Value::Double(0.25), Value::Double(0.625)].into()),
+        &Value::Array(
+            vec![
+                Value::Double(-0.125),
+                Value::Double(0.25),
+                Value::Double(0.625),
+            ]
+            .into(),
+        ),
     );
     test_expression(
         "Microsoft.Quantum.Math.PNormalized(2.0, [3.0, 4.0])",
