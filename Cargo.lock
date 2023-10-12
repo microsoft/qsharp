@@ -885,7 +885,9 @@ dependencies = [
 name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
  "getrandom",
+ "indoc 2.0.0",
  "js-sys",
  "katas",
  "log",

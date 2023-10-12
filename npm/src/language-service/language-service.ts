@@ -10,6 +10,8 @@ import type {
   ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
+  IWorkspaceEdit,
+  ITextEdit,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -37,17 +39,28 @@ export interface ILanguageService {
   updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
   updateDocument(uri: string, version: number, code: string): Promise<void>;
   closeDocument(uri: string): Promise<void>;
+
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
   getDefinition(
     documentUri: string,
     offset: number
   ): Promise<IDefinition | undefined>;
-  dispose(): Promise<void>;
   getSignatureHelp(
     documentUri: string,
     offset: number
   ): Promise<ISignatureHelp | undefined>;
+  getRename(
+    documentUri: string,
+    offset: number,
+    newName: string
+  ): Promise<IWorkspaceEdit | undefined>;
+  prepareRename(
+    documentUri: string,
+    offset: number
+  ): Promise<ITextEdit | undefined>;
+
+  dispose(): Promise<void>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
@@ -196,7 +209,7 @@ export class QSharpLanguageService implements ILanguageService {
     const result = this.languageService.get_signature_help(
       documentUri,
       convertedOffset
-    ) as ISignatureHelp | undefined;
+    );
     if (result) {
       result.signatures = result.signatures.map((sig) => {
         sig.parameters = sig.parameters.map((param) => {
@@ -210,6 +223,68 @@ export class QSharpLanguageService implements ILanguageService {
         });
         return sig;
       });
+    }
+    return result;
+  }
+
+  async getRename(
+    documentUri: string,
+    offset: number,
+    newName: string
+  ): Promise<IWorkspaceEdit | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.get_rename(
+      documentUri,
+      convertedOffset,
+      newName
+    );
+
+    const mappedChanges: [string, ITextEdit[]][] = [];
+    for (const [uri, edits] of result.changes) {
+      const code = this.code[uri];
+      if (code) {
+        const mappedEdits = edits.map((edit) => {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [edit.range.start, edit.range.end],
+            code
+          );
+          edit.range.start = mappedSpan[edit.range.start];
+          edit.range.end = mappedSpan[edit.range.end];
+          return edit;
+        });
+        mappedChanges.push([uri, mappedEdits]);
+      }
+    }
+    result.changes = mappedChanges;
+    return result;
+  }
+
+  async prepareRename(
+    documentUri: string,
+    offset: number
+  ): Promise<ITextEdit | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.prepare_rename(
+      documentUri,
+      convertedOffset
+    );
+    if (result) {
+      const mappedSpan = mapUtf8UnitsToUtf16Units(
+        [result.range.start, result.range.end],
+        code
+      );
+      result.range.start = mappedSpan[result.range.start];
+      result.range.end = mappedSpan[result.range.end];
     }
     return result;
   }

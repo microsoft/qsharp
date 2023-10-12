@@ -20,6 +20,10 @@ const targetsThatSupportQir = [
   "ionq.qpu.aria-1-preview",
   "ionq.qpu.aria-2-preview",
   "ionq.simulator-preview",
+  "ionq.qpu",
+  "ionq.qpu.aria-1",
+  "ionq.qpu.aria-2",
+  "ionq.simulator",
 ];
 
 const excludeTargets: string[] = ["rigetti.qpu.aspen-m-2"];
