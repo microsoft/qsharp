@@ -1131,7 +1131,7 @@ pub enum Attr {
     /// Indicates that a callable is an entry point to a program.
     EntryPoint,
     /// Indicates that an item has been deprecated and may eventually be removed.
-    Deprecated(Span),
+    Deprecated(Option<Span>),
     /// Indicates that an item does not have an implementation available for use.
     Unimplemented,
 }
@@ -1143,7 +1143,7 @@ impl FromStr for Attr {
         match s {
             "Config" => Ok(Self::Config),
             "EntryPoint" => Ok(Self::EntryPoint),
-            "Deprecated" => Ok(Self::Deprecated(Span::default())),
+            "Deprecated" => Ok(Self::Deprecated(None)),
             "Unimplemented" => Ok(Self::Unimplemented),
             _ => Err(()),
         }

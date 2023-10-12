@@ -242,14 +242,20 @@ impl With<'_> {
             }
             Ok(hir::Attr::Deprecated(..)) => {
                 let arg = self.lower_expr(&attr.arg);
-                if !matches!(arg.ty, Ty::Arrow(..)) {
-                    self.lowerer
-                        .errors
-                        .push(Error::InvalidAttrArgs("callable expression", attr.arg.span));
+
+                if matches!(arg.ty, Ty::Arrow(..)) {
+                    Some(hir::Attr::Deprecated(Some(attr.arg.span)))
+                } else if matches!(arg.ty, Ty::Tuple(tup) if tup.is_empty()) {
+                    Some(hir::Attr::Deprecated(None))
+                } else {
+                    self.lowerer.errors.push(Error::InvalidAttrArgs(
+                        "callable expression or ()",
+                        attr.arg.span,
+                    ));
+                    None
                 }
-                Some(hir::Attr::Deprecated(attr.arg.span))
             }
-            Err(_) => {
+            Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),
                     attr.name.span,

@@ -53,7 +53,8 @@ pub enum Res {
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct ItemInfo {
-    deprecated: Option<Span>,
+    deprecated: bool,
+    alternative: Option<Span>,
     unimplemented: bool,
 }
 
@@ -61,12 +62,16 @@ impl ItemInfo {
     #[must_use]
     pub fn new(attrs: &[Attr]) -> Self {
         let mut info = Self {
-            deprecated: None,
+            deprecated: false,
+            alternative: None,
             unimplemented: false,
         };
         for attr in attrs {
             match attr {
-                Attr::Deprecated(span) => info.deprecated = Some(*span),
+                Attr::Deprecated(span) => {
+                    info.deprecated = true;
+                    info.alternative = *span;
+                }
                 Attr::Unimplemented => info.unimplemented = true,
                 _ => {}
             }
@@ -104,7 +109,7 @@ pub(super) enum Error {
 
     #[error("use of deprecated item `{0}`")]
     #[diagnostic(help(
-        "check the `Deprecated` attribute on the item definition for recommended alternatives"
+        "check the `Deprecated` attribute on the item definition for any recommended alternatives"
     ))]
     #[diagnostic(severity(Warning))]
     #[diagnostic(code("Qsc.Resolve.Deprecated"))]
@@ -845,7 +850,7 @@ fn resolve(
             return Err(Error::NotFound(name_str.to_string(), name.span));
         };
         match res {
-            Res::Item(_, info) if info.deprecated.is_some() => Ok((
+            Res::Item(_, info) if info.deprecated => Ok((
                 res,
                 Some(Error::Deprecated(name_str.to_string(), name.span)),
             )),
