@@ -1,5 +1,5 @@
 /// # Sample
-/// Bit-Flip
+/// Phase-Flip
 ///
 /// # Description
 /// This sample demonstrates the three-qubit bit-flip code. This code is a
@@ -32,8 +32,8 @@ namespace Sample {
         // Prepare a logical qubit with a superposition state from the physical qubits.
         PrepareLocicalQubit(physicalQubits);
 
-        // Induce a bit-flip error on a random qubit.
-        X(physicalQubits[DrawRandomInt(0, 2)]);
+        // Induce a phase-flip error on a random qubit.
+        Z(physicalQubits[DrawRandomInt(0, 2)]);
 
         // Show the logical qubit with the error state.
         DumpMachine();
@@ -66,7 +66,9 @@ namespace Sample {
     /// (α|0〉 + β|1〉) / √2.
     operation PrepareLocicalQubit(physicalQubits : Qubit[]) : Unit {
         let alpha = 0.20;
+        let phi = PI() / 2.0;
         Ry(2.0 * ArcCos(Sqrt(alpha)), Head(physicalQubits));
+        Rz(phi, Head(physicalQubits));
         ApplyCNOTChain(physicalQubits);
     }
 
