@@ -855,6 +855,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_manifest"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_parse"
 version = "0.0.0"
 dependencies = [
