@@ -567,7 +567,9 @@ namespace Microsoft.Quantum.Math {
     /// Finds the continued fraction convergent closest to `fraction`
     /// with the denominator less or equal to `denominatorBound`
     /// Using process similar to this: https://nrich.maths.org/1397
-    function ContinuedFractionConvergentI(fraction : (Int, Int), denominatorBound : Int) : (Int, Int) {
+    function ContinuedFractionConvergentI(
+        fraction : (Int, Int),
+        denominatorBound : Int) : (Int, Int) {
         Fact(denominatorBound > 0, "Denominator bound must be positive");
 
         let (a, b) = fraction;
@@ -585,6 +587,34 @@ namespace Microsoft.Quantum.Math {
         }
 
         return (r2 == 0 and AbsI(s2) <= denominatorBound)
+                ? (-t2 * signB, s2 * signA)
+                | (-t1 * signB, s1 * signA);
+    }
+
+    /// # Summary
+    /// Finds the continued fraction convergent closest to `fraction`
+    /// with the denominator less or equal to `denominatorBound`
+    /// Using process similar to this: https://nrich.maths.org/1397
+    function ContinuedFractionConvergentL(
+        fraction : (BigInt, BigInt),
+        denominatorBound : BigInt) : (BigInt, BigInt) {
+        Fact(denominatorBound > 0L, "Denominator bound must be positive");
+
+        let (a, b) = fraction;
+        let signA = IntAsBigInt(SignL(a));
+        let signB = IntAsBigInt(SignL(b));
+        mutable (s1, s2) = (1L, 0L);
+        mutable (t1, t2) = (0L, 1L);
+        mutable (r1, r2) = (a * signA, b * signB);
+
+        while r2 != 0L and AbsL(s2) <= denominatorBound {
+            let quotient = r1 / r2;
+            set (r1, r2) = (r2, r1 - quotient * r2);
+            set (s1, s2) = (s2, s1 - quotient * s2);
+            set (t1, t2) = (t2, t1 - quotient * t2);
+        }
+
+        return (r2 == 0L and AbsL(s2) <= denominatorBound)
                 ? (-t2 * signB, s2 * signA)
                 | (-t1 * signB, s1 * signA);
     }

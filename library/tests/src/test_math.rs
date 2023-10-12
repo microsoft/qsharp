@@ -529,6 +529,51 @@ fn check_cfc_i() {
 }
 
 #[test]
+fn check_cfc_l() {
+    // NOTE: It is not important if the function returns -3/-4 or 3/4,
+    // we can ignore this implementation details or update a function
+    // to return canonical result.
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((72L,100L), 2L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(-1)),
+                Value::BigInt(BigInt::from(-1)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((72L,100L), 3L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(2)),
+                Value::BigInt(BigInt::from(3)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((72L,100L), 25L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(-18)),
+                Value::BigInt(BigInt::from(-25)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((170141183460469231731687303715884105727L,331780596164137120496034969018767441441L), 2L)",
+        &Value::Tuple(vec![Value::BigInt(BigInt::from(1)), Value::BigInt(BigInt::from(2))].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((170141183460469231731687303715884105727L,331780596164137120496034969018767441441L), 1000000L)",
+        &Value::Tuple(vec![Value::BigInt(BigInt::from(33_781)), Value::BigInt(BigInt::from(65_874))].into()),
+    );
+}
+
+#[test]
 fn check_real_mod() {
     test_expression(
         "{ open Microsoft.Quantum.Math;
@@ -629,7 +674,8 @@ fn check_approximate_factorial() {
         "Microsoft.Quantum.Math.ApproximateFactorial(2)",
         &Value::Double(2.0),
     );
-    // TODO: add approx comparison for larger numbers
+    // NOTE: Tests for larger numbers can be added
+    // when approximate comparison is implemented.
 }
 
 #[test]
