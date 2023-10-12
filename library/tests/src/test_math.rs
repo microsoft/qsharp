@@ -589,7 +589,7 @@ fn check_factorial_i() {
     test_expression("Microsoft.Quantum.Math.FactorialI(2)", &Value::Int(2));
     test_expression(
         "Microsoft.Quantum.Math.FactorialI(10)",
-        &Value::Int(3628800),
+        &Value::Int(3_628_800),
     );
 }
 
@@ -609,11 +609,13 @@ fn check_factorial_l() {
     );
     test_expression(
         "Microsoft.Quantum.Math.FactorialL(10)",
-        &Value::BigInt(BigInt::from(3628800)),
+        &Value::BigInt(BigInt::from(3_628_800)),
     );
     test_expression(
         "Microsoft.Quantum.Math.FactorialL(170)",
-        &Value::BigInt(BigInt::from_str("7257415615307998967396728211129263114716991681296451376543577798900561843401706157852350749242617459511490991237838520776666022565442753025328900773207510902400430280058295603966612599658257104398558294257568966313439612262571094946806711205568880457193340212661452800000000000000000000000000000000000000000").unwrap())
+        &Value::BigInt(BigInt::from_str(
+            "7257415615307998967396728211129263114716991681296451376543577798900561843401706157852350749242617459511490991237838520776666022565442753025328900773207510902400430280058295603966612599658257104398558294257568966313439612262571094946806711205568880457193340212661452800000000000000000000000000000000000000000"
+        ).expect("Cannot parse static BigInt in Rust code."))
     );
 }
 
@@ -634,15 +636,15 @@ fn check_approximate_factorial() {
 fn check_log_gamma_d() {
     test_expression(
         "Microsoft.Quantum.Math.LogGammaD(3.14)",
-        &Value::Double(0.826138704777028),
+        &Value::Double(0.826_138_704_777_028),
     );
     test_expression(
         "Microsoft.Quantum.Math.LogGammaD(0.782)",
-        &Value::Double(0.169806721914044),
+        &Value::Double(0.169_806_721_914_044),
     );
     test_expression(
         "Microsoft.Quantum.Math.LogGammaD(1234.567)",
-        &Value::Double(7551.027809984276),
+        &Value::Double(7_551.027_809_984_276),
     );
 }
 
@@ -650,11 +652,11 @@ fn check_log_gamma_d() {
 fn check_log_factorial_d() {
     test_expression(
         "Microsoft.Quantum.Math.LogFactorialD(2000)",
-        &Value::Double(13206.5243505138),
+        &Value::Double(13_206.524_350_513_8),
     );
     test_expression(
         "Microsoft.Quantum.Math.LogFactorialD(4321)",
-        &Value::Double(31856.2418482487),
+        &Value::Double(31_856.241_848_248_7),
     );
 }
 
@@ -694,11 +696,11 @@ fn check_p_norm() {
     );
     test_expression(
         "Microsoft.Quantum.Math.PNorm(1.5, [0.1, -0.2, 0.3])",
-        &Value::Double(0.43346228721136096815),
+        &Value::Double(0.433_462_287_211_361),
     );
     test_expression(
         "Microsoft.Quantum.Math.PNorm(2.0, [0.1, 0.2, -0.3])",
-        &Value::Double(0.37416573867739413856),
+        &Value::Double(0.374_165_738_677_394_17),
     );
     test_expression(
         "Microsoft.Quantum.Math.PNorm(3.0, [0.0, 0.0])",
