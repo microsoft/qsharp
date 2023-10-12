@@ -782,23 +782,18 @@ namespace Microsoft.Quantum.Math {
     /// # Description
     /// The gamma function Γ(x) generalizes the factorial function
     /// to the positive real numbers and is defined as
-    /// $$
-    /// \begin{align}
-    ///     \Gamma(x) \mathrel{:=} \int_0^{\infty} t^{x - 1} e^{-t} dt.
-    /// \end{align}
-    /// $$
+    /// integral from 0 to ∞ of t¹⁻ˣ⋅e⁻ᵗ𝑑t
     ///
     /// The gamma function has the property that for all positive real numbers
-    /// $x$, $\Gamma(x + 1) = x \Gamma(x)$, such that the factorial function
-    /// is a special case of $\Gamma$,
-    /// $n! = \Gamma(n + 1)$ for all natural numbers $n$.
+    /// x, Γ(x + 1) = x⋅Γ(x), such that the factorial function
+    /// is a special case of Γ, n! = Γ(n + 1) for all natural numbers n.
     ///
     /// # Input
     /// ## x
-    /// The point $x$ at which the log-gamma function is to be evaluated.
+    /// The point x at which the log-gamma function is to be evaluated.
     ///
     /// # Output
-    /// The value $\ln \Gamma(x)$.
+    /// The value ㏑(Γ(x)).
     function LogGammaD(x : Double) : Double {
         // Here, we use the approximation described in Numerical Recipes in C.
         let coefficients = [
@@ -856,7 +851,7 @@ namespace Microsoft.Quantum.Math {
     /// The second of the two integers to compute the binomial coefficient of.
     ///
     /// # Output
-    /// The binomial coefficient $(n k)$.
+    /// The binomial coefficient n-choose-k.
     function Binom(n : Int, k : Int) : Int {
         // Here, we use the approximation described in Numerical Recipes in C.
         if n < 171 {
@@ -875,7 +870,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Description
     /// Returns the squared 2-norm of a vector; that is, given an input
-    /// $\vec{x}$, returns $\sum_i x_i^2$.
+    /// x̄, returns ∑xᵢ.
     ///
     /// # Input
     /// ## array
@@ -895,18 +890,18 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Returns the `L(p)` norm of a vector of `Double`s.
     ///
-    /// That is, given an array $x$ of type `Double[]`, this returns the $p$-norm
-    /// $\|x\|\_p= (\sum_{j}|x_j|^{p})^{1/p}$.
+    /// That is, given an array x of type `Double[]`, this returns the p-norm
+    /// |x̄|ₚ= (∑(xᵢ)ᵖ)¹ᐟᵖ.
     ///
     /// # Input
     /// ## p
-    /// The exponent $p$ in the $p$-norm.
+    /// The exponent p in the p-norm.
     ///
     /// # Output
-    /// The $p$-norm $\|x\|_p$.
+    /// The p-norm |x̄|ₚ.
     function PNorm (p : Double, array : Double[]) : Double {
         if p < 1.0 {
-            fail $"p must be >= 1.0";
+            fail "p must be >= 1.0";
         }
 
         mutable sum = 0.0;
@@ -920,16 +915,16 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Normalizes a vector of `Double`s in the `L(p)` norm.
     ///
-    /// That is, given an array $x$ of type `Double[]`, this returns an array where
-    /// all elements are divided by the $p$-norm $\|x\|_p$.
-    /// Leaves array with norm 0 unchanged.
+    /// That is, given an array x of type `Double[]`, this returns an array where
+    /// all elements are divided by the p-norm |x̄|ₚ.
+    /// Function leaves array with norm 0 unchanged.
     ///
     /// # Input
     /// ## p
-    /// The exponent $p$ in the $p$-norm.
+    /// The exponent p in the p-norm.
     ///
     /// # Output
-    /// The array $x$ normalized by the $p$-norm $\|x\|_p$.
+    /// The array x normalized by the p-norm |x̄|ₚ.
     ///
     /// # See Also
     /// - PNorm
@@ -1201,8 +1196,8 @@ namespace Microsoft.Quantum.Math {
         // Therefore
         // base^power = (a+b𝑖)^(c+d𝑖) = 𝑒^( (c+d𝑖)⋅㏑(a+b𝑖) ) =
         // = 𝑒^( (c+d𝑖)⋅(ln(baseNorm)+𝑖⋅baseArg) ) = 
-        // = e^( (c⋅ln(baseNorm) - d⋅baseArg) + 𝑖⋅(c⋅baseArg + d⋅ln(baseNorm)) )
-        // magnitude = e^((c⋅ln(baseNorm) - d⋅baseArg)) = baseNorm^c / e^(d⋅baseArg)
+        // = 𝑒^( (c⋅ln(baseNorm) - d⋅baseArg) + 𝑖⋅(c⋅baseArg + d⋅ln(baseNorm)) )
+        // magnitude = 𝑒^((c⋅ln(baseNorm) - d⋅baseArg)) = baseNorm^c / 𝑒^(d⋅baseArg)
         // angle = d⋅ln(baseNorm) + c⋅baseArg
 
         let magnitude = baseNorm^c / E()^(d * baseArg);
