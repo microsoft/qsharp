@@ -153,7 +153,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_touches(decl.name.span, self.offset) {
-                        if let Some(resolve::Res::Item(item_id)) =
+                        if let Some(resolve::Res::Item(item_id, _)) =
                             self.compilation.unit.ast.names.get(decl.name.id)
                         {
                             self.get_spans_for_item_rename(item_id, &decl.name);
@@ -173,7 +173,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if let Some(resolve::Res::Item(item_id)) =
+                    if let Some(resolve::Res::Item(item_id, _)) =
                         self.compilation.unit.ast.names.get(ident.id)
                     {
                         if span_touches(ident.span, self.offset) {
@@ -253,7 +253,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
             let res = self.compilation.unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
-                    resolve::Res::Item(item_id) => {
+                    resolve::Res::Item(item_id, _) => {
                         self.get_spans_for_item_rename(item_id, &path.name);
                     }
                     resolve::Res::Local(node_id) => {
@@ -275,7 +275,7 @@ struct ItemRename<'a> {
 impl<'a> Visitor<'_> for ItemRename<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
         let res = self.compilation.unit.ast.names.get(path.id);
-        if let Some(resolve::Res::Item(item_id)) = res {
+        if let Some(resolve::Res::Item(item_id, _)) = res {
             if *item_id == *self.item_id {
                 self.locations.push(path.name.span);
             }
@@ -285,7 +285,7 @@ impl<'a> Visitor<'_> for ItemRename<'a> {
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
             let res = self.compilation.unit.ast.names.get(ty_path.id);
-            if let Some(resolve::Res::Item(item_id)) = res {
+            if let Some(resolve::Res::Item(item_id, _)) = res {
                 if *item_id == *self.item_id {
                     self.locations.push(ty_path.name.span);
                 }

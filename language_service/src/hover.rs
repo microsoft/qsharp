@@ -255,7 +255,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             let res = self.compilation.unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
-                    resolve::Res::Item(item_id) => {
+                    resolve::Res::Item(item_id, _) => {
                         if let (Some(item), Some(package)) = find_item(self.compilation, item_id) {
                             let ns = item
                                 .parent

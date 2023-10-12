@@ -75,7 +75,8 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 
 impl SignatureHelpFinder<'_> {
     fn process_direct_callee(&mut self, callee: &ast::Path, args: &ast::Expr) {
-        if let Some(resolve::Res::Item(item_id)) = self.compilation.unit.ast.names.get(callee.id) {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.unit.ast.names.get(callee.id)
+        {
             if let (Some(item), _) = find_item(self.compilation, item_id) {
                 if let hir::ItemKind::Callable(callee) = &item.kind {
                     // Check that the callee has parameters to give help for

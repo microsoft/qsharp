@@ -185,7 +185,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             let res = self.compilation.unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
-                    resolve::Res::Item(item_id) => {
+                    resolve::Res::Item(item_id, _) => {
                         if let (Some(item), _) = find_item(self.compilation, item_id) {
                             let lo = match &item.kind {
                                 hir::ItemKind::Callable(decl) => decl.name.span.lo,
