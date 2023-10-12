@@ -9,12 +9,12 @@
 /// state where the state of any one qubit is not separable from the state
 /// of any of the other qubits.
 ///
-/// The genearalized form of the GHZ state across any number of qubits is
+/// The generalized form of the GHZ state across any number of qubits is
 /// called a cat state, and the GHZ state is a special case of the cat
 /// state where the number of qubits is 3.
 ///
 /// This Q# program prepares the GHZ state in a register of 3 qubits, then
-/// returns the result of measureing those qubits.
+/// returns the result of measuring those qubits.
 namespace Sample {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Measurement;
@@ -29,7 +29,7 @@ namespace Sample {
         // Show the GHZ state.
         DumpMachine();
 
-        // Measure the and reset qubits before releasing them.
+        // Measure and reset qubits before releasing them.
         let results = MeasureEachZ(qs);
         ResetAll(qs);
         return results;
