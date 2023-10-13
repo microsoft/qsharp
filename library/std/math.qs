@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.Math {
     /// Returns a `Double` equal to 0.6931471805599453.
     function LogOf2 () : Double
     {
-        return 0.6931471805599453;
+        0.6931471805599453
     }
 
     //
@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.Math {
             }
         }
 
-        return max;
+        max
     }
 
     /// # Summary
@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.Math {
             }
         }
 
-        return min;
+        min
     }
 
     //
@@ -292,7 +292,7 @@ namespace Microsoft.Quantum.Math {
 
     internal function ExtendedTruncation(value : Double) : (Int, Double, Bool) {
         let truncated = Truncate(value);
-        return (truncated, IntAsDouble(truncated) - value, value >= 0.0);
+        (truncated, IntAsDouble(truncated) - value, value >= 0.0)
     }
 
     /// # Summary
@@ -301,9 +301,9 @@ namespace Microsoft.Quantum.Math {
     function Ceiling(value : Double) : Int {
         let (truncated, remainder, isPositive) = ExtendedTruncation(value);
         if AbsD(remainder) <= 1e-15 {
-            return truncated;
+            truncated
         } else {
-            return isPositive ? truncated + 1 | truncated;
+            isPositive ? truncated + 1 | truncated
         }
     }
 
@@ -313,9 +313,9 @@ namespace Microsoft.Quantum.Math {
     function Floor(value : Double) : Int {
         let (truncated, remainder, isPositive) = ExtendedTruncation(value);
         if AbsD(remainder) <= 1e-15 {
-            return truncated;
+            truncated
         } else {
-            return isPositive ? truncated | truncated - 1;
+            isPositive ? truncated | truncated - 1
         }
     }
 
@@ -325,10 +325,10 @@ namespace Microsoft.Quantum.Math {
     function Round(value : Double) : Int {
         let (truncated, remainder, isPositive) = ExtendedTruncation(value);
         if AbsD(remainder) <= 1e-15 {
-            return truncated;
+            truncated
         } else {
             let abs = AbsD(remainder);
-            return truncated + (abs <= 0.5 ? 0 | (isPositive ? 1 | -1));
+            truncated + (abs <= 0.5 ? 0 | (isPositive ? 1 | -1))
         }
     }
 
@@ -354,7 +354,7 @@ namespace Microsoft.Quantum.Math {
     function ModulusI(value : Int, modulus : Int) : Int {
         Fact(modulus > 0, "`modulus` must be positive");
         let r = value % modulus;
-        return (r < 0) ? (r + modulus) | r;
+        (r < 0) ? (r + modulus) | r
     }
 
     /// # Summary
@@ -363,7 +363,7 @@ namespace Microsoft.Quantum.Math {
     function ModulusL(value : BigInt, modulus : BigInt) : BigInt {
         Fact(modulus > 0L, "`modulus` must be positive");
         let r = value % modulus;
-        return (r < 0L) ? (r + modulus) | r;
+        (r < 0L) ? (r + modulus) | r
     }
 
     /// # Summary
@@ -394,7 +394,7 @@ namespace Microsoft.Quantum.Math {
             set powerBits >>>= 1;
         }
 
-        return res;
+        res
     }
 
     /// # Summary
@@ -425,7 +425,7 @@ namespace Microsoft.Quantum.Math {
             set powerBits >>>= 1;
         }
 
-        return res;
+        res
     }
 
     /// # Summary
@@ -438,7 +438,7 @@ namespace Microsoft.Quantum.Math {
         let (u, v) = ExtendedGreatestCommonDivisorI(a, modulus);
         let gcd = u * a + v * modulus;
         Fact(gcd == 1, "`a` and `modulus` must be co-prime");
-        return ModulusI(u, modulus);
+        ModulusI(u, modulus)
     }
 
     /// # Summary
@@ -451,7 +451,7 @@ namespace Microsoft.Quantum.Math {
         let (u, v) = ExtendedGreatestCommonDivisorL(a, modulus);
         let gcd = u * a + v * modulus;
         Fact(gcd == 1L, "`a` and `modulus` must be co-prime");
-        return ModulusL(u, modulus);
+        ModulusL(u, modulus)
     }
 
     //
@@ -469,7 +469,7 @@ namespace Microsoft.Quantum.Math {
             set aa = bb;
             set bb = cc;
         }
-        return aa;
+        aa
     }
 
     /// # Summary
@@ -483,7 +483,7 @@ namespace Microsoft.Quantum.Math {
             set aa = bb;
             set bb = cc;
         }
-        return aa;
+        aa
     }
 
     /// # Summary
@@ -503,7 +503,7 @@ namespace Microsoft.Quantum.Math {
             set (t1, t2) = (t2, t1 - quotient * t2);
         }
 
-        return (s1 * signA, t1 * signB);
+        (s1 * signA, t1 * signB)
     }
 
     /// # Summary
@@ -523,7 +523,7 @@ namespace Microsoft.Quantum.Math {
             set (t1, t2) = (t2, t1 - quotient * t2);
         }
 
-        return (s1 * signA, t1 * signB);
+        (s1 * signA, t1 * signB)
     }
 
     /// # Summary
@@ -587,9 +587,11 @@ namespace Microsoft.Quantum.Math {
             set (t1, t2) = (t2, t1 - quotient * t2);
         }
 
-        return (r2 == 0 and AbsI(s2) <= denominatorBound)
-                ? (-t2 * signB, s2 * signA)
-                | (-t1 * signB, s1 * signA);
+        if r2 == 0 and AbsI(s2) <= denominatorBound {
+            (-t2 * signB, s2 * signA)
+        } else {
+            (-t1 * signB, s1 * signA)
+        }
     }
 
     /// # Summary
@@ -615,9 +617,11 @@ namespace Microsoft.Quantum.Math {
             set (t1, t2) = (t2, t1 - quotient * t2);
         }
 
-        return (r2 == 0L and AbsL(s2) <= denominatorBound)
-                ? (-t2 * signB, s2 * signA)
-                | (-t1 * signB, s1 * signA);
+        if r2 == 0L and AbsL(s2) <= denominatorBound {
+            (-t2 * signB, s2 * signA)
+        } else {
+            (-t1 * signB, s1 * signA)
+        }
     }
 
     /// # Summary
@@ -661,7 +665,8 @@ namespace Microsoft.Quantum.Math {
             set size = size + 1;
             set number = number >>> 1;
         }
-        return size;
+
+        size
     }
 
     /// # Summary
@@ -675,7 +680,8 @@ namespace Microsoft.Quantum.Math {
             set size = size + 1;
             set number = number >>> 1;
         }
-        return size;
+
+        size
     }
 
     //
@@ -835,7 +841,7 @@ namespace Microsoft.Quantum.Math {
     /// - Microsoft.Quantum.Math.FactorialI
     /// - Microsoft.Quantum.Math.FactorialL
     function LogFactorialD(n : Int) : Double {
-        return LogGammaD(IntAsDouble(n) + 1.0);
+        LogGammaD(IntAsDouble(n) + 1.0)
     }
 
     /// # Summary
@@ -856,9 +862,9 @@ namespace Microsoft.Quantum.Math {
     function Binom(n : Int, k : Int) : Int {
         // Here, we use the approximation described in Numerical Recipes in C.
         if n < 171 {
-            return Floor(0.5 + ApproximateFactorial(n) / (ApproximateFactorial(k) * ApproximateFactorial(n - k)));
+            Floor(0.5 + ApproximateFactorial(n) / (ApproximateFactorial(k) * ApproximateFactorial(n - k)))
         } else {
-            return Floor(0.5 + E()^(LogFactorialD(n) - LogFactorialD(k) - LogFactorialD(n - k)));
+            Floor(0.5 + E()^(LogFactorialD(n) - LogFactorialD(k) - LogFactorialD(n - k)))
         }
     }
 
@@ -981,7 +987,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// Squared absolute value |c|² = x² + y².
     function AbsSquaredComplex(input : Complex) : Double {
-        return input::Real * input::Real + input::Imag * input::Imag;
+        input::Real * input::Real + input::Imag * input::Imag
     }
 
     /// # Summary
@@ -1076,7 +1082,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The unary negation of `input`.
     function NegationCP(input : ComplexPolar) : ComplexPolar {
-        return ComplexPolar(input::Magnitude, input::Argument + PI());
+        ComplexPolar(input::Magnitude, input::Argument + PI())
     }
 
     /// # Summary
@@ -1106,12 +1112,12 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The sum a + b.
     function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
-        return ComplexAsComplexPolar(
+        ComplexAsComplexPolar(
             PlusC(
                 ComplexPolarAsComplex(a),
                 ComplexPolarAsComplex(b)
             )
-        );
+        )
     }
 
     /// # Summary
