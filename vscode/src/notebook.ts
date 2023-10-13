@@ -63,3 +63,70 @@ export function registerQSharpNotebookHandlers() {
 
   return subscriptions;
 }
+
+export function registerCreateNotebookCommand(
+  context: vscode.ExtensionContext
+) {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.createNotebook",
+      async () => {
+        if (!vscode.workspace.workspaceFolders) {
+          vscode.window.showErrorMessage(
+            "You must have an open folder to create a notebook."
+          );
+          return;
+        }
+        const notebookName = await vscode.window.showInputBox({
+          prompt: "Enter a name for the new notebook",
+        });
+        if (!notebookName) return;
+
+        let workspaceFolder = vscode.workspace.workspaceFolders[0];
+
+        // Handle multi-workspace scenarios
+        if (vscode.workspace.workspaceFolders.length > 1) {
+          // Show a quickpick for the workspace to use
+          const choice = await vscode.window.showQuickPick(
+            vscode.workspace.workspaceFolders.map((folder) => ({
+              label: folder.name,
+              workspace: folder,
+            })),
+            {
+              title: "Select a workspace to create the notebook in",
+            }
+          );
+          if (!choice) {
+            // User cancelled
+            return;
+          }
+          workspaceFolder = choice.workspace;
+        }
+
+        // Create the notebook full uri
+        const notebookUri = vscode.Uri.joinPath(
+          workspaceFolder.uri,
+          notebookName + ".ipynb"
+        );
+
+        // Construct a Uint8Array containing 'Hello, world'
+        const templatePath = vscode.Uri.joinPath(
+          context.extensionUri,
+          "resources",
+          "notebookTemplate.ipynb"
+        );
+        const template = await vscode.workspace.fs.readFile(templatePath);
+        let content = new TextDecoder().decode(template);
+        content = content.replace(
+          "{{WORKSPACE}}",
+          "TODO: Put workspace details here"
+        );
+
+        vscode.workspace.fs.writeFile(
+          notebookUri,
+          new TextEncoder().encode(content)
+        );
+      }
+    )
+  );
+}
