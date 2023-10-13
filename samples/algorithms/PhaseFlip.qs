@@ -38,7 +38,7 @@ namespace Sample {
         // Show the logical qubit with the error state.
         DumpMachine();
 
-        // Find and correct the bit-flip error.
+        // Find and correct the phase-flip error.
         CorrectError(physicalQubits);
 
         // Show the logical qubit with the corrected state.
@@ -65,11 +65,14 @@ namespace Sample {
     /// be in the state (α|000〉 + β|111〉) / √2, representing a logical qubit in the state
     /// (α|0〉 + β|1〉) / √2.
     operation PrepareLocicalQubit(physicalQubits : Qubit[]) : Unit {
-        let alpha = 0.20;
-        let phi = PI() / 2.0;
-        Ry(2.0 * ArcCos(Sqrt(alpha)), Head(physicalQubits));
-        Rz(phi, Head(physicalQubits));
-        ApplyCNOTChain(physicalQubits);
+        // let alpha = 0.20;
+        // let phi = PI() / 2.0;
+        // Ry(2.0 * ArcCos(Sqrt(alpha)), Head(physicalQubits));
+        // Rz(phi, Head(physicalQubits));
+        // ApplyCNOTChain(physicalQubits);
+        CNOT(physicalQubits[0], physicalQubits[1]);
+        CNOT(physicalQubits[0], physicalQubits[2]);
+        ForEach(H, physicalQubits);
     }
 
     /// # Summary
@@ -87,9 +90,19 @@ namespace Sample {
     /// be in the state: (α|000〉 + β|111〉) / √2.
     operation CorrectError(physicalQubits : Qubit[]) : Unit {
 
-        // Check the parity pair-wise against the Pauli Z basis.
-        let parity01 = Measure([PauliZ, PauliZ], physicalQubits[0..1]);
-        let parity12 = Measure([PauliZ, PauliZ], physicalQubits[1..2]);
+        use aux = Qubit[2];
+
+        ApplyToEach(H, physicalQubits);
+
+        CNOT(physicalQubits[0], aux[0]);
+        CNOT(physicalQubits[1], aux[0]);
+        CNOT(physicalQubits[1], aux[1]);
+        CNOT(physicalQubits[2], aux[1]);
+
+        ApplyToEach(H, physicalQubits);
+
+        let parity01 = M(aux[0]);
+        let parity12 = M(aux[1]);
         let parity = (parity01, parity12);
 
         // Determine which of the three qubits is flipped based on the parity measurements.
@@ -106,7 +119,7 @@ namespace Sample {
 
         // If a qubit was found to be flipped, correct that qubit.
         if indexOfError > -1 {
-            X(physicalQubits[indexOfError]);
+            Z(physicalQubits[indexOfError]);
         }
     }
 }
