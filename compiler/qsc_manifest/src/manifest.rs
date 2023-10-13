@@ -5,6 +5,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
+#[derive(Debug)]
 pub struct ManifestDescriptor {
     manifest: Manifest,
     manifest_dir: PathBuf,
