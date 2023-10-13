@@ -2297,3 +2297,591 @@ fn single_parameter_before() {
         "#]],
     );
 }
+
+#[test]
+fn indirect_local_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {}
+            operation Bar() : Unit {
+                let foo = Foo;
+                foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, Int, Int) => Unit)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 16,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 10,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 12,
+                                    end: 15,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_array_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {}
+            operation Bar() : Unit {
+                let foo = [Foo];
+                foo[0](↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, Int, Int) => Unit)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 16,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 10,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 12,
+                                    end: 15,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_block_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {}
+            operation Bar() : Unit {
+                ({ Foo }(↘))
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, Int, Int) => Unit)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 16,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 10,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 12,
+                                    end: 15,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_unresolved_lambda_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Bar() : Unit {
+                let foo = (x, y, z) => {};
+                foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((?1, ?2, ?3) => ?5)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 13,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 6,
+                                    end: 8,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 10,
+                                    end: 12,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_partially_resolved_lambda_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Bar() : Unit {
+                let foo = (x, y, z) => {};
+                foo(1, ↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, ?2, ?3) => ?5)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 14,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 9,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 11,
+                                    end: 13,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_resolved_lambda_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Bar() : Unit {
+                let foo = (x, y, z) => {};
+                foo(1, 2, 3);
+                foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, Int, Int) => ?6)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 16,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 10,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 12,
+                                    end: 15,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn controlled_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit is Ctl {}
+            operation Bar() : Unit {
+                Controlled Foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Qubit[], (Int, Int, Int)) => Unit is Ctl)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 27,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 9,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 11,
+                                    end: 26,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 12,
+                                    end: 15,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 17,
+                                    end: 20,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 25,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn double_controlled_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit is Ctl {}
+            operation Bar() : Unit {
+                Controlled Controlled Foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Qubit[], (Qubit[], (Int, Int, Int))) => Unit is Ctl)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 38,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 9,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 11,
+                                    end: 37,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 12,
+                                    end: 19,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 21,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 25,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 27,
+                                    end: 30,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 32,
+                                    end: 35,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn partial_application_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int, y : Int, z : Int) : Unit {}
+            operation Bar() : Unit {
+                let foo = Foo(1, _, _);
+                foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, Int) => Unit)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 11,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 10,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_no_params_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let foo = Foo;
+                foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(Unit => Unit)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 0,
+            }
+        "#]],
+    );
+}

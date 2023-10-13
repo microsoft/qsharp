@@ -71,6 +71,13 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
+    pub(crate) fn hir_ty(&self, ty: &'a hir::ty::Ty) -> impl Display + 'a {
+        HirTy {
+            compilation: self.compilation,
+            ty,
+        }
+    }
+
     pub(crate) fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + 'a {
         HirPat {
             compilation: self.compilation,
