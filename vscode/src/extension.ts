@@ -151,7 +151,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerCompletionItemProvider(
       qsharpDocumentFilter,
       createCompletionItemProvider(languageService),
-      "."
+      "@" // for attribute completion
     )
   );
 
