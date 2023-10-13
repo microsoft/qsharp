@@ -62,16 +62,11 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                     walk_expr(self, args);
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);
-                        if let ast::ExprKind::Path(path) = &*callee.kind {
-                            if let Some(resolve::Res::Item(item_id)) =
-                                self.compilation.unit.ast.names.get(path.id)
-                            {
-                                self.process_direct_callee(item_id, args);
-                            } else {
-                                self.process_indirect_callee(callee, args);
+                        match try_get_direct_callee(self.compilation, callee) {
+                            Some((callee_decl, item_doc)) => {
+                                self.process_direct_callee(callee_decl, item_doc, args);
                             }
-                        } else {
-                            self.process_indirect_callee(callee, args);
+                            None => self.process_indirect_callee(callee, args),
                         }
                     }
                 }
@@ -103,25 +98,26 @@ impl SignatureHelpFinder<'_> {
         }
     }
 
-    fn process_direct_callee(&mut self, item_id: &hir::ItemId, args: &ast::Expr) {
-        if let (Some(item), _) = find_item(self.compilation, item_id) {
-            if let hir::ItemKind::Callable(callee) = &item.kind {
-                let documentation = parse_doc_for_summary(&item.doc);
-                let documentation = (!documentation.is_empty()).then_some(documentation);
+    fn process_direct_callee(
+        &mut self,
+        callee_decl: &hir::CallableDecl,
+        item_doc: &str,
+        args: &ast::Expr,
+    ) {
+        let documentation = parse_doc_for_summary(item_doc);
+        let documentation = (!documentation.is_empty()).then_some(documentation);
 
-                let sig_info = SignatureInformation {
-                    label: self.display.hir_callable_decl(callee).to_string(),
-                    documentation,
-                    parameters: self.get_params(callee, &item.doc),
-                };
+        let sig_info = SignatureInformation {
+            label: self.display.hir_callable_decl(callee_decl).to_string(),
+            documentation,
+            parameters: self.get_params(callee_decl, item_doc),
+        };
 
-                self.signature_help = Some(SignatureHelp {
-                    signatures: vec![sig_info],
-                    active_signature: 0,
-                    active_parameter: process_args(args, self.offset, &callee.input),
-                });
-            }
-        }
+        self.signature_help = Some(SignatureHelp {
+            signatures: vec![sig_info],
+            active_signature: 0,
+            active_parameter: process_args(args, self.offset, &callee_decl.input),
+        });
     }
 
     /// Takes a callable declaration node and the callable's doc string and
@@ -318,6 +314,25 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
 
 fn usize_to_u32(x: usize) -> u32 {
     u32::try_from(x).expect("failed to cast usize to u32 while generating signature help")
+}
+
+/// If the `callee` expression is a direct reference to a callable, returns
+/// the callable and its doc string, else returns None.
+fn try_get_direct_callee<'a>(
+    compilation: &'a Compilation,
+    callee: &ast::Expr,
+) -> Option<(&'a hir::CallableDecl, &'a str)> {
+    if let ast::ExprKind::Path(path) = &*callee.kind {
+        if let Some(resolve::Res::Item(item_id)) = compilation.unit.ast.names.get(path.id) {
+            if let (Some(item), _) = find_item(compilation, item_id) {
+                if let hir::ItemKind::Callable(callee_decl) = &item.kind {
+                    return Some((callee_decl, &item.doc));
+                }
+            }
+        }
+    }
+
+    None
 }
 
 /// Captures the hierarchical structure of a type based on Tuples by

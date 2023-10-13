@@ -2928,3 +2928,53 @@ fn indirect_single_param_call() {
         "#]],
     );
 }
+
+#[test]
+fn udt_constructor_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            newtype Foo = (fst : Int, snd : Double);
+            operation Bar(x : Int) : Unit {
+                let foo = Foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "((Int, Double) -> Foo)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 14,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 2,
+                                    end: 5,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 7,
+                                    end: 13,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
