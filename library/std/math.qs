@@ -138,9 +138,9 @@ namespace Microsoft.Quantum.Math {
     function Max (values : Int[]) : Int {
         Fact(Length(values) > 0, "Array must contain at least one element.");
         mutable max = values[0];
-        for idx in 1 .. Length(values) - 1 {
-            if values[idx] > max {
-                set max = values[idx];
+        for element in values[1...] {
+            if element > max {
+                set max = element;
             }
         }
 
@@ -159,9 +159,9 @@ namespace Microsoft.Quantum.Math {
     function Min (values : Int[]) : Int {
         Fact(Length(values) > 0, "Array must contain at least one element.");
         mutable min = values[0];
-        for idx in 1 .. Length(values) - 1 {
-            if values[idx] < min {
-                set min = values[idx];
+        for element in values[1...] {
+            if element < min {
+                set min = element;
             }
         }
 
