@@ -233,7 +233,39 @@ impl SignatureHelpFinder<'_> {
 
     fn get_type_params(&self, ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
         let mut offset = 1; // 1 for the open parenthesis character
-        self.make_type_param_with_offset(&mut offset, ty)
+
+        match &ty {
+            hir::ty::Ty::Tuple(_) => self.make_type_param_with_offset(&mut offset, ty),
+            _ => self.params_for_single_type_parameter(offset, ty),
+        }
+    }
+
+    /// Callables with a single parameter in their parameter list are special-cased
+    /// because we need to insert an additional parameter info to make the list
+    /// compatible with the argument processing logic.
+    fn params_for_single_type_parameter(
+        &self,
+        offset: u32,
+        ty: &hir::ty::Ty,
+    ) -> Vec<ParameterInformation> {
+        let len = usize_to_u32(self.display.hir_ty(ty).to_string().len());
+        let start = offset;
+        let end = offset + len;
+
+        let param = ParameterInformation {
+            label: Span { start, end },
+            documentation: None,
+        };
+
+        // The wrapper is a duplicate of the parameter. This is to make
+        // the generated list of parameter information objects compatible
+        // with the argument processing logic.
+        let wrapper = ParameterInformation {
+            label: Span { start, end },
+            documentation: None,
+        };
+
+        vec![wrapper, param]
     }
 
     fn make_type_param_with_offset(

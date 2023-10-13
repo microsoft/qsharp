@@ -2885,3 +2885,46 @@ fn indirect_no_params_call() {
         "#]],
     );
 }
+
+#[test]
+fn indirect_single_param_call() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo(x : Int) : Unit {
+                let foo = Foo;
+                foo(↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(Int => Unit)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
