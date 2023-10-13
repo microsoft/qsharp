@@ -117,14 +117,17 @@ jupyterlab_src = os.path.join(root_dir, "jupyterlab")
 
 def step_start(description):
     global start_time
-    print(f"build.py step: {description}")
+    prefix = "::group::" if os.getenv("GITHUB_ACTIONS") == "true" else ""
+    print(f"{prefix}build.py: {description}")
     start_time = time.time()
 
 
 def step_end():
     global start_time
     duration = time.time() - start_time
-    print(f"build.py step: Finished in {duration:.3f}s.")
+    print(f"build.py: Finished in {duration:.3f}s.")
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        print(f"::endgroup::")
 
 
 if npm_install_needed:
@@ -386,6 +389,6 @@ if build_jupyterlab:
 
 if args.integration_tests:
     step_start("Running the VS Code integration tests")
-    vscode_args = [npm_cmd, "test"]
+    vscode_args = [npm_cmd, "test", "--", "--verbose"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
     step_end()
