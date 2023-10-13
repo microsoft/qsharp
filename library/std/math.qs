@@ -709,7 +709,7 @@ namespace Microsoft.Quantum.Math {
     /// - Microsoft.Quantum.Math.ApproximateFactorial
     function FactorialI(n : Int) : Int {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
-        Fact(n <= 20, "The largest factorial that be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
+        Fact(n <= 20, "The largest factorial that can be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
 
         mutable result = 1;
         for i in 1 .. n {
@@ -720,9 +720,6 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the factorial of a given number.
-    ///
-    /// # Description
-    /// Returns the factorial of a given nonnegative integer n, where 0 ≤ n ≤ 20.
     ///
     /// # Input
     /// ## n
@@ -767,7 +764,7 @@ namespace Microsoft.Quantum.Math {
     /// - Microsoft.Quantum.Math.FactorialL
     function ApproximateFactorial(n : Int) : Double {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
-        Fact(n <= 169, "The largest approximate factorial that be stored as an Double is 169!. Use FactorialL.");
+        Fact(n <= 169, "The largest approximate factorial that can be stored as a Double is 169!. Use FactorialL.");
 
         // For small enough n, use the exact factorial instead.
         if n < 10 {
