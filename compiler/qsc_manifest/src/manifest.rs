@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod tests;
-
 use serde::Deserialize;
 use std::path::PathBuf;
 

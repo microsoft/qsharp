@@ -6,9 +6,10 @@ use std::{
 };
 mod error;
 
-type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
-fn find_manifest() -> Result<Option<ManifestDescriptor>> {
+// TODO: inject file loader
+pub fn find_manifest() -> Result<Option<ManifestDescriptor>> {
     let current_dir = current_dir()?;
     let ancestors = current_dir.ancestors();
     for ancestor in ancestors {

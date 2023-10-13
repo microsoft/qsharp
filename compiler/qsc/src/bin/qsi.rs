@@ -18,6 +18,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
+use qsc_resolver::find_dependencies_with_loader;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -72,11 +73,24 @@ impl Receiver for TerminalReceiver {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    let sources = cli
+    // TODO dedup the below lines with qsc.rs
+    let mut sources = cli
         .sources
         .iter()
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
+
+    let mut discovered_modules: Vec<(SourceName, SourceContents)> = sources
+        .iter()
+        .map(|(_, src)| find_dependencies_with_loader(None, |x| read_source(x)))
+        .collect::<miette::Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect();
+
+    sources.append(&mut discovered_modules);
+    sources.sort();
+    sources.dedup();
 
     if cli.exec {
         let mut interpreter = match Interpreter::new(

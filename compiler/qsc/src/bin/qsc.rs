@@ -15,6 +15,7 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
+use qsc_resolver::find_dependencies_with_loader;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -74,11 +75,23 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, target)));
     }
 
-    let sources = cli
+    let mut sources = cli
         .sources
         .iter()
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
+
+    let mut discovered_modules: Vec<(SourceName, SourceContents)> = sources
+        .iter()
+        .map(|(_, src)| find_dependencies_with_loader(None, |x| read_source(x)))
+        .collect::<miette::Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect();
+
+    sources.append(&mut discovered_modules);
+    sources.sort();
+    sources.dedup();
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
