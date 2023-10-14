@@ -4,6 +4,8 @@
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 import { EventType, sendTelemetryEvent } from "./telemetry.js";
+import { WorkspaceTreeProvider } from "./azure/treeView.js";
+import { getPythonCodeForWorkspace } from "./azure/workspaceActions.js";
 
 /**
  * Sets up handlers to detect Q# code cells in Jupyter notebooks and set the language to Q#.
@@ -64,6 +66,8 @@ export function registerQSharpNotebookHandlers() {
   return subscriptions;
 }
 
+// Yes, this function is long, but mostly to deal with multi-folder VS Code workspace or multi
+// Azure Quantum workspace connection scenarios. The actual notebook creation is pretty simple.
 export function registerCreateNotebookCommand(
   context: vscode.ExtensionContext
 ) {
@@ -71,17 +75,12 @@ export function registerCreateNotebookCommand(
     vscode.commands.registerCommand(
       "qsharp-vscode.createNotebook",
       async () => {
-        if (!vscode.workspace.workspaceFolders) {
+        if (!vscode.workspace.workspaceFolders?.length) {
           vscode.window.showErrorMessage(
             "You must have an open folder to create a notebook."
           );
           return;
         }
-        const notebookName = await vscode.window.showInputBox({
-          prompt: "Enter a name for the new notebook",
-        });
-        if (!notebookName) return;
-
         let workspaceFolder = vscode.workspace.workspaceFolders[0];
 
         // Handle multi-workspace scenarios
@@ -103,13 +102,35 @@ export function registerCreateNotebookCommand(
           workspaceFolder = choice.workspace;
         }
 
+        let notebookName = await vscode.window.showInputBox({
+          prompt: "Enter a name for the new notebook",
+        });
+        if (!notebookName) return;
+        if (!notebookName.endsWith(".ipynb")) {
+          notebookName += ".ipynb";
+        }
+
         // Create the notebook full uri
         const notebookUri = vscode.Uri.joinPath(
           workspaceFolder.uri,
-          notebookName + ".ipynb"
+          notebookName
         );
 
-        // Construct a Uint8Array containing 'Hello, world'
+        // Check and warn if the file already exists
+        const existingFiles = await vscode.workspace.fs.readDirectory(
+          workspaceFolder.uri
+        );
+        if (existingFiles.some(([name]) => name === notebookName)) {
+          // Ask the user to overwrite or cancel
+          const choice = await vscode.window.showWarningMessage(
+            `The file ${notebookName} already exists. Do you want to overwrite it?`,
+            { modal: true },
+            "Overwrite",
+            "Cancel"
+          );
+          if (choice !== "Overwrite") return;
+        }
+
         const templatePath = vscode.Uri.joinPath(
           context.extensionUri,
           "resources",
@@ -117,12 +138,37 @@ export function registerCreateNotebookCommand(
         );
         const template = await vscode.workspace.fs.readFile(templatePath);
         let content = new TextDecoder().decode(template);
+
+        // Update the workspace connection info in the notebook if workspaces are already connected to
+        const workspaces =
+          WorkspaceTreeProvider.instance?.getWorkspaceIds() || [];
+        let choice = workspaces[0] || undefined;
+        if (workspaces.length > 1) {
+          choice = await vscode.window.showQuickPick(workspaces);
+        }
+
+        function getCodeForWorkspace(choice: string | undefined) {
+          if (choice) {
+            const workspace =
+              WorkspaceTreeProvider.instance?.getWorkspace(choice);
+            if (workspace) {
+              return getPythonCodeForWorkspace(
+                workspace.id,
+                workspace.endpointUri,
+                workspace.name
+              );
+            }
+          }
+          // Else use dummy values
+          return getPythonCodeForWorkspace("", "", "");
+        }
+
         content = content.replace(
-          "{{WORKSPACE}}",
-          "TODO: Put workspace details here"
+          `"# TODO: Workspace connection\\n"`,
+          JSON.stringify(getCodeForWorkspace(choice))
         );
 
-        vscode.workspace.fs.writeFile(
+        await vscode.workspace.fs.writeFile(
           notebookUri,
           new TextEncoder().encode(content)
         );
