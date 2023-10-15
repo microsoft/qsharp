@@ -2352,8 +2352,8 @@ fn lambda_inner_return() {
             #12 54-55 "f" : (Unit -> Int)
             #14 58-98 "() -> {\n            return 42;\n        }" : (Unit -> Int)
             #15 58-60 "()" : Unit
-            #16 64-98 "{\n            return 42;\n        }" : Int
-            #17 64-98 "{\n            return 42;\n        }" : Int
+            #16 64-98 "{\n            return 42;\n        }" : Unit
+            #17 64-98 "{\n            return 42;\n        }" : Unit
             #19 78-87 "return 42" : Unit
             #20 85-87 "42" : Int
             #22 112-113 "r" : Int
