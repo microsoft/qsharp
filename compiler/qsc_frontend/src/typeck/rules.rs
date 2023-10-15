@@ -340,7 +340,8 @@ impl<'a> Context<'a> {
                 if !body_partial.diverges {
                     // Only when the type of the body converges do we need to unify with the inferred output type.
                     // Otherwise we'd get spurious errors from lambdas that use explicit return-expr rather than implicit.
-                    self.inferrer.eq(body.span, output_ty.clone(), body_partial.ty);
+                    self.inferrer
+                        .eq(body.span, output_ty.clone(), body_partial.ty);
                 }
                 converge(Ty::Arrow(Box::new(Arrow {
                     kind: convert::callable_kind_from_ast(*kind),
