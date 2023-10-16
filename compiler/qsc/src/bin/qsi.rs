@@ -83,8 +83,6 @@ fn main() -> miette::Result<ExitCode> {
         find_dependencies_with_loader(|input| read_source(input))?;
 
     sources.append(&mut discovered_modules);
-    sources.sort();
-    sources.dedup();
 
     if cli.exec {
         let mut interpreter = match Interpreter::new(

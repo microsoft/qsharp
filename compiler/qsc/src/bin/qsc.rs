@@ -85,8 +85,6 @@ fn main() -> miette::Result<ExitCode> {
         find_dependencies_with_loader(|input| read_source(input))?;
 
     sources.append(&mut discovered_modules);
-    sources.sort();
-    sources.dedup();
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
