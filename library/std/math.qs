@@ -711,11 +711,10 @@ namespace Microsoft.Quantum.Math {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
         Fact(n <= 20, "The largest factorial that can be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
 
-        mutable result = 1;
-        for i in 1 .. n {
-            set result *= i;
-        }
-        result
+        [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800,
+        39916800, 479001600, 6227020800, 87178291200, 1307674368000,
+        20922789888000, 355687428096000, 6402373705728000,
+        121645100408832000, 2432902008176640000][n]
     }
 
     /// # Summary
@@ -767,7 +766,7 @@ namespace Microsoft.Quantum.Math {
         Fact(n <= 169, "The largest approximate factorial that can be stored as a Double is 169!. Use FactorialL.");
 
         // For small enough n, use the exact factorial instead.
-        if n < 10 {
+        if n <= 20 {
             return IntAsDouble(FactorialI(n));
         }
 
