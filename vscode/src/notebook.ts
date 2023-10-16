@@ -77,13 +77,25 @@ export function registerCreateNotebookCommand(
       "qsharp-vscode.createNotebook",
       async () => {
         // Update the workspace connection info in the notebook if workspaces are already connected to
-        const workspaces =
-          WorkspaceTreeProvider.instance?.getWorkspaceIds() || [];
-        let choice = workspaces[0] || undefined;
-        if (workspaces.length > 1) {
-          choice = await vscode.window.showQuickPick(workspaces, {
-            title: "Select a workspace to use in the notebook",
-          });
+        const tree = WorkspaceTreeProvider.instance;
+        let choice: string | undefined = undefined;
+        if (tree) {
+          const workspaces = tree.getWorkspaceIds();
+          // Default to the first (and maybe only) workspace, else prompt the user to select one
+          choice = workspaces[0] || undefined;
+          if (workspaces.length > 1) {
+            choice = (
+              await vscode.window.showQuickPick(
+                workspaces.map((workspace) => ({
+                  label: tree.getWorkspace(workspace)?.name || workspace,
+                  id: workspace,
+                })),
+                {
+                  title: "Select a workspace to use in the notebook",
+                }
+              )
+            )?.id;
+          }
         }
 
         function getCodeForWorkspace(choice: string | undefined) {
