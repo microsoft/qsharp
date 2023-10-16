@@ -39,9 +39,13 @@ impl Manifest {
     /// a manifest file exists but is the wrong format.
     /// Returns `Ok(None)` if there is no file matching the manifest file
     /// name.
-    pub(crate) fn load() -> std::result::Result<Option<ManifestDescriptor>, Error> {
+    pub fn load() -> std::result::Result<Option<ManifestDescriptor>, Error> {
         let current_dir = current_dir()?;
-        let ancestors = current_dir.ancestors();
+        Self::load_from_path(current_dir)
+    }
+
+    pub fn load_from_path(path: PathBuf) -> std::result::Result<Option<ManifestDescriptor>, Error> {
+        let ancestors = path.ancestors();
         for ancestor in ancestors {
             let listing = ancestor.read_dir()?;
             for item in listing.into_iter().filter_map(only_valid_files) {

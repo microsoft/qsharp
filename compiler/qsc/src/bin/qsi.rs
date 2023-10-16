@@ -80,7 +80,7 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     let project = Project::load(|input| read_source(input))?;
-    let mut project_sources = project.sources();
+    let mut project_sources = project.sources;
 
     sources.append(&mut project_sources);
     if cli.exec {
