@@ -22,6 +22,8 @@ pub fn check(project_path: PathBuf, expect: &Expect) {
         *path = Arc::from(new_path.to_str().unwrap_or_default());
     }
 
+    project.sources.sort();
+
     expect.assert_eq(&format!("{project:#?}"));
 }
 
