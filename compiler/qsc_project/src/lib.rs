@@ -26,15 +26,13 @@ where
     let qs_files = globwalk::GlobWalkerBuilder::from_patterns(manifest.manifest_dir, &["*.qs"])
         .build()
         .map_err(Into::<crate::fs::Error>::into)?
-        .into_iter()
         .filter_map(Result::ok)
         .filter(|item| {
             !manifest
                 .manifest
                 .exclude_files
                 .iter()
-                .find(|x| Some(x.as_str()) == item.file_name().to_str())
-                .is_some()
+                .any(|x| Some(x.as_str()) == item.file_name().to_str())
         });
 
     let qs_files = qs_files.into_iter().map(|file| file.path().into());
