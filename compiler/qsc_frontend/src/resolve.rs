@@ -835,6 +835,21 @@ fn resolve(
     }
 
     if candidates.len() > 1 {
+        // If there are multiple candidates, remove deprecated and unimplemented items.
+        let mut removals = Vec::new();
+        for res in candidates.keys() {
+            if let Res::Item(_, info) = res {
+                if info.deprecated || info.unimplemented {
+                    removals.push(*res);
+                }
+            }
+        }
+        for res in removals {
+            candidates.remove(&res);
+        }
+    }
+
+    if candidates.len() > 1 {
         let mut opens: Vec<_> = candidates.into_values().collect();
         opens.sort_unstable_by_key(|open| open.span);
         Err(Error::Ambiguous {
