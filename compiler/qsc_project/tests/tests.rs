@@ -1,3 +1,7 @@
+//! These tests exist solely to test project structure and contents.
+//! They are not intended to test the qsc runtime or compilation process,
+//! so we are only asserting file names and contents.
+
 mod harness;
 
 use expect_test::expect;
@@ -5,7 +9,9 @@ use harness::check;
 
 #[test]
 fn basic_manifest() {
-    check("basic_manifest".into(), &expect![[r#"
+    check(
+        "basic_manifest".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -28,12 +34,15 @@ fn basic_manifest() {
                 license: None,
                 exclude_files: [],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn circular_imports() {
-    check("circular_imports".into(), &expect![[r#"
+    check(
+        "circular_imports".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -56,12 +65,15 @@ fn circular_imports() {
                 license: None,
                 exclude_files: [],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn different_files_same_manifest() {
-    check("different_files_same_manifest".into(), &expect![[r#"
+    check(
+        "different_files_same_manifest".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -84,12 +96,15 @@ fn different_files_same_manifest() {
                 license: None,
                 exclude_files: [],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn empty_manifest() {
-    check("empty_manifest".into(), &expect![[r#"
+    check(
+        "empty_manifest".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -102,12 +117,15 @@ fn empty_manifest() {
                 license: None,
                 exclude_files: [],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn exclude_blobs() {
-    check("exclude_blobs".into(), &expect![[r#"
+    check(
+        "exclude_blobs".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -126,12 +144,15 @@ fn exclude_blobs() {
                     "to_exclude/*",
                 ],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn exclude_files() {
-    check("exclude_files".into(), &expect![[r#"
+    check(
+        "exclude_files".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -146,12 +167,15 @@ fn exclude_files() {
                     "*.exclude.qs",
                 ],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn exclude_list() {
-    check("exclude_list".into(), &expect![[r#"
+    check(
+        "exclude_list".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -170,12 +194,15 @@ fn exclude_list() {
                     "Excluded.qs",
                 ],
             },
-        }"#]])
+        }"#]],
+    )
 }
 
 #[test]
 fn folder_structure() {
-    check("folder_structure".into(), &expect![[r#"
+    check(
+        "folder_structure".into(),
+        &expect![[r#"
         Project {
             sources: [
                 (
@@ -200,5 +227,6 @@ fn folder_structure() {
                 license: None,
                 exclude_files: [],
             },
-        }"#]])
+        }"#]],
+    )
 }
