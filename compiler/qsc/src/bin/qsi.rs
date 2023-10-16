@@ -18,7 +18,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
-use qsc_project::find_dependencies_with_loader;
+use qsc_project::Project;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -79,11 +79,10 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let mut discovered_modules: Vec<(SourceName, SourceContents)> =
-        find_dependencies_with_loader(|input| read_source(input))?;
+    let project = Project::load(|input| read_source(input))?;
+    let mut project_sources = project.sources();
 
-    sources.append(&mut discovered_modules);
-
+    sources.append(&mut project_sources);
     if cli.exec {
         let mut interpreter = match Interpreter::new(
             !cli.nostdlib,

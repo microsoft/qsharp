@@ -15,7 +15,7 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
-use qsc_project::find_dependencies_with_loader;
+use qsc_project::Project;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -81,10 +81,10 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let mut discovered_modules: Vec<(SourceName, SourceContents)> =
-        find_dependencies_with_loader(|input| read_source(input))?;
+    let project = Project::load(|input| read_source(input))?;
+    let mut project_sources = project.sources();
 
-    sources.append(&mut discovered_modules);
+    sources.append(&mut project_sources);
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
