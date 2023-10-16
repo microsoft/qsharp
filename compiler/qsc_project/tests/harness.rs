@@ -10,7 +10,7 @@ use qsc_project::Project;
 
 pub fn check(project_path: PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    root_path.push(PathBuf::from(format!("tests/projects")));
+    root_path.push(PathBuf::from("tests/projects"));
     let mut absolute_project_path = root_path.clone();
     absolute_project_path.push(project_path.clone());
     let mut project = Project::load_from_path(absolute_project_path, |x| read_source(x)).unwrap();
