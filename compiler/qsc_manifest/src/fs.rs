@@ -1,9 +1,11 @@
 use crate::{ManifestDescriptor, MANIFEST_FILE_NAME};
-use error::Error;
+
+pub use error::Error;
 use std::{
     env::current_dir,
     fs::{self, DirEntry, FileType},
 };
+
 mod error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -16,7 +18,10 @@ pub fn find_manifest() -> Result<Option<ManifestDescriptor>> {
         let listing = ancestor.read_dir()?;
         for item in listing.into_iter().filter_map(only_valid_files) {
             if item.file_name().to_str() == Some(MANIFEST_FILE_NAME) {
-                let manifest_dir = item.path();
+                let mut manifest_dir = item.path();
+                // pop off the file name itself
+                manifest_dir.pop();
+
                 let manifest = fs::read_to_string(item.path())?;
                 let manifest = serde_json::from_str(&manifest)?;
                 return Ok(Some(ManifestDescriptor::new(manifest, manifest_dir)));

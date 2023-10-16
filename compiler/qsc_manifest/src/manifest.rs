@@ -4,8 +4,8 @@ use std::path::PathBuf;
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 #[derive(Debug)]
 pub struct ManifestDescriptor {
-    manifest: Manifest,
-    manifest_dir: PathBuf,
+    pub manifest: Manifest,
+    pub manifest_dir: PathBuf,
 }
 impl ManifestDescriptor {
     pub(crate) fn new(manifest: Manifest, manifest_dir: PathBuf) -> Self {
@@ -21,5 +21,5 @@ pub struct Manifest {
     author: Option<String>,
     license: Option<String>,
     #[serde(default)]
-    exclude_files: Vec<String>,
+    pub exclude_files: Vec<String>,
 }

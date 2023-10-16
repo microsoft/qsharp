@@ -14,8 +14,8 @@ use qsc_frontend::{
     error::WithSource,
 };
 use qsc_hir::hir::{Package, PackageId};
+use qsc_manifest::find_dependencies_with_loader;
 use qsc_passes::PackageType;
-use qsc_resolver::find_dependencies_with_loader;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -25,8 +25,8 @@ use std::{
 };
 
 #[derive(Debug, Parser)]
-#[command(version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"), arg_required_else_help(true))]
-#[clap(group(ArgGroup::new("input").args(["entry", "sources"]).required(true).multiple(true)))]
+#[command(version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"), arg_required_else_help(false))]
+#[clap(group(ArgGroup::new("input").args(["entry", "sources"]).required(false).multiple(true)))]
 struct Cli {
     /// Disable automatic inclusion of the standard library.
     #[arg(long)]
@@ -81,13 +81,8 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let mut discovered_modules: Vec<(SourceName, SourceContents)> = sources
-        .iter()
-        .map(|(_, src)| find_dependencies_with_loader(None, |x| read_source(x)))
-        .collect::<miette::Result<Vec<_>>>()?
-        .into_iter()
-        .flatten()
-        .collect();
+    let mut discovered_modules: Vec<(SourceName, SourceContents)> =
+        find_dependencies_with_loader(None, |input| read_source(input))?;
 
     sources.append(&mut discovered_modules);
     sources.sort();
