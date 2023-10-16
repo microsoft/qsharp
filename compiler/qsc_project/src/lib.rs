@@ -39,7 +39,5 @@ where
 
     let qs_sources = qs_files.map(|path| load_module(&path));
 
-    let read_sources = qs_sources.collect::<miette::Result<Vec<_>>>()?;
-    Ok(read_sources)
-    // Ok(qs_sources.collect::<miette::Result<_>>()?)
+    qs_sources.collect::<miette::Result<_>>()
 }
