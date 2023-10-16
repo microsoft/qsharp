@@ -90,13 +90,8 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 
 #[wasm_bindgen]
 pub fn get_hir(code: &str) -> String {
-    let package = compile(code);
-    package.to_string()
-}
-
-fn compile(code: &str) -> qsc::hir::Package {
-    STORE_CORE_STD.with(|(store, std)| {
-        let sources = SourceMap::new([("code".into(), code.into())], None);
+    let sources = SourceMap::new([("code".into(), code.into())], None);
+    let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
             &[*std],
@@ -105,7 +100,8 @@ fn compile(code: &str) -> qsc::hir::Package {
             TargetProfile::Full,
         );
         unit.package
-    })
+    });
+    package.to_string()
 }
 
 struct CallbackReceiver<F>
