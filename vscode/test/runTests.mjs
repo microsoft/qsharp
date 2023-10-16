@@ -21,6 +21,8 @@ const attachArgName = "--waitForDebugger=";
 const waitForDebugger = process.argv.find((arg) =>
   arg.startsWith(attachArgName)
 );
+const verboseArgName = "--verbose";
+const verbose = process.argv.includes(verboseArgName);
 
 try {
   // Language service tests
@@ -51,6 +53,9 @@ async function runSuite(extensionTestsPath, workspacePath) {
     extensionDevelopmentPath,
     extensionTestsPath,
     folderPath: workspacePath,
+    quality: "stable",
+    printServerLog: verbose,
+    verbose,
     waitForDebugger: waitForDebugger
       ? Number(waitForDebugger.slice(attachArgName.length))
       : undefined,
