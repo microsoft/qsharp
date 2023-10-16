@@ -11,7 +11,7 @@
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
 			"installJupyterlab": true,
-			"version": "latest"
+			"version": "3.11"
 		}
 	},
 	"postCreateCommand": "npm install -g wasm-pack",

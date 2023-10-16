@@ -60,6 +60,7 @@ pub(crate) fn get_completions(
         Context::Namespace => {
             // Include "open", "operation", etc
             builder.push_item_decl_keywords();
+            builder.push_attributes();
 
             // Typing into a callable decl sometimes breaks the
             // parser and the context appears to be a namespace block,
@@ -126,6 +127,16 @@ impl CompletionListBuilder {
         self.push_completions(
             ITEM_KEYWORDS
                 .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Keyword))
+                .into_iter(),
+        );
+    }
+
+    fn push_attributes(&mut self) {
+        static ATTRIBUTES: [&str; 2] = ["@EntryPoint()", "@Config()"];
+
+        self.push_completions(
+            ATTRIBUTES
+                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Property))
                 .into_iter(),
         );
     }

@@ -19,7 +19,7 @@ env:
   CARGO_TERM_COLOR: always
   NODE_VERSION: "18.17.1"
   PYTHON_VERSION: "3.11"
-  RUST_TOOLCHAIN_VERSION: "1.72"
+  RUST_TOOLCHAIN_VERSION: "1.73"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
@@ -120,6 +120,8 @@ jobs:
 
   integration-tests:
     name: Integration tests
+    if: ${{ ! github.event.pull_request }}
+    timeout-minutes: 15
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
