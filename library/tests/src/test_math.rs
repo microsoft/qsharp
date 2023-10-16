@@ -5,7 +5,31 @@ use crate::test_expression;
 use core::f64::consts::E;
 use num_bigint::BigInt;
 use qsc::interpret::Value;
-use std::f64::consts::PI;
+use std::{f64::consts::PI, str::FromStr};
+
+#[test]
+fn check_pi() {
+    test_expression(
+        "Microsoft.Quantum.Math.PI()",
+        &Value::Double(std::f64::consts::PI),
+    );
+}
+
+#[test]
+fn check_e() {
+    test_expression(
+        "Microsoft.Quantum.Math.E()",
+        &Value::Double(std::f64::consts::E),
+    );
+}
+
+#[test]
+fn check_log_of_2() {
+    test_expression(
+        "Microsoft.Quantum.Math.LogOf2()",
+        &Value::Double(std::f64::consts::LN_2),
+    );
+}
 
 //
 // Sign, Abs, Min, Max, etc.
@@ -122,25 +146,29 @@ fn check_min_l() {
     );
 }
 
+#[test]
+fn check_min() {
+    test_expression(
+        "Microsoft.Quantum.Math.Min([-5, 7, 1, 10])",
+        &Value::Int(-5),
+    );
+    test_expression("Microsoft.Quantum.Math.Min([5, 7, 1, 10])", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.Min([1])", &Value::Int(1));
+}
+
+#[test]
+fn check_max() {
+    test_expression(
+        "Microsoft.Quantum.Math.Max([10, 7, 1, -20])",
+        &Value::Int(10),
+    );
+    test_expression("Microsoft.Quantum.Math.Max([5, 7, 1, 20])", &Value::Int(20));
+    test_expression("Microsoft.Quantum.Math.Max([1])", &Value::Int(1));
+}
+
 //
 // Trigonometric functions
 //
-
-#[test]
-fn check_pi() {
-    test_expression(
-        "Microsoft.Quantum.Math.PI()",
-        &Value::Double(std::f64::consts::PI),
-    );
-}
-
-#[test]
-fn check_e() {
-    test_expression(
-        "Microsoft.Quantum.Math.E()",
-        &Value::Double(std::f64::consts::E),
-    );
-}
 
 #[test]
 fn check_arccos() {
@@ -311,6 +339,42 @@ fn check_round() {
 //
 
 #[test]
+fn check_divrem_i() {
+    test_expression(
+        "Microsoft.Quantum.Math.DivRemI(20, 3)",
+        &Value::Tuple(vec![Value::Int(6), Value::Int(2)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.DivRemI(-20, 3)",
+        &Value::Tuple(vec![Value::Int(-6), Value::Int(-2)].into()),
+    );
+}
+
+#[test]
+fn check_divrem_l() {
+    test_expression(
+        "Microsoft.Quantum.Math.DivRemL(20L, 3L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(6)),
+                Value::BigInt(BigInt::from(2)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.DivRemL(-20L, 3L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(-6)),
+                Value::BigInt(BigInt::from(-2)),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_modulus_i() {
     test_expression("Microsoft.Quantum.Math.ModulusI(20, 3)", &Value::Int(2));
     test_expression("Microsoft.Quantum.Math.ModulusI(-20, 3)", &Value::Int(1));
@@ -408,6 +472,38 @@ fn check_gcd_l() {
 }
 
 #[test]
+fn check_is_coprime_i() {
+    test_expression(
+        "Microsoft.Quantum.Math.IsCoprimeI(44,35)",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.IsCoprimeI(6,9)",
+        &Value::Bool(false),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.IsCoprimeI(1, -1)",
+        &Value::Bool(true),
+    );
+}
+
+#[test]
+fn check_is_coprime_l() {
+    test_expression(
+        "Microsoft.Quantum.Math.IsCoprimeL(739696442014594807059393047166976L,7609583501588058567047119140625L)",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.IsCoprimeL(6L,9L)",
+        &Value::Bool(false),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.IsCoprimeL(1L, -1L)",
+        &Value::Bool(true),
+    );
+}
+
+#[test]
 fn check_cfc_i() {
     // NOTE: It is not important if the function returns -3/-4 or 3/4,
     // we can ignore this implementation details or update a function
@@ -435,6 +531,73 @@ fn check_cfc_i() {
 }
 
 #[test]
+fn check_cfc_l() {
+    // NOTE: It is not important if the function returns -3/-4 or 3/4,
+    // we can ignore this implementation details or update a function
+    // to return canonical result.
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((72L,100L), 2L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(-1)),
+                Value::BigInt(BigInt::from(-1)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((72L,100L), 3L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(2)),
+                Value::BigInt(BigInt::from(3)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((72L,100L), 25L)",
+        &Value::Tuple(
+            vec![
+                Value::BigInt(BigInt::from(-18)),
+                Value::BigInt(BigInt::from(-25)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((170141183460469231731687303715884105727L,331780596164137120496034969018767441441L), 2L)",
+        &Value::Tuple(vec![Value::BigInt(BigInt::from(1)), Value::BigInt(BigInt::from(2))].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentL((170141183460469231731687303715884105727L,331780596164137120496034969018767441441L), 1000000L)",
+        &Value::Tuple(vec![Value::BigInt(BigInt::from(33_781)), Value::BigInt(BigInt::from(65_874))].into()),
+    );
+}
+
+#[test]
+fn check_real_mod() {
+    test_expression(
+        "{ open Microsoft.Quantum.Math;
+        RealMod(5.5 * PI(), 2.0 * PI(), 0.0) }",
+        &Value::Double(1.5 * PI),
+    );
+    test_expression(
+        "{ open Microsoft.Quantum.Math;
+            RealMod(0.5 * PI(), 2.0 * PI(), -PI()/2.0) }",
+        &Value::Double(0.5 * PI),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.RealMod(10.5, 2.3, 1.2)",
+        &Value::Double(1.3),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.RealMod(3.6, 2.4, -1.2)",
+        &Value::Double(-1.2),
+    );
+}
+
+#[test]
 fn check_bitsize_i() {
     test_expression("Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
     test_expression("Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
@@ -445,6 +608,180 @@ fn check_bitsize_i() {
         &Value::Int(63),
     );
 }
+
+#[test]
+fn check_bitsize_l() {
+    test_expression("Microsoft.Quantum.Math.BitSizeL(0L)", &Value::Int(0));
+    test_expression("Microsoft.Quantum.Math.BitSizeL(1L)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.BitSizeL(2L)", &Value::Int(2));
+    test_expression("Microsoft.Quantum.Math.BitSizeL(3L)", &Value::Int(2));
+    test_expression(
+        "Microsoft.Quantum.Math.BitSizeL(0x7FFFFFFFFFFFFFFFL)",
+        &Value::Int(63),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.BitSizeL(0x8FFFFFFFFFFFFFFFL)",
+        &Value::Int(64),
+    );
+}
+
+//
+// Combinatorics
+//
+
+#[test]
+fn check_factorial_i() {
+    test_expression("Microsoft.Quantum.Math.FactorialI(0)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.FactorialI(1)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.FactorialI(2)", &Value::Int(2));
+    test_expression(
+        "Microsoft.Quantum.Math.FactorialI(10)",
+        &Value::Int(3_628_800),
+    );
+}
+
+#[test]
+fn check_factorial_l() {
+    test_expression(
+        "Microsoft.Quantum.Math.FactorialL(0)",
+        &Value::BigInt(BigInt::from(1)),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.FactorialL(1)",
+        &Value::BigInt(BigInt::from(1)),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.FactorialL(2)",
+        &Value::BigInt(BigInt::from(2)),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.FactorialL(10)",
+        &Value::BigInt(BigInt::from(3_628_800)),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.FactorialL(170)",
+        &Value::BigInt(BigInt::from_str(
+            "7257415615307998967396728211129263114716991681296451376543577798900561843401706157852350749242617459511490991237838520776666022565442753025328900773207510902400430280058295603966612599658257104398558294257568966313439612262571094946806711205568880457193340212661452800000000000000000000000000000000000000000"
+        ).expect("Cannot parse static BigInt in Rust code."))
+    );
+}
+
+#[test]
+fn check_approximate_factorial() {
+    test_expression(
+        "Microsoft.Quantum.Math.ApproximateFactorial(0)",
+        &Value::Double(1.0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.ApproximateFactorial(2)",
+        &Value::Double(2.0),
+    );
+    // NOTE: Tests for larger numbers can be added
+    // when approximate comparison is implemented.
+}
+
+#[test]
+fn check_log_gamma_d() {
+    test_expression(
+        "Microsoft.Quantum.Math.LogGammaD(3.14)",
+        &Value::Double(0.826_138_704_777_028),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.LogGammaD(0.782)",
+        &Value::Double(0.169_806_721_914_044),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.LogGammaD(1234.567)",
+        &Value::Double(7_551.027_809_984_276),
+    );
+}
+
+#[test]
+fn check_log_factorial_d() {
+    test_expression(
+        "Microsoft.Quantum.Math.LogFactorialD(2000)",
+        &Value::Double(13_206.524_350_513_8),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.LogFactorialD(4321)",
+        &Value::Double(31_856.241_848_248_7),
+    );
+}
+
+#[test]
+fn check_binom() {
+    test_expression(
+        "Microsoft.Quantum.Math.Binom(31, 7)",
+        &Value::Int(2_629_575),
+    );
+    test_expression("Microsoft.Quantum.Math.Binom(23, 9)", &Value::Int(817_190));
+    test_expression("Microsoft.Quantum.Math.Binom(13, 5)", &Value::Int(1_287));
+    test_expression("Microsoft.Quantum.Math.Binom(4, 0)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.Binom(4, 4)", &Value::Int(1));
+}
+
+#[test]
+fn check_square_norm() {
+    test_expression(
+        "Microsoft.Quantum.Math.SquaredNorm([2.0])",
+        &Value::Double(4.0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.SquaredNorm([-1.0, 1.0])",
+        &Value::Double(2.0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.SquaredNorm([3.0, 4.0])",
+        &Value::Double(25.0),
+    );
+}
+
+#[test]
+fn check_p_norm() {
+    test_expression(
+        "Microsoft.Quantum.Math.PNorm(1.0, [-0.1, 0.2, 0.3])",
+        &Value::Double(0.6),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.PNorm(1.5, [0.1, -0.2, 0.3])",
+        &Value::Double(0.433_462_287_211_361),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.PNorm(2.0, [0.1, 0.2, -0.3])",
+        &Value::Double(0.374_165_738_677_394_17),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.PNorm(3.0, [0.0, 0.0])",
+        &Value::Double(0.0),
+    );
+}
+
+#[test]
+fn check_p_normalized() {
+    test_expression(
+        "Microsoft.Quantum.Math.PNormalized(1.0, [-0.1, 0.2, 0.5])",
+        &Value::Array(
+            vec![
+                Value::Double(-0.125),
+                Value::Double(0.25),
+                Value::Double(0.625),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.PNormalized(2.0, [3.0, 4.0])",
+        &Value::Array(vec![Value::Double(0.6), Value::Double(0.8)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.PNormalized(3.0, [0.0, 0.0])",
+        &Value::Array(vec![Value::Double(0.0), Value::Double(0.0)].into()),
+    );
+}
+
+//
+// Complex numbers
+//
 
 #[test]
 fn check_abs_squared_complex() {
@@ -731,5 +1068,41 @@ fn check_devide_by_cp() {
         open Microsoft.Quantum.Math;
         DividedByCP(ComplexPolar(1.0,PI()/4.0), ComplexPolar(2.0,3.0*PI()/4.0))}",
         &Value::Tuple(vec![Value::Double(0.5), Value::Double(-PI / 2.0)].into()),
+    );
+}
+
+//
+// Fixed point
+//
+
+#[test]
+fn check_smallest_fixed_point() {
+    test_expression(
+        "Microsoft.Quantum.Math.SmallestFixedPoint(1,0)",
+        &Value::Double(-1.0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.SmallestFixedPoint(0,1)",
+        &Value::Double(-0.5),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.SmallestFixedPoint(10,5)",
+        &Value::Double(-512.0),
+    );
+}
+
+#[test]
+fn check_largest_fixed_point() {
+    test_expression(
+        "Microsoft.Quantum.Math.LargestFixedPoint(1,0)",
+        &Value::Double(0.0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.LargestFixedPoint(0,1)",
+        &Value::Double(0.0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.LargestFixedPoint(10,5)",
+        &Value::Double(511.96875),
     );
 }
