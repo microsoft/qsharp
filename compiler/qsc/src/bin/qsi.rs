@@ -17,8 +17,8 @@ use qsc_eval::{
     val::Value,
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
-use qsc_manifest::find_dependencies_with_loader;
 use qsc_passes::PackageType;
+use qsc_project::find_dependencies_with_loader;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -80,7 +80,7 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     let mut discovered_modules: Vec<(SourceName, SourceContents)> =
-        find_dependencies_with_loader(None, |input| read_source(input))?;
+        find_dependencies_with_loader(|input| read_source(input))?;
 
     sources.append(&mut discovered_modules);
     sources.sort();

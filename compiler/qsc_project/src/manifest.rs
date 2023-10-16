@@ -18,8 +18,8 @@ impl ManifestDescriptor {
 
 #[derive(Deserialize, Debug)]
 pub struct Manifest {
-    author: Option<String>,
-    license: Option<String>,
+    pub author: Option<String>,
+    pub license: Option<String>,
     #[serde(default)]
     pub exclude_files: Vec<String>,
 }

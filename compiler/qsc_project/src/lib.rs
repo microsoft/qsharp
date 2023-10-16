@@ -1,12 +1,10 @@
 mod fs;
 mod manifest;
-mod source;
 
 pub use fs::find_manifest;
 pub use manifest::{Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
 
-use source::Source;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 /// Given a single Q# source, returns all discovered sources that are a part of that compilation unit.
 /// Does not return the input source as an additional source.
@@ -15,7 +13,6 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 /// 2a. if there is a manifest file, include <manifest_dir>/**/*.qs in the sources
 /// 2b. if there is no manifest file, return an empty list, denoting single-file compilation mode.
 pub fn find_dependencies_with_loader<FileLoader>(
-    path: Option<PathBuf>,
     load_module: FileLoader,
 ) -> miette::Result<Vec<(Arc<str>, Arc<str>)>>
 where

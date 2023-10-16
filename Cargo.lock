@@ -825,8 +825,8 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
- "qsc_manifest",
  "qsc_passes",
+ "qsc_project",
  "thiserror",
 ]
 
@@ -919,18 +919,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qsc_manifest"
-version = "0.0.0"
-dependencies = [
- "expect-test",
- "globwalk",
- "miette",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "qsc_parse"
 version = "0.0.0"
 dependencies = [
@@ -954,6 +942,18 @@ dependencies = [
  "qsc_data_structures",
  "qsc_frontend",
  "qsc_hir",
+ "thiserror",
+]
+
+[[package]]
+name = "qsc_project"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "globwalk",
+ "miette",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 

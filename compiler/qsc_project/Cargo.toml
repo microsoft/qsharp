@@ -1,5 +1,5 @@
 [package]
-name = "qsc_manifest"
+name = "qsc_project"
 
 authors.workspace = true
 homepage.workspace = true
