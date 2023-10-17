@@ -18,8 +18,9 @@ pub fn check(project_path: PathBuf, expect: &Expect) {
     // remove the prefix absolute path
     for (path, _contents) in project.sources.iter_mut() {
         let new_path = PathBuf::from(path.to_string());
-        let new_path = new_path.strip_prefix(&root_path).unwrap();
-        *path = Arc::from(new_path.to_str().unwrap_or_default());
+        let new_path = new_path.strip_prefix(&root_path).unwrap().to_string_lossy();
+        let new_path = new_path.replace(std::path::MAIN_SEPARATOR, "/");
+        *path = Arc::from(new_path);
     }
 
     project.sources.sort();
