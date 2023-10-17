@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
 
 export function createCompletionItemProvider(
-  languageService: ILanguageService
+  languageService: ILanguageService,
 ) {
   return new QSharpCompletionItemProvider(languageService);
 }
@@ -18,7 +18,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     this.samples = samples.map((s) => {
       const item = new CompletionItem(
         s.title + " sample",
-        vscode.CompletionItemKind.Snippet
+        vscode.CompletionItemKind.Snippet,
       );
       item.insertText = s.code;
       return item;
@@ -31,11 +31,11 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    context: vscode.CompletionContext
+    context: vscode.CompletionContext,
   ) {
     const completions = await this.languageService.getCompletions(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
     );
     const results = completions.items.map((c) => {
       let kind;
@@ -63,9 +63,9 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         return new vscode.TextEdit(
           new vscode.Range(
             document.positionAt(edit.range.start),
-            document.positionAt(edit.range.end)
+            document.positionAt(edit.range.end),
           ),
-          edit.newText
+          edit.newText,
         );
       });
       return item;

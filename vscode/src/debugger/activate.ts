@@ -11,27 +11,27 @@ import { QscDebugSession } from "./session";
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
 export async function activateDebugger(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): Promise<void> {
   const debugWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
-    "./out/debugger/debug-service-worker.js"
+    "./out/debugger/debug-service-worker.js",
   );
 
   debugServiceWorkerFactory = () =>
     getDebugServiceWorker(
-      debugWorkerScriptPath.toString()
+      debugWorkerScriptPath.toString(),
     ) as IDebugServiceWorker;
   registerCommands(context);
 
   const provider = new QsDebugConfigProvider();
   context.subscriptions.push(
-    vscode.debug.registerDebugConfigurationProvider("qsharp", provider)
+    vscode.debug.registerDebugConfigurationProvider("qsharp", provider),
   );
 
   const factory = new InlineDebugAdapterFactory();
   context.subscriptions.push(
-    vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory)
+    vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
 }
 
@@ -56,10 +56,10 @@ function registerCommands(context: vscode.ExtensionContext) {
               shots: 1,
               stopOnEntry: false,
             },
-            { noDebug: true }
+            { noDebug: true },
           );
         }
-      }
+      },
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugEditorContents`,
@@ -80,8 +80,8 @@ function registerCommands(context: vscode.ExtensionContext) {
             noDebug: false,
           });
         }
-      }
-    )
+      },
+    ),
   );
 }
 
@@ -89,7 +89,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
   resolveDebugConfigurationWithSubstitutedVariables(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
-    _token?: vscode.CancellationToken | undefined
+    _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // if launch.json is missing or empty
     if (!config.type && !config.request && !config.name) {
@@ -134,7 +134,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
   resolveDebugConfiguration(
     folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
-    _token?: vscode.CancellationToken | undefined
+    _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // apply defaults if not set
     config.type = config.type ?? "qsharp";
@@ -188,13 +188,13 @@ class InlineDebugAdapterFactory
 {
   createDebugAdapterDescriptor(
     session: vscode.DebugSession,
-    _executable: vscode.DebugAdapterExecutable | undefined
+    _executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
     const qscSession = new QscDebugSession(
       workspaceFileAccessor,
       worker,
-      session.configuration
+      session.configuration,
     );
     return qscSession.init().then(() => {
       return new vscode.DebugAdapterInlineImplementation(qscSession);

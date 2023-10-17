@@ -24,25 +24,25 @@ const events: QscEventData["type"][] = ["DumpMachine", "Message", "Result"];
 
 export function createCompilerDispatcher(
   postMessage: (
-    msg: ResponseMessage<ICompiler> | EventMessage<QscEventData>
+    msg: ResponseMessage<ICompiler> | EventMessage<QscEventData>,
   ) => void,
-  service: ICompiler
+  service: ICompiler,
 ) {
   return createDispatcher<ICompiler, QscEventData>(
     postMessage,
     service,
     requests,
-    events
+    events,
   );
 }
 
 export function createCompilerProxy(
   postMessage: (msg: RequestMessage<ICompiler>) => void,
-  terminator: () => void
+  terminator: () => void,
 ) {
   return createProxy<ICompiler, QscEventData>(
     postMessage,
     terminator,
-    requests
+    requests,
   );
 }

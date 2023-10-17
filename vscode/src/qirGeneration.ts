@@ -21,7 +21,7 @@ export async function getQirForActiveWindow(): Promise<string> {
   const editor = vscode.window.activeTextEditor;
   if (!editor || !isQsharpDocument(editor.document)) {
     throw new QirGenerationError(
-      "The currently active window is not a Q# file"
+      "The currently active window is not a Q# file",
     );
   }
 
@@ -33,29 +33,29 @@ export async function getQirForActiveWindow(): Promise<string> {
       "Submitting to Azure is only supported when targeting the QIR base profile.",
       { modal: true },
       { title: "Change the QIR target profile and continue", action: "set" },
-      { title: "Cancel", action: "cancel", isCloseAffordance: true }
+      { title: "Cancel", action: "cancel", isCloseAffordance: true },
     );
     if (result?.action !== "set") {
       throw new QirGenerationError(
         "Submitting to Azure is only supported when targeting the QIR base profile. " +
-          "Please update the QIR target via the status bar selector or extension settings."
+          "Please update the QIR target via the status bar selector or extension settings.",
       );
     } else {
       await configuration.update(
         "targetProfile",
         "base",
-        vscode.ConfigurationTarget.Global
+        vscode.ConfigurationTarget.Global,
       );
     }
   }
 
   // Get the diagnostics for the current document.
   const diagnostics = await vscode.languages.getDiagnostics(
-    editor.document.uri
+    editor.document.uri,
   );
   if (diagnostics?.length > 0) {
     throw new QirGenerationError(
-      "The current program contains errors that must be fixed before submitting to Azure"
+      "The current program contains errors that must be fixed before submitting to Azure",
     );
   }
 
@@ -74,7 +74,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     log.error("Codegen error. ", e.toString());
     throw new QirGenerationError(
       "Code generation failed. Please ensure the code is compatible with the QIR base profile " +
-        "by setting the target QIR profile to 'base' and fixing any errors."
+        "by setting the target QIR profile to 'base' and fixing any errors.",
     );
   } finally {
     worker.terminate();
@@ -86,7 +86,7 @@ export async function getQirForActiveWindow(): Promise<string> {
 export function initCodegen(context: vscode.ExtensionContext) {
   compilerWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
-    "./out/compilerWorker.js"
+    "./out/compilerWorker.js",
   ).toString();
 
   context.subscriptions.push(
@@ -104,6 +104,6 @@ export function initCodegen(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(e.message);
         }
       }
-    })
+    }),
   );
 }

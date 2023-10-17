@@ -16,7 +16,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   activate: async (
     app: JupyterFrontEnd,
     codemirrorLanguageRegistry: IEditorLanguageRegistry,
-    notebookTracker: INotebookTracker
+    notebookTracker: INotebookTracker,
   ) => {
     registerQSharpLanguage(codemirrorLanguageRegistry);
     registerQSharpNotebookHandlers(notebookTracker);
@@ -28,7 +28,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
  * and associates them with the qsharp CodeMirror mode.
  */
 function registerQSharpLanguage(
-  codemirrorLanguageRegistry: IEditorLanguageRegistry
+  codemirrorLanguageRegistry: IEditorLanguageRegistry,
 ) {
   const rules = [
     {

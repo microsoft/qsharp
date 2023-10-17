@@ -15,11 +15,11 @@ class QSharpHoverProvider implements vscode.HoverProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ) {
     const hover = await this.languageService.getHover(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
     );
     return (
       hover &&
@@ -27,8 +27,8 @@ class QSharpHoverProvider implements vscode.HoverProvider {
         new vscode.MarkdownString(hover.contents),
         new vscode.Range(
           document.positionAt(hover.span.start),
-          document.positionAt(hover.span.end)
-        )
+          document.positionAt(hover.span.end),
+        ),
       )
     );
   }

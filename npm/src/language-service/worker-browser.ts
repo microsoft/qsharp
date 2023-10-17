@@ -26,7 +26,7 @@ export function messageHandler(e: MessageEvent) {
         const languageService = new QSharpLanguageService(wasm);
         invokeCompiler = createLanguageServiceDispatcher(
           self.postMessage.bind(self),
-          languageService
+          languageService,
         );
       }
       break;
@@ -34,7 +34,7 @@ export function messageHandler(e: MessageEvent) {
       if (!invokeCompiler) {
         log.error(
           `Received message before the compiler was initialized: %o`,
-          data
+          data,
         );
       } else {
         invokeCompiler(data);

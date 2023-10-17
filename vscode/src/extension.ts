@@ -41,14 +41,14 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
       qsharpLibraryUriScheme,
-      new QsTextDocumentContentProvider()
-    )
+      new QsTextDocumentContentProvider(),
+    ),
   );
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
   context.subscriptions.push(
-    ...(await activateLanguageService(context.extensionUri))
+    ...(await activateLanguageService(context.extensionUri)),
   );
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
@@ -104,13 +104,13 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
       updateIfQsharpDocument(document);
-    })
+    }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
       updateIfQsharpDocument(evt.document);
-    })
+    }),
   );
 
   subscriptions.push(
@@ -119,7 +119,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
         // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
-    })
+    }),
   );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
@@ -128,7 +128,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
-        document.getText()
+        document.getText(),
       );
     }
   }
@@ -155,24 +155,24 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerCompletionItemProvider(
       qsharpDocumentFilter,
       createCompletionItemProvider(languageService),
-      "@" // for attribute completion
-    )
+      "@", // for attribute completion
+    ),
   );
 
   // hover
   subscriptions.push(
     vscode.languages.registerHoverProvider(
       qsharpDocumentFilter,
-      createHoverProvider(languageService)
-    )
+      createHoverProvider(languageService),
+    ),
   );
 
   // go to def
   subscriptions.push(
     vscode.languages.registerDefinitionProvider(
       qsharpDocumentFilter,
-      createDefinitionProvider(languageService)
-    )
+      createDefinitionProvider(languageService),
+    ),
   );
 
   // signature help
@@ -181,16 +181,16 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
       qsharpDocumentFilter,
       createSignatureHelpProvider(languageService),
       "(",
-      ","
-    )
+      ",",
+    ),
   );
 
   // rename symbol
   subscriptions.push(
     vscode.languages.registerRenameProvider(
       qsharpDocumentFilter,
-      createRenameProvider(languageService)
-    )
+      createRenameProvider(languageService),
+    ),
   );
 
   return subscriptions;
@@ -226,13 +226,13 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   sendTelemetryEvent(
     EventType.LoadLanguageService,
     {},
-    { timeToStartMs: end - start }
+    { timeToStartMs: end - start },
   );
   return languageService;
 }
 
 function registerConfigurationChangeHandlers(
-  languageService: ILanguageService
+  languageService: ILanguageService,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("Q#.targetProfile")) {
@@ -248,7 +248,7 @@ export class QsTextDocumentContentProvider
   provideTextDocumentContent(
     uri: vscode.Uri,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): vscode.ProviderResult<string> {
     return getLibrarySourceContent(uri.path);
   }
@@ -256,15 +256,15 @@ export class QsTextDocumentContentProvider
 
 function checkForOldQdk() {
   const oldQdkExtension = vscode.extensions.getExtension(
-    "quantum.quantum-devkit-vscode"
+    "quantum.quantum-devkit-vscode",
   );
 
   const prereleaseQdkExtension = vscode.extensions.getExtension(
-    "quantum.qsharp-lang-vscode-dev"
+    "quantum.qsharp-lang-vscode-dev",
   );
 
   const releaseQdkExtension = vscode.extensions.getExtension(
-    "quantum.qsharp-lang-vscode"
+    "quantum.qsharp-lang-vscode",
   );
 
   const previousQdkWarningMessage =

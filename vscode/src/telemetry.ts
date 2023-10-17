@@ -51,7 +51,7 @@ export function initTelemetry(context: vscode.ExtensionContext) {
 export function sendTelemetryEvent<E extends keyof EventTypes>(
   event: E,
   properties: EventTypes[E]["properties"] = {},
-  measurements: EventTypes[E]["measurements"] = {}
+  measurements: EventTypes[E]["measurements"] = {},
 ) {
   if (reporter === undefined) {
     log.trace(`No telemetry reporter. Omitting telemetry event ${event}`);
@@ -60,7 +60,7 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
   reporter.sendTelemetryEvent(event, properties, measurements);
   log.debug(
     `Sent telemetry: ${event} ${JSON.stringify(properties)} ${JSON.stringify(
-      measurements
-    )}`
+      measurements,
+    )}`,
   );
 }
