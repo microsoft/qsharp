@@ -17,7 +17,7 @@ pub struct WithSource<E> {
     error: E,
 }
 
-impl<E: Diagnostic> WithSource<E> {
+impl<E: Diagnostic + Send + Sync> WithSource<E> {
     pub fn error(&self) -> &E {
         &self.error
     }
@@ -25,9 +25,7 @@ impl<E: Diagnostic> WithSource<E> {
     pub fn into_error(self) -> E {
         self.error
     }
-}
 
-impl<E: Diagnostic> WithSource<E> {
     /// Construct a diagnostic with source information from a source map.
     /// Since errors may contain labeled spans from any source file in the
     /// compilation, the entire source map is needed to resolve offsets.
@@ -67,6 +65,20 @@ impl<E: Diagnostic> WithSource<E> {
             sources: self.sources,
             error: self.error.into(),
         }
+    }
+
+    /// Takes a span that uses `SourceMap` offsets, and returns
+    /// a span that is relative to the `Source` that the span falls into,
+    /// along with a reference to the `Source`.
+    pub fn resolve_span(&self, span: &SourceSpan) -> (&Source, SourceSpan) {
+        let offset = u32::try_from(span.offset()).expect("expected the offset to fit into u32");
+        let source = self
+            .sources
+            .iter()
+            .rev()
+            .find(|source| offset >= source.offset)
+            .expect("expected to find source at span");
+        (source, with_offset(span, |o| o - (source.offset as usize)))
     }
 }
 
@@ -123,16 +135,10 @@ impl<E: Diagnostic + Sync + Send> SourceCode for WithSource<E> {
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
-        let offset = u32::try_from(span.offset()).expect("expected the offset to fit into u32");
-        let source = self
-            .sources
-            .iter()
-            .rev()
-            .find(|source| offset >= source.offset)
-            .expect("expected to find source at span");
+        let (source, source_relative_span) = self.resolve_span(span);
 
         let contents = source.contents.read_span(
-            &with_offset(span, |o| o - (source.offset as usize)),
+            &source_relative_span,
             context_lines_before,
             context_lines_after,
         )?;

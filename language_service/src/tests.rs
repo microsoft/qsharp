@@ -271,15 +271,19 @@ fn target_profile_update_causes_error_in_stdlib() {
 }
 
 fn new_language_service(
-    received: &RefCell<Vec<(String, u32, Vec<compile::Error>)>>,
+    received: &RefCell<Vec<(String, u32, Vec<compile::ErrorKind>)>>,
 ) -> LanguageService<'_> {
     LanguageService::new(|uri: &str, version: u32, errors: &[compile::Error]| {
         let mut v = received.borrow_mut();
-        v.push((uri.to_string(), version, errors.to_vec()));
+        v.push((
+            uri.to_string(),
+            version,
+            errors.iter().map(|e| e.error().clone()).collect(),
+        ));
     })
 }
 
-fn expect_errors(errors: &RefCell<Vec<(String, u32, Vec<compile::Error>)>>, expected: &Expect) {
+fn expect_errors(errors: &RefCell<Vec<(String, u32, Vec<compile::ErrorKind>)>>, expected: &Expect) {
     expected.assert_debug_eq(&errors.borrow());
     errors.borrow_mut().clear();
 }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::language_service::VSDiagnostic;
+use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -20,6 +20,7 @@ use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
+mod diagnostic;
 mod language_service;
 mod logging;
 mod serializable_type;
@@ -89,25 +90,18 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 
 #[wasm_bindgen]
 pub fn get_hir(code: &str) -> String {
-    let (package, _) = compile(code);
-    package.to_string()
-}
-
-fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
-    STORE_CORE_STD.with(|(store, std)| {
-        let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (unit, errors) = compile::compile(
+    let sources = SourceMap::new([("code".into(), code.into())], None);
+    let package = STORE_CORE_STD.with(|(store, std)| {
+        let (unit, _) = compile::compile(
             store,
             &[*std],
             sources,
             PackageType::Exe,
             TargetProfile::Full,
         );
-        (
-            unit.package,
-            errors.into_iter().map(|error| (&error).into()).collect(),
-        )
-    })
+        unit.package
+    });
+    package.to_string()
 }
 
 struct CallbackReceiver<F>
@@ -165,15 +159,16 @@ fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<()
 where
     F: FnMut(&str),
 {
+    let source_name = "code";
     let mut out = CallbackReceiver { event_cb };
-    let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
+    let sources = SourceMap::new([(source_name.into(), code.into())], Some(expr.into()));
     let interpreter =
         stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full);
     if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
-        let diag: VSDiagnostic = (&e).into();
+        let diag = VSDiagnostic::from_interpret_error(source_name, &e);
         let msg = json!(
             {"type": "Result", "success": false, "result": diag});
         (out.event_cb)(&msg.to_string());
@@ -189,7 +184,7 @@ where
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from(&errors[0]).json()
+                VSDiagnostic::from_interpret_error(source_name, &errors[0]).json()
             }
         };
 
@@ -229,7 +224,8 @@ fn check_exercise_solution_internal(
     exercise_sources: Vec<(SourceName, SourceContents)>,
     event_cb: impl Fn(&str),
 ) -> bool {
-    let mut sources = vec![("solution".into(), solution_code.into())];
+    let source_name = "solution";
+    let mut sources = vec![(source_name.into(), solution_code.into())];
     for exercise_source in exercise_sources {
         sources.push(exercise_source);
     }
@@ -242,7 +238,10 @@ fn check_exercise_solution_internal(
             // TODO: handle multiple errors
             // https://github.com/microsoft/qsharp/issues/149
             runtime_success = false;
-            (false, VSDiagnostic::from(&errors[0]).json())
+            (
+                false,
+                VSDiagnostic::from_interpret_error(source_name, &errors[0]).json(),
+            )
         }
     };
     let msg_string =
