@@ -10,7 +10,7 @@
 /// gate to it.
 ///
 /// The bit-flip correction code works by checking the parity of the physical
-/// qubits with joint-measurements to preserve the quantum superposition of
+/// qubits with measuring only their parity, preserving the quantum state of
 /// the qubits. Because all the physical qubits are supposed to have the same
 /// state, when the parity checks detect a difference in state, the erroneously
 /// flipped qubit can be identified and corrected.
@@ -85,10 +85,18 @@ namespace Sample {
     /// be in the state: (α|000〉 + β|111〉) / √2.
     operation CorrectError(physicalQubits : Qubit[]) : Unit {
 
-        // Check the parity pair-wise against the Pauli Z basis.
-        let parity01 = Measure([PauliZ, PauliZ], physicalQubits[0..1]);
-        let parity12 = Measure([PauliZ, PauliZ], physicalQubits[1..2]);
+        // Entangle the parity of the physical qubits into two auxillary qubits.
+        use aux = Qubit[2];
+        CNOT(physicalQubits[0], aux[0]);
+        CNOT(physicalQubits[1], aux[0]);
+        CNOT(physicalQubits[1], aux[1]);
+        CNOT(physicalQubits[2], aux[1]);
+
+        // Measure the parity information from the auxillary qubits.
+        let parity01 = M(aux[0]);
+        let parity12 = M(aux[1]);
         let parity = (parity01, parity12);
+        ResetAll(aux);
 
         // Determine which of the three qubits is flipped based on the parity measurements.
         let indexOfError =
@@ -102,7 +110,7 @@ namespace Sample {
                 -1
             };
 
-        // If a qubit was found to be flipped, correct that qubit.
+        // If an error was detected, correct that qubit.
         if indexOfError > -1 {
             X(physicalQubits[indexOfError]);
         }
