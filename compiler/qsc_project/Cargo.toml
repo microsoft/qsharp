@@ -10,8 +10,8 @@ version.workspace = true
 
 
 [dependencies]
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde = { workspace = true }
 thiserror = { workspace = true }
 miette = { workspace = true }
 globwalk = { workspace = true }
