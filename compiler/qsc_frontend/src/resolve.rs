@@ -255,20 +255,24 @@ impl Resolver {
         }
     }
 
+    fn check_item_status(&mut self, res: Res, name: String, span: Span) {
+        match res {
+            Res::Item(item) if item.status == ItemStatus::Deprecated && item.package.is_some() => {
+                self.errors.push(Error::Deprecated(name, span));
+            }
+            Res::Item(item) if item.status == ItemStatus::Unimplemented => {
+                self.errors.push(Error::Unimplemented(name, span));
+            }
+            _ => {}
+        }
+    }
+
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
-            Ok(id) => {
-                match id {
-                    Res::Item(item) if item.status == ItemStatus::Deprecated => self
-                        .errors
-                        .push(Error::Deprecated(name.name.to_string(), name.span)),
-                    Res::Item(item) if item.status == ItemStatus::Unimplemented => self
-                        .errors
-                        .push(Error::Unimplemented(name.name.to_string(), name.span)),
-                    _ => {}
-                }
-                self.names.insert(name.id, id);
+            Ok(res) => {
+                self.check_item_status(res, name.name.to_string(), name.span);
+                self.names.insert(name.id, res);
             }
             Err(err) => self.errors.push(err),
         }
@@ -278,17 +282,9 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
-            Ok(id) => {
-                match id {
-                    Res::Item(item) if item.status == ItemStatus::Deprecated => self
-                        .errors
-                        .push(Error::Deprecated(path.name.name.to_string(), path.span)),
-                    Res::Item(item) if item.status == ItemStatus::Unimplemented => self
-                        .errors
-                        .push(Error::Unimplemented(path.name.name.to_string(), path.span)),
-                    _ => {}
-                }
-                self.names.insert(path.id, id);
+            Ok(res) => {
+                self.check_item_status(res, path.name.name.to_string(), path.span);
+                self.names.insert(path.id, res);
             }
             Err(err) => {
                 if let Error::NotFound(name, span) = err {
@@ -686,6 +682,13 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
     }
 }
 
+fn ast_attrs_as_hir_attrs(attrs: &[Box<ast::Attr>]) -> Vec<hir::Attr> {
+    attrs
+        .iter()
+        .filter_map(|attr| hir::Attr::from_str(attr.name.name.as_ref()).ok())
+        .collect()
+}
+
 fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
@@ -695,7 +698,9 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let res = Res::Item(next_id());
+            let mut item_id = next_id();
+            item_id.status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id);
             names.insert(decl.name.id, res);
             match scope
                 .terms
@@ -715,7 +720,9 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let res = Res::Item(next_id());
+            let mut item_id = next_id();
+            item_id.status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id);
             names.insert(name.id, res);
             match (
                 scope

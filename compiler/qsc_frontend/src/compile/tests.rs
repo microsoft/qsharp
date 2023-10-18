@@ -1040,7 +1040,7 @@ fn unimplemented_call_from_dependency_produces_error() {
 }
 
 #[test]
-fn unimplemented_attribute_call_within_unit_allowed() {
+fn unimplemented_attribute_call_within_unit_error() {
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -1059,7 +1059,22 @@ fn unimplemented_attribute_call_within_unit_allowed() {
     );
     let store = PackageStore::new(super::core());
     let unit = compile(&store, &[], sources, TargetProfile::Full);
-    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    Unimplemented(
+                        "Bar",
+                        Span {
+                            lo: 104,
+                            hi: 107,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
 }
 
 #[test]
