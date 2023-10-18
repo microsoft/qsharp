@@ -2,22 +2,22 @@
 /// Phase-Flip
 ///
 /// # Description
-/// This sample demonstrates the three-qubit bit-flip code. This code is a
-/// simple quantum error correction strategy for protecting against single
-/// bit-flip error by encoding a logical qubit into three physical qubits. A
-/// single bit-flip error is when one of the three physical qubits has its
-/// state changed erroneously in a way that is equivalent to applying the X
+/// This sample demonstrates the three-qubit phase-flip code. This code is a
+/// simple quantum error correction strategy for protecting against a single
+/// phase-flip error by encoding a logical qubit into three physical qubits. A
+/// single phase-flip error is when one of the three physical qubits has its
+/// state changed erroneously in a way that is equivalent to applying the Z
 /// gate to it.
 ///
-/// The bit-flip correction code works by checking the parity of the physical
-/// qubits with joint-measurements to preserve the quantum superposition of
-/// the qubits. Because all the physical qubits are supposed to have the same
-/// state, when the parity checks detect a difference in state, the erroneously
-/// flipped qubit can be identified and corrected.
+/// The phase-flip correction code works by checking the parity of the physical
+/// qubits. By measuring only their parity, the quantum superposition of the
+/// qubits is preserved the qubits. Because all the physical qubits are
+/// supposed to have the same state, when the parity checks detect a
+/// difference in state, the erroneous qubit can be identified and corrected.
 ///
 /// This Q# program prepares a logical qubit encoded as three physical qubits
-/// with one of the qubits being flipped. It then identifies and corrects the
-/// flipped qubit.
+/// with one of the qubits being phase-flipped. It then identifies and corrects
+/// the flipped qubit.
 namespace Sample {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
@@ -26,86 +26,121 @@ namespace Sample {
     open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
-    operation Main() : Result[] {
-        use physicalQubits = Qubit[3];
+    operation Main() : Result {
+        use physicalQubit = Qubit();
 
-        // Prepare a logical qubit with a superposition state from the physical qubits.
-        PrepareLocicalQubit(physicalQubits);
+        // Set the initial state of the physical qubit.
+        SetSampleState(physicalQubit);
+
+        // Using two additional qubits, encode the physical qubit into a
+        // logical qubit.
+        use aux = Qubit[2];
+        EncodeAsLogicalQubit(physicalQubit, aux);
+        let logicalQubit = [physicalQubit] + aux;
 
         // Induce a phase-flip error on a random qubit.
-        Z(physicalQubits[DrawRandomInt(0, 2)]);
+        Z(logicalQubit[DrawRandomInt(0, 2)]);
 
         // Show the logical qubit with the error state.
         DumpMachine();
 
         // Find and correct the phase-flip error.
-        CorrectError(physicalQubits);
+        CorrectError(logicalQubit);
 
         // Show the logical qubit with the corrected state.
         DumpMachine();
 
-        // Measure the and reset qubits before releasing them.
-        let results = MeasureEachZ(physicalQubits);
-        ResetAll(physicalQubits);
-        return results;
+        // Decode the logical qubit back into a single physical qubit.
+        Adjoint EncodeAsLogicalQubit(physicalQubit, aux);
+
+        // Measure and reset the physical qubit before releasing it.
+        let result = M(physicalQubit);
+        Reset(physicalQubit);
+        return result;
     }
 
     /// # Summary
-    /// This operation prepares a logical qubit in superposition from three physical
-    /// qubits by entangling all three physical qubits together, such that, when
-    /// measured, all three physical qubits will agree.
+    /// This operation sets the state of the given qubit such that
+    /// it will have a 20% likelihood of resulting in a `Zero` and
+    /// 80% likelihood of resulting in a `One` when measured in the
+    /// computational basis. The input qubit is expected to be in
+    /// the |0〉 state.
     ///
     /// # Input
-    /// ## physicalQubits
-    /// The given register of three physical qubits to create the logical qubit from.
-    /// It is assumed that these qubits are in their default |0〉 state.
-    ///
-    /// # Output
-    /// The operation returns `Unit`. Additionally, the given register of qubits will
-    /// be in the state (α|000〉 + β|111〉) / √2, representing a logical qubit in the state
-    /// (α|0〉 + β|1〉) / √2.
-    operation PrepareLocicalQubit(physicalQubits : Qubit[]) : Unit {
-        // let alpha = 0.20;
-        // let phi = PI() / 2.0;
-        // Ry(2.0 * ArcCos(Sqrt(alpha)), Head(physicalQubits));
-        // Rz(phi, Head(physicalQubits));
-        // ApplyCNOTChain(physicalQubits);
-        CNOT(physicalQubits[0], physicalQubits[1]);
-        CNOT(physicalQubits[0], physicalQubits[2]);
-        ForEach(H, physicalQubits);
+    /// ## q
+    /// The given qubit to be put into superposition. It is assumed that this
+    /// qubit is in its default |0〉 state.
+    operation SetSampleState(q : Qubit) : Unit {
+        let alpha = 0.20;
+        Ry(2.0 * ArcCos(Sqrt(alpha)), q);
     }
 
     /// # Summary
-    /// This operation detects and corrects a single bit-flip error for a logical
-    /// qubit encoded as three physical qubits.
+    /// This operation takes the given `physicalQubit` state,
+    /// (α|0〉 + β|1〉) / √2, and encodes it in the `aux` qubits. This
+    /// encodes all the qubits into a single logical qubit whose state reflects
+    /// the state of the given `physicalQubit`: (α|+++〉 + β|---〉) / √2. Note
+    /// that in this phase-flip example, the logical state |0〉 corresponds to
+    /// the physical state |+++〉, and the logical state |1〉 corresponds to the
+    /// physical state |---〉.
+    ///
+    /// # Input
+    /// ## physicalQubit
+    /// The qubit whose state, (α|0〉 + β|1〉) / √2, is to be encoded in the
+    /// logical qubit.
+    ///
+    /// ## aux
+    /// The auxiliary qubits that will be used as part of the encoding. These
+    /// should be grouped with the `physicalQubit` to form the logical qubit.
+    operation EncodeAsLogicalQubit(physicalQubit : Qubit, aux : Qubit[]) : Unit is Adj {
+        ApplyToEachA(CNOT(physicalQubit, _), aux);
+
+        // We change the basis of the physical qubits so that the
+        // logical state |0〉 corresponds to the physical state |+++〉,
+        // and the logical state |1〉 corresponds to the physical state |---〉.
+        ChangeBasis([physicalQubit] + aux);
+    }
+
+    /// # Summary
+    /// Changes the basis of the given qubits by applying a Hadamard operation
+    /// to each of them.
+    ///
+    /// # Input
+    /// ## qs
+    /// The given qubits to change the basis of.
+    operation ChangeBasis(qs : Qubit[]) : Unit is Adj {
+        ApplyToEachA(H, qs);
+    }
+
+    /// # Summary
+    /// This operation detects and corrects a single phase-flip error for a logical
+    /// qubit encoded as three physical qubits. When finished, the given register
+    /// of qubits will be in the state: (α|000〉 + β|111〉) / √2.
     ///
     /// # Input
     /// ## physicalQubits
     /// The given register of three physical qubits representing a single logical qubit
-    /// having superposition (α|0〉 + β|1〉) / √2.
-    /// This logical qubit can have up to one bit-flip error that will be corrected.
-    ///
-    /// # Output
-    /// The operation returns `Unit`. Additionally, the given register of qubits will
-    /// be in the state: (α|000〉 + β|111〉) / √2.
+    /// having superposition (α|+++〉 + β|---〉) / √2.
+    /// This logical qubit can have up to one phase-flip error that will be corrected.
     operation CorrectError(physicalQubits : Qubit[]) : Unit {
 
+        // Entangle the parity of the physical qubits into two auxillary qubits.
         use aux = Qubit[2];
-
-        ApplyToEach(H, physicalQubits);
-
+        ChangeBasis(physicalQubits);
         CNOT(physicalQubits[0], aux[0]);
         CNOT(physicalQubits[1], aux[0]);
         CNOT(physicalQubits[1], aux[1]);
         CNOT(physicalQubits[2], aux[1]);
+        ChangeBasis(physicalQubits);
 
-        ApplyToEach(H, physicalQubits);
-
+        // Measure the parity information from the auxillary qubits.
         let parity01 = M(aux[0]);
         let parity12 = M(aux[1]);
         let parity = (parity01, parity12);
+        ResetAll(aux);
 
-        // Determine which of the three qubits is flipped based on the parity measurements.
+        // Determine which of the three qubits is has the error based on the
+        // parity measurements.
         let indexOfError =
             if parity == (One, Zero) {
                 0
@@ -117,7 +152,7 @@ namespace Sample {
                 -1
             };
 
-        // If a qubit was found to be flipped, correct that qubit.
+        // If an error was detected, correct that qubit.
         if indexOfError > -1 {
             Z(physicalQubits[indexOfError]);
         }
