@@ -258,9 +258,15 @@ impl Resolver {
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
-            Ok((id, err)) => {
-                if let Some(err) = err {
-                    self.errors.push(err);
+            Ok(id) => {
+                match id {
+                    Res::Item(item) if item.status == ItemStatus::Deprecated => self
+                        .errors
+                        .push(Error::Deprecated(name.name.to_string(), name.span)),
+                    Res::Item(item) if item.status == ItemStatus::Unimplemented => self
+                        .errors
+                        .push(Error::Unimplemented(name.name.to_string(), name.span)),
+                    _ => {}
                 }
                 self.names.insert(name.id, id);
             }
@@ -272,9 +278,15 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
-            Ok((id, err)) => {
-                if let Some(err) = err {
-                    self.errors.push(err);
+            Ok(id) => {
+                match id {
+                    Res::Item(item) if item.status == ItemStatus::Deprecated => self
+                        .errors
+                        .push(Error::Deprecated(path.name.name.to_string(), path.span)),
+                    Res::Item(item) if item.status == ItemStatus::Unimplemented => self
+                        .errors
+                        .push(Error::Unimplemented(path.name.name.to_string(), path.span)),
+                    _ => {}
                 }
                 self.names.insert(path.id, id);
             }
@@ -668,7 +680,7 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
                 let namespace = &path.namespace;
                 resolve(NameKind::Term, globals, scopes, name, namespace)
             },
-            Ok((Res::Local(_), _))
+            Ok(Res::Local(_))
         ),
         _ => false,
     }
@@ -739,7 +751,7 @@ fn resolve(
     locals: &[Scope],
     name: &Ident,
     namespace: &Option<Box<Ident>>,
-) -> Result<(Res, Option<Error>), Error> {
+) -> Result<Res, Error> {
     let mut candidates = HashMap::new();
     let mut vars = true;
     let name_str = &(*name.name);
@@ -748,7 +760,7 @@ fn resolve(
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
                 // Local declarations shadow everything.
-                return Ok((res, None));
+                return Ok(res);
             }
         }
 
@@ -789,14 +801,14 @@ fn resolve(
             });
         }
         if let Some((res, _)) = single(candidates) {
-            return Ok((res, None));
+            return Ok(res);
         }
     }
 
     if candidates.is_empty() {
         if let Some(&res) = globals.get(kind, namespace, name_str) {
             // An unopened global is the last resort.
-            return Ok((res, None));
+            return Ok(res);
         }
     }
 
@@ -830,20 +842,8 @@ fn resolve(
             second_open_span: opens[1].span,
         })
     } else {
-        let Some(res) = single(candidates.into_keys()) else {
-            return Err(Error::NotFound(name_str.to_string(), name.span));
-        };
-        match res {
-            Res::Item(item) if item.status == ItemStatus::Deprecated => Ok((
-                res,
-                Some(Error::Deprecated(name_str.to_string(), name.span)),
-            )),
-            Res::Item(item) if item.status == ItemStatus::Unimplemented => Ok((
-                res,
-                Some(Error::Unimplemented(name_str.to_string(), name.span)),
-            )),
-            _ => Ok((res, None)),
-        }
+        single(candidates.into_keys())
+            .ok_or_else(|| Error::NotFound(name_str.to_string(), name.span))
     }
 }
 
