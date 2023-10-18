@@ -42,10 +42,6 @@ namespace Sample {
     /// ## qs
     /// The given register of qubits to be transformed into the GHZ state. It is assumed
     /// that these qubits are in their default |0〉 state.
-    ///
-    /// # Output
-    /// The operation returns `Unit`. Additionally, the given register of qubits will
-    /// be in the GHZ state.
     operation PrepareGHZState(qs : Qubit[]) : Unit {
         if Length(qs) > 0 {
             H(qs[0]);
