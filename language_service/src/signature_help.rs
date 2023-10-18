@@ -4,8 +4,12 @@
 #[cfg(test)]
 mod tests;
 
-use std::iter::zip;
-
+use crate::{
+    compilation::{Compilation, Lookup},
+    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
+    protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
+    qsc_utils::{find_item, map_offset, resolve_offset, span_contains, span_touches},
+};
 use qsc::{
     ast::{
         self,
@@ -13,21 +17,14 @@ use qsc::{
     },
     hir, resolve,
 };
-
-use crate::{
-    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
-    protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
-    qsc_utils::{find_item, map_offset, span_contains, span_touches, Compilation},
-};
+use std::iter::zip;
 
 pub(crate) fn get_signature_help(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> Option<SignatureHelp> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let package = &compilation.unit.ast.package;
+    let (ast, offset) = resolve_offset(compilation, source_name, offset);
 
     let mut finder = SignatureHelpFinder {
         compilation,
@@ -36,7 +33,7 @@ pub(crate) fn get_signature_help(
         display: CodeDisplay { compilation },
     };
 
-    finder.visit_package(package);
+    finder.visit_package(&ast.package);
 
     finder.signature_help
 }
@@ -75,27 +72,27 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 
 impl SignatureHelpFinder<'_> {
     fn process_direct_callee(&mut self, callee: &ast::Path, args: &ast::Expr) {
-        if let Some(resolve::Res::Item(item_id)) = self.compilation.unit.ast.names.get(callee.id) {
-            if let (Some(item), _) = find_item(self.compilation, item_id) {
-                if let hir::ItemKind::Callable(callee) = &item.kind {
-                    // Check that the callee has parameters to give help for
-                    if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty())
-                    {
-                        let documentation = parse_doc_for_summary(&item.doc);
-                        let documentation = (!documentation.is_empty()).then_some(documentation);
+        if let Some(resolve::Res::Item(item_id)) =
+            self.compilation.current_unit().ast.names.get(callee.id)
+        {
+            let (item, _) = self.compilation.find_item(item_id);
+            if let hir::ItemKind::Callable(callee) = &item.kind {
+                // Check that the callee has parameters to give help for
+                if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty()) {
+                    let documentation = parse_doc_for_summary(&item.doc);
+                    let documentation = (!documentation.is_empty()).then_some(documentation);
 
-                        let sig_info = SignatureInformation {
-                            label: self.display.hir_callable_decl(callee).to_string(),
-                            documentation,
-                            parameters: self.get_params(callee, &item.doc),
-                        };
+                    let sig_info = SignatureInformation {
+                        label: self.display.hir_callable_decl(callee).to_string(),
+                        documentation,
+                        parameters: self.get_params(callee, &item.doc),
+                    };
 
-                        self.signature_help = Some(SignatureHelp {
-                            signatures: vec![sig_info],
-                            active_signature: 0,
-                            active_parameter: process_args(args, self.offset, &callee.input),
-                        });
-                    }
+                    self.signature_help = Some(SignatureHelp {
+                        signatures: vec![sig_info],
+                        active_signature: 0,
+                        active_parameter: process_args(args, self.offset, &callee.input),
+                    });
                 }
             }
         }

@@ -1,19 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpLanguageId } from "./common.js";
+import { qsharpDocumentFilter, qsharpLanguageId } from "./common.js";
 import { EventType, sendTelemetryEvent } from "./telemetry.js";
 import { WorkspaceTreeProvider } from "./azure/treeView.js";
 import { getPythonCodeForWorkspace } from "./azure/workspaceActions.js";
 import { notebookTemplate } from "./notebookTemplate.js";
 
+const qsharpCellMagic = "%%qsharp";
+const jupyterNotebookType = "jupyter-notebook";
+
 /**
  * Sets up handlers to detect Q# code cells in Jupyter notebooks and set the language to Q#.
  */
 export function registerQSharpNotebookHandlers() {
-  const qsharpCellMagic = "%%qsharp";
-  const jupyterNotebookType = "jupyter-notebook";
+  vscode.workspace.notebookDocuments.forEach((notebookDocument) => {
+    if (notebookDocument.notebookType === jupyterNotebookType) {
+      updateQSharpCellLanguages(notebookDocument.getCells());
+    }
+  });
 
   vscode.workspace.notebookDocuments.forEach((notebookDocument) => {
     if (notebookDocument.notebookType === jupyterNotebookType) {
@@ -61,6 +68,97 @@ export function registerQSharpNotebookHandlers() {
           sendTelemetryEvent(EventType.QSharpJupyterCellInitialized);
         }
       }
+    }
+  }
+
+  return subscriptions;
+}
+
+const openQSharpNotebooks = new Set<string>();
+
+/**
+ * This one is for syncing with the language service
+ */
+export function registerQSharpNotebookCellUpdateHandlers(
+  languageService: ILanguageService
+) {
+  vscode.workspace.notebookDocuments.forEach((notebook) => {
+    updateIfQsharpNotebook(notebook);
+  });
+
+  const subscriptions = [];
+  subscriptions.push(
+    vscode.workspace.onDidOpenNotebookDocument((notebook) => {
+      updateIfQsharpNotebook(notebook);
+    })
+  );
+
+  subscriptions.push(
+    vscode.workspace.onDidChangeNotebookDocument((event) => {
+      updateIfQsharpNotebook(event.notebook);
+    })
+  );
+
+  subscriptions.push(
+    vscode.workspace.onDidCloseNotebookDocument((notebook) => {
+      closeIfKnownQsharpNotebook(notebook);
+    })
+  );
+
+  function updateIfQsharpNotebook(notebook: vscode.NotebookDocument) {
+    if (notebook.notebookType === jupyterNotebookType) {
+      const qsharpCells = getQSharpCells(notebook);
+      const notebookUri = notebook.uri.toString();
+      if (qsharpCells.length > 0) {
+        openQSharpNotebooks.add(notebookUri);
+        languageService.updateNotebookDocument(
+          notebookUri,
+          notebook.version,
+          qsharpCells.map((cell) => {
+            return {
+              uri: cell.document.uri.toString(),
+              code: getQSharpText(cell.document),
+            };
+          })
+        );
+      } else {
+        // All Q# cells could have been deleted, check if we know this doc from previous calls
+        closeIfKnownQsharpNotebook(notebook);
+      }
+    }
+  }
+
+  function closeIfKnownQsharpNotebook(notebook: vscode.NotebookDocument) {
+    const notebookUri = notebook.uri.toString();
+    if (openQSharpNotebooks.has(notebookUri)) {
+      languageService.closeNotebookDocument(
+        notebookUri,
+        getQSharpCells(notebook).map((cell) => cell.document.uri.toString())
+      );
+      openQSharpNotebooks.delete(notebook.uri.toString());
+    }
+  }
+
+  function getQSharpCells(notebook: vscode.NotebookDocument) {
+    return notebook
+      .getCells()
+      .filter((cell) =>
+        vscode.languages.match(qsharpDocumentFilter, cell.document)
+      );
+  }
+
+  function getQSharpText(document: vscode.TextDocument) {
+    // Erase the %%qsharp magic line if it's there
+    // Replace it with whitespace so that document offsets remain the same.
+    // This will save us from having to map offsets later when
+    // communicating with the language service.
+    if (document.lineAt(0).text.startsWith(qsharpCellMagic)) {
+      return (
+        "".padStart(qsharpCellMagic.length) +
+        document.getText().substring(qsharpCellMagic.length)
+      );
+    } else {
+      return document.getText();
     }
   }
 

@@ -12,8 +12,11 @@ pub struct LanguageService(qsls::LanguageService<'static>);
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(diagnostics_callback: &js_sys::Function) -> Self {
-        let diagnostics_callback = diagnostics_callback.clone();
+    pub fn new(diagnostics_callback: DiagnosticsCallback) -> Self {
+        let diagnostics_callback = diagnostics_callback
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
         let inner = qsls::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
                 let diags = errors
@@ -53,6 +56,24 @@ impl LanguageService {
 
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         self.0.update_document(uri, version, text);
+    }
+
+    pub fn update_notebook_document(
+        &mut self,
+        notebook_uri: &str,
+        version: u32,
+        cells: Vec<ICell>,
+    ) {
+        let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
+        self.0.update_notebook_document(
+            notebook_uri,
+            version,
+            cells
+                .iter()
+                .map(|s| (s.uri.as_ref(), s.code.as_ref()))
+                .collect::<Vec<(&str, &str)>>()
+                .as_slice(),
+        );
     }
 
     pub fn close_document(&mut self, uri: &str) {
@@ -328,4 +349,25 @@ serializable_type! {
         start: number;
         end: number;
     }"#
+}
+
+serializable_type! {
+    Cell,
+    {
+        pub uri: String,
+        pub code: String
+    },
+    r#"export interface ICell {
+        uri: string;
+        code: string;
+    }"#,
+    ICell
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(
+        typescript_type = "(uri: string, version: number, diagnostics: IDiagnostic[]) => void"
+    )]
+    pub type DiagnosticsCallback;
 }

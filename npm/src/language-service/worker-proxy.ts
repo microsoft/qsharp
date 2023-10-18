@@ -14,7 +14,9 @@ import { ILanguageService, LanguageServiceEvent } from "./language-service.js";
 const requests: MethodMap<ILanguageService> = {
   updateConfiguration: "request",
   updateDocument: "request",
+  updateNotebookDocument: "request",
   closeDocument: "request",
+  closeNotebookDocument: "request",
   getCompletions: "request",
   getHover: "request",
   getDefinition: "request",

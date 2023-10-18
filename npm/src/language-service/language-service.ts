@@ -37,8 +37,16 @@ export type LanguageServiceEvent = {
 export interface ILanguageService {
   updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
   updateDocument(uri: string, version: number, code: string): Promise<void>;
+  updateNotebookDocument(
+    notebookUri: string,
+    version: number,
+    cells: {
+      uri: string;
+      code: string;
+    }[]
+  ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
-
+  closeNotebookDocument(notebookUri: string, cellUris: string[]): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
   getDefinition(
@@ -104,8 +112,30 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.update_document(documentUri, version, code);
   }
 
+  async updateNotebookDocument(
+    notebookUri: string,
+    version: number,
+    cells: { uri: string; code: string }[]
+  ): Promise<void> {
+    // TODO: If a cell was deleted, it's cached copy will remain in the map.
+    // This is mostly harmless and annoying to fix so I'm leaving it for now.
+    for (const cell of cells) {
+      this.code[cell.uri] = cell.code;
+    }
+    this.languageService.update_notebook_document(notebookUri, version, cells);
+  }
+
   async closeDocument(documentUri: string): Promise<void> {
     delete this.code[documentUri];
+    this.languageService.close_document(documentUri);
+  }
+
+  async closeNotebookDocument(
+    documentUri: string,
+    cellUris: string[]
+  ): Promise<void> {
+    cellUris.forEach((uri) => delete this.code[uri]);
+    // TODO: just do this for now, but we probably need to implement close_notebook_document properly
     this.languageService.close_document(documentUri);
   }
 

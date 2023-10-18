@@ -4,11 +4,10 @@
 #[cfg(test)]
 mod tests;
 
+use crate::compilation::{Compilation, Lookup};
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
-use crate::protocol::Hover;
-use crate::qsc_utils::{
-    find_ident, find_item, map_offset, protocol_span, span_contains, span_touches, Compilation,
-};
+use crate::protocol::{self, Hover};
+use crate::qsc_utils::{find_ident, resolve_offset, span_contains, span_touches};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 use std::fmt::Display;
@@ -20,13 +19,11 @@ pub(crate) fn get_hover(
     source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let package = &compilation.unit.ast.package;
+    let (ast, offset) = resolve_offset(compilation, source_name, offset);
 
     let mut hover_visitor = HoverVisitor::new(compilation, offset);
 
-    hover_visitor.visit_package(package);
+    hover_visitor.visit_package(&ast.package);
 
     hover_visitor.hover
 }
@@ -93,7 +90,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(decl.name.span, &self.compilation.unit.sources),
+                            span: protocol_span(
+                                decl.name.span,
+                                &self.compilation.current_unit().sources,
+                            ),
                         });
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.current_callable;
@@ -120,7 +120,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = markdown_fenced_block(self.display.ident_ty_def(ident, def));
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span, &self.compilation.unit.sources),
+                            span: protocol_span(
+                                ident.span,
+                                &self.compilation.current_unit().sources,
+                            ),
                         });
                     } else {
                         self.visit_ty_def(def);
@@ -153,7 +156,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = markdown_fenced_block(self.display.ident_ty(ident, ty));
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span, &self.compilation.unit.sources),
+                            span: protocol_span(
+                                ident.span,
+                                &self.compilation.current_unit().sources,
+                            ),
                         });
                     } else {
                         self.visit_ty(ty);
@@ -193,7 +199,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span, &self.compilation.unit.sources),
+                            span: protocol_span(
+                                ident.span,
+                                &self.compilation.current_unit().sources,
+                            ),
                         });
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -224,7 +233,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                                                     contents,
                                                     span: protocol_span(
                                                         field.span,
-                                                        &self.compilation.unit.sources,
+                                                        &self.compilation.current_unit().sources,
                                                     ),
                                                 });
                                             }
@@ -252,45 +261,47 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
         if span_touches(path.span, self.offset) {
-            let res = self.compilation.unit.ast.names.get(path.id);
+            let res = self.compilation.current_unit().ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if let (Some(item), Some(package)) = find_item(self.compilation, item_id) {
-                            let ns = item
-                                .parent
-                                .and_then(|parent_id| package.items.get(parent_id))
-                                .map_or_else(
-                                    || Rc::from(""),
-                                    |parent| match &parent.kind {
-                                        qsc::hir::ItemKind::Namespace(namespace, _) => {
-                                            namespace.name.clone()
-                                        }
-                                        _ => Rc::from(""),
-                                    },
-                                );
+                        let (item, unit) = self.compilation.find_item(item_id);
+                        let ns = item
+                            .parent
+                            .and_then(|parent_id| unit.package.items.get(parent_id))
+                            .map_or_else(
+                                || Rc::from(""),
+                                |parent| match &parent.kind {
+                                    qsc::hir::ItemKind::Namespace(namespace, _) => {
+                                        namespace.name.clone()
+                                    }
+                                    _ => Rc::from(""),
+                                },
+                            );
 
-                            let contents = match &item.kind {
-                                hir::ItemKind::Callable(decl) => display_callable(
-                                    &item.doc,
-                                    &ns,
-                                    self.display.hir_callable_decl(decl),
-                                ),
-                                hir::ItemKind::Namespace(_, _) => {
-                                    panic!(
-                                        "Reference node should not refer to a namespace: {}",
-                                        path.id
-                                    )
-                                }
-                                hir::ItemKind::Ty(_, udt) => {
-                                    markdown_fenced_block(self.display.hir_udt(udt))
-                                }
-                            };
-                            self.hover = Some(Hover {
-                                contents,
-                                span: protocol_span(path.span, &self.compilation.unit.sources),
-                            });
-                        }
+                        let contents = match &item.kind {
+                            hir::ItemKind::Callable(decl) => display_callable(
+                                &item.doc,
+                                &ns,
+                                self.display.hir_callable_decl(decl),
+                            ),
+                            hir::ItemKind::Namespace(_, _) => {
+                                panic!(
+                                    "Reference node should not refer to a namespace: {}",
+                                    path.id
+                                )
+                            }
+                            hir::ItemKind::Ty(_, udt) => {
+                                markdown_fenced_block(self.display.hir_udt(udt))
+                            }
+                        };
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(
+                                path.span,
+                                &self.compilation.current_unit().sources,
+                            ),
+                        });
                     }
                     resolve::Res::Local(node_id) => {
                         let mut local_name = Rc::from("");
@@ -322,7 +333,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(path.span, &self.compilation.unit.sources),
+                            span: protocol_span(
+                                path.span,
+                                &self.compilation.current_unit().sources,
+                            ),
                         });
                     }
                     _ => {}

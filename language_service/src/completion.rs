@@ -6,9 +6,10 @@ mod tests;
 
 use std::rc::Rc;
 
+use crate::compilation::Compilation;
 use crate::display::CodeDisplay;
 use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
-use crate::qsc_utils::{map_offset, span_contains, Compilation};
+use crate::qsc_utils::{resolve_offset, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 
@@ -23,13 +24,12 @@ pub(crate) fn get_completions(
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let (ast, offset) = resolve_offset(compilation, source_name, offset);
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
         offset,
-        context: if compilation.unit.ast.package.nodes.is_empty() {
+        context: if ast.package.nodes.is_empty() {
             // The parser failed entirely, no context to go on
             Context::NoCompilation
         } else {
@@ -40,7 +40,7 @@ pub(crate) fn get_completions(
         start_of_namespace: None,
         current_namespace_name: None,
     };
-    context_finder.visit_package(&compilation.unit.ast.package);
+    context_finder.visit_package(&ast.package);
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
@@ -178,23 +178,26 @@ impl CompletionListBuilder {
         start_of_namespace: Option<u32>,
         current_namespace_name: &Option<Rc<str>>,
     ) {
-        let current = &compilation.unit.package;
-        let std = &compilation
-            .package_store
-            .get(compilation.std_package_id)
-            .expect("expected to find std package")
-            .package;
         let core = &compilation
             .package_store
             .get(PackageId::CORE)
             .expect("expected to find core package")
             .package;
 
+        let mut all_except_core = compilation
+            .package_store
+            .iter()
+            .filter(|p| p.0 != PackageId::CORE)
+            .collect::<Vec<_>>();
+
+        // Reverse to collect symbols starting at the current package backwards
+        all_except_core.reverse();
+
         let display = CodeDisplay { compilation };
 
-        let get_callables = |current, display| {
+        let get_callables = |package, display| {
             Self::get_callables(
-                current,
+                package,
                 display,
                 opens,
                 start_of_namespace,
@@ -202,11 +205,16 @@ impl CompletionListBuilder {
             )
         };
 
-        self.push_sorted_completions(get_callables(current, &display));
-        self.push_sorted_completions(get_callables(std, &display));
+        for (_, unit) in &all_except_core {
+            self.push_sorted_completions(get_callables(&unit.package, &display));
+        }
+
         self.push_sorted_completions(Self::get_core_callables(core, &display));
-        self.push_completions(Self::get_namespaces(current));
-        self.push_completions(Self::get_namespaces(std));
+
+        for (_, unit) in &all_except_core {
+            self.push_completions(Self::get_namespaces(&unit.package));
+        }
+
         self.push_completions(Self::get_namespaces(core));
     }
 

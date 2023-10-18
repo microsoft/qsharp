@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::qsc_utils::Compilation;
+use crate::compilation::{Compilation, CompilationKind};
 use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap, TargetProfile};
 
 pub(crate) fn get_source_and_marker_offsets(
@@ -59,10 +59,13 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         PackageType::Exe,
         TargetProfile::Full,
     );
+
+    let package_id = package_store.insert(unit);
+
     Compilation {
         package_store,
-        std_package_id,
-        unit,
+        current: package_id,
+        kind: CompilationKind::OpenDocument,
         errors,
     }
 }

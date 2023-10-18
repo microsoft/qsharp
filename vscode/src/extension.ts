@@ -10,6 +10,7 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
+import { initAzureWorkspaces } from "./azure/commands.js";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
@@ -22,14 +23,16 @@ import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
 import {
   registerCreateNotebookCommand,
+  registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
 import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
-import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
+import { activateTargetProfileStatusBarItem } from "./statusbar.js";
+import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -116,7 +119,6 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
       if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-        // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
     })
@@ -124,7 +126,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-      // Notebook cells don't currently support the language service.
+      // Regular (not notebook) Q# document.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
@@ -146,6 +148,11 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 
   // synchronize document contents
   subscriptions.push(...registerDocumentUpdateHandlers(languageService));
+
+  // synchronize notebook cell contents
+  subscriptions.push(
+    ...registerQSharpNotebookCellUpdateHandlers(languageService)
+  );
 
   // synchronize configuration
   subscriptions.push(registerConfigurationChangeHandlers(languageService));
