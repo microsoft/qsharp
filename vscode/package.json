@@ -18,7 +18,8 @@
     "onNotebook:jupyter-notebook",
     "onDebug",
     "onDebugResolve:qsharp",
-    "onDebugDynamicConfigurations:qsharp"
+    "onDebugDynamicConfigurations:qsharp",
+    "onFileSystem:qsharp-vfs"
   ],
   "contributes": {
     "configuration": {
@@ -212,6 +213,11 @@
         "command": "qsharp-vscode.createNotebook",
         "category": "Q#",
         "title": "Create an Azure Quantum notebook"
+      },
+      {
+        "command": "qsharp-vscode.openSamples",
+        "category": "Q#",
+        "title": "Open sample playground"
       }
     ],
     "breakpoints": [
