@@ -124,7 +124,7 @@ impl With<'_> {
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) =
             self.names.get(namespace.name.id)
         else {
             panic!("namespace should have item ID");
@@ -167,7 +167,7 @@ impl With<'_> {
         };
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::Item(hir::ItemId { item, .. }, _)) => item,
+            Some(&resolve::Res::Item(item)) => item,
             _ => panic!("item should have item ID"),
         };
 
@@ -176,7 +176,7 @@ impl With<'_> {
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
-                self.lowerer.parent = Some(id);
+                self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
                 self.lowerer.parent = grandparent;
                 (id, hir::ItemKind::Callable(callable))
@@ -186,10 +186,7 @@ impl With<'_> {
                 let udt = self
                     .tys
                     .udts
-                    .get(&hir::ItemId {
-                        package: None,
-                        item: id,
-                    })
+                    .get(&id)
                     .expect("type item should have lowered UDT");
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
@@ -197,7 +194,7 @@ impl With<'_> {
         };
 
         self.lowerer.items.push(hir::Item {
-            id,
+            id: id.item,
             span: item.span,
             parent: self.lowerer.parent,
             doc: Rc::clone(&item.doc),
@@ -206,7 +203,7 @@ impl With<'_> {
             kind,
         });
 
-        Some(id)
+        Some(id.item)
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
@@ -730,7 +727,7 @@ impl With<'_> {
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.names.get(path.id) {
-            Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
+            Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,

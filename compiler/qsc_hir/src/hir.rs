@@ -176,6 +176,8 @@ pub struct ItemId {
     pub package: Option<PackageId>,
     /// The item ID.
     pub item: LocalItemId,
+    /// The item status.
+    pub status: ItemStatus,
 }
 
 impl Display for ItemId {
@@ -184,6 +186,32 @@ impl Display for ItemId {
             None => write!(f, "Item {}", self.item),
             Some(package) => write!(f, "Item {} (Package {package})", self.item),
         }
+    }
+}
+
+/// The status of an item.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum ItemStatus {
+    /// The item is defined normally.
+    Normal,
+    /// The item is deprecated and uses are discouraged.
+    Deprecated,
+    /// The item is marked as unimplemented and uses are disallowed.
+    Unimplemented,
+}
+
+impl ItemStatus {
+    /// Create an item status from the given attributes list.
+    #[must_use]
+    pub fn from_attrs(attrs: &[Attr]) -> Self {
+        for attr in attrs {
+            match attr {
+                Attr::Deprecated(_) => return Self::Deprecated,
+                Attr::Unimplemented => return Self::Unimplemented,
+                _ => {}
+            }
+        }
+        Self::Normal
     }
 }
 
@@ -207,6 +235,7 @@ impl Res {
             Res::Item(id) if id.package.is_none() => Res::Item(ItemId {
                 package: Some(package),
                 item: id.item,
+                status: id.status,
             }),
             Res::Item(id) if id.package.expect("none case should be handled above") != package => {
                 panic!("should not try to update Res with existing package id")

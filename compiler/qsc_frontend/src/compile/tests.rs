@@ -11,8 +11,8 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global,
     hir::{
-        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, Res, SpecBody, Stmt,
-        StmtKind,
+        Block, Expr, ExprKind, ItemId, ItemKind, ItemStatus, Lit, LocalItemId, NodeId, Res,
+        SpecBody, Stmt, StmtKind,
     },
     mut_visit::MutVisitor,
     ty::{Prim, Ty},
@@ -268,6 +268,7 @@ fn entry_call_operation() {
         &Res::Item(ItemId {
             package: None,
             item: LocalItemId::from(1),
+            status: ItemStatus::Normal,
         }),
         res
     );

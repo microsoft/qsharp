@@ -13,7 +13,7 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global,
-    hir::{self, Attr, ItemId, LocalItemId, PackageId},
+    hir::{self, ItemId, ItemStatus, LocalItemId, PackageId},
     ty::{ParamId, Prim},
 };
 use std::{
@@ -40,7 +40,7 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// A global item.
-    Item(ItemId, ItemInfo),
+    Item(ItemId),
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
@@ -49,35 +49,6 @@ pub enum Res {
     PrimTy(Prim),
     /// The unit type.
     UnitTy,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct ItemInfo {
-    deprecated: bool,
-    alternative: Option<Span>,
-    unimplemented: bool,
-}
-
-impl ItemInfo {
-    #[must_use]
-    pub fn new(attrs: &[Attr]) -> Self {
-        let mut info = Self {
-            deprecated: false,
-            alternative: None,
-            unimplemented: false,
-        };
-        for attr in attrs {
-            match attr {
-                Attr::Deprecated(span) => {
-                    info.deprecated = true;
-                    info.alternative = *span;
-                }
-                Attr::Unimplemented => info.unimplemented = true,
-                _ => {}
-            }
-        }
-        info
-    }
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -370,15 +341,13 @@ impl Resolver {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
-                self.names
-                    .insert(decl.name.id, Res::Item(id, ItemInfo::default()));
+                self.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
-                self.names
-                    .insert(name.id, Res::Item(id, ItemInfo::default()));
+                self.names.insert(name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
@@ -630,17 +599,14 @@ impl GlobalTable {
                         .tys
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(ty.id, ItemInfo::new(&global.attrs)));
+                        .insert(global.name, Res::Item(ty.id));
                 }
                 global::Kind::Term(term) => {
                     self.scope
                         .terms
                         .entry(global.namespace)
                         .or_default()
-                        .insert(
-                            global.name,
-                            Res::Item(term.id, ItemInfo::new(&global.attrs)),
-                        );
+                        .insert(global.name, Res::Item(term.id));
                 }
                 global::Kind::Namespace => {
                     self.scope.namespaces.insert(global.name);
@@ -659,7 +625,7 @@ fn bind_global_items(
 ) {
     names.insert(
         namespace.name.id,
-        Res::Item(intrapackage(assigner.next_item()), ItemInfo::default()),
+        Res::Item(intrapackage(assigner.next_item())),
     );
     scope.namespaces.insert(Rc::clone(&namespace.name.name));
 
@@ -717,7 +683,7 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let res = Res::Item(next_id(), ItemInfo::default());
+            let res = Res::Item(next_id());
             names.insert(decl.name.id, res);
             match scope
                 .terms
@@ -737,7 +703,7 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let res = Res::Item(next_id(), ItemInfo::default());
+            let res = Res::Item(next_id());
             names.insert(name.id, res);
             match (
                 scope
@@ -838,8 +804,11 @@ fn resolve(
         // If there are multiple candidates, remove deprecated and unimplemented items.
         let mut removals = Vec::new();
         for res in candidates.keys() {
-            if let Res::Item(_, info) = res {
-                if info.deprecated || info.unimplemented {
+            if let Res::Item(item) = res {
+                if matches!(
+                    item.status,
+                    ItemStatus::Deprecated | ItemStatus::Unimplemented
+                ) {
                     removals.push(*res);
                 }
             }
@@ -865,11 +834,11 @@ fn resolve(
             return Err(Error::NotFound(name_str.to_string(), name.span));
         };
         match res {
-            Res::Item(_, info) if info.deprecated => Ok((
+            Res::Item(item) if item.status == ItemStatus::Deprecated => Ok((
                 res,
                 Some(Error::Deprecated(name_str.to_string(), name.span)),
             )),
-            Res::Item(_, info) if info.unimplemented => Ok((
+            Res::Item(item) if item.status == ItemStatus::Unimplemented => Ok((
                 res,
                 Some(Error::Unimplemented(name_str.to_string(), name.span)),
             )),
@@ -909,7 +878,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id, ItemInfo::default()));
+        return Some(Res::Item(id));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
@@ -957,6 +926,7 @@ fn intrapackage(item: LocalItemId) -> ItemId {
     ItemId {
         package: None,
         item,
+        status: ItemStatus::Normal,
     }
 }
 

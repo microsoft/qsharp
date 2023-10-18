@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Attr, Item, ItemId, ItemKind, Package, PackageId, Visibility},
+    hir::{Attr, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, Visibility},
     ty::Scheme,
 };
 use qsc_data_structures::index_map;
@@ -94,6 +94,7 @@ impl PackageIter<'_> {
         let id = ItemId {
             package: self.id,
             item: item.id,
+            status: ItemStatus::from_attrs(item.attrs.as_ref()),
         };
 
         match (&item.kind, &parent) {

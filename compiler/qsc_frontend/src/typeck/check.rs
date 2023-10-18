@@ -16,7 +16,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
-    hir::{self, ItemId, PackageId},
+    hir::{self, ItemId, ItemStatus, PackageId},
     ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
 use std::{collections::HashMap, str::FromStr, vec};
@@ -41,6 +41,7 @@ impl GlobalTable {
             let item_id = ItemId {
                 package: Some(id),
                 item: item.id,
+                status: ItemStatus::from_attrs(&item.attrs),
             };
 
             match &item.kind {
@@ -176,6 +177,8 @@ impl Checker {
     }
 
     fn check_attr_expr(&mut self, names: &Names, expr: &Expr) {
+        // To allow for lambdas in attribute arguments, we need to be more permissive
+        // about ambiguous types. We filter those errors out here.
         self.errors.extend(
             &mut rules::expr(names, &self.globals, &mut self.table, expr)
                 .into_iter()
@@ -209,7 +212,7 @@ impl Visitor<'_> for ItemCollector<'_> {
     fn visit_item(&mut self, item: &ast::Item) {
         match &*item.kind {
             ast::ItemKind::Callable(decl) => {
-                let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
+                let Some(&Res::Item(item)) = self.names.get(decl.name.id) else {
                     panic!("callable should have item ID");
                 };
 
@@ -224,7 +227,7 @@ impl Visitor<'_> for ItemCollector<'_> {
             }
             ast::ItemKind::Ty(name, def) => {
                 let span = item.span;
-                let Some(&Res::Item(item, _)) = self.names.get(name.id) else {
+                let Some(&Res::Item(item)) = self.names.get(name.id) else {
                     panic!("type should have item ID");
                 };
 
@@ -255,7 +258,6 @@ impl Visitor<'_> for ItemCollector<'_> {
 
     fn visit_attr(&mut self, attr: &ast::Attr) {
         if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
-            // The Config attribute arguments do not go through name resolution.
             return;
         }
         walk_attr(self, attr);
@@ -284,6 +286,8 @@ impl Visitor<'_> for ItemChecker<'_> {
             hir::Attr::from_str(attr.name.name.as_ref()),
             Ok(hir::Attr::Deprecated(_))
         ) {
+            // Since the Deprecated attribute arguments can have lambdas, we go through
+            // item checking to ensure those lambdas get type checked.
             self.checker.check_attr_expr(self.names, &attr.arg);
         }
     }
