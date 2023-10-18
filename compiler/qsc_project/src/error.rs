@@ -9,4 +9,6 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("failed to walk the project directory to discover Q# source files: {0}")]
     FsWalk(#[from] globwalk::GlobError),
+    #[error("failed to construct regular expression from excluded file item: {0}")]
+    RegexError(#[from] regex_lite::Error),
 }

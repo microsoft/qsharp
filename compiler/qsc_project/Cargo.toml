@@ -15,6 +15,7 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 miette = { workspace = true }
 globwalk = { workspace = true }
+regex-lite = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
