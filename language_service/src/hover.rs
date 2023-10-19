@@ -10,6 +10,7 @@ use crate::{
     protocol::Hover,
     qsc_utils::{find_ident, protocol_span, resolve_offset, span_contains, span_touches},
 };
+use log::trace;
 use qsc::{
     ast::{
         self,
@@ -87,6 +88,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             let context = replace(&mut self.current_item_doc, item.doc.clone());
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
+                    trace!("found a callable decl at {:?}", decl.name.span);
                     if span_touches(decl.name.span, self.offset) {
                         let contents = display_callable(
                             &item.doc,
