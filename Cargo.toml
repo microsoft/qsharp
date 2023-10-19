@@ -35,7 +35,6 @@ enum-iterator = "1.2.0"
 env_logger = "0.10.0"
 expect-test = "1.4.0"
 getrandom = { version = "0.2" }
-globwalk = "0.8"
 indoc = "2.0.0"
 js-sys = "0.3.61"
 libfuzzer-sys = "0.4"
