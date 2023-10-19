@@ -42,6 +42,7 @@ export interface ILanguageService {
     version: number,
     cells: {
       uri: string;
+      version: number;
       code: string;
     }[]
   ): Promise<void>;
@@ -115,7 +116,7 @@ export class QSharpLanguageService implements ILanguageService {
   async updateNotebookDocument(
     notebookUri: string,
     version: number,
-    cells: { uri: string; code: string }[]
+    cells: { uri: string; version: number, code: string }[]
   ): Promise<void> {
     // TODO: If a cell was deleted, it's cached copy will remain in the map.
     // This is mostly harmless and annoying to fix so I'm leaving it for now.

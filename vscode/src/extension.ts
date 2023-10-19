@@ -10,7 +10,6 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { initAzureWorkspaces } from "./azure/commands.js";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
@@ -26,7 +25,6 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createSignatureHelpProvider } from "./signature.js";

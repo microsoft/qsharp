@@ -117,6 +117,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
           qsharpCells.map((cell) => {
             return {
               uri: cell.document.uri.toString(),
+              version: cell.document.version,
               code: getQSharpText(cell.document),
             };
           })
