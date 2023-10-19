@@ -8,4 +8,4 @@ mod project;
 
 pub use error::Error;
 pub use manifest::{Manifest, MANIFEST_FILE_NAME};
-pub use project::Project;
+pub use project::{FileSystem, Project, FS};

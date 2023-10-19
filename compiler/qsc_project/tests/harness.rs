@@ -6,14 +6,14 @@ use std::{
 
 use expect_test::Expect;
 use miette::{Context, IntoDiagnostic};
-use qsc_project::Project;
+use qsc_project::{FileSystem, FS};
 
 pub fn check(project_path: PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_path.push(PathBuf::from("tests/projects"));
     let mut absolute_project_path = root_path.clone();
     absolute_project_path.push(project_path.clone());
-    let mut project = Project::load_from_path(absolute_project_path, |x| read_source(x)).unwrap();
+    let mut project = FS::load_from_path(absolute_project_path, |x| read_source(x)).unwrap();
 
     // remove the prefix absolute path
     for (path, _contents) in project.sources.iter_mut() {

@@ -1,8 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
+use miette::{Context, IntoDiagnostic};
 use regex_lite::Regex;
 
 use crate::Manifest;
+use std::fs::DirEntry as StdEntry;
 
 /// Describes a Q# project
 #[derive(Default, Debug)]
@@ -15,13 +17,70 @@ pub struct Project {
 pub enum EntryType {
     File,
     Folder,
+    Symlink,
+}
+
+impl std::convert::From<std::fs::FileType> for EntryType {
+    fn from(file_type: std::fs::FileType) -> Self {
+        if file_type.is_dir() {
+            EntryType::Folder
+        } else if file_type.is_file() {
+            EntryType::File
+        } else if file_type.is_symlink() {
+            EntryType::Symlink
+        } else {
+            unreachable!()
+        }
+    }
 }
 
 pub trait DirEntry {
-    fn entry_type(&self) -> EntryType;
+    type Error;
+    fn entry_type(&self) -> Result<EntryType, Self::Error>;
     fn extension(&self) -> String;
     fn entry_name(&self) -> String;
     fn path(&self) -> PathBuf;
+}
+
+impl DirEntry for StdEntry {
+    type Error = crate::Error;
+    fn entry_type(&self) -> Result<EntryType, Self::Error> {
+        Ok(self.file_type()?.into())
+    }
+
+    fn extension(&self) -> String {
+        self.path()
+            .extension()
+            .map(|x| x.to_string_lossy().to_string())
+            .unwrap_or_default()
+    }
+
+    fn entry_name(&self) -> String {
+        self.file_name().to_string_lossy().to_string()
+    }
+
+    fn path(&self) -> PathBuf {
+        self.path()
+    }
+}
+
+pub struct FS;
+
+impl FileSystem<StdEntry> for FS {
+    fn read_file(&self, path: &PathBuf) -> miette::Result<(Arc<str>, Arc<str>)> {
+        let contents = std::fs::read_to_string(path)
+            .into_diagnostic()
+            .with_context(|| format!("could not read source file `{}`", path.display()))?;
+
+        Ok((path.to_string_lossy().into(), contents.into()))
+    }
+
+    fn list_directory(&self, path: &PathBuf) -> miette::Result<Vec<StdEntry>> {
+        let listing = std::fs::read_dir(path).map_err(crate::Error::from)?;
+        Ok(listing
+            .collect::<Result<_, _>>()
+            .map_err(crate::Error::from)?)
+    }
 }
 
 pub trait FileSystem<T: DirEntry> {
@@ -41,8 +100,8 @@ pub trait FileSystem<T: DirEntry> {
                 continue;
             }
             match item.entry_type() {
-                EntryType::File if item.extension() == ".qs" => files.push(item),
-                EntryType::Folder => files.append(
+                Ok(EntryType::File) if item.extension() == ".qs" => files.push(item),
+                Ok(EntryType::Folder) => files.append(
                     &mut self.fetch_files_with_exclude_pattern(exclude_patterns, &item.path())?,
                 ),
                 _ => (),
@@ -50,8 +109,8 @@ pub trait FileSystem<T: DirEntry> {
         }
         Ok(files)
     }
+
     fn load(&self) -> miette::Result<Project> {
-        // TODO: pass in manifest
         let manifest = match Manifest::load()? {
             Some(manifest) => manifest,
             None => return Ok(Default::default()),
@@ -125,5 +184,10 @@ pub trait FileSystem<T: DirEntry> {
 }
 
 fn regex_matches(exclude_patterns: &[Regex], entry_name: &str) -> bool {
-    todo!()
+    exclude_patterns
+        .iter()
+        .any(|pattern| match pattern.find(entry_name) {
+            Some(item) if item.as_str().len() == entry_name.len() => true,
+            _ => false,
+        })
 }
