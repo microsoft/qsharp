@@ -37,8 +37,18 @@ if (window.require && window.CodeMirror && window.Jupyter) {
       },
       {
         token: "keyword",
-        regex: String.raw`(let|set|w\/|new|not|and|or|use|borrow|using|borrowing|newtype|mutable)\b`,
+        regex: String.raw`(let|set|use|borrow|mutable)\b`,
         beginWord: true,
+      },
+      {
+        token: "operatorKeyword",
+        regex: String.raw`(not|and|or)\b|(w/)`,
+        beginWord: true,
+      },
+      {
+        token: "operatorKeyword",
+        regex: String.raw`(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)|(\\|)|(\\&\\&\\&)|(\\~\\~\\~)|(\\.\\.\\.)|(\\.\\.)|(\\?)`,
+        beginWord: false,
       },
       {
         token: "meta",
@@ -48,16 +58,6 @@ if (window.require && window.CodeMirror && window.Jupyter) {
       {
         token: "atom",
         regex: String.raw`(true|false|Pauli(I|X|Y|Z)|One|Zero)\b`,
-        beginWord: true,
-      },
-      {
-        token: "builtin",
-        regex: String.raw`(X|Y|Z|H|HY|S|T|SWAP|CNOT|CCNOT|MultiX|R|RFrac|Rx|Ry|Rz|R1|R1Frac|Exp|ExpFrac|Measure|M|MultiM)\b`,
-        beginWord: true,
-      },
-      {
-        token: "builtin",
-        regex: String.raw`(Message|Length|Assert|AssertProb|AssertEqual)\b`,
         beginWord: true,
       },
     ];
