@@ -82,10 +82,10 @@ impl Compiler {
         source_name: &str,
         source_contents: &str,
     ) -> Result<Increment, Errors> {
-        self.compile_fragments_acc_errors(source_name, source_contents, fail_on_error)
+        self.compile_fragments(source_name, source_contents, fail_on_error)
     }
 
-    pub fn compile_fragments_acc_errors<F>(
+    pub fn compile_fragments<F>(
         &mut self,
         source_name: &str,
         source_contents: &str,
@@ -96,16 +96,16 @@ impl Compiler {
     {
         let (core, unit) = self.store.get_open_mut();
 
-        let mut errors = Vec::new();
-        let mut increment = self
-            .frontend
-            .compile_fragments_acc_errors(unit, source_name, source_contents, |e| {
-                errors.extend(e);
-                Ok(()) // accumulate errors without failing
-            })
-            .expect("compile_fragments_acc_errors should not fail");
+        let mut errors = false;
+        let mut increment =
+            self.frontend
+                .compile_fragments(unit, source_name, source_contents, |e| {
+                    errors = errors || !e.is_empty();
+                    accumulate_errors(into_errors(e))
+                })?;
 
-        if errors.is_empty() {
+        // Even if we don't fail fast, skip passes if there were compilation errors.
+        if !errors {
             let pass_errors = self.passes.run_default_passes(
                 &mut increment.hir,
                 &mut unit.assigner,
@@ -114,8 +114,6 @@ impl Compiler {
             );
 
             accumulate_errors(into_errors_with_source(pass_errors, &unit.sources))?;
-        } else {
-            accumulate_errors(into_errors(errors))?;
         }
 
         Ok(increment)

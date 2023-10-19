@@ -82,7 +82,7 @@ impl Compilation {
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
-                .compile_fragments_acc_errors(name, contents, |cell_errors| {
+                .compile_fragments(name, contents, |cell_errors| {
                     errors.extend(cell_errors);
                     Ok(()) // accumulate errors without failing
                 })

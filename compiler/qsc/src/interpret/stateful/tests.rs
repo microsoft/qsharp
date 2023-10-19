@@ -750,11 +750,11 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                name error: `Bar` not found
-                   [line_1] [Bar]
-                type error: insufficient type information to infer type
-                   [line_1] [Bar()]
-            "#]],
+                    name error: `Bar` not found
+                       [line_1] [Bar]
+                    type error: insufficient type information to infer type
+                       [line_1] [Bar()]
+                "#]],
             );
         }
 
@@ -862,11 +862,11 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                name error: `Bar` not found
-                   [line_2] [Bar]
-                type error: insufficient type information to infer type
-                   [line_2] [Bar()]
-            "#]],
+                    name error: `Bar` not found
+                       [line_2] [Bar]
+                    type error: insufficient type information to infer type
+                       [line_2] [Bar()]
+                "#]],
             );
         }
 
