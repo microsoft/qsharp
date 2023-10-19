@@ -18,7 +18,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
-use qsc_project::Project;
+use qsc_project::{FileSystem, Manifest, FS};
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -79,10 +79,14 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let project = Project::load(|input| read_source(input))?;
-    let mut project_sources = project.sources;
+    let fs = FS::new();
+    let manifest = Manifest::load()?;
+    if let Some(manifest) = manifest {
+        let project = fs.load_project(manifest)?;
+        let mut project_sources = project.sources;
 
-    sources.append(&mut project_sources);
+        sources.append(&mut project_sources);
+    }
     if cli.exec {
         let mut interpreter = match Interpreter::new(
             !cli.nostdlib,

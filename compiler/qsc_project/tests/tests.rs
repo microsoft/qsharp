@@ -141,7 +141,7 @@ fn exclude_blobs() {
                     author: None,
                     license: None,
                     exclude_files: [
-                        "to_exclude/*",
+                        ".*to_exclude\\/.*",
                     ],
                 },
             }"#]],
@@ -153,21 +153,21 @@ fn exclude_files() {
     check(
         "exclude_files".into(),
         &expect![[r#"
-        Project {
-            sources: [
-                (
-                    "exclude_files/Main.qs",
-                    "namespace Main {\n\t@EntryPoint()\n\toperation Main() : String {\n\t\t\"12345\"\n\t}\n}\n",
-                ),
-            ],
-            manifest: Manifest {
-                author: None,
-                license: None,
-                exclude_files: [
-                    "*.exclude.qs",
+            Project {
+                sources: [
+                    (
+                        "exclude_files/Main.qs",
+                        "namespace Main {\n\t@EntryPoint()\n\toperation Main() : String {\n\t\t\"12345\"\n\t}\n}\n",
+                    ),
                 ],
-            },
-        }"#]],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                    exclude_files: [
+                        ".*\\.exclude\\.qs",
+                    ],
+                },
+            }"#]],
     )
 }
 
@@ -191,7 +191,7 @@ fn exclude_list() {
                 author: None,
                 license: None,
                 exclude_files: [
-                    "Excluded.qs",
+                    ".*Excluded.qs",
                 ],
             },
         }"#]],

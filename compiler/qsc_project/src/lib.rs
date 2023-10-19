@@ -3,9 +3,13 @@
 //! the manifest, and determining which files are members of the project.
 
 mod error;
+#[cfg(feature = "fs")]
+mod fs;
 mod manifest;
 mod project;
 
 pub use error::Error;
-pub use manifest::{Manifest, MANIFEST_FILE_NAME};
-pub use project::{FileSystem, Project, FS};
+#[cfg(feature = "fs")]
+pub use fs::FS;
+pub use manifest::{Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
+pub use project::{DirEntry, EntryType, FileSystem, Project};

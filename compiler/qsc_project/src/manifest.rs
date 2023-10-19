@@ -8,6 +8,7 @@ use std::{
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
+/// A Q# manifest, used to describe project metadata.
 #[derive(Deserialize, Debug, Default)]
 pub struct Manifest {
     pub author: Option<String>,
@@ -44,6 +45,10 @@ impl Manifest {
         Self::load_from_path(current_dir)
     }
 
+    /// Given a [PathBuf], traverse [PathBuf::ancestors] until a Manifest is found.
+    /// Returns [None] if no manifest named [MANIFEST_FILE_NAME] is found.
+    /// Returns an error if a manifest is found, but is not parsable into the
+    /// expected format.
     pub fn load_from_path(path: PathBuf) -> std::result::Result<Option<ManifestDescriptor>, Error> {
         let ancestors = path.ancestors();
         for ancestor in ancestors {
@@ -63,6 +68,7 @@ impl Manifest {
         Ok(None)
     }
 }
+
 /// Utility function which filters out any [DirEntry] which is not a valid file or
 /// was unable to be read.
 fn only_valid_files(item: std::result::Result<DirEntry, std::io::Error>) -> Option<DirEntry> {
