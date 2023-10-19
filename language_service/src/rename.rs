@@ -16,8 +16,9 @@ use qsc::{
 };
 
 use crate::{
+    compilation::Compilation,
     protocol,
-    qsc_utils::{map_offset, protocol_span, span_contains, span_touches, Compilation},
+    qsc_utils::{protocol_span, resolve_offset, span_contains, span_touches},
 };
 
 pub(crate) fn prepare_rename(
@@ -25,15 +26,13 @@ pub(crate) fn prepare_rename(
     source_name: &str,
     offset: u32,
 ) -> Option<(protocol::Span, String)> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let package = &compilation.unit.ast.package;
+    let (ast, offset) = resolve_offset(compilation, source_name, offset);
 
     let mut prepare_rename = Rename::new(compilation, offset, true);
-    prepare_rename.visit_package(package);
+    prepare_rename.visit_package(&ast.package);
     prepare_rename
         .prepare
-        .map(|p| (protocol_span(p.0, &compilation.unit.sources), p.1))
+        .map(|p| (protocol_span(p.0, &compilation.current_unit().sources), p.1))
 }
 
 pub(crate) fn get_rename(
@@ -41,16 +40,14 @@ pub(crate) fn get_rename(
     source_name: &str,
     offset: u32,
 ) -> Vec<protocol::Span> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let package = &compilation.unit.ast.package;
+    let (ast, offset) = resolve_offset(compilation, source_name, offset);
 
     let mut rename_visitor = Rename::new(compilation, offset, false);
-    rename_visitor.visit_package(package);
+    rename_visitor.visit_package(&ast.package);
     rename_visitor
         .locations
         .into_iter()
-        .map(|s| protocol_span(s, &compilation.unit.sources))
+        .map(|s| protocol_span(s, &compilation.current_unit().sources))
         .collect::<Vec<_>>()
 }
 
@@ -80,7 +77,8 @@ impl<'a> Rename<'a> {
     fn get_spans_for_item_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
         // Only rename items that are part of the local package
         if item_id.package.is_none() {
-            if let Some(def) = self.compilation.unit.package.items.get(item_id.item) {
+            let current_unit = self.compilation.current_unit();
+            if let Some(def) = current_unit.package.items.get(item_id.item) {
                 if self.is_prepare {
                     self.prepare = Some((ast_name.span, ast_name.name.to_string()));
                 } else {
@@ -93,7 +91,7 @@ impl<'a> Rename<'a> {
                         compilation: self.compilation,
                         locations: vec![],
                     };
-                    rename.visit_package(&self.compilation.unit.ast.package);
+                    rename.visit_package(&current_unit.ast.package);
                     rename.locations.push(def_span);
                     self.locations = rename.locations;
                 }
@@ -104,7 +102,8 @@ impl<'a> Rename<'a> {
     fn get_spans_for_field_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
         // Only rename items that are part of the local package
         if item_id.package.is_none() {
-            if let Some(def) = self.compilation.unit.package.items.get(item_id.item) {
+            let current_unit = self.compilation.current_unit();
+            if let Some(def) = current_unit.package.items.get(item_id.item) {
                 if let hir::ItemKind::Ty(_, udt) = &def.kind {
                     if let Some(ty_field) = udt.find_field_by_name(&ast_name.name) {
                         if self.is_prepare {
@@ -119,7 +118,7 @@ impl<'a> Rename<'a> {
                                 compilation: self.compilation,
                                 locations: vec![],
                             };
-                            rename.visit_package(&self.compilation.unit.ast.package);
+                            rename.visit_package(&current_unit.ast.package);
                             rename.locations.push(def_span);
                             self.locations = rename.locations;
                         }
@@ -154,7 +153,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
                 ast::ItemKind::Callable(decl) => {
                     if span_touches(decl.name.span, self.offset) {
                         if let Some(resolve::Res::Item(item_id)) =
-                            self.compilation.unit.ast.names.get(decl.name.id)
+                            self.compilation.current_unit().ast.names.get(decl.name.id)
                         {
                             self.get_spans_for_item_rename(item_id, &decl.name);
                         }
@@ -174,7 +173,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if let Some(resolve::Res::Item(item_id)) =
-                        self.compilation.unit.ast.names.get(ident.id)
+                        self.compilation.current_unit().ast.names.get(ident.id)
                     {
                         if span_touches(ident.span, self.offset) {
                             self.get_spans_for_item_rename(item_id, ident);
@@ -232,7 +231,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.unit.ast.tys.terms.get(udt.id)
+                        self.compilation.current_unit().ast.tys.terms.get(udt.id)
                     {
                         match res {
                             hir::Res::Item(item_id) => {
@@ -250,7 +249,7 @@ impl<'a> Visitor<'a> for Rename<'a> {
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'_ ast::Path) {
         if span_touches(path.span, self.offset) {
-            let res = self.compilation.unit.ast.names.get(path.id);
+            let res = self.compilation.current_unit().ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
@@ -274,7 +273,7 @@ struct ItemRename<'a> {
 
 impl<'a> Visitor<'_> for ItemRename<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.unit.ast.names.get(path.id);
+        let res = self.compilation.current_unit().ast.names.get(path.id);
         if let Some(resolve::Res::Item(item_id)) = res {
             if *item_id == *self.item_id {
                 self.locations.push(path.name.span);
@@ -284,7 +283,7 @@ impl<'a> Visitor<'_> for ItemRename<'a> {
 
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
-            let res = self.compilation.unit.ast.names.get(ty_path.id);
+            let res = self.compilation.current_unit().ast.names.get(ty_path.id);
             if let Some(resolve::Res::Item(item_id)) = res {
                 if *item_id == *self.item_id {
                     self.locations.push(ty_path.name.span);
@@ -308,8 +307,13 @@ impl<'a> Visitor<'_> for FieldRename<'a> {
         if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
             self.visit_expr(qualifier);
             if field_name.name == self.field_name {
-                if let Some(Ty::Udt(Res::Item(id))) =
-                    self.compilation.unit.ast.tys.terms.get(qualifier.id)
+                if let Some(Ty::Udt(Res::Item(id))) = self
+                    .compilation
+                    .current_unit()
+                    .ast
+                    .tys
+                    .terms
+                    .get(qualifier.id)
                 {
                     if id == self.item_id {
                         self.locations.push(field_name.span);
@@ -341,7 +345,7 @@ impl<'a> Visitor<'_> for LocalRename<'a> {
     }
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.unit.ast.names.get(path.id);
+        let res = self.compilation.current_unit().ast.names.get(path.id);
         if let Some(resolve::Res::Local(node_id)) = res {
             if *node_id == self.node_id {
                 self.locations.push(path.name.span);

@@ -21,12 +21,19 @@ mod tests;
 use compilation::Compilation;
 use log::trace;
 use miette::Diagnostic;
-use protocol::{CompletionList, Definition, Hover, SignatureHelp, WorkspaceConfigurationUpdate};
-use qsc::{PackageType, TargetProfile};
-use std::collections::HashMap;
+use protocol::{
+    CompletionList, Definition, DiagnosticUpdate, Hover, SignatureHelp,
+    WorkspaceConfigurationUpdate,
+};
+use qsc::{compile::Error, PackageType, TargetProfile};
+use std::{
+    collections::{HashMap, HashSet},
+    mem::take,
+    sync::Arc,
+};
 
-type CompilationId = String;
-type DocumentUri = String;
+type CompilationUri = Arc<str>;
+type DocumentUri = Arc<str>;
 
 pub struct LanguageService<'a> {
     /// Workspace configuration can include compiler settings
@@ -37,15 +44,22 @@ pub struct LanguageService<'a> {
     /// Currently each Q# file is its own unique compilation.
     /// For notebooks, each notebook is a compilation, each cell is a document
     /// within that compilation.
-    /// CompilationId is the document uri for single-file compilations,
+    /// CompilationUri is the document uri for single-file compilations,
     /// notebook uri for notebooks
-    compilations: HashMap<CompilationId, CompilationState>,
-    /// All known documents
+    /// It's also where project-level errors get reported
+    compilations: HashMap<CompilationUri, Compilation>,
+    /// All documents known to the client.
     /// (cell uri -> notebook uri, or identity in the case of single-file compilation)
-    documents: HashMap<DocumentUri, CompilationId>,
+    /// Not all documents that make up the compilation need to be in this map -
+    /// only the ones known to the client.
+    open_documents: HashMap<DocumentUri, OpenDocument>,
+    /// Documents that errors were published to. We need to keep track
+    /// of this so we can clear errors from them when documents are removed
+    /// from a compilation or when a recompilation occurs.
+    documents_with_errors: HashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
-    diagnostics_receiver: Box<DiagnosticsReceiver<'a>>,
+    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
 }
 
 #[derive(Debug)]
@@ -63,7 +77,8 @@ impl Default for WorkspaceConfiguration {
     }
 }
 
-struct CompilationState {
+#[derive(Debug)]
+struct OpenDocument {
     // TODO: versions are supposed to be associated with documents not compilations (??)
     /// This version is the document version provided by the client.
     /// It increases strictly with each text change, though this knowledge should
@@ -71,17 +86,16 @@ struct CompilationState {
     /// diagnostics to help the client associate the list of diagnostics
     /// with a snapshot of the document.
     pub version: u32,
-    pub project: Compilation,
+    pub compilation: CompilationUri,
 }
 
-type DiagnosticsReceiver<'a> = dyn Fn(&str, u32, &[qsc::compile::Error]) + 'a;
-
 impl<'a> LanguageService<'a> {
-    pub fn new(diagnostics_receiver: impl Fn(&str, u32, &[qsc::compile::Error]) + 'a) -> Self {
+    pub fn new(diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
             compilations: HashMap::new(),
-            documents: HashMap::new(),
+            open_documents: HashMap::new(),
+            documents_with_errors: HashSet::new(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
         }
     }
@@ -107,20 +121,38 @@ impl<'a> LanguageService<'a> {
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        trace!("update_document: {uri:?} {version:?}");
-        let project = Compilation::new_open_document(
+        trace!("update_document: {uri} {version}");
+        let compilation = Compilation::new_open_document(
             uri,
             text,
             self.configuration.package_type,
             self.configuration.target_profile,
         );
 
-        self.publish_diagnostics(&project, version, uri);
-
         // Associate each known document with a separate compilation.
-        self.compilations
-            .insert(uri.to_string(), CompilationState { version, project });
-        self.documents.insert(uri.to_string(), uri.to_string());
+        let uri: Arc<str> = uri.into();
+        self.compilations.insert(uri.clone(), compilation);
+        self.open_documents.insert(
+            uri.clone(),
+            OpenDocument {
+                version,
+                compilation: uri,
+            },
+        );
+        self.publish_diagnostics();
+    }
+
+    /// Indicates that the client is no longer interested in the document,
+    /// typically occurs when the document is closed in the editor.
+    ///
+    /// LSP: textDocument/didClose
+    pub fn close_document(&mut self, uri: &str) {
+        trace!("close_document: {uri}");
+
+        self.compilations.remove(uri);
+        self.open_documents.remove(uri);
+
+        self.publish_diagnostics();
     }
 
     /// The uri refers to the notebook itself, not any of the individual cells.
@@ -128,7 +160,7 @@ impl<'a> LanguageService<'a> {
     /// This function expects all Q# content in the notebook every time
     /// it is called, not just the changed cells.
     ///
-    /// At this layer we expect the editor to have stripped
+    /// At this layer we expect the client to have stripped
     /// off all non-Q# content, including Python cells and lines
     /// containing the "%%qsharp" cell magic.
     ///
@@ -136,161 +168,154 @@ impl<'a> LanguageService<'a> {
     pub fn update_notebook_document(
         &mut self,
         notebook_uri: &str,
-        version: u32,
-        cells: &[(&str, &str)],
+        cells: &[(&str, u32, &str)], // uri, version, text - basically  DidChangeTextDocumentParams
     ) {
-        trace!("update_notebook_document: {notebook_uri:?} {version:?}");
-        let project = Compilation::new_notebook(cells);
+        trace!("update_notebook_document: {notebook_uri}");
+        let compilation = Compilation::new_notebook(cells.iter().map(|c| (c.0, c.2)));
 
-        for (document_uri, _) in cells {
-            // TODO: version is likely all wrong here
-            self.publish_diagnostics(&project, version, document_uri);
+        let compilation_id: Arc<str> = notebook_uri.into();
+        self.compilations
+            .insert(compilation_id.clone(), compilation);
+
+        for (cell_uri, version, _) in cells {
+            self.open_documents.insert(
+                (*cell_uri).into(),
+                OpenDocument {
+                    version: *version,
+                    compilation: compilation_id.clone(),
+                },
+            );
         }
 
-        // TODO: Do we need to clear diagnostics for removed cells?
-
-        self.compilations.insert(
-            notebook_uri.to_string(),
-            CompilationState { version, project },
-        );
-
-        for (cell_uri, _) in cells {
-            self.documents
-                .insert((*cell_uri).to_string(), notebook_uri.to_string());
-        }
+        self.publish_diagnostics();
     }
 
-    /// Indicates that the client is no longer interested in the document,
-    /// typically occurs when the document is closed in the editor.
+    /// Indicates that the client is no longer interested in the notebook.
     ///
-    /// LSP: textDocument/didClose
-    /// # Panics
-    ///
-    /// This function will panic if compiler state is invalid or in out-of-memory conditions.
-    pub fn close_document(&mut self, uri: &str) {
-        trace!("close_document: {uri:?}");
+    /// LSP: notebookDocument/didClose
+    pub fn close_notebook_document<'b>(
+        &mut self,
+        uri: &str,
+        cell_uris: impl Iterator<Item = &'b str>,
+    ) {
+        trace!("close_document: {uri}");
 
-        // TODO: We're treating "uri" as a project URI here but actually
-        // it's a document URI. Works for now, whatever.
-        let document_state = self.compilations.remove(uri);
+        for cell_uri in cell_uris {
+            self.open_documents.remove(cell_uri);
+        }
 
-        // Clear the diagnostics, as each document represents
-        // a separate project that disappears when the document is closed.
-        (self.diagnostics_receiver)(
-            uri,
-            document_state
-                .expect("close_document received for unknown uri")
-                .version,
-            &[],
-        );
+        self.compilations.remove(uri);
+
+        self.publish_diagnostics();
     }
 
     /// LSP: textDocument/completion
     #[must_use]
     pub fn get_completions(&self, uri: &str, offset: u32) -> CompletionList {
-        trace!("get_completions: uri: {uri:?}, offset: {offset:?}");
-        let res = completion::get_completions(
-            &self
-                .compilations.get(self.documents.get(uri).expect("get_completions should not be called before document has been initialized with update_document")).as_ref()
-                .expect("get_completions should not be called before document has been initialized with update_document").project,
-            uri,
-            offset,
-        );
-        trace!("get_completions result: {res:?}");
-        res
+        self.document_op(completion::get_completions, "get_completions", uri, offset)
     }
 
     /// LSP: textDocument/definition
     #[must_use]
     pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
-        trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
-        let res = definition::get_definition(
-            &self
-            .compilations.get(self.documents.get(uri).expect("get_completions should not be called before document has been initialized with update_document")).as_ref()
-            .expect("get_definition should not be called before document has been initialized with update_document").project,
-                uri, offset);
-        trace!("get_definition result: {res:?}");
-        res
+        self.document_op(definition::get_definition, "get_definition", uri, offset)
     }
 
     /// LSP: textDocument/hover
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
-        trace!("get_hover: uri: {uri:?}, offset: {offset:?}");
-        let res = hover::get_hover(
-            &self
-            .compilations.get(self.documents.get(uri).expect("get_completions should not be called before document has been initialized with update_document")).as_ref()
-            .expect("get_hover should not be called before document has been initialized with update_document").project,
-                uri, offset);
-        trace!("get_hover result: {res:?}");
-        res
+        self.document_op(hover::get_hover, "get_hover", uri, offset)
     }
 
+    /// LSP textDocument/signatureHelp
     #[must_use]
     pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<SignatureHelp> {
-        trace!("get_signature_help: uri: {uri:?}, offset: {offset:?}");
-        let res = signature_help::get_signature_help(
-            &self
-            .compilations.get(self.documents.get(uri).expect("get_signature_help should not be called before document has been initialized with update_document")).as_ref()
-            .expect("get_signature_help should not be called before document has been initialized with update_document").project,
-                uri, offset);
-        trace!("get_signature_help result: {res:?}");
-        res
+        self.document_op(
+            signature_help::get_signature_help,
+            "get_signature_help",
+            uri,
+            offset,
+        )
     }
 
-    fn publish_diagnostics(&self, project: &Compilation, version: u32, document_uri: &str) {
-        // TODO: this will definitely cause issues when we have errors that go
-        // across cells
-        let errors_for_document = project
-            .errors
-            .clone()
-            .into_iter()
-            .filter(|error| match error.labels() {
-                Some(labels) => labels
-                    .map(|label| u32::try_from(label.offset()).expect("offset should fit into u32"))
-                    .any(|offset| {
-                        document_uri
-                            == project
-                                .current_unit()
-                                .sources
-                                .find_by_offset(offset)
-                                .expect("should find document for error span")
-                                .name
-                                .as_ref()
-                    }),
-                None => true, // No labels for an error means it definitely applies to this (all) documents
-            })
-            .collect::<Vec<_>>()
-            .clone();
-
-        trace!("publishing diagnostics for {document_uri:?}: {errors_for_document:?}");
-
-        // Publish diagnostics
-        (self.diagnostics_receiver)(document_uri, version, &errors_for_document);
-    }
-
+    /// LSP: textDocument/rename
     #[must_use]
     pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
-        trace!("get_rename: uri: {uri:?}, offset: {offset:?}");
-        let res = rename::get_rename(
-            &self
-            .document_map.get(uri).as_ref()
-                .expect("get_rename should not be called before document has been initialized with update_document").compilation,
-                uri, offset);
-        trace!("get_rename result: {res:?}");
+        self.document_op(rename::get_rename, "get_rename", uri, offset)
+    }
+
+    /// LSP: textDocument/prepareRename
+    #[must_use]
+    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<(protocol::Span, String)> {
+        self.document_op(rename::prepare_rename, "prepare_rename", uri, offset)
+    }
+
+    /// Executes an operation that takes a document uri and offset, using the current compilation for that document
+    fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
+    where
+        F: Fn(&Compilation, &str, u32) -> T,
+        T: std::fmt::Debug,
+    {
+        trace!("{op_name}: uri: {uri}, offset: {offset}");
+        let compilation_id = &self
+            .open_documents
+            .get(uri)
+            .unwrap_or_else(|| {
+                panic!("{op_name} should not be called for a document that has not been opened",)
+            })
+            .compilation;
+        let compilation = self.compilations.get(compilation_id).unwrap_or_else(|| {
+            panic!("{op_name} should not be called before compilation has been initialized",)
+        });
+
+        let res = op(compilation, uri, offset);
+        trace!("{op_name} result: {res:?}");
         res
     }
 
-    #[must_use]
-    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<(protocol::Span, String)> {
-        trace!("prepare_rename: uri: {uri:?}, offset: {offset:?}");
-        let res = rename::prepare_rename(
-            &self
-            .document_map.get(uri).as_ref()
-                .expect("prepare_rename should not be called before document has been initialized with update_document").compilation,
-                uri, offset);
-        trace!("prepare_rename result: {res:?}");
-        res
+    // It gets really messy knowing when to clear diagnostics
+    // when the document changes ownership between compilations, etc.
+    // So let's do it the simplest way possible. Refresh everything every time.
+    fn publish_diagnostics(&mut self) {
+        let last_docs_with_errors = take(&mut self.documents_with_errors);
+
+        for (compilation_uri, compilation) in &self.compilations {
+            trace!("publishing diagnostics for {compilation_uri}");
+            for (uri, errors) in errors_by_doc(compilation_uri, &compilation.errors) {
+                if !self.documents_with_errors.insert(uri.clone()) {
+                    // We already published diagnostics for this document for
+                    // a different compilation.
+                    // When the same document is included in multiple compilations,
+                    // only report the errors for one of them, the goal being
+                    // a less confusing user experience.
+                    continue;
+                }
+
+                self.publish_diagnostics_for_doc(&uri, errors);
+            }
+        }
+
+        // Clear errors from any documents that previously had errors
+        for uri in last_docs_with_errors.difference(&self.documents_with_errors) {
+            self.publish_diagnostics_for_doc(uri, vec![]);
+        }
+
+        // TODO: errors without an associated span
+        // let project_errors = compilation
+        //     .errors
+        //     .iter()
+        //     .filter(|e| e.labels().into_iter().flatten().next().is_none());
+    }
+
+    fn publish_diagnostics_for_doc(&self, uri: &str, errors: Vec<Error>) {
+        let version = self.open_documents.get(uri).map(|d| d.version);
+        trace!("publishing diagnostics for {uri} {version:?}): {errors:?}");
+        // Publish diagnostics
+        (self.diagnostics_receiver)(DiagnosticUpdate {
+            uri: uri.into(),
+            version,
+            errors,
+        });
     }
 
     fn apply_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) -> bool {
@@ -306,7 +331,7 @@ impl<'a> LanguageService<'a> {
             self.configuration.target_profile = target_profile;
         }
 
-        trace!("need_recompile after configuration update: {need_recompile:?}");
+        trace!("need_recompile after configuration update: {need_recompile}");
         need_recompile
     }
 
@@ -314,19 +339,36 @@ impl<'a> LanguageService<'a> {
     /// the current configuration. Publishes updated
     /// diagnostics for all documents.
     fn recompile_all(&mut self) {
-        for state in self.compilations.values_mut() {
-            state.project.recompile(
+        for compilation in self.compilations.values_mut() {
+            compilation.recompile(
                 self.configuration.package_type,
                 self.configuration.target_profile,
             );
         }
 
-        for document_uri in self.documents.values() {
-            let state = self
-                .compilations
-                .get(document_uri)
-                .expect("project looked up with document uri should exist");
-            self.publish_diagnostics(&state.project, state.version, document_uri);
-        }
+        self.publish_diagnostics();
     }
+}
+
+fn errors_by_doc(compilation_uri: &Arc<str>, errors: &Vec<Error>) -> HashMap<Arc<str>, Vec<Error>> {
+    let mut map = HashMap::new();
+
+    for err in errors {
+        // Use the compilation_uri as a location for span-less errors
+        let doc = err
+            .labels()
+            .into_iter()
+            .flatten()
+            .next()
+            .map_or(compilation_uri, |l| {
+                let (source, _) = err.resolve_span(l.inner());
+                &source.name
+            });
+
+        map.entry(doc.clone())
+            .or_insert_with(Vec::new)
+            .push(err.clone());
+    }
+
+    map
 }

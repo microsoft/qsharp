@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{diagnostic::VSDiagnostic, serializable_type};
-use qsc::{self, compile};
+use js_sys::JsString;
+use qsc::{self};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -17,23 +18,22 @@ impl LanguageService {
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
-        let inner = qsls::LanguageService::new(
-            move |uri: &str, version: u32, errors: &[compile::Error]| {
-                let diags = errors
-                    .iter()
-                    .map(|err| VSDiagnostic::from_compile_error(uri, err))
-                    .collect::<Vec<_>>();
-                let _ = diagnostics_callback
-                    .call3(
-                        &JsValue::NULL,
-                        &uri.into(),
-                        &version.into(),
-                        &serde_wasm_bindgen::to_value(&diags)
-                            .expect("conversion to VSDiagnostic should succeed"),
-                    )
-                    .expect("callback should succeed");
-            },
-        );
+        let inner = qsls::LanguageService::new(move |update| {
+            let diags = update
+                .errors
+                .iter()
+                .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
+                .collect::<Vec<_>>();
+            let _ = diagnostics_callback
+                .call3(
+                    &JsValue::NULL,
+                    &update.uri.into(),
+                    &update.version.into(),
+                    &serde_wasm_bindgen::to_value(&diags)
+                        .expect("conversion to VSDiagnostic should succeed"),
+                )
+                .expect("callback should succeed");
+        });
         LanguageService(inner)
     }
 
@@ -58,26 +58,29 @@ impl LanguageService {
         self.0.update_document(uri, version, text);
     }
 
-    pub fn update_notebook_document(
-        &mut self,
-        notebook_uri: &str,
-        version: u32,
-        cells: Vec<ICell>,
-    ) {
+    pub fn close_document(&mut self, uri: &str) {
+        self.0.close_document(uri);
+    }
+
+    pub fn update_notebook_document(&mut self, notebook_uri: &str, cells: Vec<ICell>) {
         let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
         self.0.update_notebook_document(
             notebook_uri,
-            version,
             cells
                 .iter()
-                .map(|s| (s.uri.as_ref(), s.code.as_ref()))
-                .collect::<Vec<(&str, &str)>>()
+                .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref()))
+                .collect::<Vec<(&str, u32, &str)>>()
                 .as_slice(),
         );
     }
 
-    pub fn close_document(&mut self, uri: &str) {
-        self.0.close_document(uri);
+    pub fn close_notebook_document(&mut self, notebook_uri: &str, cell_uris: Vec<JsString>) {
+        let cell_uris = cell_uris
+            .iter()
+            .map(|s| s.as_string().expect("expected string"))
+            .collect::<Vec<_>>();
+        self.0
+            .close_notebook_document(notebook_uri, cell_uris.iter().map(|s| s.as_str()));
     }
 
     pub fn get_completions(&self, uri: &str, offset: u32) -> ICompletionList {
@@ -355,10 +358,12 @@ serializable_type! {
     Cell,
     {
         pub uri: String,
+        pub version: u32,
         pub code: String
     },
     r#"export interface ICell {
         uri: string;
+        version: number;
         code: string;
     }"#,
     ICell
@@ -367,7 +372,7 @@ serializable_type! {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
-        typescript_type = "(uri: string, version: number, diagnostics: IDiagnostic[]) => void"
+        typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
 }

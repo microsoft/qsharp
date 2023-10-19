@@ -63,7 +63,10 @@ impl Compilation {
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook(cells: &[(&str, &str)]) -> Self {
+    pub(crate) fn new_notebook<'a, I>(cells: I) -> Self
+    where
+        I: Iterator<Item = (&'a str, &'a str)>,
+    {
         let mut compiler = Compiler::new(
             true,
             SourceMap::default(),
@@ -75,9 +78,7 @@ impl Compilation {
         let mut errors = Vec::new();
         for (name, contents) in cells {
             if let Err(cell_errors) = compiler.compile_fragments(name, contents) {
-                for error in cell_errors {
-                    errors.push(error.into_error());
-                }
+                errors.extend(cell_errors);
             }
         }
 
@@ -106,7 +107,7 @@ impl Compilation {
                 assert!(sources.len() == 1);
                 Self::new_open_document(sources[0].0, sources[0].1, package_type, target_profile)
             }
-            CompilationKind::Notebook => Self::new_notebook(&sources),
+            CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
         };
         self.package_store = new.package_store;
         self.current = new.current;

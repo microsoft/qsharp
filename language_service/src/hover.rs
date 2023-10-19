@@ -4,15 +4,20 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::{Compilation, Lookup};
-use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
-use crate::protocol::{self, Hover};
-use crate::qsc_utils::{find_ident, resolve_offset, span_contains, span_touches};
-use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
-use qsc::{ast, hir, resolve};
-use std::fmt::Display;
-use std::mem::replace;
-use std::rc::Rc;
+use crate::{
+    compilation::{Compilation, Lookup},
+    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
+    protocol::Hover,
+    qsc_utils::{find_ident, protocol_span, resolve_offset, span_contains, span_touches},
+};
+use qsc::{
+    ast::{
+        self,
+        visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor},
+    },
+    hir, resolve,
+};
+use std::{fmt::Display, mem::replace, rc::Rc};
 
 pub(crate) fn get_hover(
     compilation: &Compilation,
@@ -217,29 +222,26 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
         if span_touches(expr.span, self.offset) {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
-                    if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.unit.ast.tys.terms.get(udt.id)
-                    {
+                    if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
                         match res {
                             hir::Res::Item(item_id) => {
-                                if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                    match &item.kind {
-                                        hir::ItemKind::Ty(_, udt) => {
-                                            if udt.find_field_by_name(&field.name).is_some() {
-                                                let contents = markdown_fenced_block(
-                                                    self.display.ident_ty_id(field, expr.id),
-                                                );
-                                                self.hover = Some(Hover {
-                                                    contents,
-                                                    span: protocol_span(
-                                                        field.span,
-                                                        &self.compilation.current_unit().sources,
-                                                    ),
-                                                });
-                                            }
+                                let (item, _) = self.compilation.find_item(item_id);
+                                match &item.kind {
+                                    hir::ItemKind::Ty(_, udt) => {
+                                        if udt.find_field_by_name(&field.name).is_some() {
+                                            let contents = markdown_fenced_block(
+                                                self.display.ident_ty_id(field, expr.id),
+                                            );
+                                            self.hover = Some(Hover {
+                                                contents,
+                                                span: protocol_span(
+                                                    field.span,
+                                                    &self.compilation.current_unit().sources,
+                                                ),
+                                            });
                                         }
-                                        _ => panic!("UDT has invalid resolution."),
                                     }
+                                    _ => panic!("UDT has invalid resolution."),
                                 }
                             }
                             _ => panic!("UDT has invalid resolution."),

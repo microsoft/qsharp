@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::compilation::Compilation;
-use qsc::{ast, AstPackage, Span};
+use qsc::{ast, AstPackage, SourceMap, Span};
 
 use crate::protocol;
 

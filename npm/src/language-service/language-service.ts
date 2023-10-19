@@ -122,7 +122,7 @@ export class QSharpLanguageService implements ILanguageService {
     for (const cell of cells) {
       this.code[cell.uri] = cell.code;
     }
-    this.languageService.update_notebook_document(notebookUri, version, cells);
+    this.languageService.update_notebook_document(notebookUri, cells);
   }
 
   async closeDocument(documentUri: string): Promise<void> {
@@ -336,7 +336,11 @@ export class QSharpLanguageService implements ILanguageService {
     this.eventHandler.removeEventListener(type, listener);
   }
 
-  onDiagnostics(uri: string, version: number, diagnostics: VSDiagnostic[]) {
+  onDiagnostics(
+    uri: string,
+    version: number | undefined,
+    diagnostics: VSDiagnostic[]
+  ) {
     try {
       const code = this.code[uri];
       const empty = diagnostics.length === 0;
@@ -353,7 +357,7 @@ export class QSharpLanguageService implements ILanguageService {
       const event = new Event("diagnostics") as LanguageServiceEvent & Event;
       event.detail = {
         uri,
-        version,
+        version: version ?? 99,
         diagnostics: empty ? [] : mapDiagnostics(diagnostics, code as string),
       };
       this.eventHandler.dispatchEvent(event);

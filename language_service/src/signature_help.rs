@@ -8,7 +8,7 @@ use crate::{
     compilation::{Compilation, Lookup},
     display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
-    qsc_utils::{find_item, map_offset, resolve_offset, span_contains, span_touches},
+    qsc_utils::{resolve_offset, span_contains, span_touches},
 };
 use qsc::{
     ast::{
