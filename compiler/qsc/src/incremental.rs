@@ -77,27 +77,45 @@ impl Compiler {
     /// get information about the newly added items, or do other modifications.
     /// It is then the caller's responsibility to merge
     /// these packages into the current `CompileUnit` using the `update()` method.
-    pub fn compile_fragments(
+    pub fn compile_fragments_fail_fast(
         &mut self,
         source_name: &str,
         source_contents: &str,
     ) -> Result<Increment, Errors> {
+        self.compile_fragments_acc_errors(source_name, source_contents, fail_on_error)
+    }
+
+    pub fn compile_fragments_acc_errors<F>(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+        mut accumulate_errors: F,
+    ) -> Result<Increment, Errors>
+    where
+        F: FnMut(Errors) -> Result<(), Errors>,
+    {
         let (core, unit) = self.store.get_open_mut();
 
+        let mut errors = Vec::new();
         let mut increment = self
             .frontend
-            .compile_fragments(unit, source_name, source_contents)
-            .map_err(into_errors)?;
+            .compile_fragments_acc_errors(unit, source_name, source_contents, |e| {
+                errors.extend(e);
+                Ok(()) // accumulate errors without failing
+            })
+            .expect("compile_fragments_acc_errors should not fail");
 
-        let pass_errors = self.passes.run_default_passes(
-            &mut increment.hir,
-            &mut unit.assigner,
-            core,
-            PackageType::Lib,
-        );
+        if errors.is_empty() {
+            let pass_errors = self.passes.run_default_passes(
+                &mut increment.hir,
+                &mut unit.assigner,
+                core,
+                PackageType::Lib,
+            );
 
-        if !pass_errors.is_empty() {
-            return Err(into_errors_with_source(pass_errors, &unit.sources));
+            accumulate_errors(into_errors_with_source(pass_errors, &unit.sources))?;
+        } else {
+            accumulate_errors(into_errors(errors))?;
         }
 
         Ok(increment)
@@ -188,4 +206,11 @@ where
         .into_iter()
         .map(qsc_frontend::error::WithSource::into_with_source)
         .collect()
+}
+
+fn fail_on_error(errors: Errors) -> Result<(), Errors> {
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    Ok(())
 }

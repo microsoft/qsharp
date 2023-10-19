@@ -81,9 +81,14 @@ impl Compilation {
         let mut errors = Vec::new();
         for (name, contents) in cells {
             trace!("compiling cell {name}");
-            if let Err(cell_errors) = compiler.compile_fragments(name, contents) {
-                errors.extend(cell_errors);
-            }
+            let increment = compiler
+                .compile_fragments_acc_errors(name, contents, |cell_errors| {
+                    errors.extend(cell_errors);
+                    Ok(()) // accumulate errors without failing
+                })
+                .expect("compile_fragments_acc_errors should not fail");
+
+            compiler.update(increment);
         }
 
         let (package_store, package_id) = compiler.into_package_store();
@@ -161,7 +166,18 @@ impl Lookup for Compilation {
             unit.package
                 .items
                 .get(id.item)
-                .expect("item must exist in store"),
+                .expect("item must exist in store"), // TODO: we're hitting a panic here
+            // operation Main() : Result {
+            //     ## TRIGGER COMPLETION HERE ##
+            //     use q = Qubit();
+            //     X(q);
+            //     Microsoft.Quantum.Diagnostics.DumpMachine();
+            //     let r = M(q);
+            //     Message($"The result of the measurement is {r}");
+            //     Reset(q);
+            //     r
+            // }
+            // Main()
             unit,
         )
     }
