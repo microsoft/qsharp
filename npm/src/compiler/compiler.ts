@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IDiagnostic } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
@@ -51,9 +50,9 @@ export class Compiler implements ICompiler {
    * @deprecated use the language service for errors and other editor features.
    */
   async checkCode(code: string): Promise<VSDiagnostic[]> {
-    let diags: IDiagnostic[] = [];
+    let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number, errors: IDiagnostic[]) => {
+      (uri: string, version: number, errors: VSDiagnostic[]) => {
         diags = errors;
       }
     );

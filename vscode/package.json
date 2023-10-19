@@ -207,6 +207,11 @@
         "command": "qsharp-vscode.setTargetProfile",
         "category": "Q#",
         "title": "Set the Azure Quantum QIR target profile"
+      },
+      {
+        "command": "qsharp-vscode.createNotebook",
+        "category": "Q#",
+        "title": "Create an Azure Quantum notebook"
       }
     ],
     "breakpoints": [

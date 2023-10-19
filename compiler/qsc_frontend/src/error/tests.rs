@@ -116,6 +116,52 @@ fn error_spans_eof() {
     .assert_eq(&formatted_error);
 }
 
+#[test]
+fn resolve_spans() {
+    let test1_contents = "namespace Foo {}";
+    let test2_contents = "namespace Bar {}";
+    let mut sources = SourceMap::default();
+    let test1_offset = sources.push("test1.qs".into(), test1_contents.into());
+    let test2_offset = sources.push("test2.qs".into(), test2_contents.into());
+
+    let error = TestError::TwoSpans(
+        "value".into(),
+        span_with_offset(test1_offset, 10, 13),
+        span_with_offset(test2_offset, 10, 13),
+    );
+
+    let with_source = WithSource::from_map(&sources, error);
+
+    let resolved_spans = with_source
+        .labels()
+        .expect("expected labels to exist")
+        .map(|l| {
+            let resolved = with_source.resolve_span(l.inner());
+            (
+                resolved.0.name.to_string(),
+                resolved.1.offset(),
+                resolved.1.len(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    expect![[r#"
+        [
+            (
+                "test1.qs",
+                10,
+                3,
+            ),
+            (
+                "test2.qs",
+                10,
+                3,
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&resolved_spans);
+}
+
 fn span_with_offset(offset: u32, lo: u32, hi: u32) -> Span {
     Span {
         lo: lo + offset,

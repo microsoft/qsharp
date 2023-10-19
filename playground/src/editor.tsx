@@ -50,6 +50,18 @@ function VSDiagsToMarkers(
       startColumn: startPos.column,
       endLineNumber: endPos.lineNumber,
       endColumn: endPos.column,
+      relatedInformation: err.related?.map((r) => {
+        const startPos = srcModel.getPositionAt(r.start_pos);
+        const endPos = srcModel.getPositionAt(r.end_pos);
+        return {
+          resource: monaco.Uri.parse(r.source),
+          message: r.message,
+          startLineNumber: startPos.lineNumber,
+          startColumn: startPos.column,
+          endLineNumber: endPos.lineNumber,
+          endColumn: endPos.column,
+        };
+      }),
     };
 
     return marker;
@@ -177,6 +189,11 @@ export function Editor(props: {
     // and not the updated one. Not a problem currently since the language
     // service is never updated, but not correct either.
     srcModel.onDidChangeContent(async () => {
+      // Reset the shot errors whenever the document changes.
+      // The markers will be refreshed by the onDiagnostics callback
+      // when the language service finishes checking the document.
+      errMarks.current.shotDiags = [];
+
       performance.mark("update-document-start");
       await props.languageService.updateDocument(
         srcModel.uri.toString(),

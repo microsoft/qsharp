@@ -33,6 +33,8 @@ const workspacesSecret = "qsharp-vscode.workspaces";
 
 export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   const workspaceTreeProvider = new WorkspaceTreeProvider();
+  WorkspaceTreeProvider.instance = workspaceTreeProvider;
+
   const treeView = vscode.window.createTreeView("quantum-workspaces", {
     treeDataProvider: workspaceTreeProvider,
   });
@@ -316,7 +318,11 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         const treeItem = arg || currentTreeItem;
         if (treeItem?.type !== "workspace") return;
         const workspace = treeItem.itemData as WorkspaceConnection;
-        const str = getPythonCodeForWorkspace(workspace);
+        const str = getPythonCodeForWorkspace(
+          workspace.id,
+          workspace.endpointUri,
+          workspace.name
+        );
         if (str) {
           vscode.env.clipboard.writeText(str);
           vscode.window.showInformationMessage(

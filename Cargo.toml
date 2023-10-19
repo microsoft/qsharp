@@ -29,30 +29,30 @@ license = "MIT"
 version = "0.0.0"
 
 [workspace.dependencies]
-clap = "4.1.8"
-criterion = { version = "0.5.1", default-features = false }
-enum-iterator = "1.2.0"
+clap = "4.4"
+criterion = { version = "0.5", default-features = false }
+enum-iterator = "1.4"
 env_logger = "0.10.0"
-expect-test = "1.4.0"
+expect-test = "1.4"
 getrandom = { version = "0.2" }
-indoc = "2.0.0"
-js-sys = "0.3.61"
+indoc = "2.0"
+js-sys = "0.3"
 libfuzzer-sys = "0.4"
 log = "0.4"
-miette = "5.6.0"
-thiserror = "1.0.39"
-num-bigint = "0.4.3"
+miette = "5.10"
+thiserror = "1.0"
+num-bigint = "0.4"
 num-complex = "0.4"
-num-traits = "0.2.15"
-indenter = "0.2"
-regex-lite = "0.1.0"
+num-traits = "0.2"
+indenter = "0.3"
+regex-lite = "0.1"
 serde = "1.0"
-serde-wasm-bindgen = "0.5"
-wasm-bindgen = "0.2.84"
-rand = "0.8.5"
-serde_json = { version = "1.0.96" }
-pyo3 = { version = "0.19.2", features = ["abi3-py37", "extension-module"] }
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e96b9a12a43e98f83f2d4d499f46d651d0c6c341", default-features = false }
+serde-wasm-bindgen = "0.6"
+wasm-bindgen = "0.2"
+rand = "0.8"
+serde_json = { version = "1.0" }
+pyo3 = { version = "0.20", features = ["abi3-py37", "extension-module"] }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "f000e0066f56338595be37092cd0498f72ab10a2", default-features = false }
 
 [profile.release]
 debug = 1

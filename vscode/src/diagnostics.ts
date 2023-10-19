@@ -56,11 +56,29 @@ export function startCheckingQSharp(
             severity = vscode.DiagnosticSeverity.Information;
             break;
         }
-        return new vscode.Diagnostic(
+        const vscodeDiagnostic = new vscode.Diagnostic(
           new vscode.Range(getPosition(d.start_pos), getPosition(d.end_pos)),
           d.message,
           severity
         );
+        if (d.code) {
+          vscodeDiagnostic.code = d.code;
+        }
+        if (d.related) {
+          vscodeDiagnostic.relatedInformation = d.related.map((r) => {
+            return new vscode.DiagnosticRelatedInformation(
+              new vscode.Location(
+                vscode.Uri.parse(r.source),
+                new vscode.Range(
+                  getPosition(r.start_pos),
+                  getPosition(r.end_pos)
+                )
+              ),
+              r.message
+            );
+          });
+        }
+        return vscodeDiagnostic;
       })
     );
   }

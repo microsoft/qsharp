@@ -3,7 +3,6 @@
 
 import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
-  IDiagnostic,
   ICompletionList,
   IHover,
   IDefinition,
@@ -307,7 +306,7 @@ export class QSharpLanguageService implements ILanguageService {
     this.eventHandler.removeEventListener(type, listener);
   }
 
-  onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
+  onDiagnostics(uri: string, version: number, diagnostics: VSDiagnostic[]) {
     try {
       const code = this.code[uri];
       const empty = diagnostics.length === 0;
