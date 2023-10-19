@@ -14,6 +14,7 @@ pub struct Project {
     pub manifest: crate::Manifest,
 }
 
+/// This enum represents a filesystem object type. It is analogous to [std::fs::FileType].
 #[derive(PartialEq)]
 pub enum EntryType {
     File,
@@ -21,6 +22,7 @@ pub enum EntryType {
     Symlink,
 }
 
+/// This trait represents a filesystem object. It is analogous to [std::fs::DirEntry].
 pub trait DirEntry {
     type Error;
     fn entry_type(&self) -> Result<EntryType, Self::Error>;
@@ -42,6 +44,8 @@ pub trait FileSystem {
     /// Given a path, list its directory contents (if any).
     fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
+    /// Given an initial path and some regexes to exclude, fetch files that don't match
+    /// those regexes.
     fn fetch_files_with_exclude_pattern(
         &self,
         exclude_patterns: &[Regex],
@@ -65,6 +69,7 @@ pub trait FileSystem {
         Ok(files)
     }
 
+    /// Given a [ManifestDescriptor], load project sources.
     fn load_project(&self, manifest: ManifestDescriptor) -> miette::Result<Project> {
         let exclude_patterns: Vec<_> = manifest
             .manifest
