@@ -136,8 +136,7 @@ export class QSharpLanguageService implements ILanguageService {
     cellUris: string[]
   ): Promise<void> {
     cellUris.forEach((uri) => delete this.code[uri]);
-    // TODO: just do this for now, but we probably need to implement close_notebook_document properly
-    this.languageService.close_document(documentUri);
+    this.languageService.close_notebook_document(documentUri, cellUris);
   }
 
   async getCompletions(

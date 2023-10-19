@@ -173,16 +173,17 @@ impl<'a> LanguageService<'a> {
         trace!("update_notebook_document: {notebook_uri}");
         let compilation = Compilation::new_notebook(cells.iter().map(|c| (c.0, c.2)));
 
-        let compilation_id: Arc<str> = notebook_uri.into();
+        let compilation_uri: Arc<str> = notebook_uri.into();
         self.compilations
-            .insert(compilation_id.clone(), compilation);
+            .insert(compilation_uri.clone(), compilation);
 
         for (cell_uri, version, _) in cells {
+            trace!("update_notebook_document: cell: {cell_uri} {version}");
             self.open_documents.insert(
                 (*cell_uri).into(),
                 OpenDocument {
                     version: *version,
-                    compilation: compilation_id.clone(),
+                    compilation: compilation_uri.clone(),
                 },
             );
         }
@@ -195,16 +196,17 @@ impl<'a> LanguageService<'a> {
     /// LSP: notebookDocument/didClose
     pub fn close_notebook_document<'b>(
         &mut self,
-        uri: &str,
+        notebook_uri: &str,
         cell_uris: impl Iterator<Item = &'b str>,
     ) {
-        trace!("close_document: {uri}");
+        trace!("close_notebook_document: {notebook_uri}");
 
         for cell_uri in cell_uris {
+            trace!("close_notebook_document: cell: {cell_uri}");
             self.open_documents.remove(cell_uri);
         }
 
-        self.compilations.remove(uri);
+        self.compilations.remove(notebook_uri);
 
         self.publish_diagnostics();
     }
@@ -257,14 +259,16 @@ impl<'a> LanguageService<'a> {
         T: std::fmt::Debug,
     {
         trace!("{op_name}: uri: {uri}, offset: {offset}");
-        let compilation_id = &self
+        let compilation_uri = &self
             .open_documents
             .get(uri)
             .unwrap_or_else(|| {
                 panic!("{op_name} should not be called for a document that has not been opened",)
             })
             .compilation;
-        let compilation = self.compilations.get(compilation_id).unwrap_or_else(|| {
+
+        trace!("{op_name}: compilation_uri: {compilation_uri}");
+        let compilation = self.compilations.get(compilation_uri).unwrap_or_else(|| {
             panic!("{op_name} should not be called before compilation has been initialized",)
         });
 
