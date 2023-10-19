@@ -11,9 +11,9 @@
 ///
 /// The phase-flip correction code works by checking the parity of the physical
 /// qubits. By measuring only their parity, the quantum superposition of the
-/// qubits is preserved the qubits. Because all the physical qubits are
-/// supposed to have the same state, when the parity checks detect a
-/// difference in state, the erroneous qubit can be identified and corrected.
+/// qubits is preserved. Because all the physical qubits are supposed to have
+/// the same state, when the parity checks detect a difference in state, the
+/// erroneous qubit can be identified and corrected.
 ///
 /// This Q# program prepares a logical qubit encoded as three physical qubits
 /// with one of the qubits being phase-flipped. It then identifies and corrects
