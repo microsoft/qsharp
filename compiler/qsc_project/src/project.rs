@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use regex_lite::Regex;
 
@@ -34,15 +37,15 @@ pub trait DirEntry {
 pub trait FileSystem {
     type Entry: DirEntry;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
-    fn read_file(&self, path: &PathBuf) -> miette::Result<(Arc<str>, Arc<str>)>;
+    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
     /// Given a path, list its directory contents (if any).
-    fn list_directory(&self, path: &PathBuf) -> miette::Result<Vec<Self::Entry>>;
+    fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
     fn fetch_files_with_exclude_pattern(
         &self,
         exclude_patterns: &[Regex],
-        initial_path: &PathBuf,
+        initial_path: &Path,
     ) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path)?;
         let mut files = vec![];
@@ -74,7 +77,7 @@ pub trait FileSystem {
         let qs_files =
             self.fetch_files_with_exclude_pattern(&exclude_patterns, &manifest.manifest_dir)?;
 
-        let qs_files = qs_files.into_iter().map(|file| file.path().into());
+        let qs_files = qs_files.into_iter().map(|file| file.path());
 
         let qs_sources = qs_files.map(|path| self.read_file(&path));
 
@@ -89,8 +92,5 @@ pub trait FileSystem {
 fn regex_matches(exclude_patterns: &[Regex], entry_name: &str) -> bool {
     exclude_patterns
         .iter()
-        .any(|pattern| match pattern.find(entry_name) {
-            Some(item) if item.as_str().len() == entry_name.len() => true,
-            _ => false,
-        })
+        .any(|pattern| matches!(pattern.find(entry_name), Some(item) if item.as_str().len() == entry_name.len()))
 }

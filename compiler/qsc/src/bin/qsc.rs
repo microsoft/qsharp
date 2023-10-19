@@ -81,7 +81,7 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let fs = StdFs::new();
+    let fs = StdFs;
     let manifest = Manifest::load()?;
     if let Some(manifest) = manifest {
         let project = fs.load_project(manifest)?;

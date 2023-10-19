@@ -11,7 +11,7 @@ pub fn check(project_path: PathBuf, expect: &Expect) {
     let manifest = Manifest::load_from_path(absolute_project_path)
         .unwrap()
         .unwrap();
-    let fs = StdFs::new();
+    let fs = StdFs;
     let mut project = fs.load_project(manifest).unwrap();
 
     // remove the prefix absolute path
