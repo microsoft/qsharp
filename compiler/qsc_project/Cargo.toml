@@ -18,6 +18,7 @@ regex-lite = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
+qsc_project = { path = ".", features = ["fs"] }
 
 [features]
 fs = []

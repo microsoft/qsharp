@@ -141,7 +141,7 @@ fn exclude_blobs() {
                     author: None,
                     license: None,
                     exclude_files: [
-                        ".*to_exclude\\/.*",
+                        ".*to_exclude.*",
                     ],
                 },
             }"#]],
