@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use expect_test::Expect;
-use qsc_project::{FileSystem, Manifest, FS};
+use qsc_project::{FileSystem, Manifest, StdFs};
 
 pub fn check(project_path: PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -11,7 +11,7 @@ pub fn check(project_path: PathBuf, expect: &Expect) {
     let manifest = Manifest::load_from_path(absolute_project_path)
         .unwrap()
         .unwrap();
-    let fs = FS::new();
+    let fs = StdFs::new();
     let mut project = fs.load_project(manifest).unwrap();
 
     // remove the prefix absolute path

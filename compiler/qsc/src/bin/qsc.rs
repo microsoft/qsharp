@@ -15,7 +15,7 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
-use qsc_project::{FileSystem, Manifest, FS};
+use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
     concat, fs,
     io::{self, Read},
@@ -81,7 +81,7 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let fs = FS::new();
+    let fs = StdFs::new();
     let manifest = Manifest::load()?;
     if let Some(manifest) = manifest {
         let project = fs.load_project(manifest)?;
