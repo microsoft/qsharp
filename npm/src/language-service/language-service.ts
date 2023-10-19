@@ -5,7 +5,7 @@ import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
   ICompletionList,
   IHover,
-  IDefinition,
+  ILocation,
   ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
@@ -44,7 +44,8 @@ export interface ILanguageService {
   getDefinition(
     documentUri: string,
     offset: number
-  ): Promise<IDefinition | undefined>;
+  ): Promise<ILocation | undefined>;
+  getReferences(documentUri: string, offset: number): Promise<ILocation[]>;
   getSignatureHelp(
     documentUri: string,
     offset: number
@@ -163,7 +164,7 @@ export class QSharpLanguageService implements ILanguageService {
   async getDefinition(
     documentUri: string,
     offset: number
-  ): Promise<IDefinition | undefined> {
+  ): Promise<ILocation | undefined> {
     let code = this.code[documentUri];
     if (code === undefined) {
       log.error(
@@ -193,6 +194,50 @@ export class QSharpLanguageService implements ILanguageService {
       ];
     }
     return result;
+  }
+
+  async getReferences(
+    documentUri: string,
+    offset: number
+  ): Promise<ILocation[]> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(
+        `getReferences: expected ${documentUri} to be in the document map`
+      );
+      return [];
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const results = this.languageService.get_references(
+      documentUri,
+      convertedOffset
+    );
+    if (results && results.length > 0) {
+      const references: ILocation[] = [];
+      for (const result of results) {
+        let resultCode: string | undefined = code;
+        // Inspect the URL protocol (equivalent to the URI scheme + ":").
+        // If the scheme is our library scheme, we need to call the wasm to
+        // provide the library file's contents to do the utf8->utf16 mapping.
+        const url = new URL(result.source);
+        if (url.protocol === qsharpLibraryUriScheme + ":") {
+          resultCode = wasm.get_library_source_content(url.pathname);
+          if (resultCode === undefined) {
+            log.error(`getReferences: expected ${url} to be in the library`);
+            return [];
+          }
+        }
+        references.push({
+          source: result.source,
+          offset: mapUtf8UnitsToUtf16Units([result.offset], resultCode)[
+            result.offset
+          ],
+        });
+      }
+      return references;
+    } else {
+      return [];
+    }
   }
 
   async getSignatureHelp(

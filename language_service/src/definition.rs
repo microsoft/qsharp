@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::protocol::Definition;
+use crate::protocol::Location;
 use crate::qsc_utils::{
     find_ident, find_item, map_offset, span_contains, span_touches, Compilation,
     QSHARP_LIBRARY_URI_SCHEME,
@@ -17,7 +17,7 @@ pub(crate) fn get_definition(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
-) -> Option<Definition> {
+) -> Option<Location> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
     let ast_package = &compilation.unit.ast;
@@ -30,12 +30,10 @@ pub(crate) fn get_definition(
     };
     definition_finder.visit_package(&ast_package.package);
 
-    definition_finder
-        .definition
-        .map(|(name, offset)| Definition {
-            source: name,
-            offset,
-        })
+    definition_finder.definition.map(|(name, offset)| Location {
+        source: name,
+        offset,
+    })
 }
 
 struct DefinitionFinder<'a> {

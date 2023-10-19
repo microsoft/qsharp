@@ -30,6 +30,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
+import { createReferenceProvider } from "./references.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -172,6 +173,14 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerDefinitionProvider(
       qsharpDocumentFilter,
       createDefinitionProvider(languageService)
+    )
+  );
+
+  // find references
+  subscriptions.push(
+    vscode.languages.registerReferenceProvider(
+      qsharpDocumentFilter,
+      createReferenceProvider(languageService)
     )
   );
 

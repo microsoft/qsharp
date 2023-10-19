@@ -60,7 +60,7 @@ impl CompletionItem {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Definition {
+pub struct Location {
     pub source: String,
     pub offset: u32,
 }

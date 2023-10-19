@@ -6,7 +6,7 @@
 
 use crate::qsc_utils::compile_document;
 use log::trace;
-use protocol::{CompletionList, Definition, Hover, SignatureHelp, WorkspaceConfigurationUpdate};
+use protocol::{CompletionList, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate};
 use qsc::{PackageType, TargetProfile};
 use qsc_utils::Compilation;
 use std::collections::HashMap;
@@ -151,7 +151,7 @@ impl<'a> LanguageService<'a> {
     }
 
     #[must_use]
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Location> {
         trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
         let res = definition::get_definition(
             &self
@@ -160,6 +160,18 @@ impl<'a> LanguageService<'a> {
                 uri, offset);
         trace!("get_definition result: {res:?}");
         res
+    }
+
+    #[must_use]
+    pub fn get_references(&self, uri: &str, offset: u32) -> Vec<Location> {
+        trace!("get_references: uri: {uri:?}, offset: {offset:?}");
+        let res = definition::get_definition(
+            &self
+            .document_map.get(uri).as_ref()
+                .expect("get_references should not be called before document has been initialized with update_document").compilation,
+                uri, offset);
+        trace!("get_references result: {res:?}");
+        res.into_iter().collect()
     }
 
     #[must_use]

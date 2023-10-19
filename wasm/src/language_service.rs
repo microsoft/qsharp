@@ -95,15 +95,29 @@ impl LanguageService {
         .into()
     }
 
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<IDefinition> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<ILocation> {
         let definition = self.0.get_definition(uri, offset);
         definition.map(|definition| {
-            Definition {
+            Location {
                 source: definition.source,
                 offset: definition.offset,
             }
             .into()
         })
+    }
+
+    pub fn get_references(&self, uri: &str, offset: u32) -> Vec<ILocation> {
+        let locations = self.0.get_references(uri, offset);
+        locations
+            .into_iter()
+            .map(|loc| {
+                Location {
+                    source: loc.source,
+                    offset: loc.offset,
+                }
+                .into()
+            })
+            .collect()
     }
 
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<IHover> {
@@ -254,16 +268,16 @@ serializable_type! {
 }
 
 serializable_type! {
-    Definition,
+    Location,
     {
         pub source: String,
         pub offset: u32,
     },
-    r#"export interface IDefinition {
+    r#"export interface ILocation {
         source: string;
         offset: number;
     }"#,
-    IDefinition
+    ILocation
 }
 
 serializable_type! {

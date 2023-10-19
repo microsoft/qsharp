@@ -3,7 +3,7 @@
 
 use expect_test::{expect, Expect};
 
-use super::{get_definition, Definition};
+use super::{get_definition, Location};
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 
 /// Asserts that the definition found at the given cursor position matches the expected position.
@@ -17,7 +17,7 @@ fn assert_definition(source_with_markers: &str) {
     let expected_definition = if target_offsets.is_empty() {
         None
     } else {
-        Some(Definition {
+        Some(Location {
             source: "<source>".to_string(),
             offset: target_offsets[0],
         })

@@ -300,6 +300,38 @@ function registerMonacoLanguageServiceProviders(
     },
   });
 
+  monaco.languages.registerReferenceProvider("qsharp", {
+    provideReferences: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position,
+      context: monaco.languages.ReferenceContext
+    ) => {
+      const lsReferences = await languageService.getReferences(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+      if (!lsReferences) return [];
+      const references: monaco.languages.Location[] = [];
+      for (const reference of lsReferences) {
+        const uri = monaco.Uri.parse(reference.source);
+        // the playground doesn't support sources other than the current source
+        if (uri.toString() == model.uri.toString()) {
+          const refPosition = model.getPositionAt(reference.offset);
+          references.push({
+            uri,
+            range: {
+              startLineNumber: refPosition.lineNumber,
+              startColumn: refPosition.column,
+              endLineNumber: refPosition.lineNumber,
+              endColumn: refPosition.column,
+            },
+          });
+        }
+      }
+      return references;
+    },
+  });
+
   monaco.languages.registerSignatureHelpProvider("qsharp", {
     signatureHelpTriggerCharacters: ["(", ","],
     provideSignatureHelp: async (
