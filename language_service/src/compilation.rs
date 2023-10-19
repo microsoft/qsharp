@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use log::trace;
 use qsc::{
     ast,
     compile::{self, Error},
@@ -38,6 +39,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: TargetProfile,
     ) -> Self {
+        trace!("compiling document {source_name}");
         // Source map only contains the current document.
         let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
 
@@ -67,6 +69,7 @@ impl Compilation {
     where
         I: Iterator<Item = (&'a str, &'a str)>,
     {
+        trace!("compiling notebook");
         let mut compiler = Compiler::new(
             true,
             SourceMap::default(),
@@ -77,12 +80,16 @@ impl Compilation {
 
         let mut errors = Vec::new();
         for (name, contents) in cells {
+            trace!("compiling cell {name}");
             if let Err(cell_errors) = compiler.compile_fragments(name, contents) {
                 errors.extend(cell_errors);
             }
         }
 
         let (package_store, package_id) = compiler.into_package_store();
+
+        trace!("compiled package: {:?}", package_store.get(package_id));
+        trace!("errors: {:?}", &errors);
 
         Self {
             package_store,

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::compilation::Compilation;
+use log::trace;
 use qsc::{ast, AstPackage, SourceMap, Span};
 
 use crate::protocol;
@@ -30,6 +31,8 @@ pub(crate) fn resolve_offset<'a>(
         .expect("source should exist in the source map")
         .offset
         + offset;
+
+    trace!("resolve_offset found overall offset {offset}");
 
     let ast_package = &unit.ast;
     (ast_package, offset)

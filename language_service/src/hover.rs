@@ -29,6 +29,8 @@ pub(crate) fn get_hover(
 
     let mut hover_visitor = HoverVisitor::new(compilation, offset);
 
+    trace!("package: {}", &ast.package);
+
     hover_visitor.visit_package(&ast.package);
 
     hover_visitor.hover
