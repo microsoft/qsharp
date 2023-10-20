@@ -6,23 +6,51 @@ import * as vscode from "vscode";
 
 export const scheme = "qsharp-vfs";
 
-function populateSamples(vfs: MemFS) {
-  const rootDir = vscode.Uri.parse(`${scheme}:/`);
-  if (
-    // Don't overwrite (or recreate) any existing samples
-    !vfs.readDirectory(rootDir).includes(["samples", vscode.FileType.Directory])
-  ) {
-    const encoder = new TextEncoder();
-    vfs.createDirectory(vscode.Uri.parse(`${scheme}:/samples`));
+const sandboxAuthority = "sandbox";
+const sandboxRootUri = vscode.Uri.parse(`${scheme}://${sandboxAuthority}/`);
 
-    samples.forEach((sample) => {
-      vfs.writeFile(
-        vscode.Uri.parse(`${scheme}:/samples/${sample.title}.qs`),
-        encoder.encode(sample.code),
-        { create: true, overwrite: true }
-      );
-    });
-  }
+const sandboxReadme = `
+# Azure Quantum Sandbox
+
+Welcome to the Azure Quantum Development Kit sandbox! An online environment to
+safely learn and explore quantum computing with the Q# language.
+
+The samples folder contains a set of common quantum algorithms written in Q#.
+You can run these samples by clicking the "Run" button in the top right corner
+of the editor when you have the file open. You can also set breakpoints and
+step through the code using the Debug button at the same location to see how the
+algorithm changes quantum state as it executes.
+
+This sandbox exists entirely in memory and is not persisted to disk. All changes
+will be lost when the editor window is closed. You should use the 'File: Save
+As...' command in the VS Code Command Palette (accessed by pressing F1) to save
+your work elsewhere if you wish to keep it.
+
+For more details on using the Azure Quantum Development Kit for Visual Studio
+Code, see the wiki at <https://github.com/microsoft/qsharp/wiki/>
+`;
+
+// Put the sandbox in its own 'authority', so we can keep the default space clean.
+// This has the benefit of the URI https://vscode.dev/quantum/sandbox opening the sandbox
+function populateSamples(vfs: MemFS) {
+  vfs.addAuthority(sandboxAuthority);
+
+  const encoder = new TextEncoder();
+  vfs.createDirectory(sandboxRootUri.with({ path: "/samples" }));
+
+  samples.forEach((sample) => {
+    vfs.writeFile(
+      sandboxRootUri.with({ path: `/samples/${sample.title}.qs` }),
+      encoder.encode(sample.code),
+      { create: true, overwrite: true }
+    );
+  });
+
+  vfs.writeFile(
+    sandboxRootUri.with({ path: "/README.md" }),
+    encoder.encode(sandboxReadme),
+    { create: true, overwrite: true }
+  );
 }
 
 export async function initFileSystem(context: vscode.ExtensionContext) {
@@ -37,11 +65,12 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.openSamples", async () => {
+    vscode.commands.registerCommand("qsharp-vscode.openSandbox", async () => {
+      await vscode.commands.executeCommand("vscode.openFolder", sandboxRootUri);
+      // TO CHECK: Below may not even run if the prior command reloads the window
       await vscode.commands.executeCommand(
-        "vscode.openFolder",
-        vscode.Uri.parse(`${scheme}:/samples`),
-        { forceNewWindow: false, forceReuseWindow: true }
+        "vscode.open",
+        sandboxRootUri.with({ path: "/README.md" })
       );
     })
   );
@@ -51,21 +80,53 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
       log.info("typeof uri: " + typeof uri);
       log.info(`webOpener with URI ${uri}`);
 
+      // Open the README if the user has navigated to the sandbox
+      if (typeof uri === "string" && uri.endsWith("/sandbox/")) {
+        await vscode.commands.executeCommand(
+          "markdown.showPreview",
+          sandboxRootUri.with({ path: "/README.md" })
+        );
+        return;
+      }
+
+      // Example https://insiders.vscode.dev/+aHR0cHM6Ly9sb2NhbGhvc3Q6MzAwMA==?code=H4sIAAAAAAAAEz2Ouw6CQBRE%2B%2F2KITbQSI%2BNhRYWhkc0FoTiBm5kE9kld3c1xPDvEjSe8mQmM2mKS68dWtsxXuTgehLu8NQEwrU6RZFShgZ2I7WM81QGMj4Mhdi70IC3UljYH42XqbDa%2BDhZjR1ZyGtrcCZt4gQZKnbh4etmKeFHusznhzzDTbRnTDYIys33Tc%2FC239S2AcxqJvdqmY1qw8FRbBxvAAAAA%3D%3D
+      let linkedCode: string | undefined;
       if (typeof uri === "string") {
         const uriObj = vscode.Uri.parse(uri);
-        const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
-        const encoder = new TextEncoder();
-        vfs.writeFile(codeFile, encoder.encode(uriObj.fragment), {
-          create: true,
-          overwrite: true,
-        });
-        await vscode.commands.executeCommand("vscode.open", codeFile);
+        log.info("uri query: " + uriObj.query);
+
+        // The query appears to be URIDecoded already, which is causing issues with URLSearchParams. Use regex for now.
+        const code = uriObj.query.match(/code=([^&]*)/)?.[1];
+
+        // const params = new URLSearchParams(uriObj.query);
+        // log.info("URLSearchParams of query: " + params);
+        // const paramCode = params.get("code");
+        if (code) {
+          log.info("code: " + code);
+          // log.info("params.get(code) -> " + paramCode);
+          try {
+            // const base64code = decodeURIComponent(paramCode);
+            // const base64code = paramCode;
+            // log.info("Decoded code: " + base64code);
+            linkedCode = await compressedBase64ToCode(code);
+            const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
+
+            const encoder = new TextEncoder();
+            vfs.writeFile(codeFile, encoder.encode(linkedCode), {
+              create: true,
+              overwrite: true,
+            });
+            await vscode.commands.executeCommand("vscode.open", codeFile);
+          } catch (err) {
+            log.warn("Unable to decode the code in the URL. ", err);
+          }
+        }
       }
     })
   );
 }
 
-// basename and dirname are only xcalled with a vscode.uri 'path', which should be a well-formed posix path
+// basename and dirname are only called with a vscode.uri 'path', which should be a well-formed posix path
 // Below tested to align with how NodeJS path.basename and path.dirname work
 function basename(path: string) {
   path = path.replace(/\/+$/, "");
@@ -134,7 +195,11 @@ export class Directory implements vscode.FileStat {
 export type Entry = File | Directory;
 
 export class MemFS implements vscode.FileSystemProvider {
-  root = new Directory(``);
+  authorities = new Map([["", new Directory("")]]);
+
+  addAuthority(authority: string) {
+    this.authorities.set(authority, new Directory(""));
+  }
 
   stat(uri: vscode.Uri): vscode.FileStat {
     log.debug(`stat: ${uri.path}`);
@@ -251,7 +316,11 @@ export class MemFS implements vscode.FileSystemProvider {
   private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
   private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined {
     const parts = uri.path.split("/");
-    let entry: Entry = this.root;
+    let entry: Entry | undefined = this.authorities.get(uri.authority);
+    if (!entry) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+
     for (const part of parts) {
       if (!part) {
         continue;
@@ -320,4 +389,44 @@ export class MemFS implements vscode.FileSystemProvider {
       this._bufferedEvents.length = 0;
     }, 5);
   }
+}
+
+/*
+  let linkedCode: string | undefined;
+  const paramCode = new URLSearchParams(window.location.search).get("code");
+  if (paramCode) {
+    try {
+      const base64code = decodeURIComponent(paramCode);
+      linkedCode = await compressedBase64ToCode(base64code);
+    } catch {
+      linkedCode = "// Unable to decode the code in the URL\n";
+    }
+  }
+*/
+
+// TODO: This is taken from the playground. It should be moved to a common
+// location in the npm package and shared between the two.
+export async function compressedBase64ToCode(base64: string) {
+  // Turn the base64 string into a string of bytes
+  const binStr = atob(base64);
+
+  // Turn it into a byte array
+  const byteArray = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; ++i) byteArray[i] = binStr.charCodeAt(i);
+
+  // Decompress the bytes
+  const decompressor = new DecompressionStream("gzip");
+  const writer = decompressor.writable.getWriter();
+  writer.write(byteArray);
+  writer.close();
+
+  // Read the decompressed stream and turn into a byte string
+  const decompressedBuff = await new Response(
+    decompressor.readable
+  ).arrayBuffer();
+
+  // Decode the utf-8 bytes into a JavaScript string
+  const decoder = new TextDecoder();
+  const code = decoder.decode(decompressedBuff);
+  return code;
 }

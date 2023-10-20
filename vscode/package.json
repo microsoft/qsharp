@@ -235,9 +235,9 @@
         "title": "Create an Azure Quantum notebook"
       },
       {
-        "command": "qsharp-vscode.openSamples",
+        "command": "qsharp-vscode.openSandbox",
         "category": "Q#",
-        "title": "Open sample playground"
+        "title": "Open Q# sandbox"
       }
     ],
     "breakpoints": [
