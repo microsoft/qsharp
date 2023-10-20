@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { getCompilerWorker, log } from "qsharp-lang";
 import { isQsharpDocument } from "./common";
+import { EventType, generateAssociationId, sendTelemetryEvent } from "./telemetry";
 
 const generateQirTimeoutMs = 30000;
 
@@ -68,6 +69,13 @@ export async function getQirForActiveWindow(): Promise<string> {
     worker.terminate();
   }, generateQirTimeoutMs);
   try {
+    const associationId = generateAssociationId();
+    sendTelemetryEvent(
+      EventType.GenerateQirStart,
+      {associationId},
+
+      { }
+    );
     result = await worker.getQir(code);
     clearTimeout(compilerTimeout);
   } catch (e: any) {

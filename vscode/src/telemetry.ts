@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
+import { v4 } from "uuid";
 
 export enum EventType {
   DebugSessionStart = "Qsharp.DebugSessionStart",
@@ -8,7 +9,11 @@ export enum EventType {
   LoadLanguageService = "Qsharp.LoadLanguageService",
   QSharpJupyterCellInitialized = "Qsharp.JupyterCellInitialized",
   ReturnCompletionList = "Qsharp.ReturnCompletionList",
+  GenerateQirStart = "Qsharp.GenerateQirStart",
+  GenerateQirEnd = "Qsharp.GenerateQirEnd",
 }
+
+export const generateAssociationId: () => string  = v4;
 
 type Empty = { [K in any]: never };
 
@@ -38,19 +43,11 @@ type EventTypes = {
     measurements: {timeToCompletionMs: number; completionListLength: number; };
   };
   [EventType.GenerateQirStart]: {
-    properties: Empty;
+    properties: {associationId: string};
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
-    properties: Empty;
-    measurements: Empty;
-  };
-  [EventType.UserFlowSubmitToAzure]: {
-    properties: Empty;
-    measurements: Empty;
-  };
-  [EventType.UserFlowSignInToWorkspace]: {
-    properties: Empty;
+    properties: {associationId: string};
     measurements: Empty;
   };
 };
