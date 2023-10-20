@@ -19,7 +19,7 @@ mod test_utils;
 mod tests;
 
 use compilation::Compilation;
-use log::trace;
+use log::{debug, log_enabled, trace, Level};
 use miette::Diagnostic;
 use protocol::{
     CompletionList, Definition, DiagnosticUpdate, Hover, SignatureHelp,
@@ -193,6 +193,11 @@ impl<'a> LanguageService<'a> {
 
     /// Indicates that the client is no longer interested in the notebook.
     ///
+    /// # Panics
+    ///
+    /// Panics if `cell_uris` does not contain all the cells associated with
+    /// the notebook in the previous `update_notebook_document` call.
+    ///
     /// LSP: notebookDocument/didClose
     pub fn close_notebook_document<'b>(
         &mut self,
@@ -204,6 +209,17 @@ impl<'a> LanguageService<'a> {
         for cell_uri in cell_uris {
             trace!("close_notebook_document: cell: {cell_uri}");
             self.open_documents.remove(cell_uri);
+        }
+
+        // The client should have sent all cell uris along with
+        // the notebook. We shouldn't need to refer to the open_documents
+        // map to find the cells, but still we validate the client
+        // is behaving consistently.
+        for open_doc in self.open_documents.values() {
+            assert!(
+                notebook_uri != open_doc.compilation.as_ref(),
+                "all cells should have been closed along with the notebook"
+            );
         }
 
         self.compilations.remove(notebook_uri);

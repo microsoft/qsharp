@@ -385,6 +385,233 @@ fn target_profile_update_causes_error_in_stdlib() {
     );
 }
 
+#[test]
+fn notebook_document_no_errors() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    ls.update_notebook_document(
+        "notebook.ipynb",
+        &[
+            ("cell1", 1, "operation Main() : Unit {}"),
+            ("cell2", 1, "Main()"),
+        ],
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_document_errors() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    ls.update_notebook_document(
+        "notebook.ipynb",
+        &[
+            ("cell1", 1, "operation Main() : Unit {}"),
+            ("cell2", 1, "Foo()"),
+        ],
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell2",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
+                                        Span {
+                                            lo: 27,
+                                            hi: 30,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        AmbiguousTy(
+                                            Span {
+                                                lo: 27,
+                                                hi: 32,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_update_remove_cell_clears_errors() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    ls.update_notebook_document(
+        "notebook.ipynb",
+        &[
+            ("cell1", 1, "operation Main() : Unit {}"),
+            ("cell2", 1, "Foo()"),
+        ],
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell2",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
+                                        Span {
+                                            lo: 27,
+                                            hi: 30,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        AmbiguousTy(
+                                            Span {
+                                                lo: 27,
+                                                hi: 32,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+
+    ls.update_notebook_document(
+        "notebook.ipynb",
+        &[("cell1", 1, "operation Main() : Unit {}")],
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell2",
+                    Some(
+                        1,
+                    ),
+                    [],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn close_notebook_clears_errors() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    ls.update_notebook_document(
+        "notebook.ipynb",
+        &[
+            ("cell1", 1, "operation Main() : Unit {}"),
+            ("cell2", 1, "Foo()"),
+        ],
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell2",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
+                                        Span {
+                                            lo: 27,
+                                            hi: 30,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        AmbiguousTy(
+                                            Span {
+                                                lo: 27,
+                                                hi: 32,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+
+    ls.close_notebook_document("notebook.ipynb", ["cell1", "cell2"].into_iter());
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell2",
+                    None,
+                    [],
+                ),
+            ]
+        "#]],
+    );
+}
+
 type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
 
 fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'_> {
