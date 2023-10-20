@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(feature = "fs")]
 use crate::Error;
-use regex_lite::Regex;
-use serde::Deserialize;
-use std::path::PathBuf;
+#[cfg(feature = "fs")]
 use std::{
     env::current_dir,
     fs::{self, DirEntry, FileType},
 };
+
+use regex_lite::Regex;
+use serde::Deserialize;
+use std::path::PathBuf;
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
@@ -31,13 +34,6 @@ pub struct ManifestDescriptor {
 }
 
 impl ManifestDescriptor {
-    pub(crate) fn new(manifest: Manifest, manifest_dir: PathBuf) -> Self {
-        Self {
-            manifest,
-            manifest_dir,
-        }
-    }
-
     pub(crate) fn exclude_regexes(&self) -> Result<Vec<Regex>, crate::Error> {
         self.manifest
             .exclude_regexes
@@ -52,6 +48,7 @@ impl ManifestDescriptor {
     }
 }
 
+#[cfg(feature = "fs")]
 impl Manifest {
     /// Starting from the current directory, traverse ancestors until
     /// a manifest is found.
@@ -80,7 +77,10 @@ impl Manifest {
 
                     let manifest = fs::read_to_string(item.path())?;
                     let manifest = serde_json::from_str(&manifest)?;
-                    return Ok(Some(ManifestDescriptor::new(manifest, manifest_dir)));
+                    return Ok(Some(ManifestDescriptor {
+                        manifest,
+                        manifest_dir,
+                    }));
                 }
             }
         }
@@ -90,6 +90,7 @@ impl Manifest {
 
 /// Utility function which filters out any [DirEntry] which is not a valid file or
 /// was unable to be read.
+#[cfg(feature = "fs")]
 fn only_valid_files(item: std::result::Result<DirEntry, std::io::Error>) -> Option<DirEntry> {
     match item {
         Ok(item)
