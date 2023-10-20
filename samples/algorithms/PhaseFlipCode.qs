@@ -118,35 +118,34 @@ namespace Sample {
     /// of qubits will be in the state: (α|000〉 + β|111〉) / √2.
     ///
     /// # Input
-    /// ## physicalQubits
+    /// ## logicalQubit
     /// The given register of three physical qubits representing a single logical qubit
     /// having superposition (α|+++〉 + β|---〉) / √2.
     /// This logical qubit can have up to one phase-flip error that will be corrected.
-    operation CorrectError(physicalQubits : Qubit[]) : Unit {
+    operation CorrectError(logicalQubit : Qubit[]) : Unit {
+        Fact(Length(logicalQubit) == 3, "`logicalQubit` must be length 3");
 
         // Entangle the parity of the physical qubits into two auxillary qubits.
         use aux = Qubit[2];
-        ChangeBasis(physicalQubits);
-        CNOT(physicalQubits[0], aux[0]);
-        CNOT(physicalQubits[1], aux[0]);
-        CNOT(physicalQubits[1], aux[1]);
-        CNOT(physicalQubits[2], aux[1]);
-        ChangeBasis(physicalQubits);
+        ChangeBasis(logicalQubit);
+        CNOT(logicalQubit[0], aux[0]);
+        CNOT(logicalQubit[1], aux[0]);
+        CNOT(logicalQubit[1], aux[1]);
+        CNOT(logicalQubit[2], aux[1]);
+        ChangeBasis(logicalQubit);
 
         // Measure the parity information from the auxillary qubits.
-        let parity01 = M(aux[0]);
-        let parity12 = M(aux[1]);
-        let parity = (parity01, parity12);
+        let (parity01, parity12) = (M(aux[0]), M(aux[1]));
         ResetAll(aux);
 
         // Determine which of the three qubits is has the error based on the
         // parity measurements.
         let indexOfError =
-            if parity == (One, Zero) {
+            if (parity01, parity12) == (One, Zero) {
                 0
-            } elif parity == (One, One) {
+            } elif (parity01, parity12) == (One, One) {
                 1
-            } elif parity == (Zero, One) {
+            } elif (parity01, parity12) == (Zero, One) {
                 2
             } else {
                 -1
@@ -154,7 +153,7 @@ namespace Sample {
 
         // If an error was detected, correct that qubit.
         if indexOfError > -1 {
-            Z(physicalQubits[indexOfError]);
+            Z(logicalQubit[indexOfError]);
         }
     }
 }
