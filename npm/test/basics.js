@@ -3,7 +3,7 @@
 
 //@ts-check
 
-import assert from "node:assert";
+import assert from "node:assert/strict";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
 import {
@@ -432,7 +432,7 @@ test("cancel worker", () => {
       assert(cancelledArray.length === 2);
       assert(cancelledArray[0] === "terminated");
       assert(cancelledArray[1] === "terminated");
-      resolve(null);
+      resolve();
     }, 4);
   });
 });
@@ -469,6 +469,63 @@ test("language service diagnostics", async () => {
         return [m1];
     }
 }`
+  );
+  assert(gotDiagnostics);
+});
+
+test("diagnostics with related spans", async () => {
+  const languageService = getLanguageService();
+  let gotDiagnostics = false;
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.deepEqual(
+      {
+        code: "Qsc.Resolve.Ambiguous",
+        message:
+          "name error: `DumpMachine` could refer to the item in `Microsoft.Quantum.Diagnostics` or `Other`",
+        related: [
+          {
+            start_pos: 196,
+            end_pos: 207,
+            message: "ambiguous name",
+          },
+          {
+            start_pos: 87,
+            end_pos: 116,
+            message: "found in this namespace",
+          },
+          {
+            start_pos: 129,
+            end_pos: 134,
+            message: "and also in this namespace",
+          },
+        ],
+      },
+      {
+        code: event.detail.diagnostics[0].code,
+        message: event.detail.diagnostics[0].message,
+        related: event.detail.diagnostics[0].related?.map((r) => ({
+          start_pos: r.start_pos,
+          message: r.message,
+          end_pos: r.end_pos,
+        })),
+      }
+    );
+  });
+
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Other { operation DumpMachine() : Unit { } }
+    namespace Test {
+      open Microsoft.Quantum.Diagnostics;
+      open Other;
+      @EntryPoint()
+      operation Main() : Unit {
+        DumpMachine();
+      }
+    }`
   );
   assert(gotDiagnostics);
 });

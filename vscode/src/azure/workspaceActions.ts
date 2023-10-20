@@ -79,7 +79,11 @@ export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
   return `https://portal.azure.com/#resource${workspace.id}/overview`;
 }
 
-export function getPythonCodeForWorkspace(workspace: WorkspaceConnection) {
+export function getPythonCodeForWorkspace(
+  id: string,
+  endpointUri: string,
+  name: string
+) {
   // id starts with the pattern: "/subscriptions/<sub guid>/resourceGroups/<group>>/providers/Microsoft.Quantum/Workspaces/<name>"
   // endpointUri format: "https:/westus2.quantum.azure.com"
 
@@ -90,31 +94,27 @@ export function getPythonCodeForWorkspace(workspace: WorkspaceConnection) {
   // Regular expression to extract the first part of the endpointUri
   const endpointRegex = /https:\/\/(?<location>[^.]+)\./;
 
-  const idMatch = workspace.id.match(idRegex);
-  const endpointMatch = workspace.endpointUri.match(endpointRegex);
+  const idMatch = id.match(idRegex);
+  const endpointMatch = endpointUri.match(endpointRegex);
 
   const subscriptionId = idMatch?.groups?.subscriptionId;
   const resourceGroup = idMatch?.groups?.resourceGroup;
   const location = endpointMatch?.groups?.location;
 
-  if (!subscriptionId || !resourceGroup || !location) return "";
-
-  const pythonCode = `
-# If developing locally, on first run this will open a browser to authenticate the
+  const pythonCode = `# If developing locally, on first run this will open a browser to authenticate the
 # connection with Azure. In remote scenarios, such as SSH or Codespaces, it may
 # be necesssary to install the Azure CLI and run 'az login --use-device-code' to
 # authenticate. For unattended scenarios, such as batch jobs, a service principal
 # should be configured and used for authentication. For more information, see
 # https://learn.microsoft.com/en-us/azure/developer/python/sdk/authentication-overview
 
-# Make sure to install the necessary package with: pip install azure-quantum
 import azure.quantum
 
 workspace = azure.quantum.Workspace(
-    subscription_id = "${subscriptionId}",
-    resource_group = "${resourceGroup}",
-    name = "${workspace.name}",
-    location = "${location}",
+    subscription_id = "${subscriptionId || "MY_SUBSCRIPTION_ID"}",
+    resource_group = "${resourceGroup || "MY_RESOURCE_GROUP"}",
+    name = "${name || "MY_WORKSPACE_NAME"}",
+    location = "${location || "MY_WORKSPACE_LOCATION"}",
 )
 `;
 

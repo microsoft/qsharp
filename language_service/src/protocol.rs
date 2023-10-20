@@ -20,13 +20,14 @@ pub struct Span {
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[allow(clippy::module_name_repetitions)]
 pub enum CompletionItemKind {
-    // It would have been nice to match these enum values to the ones used by
+    // It would have been nice to match the numeric values to the ones used by
     // VS Code and Monaco, but unfortunately those two disagree on the values.
     // So we define our own unique enum here to reduce confusion.
     Function,
     Interface,
     Keyword,
     Module,
+    Property,
 }
 
 #[derive(Debug)]

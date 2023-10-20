@@ -320,3 +320,30 @@ fn top_level_contains_namespace() {
         "#]],
     );
 }
+
+#[test]
+fn attributes() {
+    check(
+        r#"
+        namespace Test {
+            ↘
+        }
+        "#,
+        &["@EntryPoint()"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "@EntryPoint()",
+                        kind: Property,
+                        sort_text: Some(
+                            "0201@EntryPoint()",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

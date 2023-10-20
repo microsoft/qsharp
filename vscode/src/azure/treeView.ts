@@ -19,6 +19,7 @@ function localDate(date: string) {
 export class WorkspaceTreeProvider
   implements vscode.TreeDataProvider<WorkspaceTreeItem>
 {
+  static instance: WorkspaceTreeProvider;
   private treeState: Map<string, WorkspaceConnection> = new Map();
 
   private didChangeTreeDataEmitter = new vscode.EventEmitter<

@@ -120,6 +120,8 @@ jobs:
 
   integration-tests:
     name: Integration tests
+    if: ${{ ! github.event.pull_request }}
+    timeout-minutes: 15
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]

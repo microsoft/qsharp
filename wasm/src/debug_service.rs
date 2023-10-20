@@ -6,7 +6,7 @@ use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
 
-use crate::{language_service::VSDiagnostic, serializable_type, CallbackReceiver};
+use crate::{serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -159,7 +159,10 @@ impl DebugService {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                Some(VSDiagnostic::from(&errors[0]).json())
+                errors[0]
+                    .stack_trace()
+                    .clone()
+                    .map(serde_json::Value::String)
             }
         };
         if let Some(value) = msg {

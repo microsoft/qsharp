@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use indenter::{indented, Format, Indented};
+use indenter::{indented, Indented};
 use qsc_data_structures::span::Span;
 
 use crate::hir::{CallableKind, FieldPath, Functor, ItemId, PackageId, Res};
@@ -15,14 +15,12 @@ fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
 ) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// A type.
