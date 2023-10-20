@@ -1,5 +1,5 @@
 /// # Sample
-/// Bit-Flip
+/// Bit-Flip Code
 ///
 /// # Description
 /// This sample demonstrates the three-qubit bit-flip code. This code is a

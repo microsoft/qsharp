@@ -1,5 +1,5 @@
 /// # Sample
-/// Phase-Flip
+/// Phase-Flip Code
 ///
 /// # Description
 /// This sample demonstrates the three-qubit phase-flip code. This code is a
