@@ -2487,7 +2487,7 @@ fn indirect_unresolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((?1, ?2, ?3) => ?5)",
+                        label: "((?1, ?2, ?3) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
@@ -2544,7 +2544,7 @@ fn indirect_partially_resolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((Int, ?2, ?3) => ?5)",
+                        label: "((Int, ?2, ?3) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
@@ -2602,7 +2602,7 @@ fn indirect_resolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((Int, Int, Int) => ?6)",
+                        label: "((Int, Int, Int) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
