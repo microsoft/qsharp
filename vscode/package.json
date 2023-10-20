@@ -22,6 +22,17 @@
     "onFileSystem:qsharp-vfs"
   ],
   "contributes": {
+    "webOpener": {
+      "scheme": "qsharp-vfs",
+      "runCommands": [
+        {
+          "command": "qsharp-vscode.webOpener",
+          "args": [
+            "$url"
+          ]
+        }
+      ]
+    },
     "configuration": {
       "title": "Q#",
       "properties": {
@@ -89,6 +100,10 @@
         {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.webOpener",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -144,6 +159,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "qsharp-vscode.webOpener",
+        "title": "Internal web opener",
+        "category": "Q#"
+      },
       {
         "command": "qsharp-vscode.debugEditorContents",
         "title": "Debug Q# file",

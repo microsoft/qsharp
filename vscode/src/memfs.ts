@@ -40,8 +40,27 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("qsharp-vscode.openSamples", async () => {
       await vscode.commands.executeCommand(
         "vscode.openFolder",
-        vscode.Uri.parse(`${scheme}:/samples`)
+        vscode.Uri.parse(`${scheme}:/samples`),
+        { forceNewWindow: false, forceReuseWindow: true }
       );
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("qsharp-vscode.webOpener", async (uri) => {
+      log.info("typeof uri: " + typeof uri);
+      log.info(`webOpener with URI ${uri}`);
+
+      if (typeof uri === "string") {
+        const uriObj = vscode.Uri.parse(uri);
+        const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
+        const encoder = new TextEncoder();
+        vfs.writeFile(codeFile, encoder.encode(uriObj.fragment), {
+          create: true,
+          overwrite: true,
+        });
+        await vscode.commands.executeCommand("vscode.open", codeFile);
+      }
     })
   );
 }
