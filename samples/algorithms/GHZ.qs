@@ -43,12 +43,10 @@ namespace Sample {
     /// The given register of qubits to be transformed into the GHZ state. It is assumed
     /// that these qubits are in their default |0〉 state.
     operation PrepareGHZState(qs : Qubit[]) : Unit {
-        if Length(qs) > 0 {
-            H(qs[0]);
-        }
+        Fact(Length(qs) > 0, "`qs` length must be greater than zero");
+        Fact(CheckAllZero(qs), "All qubits must be in the |0〉 state");
 
-        for q in qs[1...] {
-            CNOT(qs[0], q);
-        }
+        H(qs[0]);
+        ApplyToEach(CNOT(qs[0], _), qs[1...]);
     }
 }
