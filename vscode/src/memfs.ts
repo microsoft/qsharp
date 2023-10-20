@@ -6,13 +6,15 @@ import * as vscode from "vscode";
 
 export const scheme = "qsharp-vfs";
 
-const sandboxAuthority = "sandbox";
-const sandboxRootUri = vscode.Uri.parse(`${scheme}://${sandboxAuthority}/`);
+const playgroundAuthority = "playground";
+const playgroundRootUri = vscode.Uri.parse(
+  `${scheme}://${playgroundAuthority}/`
+);
 
-const sandboxReadme = `
-# Azure Quantum Sandbox
+const playgroundReadme = `
+# Azure Quantum Playground
 
-Welcome to the Azure Quantum Development Kit sandbox! An online environment to
+Welcome to the Azure Quantum Development Kit playground! An online environment to
 safely learn and explore quantum computing with the Q# language.
 
 The samples folder contains a set of common quantum algorithms written in Q#.
@@ -21,7 +23,7 @@ of the editor when you have the file open. You can also set breakpoints and
 step through the code using the Debug button at the same location to see how the
 algorithm changes quantum state as it executes.
 
-This sandbox exists entirely in memory and is not persisted to disk. All changes
+This playground exists entirely in memory and is not persisted to disk. All changes
 will be lost when the editor window is closed. You should use the 'File: Save
 As...' command in the VS Code Command Palette (accessed by pressing F1) to save
 your work elsewhere if you wish to keep it.
@@ -30,25 +32,25 @@ For more details on using the Azure Quantum Development Kit for Visual Studio
 Code, see the wiki at <https://github.com/microsoft/qsharp/wiki/>
 `;
 
-// Put the sandbox in its own 'authority', so we can keep the default space clean.
-// This has the benefit of the URI https://vscode.dev/quantum/sandbox opening the sandbox
+// Put the playground in its own 'authority', so we can keep the default space clean.
+// This has the benefit of the URI https://vscode.dev/quantum/playground/ opening the playground
 function populateSamples(vfs: MemFS) {
-  vfs.addAuthority(sandboxAuthority);
+  vfs.addAuthority(playgroundAuthority);
 
   const encoder = new TextEncoder();
-  vfs.createDirectory(sandboxRootUri.with({ path: "/samples" }));
+  vfs.createDirectory(playgroundRootUri.with({ path: "/samples" }));
 
   samples.forEach((sample) => {
     vfs.writeFile(
-      sandboxRootUri.with({ path: `/samples/${sample.title}.qs` }),
+      playgroundRootUri.with({ path: `/samples/${sample.title}.qs` }),
       encoder.encode(sample.code),
       { create: true, overwrite: true }
     );
   });
 
   vfs.writeFile(
-    sandboxRootUri.with({ path: "/README.md" }),
-    encoder.encode(sandboxReadme),
+    playgroundRootUri.with({ path: "/README.md" }),
+    encoder.encode(playgroundReadme),
     { create: true, overwrite: true }
   );
 }
@@ -65,49 +67,43 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.openSandbox", async () => {
-      await vscode.commands.executeCommand("vscode.openFolder", sandboxRootUri);
-      // TO CHECK: Below may not even run if the prior command reloads the window
-      await vscode.commands.executeCommand(
-        "vscode.open",
-        sandboxRootUri.with({ path: "/README.md" })
-      );
-    })
+    vscode.commands.registerCommand(
+      "qsharp-vscode.openPlayground",
+      async () => {
+        await vscode.commands.executeCommand(
+          "vscode.openFolder",
+          playgroundRootUri
+        );
+      }
+    )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("qsharp-vscode.webOpener", async (uri) => {
-      log.info("typeof uri: " + typeof uri);
-      log.info(`webOpener with URI ${uri}`);
+      log.debug(`webOpener called with URI ${uri}`);
 
-      // Open the README if the user has navigated to the sandbox
-      if (typeof uri === "string" && uri.endsWith("/sandbox/")) {
+      // Open the README if the user has navigated to the playground
+      if (typeof uri === "string" && uri.endsWith("/playground/")) {
+        // Nice to have: First check if the readme is already open from a prior visit
         await vscode.commands.executeCommand(
           "markdown.showPreview",
-          sandboxRootUri.with({ path: "/README.md" })
+          playgroundRootUri.with({ path: "/README.md" })
         );
         return;
       }
 
-      // Example https://insiders.vscode.dev/+aHR0cHM6Ly9sb2NhbGhvc3Q6MzAwMA==?code=H4sIAAAAAAAAEz2Ouw6CQBRE%2B%2F2KITbQSI%2BNhRYWhkc0FoTiBm5kE9kld3c1xPDvEjSe8mQmM2mKS68dWtsxXuTgehLu8NQEwrU6RZFShgZ2I7WM81QGMj4Mhdi70IC3UljYH42XqbDa%2BDhZjR1ZyGtrcCZt4gQZKnbh4etmKeFHusznhzzDTbRnTDYIys33Tc%2FC239S2AcxqJvdqmY1qw8FRbBxvAAAAA%3D%3D
+      // Example: https://vscode.dev/quantum?code=H4sIAAAAAAAAEz2Ouw6CQBRE%2B%2F2KITbQSI%2BNhRYWhkc0FoTiBm5kE9kld3c1xPDvEjSe8mQmM2mKS68dWtsxXuTgehLu8NQEwrU6RZFShgZ2I7WM81QGMj4Mhdi70IC3UljYH42XqbDa%2BDhZjR1ZyGtrcCZt4gQZKnbh4etmKeFHusznhzzDTbRnTDYIys33Tc%2FC239S2AcxqJvdqmY1qw8FRbBxvAAAAA%3D%3D
       let linkedCode: string | undefined;
       if (typeof uri === "string") {
         const uriObj = vscode.Uri.parse(uri);
-        log.info("uri query: " + uriObj.query);
+        log.debug("uri query component: " + uriObj.query);
 
-        // The query appears to be URIDecoded already, which is causing issues with URLSearchParams. Use regex for now.
+        // The query appears to be URIDecoded already, which is causing issues with URLSearchParams, so extract with a regex for now.
         const code = uriObj.query.match(/code=([^&]*)/)?.[1];
 
-        // const params = new URLSearchParams(uriObj.query);
-        // log.info("URLSearchParams of query: " + params);
-        // const paramCode = params.get("code");
         if (code) {
-          log.info("code: " + code);
-          // log.info("params.get(code) -> " + paramCode);
+          log.debug("code from query: " + code);
           try {
-            // const base64code = decodeURIComponent(paramCode);
-            // const base64code = paramCode;
-            // log.info("Decoded code: " + base64code);
             linkedCode = await compressedBase64ToCode(code);
             const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
 
@@ -155,6 +151,7 @@ function dirname(path: string) {
 
 // The below largely taken from the reference implementation at
 // https://github.com/microsoft/vscode-extension-samples/blob/main/fsprovider-sample/src/fileSystemProvider.ts
+// with a few additions (e.g. handling 'authority').
 export class File implements vscode.FileStat {
   type: vscode.FileType;
   ctime: number;
@@ -391,21 +388,8 @@ export class MemFS implements vscode.FileSystemProvider {
   }
 }
 
-/*
-  let linkedCode: string | undefined;
-  const paramCode = new URLSearchParams(window.location.search).get("code");
-  if (paramCode) {
-    try {
-      const base64code = decodeURIComponent(paramCode);
-      linkedCode = await compressedBase64ToCode(base64code);
-    } catch {
-      linkedCode = "// Unable to decode the code in the URL\n";
-    }
-  }
-*/
-
-// TODO: This is taken from the playground. It should be moved to a common
-// location in the npm package and shared between the two.
+// Cleanup: This is taken from the playground. It should probably be moved to a common
+// location in the npm package and shared between the two at some point.
 export async function compressedBase64ToCode(base64: string) {
   // Turn the base64 string into a string of bytes
   const binStr = atob(base64);
