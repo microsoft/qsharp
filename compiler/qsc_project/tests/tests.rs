@@ -171,10 +171,10 @@ fn exclude_files() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    exclude_regexes: [
-                        ".*\\.exclude\\.qs",
+                    exclude_regexes: [],
+                    exclude_files: [
+                        "Main.exclude.qs",
                     ],
-                    exclude_files: [],
                 },
             }"#]],
     )
@@ -188,7 +188,7 @@ fn exclude_files_with_regex() {
             Project {
                 sources: [
                     (
-                        "exclude_files/Main.qs",
+                        "exclude_files_with_regex/Main.qs",
                         "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        \"12345\"\n    }\n}\n",
                     ),
                 ],
@@ -224,7 +224,7 @@ fn exclude_list() {
                     author: None,
                     license: None,
                     exclude_regexes: [
-                        ".*Excluded.qs",
+                        ".*Excluded\\.qs",
                     ],
                     exclude_files: [],
                 },
