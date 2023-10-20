@@ -7,6 +7,7 @@ export enum EventType {
   InitializePlugin = "Qsharp.InitializePlugin",
   LoadLanguageService = "Qsharp.LoadLanguageService",
   QSharpJupyterCellInitialized = "Qsharp.JupyterCellInitialized",
+  ReturnCompletionList = "Qsharp.ReturnCompletionList",
 }
 
 type Empty = { [K in any]: never };
@@ -32,6 +33,26 @@ type EventTypes = {
     properties: Empty;
     measurements: Empty;
   };
+  [EventType.ReturnCompletionList]: {
+    properties: Empty;
+    measurements: {timeToCompletionMs: number; completionListLength: number; };
+  };
+  [EventType.GenerateQirStart]: {
+    properties: Empty;
+    measurements: Empty;
+  };
+  [EventType.GenerateQirEnd]: {
+    properties: Empty;
+    measurements: Empty;
+  };
+  [EventType.UserFlowSubmitToAzure]: {
+    properties: Empty;
+    measurements: Empty;
+  };
+  [EventType.UserFlowSignInToWorkspace]: {
+    properties: Empty;
+    measurements: Empty;
+  };
 };
 
 let reporter: TelemetryReporter | undefined;
@@ -41,8 +62,6 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   if (!packageJson) {
     return;
   }
-  // see issue here: https://github.com/microsoft/vscode-extension-telemetry/issues/185
-  // we cannot use the latest version of extension-telemetry until this is fixed
   reporter = new TelemetryReporter(packageJson.aiKey);
 
   sendTelemetryEvent(EventType.InitializePlugin, {}, {});
