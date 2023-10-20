@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::Error;
+use regex_lite::Regex;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::{
@@ -16,6 +17,8 @@ pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
+    #[serde(default)]
+    pub exclude_regexes: Vec<String>,
     #[serde(default)]
     pub exclude_files: Vec<String>,
 }
@@ -33,6 +36,19 @@ impl ManifestDescriptor {
             manifest,
             manifest_dir,
         }
+    }
+
+    pub(crate) fn exclude_regexes(&self) -> Result<Vec<Regex>, crate::Error> {
+        self.manifest
+            .exclude_regexes
+            .iter()
+            .map(|x| Regex::new(x))
+            .collect::<Result<_, _>>()
+            .map_err(crate::Error::from)
+    }
+
+    pub(crate) fn exclude_files(&self) -> &[String] {
+        &self.manifest.exclude_files
     }
 }
 

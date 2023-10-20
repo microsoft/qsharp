@@ -1,4 +1,4 @@
 {
   "author": "Microsoft",
-  "exclude_files": []
+  "exclude_regexes": []
 }

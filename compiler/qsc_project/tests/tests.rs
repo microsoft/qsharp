@@ -19,15 +19,15 @@ fn basic_manifest() {
                 sources: [
                     (
                         "basic_manifest/Dependency1.qs",
-                        "namespace Dependency1 {\n\tfunction First() : String {\n\t\t\"123\"\n\t}\n}\n",
+                        "namespace Dependency1 {\n    function First() : String {\n        \"123\"\n    }\n}\n",
                     ),
                     (
                         "basic_manifest/Dependency2.qs",
-                        "namespace Dependency2 {\n\tfunction Second() : String {\n\t\t\"45\"\n\t}\n}\n",
+                        "namespace Dependency2 {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
                     ),
                     (
                         "basic_manifest/Main.qs",
-                        "namespace Main {\n\topen Dependency1;\n\topen Dependency2;\n\t@EntryPoint()\n\toperation Main() : String {\n\t\tFirst() + Second()\n\t}\n}\n",
+                        "namespace Main {\n    open Dependency1;\n    open Dependency2;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
@@ -35,6 +35,7 @@ fn basic_manifest() {
                         "Microsoft",
                     ),
                     license: None,
+                    exclude_regexes: [],
                     exclude_files: [],
                 },
             }"#]],
@@ -50,15 +51,15 @@ fn circular_imports() {
                 sources: [
                     (
                         "circular_imports/Evens.qs",
-                        "namespace Evens {\n\topen Odds;\n\tfunction Two() : String {\n\t\t\"2\"\n\t}\n\tfunction Four() : String {\n\t\t\"4\"\n\t}\n\tfunction Twelve() : String {\n\t\tOne_() + Two()\n\t}\n}\n",
+                        "namespace Evens {\n    open Odds;\n    function Two() : String {\n        \"2\"\n    }\n    function Four() : String {\n        \"4\"\n    }\n    function Twelve() : String {\n        One_() + Two()\n    }\n}\n",
                     ),
                     (
                         "circular_imports/Main.qs",
-                        "namespace Main {\n\topen Evens;\n\topen Odds;\n\n\t@EntryPoint()\n\toperation Main() : String {\n\t\tTwelve() + Three() + FortyFive()\n\t}\n}\n",
+                        "namespace Main {\n    open Evens;\n    open Odds;\n\n    @EntryPoint()\n    operation Main() : String {\n        Twelve() + Three() + FortyFive()\n    }\n}\n",
                     ),
                     (
                         "circular_imports/Odds.qs",
-                        "namespace Odds {\n\topen Evens;\n\tfunction One_() : String {\n\t\t\"1\"\n\t}\n\tfunction Three() : String {\n\t\t\"3\"\n\t}\n\tfunction Five() : String {\n\t\t\"5\"\n\t}\n\tfunction FortyFive() : String {\n\t\tFour() + Five()\n\t} \n}\n",
+                        "namespace Odds {\n    open Evens;\n    function One_() : String {\n        \"1\"\n    }\n    function Three() : String {\n        \"3\"\n    }\n    function Five() : String {\n        \"5\"\n    }\n    function FortyFive() : String {\n        Four() + Five()\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
@@ -66,6 +67,7 @@ fn circular_imports() {
                         "Microsoft",
                     ),
                     license: None,
+                    exclude_regexes: [],
                     exclude_files: [],
                 },
             }"#]],
@@ -81,15 +83,15 @@ fn different_files_same_manifest() {
                 sources: [
                     (
                         "different_files_same_manifest/Dependency1.qs",
-                        "namespace Dependency {\n\tfunction First() : String {\n\t\t\"123\"\n\t}\n}\n",
+                        "namespace Dependency {\n    function First() : String {\n        \"123\"\n    }\n}\n",
                     ),
                     (
                         "different_files_same_manifest/Dependency2.qs",
-                        "namespace Dependency {\n\tfunction Second() : String {\n\t\t\"45\"\n\t}\n}\n",
+                        "namespace Dependency {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
                     ),
                     (
                         "different_files_same_manifest/Main.qs",
-                        "namespace Main {\n\topen Dependency;\n\t@EntryPoint()\n\toperation Main() : String {\n\t\tFirst() + Second()\n\t}\n}\n",
+                        "namespace Main {\n    open Dependency;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
@@ -97,6 +99,7 @@ fn different_files_same_manifest() {
                         "Microsoft",
                     ),
                     license: None,
+                    exclude_regexes: [],
                     exclude_files: [],
                 },
             }"#]],
@@ -108,19 +111,20 @@ fn empty_manifest() {
     check(
         "empty_manifest".into(),
         &expect![[r#"
-        Project {
-            sources: [
-                (
-                    "empty_manifest/Main.qs",
-                    "namespace Main {\n\t@EntryPoint()\n\toperation Main() : String {\n\t\t\"12345\"\n\t}\n}\n",
-                ),
-            ],
-            manifest: Manifest {
-                author: None,
-                license: None,
-                exclude_files: [],
-            },
-        }"#]],
+            Project {
+                sources: [
+                    (
+                        "empty_manifest/Main.qs",
+                        "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        \"12345\"\n    }\n}\n",
+                    ),
+                ],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                    exclude_regexes: [],
+                    exclude_files: [],
+                },
+            }"#]],
     )
 }
 
@@ -133,19 +137,20 @@ fn exclude_blobs() {
                 sources: [
                     (
                         "exclude_blobs/Main.qs",
-                        "namespace Main {\n\t@EntryPoint()\n\toperation Main() : String {\n\t\tNumbers.Numbers()\n\t}\n}\n",
+                        "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        Numbers.Numbers()\n    }\n}\n",
                     ),
                     (
                         "exclude_blobs/to_include/Numbers.qs",
-                        "namespace Numbers {\n\toperation Numbers() : String {\n\t\t\"12345\"\n\t}\n}\n",
+                        "namespace Numbers {\n    operation Numbers() : String {\n        \"12345\"\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    exclude_files: [
+                    exclude_regexes: [
                         ".*to_exclude.*",
                     ],
+                    exclude_files: [],
                 },
             }"#]],
     )
@@ -160,15 +165,40 @@ fn exclude_files() {
                 sources: [
                     (
                         "exclude_files/Main.qs",
-                        "namespace Main {\n\t@EntryPoint()\n\toperation Main() : String {\n\t\t\"12345\"\n\t}\n}\n",
+                        "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        \"12345\"\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    exclude_files: [
+                    exclude_regexes: [
                         ".*\\.exclude\\.qs",
                     ],
+                    exclude_files: [],
+                },
+            }"#]],
+    )
+}
+
+#[test]
+fn exclude_files_with_regex() {
+    check(
+        "exclude_files_with_regex".into(),
+        &expect![[r#"
+            Project {
+                sources: [
+                    (
+                        "exclude_files/Main.qs",
+                        "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        \"12345\"\n    }\n}\n",
+                    ),
+                ],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                    exclude_regexes: [
+                        ".*\\.exclude\\.qs",
+                    ],
+                    exclude_files: [],
                 },
             }"#]],
     )
@@ -179,25 +209,26 @@ fn exclude_list() {
     check(
         "exclude_list".into(),
         &expect![[r#"
-        Project {
-            sources: [
-                (
-                    "exclude_list/Included.qs",
-                    "namespace Numbers {\n\toperation OneTwoThreeFourFive() : String {\n\t\t\"12345\"\n\t}\n}\n",
-                ),
-                (
-                    "exclude_list/Main.qs",
-                    "namespace Main {\n\topen Numbers;\n\t@EntryPoint()\n\toperation Main() : String {\n\t\tOneTwoThreeFourFive()\n\t}\n} \n",
-                ),
-            ],
-            manifest: Manifest {
-                author: None,
-                license: None,
-                exclude_files: [
-                    ".*Excluded.qs",
+            Project {
+                sources: [
+                    (
+                        "exclude_list/Included.qs",
+                        "namespace Numbers {\n    operation OneTwoThreeFourFive() : String {\n        \"12345\"\n    }\n}\n",
+                    ),
+                    (
+                        "exclude_list/Main.qs",
+                        "namespace Main {\n    open Numbers;\n    @EntryPoint()\n    operation Main() : String {\n        OneTwoThreeFourFive()\n    }\n}\n",
+                    ),
                 ],
-            },
-        }"#]],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                    exclude_regexes: [
+                        ".*Excluded.qs",
+                    ],
+                    exclude_files: [],
+                },
+            }"#]],
     )
 }
 
@@ -210,24 +241,25 @@ fn folder_structure() {
                 sources: [
                     (
                         "folder_structure/Project.qs",
-                        "namespace Project {\n\t@EntryPoint()\n\toperation Entry() : String {\n\t\tStrings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n\t}\n}\n",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
                     ),
                     (
                         "folder_structure/utils/ops/Add.qs",
-                        "namespace Math {\n\tfunction Add(a: Int, b: Int) : Int {\n\t\ta + b\n\t}\n}\n",
+                        "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
                     ),
                     (
                         "folder_structure/utils/ops/Subtract.qs",
-                        "namespace Math {\n\tfunction Subtract(a: Int, b: Int) : Int {\n\t\ta - b\n\t}\n}\n",
+                        "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
                     ),
                     (
                         "folder_structure/utils/strings/Concat.qs",
-                        "namespace Strings {\n\tfunction Concat(a: String, b: String) : String {\n\t\ta + b\n\t}\n}\n",
+                        "namespace Strings {\n    function Concat(a: String, b: String) : String {\n        a + b\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
                     author: None,
                     license: None,
+                    exclude_regexes: [],
                     exclude_files: [],
                 },
             }"#]],

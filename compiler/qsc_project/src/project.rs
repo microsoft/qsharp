@@ -52,20 +52,24 @@ pub trait FileSystem {
     fn fetch_files_with_exclude_pattern(
         &self,
         exclude_patterns: &[Regex],
+        exclude_files: &[String],
         initial_path: &Path,
     ) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path)?;
         let mut files = vec![];
         for item in listing {
+            let file_name = item.entry_name();
             let name = item.path().to_string_lossy().to_string();
-            if regex_matches(exclude_patterns, &name) {
+            if regex_matches(exclude_patterns, &name) || exclude_files.contains(&file_name) {
                 continue;
             }
             match item.entry_type() {
                 Ok(EntryType::File) if item.extension() == "qs" => files.push(item),
-                Ok(EntryType::Folder) => files.append(
-                    &mut self.fetch_files_with_exclude_pattern(exclude_patterns, &item.path())?,
-                ),
+                Ok(EntryType::Folder) => files.append(&mut self.fetch_files_with_exclude_pattern(
+                    exclude_patterns,
+                    exclude_files,
+                    &item.path(),
+                )?),
                 _ => (),
             }
         }
@@ -74,16 +78,11 @@ pub trait FileSystem {
 
     /// Given a [ManifestDescriptor], load project sources.
     fn load_project(&self, manifest: ManifestDescriptor) -> miette::Result<Project> {
-        let exclude_patterns: Vec<_> = manifest
-            .manifest
-            .exclude_files
-            .iter()
-            .map(|x| Regex::new(x))
-            .collect::<Result<_, _>>()
-            .map_err(crate::Error::from)?;
-
-        let qs_files =
-            self.fetch_files_with_exclude_pattern(&exclude_patterns, &manifest.manifest_dir)?;
+        let qs_files = self.fetch_files_with_exclude_pattern(
+            &manifest.exclude_regexes()?,
+            manifest.exclude_files(),
+            &manifest.manifest_dir,
+        )?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
 
