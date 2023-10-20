@@ -1,5 +1,5 @@
 namespace Numbers {
-	operation Numbers() : String {
-		"12345"
-	}
+    operation Numbers() : String {
+        "12345"
+    }
 }

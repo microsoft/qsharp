@@ -1,7 +1,7 @@
 namespace Main {
-	open Dependency;
-	@EntryPoint()
-	operation Main() : String {
-		First() + Second()
-	}
+    open Dependency;
+    @EntryPoint()
+    operation Main() : String {
+        First() + Second()
+    }
 }

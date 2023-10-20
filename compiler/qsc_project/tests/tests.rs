@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 //! These tests exist solely to test project structure and contents.
 //! They are not intended to test the qsc runtime or compilation process,
 //! so we are only asserting file names and contents.

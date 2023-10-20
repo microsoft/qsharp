@@ -1,9 +1,9 @@
 namespace Main {
-	open Evens;
-	open Odds;
+    open Evens;
+    open Odds;
 
-	@EntryPoint()
-	operation Main() : String {
-		Twelve() + Three() + FortyFive()
-	}
+    @EntryPoint()
+    operation Main() : String {
+        Twelve() + Three() + FortyFive()
+    }
 }

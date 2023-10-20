@@ -1,6 +1,6 @@
 namespace Main {
-	@EntryPoint()
-	operation Main() : String {
-		"12345"
-	}
+    @EntryPoint()
+    operation Main() : String {
+        "12345"
+    }
 }

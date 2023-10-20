@@ -1,5 +1,5 @@
 namespace Dependency {
-	function Second() : String {
-		"45"
-	}
+    function Second() : String {
+        "45"
+    }
 }

@@ -81,13 +81,15 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-    let fs = StdFs;
-    let manifest = Manifest::load()?;
-    if let Some(manifest) = manifest {
-        let project = fs.load_project(manifest)?;
-        let mut project_sources = project.sources;
+    if sources.is_empty() {
+        let fs = StdFs;
+        let manifest = Manifest::load()?;
+        if let Some(manifest) = manifest {
+            let project = fs.load_project(manifest)?;
+            let mut project_sources = project.sources;
 
-        sources.append(&mut project_sources);
+            sources.append(&mut project_sources);
+        }
     }
 
     let entry = cli.entry.unwrap_or_default();

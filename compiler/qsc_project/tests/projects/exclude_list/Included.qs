@@ -1,5 +1,5 @@
 namespace Numbers {
-	operation OneTwoThreeFourFive() : String {
-		"12345"
-	}
+    operation OneTwoThreeFourFive() : String {
+        "12345"
+    }
 }

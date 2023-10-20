@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 //! This module contains a project implementation using [std::fs].
 
 use crate::{DirEntry, EntryType, FileSystem};

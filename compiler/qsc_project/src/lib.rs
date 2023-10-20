@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 //! This module handles the logic that constitutes the Q# project system.
 //! This includes locating a manifest file in the filesystem, loading and parsing
 //! the manifest, and determining which files are members of the project.
