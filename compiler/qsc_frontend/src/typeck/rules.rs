@@ -331,16 +331,17 @@ impl<'a> Context<'a> {
                 let prev_ret_ty = self.return_ty.take();
                 let output_ty = self.inferrer.fresh_ty(TySource::not_divergent(body.span));
                 self.return_ty = Some(output_ty);
-                let body_ty = self.infer_expr(body).ty;
+                let body_partial = self.infer_expr(body);
                 let output_ty = self
                     .return_ty
                     .take()
                     .expect("return type should be present");
                 self.return_ty = prev_ret_ty;
-                if body_ty != Ty::UNIT {
-                    // Only when the type of the body is not `UNIT` do we need to unify with the inferred output type.
+                if !body_partial.diverges {
+                    // Only when the type of the body converges do we need to unify with the inferred output type.
                     // Otherwise we'd get spurious errors from lambdas that use explicit return-expr rather than implicit.
-                    self.inferrer.eq(body.span, output_ty.clone(), body_ty);
+                    self.inferrer
+                        .eq(body.span, output_ty.clone(), body_partial.ty);
                 }
                 converge(Ty::Arrow(Box::new(Arrow {
                     kind: convert::callable_kind_from_ast(*kind),

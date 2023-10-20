@@ -19,14 +19,12 @@ fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
 ) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// The unique identifier for an AST node.
@@ -92,8 +90,7 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be replaced");
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
@@ -596,7 +593,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param(name) => write!(indent, "\nType Param {name}")?,
+            TyKind::Param(name) => write!(indent, "Type Param {name}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;

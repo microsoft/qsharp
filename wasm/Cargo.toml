@@ -30,3 +30,7 @@ serde_json = { workspace = true }
 
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
 getrandom = { workspace = true, features = ["js"] }
+
+[dev-dependencies]
+expect-test = { workspace = true }
+indoc = { workspace = true }

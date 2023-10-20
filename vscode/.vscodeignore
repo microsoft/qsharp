@@ -1,6 +1,11 @@
 src/**
+test/**
 .gitignore
+.artifactignore
 tsconfig.json
 **/*.map
 ../**/*
 build.mjs
+BUILDING.md
+README-DEV.md
+testing.md

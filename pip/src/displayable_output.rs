@@ -7,6 +7,7 @@ mod tests;
 use num_bigint::BigUint;
 use num_complex::{Complex64, ComplexFloat};
 use qsc::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase};
+use std::fmt::Write;
 
 pub struct DisplayableState(pub Vec<(BigUint, Complex64)>, pub usize);
 
@@ -16,12 +17,15 @@ impl DisplayableState {
             "STATE:{}",
             self.0
                 .iter()
-                .map(|(id, state)| format!(
-                    "\n{}: {}",
-                    format_state_id(id, self.1),
-                    fmt_complex(state)
-                ))
-                .collect::<String>()
+                .fold(String::new(), |mut output, (id, state)| {
+                    let _ = write!(
+                        output,
+                        "\n{}: {}",
+                        format_state_id(id, self.1),
+                        fmt_complex(state)
+                    );
+                    output
+                })
         )
     }
 
@@ -30,9 +34,10 @@ impl DisplayableState {
             include_str!("state_header_template.html"),
             self.0
                 .iter()
-                .map(|(id, state)| {
+                .fold(String::new(), |mut output, (id, state)| {
                     let amplitude = state.abs().powi(2) * 100.0;
-                    format!(
+                    let _ = write!(
+                        output,
                         include_str!("state_row_template.html"),
                         fmt_basis_state_label(id, self.1),
                         fmt_complex(state),
@@ -40,9 +45,9 @@ impl DisplayableState {
                         amplitude,
                         get_phase(state),
                         get_phase(state)
-                    )
+                    );
+                    output
                 })
-                .collect::<String>()
         )
     }
 }

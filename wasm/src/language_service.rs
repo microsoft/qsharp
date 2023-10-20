@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::serializable_type;
-use miette::{Diagnostic, Severity};
+use crate::{diagnostic::VSDiagnostic, serializable_type};
 use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -18,7 +16,10 @@ impl LanguageService {
         let diagnostics_callback = diagnostics_callback.clone();
         let inner = qsls::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
-                let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
+                let diags = errors
+                    .iter()
+                    .map(|err| VSDiagnostic::from_compile_error(uri, err))
+                    .collect::<Vec<_>>();
                 let _ = diagnostics_callback
                     .call3(
                         &JsValue::NULL,
@@ -71,6 +72,7 @@ impl LanguageService {
                         qsls::protocol::CompletionItemKind::Interface => "interface",
                         qsls::protocol::CompletionItemKind::Keyword => "keyword",
                         qsls::protocol::CompletionItemKind::Module => "module",
+                        qsls::protocol::CompletionItemKind::Property => "property",
                     })
                     .to_string(),
                     sortText: i.sort_text,
@@ -218,7 +220,7 @@ serializable_type! {
     },
     r#"export interface ICompletionItem {
         label: string;
-        kind: "function" | "interface" | "keyword" | "module";
+        kind: "function" | "interface" | "keyword" | "module" | "property";
         sortText?: string;
         detail?: string;
         additionalTextEdits?: ITextEdit[];
@@ -326,77 +328,4 @@ serializable_type! {
         start: number;
         end: number;
     }"#
-}
-
-serializable_type! {
-    VSDiagnostic,
-    {
-        pub start_pos: usize,
-        pub end_pos: usize,
-        pub message: String,
-        pub severity: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub code: Option<VSDiagnosticCode>,
-    },
-    r#"export interface IDiagnostic {
-        start_pos: number;
-        end_pos: number;
-        message: string;
-        severity: "error" | "warning" | "info"
-        code?: {
-            value: string;
-            target: string;
-        }
-    }"#
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct VSDiagnosticCode {
-    value: String,
-    target: String,
-}
-
-impl VSDiagnostic {
-    pub fn json(&self) -> serde_json::Value {
-        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
-    }
-}
-
-impl<T> From<&T> for VSDiagnostic
-where
-    T: Diagnostic,
-{
-    fn from(err: &T) -> Self {
-        let label = err.labels().and_then(|mut ls| ls.next());
-        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
-        // Monaco handles 0-length diagnostics just fine...?
-        let len = label.as_ref().map_or(1, |lbl| lbl.len());
-        let severity = (match err.severity().unwrap_or(Severity::Error) {
-            Severity::Error => "error",
-            Severity::Warning => "warning",
-            Severity::Advice => "info",
-        })
-        .to_string();
-
-        let mut message = err.to_string();
-        for source in iter::successors(err.source(), |e| e.source()) {
-            write!(message, ": {source}").expect("message should be writable");
-        }
-        if let Some(help) = err.help() {
-            write!(message, "\n\nhelp: {help}").expect("message should be writable");
-        }
-
-        let code = err.code().map(|code| VSDiagnosticCode {
-            value: code.to_string(),
-            target: "".to_string(),
-        });
-
-        VSDiagnostic {
-            start_pos: offset,
-            end_pos: offset + len,
-            severity,
-            message,
-            code,
-        }
-    }
 }

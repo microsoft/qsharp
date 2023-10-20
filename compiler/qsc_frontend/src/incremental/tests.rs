@@ -6,6 +6,7 @@ use crate::compile::{self, CompileUnit, PackageStore, TargetProfile};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
+use std::fmt::Write;
 
 #[test]
 fn one_callable() {
@@ -185,8 +186,10 @@ fn check_unit(expect: &Expect, actual: &Increment) {
             .ast
             .names
             .iter()
-            .map(|n| format!("node_id:{},", n.0))
-            .collect::<String>()
+            .fold(String::new(), |mut output, n| {
+                let _ = write!(output, "node_id:{},", n.0);
+                output
+            })
     );
     let terms = format!(
         "\nterms:\n{}",
@@ -195,8 +198,10 @@ fn check_unit(expect: &Expect, actual: &Increment) {
             .tys
             .terms
             .iter()
-            .map(|n| format!("node_id:{},", n.0))
-            .collect::<String>()
+            .fold(String::new(), |mut output, n| {
+                let _ = write!(output, "node_id:{},", n.0);
+                output
+            })
     );
 
     let hir = format!("\nhir:\n{}", actual.hir);

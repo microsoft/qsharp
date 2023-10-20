@@ -20,7 +20,10 @@ import { activateDebugger } from "./debugger/activate.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startCheckingQSharp } from "./diagnostics.js";
 import { createHoverProvider } from "./hover.js";
-import { registerQSharpNotebookHandlers } from "./notebook.js";
+import {
+  registerCreateNotebookCommand,
+  registerQSharpNotebookHandlers,
+} from "./notebook.js";
 import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
@@ -53,6 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
   initAzureWorkspaces(context);
   initCodegen(context);
   activateDebugger(context);
+  registerCreateNotebookCommand(context);
 
   log.info("Q# extension activated.");
 }
@@ -151,7 +155,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerCompletionItemProvider(
       qsharpDocumentFilter,
       createCompletionItemProvider(languageService),
-      "."
+      "@" // for attribute completion
     )
   );
 

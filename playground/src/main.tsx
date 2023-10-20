@@ -215,6 +215,9 @@ function registerMonacoLanguageServiceProviders(
             case "module":
               kind = monaco.languages.CompletionItemKind.Module;
               break;
+            case "property":
+              kind = monaco.languages.CompletionItemKind.Property;
+              break;
           }
           return {
             label: i.label,
@@ -241,6 +244,7 @@ function registerMonacoLanguageServiceProviders(
         }),
       };
     },
+    triggerCharacters: ["@"], // for attribute completions
   });
 
   monaco.languages.registerHoverProvider("qsharp", {

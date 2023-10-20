@@ -1,16 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-export interface VSDiagnostic {
-  start_pos: number;
-  end_pos: number;
-  message: string;
-  severity: "error" | "warning" | "info";
-  code?: {
-    value: string;
-    target: string;
-  };
-}
+import { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
+export { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]
 // index), however VS Code and Monaco handle positions as utf-16 code unit positions
@@ -143,6 +135,10 @@ export function mapDiagnostics(
   diags.forEach((diag) => {
     positions.push(diag.start_pos);
     positions.push(diag.end_pos);
+    diag.related?.forEach((related) => {
+      positions.push(related.start_pos);
+      positions.push(related.end_pos);
+    });
   });
   const positionMap = mapUtf8UnitsToUtf16Units(positions, code);
 
@@ -152,6 +148,11 @@ export function mapDiagnostics(
     // The mapped position may well be 0, so need to use ?? rather than ||
     start_pos: positionMap[diag.start_pos] ?? code.length,
     end_pos: positionMap[diag.end_pos] ?? code.length,
+    related: diag.related?.map((related) => ({
+      ...related,
+      start_pos: positionMap[related.start_pos] ?? code.length,
+      end_pos: positionMap[related.end_pos] ?? code.length,
+    })),
   }));
 
   return results;

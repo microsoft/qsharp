@@ -2,19 +2,15 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
 	"name": "qsharp",
-	"image": "mcr.microsoft.com/devcontainers/rust:dev-bullseye",
+	"image": "mcr.microsoft.com/devcontainers/python:3",
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {
 			"nodeGypDependencies": true,
 			"version": "lts"
 		},
-		"ghcr.io/devcontainers/features/python:1": {
-			"installTools": true,
-			"installJupyterlab": true,
-			"version": "latest"
-		}
+		"ghcr.io/devcontainers/features/rust:1": {}
 	},
-	"postCreateCommand": "npm install -g wasm-pack",
+	"postCreateCommand": "npm install -g wasm-pack && cargo update --dry-run",
 	"customizations": {
 		"vscode": {
 			"extensions": [

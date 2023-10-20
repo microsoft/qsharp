@@ -26,7 +26,7 @@ pub struct Compiler {
 }
 
 /// An incremental compiler error.
-pub type Errors = Vec<WithSource<compile::Error>>;
+pub type Errors = Vec<compile::Error>;
 
 impl Compiler {
     /// Creates a new incremental compiler, compiling the passed in sources.
@@ -49,7 +49,7 @@ impl Compiler {
 
         let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
         if !errors.is_empty() {
-            return Err(into_errors_with_source(errors, &unit.sources));
+            return Err(errors);
         }
 
         let source_package_id = store.insert(unit);
@@ -171,7 +171,7 @@ impl Compiler {
 
 fn into_errors_with_source<T>(errors: Vec<T>, sources: &SourceMap) -> Errors
 where
-    compile::Error: From<T>,
+    compile::ErrorKind: From<T>,
 {
     errors
         .into_iter()
@@ -181,8 +181,8 @@ where
 
 fn into_errors<T>(errors: Vec<WithSource<T>>) -> Errors
 where
-    compile::Error: From<T>,
-    T: Diagnostic,
+    compile::ErrorKind: From<T>,
+    T: Diagnostic + Send + Sync,
 {
     errors
         .into_iter()

@@ -2,23 +2,19 @@
 // Licensed under the MIT License.
 
 use miette::Diagnostic;
-use qsc_frontend::{compile::PackageStore, error::WithSource};
-use std::{
-    error::Error,
-    fmt::{self, Debug, Display, Formatter},
-};
+use qsc_frontend::compile::PackageStore;
+use std::fmt::{self, Debug, Display, Formatter};
 use thiserror::Error;
 
+pub use qsc_frontend::error::WithSource;
+
 #[derive(Clone, Debug, Error)]
-pub struct WithStack<E>
-where
-    E: Diagnostic + Error,
-{
+pub struct WithStack<E> {
     error: E,
     stack_trace: Option<String>,
 }
 
-impl<E: Diagnostic> WithStack<E> {
+impl<E> WithStack<E> {
     pub(super) fn new(error: E, stack_trace: Option<String>) -> Self {
         WithStack { error, stack_trace }
     }
@@ -26,9 +22,13 @@ impl<E: Diagnostic> WithStack<E> {
     pub(super) fn stack_trace(&self) -> &Option<String> {
         &self.stack_trace
     }
+
+    pub fn error(&self) -> &E {
+        &self.error
+    }
 }
 
-impl<E: Display + Diagnostic> Display for WithStack<E> {
+impl<E: Display> Display for WithStack<E> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         std::fmt::Display::fmt(&self.error, f)
     }
@@ -69,7 +69,7 @@ impl<E: Diagnostic> Diagnostic for WithStack<E> {
     }
 }
 
-pub fn from_eval(
+pub(super) fn from_eval(
     error: qsc_eval::Error,
     store: &PackageStore,
     stack_trace: Option<String>,
