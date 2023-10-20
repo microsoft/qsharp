@@ -27,16 +27,14 @@ namespace Sample {
 
     @EntryPoint()
     operation Main() : Result {
-        use physicalQubit = Qubit();
+        use logicalQubit = Qubit[3];
 
-        // Set the initial state of the physical qubit.
-        SetSampleState(physicalQubit);
+        // Set the initial state of the first physical qubit.
+        SetSampleState(logicalQubit[0]);
 
-        // Using two additional qubits, encode the physical qubit into a
+        // Using two additional qubits, encode the first physical qubit into a
         // logical qubit.
-        use aux = Qubit[2];
-        EncodeAsLogicalQubit(physicalQubit, aux);
-        let logicalQubit = [physicalQubit] + aux;
+        EncodeAsLogicalQubit(logicalQubit[0], logicalQubit[1...]);
 
         // Induce a bit-flip error on a random qubit.
         X(logicalQubit[DrawRandomInt(0, 2)]);
@@ -51,11 +49,11 @@ namespace Sample {
         DumpMachine();
 
         // Decode the logical qubit back into a single physical qubit.
-        Adjoint EncodeAsLogicalQubit(physicalQubit, aux);
+        Adjoint EncodeAsLogicalQubit(logicalQubit[0], logicalQubit[1...]);
 
         // Measure and reset the physical qubit before releasing it.
-        let result = M(physicalQubit);
-        Reset(physicalQubit);
+        let result = M(logicalQubit[0]);
+        Reset(logicalQubit[0]);
         return result;
     }
 
