@@ -14,12 +14,14 @@ export enum EventType {
   RenderQuantumStateEnd = "Qsharp.RenderQuantumStateEnd",
   SubmitToAzureStart = "Qsharp.SubmitToAzureStart",
   SubmitToAzureEnd = "Qsharp.SubmitToAzureEnd",
+  AuthSessionStart = "Qsharp.AuthSessionStart",
+  AuthSessionEnd = "Qsharp.AuthSessionEnd",
 }
 
 export enum UserFlowStatus {
-  Aborted,
-  CompletedSuccessfully,
-  CompletedWithFailure
+  Aborted = "Aborted",
+  CompletedSuccessfully = "CompletedSuccessfully",
+  CompletedWithFailure = "CompletedWithFailure"
 }
 
 type Empty = { [K in any]: never };
@@ -70,7 +72,15 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.SubmitToAzureEnd]: {
-    properties: {associationId: string, reason: string, flowStatus: UserFlowStatus};
+    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    measurements: Empty;
+  };
+  [EventType.AuthSessionStart]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.AuthSessionEnd]: {
+    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
     measurements: Empty;
   };
 };

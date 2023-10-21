@@ -26,6 +26,8 @@ export const scopes = {
 export async function getAuthSession(
   scopes: string[]
 ): Promise<vscode.AuthenticationSession> {
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.AuthSessionStart, { associationId }, {});
   log.debug("About to getSession for scopes", scopes.join(","));
   try {
     let session = await vscode.authentication.getSession("microsoft", scopes, {
@@ -38,8 +40,17 @@ export async function getAuthSession(
       });
     }
     log.debug("Got session: ", JSON.stringify(session, null, 2));
+    sendTelemetryEvent(EventType.AuthSessionEnd, {
+      associationId,
+      flowStatus: UserFlowStatus.CompletedSuccessfully
+    }, {});
     return session;
   } catch (e) {
+    sendTelemetryEvent(EventType.AuthSessionEnd, {
+      associationId,
+      reason: "exception in getAuthSession",
+      flowStatus: UserFlowStatus.CompletedWithFailure
+    }, {});
     log.error("Exception occurred in getAuthSession: ", e);
     throw e;
   }
@@ -375,9 +386,9 @@ export async function submitJob(
 
   // Get a sasUri for the container
   const body = JSON.stringify({ containerName });
-  let sasResponse: ResponseTypes.SasUri | undefined;
+  let maybeSasResponse: ResponseTypes.SasUri | undefined;
   try {
-    sasResponse = await azureRequest(
+    maybeSasResponse = await azureRequest(
       quantumUris.sasUri(),
       token,
       "POST",
@@ -390,6 +401,9 @@ export async function submitJob(
     }, {});
     throw e;
   }
+  // sasResponse is always defined by here -- in the case where
+  // it is undefined, we throw an error above.
+  const sasResponse = maybeSasResponse!;
   const sasUri = decodeURI(sasResponse.sasUri);
 
   // Parse the Uri to get the storage account and sasToken
