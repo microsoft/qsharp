@@ -849,7 +849,7 @@ export class QscDebugSession extends LoggingDebugSession {
         variables: variables,
       };
     } else if (handle === "quantum") {
-      let associationId = getRandomGuid();
+      const associationId = getRandomGuid();
       sendTelemetryEvent(
         EventType.RenderQuantumStateStart,
         { associationId },
