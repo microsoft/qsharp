@@ -176,6 +176,11 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
         if token(s, TokenKind::Comma).is_ok() {
+            while s.peek().kind == TokenKind::Comma {
+                // Two commas in a row is indicative of a missing expression, so push an error.
+                s.push_error(Error(ErrorKind::DuplicateComma(s.peek().span)));
+                s.advance();
+            }
             final_sep = FinalSep::Present;
         } else {
             final_sep = FinalSep::Missing;

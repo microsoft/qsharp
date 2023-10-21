@@ -64,6 +64,9 @@ enum ErrorKind {
     #[error("expected callable inputs to be parenthesized")]
     #[diagnostic(code("Qsc.Parse.MissingParens"))]
     MissingParens(#[label] Span),
+    #[error("duplicate comma")]
+    #[diagnostic(code("Qsc.Parse.DuplicateComma"))]
+    DuplicateComma(#[label] Span),
 }
 
 impl ErrorKind {
@@ -78,6 +81,7 @@ impl ErrorKind {
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
             Self::MissingParens(span) => Self::MissingParens(span + offset),
             Self::FloatingDocComment(span) => Self::FloatingDocComment(span + offset),
+            Self::DuplicateComma(span) => Self::DuplicateComma(span + offset),
         }
     }
 }
