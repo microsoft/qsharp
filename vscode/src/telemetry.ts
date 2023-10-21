@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
-import { v4 } from "uuid";
 
 export enum EventType {
   DebugSessionStart = "Qsharp.DebugSessionStart",
@@ -11,9 +10,17 @@ export enum EventType {
   ReturnCompletionList = "Qsharp.ReturnCompletionList",
   GenerateQirStart = "Qsharp.GenerateQirStart",
   GenerateQirEnd = "Qsharp.GenerateQirEnd",
+  RenderQuantumStateStart = "Qsharp.RenderQuantumStateStart",
+  RenderQuantumStateEnd = "Qsharp.RenderQuantumStateEnd",
+  SubmitToAzureStart = "Qsharp.SubmitToAzureStart",
+  SubmitToAzureEnd = "Qsharp.SubmitToAzureEnd",
 }
 
-export const generateAssociationId: () => string  = v4;
+export enum UserFlowStatus {
+  Aborted,
+  CompletedSuccessfully,
+  CompletedWithFailure
+}
 
 type Empty = { [K in any]: never };
 
@@ -48,6 +55,22 @@ type EventTypes = {
   };
   [EventType.GenerateQirEnd]: {
     properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.RenderQuantumStateStart]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.RenderQuantumStateEnd]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.SubmitToAzureStart]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.SubmitToAzureEnd]: {
+    properties: {associationId: string, reason: string, flowStatus: UserFlowStatus};
     measurements: Empty;
   };
 };

@@ -15,6 +15,8 @@ import {
   shouldExcludeProvider,
   shouldExcludeTarget,
 } from "./providerProperties";
+import { getRandomGuid } from "../utils";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
@@ -43,34 +45,6 @@ export async function getAuthSession(
   }
 }
 
-// Guid format such as "00000000-1111-2222-3333-444444444444"
-export function getRandomGuid(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-
-  // Per https://www.ietf.org/rfc/rfc4122.txt, for UUID v4 (random GUIDs):
-  // - Octet 6 contains the version in top 4 bits (0b0100)
-  // - Octet 8 contains the variant in the top 2 bits (0b10)
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  // Convert the 16 bytes into 32 hex digits
-  const hex = bytes.reduce(
-    (acc, byte) => acc + byte.toString(16).padStart(2, "0"),
-    ""
-  );
-
-  return (
-    hex.substring(0, 8) +
-    "-" +
-    hex.substring(8, 12) +
-    "-" +
-    hex.substring(12, 16) +
-    "-" +
-    hex.substring(16, 20) +
-    "-" +
-    hex.substring(20, 32)
-  );
-}
 
 export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
   // Portal link format:
@@ -372,6 +346,9 @@ export async function submitJob(
   providerId: string,
   target: string
 ) {
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
+
   const containerName = getRandomGuid();
   const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
 
@@ -392,17 +369,27 @@ export async function submitJob(
 
   // abort if the user hits <Esc> during shots entry
   if (numberOfShots === undefined) {
+    sendTelemetryEvent(EventType.SubmitToAzureEnd, { associationId, reason: "undefined number of shots", flowStatus: UserFlowStatus.Aborted }, {});
     return;
   }
 
   // Get a sasUri for the container
   const body = JSON.stringify({ containerName });
-  const sasResponse: ResponseTypes.SasUri = await azureRequest(
-    quantumUris.sasUri(),
-    token,
-    "POST",
-    body
-  );
+  let sasResponse: ResponseTypes.SasUri | undefined;
+  try {
+    sasResponse = await azureRequest(
+      quantumUris.sasUri(),
+      token,
+      "POST",
+      body
+    );
+  } catch (e) {
+    sendTelemetryEvent(EventType.SubmitToAzureEnd, {
+      associationId, reason: "exception in sas request",
+      flowStatus: UserFlowStatus.CompletedWithFailure
+    }, {});
+    throw e;
+  }
   const sasUri = decodeURI(sasResponse.sasUri);
 
   // Parse the Uri to get the storage account and sasToken
@@ -416,16 +403,32 @@ export async function submitJob(
 
   // Create the container
   const containerPutUri = `${storageAccount}/${containerName}?restype=container&${sasTokenRaw}`;
-  await storageRequest(containerPutUri, "PUT");
+  try {
+    await storageRequest(containerPutUri, "PUT");
+  } catch (e) {
+    sendTelemetryEvent(EventType.SubmitToAzureEnd, {
+      associationId, reason: "exception in azure storage request for container put",
+      flowStatus: UserFlowStatus.CompletedWithFailure
+    }, {});
+    throw e;
+  }
 
   // Write the input data
   const inputDataUri = `${storageAccount}/${containerName}/inputData?${sasTokenRaw}`;
-  await storageRequest(
-    inputDataUri,
-    "PUT",
-    [["x-ms-blob-type", "BlockBlob"]],
-    qirFile
-  );
+  try {
+    await storageRequest(
+      inputDataUri,
+      "PUT",
+      [["x-ms-blob-type", "BlockBlob"]],
+      qirFile
+    );
+  } catch (e) {
+    sendTelemetryEvent(EventType.SubmitToAzureEnd, {
+      associationId, reason: "exception in azure storage request for input",
+      flowStatus: UserFlowStatus.CompletedWithFailure
+    }, {});
+    throw e;
+  }
 
   // PUT the job data
   const putJobUri = quantumUris.jobs(containerName);
@@ -450,6 +453,9 @@ export async function submitJob(
   await azureRequest(putJobUri, token, "PUT", JSON.stringify(payload));
 
   vscode.window.showInformationMessage(`Job ${jobName} submitted`);
+  sendTelemetryEvent(EventType.SubmitToAzureEnd, {
+    associationId, reason: "job submitted", flowStatus: UserFlowStatus.CompletedSuccessfully
+  }, {});
 
   return containerName; // The jobId
 }

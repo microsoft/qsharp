@@ -35,7 +35,8 @@ import {
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-import { EventType, sendTelemetryEvent } from "../telemetry";
+import { EventType,  sendTelemetryEvent } from "../telemetry";
+import { getRandomGuid } from "../utils";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -530,7 +531,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-              bp.fileLocation.startOffset <= endOffset
+            bp.fileLocation.startOffset <= endOffset
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
@@ -848,20 +849,31 @@ export class QscDebugSession extends LoggingDebugSession {
         variables: variables,
       };
     } else if (handle === "quantum") {
-      const state = await this.debugService.captureQuantumState();
-      const variables: DebugProtocol.Variable[] = state.map((entry) => {
-        const variable: DebugProtocol.Variable = {
-          name: entry.name,
-          value: entry.value,
-          variablesReference: 0,
-          type: "Complex",
-        };
-        return variable;
-      });
-      response.body = {
-        variables: variables,
+      let associationId = getRandomGuid();
+      sendTelemetryEvent(
+        EventType.RenderQuantumStateStart,
+        {associationId},
+        {}
+       );
+    const state = await this.debugService.captureQuantumState();
+    const variables: DebugProtocol.Variable[] = state.map((entry) => {
+      const variable: DebugProtocol.Variable = {
+        name: entry.name,
+        value: entry.value,
+        variablesReference: 0,
+        type: "Complex",
       };
-    }
+      return variable;
+    });
+      sendTelemetryEvent(
+        EventType.RenderQuantumStateEnd,
+        {associationId},
+        {}
+       );
+    response.body = {
+      variables: variables,
+    };
+  }
 
     log.trace(`variablesResponse: %O`, response);
     this.sendResponse(response);
@@ -871,29 +883,29 @@ export class QscDebugSession extends LoggingDebugSession {
     id: number,
     location: DebugProtocol.BreakpointLocation
   ): DebugProtocol.Breakpoint {
-    const verified = true;
-    const bp = new Breakpoint(verified) as DebugProtocol.Breakpoint;
-    bp.id = id;
-    bp.line = location.line;
-    bp.column = location.column;
-    bp.endLine = location.endLine;
-    bp.endColumn = location.endColumn;
-    return bp;
-  }
+  const verified = true;
+  const bp = new Breakpoint(verified) as DebugProtocol.Breakpoint;
+  bp.id = id;
+  bp.line = location.line;
+  bp.column = location.column;
+  bp.endLine = location.endLine;
+  bp.endColumn = location.endColumn;
+  return bp;
+}
 
   private writeToStdOut(message: string): void {
-    const evt: DebugProtocol.OutputEvent = new OutputEvent(
-      `${message}\n`,
-      "stdout"
-    );
-    this.sendEvent(evt);
-  }
+  const evt: DebugProtocol.OutputEvent = new OutputEvent(
+    `${message}\n`,
+    "stdout"
+  );
+  this.sendEvent(evt);
+}
 
   private writeToDebugConsole(message: string): void {
-    const evt: DebugProtocol.OutputEvent = new OutputEvent(
-      `${message}\n`,
-      "console"
-    );
-    this.sendEvent(evt);
-  }
+  const evt: DebugProtocol.OutputEvent = new OutputEvent(
+    `${message}\n`,
+    "console"
+  );
+  this.sendEvent(evt);
+}
 }
