@@ -24,6 +24,8 @@ export enum EventType {
   GetJobFilesEnd = "Qsharp.GetJobFilesEnd",
   QueryWorkspaceStart = "Qsharp.QueryWorkspaceStart",
   QueryWorkspaceEnd = "Qsharp.QueryWorkspaceEnd",
+  CheckCorsStart = "Qsharp.CheckCorsStart",
+  CheckCorsEnd = "Qsharp.CheckCorsEnd",
 }
 
 export enum UserFlowStatus {
@@ -31,7 +33,7 @@ export enum UserFlowStatus {
   Aborted = "Aborted",
   CompletedSuccessfully = "CompletedSuccessfully",
   // "CompletedWithFailure" means something that we can action -- service request failure, exceptions, etc.
-  CompletedWithFailure = "CompletedWithFailure"
+  CompletedWithFailure = "CompletedWithFailure",
 }
 
 type Empty = { [K in any]: never };
@@ -59,70 +61,102 @@ type EventTypes = {
   };
   [EventType.ReturnCompletionList]: {
     properties: Empty;
-    measurements: {timeToCompletionMs: number; completionListLength: number; };
+    measurements: { timeToCompletionMs: number; completionListLength: number };
   };
   [EventType.GenerateQirStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.RenderQuantumStateStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.RenderQuantumStateEnd]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.SubmitToAzureStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.SubmitToAzureEnd]: {
-    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
     measurements: Empty;
   };
   [EventType.AuthSessionStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.AuthSessionEnd]: {
-    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
     measurements: Empty;
   };
   [EventType.QueryWorkspacesStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.QueryWorkspacesEnd]: {
-    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
     measurements: Empty;
   };
   [EventType.AzureRequestFailed]: {
-    properties: {associationId: string, reason?: string};
+    properties: { associationId: string; reason?: string };
     measurements: Empty;
   };
   [EventType.StorageRequestFailed]: {
-    properties: {associationId: string, reason?: string};
+    properties: { associationId: string; reason?: string };
     measurements: Empty;
   };
   [EventType.GetJobFilesStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.GetJobFilesEnd]: {
-    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
     measurements: Empty;
   };
   [EventType.QueryWorkspaceStart]: {
-    properties: {associationId: string};
+    properties: { associationId: string };
     measurements: Empty;
   };
   [EventType.QueryWorkspaceEnd]: {
-    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: Empty;
+  };
+  [EventType.CheckCorsStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.CheckCorsEnd]: {
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
     measurements: Empty;
   };
 };

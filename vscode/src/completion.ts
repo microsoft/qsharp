@@ -43,7 +43,10 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     sendTelemetryEvent(
       EventType.ReturnCompletionList,
       {},
-      { timeToCompletionMs: end - start, completionListLength: completions.items.length }
+      {
+        timeToCompletionMs: end - start,
+        completionListLength: completions.items.length,
+      }
     );
     const results = completions.items.map((c) => {
       let kind;

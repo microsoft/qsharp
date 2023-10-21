@@ -3,16 +3,17 @@
 
 import { log } from "qsharp-lang";
 import { workspace } from "vscode";
-import { EventType, sendTelemetryEvent } from "../telemetry";
+import { EventType, UserFlowStatus, sendTelemetryEvent } from "../telemetry";
+import { getRandomGuid } from "../utils";
 
 const publicMgmtEndpoint = "https://management.azure.com";
 
 export async function azureRequest(
   uri: string,
   token: string,
-  method = "GET",
-  body?: string,
   associationId?: string,
+  method = "GET",
+  body?: string
 ) {
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
@@ -30,7 +31,14 @@ export async function azureRequest(
     if (!response.ok) {
       log.error("Azure request failed", response);
       if (associationId) {
-        sendTelemetryEvent(EventType.AzureRequestFailed, { reason: `request to ${uri} returned code ${response.status}`, associationId }, {});
+        sendTelemetryEvent(
+          EventType.AzureRequestFailed,
+          {
+            reason: `request to ${uri} returned code ${response.status}`,
+            associationId,
+          },
+          {}
+        );
       }
       throw Error(`Azure request failed: ${response.statusText}`);
     }
@@ -42,7 +50,11 @@ export async function azureRequest(
     return result;
   } catch (e) {
     if (associationId) {
-      sendTelemetryEvent(EventType.AzureRequestFailed, { reason: `request to ${uri} failed to return`, associationId }, {});
+      sendTelemetryEvent(
+        EventType.AzureRequestFailed,
+        { reason: `request to ${uri} failed to return`, associationId },
+        {}
+      );
     }
     log.error(`Failed to fetch ${uri}: ${e}`);
     throw e;
@@ -77,7 +89,14 @@ export async function storageRequest(
     if (!response.ok) {
       log.error("Storage request failed", response);
       if (associationId) {
-        sendTelemetryEvent(EventType.StorageRequestFailed, { reason: `request to ${uri} returned code ${response.status}`, associationId }, {});
+        sendTelemetryEvent(
+          EventType.StorageRequestFailed,
+          {
+            reason: `request to ${uri} returned code ${response.status}`,
+            associationId,
+          },
+          {}
+        );
       }
       throw Error(`Storage request failed: ${response.statusText}`);
     }
@@ -86,7 +105,11 @@ export async function storageRequest(
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
     if (associationId) {
-      sendTelemetryEvent(EventType.StorageRequestFailed, { reason: `request to ${uri} failed to return`, associationId }, {});
+      sendTelemetryEvent(
+        EventType.StorageRequestFailed,
+        { reason: `request to ${uri} failed to return`, associationId },
+        {}
+      );
     }
     throw e;
   }
@@ -95,7 +118,7 @@ export async function storageRequest(
 export class AzureUris {
   readonly apiVersion = "2020-01-01";
 
-  constructor(public mgmtEndpoint = publicMgmtEndpoint) { }
+  constructor(public mgmtEndpoint = publicMgmtEndpoint) {}
 
   tenants() {
     // https://learn.microsoft.com/en-us/rest/api/resources/tenants/list
@@ -119,7 +142,7 @@ export class QuantumUris {
   constructor(
     public endpoint: string, // e.g. "https://westus.quantum.azure.com"
     public id: string // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
-  ) { }
+  ) {}
 
   quotas() {
     return `${this.endpoint}${this.id}/quotas?api-version=${this.apiVersion}`;
@@ -170,6 +193,9 @@ export class StorageUris {
 }
 
 export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.CheckCorsStart, { associationId }, {});
+
   log.debug("Checking CORS configuration for the workspace");
 
   // Get a sasUri for a container to check (it's name doesn't matter, CORS is service wide on a storage account)
@@ -177,6 +203,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
+    associationId,
     "POST",
     body
   );
@@ -222,6 +249,11 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
     ],
   });
   log.debug("Pre-flighted GET request didn't throw, so CORS seems good");
+  sendTelemetryEvent(
+    EventType.CheckCorsEnd,
+    { associationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+    {}
+  );
 }
 
 export async function compileToBitcode(
