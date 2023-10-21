@@ -151,7 +151,10 @@ fn use_invalid_init() {
 
 #[test]
 fn use_tuple_duplicate_commas() {
-    check(parse, "use (q1,, q2) = (Qubit(),, Qubit());", &expect![[r#"
+    check(
+        parse,
+        "use (q1,, q2) = (Qubit(),, Qubit());",
+        &expect![[r#"
         Stmt _id_ [0-36]: Qubit (Fresh)
             Pat _id_ [4-13]: Tuple:
                 Pat _id_ [5-7]: Bind:
@@ -179,7 +182,8 @@ fn use_tuple_duplicate_commas() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
