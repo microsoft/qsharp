@@ -16,11 +16,21 @@ export enum EventType {
   SubmitToAzureEnd = "Qsharp.SubmitToAzureEnd",
   AuthSessionStart = "Qsharp.AuthSessionStart",
   AuthSessionEnd = "Qsharp.AuthSessionEnd",
+  QueryWorkspacesStart = "Qsharp.QueryWorkspacesStart",
+  QueryWorkspacesEnd = "Qsharp.QueryWorkspacesEnd",
+  AzureRequestFailed = "Qsharp.AzureRequestFailed",
+  StorageRequestFailed = "Qsharp.StorageRequestFailed",
+  GetJobFilesStart = "Qsharp.GetJobFilesStart",
+  GetJobFilesEnd = "Qsharp.GetJobFilesEnd",
+  QueryWorkspaceStart = "Qsharp.QueryWorkspaceStart",
+  QueryWorkspaceEnd = "Qsharp.QueryWorkspaceEnd",
 }
 
 export enum UserFlowStatus {
+  // "Aborted" means the flow was intentionally canceled or left, either by us or the user
   Aborted = "Aborted",
   CompletedSuccessfully = "CompletedSuccessfully",
+  // "CompletedWithFailure" means something that we can action -- service request failure, exceptions, etc.
   CompletedWithFailure = "CompletedWithFailure"
 }
 
@@ -80,6 +90,38 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.AuthSessionEnd]: {
+    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    measurements: Empty;
+  };
+  [EventType.QueryWorkspacesStart]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.QueryWorkspacesEnd]: {
+    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    measurements: Empty;
+  };
+  [EventType.AzureRequestFailed]: {
+    properties: {associationId: string, reason?: string};
+    measurements: Empty;
+  };
+  [EventType.StorageRequestFailed]: {
+    properties: {associationId: string, reason?: string};
+    measurements: Empty;
+  };
+  [EventType.GetJobFilesStart]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.GetJobFilesEnd]: {
+    properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
+    measurements: Empty;
+  };
+  [EventType.QueryWorkspaceStart]: {
+    properties: {associationId: string};
+    measurements: Empty;
+  };
+  [EventType.QueryWorkspaceEnd]: {
     properties: {associationId: string, reason?: string, flowStatus: UserFlowStatus};
     measurements: Empty;
   };

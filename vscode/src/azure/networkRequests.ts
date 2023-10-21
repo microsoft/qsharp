@@ -3,6 +3,7 @@
 
 import { log } from "qsharp-lang";
 import { workspace } from "vscode";
+import { EventType, sendTelemetryEvent } from "../telemetry";
 
 const publicMgmtEndpoint = "https://management.azure.com";
 
@@ -10,7 +11,8 @@ export async function azureRequest(
   uri: string,
   token: string,
   method = "GET",
-  body?: string
+  body?: string,
+  associationId?: string,
 ) {
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
@@ -27,6 +29,9 @@ export async function azureRequest(
 
     if (!response.ok) {
       log.error("Azure request failed", response);
+      if (associationId) {
+        sendTelemetryEvent(EventType.AzureRequestFailed, { reason: `request to ${uri} returned code ${response.status}`, associationId }, {});
+      }
       throw Error(`Azure request failed: ${response.statusText}`);
     }
 
@@ -36,6 +41,9 @@ export async function azureRequest(
 
     return result;
   } catch (e) {
+    if (associationId) {
+      sendTelemetryEvent(EventType.AzureRequestFailed, { reason: `request to ${uri} failed to return`, associationId }, {});
+    }
     log.error(`Failed to fetch ${uri}: ${e}`);
     throw e;
   }
@@ -46,7 +54,8 @@ export async function storageRequest(
   uri: string,
   method: string,
   extraHeaders?: [string, string][],
-  body?: string | Uint8Array
+  body?: string | Uint8Array,
+  associationId?: string
 ) {
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
@@ -67,12 +76,18 @@ export async function storageRequest(
     const response = await fetch(uri, { method, headers, body });
     if (!response.ok) {
       log.error("Storage request failed", response);
+      if (associationId) {
+        sendTelemetryEvent(EventType.StorageRequestFailed, { reason: `request to ${uri} returned code ${response.status}`, associationId }, {});
+      }
       throw Error(`Storage request failed: ${response.statusText}`);
     }
     log.debug(`Got response ${response.status} ${response.statusText}`);
     return response;
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
+    if (associationId) {
+      sendTelemetryEvent(EventType.StorageRequestFailed, { reason: `request to ${uri} failed to return`, associationId }, {});
+    }
     throw e;
   }
 }
@@ -80,7 +95,7 @@ export async function storageRequest(
 export class AzureUris {
   readonly apiVersion = "2020-01-01";
 
-  constructor(public mgmtEndpoint = publicMgmtEndpoint) {}
+  constructor(public mgmtEndpoint = publicMgmtEndpoint) { }
 
   tenants() {
     // https://learn.microsoft.com/en-us/rest/api/resources/tenants/list
@@ -104,7 +119,7 @@ export class QuantumUris {
   constructor(
     public endpoint: string, // e.g. "https://westus.quantum.azure.com"
     public id: string // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
-  ) {}
+  ) { }
 
   quotas() {
     return `${this.endpoint}${this.id}/quotas?api-version=${this.apiVersion}`;
