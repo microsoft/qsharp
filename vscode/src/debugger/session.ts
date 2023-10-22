@@ -35,7 +35,12 @@ import {
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-import { EventType, sendTelemetryEvent } from "../telemetry";
+import {
+  DebugEvent,
+  EventType,
+  UserFlowStatus,
+  sendTelemetryEvent,
+} from "../telemetry";
 import { getRandomGuid } from "../utils";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -100,8 +105,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-  public async init(): Promise<void> {
-    const start = performance.now();
+  public async init(associationId: string): Promise<void> {
+    sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
 
@@ -147,13 +152,21 @@ export class QscDebugSession extends LoggingDebugSession {
       this.breakpointLocations.set(this.program.toString(), mapped);
     } else {
       log.warn(`compilation failed. ${failureMessage}`);
+      sendTelemetryEvent(
+        EventType.InitializeRuntimeEnd,
+        {
+          associationId,
+          reason: "compilation failed",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        {}
+      );
       this.failureMessage = failureMessage;
     }
-    const end = performance.now();
     sendTelemetryEvent(
-      EventType.DebugSessionStart,
-      {},
-      { timeToStartMs: end - start }
+      EventType.InitializeRuntimeEnd,
+      { associationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+      {}
     );
   }
 
@@ -251,6 +264,8 @@ export class QscDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: ILaunchRequestArguments
   ): Promise<void> {
+    const associationId = getRandomGuid();
+    sendTelemetryEvent(EventType.Launch, { associationId }, {});
     if (this.failureMessage != "") {
       log.info(
         "compilation failed. sending error response and stopping execution."
@@ -285,12 +300,22 @@ export class QscDebugSession extends LoggingDebugSession {
 
     if (args.noDebug) {
       log.trace(`Running without debugging`);
-      await this.runWithoutDebugging(args);
+      await this.runWithoutDebugging(args, associationId);
     } else {
       log.trace(`Running with debugging`);
       if (this.config.stopOnEntry) {
+        sendTelemetryEvent(
+          EventType.DebugSessionEvent,
+          { associationId, event: DebugEvent.StepIn },
+          {}
+        );
         await this.stepIn();
       } else {
+        sendTelemetryEvent(
+          EventType.DebugSessionEvent,
+          { associationId, event: DebugEvent.Continue },
+          {}
+        );
         await this.continue();
       }
     }
@@ -357,7 +382,8 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   private async runWithoutDebugging(
-    args: ILaunchRequestArguments
+    args: ILaunchRequestArguments,
+    associationId: string
   ): Promise<void> {
     const bps: number[] = [];
     // This will be replaced when the interpreter
@@ -375,7 +401,7 @@ export class QscDebugSession extends LoggingDebugSession {
       // Reset the interpreter for the next shot.
       // The interactive interpreter doesn't do this automatically,
       // and doesn't know how to deal with shots like the stateless version.
-      await this.init();
+      await this.init(associationId);
       if (this.failureMessage != "") {
         log.info(
           "compilation failed. sending error response and stopping execution."

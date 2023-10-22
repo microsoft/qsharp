@@ -3,7 +3,6 @@ import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
 
 export enum EventType {
-  DebugSessionStart = "Qsharp.DebugSessionStart",
   InitializePlugin = "Qsharp.InitializePlugin",
   LoadLanguageService = "Qsharp.LoadLanguageService",
   QSharpJupyterCellInitialized = "Qsharp.JupyterCellInitialized",
@@ -26,14 +25,10 @@ export enum EventType {
   QueryWorkspaceEnd = "Qsharp.QueryWorkspaceEnd",
   CheckCorsStart = "Qsharp.CheckCorsStart",
   CheckCorsEnd = "Qsharp.CheckCorsEnd",
-}
-
-export enum UserFlowStatus {
-  // "Aborted" means the flow was intentionally canceled or left, either by us or the user
-  Aborted = "Aborted",
-  CompletedSuccessfully = "CompletedSuccessfully",
-  // "CompletedWithFailure" means something that we can action -- service request failure, exceptions, etc.
-  CompletedWithFailure = "CompletedWithFailure",
+  InitializeRuntimeStart = "Qsharp.InitializeRuntimeStart",
+  InitializeRuntimeEnd = "Qsharp.InitializeRuntimeEnd",
+  DebugSessionEvent = "Qsharp.DebugSessionEvent",
+  Launch = "Qsharp.Launch",
 }
 
 type Empty = { [K in any]: never };
@@ -42,12 +37,6 @@ type EventTypes = {
   [EventType.InitializePlugin]: {
     properties: Empty;
     measurements: Empty;
-  };
-  [EventType.DebugSessionStart]: {
-    properties: Empty;
-    measurements: {
-      timeToStartMs: number;
-    };
   };
   [EventType.LoadLanguageService]: {
     properties: Empty;
@@ -159,7 +148,43 @@ type EventTypes = {
     };
     measurements: Empty;
   };
+  [EventType.InitializeRuntimeStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.InitializeRuntimeEnd]: {
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: Empty;
+  };
+  [EventType.DebugSessionEvent]: {
+    properties: {
+      associationId: string;
+      event: DebugEvent;
+    };
+    measurements: Empty;
+  };
+  [EventType.Launch]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
 };
+
+export enum UserFlowStatus {
+  // "Aborted" means the flow was intentionally canceled or left, either by us or the user
+  Aborted = "Aborted",
+  CompletedSuccessfully = "CompletedSuccessfully",
+  // "CompletedWithFailure" means something that we can action -- service request failure, exceptions, etc.
+  CompletedWithFailure = "CompletedWithFailure",
+}
+
+export enum DebugEvent {
+  StepIn = "StepIn",
+  Continue = "Continue",
+}
 
 let reporter: TelemetryReporter | undefined;
 
