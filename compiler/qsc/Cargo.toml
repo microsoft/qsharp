@@ -24,6 +24,7 @@ qsc_ast = { path = "../qsc_ast" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
+qsc_runtime_capabilities = { path = "../qsc_runtime_capabilities" }
 thiserror = { workspace = true }
 
 [dev-dependencies]

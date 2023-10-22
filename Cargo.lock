@@ -763,6 +763,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "qsc_runtime_capabilities",
  "thiserror",
 ]
 
@@ -879,6 +880,14 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "thiserror",
+]
+
+[[package]]
+name = "qsc_runtime_capabilities"
+version = "0.0.0"
+dependencies = [
+ "qsc_data_structures",
+ "qsc_fir",
 ]
 
 [[package]]

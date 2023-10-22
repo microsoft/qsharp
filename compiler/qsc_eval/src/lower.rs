@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::debug::map_hir_package_to_fir;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::assigner::Assigner;
 use qsc_fir::fir::{Block, Expr, Pat, Stmt};
@@ -8,6 +9,7 @@ use qsc_fir::{
     fir::{self, BlockId, ExprId, LocalItemId, PatId, StmtId},
     ty::{Arrow, InferFunctorId, ParamId, Ty},
 };
+use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir;
 use std::{clone::Clone, rc::Rc};
 
@@ -37,6 +39,17 @@ impl Lowerer {
             blocks: IndexMap::new(),
             assigner: Assigner::new(),
         }
+    }
+
+    pub fn lower_store(&mut self, store: &PackageStore) -> fir::PackageStore {
+        let mut fir_store = IndexMap::new();
+        for (id, unit) in store.iter() {
+            fir_store.insert(
+                map_hir_package_to_fir(id),
+                self.lower_package(&unit.package),
+            );
+        }
+        fir::PackageStore(fir_store)
     }
 
     pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {

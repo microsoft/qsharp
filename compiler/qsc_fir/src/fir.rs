@@ -310,6 +310,20 @@ impl Display for Res {
     }
 }
 
+/// The FIR equivalent to a `qsc_frontend::compile::PackageStore`.
+#[derive(Debug)]
+pub struct PackageStore(pub IndexMap<PackageId, Package>);
+
+impl Display for PackageStore {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        for (id, package) in self.0.iter() {
+            write!(indent, "\n|{id}|\n{package}")?;
+        }
+        Ok(())
+    }
+}
+
 /// The root node of the FIR.
 /// ### Notes
 /// We maintain a dense map of ids within the package.
@@ -384,12 +398,13 @@ impl Display for Item {
             write!(indent, "\nParent: {parent}")?;
         }
 
-        if !self.doc.is_empty() {
-            write!(indent, "\nDoc:")?;
-            indent = set_indentation(indent, 2);
-            write!(indent, "\n{}", self.doc)?;
-            indent = set_indentation(indent, 1);
-        }
+        // DBG (cesarzc): Make displayed item more compact for easier debugging.
+        //if !self.doc.is_empty() {
+        //    write!(indent, "\nDoc:")?;
+        //    indent = set_indentation(indent, 2);
+        //    write!(indent, "\n{}", self.doc)?;
+        //    indent = set_indentation(indent, 1);
+        //}
 
         for attr in &self.attrs {
             write!(indent, "\n{attr:?}")?;

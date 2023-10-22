@@ -15,9 +15,11 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
+use qsc_runtime_capabilities::analyze_store_capabilities;
 use std::{
-    concat, fs,
-    io::{self, Read},
+    concat,
+    fs::{self, File},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
     process::ExitCode,
     string::String,
@@ -86,6 +88,12 @@ fn main() -> miette::Result<ExitCode> {
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");
 
+    // Perform runtime capabilities analysis.
+    let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
+    let fir_store = fir_lowerer.lower_store(&store);
+    save_fir_store_to_file(&fir_store); // DBG (cesarzc): For debugging purposes only.
+    let _store_capabilities = analyze_store_capabilities(&fir_store);
+
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
@@ -107,6 +115,13 @@ fn main() -> miette::Result<ExitCode> {
 
         Ok(ExitCode::FAILURE)
     }
+}
+
+// DBG (cesarzc): For debugging purposes only.
+fn save_fir_store_to_file(store: &qsc_fir::fir::PackageStore) {
+    let mut fir_store_file = File::create("dbg/firstore.txt").expect("File could be created");
+    let fir_store_string = format!("{store}");
+    write!(fir_store_file, "{fir_store_string}").expect("Writing to file should succeed.");
 }
 
 fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceContents)> {
