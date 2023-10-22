@@ -86,6 +86,10 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showHistogram",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         }
@@ -156,6 +160,11 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.showHistogram",
+        "title": "Show histogram",
+        "category": "Q#"
       },
       {
         "command": "qsharp-vscode.workspacesRefresh",

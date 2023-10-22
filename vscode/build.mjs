@@ -17,6 +17,7 @@ const buildOptions = {
     join(thisDir, "src", "extension.ts"),
     join(thisDir, "src", "compilerWorker.ts"),
     join(thisDir, "src", "debugger/debug-service-worker.ts"),
+    join(thisDir, "src", "webview/webview.tsx"),
   ],
   outdir: join(thisDir, "out"),
   bundle: true,

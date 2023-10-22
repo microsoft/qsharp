@@ -30,6 +30,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
+import { registerHistogramCommand } from "./webviewPanel.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -57,6 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
   initCodegen(context);
   activateDebugger(context);
   registerCreateNotebookCommand(context);
+  registerHistogramCommand(context);
 
   log.info("Q# extension activated.");
 }
