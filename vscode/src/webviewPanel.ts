@@ -49,12 +49,27 @@ export function registerHistogramCommand(context: ExtensionContext) {
       try {
         const code = editor.document.getText();
 
-        // TODO: Get the number of shots to run via a quick pick
-        const shots = 1000; // TODO: QuickPick
+        const validateShotsInput = (input: string) => {
+          const result = parseFloat(input);
+          if (isNaN(result) || Math.floor(result) !== result || result <= 0) {
+            return "Number of shots must be a positive integer";
+          }
+        };
+
+        const numberOfShots =
+          (await window.showInputBox({
+            value: "100",
+            prompt: "Number of shots",
+            validateInput: validateShotsInput,
+          })) || "100";
+
+        // abort if the user hits <Esc> during shots entry
+        if (numberOfShots === undefined) {
+          return;
+        }
 
         const evtTarget = new QscEventTarget(true);
         evtTarget.addEventListener("uiResultsRefresh", () => {
-          // TODO: Structure results and send to the webview
           const results = evtTarget.getResults();
           const resultCount = evtTarget.resultCount();
           const buckets = new Map();
@@ -67,11 +82,12 @@ export function registerHistogramCommand(context: ExtensionContext) {
           const message = {
             command: "update",
             buckets: Array.from(buckets.entries()),
+            shotCount: resultCount,
           };
           QSharpWebViewPanel.currentPanel?.sendMessage(message);
         });
 
-        await worker.run(code, "", shots, evtTarget);
+        await worker.run(code, "", parseInt(numberOfShots), evtTarget);
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Codegen error. ", e.toString());

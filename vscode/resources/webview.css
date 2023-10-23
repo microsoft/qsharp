@@ -14,36 +14,12 @@
   --bar-selected-outline: #587ddd;
 }
 
-html {
-  box-sizing: border-box;
-  font-size: 16px;
-}
-
 *,
 *::before,
 *::after {
   box-sizing: inherit;
   margin: 0;
   padding: 0;
-}
-
-body {
-  position: relative;
-  min-height: 100vh;
-  font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial,
-    sans-serif;
-  font-family: var(--vscode-font-family);
-  color: var(--main-color);
-  color: var(--vscode-editor-foreground);
-  background-color: var(--main-background);
-  background-color: var(--vscode-editor-background);
-  display: grid;
-  grid-template-areas:
-    "header header header"
-    "nav editor results";
-  grid-template-rows: auto 1fr;
-  grid-template-columns: minmax(180px, auto) 8fr 8fr;
-  column-gap: 16px;
 }
 
 #popup {
@@ -246,7 +222,7 @@ body {
 }
 
 .histogram {
-  width: 500px;
+  width: 100%;
   height: 300px;
   border: 1px solid var(--border-color);
   background-color: var(--vscode-sideBar-background);
