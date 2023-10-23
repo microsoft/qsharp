@@ -886,6 +886,7 @@ dependencies = [
 name = "qsc_runtime_capabilities"
 version = "0.0.0"
 dependencies = [
+ "indenter",
  "qsc_data_structures",
  "qsc_fir",
 ]

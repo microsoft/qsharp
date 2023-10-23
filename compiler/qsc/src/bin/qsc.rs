@@ -15,7 +15,7 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
-use qsc_runtime_capabilities::analyze_store_capabilities;
+use qsc_runtime_capabilities::analysis::Analyzer;
 use std::{
     concat,
     fs::{self, File},
@@ -92,7 +92,9 @@ fn main() -> miette::Result<ExitCode> {
     let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
     let fir_store = fir_lowerer.lower_store(&store);
     save_fir_store_to_file(&fir_store); // DBG (cesarzc): For debugging purposes only.
-    let _store_capabilities = analyze_store_capabilities(&fir_store);
+    let mut analyzer = Analyzer::new();
+    let store_capabilities = analyzer.analyze_runtime_capabilities(&fir_store);
+    save_store_capabilities_to_file(&store_capabilities); // DBG (cesarzc): For debugging purposes only.
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
@@ -122,6 +124,13 @@ fn save_fir_store_to_file(store: &qsc_fir::fir::PackageStore) {
     let mut fir_store_file = File::create("dbg/firstore.txt").expect("File could be created");
     let fir_store_string = format!("{store}");
     write!(fir_store_file, "{fir_store_string}").expect("Writing to file should succeed.");
+}
+
+fn save_store_capabilities_to_file(store: &qsc_runtime_capabilities::StoreCapabilities) {
+    let mut capabilities_file =
+        File::create("dbg/capabilities.txt").expect("File could be created");
+    let capabilities_string = format!("{store}");
+    write!(capabilities_file, "{capabilities_string}").expect("Writing to file should succeed.");
 }
 
 fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceContents)> {
