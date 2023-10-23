@@ -32,8 +32,11 @@ body {
   min-height: 100vh;
   font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial,
     sans-serif;
+  font-family: var(--vscode-font-family);
   color: var(--main-color);
+  color: var(--vscode-editor-foreground);
   background-color: var(--main-background);
+  background-color: var(--vscode-editor-background);
   display: grid;
   grid-template-areas:
     "header header header"
@@ -246,7 +249,7 @@ body {
   width: 500px;
   height: 300px;
   border: 1px solid var(--border-color);
-  background-color: white;
+  background-color: var(--vscode-sideBar-background);
 }
 
 .result-label {
@@ -257,10 +260,12 @@ body {
 
 .bar {
   fill: var(--nav-background);
+  fill: var(--vscode-button-background);
 }
 
 .bar:hover {
   fill: var(--nav-hover-background);
+  fill: var(--vscode-button-hoverBackground);
 }
 
 .bar-selected {
@@ -271,6 +276,7 @@ body {
 .bar-label {
   font-size: 3pt;
   fill: var(--main-color);
+  fill: var(--vscode-button-foreground);
   text-anchor: end;
   pointer-events: none;
 }
@@ -278,12 +284,18 @@ body {
 .histo-label {
   font-size: 3.5pt;
   fill: gray;
+  fill: var(--vscode-foreground);
 }
 
 .hover-text {
   font-size: 3.5pt;
   fill: gray;
   text-anchor: middle;
+}
+
+.menu-icon * {
+  fill: var(--vscode-sideBar-background);
+  stroke: var(--vscode-input-foreground);
 }
 
 .menu-box {

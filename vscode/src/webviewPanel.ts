@@ -50,7 +50,7 @@ export function registerHistogramCommand(context: ExtensionContext) {
         const code = editor.document.getText();
 
         // TODO: Get the number of shots to run via a quick pick
-        const shots = 50000; // TODO: QuickPick
+        const shots = 1000; // TODO: QuickPick
 
         const evtTarget = new QscEventTarget(true);
         evtTarget.addEventListener("uiResultsRefresh", () => {

@@ -302,59 +302,27 @@ export function Histogram(props: {
       </text>
 
       {/* The settings icon */}
-      <g transform="scale(0.3 0.3)" onClick={toggleMenu}>
-        <rect width="24" height="24" fill="white"></rect>
+      <g class="menu-icon" transform="scale(0.3 0.3)" onClick={toggleMenu}>
+        <rect width="24" height="24" fill="white" stroke-widths="0.5"></rect>
         <path
           d="M3 5 H21 M3 12 H21 M3 19 H21"
-          stroke="black"
           stroke-width="1.75"
           stroke-linecap="round"
         />
-        <rect
-          x="6"
-          y="3"
-          width="4"
-          height="4"
-          rx="1"
-          fill="white"
-          stroke="black"
-          stroke-width="1.5"
-        />
-        <rect
-          x="15"
-          y="10"
-          width="4"
-          height="4"
-          rx="1"
-          fill="white"
-          stroke="black"
-          stroke-width="1.5"
-        />
-        <rect
-          x="9"
-          y="17"
-          width="4"
-          height="4"
-          rx="1"
-          fill="white"
-          stroke="black"
-          stroke-width="1.5"
-        />
+        <rect x="6" y="3" width="4" height="4" rx="1" stroke-width="1.5" />
+        <rect x="15" y="10" width="4" height="4" rx="1" stroke-width="1.5" />
+        <rect x="9" y="17" width="4" height="4" rx="1" stroke-width="1.5" />
       </g>
 
       {/* The info icon */}
-      <g transform="translate(158, 0) scale(0.3 0.3)" onClick={toggleInfo}>
-        <rect width="24" height="24" fill="white"></rect>
-        <circle
-          cx="12"
-          cy="13"
-          r="10"
-          stroke="black"
-          stroke-width="1.5"
-          fill="white"
-        />
+      <g
+        class="menu-icon"
+        transform="translate(158, 0) scale(0.3 0.3)"
+        onClick={toggleInfo}
+      >
+        <rect width="24" height="24" stroke-width="0"></rect>
+        <circle cx="12" cy="13" r="10" stroke-width="1.5" />
         <path
-          stroke="black"
           stroke-width="2.5"
           stroke-linecap="round"
           d="M12 8 V8 M12 12.5 V18"
