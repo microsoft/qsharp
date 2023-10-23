@@ -1,5 +1,5 @@
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{CallableDecl, ItemKind, LocalItemId, Package, PackageId, PackageStore};
+use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageId, PackageStore};
 
 use crate::{CallableCapabilities, PackageCapabilities, StoreCapabilities};
 
