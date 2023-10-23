@@ -24,7 +24,12 @@ import {
   registerCreateNotebookCommand,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
+import {
+  EventType,
+  QsharpDocumentType,
+  initTelemetry,
+  sendTelemetryEvent,
+} from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
@@ -103,6 +108,16 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
+      const documentType = isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
+        : isQsharpNotebookCell(document)
+        ? QsharpDocumentType.JupyterCell
+        : QsharpDocumentType.Other;
+      sendTelemetryEvent(
+        EventType.OpenedDocument,
+        { documentType },
+        { linesOfCode: document.lineCount }
+      );
       updateIfQsharpDocument(document);
     })
   );

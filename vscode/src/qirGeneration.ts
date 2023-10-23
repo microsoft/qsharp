@@ -73,7 +73,11 @@ export async function getQirForActiveWindow(): Promise<string> {
     const associationId = getRandomGuid();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
     result = await worker.getQir(code);
-    sendTelemetryEvent(EventType.GenerateQirEnd, { associationId }, {});
+    sendTelemetryEvent(
+      EventType.GenerateQirEnd,
+      { associationId },
+      { qirLength: result.length }
+    );
     clearTimeout(compilerTimeout);
   } catch (e: any) {
     log.error("Codegen error. ", e.toString());

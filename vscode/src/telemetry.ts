@@ -29,6 +29,7 @@ export enum EventType {
   InitializeRuntimeEnd = "Qsharp.InitializeRuntimeEnd",
   DebugSessionEvent = "Qsharp.DebugSessionEvent",
   Launch = "Qsharp.Launch",
+  OpenedDocument = "Qsharp.OpenedDocument",
 }
 
 type Empty = { [K in any]: never };
@@ -58,7 +59,7 @@ type EventTypes = {
   };
   [EventType.GenerateQirEnd]: {
     properties: { associationId: string };
-    measurements: Empty;
+    measurements: { qirLength: number };
   };
   [EventType.RenderQuantumStateStart]: {
     properties: { associationId: string };
@@ -171,7 +172,17 @@ type EventTypes = {
     properties: { associationId: string };
     measurements: Empty;
   };
+  [EventType.OpenedDocument]: {
+    properties: { documentType: QsharpDocumentType };
+    measurements: { linesOfCode: number };
+  };
 };
+
+export enum QsharpDocumentType {
+  JupyterCell = "JupyterCell",
+  Qsharp = "Qsharp",
+  Other = "Other",
+}
 
 export enum UserFlowStatus {
   // "Aborted" means the flow was intentionally canceled or left, either by us or the user
