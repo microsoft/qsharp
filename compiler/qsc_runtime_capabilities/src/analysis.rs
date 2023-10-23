@@ -1,5 +1,8 @@
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageId, PackageStore};
+use qsc_fir::{
+    fir::{CallableDecl, ItemKind, LocalItemId, Package, PackageId, PackageStore},
+    ty::{Prim, Ty},
+};
 
 use crate::{CallableCapabilities, PackageCapabilities, StoreCapabilities};
 
@@ -39,12 +42,26 @@ impl Initializer {
     pub fn from_package(package: &Package) -> PackageCapabilities {
         let mut callables = IndexMap::<LocalItemId, Option<CallableCapabilities>>::new();
         for (id, item) in package.items.iter() {
-            let capabilities = match item.kind {
-                ItemKind::Callable(_) => Some(CallableCapabilities::new()),
+            let capabilities = match &item.kind {
+                ItemKind::Callable(c) => Some(Self::from_callable(c)),
                 _ => None,
             };
             callables.insert(id, capabilities);
         }
         PackageCapabilities { callables }
+    }
+
+    fn from_callable(callable: &CallableDecl) -> CallableCapabilities {
+        let is_output_type_result = match callable.output {
+            Ty::Prim(p) => p == Prim::Result,
+            _ => false,
+        };
+
+        let is_qis_callable = callable.name.name.starts_with("__quantum__qis");
+        let is_quantum_source = is_output_type_result && is_qis_callable;
+        CallableCapabilities {
+            is_quantum_source,
+            inherent: Vec::new(),
+        }
     }
 }
