@@ -32,6 +32,7 @@ pub enum RuntimeCapability {
 
 #[derive(Debug)]
 pub struct CallableCapabilities {
+    pub is_quantum_source: bool,
     pub inherent: Vec<RuntimeCapability>,
 }
 
@@ -44,6 +45,7 @@ impl Default for CallableCapabilities {
 impl CallableCapabilities {
     pub fn new() -> Self {
         Self {
+            is_quantum_source: false,
             inherent: Vec::new(),
         }
     }
@@ -52,6 +54,7 @@ impl CallableCapabilities {
 impl Display for CallableCapabilities {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "\nis_quantum_source: {}", self.is_quantum_source)?;
         write!(indent, "\ninherent:")?;
         indent = set_indentation(indent, 1);
         for capability in self.inherent.iter() {
@@ -88,7 +91,7 @@ impl Display for PackageCapabilities {
         write!(indent, "\ncallables:")?;
         for (id, capabilities) in self.callables.iter() {
             indent = set_indentation(indent, 2);
-            write!(indent, "\nid: {id}")?;
+            write!(indent, "\nLocalItemId: {id}")?;
             indent = set_indentation(indent, 3);
             match capabilities {
                 None => write!(indent, "\nNone")?,

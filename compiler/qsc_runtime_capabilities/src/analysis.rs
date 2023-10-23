@@ -1,10 +1,10 @@
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{ItemKind, Package, PackageId, PackageStore};
+use qsc_fir::fir::{CallableDecl, ItemKind, LocalItemId, Package, PackageId, PackageStore};
 
 use crate::{CallableCapabilities, PackageCapabilities, StoreCapabilities};
 
 pub struct Analyzer {
-    stores: IndexMap<PackageId, PackageCapabilities>,
+    store: IndexMap<PackageId, PackageCapabilities>,
 }
 
 impl Default for Analyzer {
@@ -16,36 +16,35 @@ impl Default for Analyzer {
 impl Analyzer {
     pub fn new() -> Self {
         Self {
-            stores: IndexMap::new(),
+            store: IndexMap::new(),
         }
     }
 
     pub fn analyze_runtime_capabilities(&mut self, store: &PackageStore) -> StoreCapabilities {
-        self.initialize_from_store(store);
-        StoreCapabilities(self.stores.drain().collect())
+        self.initialize(store);
+        StoreCapabilities(self.store.drain().collect())
     }
 
-    fn initialize_from_store(&mut self, store: &PackageStore) {
+    fn initialize(&mut self, store: &PackageStore) {
         for (id, package) in store.0.iter() {
-            let mut package_capabilities = PackageCapabilities::new();
-            self.initialize_from_package(&mut package_capabilities, package);
-            self.stores.insert(id, package_capabilities);
+            let capabilities = Initializer::from_package(package);
+            self.store.insert(id, capabilities);
         }
     }
+}
 
-    fn initialize_from_package(
-        &mut self,
-        package_capabilities: &mut PackageCapabilities,
-        package: &Package,
-    ) {
+struct Initializer;
+
+impl Initializer {
+    pub fn from_package(package: &Package) -> PackageCapabilities {
+        let mut callables = IndexMap::<LocalItemId, Option<CallableCapabilities>>::new();
         for (id, item) in package.items.iter() {
-            let initial_capabilities = match item.kind {
+            let capabilities = match item.kind {
                 ItemKind::Callable(_) => Some(CallableCapabilities::new()),
                 _ => None,
             };
-            package_capabilities
-                .callables
-                .insert(id, initial_capabilities);
+            callables.insert(id, capabilities);
         }
+        PackageCapabilities { callables }
     }
 }
