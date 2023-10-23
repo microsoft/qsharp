@@ -1,5 +1,5 @@
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{LocalItemId, PackageId};
+use qsc_fir::fir::{BlockId, LocalItemId, PackageId};
 
 use indenter::{indented, Indented};
 use std::fmt::{self, Display, Formatter, Write};
@@ -36,21 +36,6 @@ pub struct CallableCapabilities {
     pub inherent: Vec<RuntimeCapability>,
 }
 
-impl Default for CallableCapabilities {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl CallableCapabilities {
-    pub fn new() -> Self {
-        Self {
-            is_quantum_source: false,
-            inherent: Vec::new(),
-        }
-    }
-}
-
 impl Display for CallableCapabilities {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
@@ -65,22 +50,26 @@ impl Display for CallableCapabilities {
 }
 
 #[derive(Debug)]
+pub struct BlockCapabilities {
+    pub inherent: Vec<RuntimeCapability>,
+}
+
+impl Display for BlockCapabilities {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "\ninherent:")?;
+        indent = set_indentation(indent, 1);
+        for capability in self.inherent.iter() {
+            write!(indent, "\n{capability:?}")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
 pub struct PackageCapabilities {
     pub callables: IndexMap<LocalItemId, Option<CallableCapabilities>>,
-}
-
-impl Default for PackageCapabilities {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl PackageCapabilities {
-    pub fn new() -> Self {
-        Self {
-            callables: IndexMap::new(),
-        }
-    }
+    pub blocks: IndexMap<BlockId, BlockCapabilities>,
 }
 
 impl Display for PackageCapabilities {
@@ -91,12 +80,20 @@ impl Display for PackageCapabilities {
         write!(indent, "\ncallables:")?;
         for (id, capabilities) in self.callables.iter() {
             indent = set_indentation(indent, 2);
-            write!(indent, "\nLocalItemId: {id}")?;
+            write!(indent, "\nCallable: {id}")?;
             indent = set_indentation(indent, 3);
             match capabilities {
                 None => write!(indent, "\nNone")?,
                 Some(c) => write!(indent, "{c}")?,
             }
+        }
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nblocks:")?;
+        for (id, block) in self.blocks.iter() {
+            indent = set_indentation(indent, 2);
+            write!(indent, "\nBlock: {id}")?;
+            indent = set_indentation(indent, 3);
+            write!(indent, "{block}")?;
         }
         Ok(())
     }

@@ -361,6 +361,9 @@ impl Display for Package {
         for item in self.items.values() {
             write!(indent, "\n{item}")?;
         }
+        for block in self.blocks.values() {
+            write!(indent, "\n{block}")?;
+        }
         Ok(())
     }
 }
