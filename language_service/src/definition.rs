@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::cursor_locator::{CursorLocator, CursorLocatorAPI};
 use crate::protocol::Definition;
 use crate::qsc_utils::{
     find_ident, find_item, map_offset, span_contains, span_touches, Compilation,
@@ -20,15 +21,14 @@ pub(crate) fn get_definition(
 ) -> Option<Definition> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let ast_package = &compilation.unit.ast;
 
     let mut definition_finder = DefinitionFinder {
         compilation,
-        offset,
         definition: None,
-        curr_callable: None,
     };
-    definition_finder.visit_package(&ast_package.package);
+
+    let mut locator = CursorLocator::new(&mut definition_finder, offset, compilation);
+    locator.visit_package(&compilation.unit.ast.package);
 
     definition_finder
         .definition
@@ -40,9 +40,7 @@ pub(crate) fn get_definition(
 
 struct DefinitionFinder<'a> {
     compilation: &'a Compilation,
-    offset: u32,
     definition: Option<(String, u32)>,
-    curr_callable: Option<&'a ast::CallableDecl>,
 }
 
 impl DefinitionFinder<'_> {
@@ -73,7 +71,79 @@ impl DefinitionFinder<'_> {
     }
 }
 
-impl<'a> Visitor<'a> for DefinitionFinder<'a> {
+impl<'a> CursorLocatorAPI<'a> for DefinitionFinder<'a> {
+    fn at_callable_def(&mut self, decl: &'a ast::CallableDecl) {
+        self.set_definition_from_position(decl.name.span.lo, None);
+    }
+
+    fn at_callable_ref(&mut self, decl: &'a hir::CallableDecl, item_id: &'a hir::ItemId) {
+        self.set_definition_from_position(decl.name.span.lo, item_id.package);
+    }
+
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident) {
+        self.set_definition_from_position(type_name.span.lo, None);
+    }
+
+    fn at_new_type_ref(&mut self, type_name: &'a hir::Ident, item_id: &'a hir::ItemId) {
+        self.set_definition_from_position(type_name.span.lo, item_id.package);
+    }
+
+    fn at_field_def(&mut self, field_name: &'a ast::Ident) {
+        self.set_definition_from_position(field_name.span.lo, None);
+    }
+
+    fn at_field_ref(&mut self, field: &'a hir::ty::UdtField, item_id: &'a hir::ItemId) {
+        let span = field
+            .name_span
+            .expect("field found via name should have a name");
+        self.set_definition_from_position(span.lo, item_id.package);
+    }
+
+    fn at_local_def(&mut self, ident: &'a ast::Ident) {
+        self.set_definition_from_position(ident.span.lo, None);
+    }
+
+    fn at_local_ref(&mut self, ident: &'a ast::Ident) {
+        self.set_definition_from_position(ident.span.lo, None);
+    }
+}
+
+struct DefinitionFinderOld<'a> {
+    compilation: &'a Compilation,
+    offset: u32,
+    definition: Option<(String, u32)>,
+    curr_callable: Option<&'a ast::CallableDecl>,
+}
+
+impl DefinitionFinderOld<'_> {
+    fn set_definition_from_position(&mut self, lo: u32, package_id: Option<PackageId>) {
+        let source_map = match package_id {
+            Some(id) => {
+                &self
+                    .compilation
+                    .package_store
+                    .get(id)
+                    .unwrap_or_else(|| panic!("package should exist for id {id}"))
+                    .sources
+            }
+            None => &self.compilation.unit.sources,
+        };
+        let source = source_map
+            .find_by_offset(lo)
+            .expect("source should exist for offset");
+        // Note: Having a package_id means the position references a foreign package.
+        // Currently the only supported foreign packages are our library packages,
+        // URI's to which need to include our custom library scheme.
+        let source_name = match package_id {
+            Some(_) => format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name),
+            None => source.name.to_string(),
+        };
+
+        self.definition = Some((source_name, lo - source.offset));
+    }
+}
+
+impl<'a> Visitor<'a> for DefinitionFinderOld<'a> {
     // Handles callable and UDT definitions
     fn visit_item(&mut self, item: &'a ast::Item) {
         if span_contains(item.span, self.offset) {

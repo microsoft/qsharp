@@ -4,21 +4,12 @@
 #[cfg(test)]
 mod tests;
 
+use crate::protocol;
+use crate::qsc_utils::{map_offset, protocol_span, span_contains, span_touches, Compilation};
+use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::hir::{ty::Ty, Res};
+use qsc::{ast, hir, resolve, Span};
 use std::rc::Rc;
-
-use qsc::{
-    ast::{
-        self,
-        visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor},
-    },
-    hir::{self, ty::Ty, Res},
-    resolve, Span,
-};
-
-use crate::{
-    protocol,
-    qsc_utils::{map_offset, protocol_span, span_contains, span_touches, Compilation},
-};
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,
