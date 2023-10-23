@@ -1,8 +1,8 @@
 {
-  "name": "qsharp-lang-vscode-dev",
-  "displayName": "[DEV BUILD] Azure Quantum Development Kit (QDK) Preview",
-  "description": "Q# Language Support",
-  "version": "0.0.0",
+  "name": "qdk-test",
+  "displayName": "[DEMO BUILD] Not for general use",
+  "description": "Demo build",
+  "version": "0.0.4",
   "publisher": "quantum",
   "icon": "resources/qdk.png",
   "galleryBanner": {
