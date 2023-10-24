@@ -1,10 +1,19 @@
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{BlockId, CallableDecl, ItemKind, LocalItemId, Package, PackageId, PackageStore},
+    fir::{BlockId, CallableDecl, ExprId, ItemKind, LocalItemId, Package, PackageId, PackageStore},
     ty::{Prim, Ty},
 };
 
-use crate::{BlockCapabilities, CallableCapabilities, PackageCapabilities, StoreCapabilities};
+use crate::{
+    BlockCapabilities, CallableCapabilities, Capabilities, ExpressionCapabilities,
+    PackageCapabilities, StoreCapabilities,
+};
+
+// TODO: Create this struct properly.
+#[derive(Debug)]
+struct PackageCapabilitiesScaffold {
+    pub callables: Vec<Option<CallableCapabilities>>,
+}
 
 pub struct Analyzer {
     store: IndexMap<PackageId, PackageCapabilities>,
@@ -58,7 +67,20 @@ impl Initializer {
             };
             blocks.insert(id, capabilities);
         }
-        PackageCapabilities { callables, blocks }
+
+        // Initialize expressions.
+        let mut expressions = IndexMap::<ExprId, ExpressionCapabilities>::new();
+        for (id, _) in package.exprs.iter() {
+            let capabilities = ExpressionCapabilities {
+                inherent: Vec::new(),
+            };
+            expressions.insert(id, capabilities);
+        }
+        PackageCapabilities {
+            callables,
+            blocks,
+            expressions,
+        }
     }
 
     fn from_callable(callable: &CallableDecl) -> CallableCapabilities {
@@ -70,7 +92,7 @@ impl Initializer {
         let is_quantum_source = is_output_type_result && is_qis_callable;
         CallableCapabilities {
             is_quantum_source,
-            inherent: Vec::new(),
+            inherent: Capabilities(Vec::new()),
         }
     }
 }

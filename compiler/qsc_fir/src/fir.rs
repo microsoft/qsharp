@@ -364,6 +364,9 @@ impl Display for Package {
         for block in self.blocks.values() {
             write!(indent, "\n{block}")?;
         }
+        for expression in self.exprs.values() {
+            write!(indent, "\n{expression}")?;
+        }
         Ok(())
     }
 }
