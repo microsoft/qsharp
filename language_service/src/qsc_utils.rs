@@ -4,7 +4,7 @@
 use qsc::{
     ast,
     compile::{self, Error},
-    hir::{Item, ItemId, Package, PackageId},
+    hir::{self, Item, ItemId, Package, PackageId},
     CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
 };
 
@@ -80,19 +80,47 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
         + source_offset
 }
 
-pub(crate) fn find_item<'a>(
+pub(crate) fn resolve_item_from_current_package<'a>(
     compilation: &'a Compilation,
     id: &ItemId,
-) -> (Option<&'a Item>, Option<&'a Package>) {
-    let package = if let Some(package_id) = id.package {
-        match compilation.package_store.get(package_id) {
-            Some(compilation) => &compilation.package,
-            None => return (None, None),
+) -> (&'a Item, &'a Package, Option<PackageId>) {
+    resolve(compilation, None, id)
+}
+
+pub(crate) fn resolve_udt_res<'a>(
+    compilation: &'a Compilation,
+    local_package: Option<PackageId>,
+    res: &hir::Res,
+) -> (&'a Item, Option<PackageId>) {
+    match res {
+        hir::Res::Item(item_id) => {
+            let (item, _, package_id) = resolve(compilation, local_package, item_id);
+            (item, package_id)
         }
+        _ => panic!("expected to find item"),
+    }
+}
+
+fn resolve<'a>(
+    compilation: &'a Compilation,
+    local_package_id: Option<PackageId>,
+    id: &ItemId,
+) -> (&'a Item, &'a Package, Option<PackageId>) {
+    let package_id = id.package.or(local_package_id);
+    let package = if let Some(external_package_id) = package_id {
+        &compilation
+            .package_store
+            .get(external_package_id)
+            .expect("package should exist in store")
+            .package
     } else {
         &compilation.unit.package
     };
-    (package.items.get(id.item), Some(package))
+    (
+        package.items.get(id.item).expect("item id should exist"),
+        package,
+        package_id,
+    )
 }
 
 pub(crate) fn find_ident<'a>(

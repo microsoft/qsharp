@@ -7,7 +7,8 @@ mod tests;
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::protocol::Hover;
 use crate::qsc_utils::{
-    find_ident, find_item, map_offset, protocol_span, span_contains, span_touches, Compilation,
+    find_ident, map_offset, protocol_span, resolve_item_from_current_package, resolve_udt_res,
+    span_contains, span_touches, Compilation,
 };
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
@@ -61,7 +62,7 @@ impl<'a> HoverVisitor<'a> {
             compilation,
             offset,
             hover: None,
-            display: CodeDisplay { compilation },
+            display: CodeDisplay::new(compilation),
             current_namespace: Rc::from(""),
             current_callable: None,
             in_params: false,
@@ -211,26 +212,26 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                     if let Some(hir::ty::Ty::Udt(res)) =
                         self.compilation.unit.ast.tys.terms.get(udt.id)
                     {
-                        match res {
-                            hir::Res::Item(item_id) => {
-                                if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                    match &item.kind {
-                                        hir::ItemKind::Ty(_, udt) => {
-                                            if udt.find_field_by_name(&field.name).is_some() {
-                                                let contents = markdown_fenced_block(
-                                                    self.display.ident_ty_id(field, expr.id),
-                                                );
-                                                self.hover = Some(Hover {
-                                                    contents,
-                                                    span: protocol_span(
-                                                        field.span,
-                                                        &self.compilation.unit.sources,
-                                                    ),
-                                                });
-                                            }
-                                        }
-                                        _ => panic!("UDT has invalid resolution."),
-                                    }
+                        // BUG: We need the package ID for the UDT type here to be able to accurately
+                        // resolve any references to *other* types from this type,
+                        // but the types table doesn't carry that information.
+                        // As a result, this code will behave incorrectly for
+                        // UDTs from external packages that reference other UDTs.
+                        // https://github.com/microsoft/qsharp/issues/813
+                        let (item, _) = resolve_udt_res(self.compilation, None, res);
+                        match &item.kind {
+                            hir::ItemKind::Ty(_, udt) => {
+                                if udt.find_field_by_name(&field.name).is_some() {
+                                    let contents = markdown_fenced_block(
+                                        self.display.ident_ty_id(field, expr.id),
+                                    );
+                                    self.hover = Some(Hover {
+                                        contents,
+                                        span: protocol_span(
+                                            field.span,
+                                            &self.compilation.unit.sources,
+                                        ),
+                                    });
                                 }
                             }
                             _ => panic!("UDT has invalid resolution."),
@@ -256,41 +257,42 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if let (Some(item), Some(package)) = find_item(self.compilation, item_id) {
-                            let ns = item
-                                .parent
-                                .and_then(|parent_id| package.items.get(parent_id))
-                                .map_or_else(
-                                    || Rc::from(""),
-                                    |parent| match &parent.kind {
-                                        qsc::hir::ItemKind::Namespace(namespace, _) => {
-                                            namespace.name.clone()
-                                        }
-                                        _ => Rc::from(""),
-                                    },
-                                );
+                        let (item, package, package_id) =
+                            resolve_item_from_current_package(self.compilation, item_id);
 
-                            let contents = match &item.kind {
-                                hir::ItemKind::Callable(decl) => display_callable(
-                                    &item.doc,
-                                    &ns,
-                                    self.display.hir_callable_decl(decl),
-                                ),
-                                hir::ItemKind::Namespace(_, _) => {
-                                    panic!(
-                                        "Reference node should not refer to a namespace: {}",
-                                        path.id
-                                    )
-                                }
-                                hir::ItemKind::Ty(_, udt) => {
-                                    markdown_fenced_block(self.display.hir_udt(udt))
-                                }
-                            };
-                            self.hover = Some(Hover {
-                                contents,
-                                span: protocol_span(path.span, &self.compilation.unit.sources),
-                            });
-                        }
+                        let ns = item
+                            .parent
+                            .and_then(|parent_id| package.items.get(parent_id))
+                            .map_or_else(
+                                || Rc::from(""),
+                                |parent| match &parent.kind {
+                                    qsc::hir::ItemKind::Namespace(namespace, _) => {
+                                        namespace.name.clone()
+                                    }
+                                    _ => Rc::from(""),
+                                },
+                            );
+
+                        let contents = match &item.kind {
+                            hir::ItemKind::Callable(decl) => display_callable(
+                                &item.doc,
+                                &ns,
+                                self.display.hir_callable_decl(package_id, decl),
+                            ),
+                            hir::ItemKind::Namespace(_, _) => {
+                                panic!(
+                                    "Reference node should not refer to a namespace: {}",
+                                    path.id
+                                )
+                            }
+                            hir::ItemKind::Ty(_, udt) => {
+                                markdown_fenced_block(self.display.hir_udt(package_id, udt))
+                            }
+                        };
+                        self.hover = Some(Hover {
+                            contents,
+                            span: protocol_span(path.span, &self.compilation.unit.sources),
+                        });
                     }
                     resolve::Res::Local(node_id) => {
                         let mut local_name = Rc::from("");

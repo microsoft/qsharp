@@ -190,20 +190,24 @@ impl CompletionListBuilder {
             .expect("expected to find core package")
             .package;
 
-        let display = CodeDisplay { compilation };
+        let display = CodeDisplay::new(compilation);
 
-        let get_callables = |current, display| {
-            Self::get_callables(
-                current,
-                display,
-                opens,
-                start_of_namespace,
-                current_namespace_name.clone(),
-            )
-        };
-
-        self.push_sorted_completions(get_callables(current, &display));
-        self.push_sorted_completions(get_callables(std, &display));
+        self.push_sorted_completions(Self::get_callables(
+            None,
+            current,
+            &display,
+            opens,
+            start_of_namespace,
+            current_namespace_name.clone(),
+        ));
+        self.push_sorted_completions(Self::get_callables(
+            Some(compilation.std_package_id),
+            std,
+            &display,
+            opens,
+            start_of_namespace,
+            current_namespace_name.clone(),
+        ));
         self.push_sorted_completions(Self::get_core_callables(core, &display));
         self.push_completions(Self::get_namespaces(current));
         self.push_completions(Self::get_namespaces(std));
@@ -269,6 +273,7 @@ impl CompletionListBuilder {
     }
 
     fn get_callables<'a>(
+        package_id: Option<PackageId>,
         package: &'a Package,
         display: &'a CodeDisplay,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
@@ -283,8 +288,11 @@ impl CompletionListBuilder {
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
                                 let name = callable_decl.name.name.as_ref();
-                                let detail =
-                                    Some(display.hir_callable_decl(callable_decl).to_string());
+                                let detail = Some(
+                                    display
+                                        .hir_callable_decl(package_id, callable_decl)
+                                        .to_string(),
+                                );
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
@@ -360,7 +368,11 @@ impl CompletionListBuilder {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
-                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
+                let detail = Some(
+                    display
+                        .hir_callable_decl(Some(PackageId::CORE), callable_decl)
+                        .to_string(),
+                );
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
                 Some((

@@ -968,3 +968,63 @@ fn udt_field_incorrect() {
         }
     "#});
 }
+
+#[test]
+fn std_udt_return_type() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation ◉Fo↘o◉() : Udt {
+        }
+    }
+    "#,
+        &expect![[r#"
+            ```qsharp
+            Test
+            operation Foo() : Udt
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn std_callable_with_udt() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Udt {
+            ◉Takes↘Udt◉()
+        }
+    }
+    "#,
+        &expect![[r#"
+            ```qsharp
+            FakeStdLib
+            function TakesUdt(input : Udt) : Udt
+            ```
+        "#]],
+    );
+}
+
+#[ignore = "https://github.com/microsoft/qsharp/issues/813"]
+#[test]
+fn std_udt_udt_field() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Udt {
+            let f = UdtWrapper(TakesUdt);
+            f::inner::◉x◉↘
+        }
+    }
+    "#,
+        &expect![[r#"
+        ```qsharp
+        x : Int
+        ```
+        "#]],
+    );
+}
