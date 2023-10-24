@@ -599,7 +599,7 @@ impl<'a> Display for HirTy<'a> {
                 }
             }
             hir::ty::Ty::Udt(res) => {
-                let (item, _, _) = self.compilation.get_hir_res_item(self.package_id, res);
+                let (item, _) = self.compilation.resolve_udt_res(self.package_id, res);
                 match &item.kind {
                     hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                     _ => panic!("UDT has invalid resolution: {:#?}", self.ty),

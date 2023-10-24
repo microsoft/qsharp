@@ -144,9 +144,9 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
-                        let (item, package_id, _) = self
+                        let (item, package_id) = self
                             .compilation
-                            .get_hir_res_item(self.compilation.current, res);
+                            .resolve_udt_res(self.compilation.current, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {
                                 if let Some(field) = udt.find_field_by_name(&field.name) {
