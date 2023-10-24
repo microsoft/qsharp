@@ -59,8 +59,11 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                     walk_expr(self, args);
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);
-                        if let ast::ExprKind::Path(path) = &*callee.kind {
-                            self.process_direct_callee(path, args);
+                        match try_get_direct_callee(self.compilation, callee) {
+                            Some((package_id, callee_decl, item_doc)) => {
+                                self.process_direct_callee(package_id, callee_decl, item_doc, args);
+                            }
+                            None => self.process_indirect_callee(callee, args),
                         }
                     }
                 }
@@ -71,36 +74,54 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 }
 
 impl SignatureHelpFinder<'_> {
-    fn process_direct_callee(&mut self, callee: &ast::Path, args: &ast::Expr) {
-        if let Some(resolve::Res::Item(item_id)) =
-            self.compilation.current_unit().ast.names.get(callee.id)
-        {
-            let (item, package_id, _) = self
-                .compilation
-                .find_item(self.compilation.current, item_id);
-            if let hir::ItemKind::Callable(callee) = &item.kind {
-                // Check that the callee has parameters to give help for
-                if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty()) {
-                    let documentation = parse_doc_for_summary(&item.doc);
-                    let documentation = (!documentation.is_empty()).then_some(documentation);
+    fn process_indirect_callee(&mut self, callee: &ast::Expr, args: &ast::Expr) {
+        if let Some(ty) = self.compilation.find_ty(callee.id) {
+            if let hir::ty::Ty::Arrow(arrow) = &ty {
+                let sig_info = SignatureInformation {
+                    label: self
+                        .display
+                        .hir_ty(self.compilation.current, ty)
+                        .to_string(),
+                    documentation: None,
+                    parameters: self.get_type_params(self.compilation.current, &arrow.input),
+                };
 
-                    let sig_info = SignatureInformation {
-                        label: self
-                            .display
-                            .hir_callable_decl(package_id, callee)
-                            .to_string(),
-                        documentation,
-                        parameters: self.get_params(package_id, callee, &item.doc),
-                    };
+                // Capture arrow.input structure in a fake HIR Pat.
+                let params = make_fake_pat(&arrow.input);
 
-                    self.signature_help = Some(SignatureHelp {
-                        signatures: vec![sig_info],
-                        active_signature: 0,
-                        active_parameter: process_args(args, self.offset, &callee.input),
-                    });
-                }
+                self.signature_help = Some(SignatureHelp {
+                    signatures: vec![sig_info],
+                    active_signature: 0,
+                    active_parameter: process_args(args, self.offset, &params),
+                });
             }
         }
+    }
+
+    fn process_direct_callee(
+        &mut self,
+        package_id: hir::PackageId,
+        callee_decl: &hir::CallableDecl,
+        item_doc: &str,
+        args: &ast::Expr,
+    ) {
+        let documentation = parse_doc_for_summary(item_doc);
+        let documentation = (!documentation.is_empty()).then_some(documentation);
+
+        let sig_info = SignatureInformation {
+            label: self
+                .display
+                .hir_callable_decl(package_id, callee_decl)
+                .to_string(),
+            documentation,
+            parameters: self.get_params(package_id, callee_decl, item_doc),
+        };
+
+        self.signature_help = Some(SignatureHelp {
+            signatures: vec![sig_info],
+            active_signature: 0,
+            active_parameter: process_args(args, self.offset, &callee_decl.input),
+        });
     }
 
     /// Takes a callable declaration node and the callable's doc string and
@@ -110,6 +131,8 @@ impl SignatureHelpFinder<'_> {
     /// operation Foo(bar: Int, baz: Double) : Unit {}
     ///               └──┬───┘  └──┬──────┘
     ///               param 1    param 2
+    ///              └─────────┬───────────┘
+    ///                      param 0
     /// ```
     fn get_params(
         &self,
@@ -216,6 +239,89 @@ impl SignatureHelpFinder<'_> {
             }
         }
     }
+
+    fn get_type_params(
+        &self,
+        package_id: hir::PackageId,
+        ty: &hir::ty::Ty,
+    ) -> Vec<ParameterInformation> {
+        let mut offset = 1; // 1 for the open parenthesis character
+
+        match &ty {
+            hir::ty::Ty::Tuple(_) => self.make_type_param_with_offset(&mut offset, package_id, ty),
+            _ => self.params_for_single_type_parameter(offset, package_id, ty),
+        }
+    }
+
+    /// Callables with a single parameter in their parameter list are special-cased
+    /// because we need to insert an additional parameter info to make the list
+    /// compatible with the argument processing logic.
+    fn params_for_single_type_parameter(
+        &self,
+        offset: u32,
+        package_id: hir::PackageId,
+        ty: &hir::ty::Ty,
+    ) -> Vec<ParameterInformation> {
+        let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
+        let start = offset;
+        let end = offset + len;
+
+        let param = ParameterInformation {
+            label: Span { start, end },
+            documentation: None,
+        };
+
+        // The wrapper is a duplicate of the parameter. This is to make
+        // the generated list of parameter information objects compatible
+        // with the argument processing logic.
+        let wrapper = ParameterInformation {
+            label: Span { start, end },
+            documentation: None,
+        };
+
+        vec![wrapper, param]
+    }
+
+    fn make_type_param_with_offset(
+        &self,
+        offset: &mut u32,
+        package_id: hir::PackageId,
+        ty: &hir::ty::Ty,
+    ) -> Vec<ParameterInformation> {
+        if let hir::ty::Ty::Tuple(items) = &ty {
+            let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
+            let mut rtrn = vec![ParameterInformation {
+                label: Span {
+                    start: *offset,
+                    end: *offset + len,
+                },
+                documentation: None,
+            }];
+            *offset += 1; // for the open parenthesis
+            let mut is_first = true;
+            for item in items {
+                if is_first {
+                    is_first = false;
+                } else {
+                    *offset += 2; // 2 for the comma and space
+                }
+                rtrn.extend(self.make_type_param_with_offset(offset, package_id, item));
+            }
+            *offset += 1; // for the close parenthesis
+            rtrn
+        } else {
+            let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
+            let start = *offset;
+            *offset += len;
+            vec![ParameterInformation {
+                label: Span {
+                    start,
+                    end: *offset,
+                },
+                documentation: None,
+            }]
+        }
+    }
 }
 
 fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
@@ -227,6 +333,42 @@ fn unwrap_parens(expr: &ast::Expr) -> &ast::Expr {
 
 fn usize_to_u32(x: usize) -> u32 {
     u32::try_from(x).expect("failed to cast usize to u32 while generating signature help")
+}
+
+/// If the `callee` expression is a direct reference to a callable, returns
+/// the callable and its doc string, else returns None.
+fn try_get_direct_callee<'a>(
+    compilation: &'a Compilation,
+    callee: &ast::Expr,
+) -> Option<(hir::PackageId, &'a hir::CallableDecl, &'a str)> {
+    if let ast::ExprKind::Path(path) = &*callee.kind {
+        if let Some(resolve::Res::Item(item_id)) = compilation.current_unit().ast.names.get(path.id)
+        {
+            let (item, package_id, _) = compilation.find_item(compilation.current, item_id);
+            if let hir::ItemKind::Callable(callee_decl) = &item.kind {
+                return Some((package_id, callee_decl, &item.doc));
+            }
+        }
+    }
+
+    None
+}
+
+/// Captures the hierarchical structure of a type based on Tuples by
+/// creating an HIR Pat with the same hierarchical structure. Other than
+/// the structure, the Pat and sub-Pats have default field values.
+fn make_fake_pat(ty: &hir::ty::Ty) -> hir::Pat {
+    hir::Pat {
+        id: hir::NodeId::default(),
+        span: qsc::Span::default(),
+        ty: hir::ty::Ty::Err,
+        kind: match ty {
+            hir::ty::Ty::Tuple(items) => {
+                hir::PatKind::Tuple(items.iter().map(make_fake_pat).collect())
+            }
+            _ => hir::PatKind::Discard,
+        },
+    }
 }
 
 fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
