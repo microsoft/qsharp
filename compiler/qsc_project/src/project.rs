@@ -18,7 +18,7 @@ pub struct Project {
 }
 
 /// This enum represents a filesystem object type. It is analogous to [std::fs::FileType].
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum EntryType {
     File,
     Folder,
@@ -42,7 +42,7 @@ pub trait DirEntry {
 pub trait FileSystem {
     type Entry: DirEntry;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
-    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
+    fn read_file(&mut self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
     /// Given a path, list its directory contents (if any).
     fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
@@ -77,7 +77,7 @@ pub trait FileSystem {
     }
 
     /// Given a [ManifestDescriptor], load project sources.
-    fn load_project(&self, manifest: ManifestDescriptor) -> miette::Result<Project> {
+    fn load_project(&mut self, manifest: ManifestDescriptor) -> miette::Result<Project> {
         let qs_files = self.fetch_files_with_exclude_pattern(
             &manifest.exclude_regexes()?,
             manifest.exclude_files(),
@@ -85,7 +85,6 @@ pub trait FileSystem {
         )?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
-
         let qs_sources = qs_files.map(|path| self.read_file(&path));
 
         let sources = qs_sources.collect::<miette::Result<_>>()?;

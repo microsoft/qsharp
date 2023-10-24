@@ -80,7 +80,7 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     if sources.is_empty() {
-        let fs = StdFs;
+        let mut fs = StdFs;
         let manifest = Manifest::load()?;
         if let Some(manifest) = manifest {
             let project = fs.load_project(manifest)?;

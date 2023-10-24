@@ -910,6 +910,7 @@ dependencies = [
  "num-complex",
  "qsc",
  "qsc_codegen",
+ "qsc_project",
  "qsls",
  "serde",
  "serde-wasm-bindgen",

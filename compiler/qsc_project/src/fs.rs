@@ -52,7 +52,7 @@ impl std::convert::From<std::fs::FileType> for EntryType {
 impl FileSystem for StdFs {
     type Entry = StdEntry;
 
-    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {
+    fn read_file(&mut self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {
         let contents = std::fs::read_to_string(path)
             .into_diagnostic()
             .with_context(|| format!("could not read source file `{}`", path.display()))?;

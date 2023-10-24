@@ -3,6 +3,7 @@
 
 use diagnostic::VSDiagnostic;
 use katas::check_solution;
+use miette::miette;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -15,8 +16,9 @@ use qsc::{
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 use qsc_codegen::qir_base::generate_qir;
+use qsc_project::{DirEntry, EntryType, FileSystem};
 use serde_json::json;
-use std::fmt::Write;
+use std::{fmt::Write, path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -265,4 +267,66 @@ pub fn check_exercise_solution(
     check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     })
+}
+
+#[wasm_bindgen]
+pub struct ProjectLoader {
+    lookup_fn: js_sys::Function,
+}
+
+#[wasm_bindgen]
+pub fn load_project(mut proj: ProjectLoader) {
+    proj.load_project(todo!());
+    todo!()
+}
+
+pub struct JsFileEntry {
+    ty: EntryType,
+    extension: String,
+    name: String,
+    path: String,
+}
+
+impl DirEntry for JsFileEntry {
+    type Error = String;
+
+    fn entry_type(&self) -> Result<qsc_project::EntryType, Self::Error> {
+        Ok(self.ty)
+    }
+
+    fn extension(&self) -> String {
+        self.extension.clone()
+    }
+
+    fn entry_name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn path(&self) -> std::path::PathBuf {
+        PathBuf::from(&self.path)
+    }
+}
+
+impl FileSystem for ProjectLoader {
+    type Entry = JsFileEntry;
+
+    fn read_file(
+        &mut self,
+        path: &std::path::Path,
+    ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
+        let path = path.to_string_lossy().to_string();
+        let lookup_fn = |path: String| self.lookup_fn.call1(&JsValue::null(), &JsValue::from(path));
+        let file_contents = lookup_fn(path.clone());
+        match file_contents
+            .map_err(|e| miette!("error loading file: {:?}", e))?
+            .as_string()
+        {
+            Some(contents) => Ok((Arc::from(path), Arc::from(contents))),
+            None => Err(miette!("file {path} not found")),
+        }
+    }
+
+    fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
+        todo!()
+    }
 }
