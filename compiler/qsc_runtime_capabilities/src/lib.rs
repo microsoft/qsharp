@@ -60,51 +60,39 @@ impl Display for CallableCapabilities {
 
 #[derive(Debug)]
 pub struct BlockCapabilities {
-    pub inherent: Vec<RuntimeCapability>,
+    pub inherent: Capabilities,
 }
 
 impl Display for BlockCapabilities {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "\ninherent:")?;
-        indent = set_indentation(indent, 1);
-        for capability in self.inherent.iter() {
-            write!(indent, "\n{capability:?}")?;
-        }
+        write!(indent, "\ninherent: {}", self.inherent)?;
         Ok(())
     }
 }
 
 #[derive(Debug)]
 pub struct StatementCapabilities {
-    pub inherent: Option<Vec<RuntimeCapability>>,
+    pub inherent: Capabilities,
 }
 
 impl Display for StatementCapabilities {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "\ninherent:")?;
-        match self.inherent {
-            None => write!(indent, "None")?,
-            Some(_) => write!(indent, "Some")?,
-        }
+        write!(indent, "\ninherent: {}", self.inherent)?;
         Ok(())
     }
 }
 
 #[derive(Debug)]
 pub struct ExpressionCapabilities {
-    pub inherent: Vec<RuntimeCapability>,
+    pub inherent: Capabilities,
 }
 
 impl Display for ExpressionCapabilities {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "\ninherent:")?;
-        indent = set_indentation(indent, 1);
-        for capability in self.inherent.iter() {
-            write!(indent, "\n{capability:?}")?;
-        }
+        write!(indent, "\ninherent: {}", self.inherent)?;
         Ok(())
     }
 }

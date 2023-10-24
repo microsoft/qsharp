@@ -63,7 +63,7 @@ impl Initializer {
         let mut blocks = IndexMap::<BlockId, BlockCapabilities>::new();
         for (id, _) in package.blocks.iter() {
             let capabilities = BlockCapabilities {
-                inherent: Vec::new(),
+                inherent: Capabilities(Vec::new()),
             };
             blocks.insert(id, capabilities);
         }
@@ -72,7 +72,7 @@ impl Initializer {
         let mut expressions = IndexMap::<ExprId, ExpressionCapabilities>::new();
         for (id, _) in package.exprs.iter() {
             let capabilities = ExpressionCapabilities {
-                inherent: Vec::new(),
+                inherent: Capabilities(Vec::new()),
             };
             expressions.insert(id, capabilities);
         }
