@@ -4,7 +4,9 @@
 use expect_test::{expect, Expect};
 
 use super::{get_definition, Definition};
-use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
+use crate::test_utils::{
+    compile_notebook_with_fake_stdlib, compile_with_fake_stdlib, get_source_and_marker_offsets,
+};
 
 /// Asserts that the definition found at the given cursor position matches the expected position.
 /// The cursor position is indicated by a `↘` marker in the source text.
@@ -19,6 +21,52 @@ fn assert_definition(source_with_markers: &str) {
     } else {
         Some(Definition {
             source: "<source>".to_string(),
+            offset: target_offsets[0],
+        })
+    };
+    assert_eq!(&expected_definition, &actual_definition);
+}
+
+fn assert_definition_notebook(cells: &[(&str, &str)]) {
+    let (mut cell_uri, mut offset, mut target_cell_uri, mut target_offsets) =
+        (None, None, None, Vec::new());
+    let cells = cells
+        .iter()
+        .map(|c| {
+            let (source, cursor_offsets, targets) = get_source_and_marker_offsets(c.1);
+            if !cursor_offsets.is_empty() {
+                assert!(
+                    cell_uri.replace(c.0).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+                assert!(
+                    offset.replace(cursor_offsets[0]).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+            }
+            if !targets.is_empty() {
+                assert!(
+                    target_cell_uri.replace(c.0).is_none(),
+                    "only one cell can have a target marker"
+                );
+                target_offsets.extend(targets);
+            }
+            (c.0, source)
+        })
+        .collect::<Vec<_>>();
+    let compilation = compile_notebook_with_fake_stdlib(cells.iter().map(|c| (c.0, c.1.as_str())));
+    let actual_definition = get_definition(
+        &compilation,
+        cell_uri.expect("input should have a cursor marker"),
+        offset.expect("input string should have a cursor marker"),
+    );
+    let expected_definition = if target_offsets.is_empty() {
+        None
+    } else {
+        Some(Definition {
+            source: target_cell_uri
+                .expect("input should have a target marker")
+                .to_string(),
             offset: target_offsets[0],
         })
     };
@@ -362,4 +410,20 @@ fn ctl_specialization_parameter_ref() {
     }
     "#,
     );
+}
+
+#[test]
+fn notebook_callable_def_across_cells() {
+    assert_definition_notebook(&[
+        ("cell1", "operation ◉Callee() : Unit {}"),
+        ("cell2", "C↘allee();"),
+    ]);
+}
+
+#[test]
+fn notebook_callable_defined_in_later_cell() {
+    assert_definition_notebook(&[
+        ("cell1", "C↘allee();"),
+        ("cell2", "operation Callee() : Unit {}"),
+    ]);
 }

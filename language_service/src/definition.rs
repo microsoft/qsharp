@@ -44,8 +44,7 @@ struct DefinitionFinder<'a> {
 }
 
 impl DefinitionFinder<'_> {
-    fn set_definition_from_position(&mut self, lo: u32, package_id: Option<PackageId>) {
-        let package_id = package_id.unwrap_or(self.compilation.current);
+    fn set_definition_from_position(&mut self, lo: u32, package_id: PackageId) {
         let source = self
             .compilation
             .package_store
@@ -74,7 +73,10 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_touches(decl.name.span, self.offset) {
-                        self.set_definition_from_position(decl.name.span.lo, None);
+                        self.set_definition_from_position(
+                            decl.name.span.lo,
+                            self.compilation.current,
+                        );
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.curr_callable;
                         self.curr_callable = Some(decl);
@@ -91,7 +93,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if span_touches(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo, None);
+                        self.set_definition_from_position(ident.span.lo, self.compilation.current);
                     } else {
                         self.visit_ty_def(def);
                     }
@@ -107,7 +109,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_touches(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo, None);
+                        self.set_definition_from_position(ident.span.lo, self.compilation.current);
                     } else {
                         self.visit_ty(ty);
                     }
@@ -126,7 +128,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_touches(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo, None);
+                        self.set_definition_from_position(ident.span.lo, self.compilation.current);
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
                     }
@@ -142,22 +144,16 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
-                        match res {
-                            hir::Res::Item(item_id) => {
-                                let (item, _) = self.compilation.find_item(item_id);
-                                match &item.kind {
-                                    hir::ItemKind::Ty(_, udt) => {
-                                        if let Some(field) = udt.find_field_by_name(&field.name) {
-                                            let span = field
-                                                .name_span
-                                                .expect("field found via name should have a name");
-                                            self.set_definition_from_position(
-                                                span.lo,
-                                                item_id.package,
-                                            );
-                                        }
-                                    }
-                                    _ => panic!("UDT has invalid resolution."),
+                        let (item, package_id, _) = self
+                            .compilation
+                            .get_hir_res_item(self.compilation.current, res);
+                        match &item.kind {
+                            hir::ItemKind::Ty(_, udt) => {
+                                if let Some(field) = udt.find_field_by_name(&field.name) {
+                                    let span = field
+                                        .name_span
+                                        .expect("field found via name should have a name");
+                                    self.set_definition_from_position(span.lo, package_id);
                                 }
                             }
                             _ => panic!("UDT has invalid resolution."),
@@ -176,7 +172,10 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        let (item, _) = self.compilation.find_item(item_id);
+                        let (item, package_id, _) = self
+                            .compilation
+                            .find_item(self.compilation.current, item_id);
+
                         let lo = match &item.kind {
                             hir::ItemKind::Callable(decl) => decl.name.span.lo,
                             hir::ItemKind::Namespace(_, _) => {
@@ -187,14 +186,16 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                             }
                             hir::ItemKind::Ty(ident, _) => ident.span.lo,
                         };
-
-                        self.set_definition_from_position(lo, item_id.package);
+                        self.set_definition_from_position(lo, package_id);
                     }
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {
                             {
                                 if let Some(ident) = find_ident(node_id, curr) {
-                                    self.set_definition_from_position(ident.span.lo, None);
+                                    self.set_definition_from_position(
+                                        ident.span.lo,
+                                        self.compilation.current,
+                                    );
                                 }
                             }
                         }

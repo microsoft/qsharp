@@ -95,7 +95,8 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = display_callable(
                             &item.doc,
                             &self.current_namespace,
-                            self.display.ast_callable_decl(decl),
+                            self.display
+                                .ast_callable_decl(self.compilation.current, decl),
                         );
                         self.hover = Some(Hover {
                             contents,
@@ -187,7 +188,11 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_touches(ident.span, self.offset) {
-                        let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
+                        let code = markdown_fenced_block(self.display.ident_ty_id(
+                            self.compilation.current,
+                            ident,
+                            pat.id,
+                        ));
                         let kind = if self.in_params {
                             LocalKind::Param
                         } else if self.in_lambda_params {
@@ -227,25 +232,24 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
-                        match res {
-                            hir::Res::Item(item_id) => {
-                                let (item, _) = self.compilation.find_item(item_id);
-                                match &item.kind {
-                                    hir::ItemKind::Ty(_, udt) => {
-                                        if udt.find_field_by_name(&field.name).is_some() {
-                                            let contents = markdown_fenced_block(
-                                                self.display.ident_ty_id(field, expr.id),
-                                            );
-                                            self.hover = Some(Hover {
-                                                contents,
-                                                span: protocol_span(
-                                                    field.span,
-                                                    &self.compilation.current_unit().sources,
-                                                ),
-                                            });
-                                        }
-                                    }
-                                    _ => panic!("UDT has invalid resolution."),
+                        let (item, _, _) = self
+                            .compilation
+                            .get_hir_res_item(self.compilation.current, res);
+                        match &item.kind {
+                            hir::ItemKind::Ty(_, udt) => {
+                                if udt.find_field_by_name(&field.name).is_some() {
+                                    let contents = markdown_fenced_block(self.display.ident_ty_id(
+                                        self.compilation.current,
+                                        field,
+                                        expr.id,
+                                    ));
+                                    self.hover = Some(Hover {
+                                        contents,
+                                        span: protocol_span(
+                                            field.span,
+                                            &self.compilation.current_unit().sources,
+                                        ),
+                                    });
                                 }
                             }
                             _ => panic!("UDT has invalid resolution."),
@@ -271,10 +275,13 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        let (item, unit) = self.compilation.find_item(item_id);
+                        let (item, package_id, package) = self
+                            .compilation
+                            .find_item(self.compilation.current, item_id);
+
                         let ns = item
                             .parent
-                            .and_then(|parent_id| unit.package.items.get(parent_id))
+                            .and_then(|parent_id| package.items.get(parent_id))
                             .map_or_else(
                                 || Rc::from(""),
                                 |parent| match &parent.kind {
@@ -289,7 +296,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                             hir::ItemKind::Callable(decl) => display_callable(
                                 &item.doc,
                                 &ns,
-                                self.display.hir_callable_decl(decl),
+                                self.display.hir_callable_decl(package_id, decl),
                             ),
                             hir::ItemKind::Namespace(_, _) => {
                                 panic!(
@@ -298,7 +305,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                                 )
                             }
                             hir::ItemKind::Ty(_, udt) => {
-                                markdown_fenced_block(self.display.hir_udt(udt))
+                                markdown_fenced_block(self.display.hir_udt(package_id, udt))
                             }
                         };
                         self.hover = Some(Hover {
@@ -319,7 +326,11 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                             }
                         }
 
-                        let code = markdown_fenced_block(self.display.path_ty_id(path, *node_id));
+                        let code = markdown_fenced_block(self.display.path_ty_id(
+                            self.compilation.current,
+                            path,
+                            *node_id,
+                        ));
                         let kind = if is_param(
                             &curr_callable_to_params(self.current_callable),
                             *node_id,

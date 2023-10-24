@@ -6,7 +6,7 @@ mod tests;
 
 use std::rc::Rc;
 
-use crate::compilation::Compilation;
+use crate::compilation::{Compilation, CompilationKind};
 use crate::display::CodeDisplay;
 use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
 use crate::qsc_utils::{resolve_offset, span_contains};
@@ -94,9 +94,30 @@ pub(crate) fn get_completions(
             // Item decl keywords last, unlike in a namespace
             builder.push_item_decl_keywords();
         }
-        Context::NoCompilation | Context::TopLevel => {
-            builder.push_namespace_keyword();
-        }
+        Context::NoCompilation | Context::TopLevel => match compilation.kind {
+            CompilationKind::OpenDocument => builder.push_namespace_keyword(),
+            CompilationKind::Notebook => {
+                // For notebooks, the top-level allows for
+                // more syntax.
+
+                // Item declarations
+                builder.push_item_decl_keywords();
+
+                // Things that go in a block
+                builder.push_stmt_keywords();
+                builder.push_expr_keywords();
+                builder.push_types();
+                builder.push_globals(
+                    compilation,
+                    &context_finder.opens,
+                    context_finder.start_of_namespace,
+                    &context_finder.current_namespace_name,
+                );
+
+                // Namespace declarations - least likely to be used, so last
+                builder.push_namespace_keyword();
+            }
+        },
     }
 
     CompletionList {
@@ -193,23 +214,21 @@ impl CompletionListBuilder {
         // Reverse to collect symbols starting at the current package backwards
         all_except_core.reverse();
 
-        let display = CodeDisplay { compilation };
-
-        let get_callables = |package, display| {
+        let get_callables = |package_id| {
             Self::get_callables(
-                package,
-                display,
+                compilation,
+                package_id,
                 opens,
                 start_of_namespace,
                 current_namespace_name.clone(),
             )
         };
 
-        for (_, unit) in &all_except_core {
-            self.push_sorted_completions(get_callables(&unit.package, &display));
+        for (package_id, _) in &all_except_core {
+            self.push_sorted_completions(get_callables(*package_id));
         }
 
-        self.push_sorted_completions(Self::get_core_callables(core, &display));
+        self.push_sorted_completions(Self::get_core_callables(compilation, core));
 
         for (_, unit) in &all_except_core {
             self.push_completions(Self::get_namespaces(&unit.package));
@@ -277,12 +296,19 @@ impl CompletionListBuilder {
     }
 
     fn get_callables<'a>(
-        package: &'a Package,
-        display: &'a CodeDisplay,
+        compilation: &'a Compilation,
+        package_id: PackageId,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
         current_namespace_name: Option<Rc<str>>,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
+        let package = &compilation
+            .package_store
+            .get(package_id)
+            .expect("package id should exist")
+            .package;
+        let display = CodeDisplay { compilation };
+
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
             if let Some(item_id) = i.parent {
@@ -291,15 +317,17 @@ impl CompletionListBuilder {
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
                                 let name = callable_decl.name.name.as_ref();
-                                let detail =
-                                    Some(display.hir_callable_decl(callable_decl).to_string());
+                                let detail = Some(
+                                    display
+                                        .hir_callable_decl(package_id, callable_decl)
+                                        .to_string(),
+                                );
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
                                 let mut qualification: Option<Rc<str>> = None;
                                 match &current_namespace_name {
                                     Some(curr_ns) if *curr_ns == namespace.name => {}
-                                    None => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
@@ -362,13 +390,19 @@ impl CompletionListBuilder {
     }
 
     fn get_core_callables<'a>(
+        compilation: &'a Compilation,
         package: &'a Package,
-        display: &'a CodeDisplay,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
+        let display = CodeDisplay { compilation };
+
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
-                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
+                let detail = Some(
+                    display
+                        .hir_callable_decl(PackageId::CORE, callable_decl)
+                        .to_string(),
+                );
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
                 Some((

@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::compilation::{Compilation, CompilationKind};
-use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap, TargetProfile};
+use qsc::{
+    compile, hir::PackageId, incremental::Compiler, PackageStore, PackageType, SourceMap,
+    TargetProfile,
+};
 
 pub(crate) fn get_source_and_marker_offsets(
     source_with_markers: &str,
@@ -67,5 +70,49 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         current: package_id,
         kind: CompilationKind::OpenDocument,
         errors,
+    }
+}
+
+pub(crate) fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
+where
+    I: Iterator<Item = (&'a str, &'a str)>,
+{
+    let std_source_map = SourceMap::new(
+        [(
+            "<std>".into(),
+            "namespace FakeStdLib {
+                operation Fake() : Unit {}
+                operation FakeWithParam(x: Int) : Unit {}
+                operation FakeCtlAdj() : Unit is Ctl + Adj {}
+                newtype Complex = (Real: Double, Imag: Double);
+                function TakesComplex(input : Complex) : Unit {}
+            }"
+            .into(),
+        )],
+        None,
+    );
+
+    let mut compiler = Compiler::new(false, std_source_map, PackageType::Lib, TargetProfile::Full)
+        .expect("expected incremental compiler creation to succeed");
+
+    let mut errors = Vec::new();
+    for (name, contents) in cells {
+        let increment = compiler
+            .compile_fragments(name, contents, |cell_errors| {
+                errors.extend(cell_errors);
+                Ok(()) // accumulate errors without failing
+            })
+            .expect("compile_fragments_acc_errors should not fail");
+
+        compiler.update(increment);
+    }
+
+    let (package_store, package_id) = compiler.into_package_store();
+
+    Compilation {
+        package_store,
+        current: package_id,
+        errors,
+        kind: CompilationKind::Notebook,
     }
 }

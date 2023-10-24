@@ -19,7 +19,7 @@ mod test_utils;
 mod tests;
 
 use compilation::Compilation;
-use log::{debug, log_enabled, trace, Level};
+use log::trace;
 use miette::Diagnostic;
 use protocol::{
     CompletionList, Definition, DiagnosticUpdate, Hover, SignatureHelp,

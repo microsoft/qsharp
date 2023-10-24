@@ -3,9 +3,9 @@
 
 use log::trace;
 use qsc::{
-    ast,
+    ast::{self},
     compile::{self, Error},
-    hir::{self, ItemId, PackageId},
+    hir::{self, PackageId},
     incremental::Compiler,
     CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
 };
@@ -93,9 +93,6 @@ impl Compilation {
 
         let (package_store, package_id) = compiler.into_package_store();
 
-        trace!("compiled package: {:?}", package_store.get(package_id));
-        trace!("errors: {:?}", &errors);
-
         Self {
             package_store,
             current: package_id,
@@ -151,13 +148,31 @@ impl Compilation {
 }
 
 pub(crate) trait Lookup {
-    fn find_item(&self, item_id: &hir::ItemId) -> (&hir::Item, &CompileUnit);
+    // TODO: rename all these to resolve_* or something
     fn find_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty>;
+    fn find_item(
+        &self,
+        this: hir::PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, hir::PackageId, &hir::Package);
+    fn get_hir_res_item(
+        &self,
+        this: hir::PackageId,
+        res: &hir::Res,
+    ) -> (&hir::Item, PackageId, &hir::Package);
 }
 
 impl Lookup for Compilation {
-    fn find_item(&self, id: &ItemId) -> (&hir::Item, &CompileUnit) {
-        let package_id = id.package.unwrap_or(self.current);
+    fn find_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty> {
+        self.current_unit().ast.tys.terms.get(expr_id)
+    }
+
+    fn find_item(
+        &self,
+        this: hir::PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, PackageId, &hir::Package) {
+        let package_id = item_id.package.unwrap_or(this);
         let unit = self
             .package_store
             .get(package_id)
@@ -165,24 +180,21 @@ impl Lookup for Compilation {
         (
             unit.package
                 .items
-                .get(id.item)
-                .expect("item must exist in store"), // TODO: we're hitting a panic here
-            // operation Main() : Result {
-            //     ## TRIGGER COMPLETION HERE ##
-            //     use q = Qubit();
-            //     X(q);
-            //     Microsoft.Quantum.Diagnostics.DumpMachine();
-            //     let r = M(q);
-            //     Message($"The result of the measurement is {r}");
-            //     Reset(q);
-            //     r
-            // }
-            // Main()
-            unit,
+                .get(item_id.item)
+                .expect("expected to find item"),
+            package_id,
+            &unit.package,
         )
     }
 
-    fn find_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty> {
-        self.current_unit().ast.tys.terms.get(expr_id)
+    fn get_hir_res_item(
+        &self,
+        package_id: hir::PackageId,
+        res: &hir::Res,
+    ) -> (&hir::Item, hir::PackageId, &hir::Package) {
+        match res {
+            hir::Res::Item(item_id) => self.find_item(package_id, item_id),
+            _ => panic!("Expected res to be an item"),
+        }
     }
 }

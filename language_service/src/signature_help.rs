@@ -75,7 +75,9 @@ impl SignatureHelpFinder<'_> {
         if let Some(resolve::Res::Item(item_id)) =
             self.compilation.current_unit().ast.names.get(callee.id)
         {
-            let (item, _) = self.compilation.find_item(item_id);
+            let (item, package_id, _) = self
+                .compilation
+                .find_item(self.compilation.current, item_id);
             if let hir::ItemKind::Callable(callee) = &item.kind {
                 // Check that the callee has parameters to give help for
                 if !matches!(&callee.input.kind, hir::PatKind::Tuple(items) if items.is_empty()) {
@@ -83,9 +85,12 @@ impl SignatureHelpFinder<'_> {
                     let documentation = (!documentation.is_empty()).then_some(documentation);
 
                     let sig_info = SignatureInformation {
-                        label: self.display.hir_callable_decl(callee).to_string(),
+                        label: self
+                            .display
+                            .hir_callable_decl(package_id, callee)
+                            .to_string(),
                         documentation,
-                        parameters: self.get_params(callee, &item.doc),
+                        parameters: self.get_params(package_id, callee, &item.doc),
                     };
 
                     self.signature_help = Some(SignatureHelp {
@@ -106,14 +111,21 @@ impl SignatureHelpFinder<'_> {
     ///               └──┬───┘  └──┬──────┘
     ///               param 1    param 2
     /// ```
-    fn get_params(&self, decl: &hir::CallableDecl, doc: &str) -> Vec<ParameterInformation> {
-        let mut offset = self.display.get_param_offset(decl);
+    fn get_params(
+        &self,
+        package_id: hir::PackageId,
+        decl: &hir::CallableDecl,
+        doc: &str,
+    ) -> Vec<ParameterInformation> {
+        let mut offset = self.display.get_param_offset(package_id, decl);
 
         match &decl.input.kind {
             hir::PatKind::Discard | hir::PatKind::Bind(_) => {
-                self.make_wrapped_params(offset, &decl.input, doc)
+                self.make_wrapped_params(offset, package_id, &decl.input, doc)
             }
-            hir::PatKind::Tuple(_) => self.make_param_with_offset(&mut offset, &decl.input, doc),
+            hir::PatKind::Tuple(_) => {
+                self.make_param_with_offset(&mut offset, package_id, &decl.input, doc)
+            }
         }
     }
 
@@ -122,6 +134,7 @@ impl SignatureHelpFinder<'_> {
     fn make_wrapped_params(
         &self,
         offset: u32,
+        package_id: hir::PackageId,
         pat: &hir::Pat,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -132,7 +145,7 @@ impl SignatureHelpFinder<'_> {
             None
         };
 
-        let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+        let len = usize_to_u32(self.display.hir_pat(package_id, pat).to_string().len());
         let param = ParameterInformation {
             label: Span {
                 start: offset + 1,
@@ -155,6 +168,7 @@ impl SignatureHelpFinder<'_> {
     fn make_param_with_offset(
         &self,
         offset: &mut u32,
+        package_id: hir::PackageId,
         pat: &hir::Pat,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -167,7 +181,7 @@ impl SignatureHelpFinder<'_> {
                     None
                 };
 
-                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+                let len = usize_to_u32(self.display.hir_pat(package_id, pat).to_string().len());
                 let start = *offset;
                 *offset += len;
                 vec![ParameterInformation {
@@ -179,7 +193,7 @@ impl SignatureHelpFinder<'_> {
                 }]
             }
             hir::PatKind::Tuple(items) => {
-                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
+                let len = usize_to_u32(self.display.hir_pat(package_id, pat).to_string().len());
                 let mut rtrn = vec![ParameterInformation {
                     label: Span {
                         start: *offset,
@@ -195,7 +209,7 @@ impl SignatureHelpFinder<'_> {
                     } else {
                         *offset += 2; // 2 for the comma and space
                     }
-                    rtrn.extend(self.make_param_with_offset(offset, item, doc));
+                    rtrn.extend(self.make_param_with_offset(offset, package_id, item, doc));
                 }
                 *offset += 1; // for the close parenthesis
                 rtrn
