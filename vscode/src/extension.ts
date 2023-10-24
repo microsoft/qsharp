@@ -113,11 +113,13 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
         : isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
         : QsharpDocumentType.Other;
-      sendTelemetryEvent(
-        EventType.OpenedDocument,
-        { documentType },
-        { linesOfCode: document.lineCount }
-      );
+      if (documentType !== QsharpDocumentType.Other) {
+        sendTelemetryEvent(
+          EventType.OpenedDocument,
+          { documentType },
+          { linesOfCode: document.lineCount }
+        );
+      }
       updateIfQsharpDocument(document);
     })
   );
