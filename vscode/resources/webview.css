@@ -223,7 +223,6 @@
 
 .histogram {
   width: 100%;
-  height: 300px;
   border: 1px solid var(--border-color);
   background-color: var(--vscode-sideBar-background);
 }

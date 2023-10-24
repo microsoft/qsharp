@@ -81,7 +81,7 @@ export function Histogram(props: {
     sizeBiggestBucket = Math.max(x[1], sizeBiggestBucket);
   });
 
-  let histogramLabel = `${bucketArray.length} results`;
+  let histogramLabel = `${bucketArray.length} unique results`;
   if (maxItemsToShow > 0) {
     // Sort from high to low then take the first n
     bucketArray.sort((a, b) => (a[1] < b[1] ? 1 : -1));
@@ -246,7 +246,7 @@ export function Histogram(props: {
 
   return (
     <>
-      <h4>Shot count: {props.shotCount}</h4>
+      <h4>Total shots: {props.shotCount}</h4>
       <svg class="histogram" viewBox="0 0 165 100" onWheel={onWheel}>
         <g transform={`translate(${scale.offset},4)`}>
           {bucketArray.map((entry, idx) => {
@@ -305,7 +305,11 @@ export function Histogram(props: {
         </text>
 
         {/* The settings icon */}
-        <g class="menu-icon" transform="scale(0.3 0.3)" onClick={toggleMenu}>
+        <g
+          class="menu-icon"
+          transform="translate(2, 2) scale(0.3 0.3)"
+          onClick={toggleMenu}
+        >
           <rect width="24" height="24" fill="white" stroke-widths="0.5"></rect>
           <path
             d="M3 5 H21 M3 12 H21 M3 19 H21"
@@ -320,7 +324,7 @@ export function Histogram(props: {
         {/* The info icon */}
         <g
           class="menu-icon"
-          transform="translate(158, 0) scale(0.3 0.3)"
+          transform="translate(156, 2) scale(0.3 0.3)"
           onClick={toggleInfo}
         >
           <rect width="24" height="24" stroke-width="0"></rect>

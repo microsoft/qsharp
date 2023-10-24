@@ -164,7 +164,7 @@ export class QSharpWebViewPanel {
   public static render(extensionUri: Uri) {
     if (QSharpWebViewPanel.currentPanel) {
       // If the webview panel already exists reveal it
-      QSharpWebViewPanel.currentPanel._panel.reveal(ViewColumn.One);
+      QSharpWebViewPanel.currentPanel._panel.reveal(ViewColumn.Beside);
     } else {
       // If a webview panel does not already exist create and show a new one
       const panel = window.createWebviewPanel(
