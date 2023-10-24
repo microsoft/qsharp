@@ -60,10 +60,10 @@ impl<'a, 'b, T: CursorLocatorAPI<'b>> Visitor<'b> for CursorLocator<'a, 'b, T> {
                     }
                     // Note: the `item.span` can cover things like doc
                     // comment, attributes, and visibility keywords, which aren't
-                    // things we want to have hover logic for, while the `decl.span` is
+                    // things we want to have logic for, while the `decl.span` is
                     // specific to the contents of the callable decl, which we do want
-                    // hover logic for. If the `if` or `else if` above is not met, then
-                    // the user is hovering over one of these non-decl parts of the item,
+                    // logic for. If the `if` or `else if` above is not met, then
+                    // the cursor is at one of these non-decl parts of the item,
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
