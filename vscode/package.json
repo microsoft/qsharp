@@ -4,6 +4,11 @@
   "description": "Q# Language Support",
   "version": "0.0.0",
   "publisher": "quantum",
+  "icon": "resources/qdk.png",
+  "galleryBanner": {
+    "color": "#252526",
+    "theme": "dark"
+  },
   "type": "commonjs",
   "engines": {
     "vscode": "^1.77.0"
@@ -18,9 +23,75 @@
     "onNotebook:jupyter-notebook",
     "onDebug",
     "onDebugResolve:qsharp",
-    "onDebugDynamicConfigurations:qsharp"
+    "onDebugDynamicConfigurations:qsharp",
+    "onFileSystem:qsharp-vfs"
   ],
   "contributes": {
+    "walkthroughs": [
+      {
+        "id": "qsharp-vscode.welcome",
+        "title": "The Azure Quantum Development Kit",
+        "description": "Getting started with the Azure Quantum Development Kit in VS Code",
+        "steps": [
+          {
+            "id": "qsharp-vscode.welcome.editor",
+            "title": "Welcome to the Azure Quantum Development Kit",
+            "description": "The Azure Quantum Development Kit (QDK) is an open-source SDK that you can use to write quantum programs and execute them on quantum hardware. This walkthrough will show you how to get started with the Azure Quantum Development Kit in VS Code.\n\nThe QDK gives you rich editor support for writing quantum programs in the Q# language, such as error checking, signature help, completion lists, safely renaming identifiers, and much more.",
+            "media": {
+              "image": "resources/intellisense.png",
+              "altText": "Intellisense"
+            }
+          },
+          {
+            "id": "qsharp-vscode.welcome.debug",
+            "title": "Debug Q# code",
+            "description": "With your Q# code open in the editor, use the F5 shortcut or the top right icons in the code edtior to run or debug the code.",
+            "media": {
+              "image": "resources/debug.png",
+              "altText": "Debug"
+            }
+          },
+          {
+            "id": "qsharp-vscode.welcome.simulator",
+            "title": "Run quantum simulations",
+            "description": "You can run quantum simulations directly in VS Code and see the program output in the integrated terminal.",
+            "media": {
+              "image": "resources/console.png",
+              "altText": "Console"
+            }
+          },
+          {
+            "id": "qsharp-vscode.welcome.submit",
+            "title": "Run on Azure Quantum",
+            "description": "If you have an Azure subscription, you can connect to your Azure Quantum workspace and submit your Q# program directly to quantum hardware",
+            "media": {
+              "image": "resources/submit.png",
+              "altText": "Submit to Azure"
+            }
+          },
+          {
+            "id": "qsharp-vscode.welcome.starters",
+            "title": "Starting points",
+            "description": "Expore Q# safely by opening files in the [Q# playground](command:qsharp-vscode.openPlayground), or work in Python by [creating a Jupyter Notebook](command:qsharp-vscode.createNotebook) from a template",
+            "media": {
+              "image": "resources/notebook.png",
+              "altText": "Jupyter Notebooks"
+            }
+          }
+        ]
+      }
+    ],
+    "webOpener": {
+      "scheme": "qsharp-vfs",
+      "runCommands": [
+        {
+          "command": "qsharp-vscode.webOpener",
+          "args": [
+            "$url"
+          ]
+        }
+      ]
+    },
     "configuration": {
       "title": "Q#",
       "properties": {
@@ -88,6 +159,10 @@
         {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.webOpener",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -143,6 +218,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "qsharp-vscode.webOpener",
+        "title": "Internal web opener",
+        "category": "Q#"
+      },
       {
         "command": "qsharp-vscode.debugEditorContents",
         "title": "Debug Q# file",
@@ -212,6 +292,11 @@
         "command": "qsharp-vscode.createNotebook",
         "category": "Q#",
         "title": "Create an Azure Quantum notebook"
+      },
+      {
+        "command": "qsharp-vscode.openPlayground",
+        "category": "Q#",
+        "title": "Open Q# playground"
       }
     ],
     "breakpoints": [
