@@ -64,7 +64,12 @@ impl<'a> CursorLocatorAPI<'a> for HoverGenerator<'a> {
         });
     }
 
-    fn at_field_def(&mut self, field_name: &'a ast::Ident, ty: &'a ast::Ty) {
+    fn at_field_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        field_name: &'a ast::Ident,
+        ty: &'a ast::Ty,
+    ) {
         let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
         self.hover = Some(Hover {
             contents,

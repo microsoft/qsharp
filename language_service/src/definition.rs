@@ -100,7 +100,12 @@ impl<'a> CursorLocatorAPI<'a> for DefinitionFinder<'a> {
         self.set_definition_from_position(type_name.span.lo, item_id.package);
     }
 
-    fn at_field_def(&mut self, field_name: &'a ast::Ident, ty: &'a ast::Ty) {
+    fn at_field_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        field_name: &'a ast::Ident,
+        ty: &'a ast::Ty,
+    ) {
         self.set_definition_from_position(field_name.span.lo, None);
     }
 

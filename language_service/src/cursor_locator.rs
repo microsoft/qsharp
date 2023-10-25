@@ -8,9 +8,7 @@ use std::mem::replace;
 use std::rc::Rc;
 
 use crate::qsc_utils::{find_ident, find_item, span_contains, span_touches, Compilation};
-use qsc::ast::visit::{
-    walk_callable_decl, walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor,
-};
+use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 
 pub(crate) trait CursorLocatorAPI<'package> {
@@ -44,7 +42,13 @@ pub(crate) trait CursorLocatorAPI<'package> {
     ) {
     }
 
-    fn at_field_def(&mut self, field_name: &'package ast::Ident, ty: &'package ast::Ty) {}
+    fn at_field_def(
+        &mut self,
+        context: &LocatorContext<'package>,
+        field_name: &'package ast::Ident,
+        ty: &'package ast::Ty,
+    ) {
+    }
 
     fn at_field_ref(
         &mut self,
@@ -80,6 +84,7 @@ pub(crate) struct LocatorContext<'package> {
     pub(crate) current_namespace: Rc<str>,
     pub(crate) in_params: bool,
     pub(crate) in_lambda_params: bool,
+    pub(crate) current_udt_id: Option<&'package hir::ItemId>,
 }
 
 pub(crate) struct CursorLocator<'a, 'package, T> {
@@ -87,7 +92,6 @@ pub(crate) struct CursorLocator<'a, 'package, T> {
     offset: u32,
     compilation: &'package Compilation,
     context: LocatorContext<'package>,
-    //current_callable: Option<&'b ast::CallableDecl>,
 }
 
 impl<'a, 'package, T> CursorLocator<'a, 'package, T> {
@@ -103,6 +107,7 @@ impl<'a, 'package, T> CursorLocator<'a, 'package, T> {
                 lambda_params: vec![],
                 in_lambda_params: false,
                 current_item_doc: Rc::from(""),
+                current_udt_id: None,
             },
         }
     }
@@ -154,10 +159,19 @@ impl<'a, 'package, T: CursorLocatorAPI<'package>> Visitor<'package>
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if span_touches(ident.span, self.offset) {
-                        self.inner.at_new_type_def(ident, def);
-                    } else {
-                        self.visit_ty_def(def);
+                    if let Some(resolve::Res::Item(item_id)) =
+                        self.compilation.unit.ast.names.get(ident.id)
+                    {
+                        let context = self.context.current_udt_id;
+                        self.context.current_udt_id = Some(item_id);
+
+                        if span_touches(ident.span, self.offset) {
+                            self.inner.at_new_type_def(ident, def);
+                        } else {
+                            self.visit_ty_def(def);
+                        }
+
+                        self.context.current_udt_id = context;
                     }
                 }
                 _ => {}
@@ -185,7 +199,7 @@ impl<'a, 'package, T: CursorLocatorAPI<'package>> Visitor<'package>
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
                     if span_touches(ident.span, self.offset) {
-                        self.inner.at_field_def(ident, ty);
+                        self.inner.at_field_def(&self.context, ident, ty);
                     } else {
                         self.visit_ty(ty);
                     }
