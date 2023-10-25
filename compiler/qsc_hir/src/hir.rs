@@ -206,9 +206,6 @@ impl Res {
                 package: Some(package),
                 item: id.item,
             }),
-            Res::Item(id) if id.package.expect("none case should be handled above") != package => {
-                panic!("should not try to update Res with existing package id")
-            }
             _ => *self,
         }
     }
