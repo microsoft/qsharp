@@ -3107,7 +3107,6 @@ fn indirect_callable_with_std_udt() {
     );
 }
 
-#[ignore = "https://github.com/microsoft/qsharp/issues/813"]
 #[test]
 fn indirect_callable_with_std_udt_with_params() {
     check(

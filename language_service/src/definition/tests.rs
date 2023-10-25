@@ -384,7 +384,6 @@ fn std_udt() {
     );
 }
 
-#[ignore = "https://github.com/microsoft/qsharp/issues/813"]
 #[test]
 fn std_udt_udt_field() {
     check(
@@ -398,12 +397,12 @@ fn std_udt_udt_field() {
     }
     "#,
         &expect![[r#"
-        Some(
-            Definition {
-                source: "qsharp-library-source:<std>",
-                offset: 210,
-            },
-        )
+            Some(
+                Definition {
+                    source: "qsharp-library-source:<std>",
+                    offset: 217,
+                },
+            )
         "#]],
     );
 }

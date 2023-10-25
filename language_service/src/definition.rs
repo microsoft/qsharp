@@ -150,12 +150,6 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     if let Some(hir::ty::Ty::Udt(res)) =
                         self.compilation.unit.ast.tys.terms.get(udt.id)
                     {
-                        // BUG: We need the package ID for the UDT type here to be able to accurately
-                        // resolve any references to *other* types from this type,
-                        // but the types table doesn't carry that information.
-                        // As a result, this code will behave incorrectly for
-                        // UDTs from external packages that reference other UDTs.
-                        // https://github.com/microsoft/qsharp/issues/813
                         let (item, package_id) = resolve_udt_res(self.compilation, None, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {

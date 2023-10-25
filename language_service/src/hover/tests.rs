@@ -1008,7 +1008,6 @@ fn std_callable_with_udt() {
     );
 }
 
-#[ignore = "https://github.com/microsoft/qsharp/issues/813"]
 #[test]
 fn std_udt_udt_field() {
     check(
