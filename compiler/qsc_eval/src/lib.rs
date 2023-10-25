@@ -28,8 +28,9 @@ use qsc_fir::fir::{
     PackageId, PatKind, PrimField, Res, SpecBody, SpecGen, StmtKind, StringComponent, UnOp,
 };
 use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
+use rustc_hash::FxHashMap;
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::hash_map::Entry,
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
@@ -386,7 +387,7 @@ impl Env {
 
 #[derive(Default)]
 struct Scope {
-    bindings: HashMap<NodeId, Variable>,
+    bindings: FxHashMap<NodeId, Variable>,
     frame_id: usize,
 }
 

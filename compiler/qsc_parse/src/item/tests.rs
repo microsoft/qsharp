@@ -996,6 +996,52 @@ fn floating_doc_comments_in_namespace() {
 }
 
 #[test]
+fn floating_attr_in_namespace() {
+    check_vec(
+        parse_namespaces,
+        "namespace MyQuantumProgram { @EntryPoint() }",
+        &expect![[r#"
+        Namespace _id_ [0-44] (Ident _id_ [10-26] "MyQuantumProgram"):
+            Item _id_ [29-42]:
+                Err
+
+        [
+            Error(
+                FloatingAttr(
+                    Span {
+                        lo: 29,
+                        hi: 42,
+                    },
+                ),
+            ),
+        ]"#]],
+    );
+}
+
+#[test]
+fn floating_visibility_in_namespace() {
+    check_vec(
+        parse_namespaces,
+        "namespace MyQuantumProgram { internal }",
+        &expect![[r#"
+            Namespace _id_ [0-39] (Ident _id_ [10-26] "MyQuantumProgram"):
+                Item _id_ [29-37]:
+                    Err
+
+            [
+                Error(
+                    FloatingVisibility(
+                        Span {
+                            lo: 29,
+                            hi: 37,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn two_namespaces() {
     check_vec(
         parse_namespaces,

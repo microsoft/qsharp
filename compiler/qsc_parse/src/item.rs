@@ -38,6 +38,14 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if visibility.is_some() {
+        let err_item = default(s.span(lo));
+        s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
+        return Ok(err_item);
+    } else if !attrs.is_empty() {
+        let err_item = default(s.span(lo));
+        s.push_error(Error(ErrorKind::FloatingAttr(err_item.span)));
+        return Ok(err_item);
     } else if doc.is_some() {
         let err_item = default(s.span(lo));
         s.push_error(Error(ErrorKind::FloatingDocComment(err_item.span)));
