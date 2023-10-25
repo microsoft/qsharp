@@ -19,19 +19,20 @@ use qsc_hir::{
     hir::{self, ItemId, PackageId},
     ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
-use std::{collections::HashMap, vec};
+use rustc_hash::FxHashMap;
+use std::vec;
 
 pub(crate) struct GlobalTable {
-    udts: HashMap<ItemId, Udt>,
-    terms: HashMap<ItemId, Scheme>,
+    udts: FxHashMap<ItemId, Udt>,
+    terms: FxHashMap<ItemId, Scheme>,
     errors: Vec<Error>,
 }
 
 impl GlobalTable {
     pub(crate) fn new() -> Self {
         Self {
-            udts: HashMap::new(),
-            terms: HashMap::new(),
+            udts: FxHashMap::default(),
+            terms: FxHashMap::default(),
             errors: Vec::new(),
         }
     }
@@ -59,7 +60,7 @@ impl GlobalTable {
 }
 
 pub(crate) struct Checker {
-    globals: HashMap<ItemId, Scheme>,
+    globals: FxHashMap<ItemId, Scheme>,
     table: Table,
     inferrer: Inferrer,
     new: Vec<NodeId>,

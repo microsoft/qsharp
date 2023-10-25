@@ -12,10 +12,8 @@ use qsc_hir::{
     ty::{Arrow, FunctorSetValue, Ty},
     visit::{self, Visitor},
 };
-use std::{
-    collections::{HashMap, HashSet},
-    iter,
-};
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::iter;
 
 pub(super) struct Lambda {
     pub(super) kind: CallableKind,
@@ -30,8 +28,8 @@ pub(super) struct PartialApp {
 }
 
 struct VarFinder {
-    bindings: HashSet<NodeId>,
-    uses: HashSet<NodeId>,
+    bindings: FxHashSet<NodeId>,
+    uses: FxHashSet<NodeId>,
 }
 
 impl VarFinder {
@@ -63,7 +61,7 @@ impl Visitor<'_> for VarFinder {
 }
 
 struct VarReplacer<'a> {
-    substitutions: &'a HashMap<NodeId, NodeId>,
+    substitutions: &'a FxHashMap<NodeId, NodeId>,
 }
 
 impl VarReplacer<'_> {
@@ -91,14 +89,14 @@ pub(super) fn lift(
     span: Span,
 ) -> (Vec<NodeId>, CallableDecl) {
     let mut finder = VarFinder {
-        bindings: HashSet::new(),
-        uses: HashSet::new(),
+        bindings: FxHashSet::default(),
+        uses: FxHashSet::default(),
     };
     finder.visit_pat(&lambda.input);
     finder.visit_expr(&lambda.body);
 
     let free_vars = finder.free_vars();
-    let substitutions: HashMap<_, _> = free_vars
+    let substitutions: FxHashMap<_, _> = free_vars
         .iter()
         .map(|&id| (id, assigner.next_node()))
         .collect();
