@@ -893,7 +893,9 @@ fn check_has_field(
                 Some(ty) => (
                     vec![Constraint::Eq {
                         expected: item,
-                        actual: ty.clone(),
+                        actual: id
+                            .package
+                            .map_or_else(|| ty.clone(), |package_id| ty.with_package(package_id)),
                         span,
                     }],
                     Vec::new(),
@@ -1011,7 +1013,10 @@ fn check_unwrap(
             return (
                 vec![Constraint::Eq {
                     expected: base,
-                    actual: udt.get_pure_ty(),
+                    actual: id.package.map_or_else(
+                        || udt.get_pure_ty(),
+                        |package_id| udt.get_pure_ty().with_package(package_id),
+                    ),
                     span,
                 }],
                 Vec::new(),
