@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::cursor_locator::{CursorLocator, CursorLocatorAPI, LocatorContext};
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::protocol::Hover;
 use crate::qsc_utils::{
@@ -24,9 +25,18 @@ pub(crate) fn get_hover(
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
     let package = &compilation.unit.ast.package;
 
-    let mut hover_visitor = HoverVisitor::new(compilation, offset);
+    let mut hover_visitor = Hover2 {
+        compilation,
+        hover: None,
+        display: CodeDisplay { compilation },
+    };
 
-    hover_visitor.visit_package(package);
+    let mut locator = CursorLocator::new(&mut hover_visitor, offset, compilation);
+    locator.visit_package(&compilation.unit.ast.package);
+
+    //let mut hover_visitor = HoverVisitor::new(compilation, offset);
+
+    //hover_visitor.visit_package(package);
 
     hover_visitor.hover
 }
@@ -329,6 +339,172 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                 };
             }
         }
+    }
+}
+
+struct Hover2<'a> {
+    hover: Option<Hover>,
+    display: CodeDisplay<'a>,
+    compilation: &'a Compilation,
+}
+
+impl<'a> CursorLocatorAPI<'a> for Hover2<'a> {
+    fn at_callable_def(&mut self, context: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
+        let contents = display_callable(
+            &context.current_item_doc,
+            &context.current_namespace,
+            self.display.ast_callable_decl(decl),
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(decl.name.span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
+        let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(type_name.span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_field_def(&mut self, field_name: &'a ast::Ident, ty: &'a ast::Ty) {
+        let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(field_name.span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_local_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        pat: &'a ast::Pat,
+        ident: &'a ast::Ident,
+    ) {
+        let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
+        let kind = if context.in_params {
+            LocalKind::Param
+        } else if context.in_lambda_params {
+            LocalKind::LambdaParam
+        } else {
+            LocalKind::Local
+        };
+        let mut callable_name = Rc::from("");
+        if let Some(decl) = context.current_callable {
+            callable_name = decl.name.name.clone();
+        }
+        let contents = display_local(
+            &kind,
+            &code,
+            &ident.name,
+            &callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(ident.span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_field_ref(
+        &mut self,
+        expr_id: &'a ast::NodeId,
+        item_id: &'a hir::ItemId,
+        field: &'a hir::ty::UdtField,
+    ) {
+        let name = match &field.name {
+            Some(n) => n,
+            None => panic!("field found via name should have a name"),
+        };
+        let span = field
+            .name_span
+            .expect("field found via name should have a name");
+        //let contents = markdown_fenced_block(self.display.ident_ty_id(name, expr_id));
+        let contents = "ToDo".to_owned();
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_new_type_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'a hir::ItemId,
+        item: &'a hir::Item,
+        package: &'a hir::Package,
+        type_name: &'a hir::Ident,
+        udt: &'a hir::ty::Udt,
+    ) {
+        let contents = markdown_fenced_block(self.display.hir_udt(udt));
+
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(path.span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_callable_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'a hir::ItemId,
+        item: &'a hir::Item,
+        package: &'a hir::Package,
+        decl: &'a hir::CallableDecl,
+    ) {
+        let ns = item
+            .parent
+            .and_then(|parent_id| package.items.get(parent_id))
+            .map_or_else(
+                || Rc::from(""),
+                |parent| match &parent.kind {
+                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
+                    _ => Rc::from(""),
+                },
+            );
+
+        let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
+
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(path.span, &self.compilation.unit.sources),
+        });
+    }
+
+    fn at_local_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        path: &'a ast::Path,
+        node_id: &'a ast::NodeId,
+        ident: &'a ast::Ident,
+    ) {
+        let local_name = &ident.name;
+        let callable_name = &context
+            .current_callable
+            .expect("locals should only exist in callables")
+            .name
+            .name;
+        let code = markdown_fenced_block(self.display.path_ty_id(path, *node_id));
+        let kind = if is_param(&curr_callable_to_params(context.current_callable), *node_id) {
+            LocalKind::Param
+        } else if is_param(&context.lambda_params, *node_id) {
+            LocalKind::LambdaParam
+        } else {
+            LocalKind::Local
+        };
+        let contents = display_local(
+            &kind,
+            &code,
+            local_name,
+            callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(path.span, &self.compilation.unit.sources),
+        });
     }
 }
 

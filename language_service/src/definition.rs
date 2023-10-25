@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::cursor_locator::{CursorLocator, CursorLocatorAPI};
+use crate::cursor_locator::{CursorLocator, CursorLocatorAPI, LocatorContext};
 use crate::protocol::Definition;
 use crate::qsc_utils::{map_offset, Compilation, QSHARP_LIBRARY_URI_SCHEME};
 use qsc::ast::visit::Visitor;
@@ -69,38 +69,69 @@ impl DefinitionFinder<'_> {
 }
 
 impl<'a> CursorLocatorAPI<'a> for DefinitionFinder<'a> {
-    fn at_callable_def(&mut self, decl: &'a ast::CallableDecl) {
+    fn at_callable_def(&mut self, context: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
         self.set_definition_from_position(decl.name.span.lo, None);
     }
 
-    fn at_callable_ref(&mut self, decl: &'a hir::CallableDecl, item_id: &'a hir::ItemId) {
+    fn at_callable_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'a hir::ItemId,
+        item: &'a hir::Item,
+        package: &'a hir::Package,
+        decl: &'a hir::CallableDecl,
+    ) {
         self.set_definition_from_position(decl.name.span.lo, item_id.package);
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident) {
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
         self.set_definition_from_position(type_name.span.lo, None);
     }
 
-    fn at_new_type_ref(&mut self, type_name: &'a hir::Ident, item_id: &'a hir::ItemId) {
+    fn at_new_type_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'a hir::ItemId,
+        item: &'a hir::Item,
+        package: &'a hir::Package,
+        type_name: &'a hir::Ident,
+        udt: &'a hir::ty::Udt,
+    ) {
         self.set_definition_from_position(type_name.span.lo, item_id.package);
     }
 
-    fn at_field_def(&mut self, field_name: &'a ast::Ident) {
+    fn at_field_def(&mut self, field_name: &'a ast::Ident, ty: &'a ast::Ty) {
         self.set_definition_from_position(field_name.span.lo, None);
     }
 
-    fn at_field_ref(&mut self, field: &'a hir::ty::UdtField, item_id: &'a hir::ItemId) {
+    fn at_field_ref(
+        &mut self,
+        expr_id: &'a ast::NodeId,
+        item_id: &'a hir::ItemId,
+        field: &'a hir::ty::UdtField,
+    ) {
         let span = field
             .name_span
             .expect("field found via name should have a name");
         self.set_definition_from_position(span.lo, item_id.package);
     }
 
-    fn at_local_def(&mut self, ident: &'a ast::Ident) {
+    fn at_local_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        pat: &'a ast::Pat,
+        ident: &'a ast::Ident,
+    ) {
         self.set_definition_from_position(ident.span.lo, None);
     }
 
-    fn at_local_ref(&mut self, ident: &'a ast::Ident) {
+    fn at_local_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        path: &'a ast::Path,
+        node_id: &'a ast::NodeId,
+        ident: &'a ast::Ident,
+    ) {
         self.set_definition_from_position(ident.span.lo, None);
     }
 }
