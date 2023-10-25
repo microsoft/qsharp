@@ -75,12 +75,6 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 
 impl SignatureHelpFinder<'_> {
     fn process_indirect_callee(&mut self, callee: &ast::Expr, args: &ast::Expr) {
-        // BUG: We need the package ID for `ty` here to be able to accurately
-        // resolve any references to *other* types from this type,
-        // but the types table doesn't carry that information.
-        // As a result, this code will behave incorrectly for
-        // UDTs from external packages that reference other UDTs.
-        // https://github.com/microsoft/qsharp/issues/813
         if let Some(ty) = self.compilation.find_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {

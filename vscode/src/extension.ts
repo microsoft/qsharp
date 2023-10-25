@@ -31,6 +31,7 @@ import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
+import { initFileSystem } from "./memfs.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -58,6 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
   initCodegen(context);
   activateDebugger(context);
   registerCreateNotebookCommand(context);
+  initFileSystem(context);
 
   log.info("Q# extension activated.");
 }

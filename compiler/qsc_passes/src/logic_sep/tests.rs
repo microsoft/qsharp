@@ -3,8 +3,6 @@
 
 #![allow(clippy::too_many_lines)]
 
-use std::collections::HashMap;
-
 use expect_test::{expect, Expect};
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
@@ -12,11 +10,12 @@ use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
     visit::{walk_stmt, Visitor},
 };
+use rustc_hash::FxHashMap;
 
 use crate::logic_sep::find_quantum_stmts;
 
 struct StmtSpans {
-    spans: HashMap<NodeId, Span>,
+    spans: FxHashMap<NodeId, Span>,
 }
 
 impl<'a> Visitor<'a> for StmtSpans {
@@ -42,7 +41,7 @@ fn check(block_str: &str, expect: &Expect) {
         panic!("test should be given block expression, given {entry}");
     };
     let mut stmt_map = StmtSpans {
-        spans: HashMap::new(),
+        spans: FxHashMap::default(),
     };
     stmt_map.visit_block(block);
 

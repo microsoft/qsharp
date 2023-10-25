@@ -227,12 +227,6 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
-                        // BUG: We need the package ID for the UDT type here to be able to accurately
-                        // resolve any references to *other* types from this type,
-                        // but the types table doesn't carry that information.
-                        // As a result, this code will behave incorrectly for
-                        // UDTs from external packages that reference other UDTs.
-                        // https://github.com/microsoft/qsharp/issues/813
                         let (item, _) = self
                             .compilation
                             .resolve_udt_res(self.compilation.current, res);

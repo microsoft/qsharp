@@ -26,11 +26,8 @@ use protocol::{
     WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
-use std::{
-    collections::{HashMap, HashSet},
-    mem::take,
-    sync::Arc,
-};
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::{mem::take, sync::Arc};
 
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
@@ -47,16 +44,16 @@ pub struct LanguageService<'a> {
     /// CompilationUri is the document uri for single-file compilations,
     /// notebook uri for notebooks
     /// It's also where project-level errors get reported
-    compilations: HashMap<CompilationUri, Compilation>,
+    compilations: FxHashMap<CompilationUri, Compilation>,
     /// All documents known to the client.
     /// (cell uri -> notebook uri, or identity in the case of single-file compilation)
     /// Not all documents that make up the compilation need to be in this map -
     /// only the ones known to the client.
-    open_documents: HashMap<DocumentUri, OpenDocument>,
+    open_documents: FxHashMap<DocumentUri, OpenDocument>,
     /// Documents that errors were published to. We need to keep track
     /// of this so we can clear errors from them when documents are removed
     /// from a compilation or when a recompilation occurs.
-    documents_with_errors: HashSet<DocumentUri>,
+    documents_with_errors: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
@@ -93,9 +90,9 @@ impl<'a> LanguageService<'a> {
     pub fn new(diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
-            compilations: HashMap::new(),
-            open_documents: HashMap::new(),
-            documents_with_errors: HashSet::new(),
+            compilations: FxHashMap::default(),
+            open_documents: FxHashMap::default(),
+            documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
         }
     }
@@ -370,8 +367,11 @@ impl<'a> LanguageService<'a> {
     }
 }
 
-fn errors_by_doc(compilation_uri: &Arc<str>, errors: &Vec<Error>) -> HashMap<Arc<str>, Vec<Error>> {
-    let mut map = HashMap::new();
+fn errors_by_doc(
+    compilation_uri: &Arc<str>,
+    errors: &Vec<Error>,
+) -> FxHashMap<Arc<str>, Vec<Error>> {
+    let mut map = FxHashMap::default();
 
     for err in errors {
         // Use the compilation_uri as a location for span-less errors

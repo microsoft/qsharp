@@ -46,6 +46,7 @@ num-complex = "0.4"
 num-traits = "0.2"
 indenter = "0.3"
 regex-lite = "0.1"
+rustc-hash = "1.1.0"
 serde = "1.0"
 serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
@@ -57,3 +58,8 @@ quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev =
 [profile.release]
 debug = 1
 strip = true
+lto = "fat"
+codegen-units = 1
+
+[profile.release.package.fuzz]
+codegen-units = 16
