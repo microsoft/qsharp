@@ -66,7 +66,7 @@ impl<'a> HoverVisitor<'a> {
             compilation,
             offset,
             hover: None,
-            display: CodeDisplay { compilation },
+            display: CodeDisplay::new(compilation),
             current_namespace: Rc::from(""),
             current_callable: None,
             in_params: false,
@@ -95,8 +95,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = display_callable(
                             &item.doc,
                             &self.current_namespace,
-                            self.display
-                                .ast_callable_decl(self.compilation.current, decl),
+                            self.display.ast_callable_decl(decl),
                         );
                         self.hover = Some(Hover {
                             contents,
@@ -188,11 +187,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_touches(ident.span, self.offset) {
-                        let code = markdown_fenced_block(self.display.ident_ty_id(
-                            self.compilation.current,
-                            ident,
-                            pat.id,
-                        ));
+                        let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
                         let kind = if self.in_params {
                             LocalKind::Param
                         } else if self.in_lambda_params {
@@ -232,17 +227,21 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
+                        // BUG: We need the package ID for the UDT type here to be able to accurately
+                        // resolve any references to *other* types from this type,
+                        // but the types table doesn't carry that information.
+                        // As a result, this code will behave incorrectly for
+                        // UDTs from external packages that reference other UDTs.
+                        // https://github.com/microsoft/qsharp/issues/813
                         let (item, _) = self
                             .compilation
                             .resolve_udt_res(self.compilation.current, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {
                                 if udt.find_field_by_name(&field.name).is_some() {
-                                    let contents = markdown_fenced_block(self.display.ident_ty_id(
-                                        self.compilation.current,
-                                        field,
-                                        expr.id,
-                                    ));
+                                    let contents = markdown_fenced_block(
+                                        self.display.ident_ty_id(field, expr.id),
+                                    );
                                     self.hover = Some(Hover {
                                         contents,
                                         span: protocol_span(
@@ -326,11 +325,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                             }
                         }
 
-                        let code = markdown_fenced_block(self.display.path_ty_id(
-                            self.compilation.current,
-                            path,
-                            *node_id,
-                        ));
+                        let code = markdown_fenced_block(self.display.path_ty_id(path, *node_id));
                         let kind = if is_param(
                             &curr_callable_to_params(self.current_callable),
                             *node_id,

@@ -427,3 +427,47 @@ fn notebook_callable_defined_in_later_cell() {
         ("cell2", "operation Callee() : Unit {}"),
     ]);
 }
+
+#[test]
+fn std_udt() {
+    check(
+        r#"
+    namespace Test {
+        operation Foo() : FakeStdLib.Ud↘t {
+        }
+    }
+    "#,
+        &expect![[r#"
+            Some(
+                Definition {
+                    source: "qsharp-library-source:<std>",
+                    offset: 210,
+                },
+            )
+        "#]],
+    );
+}
+
+#[ignore = "https://github.com/microsoft/qsharp/issues/813"]
+#[test]
+fn std_udt_udt_field() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Udt {
+            let f = UdtWrapper(TakesUdt);
+            f::inner::x↘
+        }
+    }
+    "#,
+        &expect![[r#"
+        Some(
+            Definition {
+                source: "qsharp-library-source:<std>",
+                offset: 210,
+            },
+        )
+        "#]],
+    );
+}

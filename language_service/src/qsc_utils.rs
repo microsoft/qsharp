@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compilation::Compilation;
+use crate::{compilation::Compilation, protocol};
 use log::trace;
 use qsc::{ast, AstPackage, SourceMap, Span};
-
-use crate::protocol;
 
 pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
 
