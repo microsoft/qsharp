@@ -49,8 +49,9 @@ pub(crate) trait CursorLocatorAPI<'package> {
     fn at_field_ref(
         &mut self,
         expr_id: &'package ast::NodeId,
+        field_ref: &'package ast::Ident,
         item_id: &'package hir::ItemId,
-        field: &'package hir::ty::UdtField,
+        field_def: &'package hir::ty::UdtField,
     ) {
     }
 
@@ -217,7 +218,9 @@ impl<'a, 'package, T: CursorLocatorAPI<'package>> Visitor<'package>
     fn visit_expr(&mut self, expr: &'package ast::Expr) {
         if span_touches(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
+                ast::ExprKind::Field(udt, field_ref)
+                    if span_touches(field_ref.span, self.offset) =>
+                {
                     if let Some(hir::ty::Ty::Udt(res)) =
                         self.compilation.unit.ast.tys.terms.get(udt.id)
                     {
@@ -226,9 +229,12 @@ impl<'a, 'package, T: CursorLocatorAPI<'package>> Visitor<'package>
                                 if let (Some(item), _) = find_item(self.compilation, item_id) {
                                     match &item.kind {
                                         hir::ItemKind::Ty(_, udt) => {
-                                            if let Some(field) = udt.find_field_by_name(&field.name)
+                                            if let Some(field_def) =
+                                                udt.find_field_by_name(&field_ref.name)
                                             {
-                                                self.inner.at_field_ref(&expr.id, item_id, field);
+                                                self.inner.at_field_ref(
+                                                    &expr.id, field_ref, item_id, field_def,
+                                                );
                                             }
                                         }
                                         _ => panic!("UDT has invalid resolution."),

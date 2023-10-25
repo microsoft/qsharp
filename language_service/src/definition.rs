@@ -107,10 +107,11 @@ impl<'a> CursorLocatorAPI<'a> for DefinitionFinder<'a> {
     fn at_field_ref(
         &mut self,
         expr_id: &'a ast::NodeId,
+        field_ref: &'a ast::Ident,
         item_id: &'a hir::ItemId,
-        field: &'a hir::ty::UdtField,
+        field_def: &'a hir::ty::UdtField,
     ) {
-        let span = field
+        let span = field_def
             .name_span
             .expect("field found via name should have a name");
         self.set_definition_from_position(span.lo, item_id.package);
