@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::{collections::HashSet, mem::take};
+use std::mem::take;
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
@@ -19,6 +19,7 @@ use qsc_hir::{
     ty::Ty,
     visit::{self, Visitor},
 };
+use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 use crate::{
@@ -71,7 +72,7 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
         match take(&mut expr.kind) {
             ExprKind::Conjugate(within, apply) => {
                 let mut usage = Usage {
-                    used: HashSet::new(),
+                    used: FxHashSet::default(),
                 };
                 usage.visit_block(&within);
                 let mut assign_check = AssignmentCheck {
@@ -179,7 +180,7 @@ impl ConjugateElim<'_> {
 }
 
 struct Usage {
-    used: HashSet<NodeId>,
+    used: FxHashSet<NodeId>,
 }
 
 impl<'a> Visitor<'a> for Usage {
@@ -194,7 +195,7 @@ impl<'a> Visitor<'a> for Usage {
 }
 
 struct AssignmentCheck {
-    used: HashSet<NodeId>,
+    used: FxHashSet<NodeId>,
     errors: Vec<Error>,
 }
 

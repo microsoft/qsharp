@@ -16,12 +16,8 @@ use qsc_hir::{
     hir::{self, ItemId, ItemStatus, LocalItemId, PackageId},
     ty::{ParamId, Prim},
 };
-use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
-    rc::Rc,
-    str::FromStr,
-    vec,
-};
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -114,22 +110,22 @@ pub(super) enum Error {
 
 struct Scope {
     kind: ScopeKind,
-    opens: HashMap<Rc<str>, Vec<Open>>,
-    tys: HashMap<Rc<str>, ItemId>,
-    terms: HashMap<Rc<str>, ItemId>,
-    vars: HashMap<Rc<str>, NodeId>,
-    ty_vars: HashMap<Rc<str>, ParamId>,
+    opens: FxHashMap<Rc<str>, Vec<Open>>,
+    tys: FxHashMap<Rc<str>, ItemId>,
+    terms: FxHashMap<Rc<str>, ItemId>,
+    vars: FxHashMap<Rc<str>, NodeId>,
+    ty_vars: FxHashMap<Rc<str>, ParamId>,
 }
 
 impl Scope {
     fn new(kind: ScopeKind) -> Self {
         Self {
             kind,
-            opens: HashMap::new(),
-            tys: HashMap::new(),
-            terms: HashMap::new(),
-            vars: HashMap::new(),
-            ty_vars: HashMap::new(),
+            opens: FxHashMap::default(),
+            tys: FxHashMap::default(),
+            terms: FxHashMap::default(),
+            vars: FxHashMap::default(),
+            ty_vars: FxHashMap::default(),
         }
     }
 
@@ -143,9 +139,9 @@ impl Scope {
 }
 
 struct GlobalScope {
-    tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    namespaces: HashSet<Rc<str>>,
+    tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
+    terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
+    namespaces: FxHashSet<Rc<str>>,
 }
 
 impl GlobalScope {
@@ -179,7 +175,7 @@ struct Open {
 pub(super) struct Resolver {
     names: Names,
     dropped_names: Vec<TrackedName>,
-    curr_params: Option<HashSet<Rc<str>>>,
+    curr_params: Option<FxHashSet<Rc<str>>>,
     globals: GlobalScope,
     scopes: Vec<Scope>,
     errors: Vec<Error>,
@@ -307,11 +303,11 @@ impl Resolver {
     }
 
     fn bind_pat(&mut self, pat: &ast::Pat) {
-        let mut bindings = HashSet::new();
+        let mut bindings = FxHashSet::default();
         self.bind_pat_recursive(pat, &mut bindings);
     }
 
-    fn bind_pat_recursive(&mut self, pat: &ast::Pat, bindings: &mut HashSet<Rc<str>>) {
+    fn bind_pat_recursive(&mut self, pat: &ast::Pat, bindings: &mut FxHashSet<Rc<str>>) {
         match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
                 if !bindings.insert(Rc::clone(&name.name)) {
@@ -403,7 +399,7 @@ impl With<'_> {
             .resolver
             .curr_params
             .as_ref()
-            .map_or_else(HashSet::new, std::clone::Clone::clone);
+            .map_or_else(FxHashSet::default, std::clone::Clone::clone);
         self.with_scope(kind, |visitor| {
             visitor.resolver.bind_pat_recursive(pat, &mut bindings);
             f(visitor);
@@ -434,7 +430,7 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        fn collect_param_names(pat: &ast::Pat, names: &mut HashSet<Rc<str>>) {
+        fn collect_param_names(pat: &ast::Pat, names: &mut FxHashSet<Rc<str>>) {
             match &*pat.kind {
                 ast::PatKind::Bind(name, _) => {
                     names.insert(Rc::clone(&name.name));
@@ -446,7 +442,7 @@ impl AstVisitor<'_> for With<'_> {
                 }
             }
         }
-        let mut param_names = HashSet::new();
+        let mut param_names = FxHashSet::default();
         collect_param_names(&decl.input, &mut param_names);
         let prev_param_names = self.resolver.curr_params.replace(param_names);
         self.with_scope(ScopeKind::Callable, |visitor| {
@@ -546,28 +542,31 @@ pub(super) struct GlobalTable {
 
 impl GlobalTable {
     pub(super) fn new() -> Self {
-        let tys = HashMap::from([(
-            "Microsoft.Quantum.Core".into(),
-            HashMap::from([
-                ("BigInt".into(), Res::PrimTy(Prim::BigInt)),
-                ("Bool".into(), Res::PrimTy(Prim::Bool)),
-                ("Double".into(), Res::PrimTy(Prim::Double)),
-                ("Int".into(), Res::PrimTy(Prim::Int)),
-                ("Pauli".into(), Res::PrimTy(Prim::Pauli)),
-                ("Qubit".into(), Res::PrimTy(Prim::Qubit)),
-                ("Range".into(), Res::PrimTy(Prim::Range)),
-                ("Result".into(), Res::PrimTy(Prim::Result)),
-                ("String".into(), Res::PrimTy(Prim::String)),
-                ("Unit".into(), Res::UnitTy),
-            ]),
-        )]);
+        let builtins: [(Rc<str>, Res); 10] = [
+            ("BigInt".into(), Res::PrimTy(Prim::BigInt)),
+            ("Bool".into(), Res::PrimTy(Prim::Bool)),
+            ("Double".into(), Res::PrimTy(Prim::Double)),
+            ("Int".into(), Res::PrimTy(Prim::Int)),
+            ("Pauli".into(), Res::PrimTy(Prim::Pauli)),
+            ("Qubit".into(), Res::PrimTy(Prim::Qubit)),
+            ("Range".into(), Res::PrimTy(Prim::Range)),
+            ("Result".into(), Res::PrimTy(Prim::Result)),
+            ("String".into(), Res::PrimTy(Prim::String)),
+            ("Unit".into(), Res::UnitTy),
+        ];
+        let mut core: FxHashMap<Rc<str>, Res> = FxHashMap::default();
+        for (name, res) in builtins {
+            core.insert(name, res);
+        }
+        let mut tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>> = FxHashMap::default();
+        tys.insert("Microsoft.Quantum.Core".into(), core);
 
         Self {
             names: IndexMap::new(),
             scope: GlobalScope {
                 tys,
-                terms: HashMap::new(),
-                namespaces: HashSet::new(),
+                terms: FxHashMap::default(),
+                namespaces: FxHashSet::default(),
             },
         }
     }
@@ -759,7 +758,7 @@ fn resolve(
     name: &Ident,
     namespace: &Option<Box<Ident>>,
 ) -> Result<Res, Error> {
-    let mut candidates = HashMap::new();
+    let mut candidates = FxHashMap::default();
     let mut vars = true;
     let name_str = &(*name.name);
     let namespace = namespace.as_ref().map_or("", |i| &i.name);
@@ -904,8 +903,8 @@ fn resolve_implicit_opens<'a, 'b>(
     globals: &'b GlobalScope,
     namespaces: impl IntoIterator<Item = &'a &'a str>,
     name: &'b str,
-) -> HashMap<Res, &'a str> {
-    let mut candidates = HashMap::new();
+) -> FxHashMap<Res, &'a str> {
+    let mut candidates = FxHashMap::default();
     for namespace in namespaces {
         if let Some(&res) = globals.get(kind, namespace, name) {
             candidates.insert(res, *namespace);
@@ -919,8 +918,8 @@ fn resolve_explicit_opens<'a>(
     globals: &GlobalScope,
     opens: impl IntoIterator<Item = &'a Open>,
     name: &str,
-) -> HashMap<Res, &'a Open> {
-    let mut candidates = HashMap::new();
+) -> FxHashMap<Res, &'a Open> {
+    let mut candidates = FxHashMap::default();
     for open in opens {
         if let Some(&res) = globals.get(kind, &open.namespace, name) {
             candidates.insert(res, open);
