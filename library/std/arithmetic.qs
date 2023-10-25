@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.Arithmetic {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Math;
 
     /// # Summary
     /// Applies a bitwise-XOR operation between a classical integer and an
@@ -29,6 +30,32 @@ namespace Microsoft.Quantum.Arithmetic {
                 set runningValue >>>= 1;
             }
             Fact(runningValue == 0, "value is too large");
+        }
+        adjoint self;
+    }
+
+    /// # Summary
+    /// Applies a bitwise-XOR operation between a classical integer and an
+    /// integer represented by a register of qubits.
+    ///
+    /// # Description
+    /// Applies `X` operations to qubits in a little-endian register based on
+    /// 1 bits in an integer.
+    ///
+    /// Let us denote `value` by a and let y be an unsigned integer encoded in `target`,
+    /// then `ApplyXorInPlace` performs an operation given by the following map:
+    /// |y⟩ -> |y ⊕ a⟩, where ⊕ is the bitwise exclusive OR operator.
+    operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj+Ctl {
+        body(...) {
+            Fact(value >= 0L, "value must be non-negative");
+            mutable runningValue = value;
+            for q in target {
+                if (runningValue &&& 1L) != 0L {
+                    X(q);
+                }
+                set runningValue >>>= 1;
+            }
+            Fact(runningValue == 0L, "value is too large");
         }
         adjoint self;
     }
@@ -286,6 +313,126 @@ namespace Microsoft.Quantum.Arithmetic {
                 Controlled CNOT(controls, (xs[idx], ys[idx]));
                 CCNOT(xs[idx-1], ys[idx-1], xs[idx]);
             }
+        }
+    }
+
+    //
+    //
+    //      New arithmetic operations starts here.
+    // Once it is done, previous implementation will be removed.
+    //
+    //
+
+    //
+    // Operation: Add      |  Ripple-carry    | Carry look-ahead
+    // _________________________________________________________
+    // y += 5              |  IncByL_LowQubit✔|              N/A
+    // y += x              | IncByLE_LowQubit✔| IncByLE_LowDepth
+    // z = x + 5 (z was 0) |              N/A |              N/A
+    // z = x + y (z was 0) |   AddLE_LowQubit✔|   AddLE_LowDepth
+    // z += x + 5          |              N/A |              N/A
+    // z += x + y          |              N/A |              N/A
+    //
+
+    /// # Summary
+    /// Increment a little-endian ys register by a BigInt number c
+    ///
+    /// # Description
+    /// Compute ys += c modulo 2ⁿ using a ripple carry architecture,
+    /// where ys is a little-endian register of length n > 0,
+    /// c >= 0 is a BigInt constant, and c < 2ⁿ.
+    @Config(Full)
+    operation IncByL_LowQubit (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
+        let ysLen = Length(ys);
+        Fact(ysLen > 0, "Length of `ys` must be at least 1");
+        Fact(c >= 0L, "Constant `c` must be non-negative");
+        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys)");
+
+        if c == 0L {
+            // If c has j trailing zeroes than the j least significant
+            // bits of y won't be affected by the addition and can
+            // therefore be ignored by applying the addition only to
+            // the other qubits and shifting c accordingly.
+            let j = TrailingZeroCountL(c);
+            use x = Qubit[ysLen - j];
+            within {
+                ApplyXorInPlaceL(c >>> j, x);
+            } apply {
+                IncByLE_LowQubit(x, ys[j...]);
+            }
+        }
+    }
+
+
+    /// # Summary
+    /// Increments a little-endian register ys by a little-endian register xs
+    ///
+    /// # Description
+    /// Compute ys += xs modulo 2ⁿ using a ripple carry architecture,
+    /// where xs and ys are little-endian registers, n = Length(ys), and
+    /// Length(xs) <= Length(ys). If Length(xs) != Length(ys), xs is padded
+    /// with 0-initialized qubits to match ys's length
+    ///
+    /// # Reference:
+    ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    @Config(Full)
+    operation IncByLE_LowQubit (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+        let xsLen = Length(xs);
+        let ysLen = Length(ys);
+
+        Fact(ysLen >= xsLen, "Register ys must be larger than register xs");
+        Fact(xsLen >= 1, "Registers xs and ys must contain at least one qubit");
+
+        if ysLen - xsLen >= 2 {
+            use padding = Qubit[ysLen - xsLen - 1];
+            IncByLE_LowQubit(xs + padding, ys);
+        } elif xsLen == 1 {
+            if ysLen == 1 {
+                CNOT(xs[0], ys[0]);
+            } elif ysLen == 2 {
+                HalfAdderInc(xs[0], ys[0], ys[1]); // TODO: Can we pass ys[1] here?
+            }
+        } else {
+            let (x0, xrest) = (Head(xs), Rest(xs));
+            let (y0, yrest) = (Head(ys), Rest(ys));
+
+            use carryOut = Qubit();
+            within {
+                ApplyAndWith0Target(x0, y0, carryOut);
+            } apply {
+                AddWithCarryIn(carryOut, xrest, yrest);
+            }
+            CNOT(x0, y0);
+        }
+    }
+
+    /// # Summary
+    /// Set a little-endian register zs to the sum of little-endian registers xs and ys
+    ///
+    /// # Description 
+    /// Compute zs := xs + ys + zs[0] using a ripple carry architecture,
+    /// where xs, ys, and zs are little-endian registers, Length(xs) = Length(ys),
+    /// Length(xs) <= Length(zs) <= Length(xs)+1, assuming zs is 0-initialized
+    /// except for maybe zs[0], which can be in |0> or |1> state.
+    /// Use `zs[0]` as carry-in, and use `zs[n]` as carry-out, if `zs` is
+    /// longer than `xs`.
+    ///
+    /// # Reference:
+    ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    @Config(Full)
+    operation AddLE_LowQubit (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+        let xsLen = Length(xs);
+        let zsLen = Length(zs);
+        Fact(Length(ys) == xsLen, "Registers xs and ys must be of same length");
+        Fact(zsLen == xsLen or zsLen == xsLen + 1, "Register zs must be same length as xs or one bit longer");
+
+        for k in 0 .. zsLen - 2 {
+            FullAdder(zs[k], xs[k], ys[k], zs[k + 1]);
+        }
+
+        if xsLen > 0 and xsLen == zsLen {
+            CNOT(Tail(xs), Tail(zs));
+            CNOT(Tail(ys), Tail(zs));
         }
     }
 
