@@ -326,6 +326,29 @@ fn ty_def_duplicate_comma() {
 }
 
 #[test]
+fn ty_def_initial_comma() {
+    check(
+        parse,
+        "newtype Foo = (, Int);",
+        &expect![[r#"
+            Item _id_ [0-22]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [17-20]: Field:
+                    Type _id_ [17-20]: Path: Path _id_ [17-20] (Ident _id_ [17-20] "Int")
+
+            [
+                Error(
+                    StartingComma(
+                        Span {
+                            lo: 15,
+                            hi: 16,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn ty_def_named_duplicate_comma() {
     check(
         parse,

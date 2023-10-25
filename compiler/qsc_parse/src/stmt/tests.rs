@@ -187,6 +187,51 @@ fn use_tuple_duplicate_commas() {
 }
 
 #[test]
+fn use_tuple_initial_commas() {
+    check(
+        parse,
+        "use (,, q1, q2) = (, Qubit(), Qubit());",
+        &expect![[r#"
+            Stmt _id_ [0-39]: Qubit (Fresh)
+                Pat _id_ [4-15]: Tuple:
+                    Pat _id_ [8-10]: Bind:
+                        Ident _id_ [8-10] "q1"
+                    Pat _id_ [12-14]: Bind:
+                        Ident _id_ [12-14] "q2"
+                QubitInit _id_ [18-38] Tuple:
+                    QubitInit _id_ [21-28] Single
+                    QubitInit _id_ [30-37] Single
+
+            [
+                Error(
+                    StartingComma(
+                        Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    ),
+                ),
+                Error(
+                    StartingComma(
+                        Span {
+                            lo: 6,
+                            hi: 7,
+                        },
+                    ),
+                ),
+                Error(
+                    StartingComma(
+                        Span {
+                            lo: 19,
+                            hi: 20,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn borrow_stmt() {
     check(
         parse,

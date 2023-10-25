@@ -67,6 +67,9 @@ enum ErrorKind {
     #[error("duplicate comma")]
     #[diagnostic(code("Qsc.Parse.DuplicateComma"))]
     DuplicateComma(#[label] Span),
+    #[error("sequence should not start with comma(s)")]
+    #[diagnostic(code("Qsc.Parse.StartingComma"))]
+    StartingComma(#[label] Span),
 }
 
 impl ErrorKind {
@@ -82,6 +85,7 @@ impl ErrorKind {
             Self::MissingParens(span) => Self::MissingParens(span + offset),
             Self::FloatingDocComment(span) => Self::FloatingDocComment(span + offset),
             Self::DuplicateComma(span) => Self::DuplicateComma(span + offset),
+            Self::StartingComma(span) => Self::StartingComma(span + offset),
         }
     }
 }

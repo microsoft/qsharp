@@ -173,6 +173,11 @@ pub(super) fn many<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> 
 pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)> {
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
+    while s.peek().kind == TokenKind::Comma {
+        // Sequences should not start with comma tokens, since they are only allowed as delimiters.
+        s.push_error(Error(ErrorKind::StartingComma(s.peek().span)));
+        s.advance();
+    }
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
         if token(s, TokenKind::Comma).is_ok() {
