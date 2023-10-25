@@ -1,1 +1,4 @@
-disallowed-types = ["std::collections::HashMap", "std::collections::HashSet"]
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "use FxHashMap instead" },
+    { path = "std::collections::HashSet", reason = "use FxHashSet instead" },
+]
