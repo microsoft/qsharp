@@ -1,5 +1,5 @@
 [project]
-name = "qsharp"
+name = "qsharp-lang"
 version = "0.0.0"
 requires-python = ">= 3.7"
 classifiers = [
@@ -19,8 +19,11 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-jupyterlab = ["qsharp_jupyterlab"]
+jupyterlab = ["qsharp-jupyterlab"]
 
 [build-system]
-requires = ["maturin ~= 0.14.16"]
+requires = ["maturin ~= 1.2.0"]
 build-backend = "maturin"
+
+[tool.maturin]
+module-name = "qsharp._native"

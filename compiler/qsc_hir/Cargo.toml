@@ -1,7 +1,7 @@
 [package]
 name = "qsc_hir"
-version = "0.0.0"
 
+version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
@@ -12,3 +12,4 @@ license.workspace = true
 indenter = { workspace = true }
 num-bigint = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
+rustc-hash = { workspace = true }

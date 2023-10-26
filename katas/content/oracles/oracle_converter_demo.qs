@@ -41,14 +41,14 @@ namespace Kata {
         Controlled Z(Most(x), Tail(x));
     }
 
-    operation IsSeven_MarkingOracle(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+    operation IsSeven_MarkingOracle(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         Controlled X(x, y);
     }
 
     operation ApplyMarkingOracleAsPhaseOracle(
-        markingOracle: ((Qubit[], Qubit) => Unit is Adj + Ctl),
-        qubits: Qubit[]) : Unit is Adj + Ctl {
-            
+        markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),
+        qubits : Qubit[]) : Unit is Adj + Ctl {
+
         use minus = Qubit();
         within {
             X(minus);
@@ -56,5 +56,5 @@ namespace Kata {
         } apply {
             markingOracle(qubits, minus);
         }
-    }    
+    }
 }

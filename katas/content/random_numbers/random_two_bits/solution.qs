@@ -1,5 +1,5 @@
 namespace Kata {
-    operation RandomTwoBits(): Int {
+    operation RandomTwoBits() : Int {
         return 2 * RandomBit() + RandomBit();
     }
 

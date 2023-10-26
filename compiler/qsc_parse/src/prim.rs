@@ -203,6 +203,17 @@ pub(super) fn recovering<T>(
     }
 }
 
+pub(super) fn recovering_semi(s: &mut Scanner) -> Result<()> {
+    match token(s, TokenKind::Semi) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            s.push_error(error);
+            // no recovery, just move on to the next token
+            Ok(())
+        }
+    }
+}
+
 pub(super) fn recovering_token(s: &mut Scanner, t: TokenKind) -> Result<()> {
     match token(s, t) {
         Ok(()) => Ok(()),

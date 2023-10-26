@@ -7,7 +7,7 @@ namespace Kata.Verification {
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         let isCorrect = AssertEqualOnZeroState(Kata.PrepareWithComplex, PrepareWithComplex_Reference);
         if isCorrect {
             Message("Correct!");

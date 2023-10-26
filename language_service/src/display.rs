@@ -6,6 +6,7 @@ use qsc::{
     ast,
     hir::{self},
 };
+use regex_lite::Regex;
 use std::{
     fmt::{Display, Formatter, Result},
     rc::Rc,
@@ -70,6 +71,28 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
+    pub(crate) fn hir_ty(&self, ty: &'a hir::ty::Ty) -> impl Display + 'a {
+        HirTy {
+            compilation: self.compilation,
+            ty,
+        }
+    }
+
+    pub(crate) fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + 'a {
+        HirPat {
+            compilation: self.compilation,
+            pat,
+        }
+    }
+
+    pub(crate) fn get_param_offset(&self, decl: &hir::CallableDecl) -> u32 {
+        HirCallableDecl {
+            compilation: self.compilation,
+            decl,
+        }
+        .get_param_offset()
+    }
+
     // The rest of the display implementations are not made public b/c they're not used,
     // but there's no reason they couldn't be
 }
@@ -83,7 +106,7 @@ struct IdentTy<'a> {
 
 impl<'a> Display for IdentTy<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}: {}", self.ident.name, AstTy { ty: self.ty },)
+        write!(f, "{} : {}", self.ident.name, AstTy { ty: self.ty },)
     }
 }
 
@@ -97,7 +120,7 @@ impl<'a> Display for IdentTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}: {}",
+            "{} : {}",
             self.ident.name,
             TyId {
                 ty_id: self.ty_id,
@@ -117,7 +140,7 @@ impl<'a> Display for PathTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}: {}",
+            "{} : {}",
             &Path { path: self.path },
             TyId {
                 ty_id: self.ty_id,
@@ -130,6 +153,17 @@ impl<'a> Display for PathTyId<'a> {
 struct HirCallableDecl<'a, 'b> {
     compilation: &'a Compilation,
     decl: &'b hir::CallableDecl,
+}
+
+impl HirCallableDecl<'_, '_> {
+    fn get_param_offset(&self) -> u32 {
+        let offset = match self.decl.kind {
+            hir::CallableKind::Function => "function".len(),
+            hir::CallableKind::Operation => "operation".len(),
+        } + 1; // this is for the space between keyword and name
+        u32::try_from(offset + self.decl.name.name.len())
+            .expect("failed to cast usize to u32 while calculating parameter offset")
+    }
 }
 
 impl Display for HirCallableDecl<'_, '_> {
@@ -211,8 +245,8 @@ impl<'a> Display for HirPat<'a> {
             compilation: self.compilation,
         };
         match &self.pat.kind {
-            hir::PatKind::Bind(name) => write!(f, "{}: {ty}", name.name),
-            hir::PatKind::Discard => write!(f, "_: {ty}"),
+            hir::PatKind::Bind(name) => write!(f, "{} : {ty}", name.name),
+            hir::PatKind::Discard => write!(f, "_ : {ty}"),
             hir::PatKind::Tuple(items) => {
                 let mut elements = items.iter();
                 if let Some(elem) = elements.next() {
@@ -267,7 +301,7 @@ impl<'a> Display for AstPat<'a> {
                 Some(ty) => write!(f, "{}", AstTy { ty }),
                 None => write!(
                     f,
-                    "_: {}",
+                    "_ : {}",
                     TyId {
                         ty_id: self.pat.id,
                         compilation: self.compilation
@@ -612,7 +646,7 @@ impl<'a> Display for TyDef<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
-                Some(name) => write!(f, "{}: {}", name.name, AstTy { ty }),
+                Some(name) => write!(f, "{} : {}", name.name, AstTy { ty }),
                 None => write!(f, "{}", AstTy { ty }),
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),
@@ -675,4 +709,51 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
         ast::FunctorExprKind::Lit(ast::Functor::Ctl) => hir::ty::FunctorSetValue::Ctl,
         ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
+}
+
+//
+// parsing functions for working with doc comments
+//
+
+pub fn parse_doc_for_summary(doc: &str) -> String {
+    let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
+    match re.captures(doc) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => doc,
+    }
+    .trim()
+    .to_string()
+}
+
+pub fn parse_doc_for_param(doc: &str, param: &str) -> String {
+    let re = Regex::new(r"(?mi)(?:^# Input$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
+    let input = match re.captures(doc) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => return String::new(),
+    }
+    .trim();
+
+    let re = Regex::new(format!(r"(?mi)(?:^## {param}$)([\s\S]*?)(?:(^(#|##) .*)|\z)").as_str())
+        .expect("Invalid regex");
+    match re.captures(input) {
+        Some(captures) => {
+            let capture = captures
+                .get(1)
+                .expect("Didn't find the capture for the given regex");
+            capture.as_str()
+        }
+        None => return String::new(),
+    }
+    .trim()
+    .to_string()
 }

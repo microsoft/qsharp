@@ -9,6 +9,6 @@ $$
 > Remember the rightmost gates in mathematical notation are applied first in Q# code. Hence we first apply the $Z$ gate, followed by the $Y$ gate, and finally the $X$ gate.
 
 @[solution]({
-    "id": "global_phase_i_solution",
+    "id": "single_qubit_gates__global_phase_i_solution",
     "codePath": "./Solution.qs"
 })

@@ -6,7 +6,8 @@ mod tests;
 
 use crate::protocol::Definition;
 use crate::qsc_utils::{
-    find_item, map_offset, span_contains, Compilation, QSHARP_LIBRARY_URI_SCHEME,
+    find_ident, find_item, map_offset, span_contains, span_touches, Compilation,
+    QSHARP_LIBRARY_URI_SCHEME,
 };
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
 use qsc::hir::PackageId;
@@ -78,12 +79,13 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
         if span_contains(item.span, self.offset) {
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
-                    if span_contains(decl.name.span, self.offset) {
+                    if span_touches(decl.name.span, self.offset) {
                         self.set_definition_from_position(decl.name.span.lo, None);
                     } else if span_contains(decl.span, self.offset) {
+                        let context = self.curr_callable;
                         self.curr_callable = Some(decl);
                         walk_callable_decl(self, decl);
-                        self.curr_callable = None;
+                        self.curr_callable = context;
                     }
                     // Note: the `item.span` can cover things like doc
                     // comment, attributes, and visibility keywords, which aren't
@@ -94,7 +96,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         self.set_definition_from_position(ident.span.lo, None);
                     } else {
                         self.visit_ty_def(def);
@@ -110,7 +112,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
         if span_contains(def.span, self.offset) {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         self.set_definition_from_position(ident.span.lo, None);
                     } else {
                         self.visit_ty(ty);
@@ -126,10 +128,10 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
 
     // Handles local variable definitions
     fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        if span_contains(pat.span, self.offset) {
+        if span_touches(pat.span, self.offset) {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
-                    if span_contains(ident.span, self.offset) {
+                    if span_touches(ident.span, self.offset) {
                         self.set_definition_from_position(ident.span.lo, None);
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -142,9 +144,9 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
 
     // Handles UDT field references
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_contains(expr.span, self.offset) {
+        if span_touches(expr.span, self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(udt, field) if span_contains(field.span, self.offset) => {
+                ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) =
                         self.compilation.unit.ast.tys.terms.get(udt.id)
                     {
@@ -179,7 +181,7 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
 
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        if span_contains(path.span, self.offset) {
+        if span_touches(path.span, self.offset) {
             let res = self.compilation.unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
@@ -201,13 +203,8 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.curr_callable {
                             {
-                                let mut finder = AstPatFinder {
-                                    node_id,
-                                    result: None,
-                                };
-                                finder.visit_callable_decl(curr);
-                                if let Some(lo) = finder.result {
-                                    self.set_definition_from_position(lo, None);
+                                if let Some(ident) = find_ident(node_id, curr) {
+                                    self.set_definition_from_position(ident.span.lo, None);
                                 }
                             }
                         }
@@ -215,30 +212,6 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
                     _ => {}
                 }
             }
-        }
-    }
-}
-
-struct AstPatFinder<'a> {
-    node_id: &'a ast::NodeId,
-    result: Option<u32>,
-}
-
-impl<'a> Visitor<'a> for AstPatFinder<'_> {
-    fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        match &*pat.kind {
-            ast::PatKind::Bind(ident, _) => {
-                if ident.id == *self.node_id {
-                    self.result = Some(ident.span.lo);
-                }
-            }
-            _ => walk_pat(self, pat),
-        }
-    }
-
-    fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if self.result.is_none() {
-            walk_expr(self, expr);
         }
     }
 }

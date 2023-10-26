@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering, recovering_token},
+    prim::{barrier, recovering, recovering_semi, recovering_token},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -57,7 +57,7 @@ pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
-    check_semis(&stmts)?;
+    check_semis(s, &stmts);
     recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Box::new(Block {
         id: NodeId::default(),
@@ -91,7 +91,7 @@ fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = expr(s)?;
-    token(s, TokenKind::Semi)?;
+    recovering_semi(s)?;
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
@@ -113,7 +113,7 @@ fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let rhs = parse_qubit_init(s)?;
     let block = opt(s, parse_block)?;
     if block.is_none() {
-        token(s, TokenKind::Semi)?;
+        recovering_semi(s)?;
     }
 
     Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, block)))
@@ -163,7 +163,7 @@ fn parse_qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     }))
 }
 
-pub(super) fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
+pub(super) fn check_semis(s: &mut Scanner, stmts: &[Box<Stmt>]) {
     let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
     for stmt in leading_stmts {
         if matches!(&*stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {
@@ -171,9 +171,7 @@ pub(super) fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
                 lo: stmt.span.hi,
                 hi: stmt.span.hi,
             };
-            return Err(Error(ErrorKind::MissingSemi(span)));
+            s.push_error(Error(ErrorKind::MissingSemi(span)));
         }
     }
-
-    Ok(())
 }

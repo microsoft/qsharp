@@ -2,16 +2,14 @@
 // Licensed under the MIT License.
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
-    interpret::{
-        stateful::{Interpreter, LineError},
-        stateless,
-    },
+    interpret::stateful::{self, InterpretResult, Interpreter},
     TargetProfile,
 };
 use qsc_eval::{
@@ -20,14 +18,14 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
+use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::ExitCode,
     string::String,
 };
-use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Parser)]
 #[command(name = "qsi", version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"))]
@@ -75,16 +73,28 @@ impl Receiver for TerminalReceiver {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    let sources = cli
+    let mut sources = cli
         .sources
         .iter()
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
+    if sources.is_empty() {
+        let fs = StdFs;
+        let manifest = Manifest::load()?;
+        if let Some(manifest) = manifest {
+            let project = fs.load_project(manifest)?;
+            let mut project_sources = project.sources;
+
+            sources.append(&mut project_sources);
+        }
+    }
     if cli.exec {
-        let interpreter = match stateless::Interpreter::new(
+        let mut interpreter = match Interpreter::new(
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
+            PackageType::Exe,
+            TargetProfile::Full,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -94,9 +104,8 @@ fn main() -> miette::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
         };
-        let mut eval_ctx = interpreter.new_eval_context();
         return Ok(print_exec_result(
-            eval_ctx.eval_entry(&mut TerminalReceiver),
+            interpreter.eval_entry(&mut TerminalReceiver),
         ));
     }
 
@@ -116,10 +125,7 @@ fn main() -> miette::Result<ExitCode> {
     };
 
     if let Some(entry) = cli.entry {
-        print_interpret_result(
-            &entry,
-            interpreter.interpret_line(&mut TerminalReceiver, &entry),
-        );
+        print_interpret_result(interpreter.eval_fragments(&mut TerminalReceiver, &entry));
     }
 
     repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
@@ -146,7 +152,7 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut impl Receiver) -> io::Resu
         }
 
         if !line.trim().is_empty() {
-            print_interpret_result(&line, interpreter.interpret_line(receiver, &line));
+            print_interpret_result(interpreter.eval_fragments(receiver, &line));
         }
 
         print_prompt(false);
@@ -175,24 +181,23 @@ fn print_prompt(continuation: bool) {
     io::stdout().flush().expect("standard out should flush");
 }
 
-fn print_interpret_result(line: &str, result: Result<Value, Vec<LineError>>) {
+fn print_interpret_result(result: InterpretResult) {
     match result {
         Ok(Value::Tuple(items)) if items.is_empty() => {}
         Ok(value) => println!("{value}"),
         Err(errors) => {
-            let source: Arc<str> = line.into();
             for error in errors {
                 if let Some(stack_trace) = error.stack_trace() {
                     eprintln!("{stack_trace}");
                 }
-                let report = Report::new(error).with_source_code(Arc::clone(&source));
+                let report = Report::new(error);
                 eprintln!("error: {report:?}");
             }
         }
     }
 }
 
-fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) -> ExitCode {
+fn print_exec_result(result: Result<Value, Vec<stateful::Error>>) -> ExitCode {
     match result {
         Ok(value) => {
             println!("{value}");

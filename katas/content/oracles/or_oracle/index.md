@@ -22,5 +22,5 @@ except for $|00...0\rangle$ (the all zero state).
 <br/>
 <details>
   <summary><b>Need a hint?</b></summary>
-  You need to flip the state of $|y\rangle$ for every input except $|00...0\rangle$, or, alternatively, flip it unconditionally and then flip it for the $|00...0\rangle$ state.   You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonint">ControlledOnInt</a> useful in your implementation.
+  You need to flip the state of $|y\rangle$ for every input except $|00...0\rangle$, or, alternatively, flip it unconditionally and then flip it for the $|00...0\rangle$ state.   You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonint" target="_blank">ControlledOnInt</a> useful in your implementation.
 </details>

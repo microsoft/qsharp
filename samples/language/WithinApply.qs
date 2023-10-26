@@ -9,7 +9,7 @@
 /// This is one of the features that makes Q# particularly ergonomic for expressing quantum algorithms.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit is Adj + Ctl {
+    operation Main() : Unit {
         // Allocate a qubit.
         use qubit = Qubit();
         within {

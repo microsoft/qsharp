@@ -372,11 +372,8 @@ fn lift_newtype_tuple() {
                 Item 1 [18-46] (Public):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-46]:
-                        TyDef [32-45]: Tuple:
-                            TyDef [33-36]: Field:
-                                type: Int
-                            TyDef [38-44]: Field:
-                                type: Double
+                        TyDef [32-45]: Field:
+                            type: (Int, Double)
                 Item 2 [51-110] (Public):
                     Parent: 0
                     Callable 1 [51-110] (operation):
@@ -470,14 +467,8 @@ fn lift_newtype_nested_tuple() {
                 Item 1 [18-54] (Public):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-54]:
-                        TyDef [32-53]: Tuple:
-                            TyDef [33-36]: Field:
-                                type: Int
-                            TyDef [38-52]: Tuple:
-                                TyDef [39-45]: Field:
-                                    type: Double
-                                TyDef [47-51]: Field:
-                                    type: Bool
+                        TyDef [32-53]: Field:
+                            type: (Int, (Double, Bool))
                 Item 2 [59-126] (Public):
                     Parent: 0
                     Callable 1 [59-126] (operation):
@@ -1943,7 +1934,8 @@ fn item_docs() {
                     Doc:
                         This is a newtype.
                     Type (Ident 0 [102-105] "Foo"): UDT [59-111]:
-                        TyDef [108-110]: Unit
+                        TyDef [108-110]: Field:
+                            type: Unit
                 Item 2 [125-183] (Public):
                     Parent: 0
                     Doc:

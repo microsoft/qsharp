@@ -3,6 +3,7 @@
 
 use std::f64::consts;
 
+use crate::backend::{Backend, SparseSim};
 use crate::debug::map_hir_package_to_fir;
 use crate::tests::eval_expr;
 use crate::{
@@ -61,6 +62,133 @@ impl<'a> NodeLookup for Lookup<'a> {
     }
 }
 
+#[derive(Default)]
+struct CustomSim {
+    sim: SparseSim,
+}
+
+impl Backend for CustomSim {
+    type ResultType = bool;
+
+    fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
+        self.sim.ccx(ctl0, ctl1, q);
+    }
+
+    fn cx(&mut self, ctl: usize, q: usize) {
+        self.sim.cx(ctl, q);
+    }
+
+    fn cy(&mut self, ctl: usize, q: usize) {
+        self.sim.cy(ctl, q);
+    }
+
+    fn cz(&mut self, ctl: usize, q: usize) {
+        self.sim.cz(ctl, q);
+    }
+
+    fn h(&mut self, q: usize) {
+        self.sim.h(q);
+    }
+
+    fn m(&mut self, q: usize) -> Self::ResultType {
+        self.sim.m(q)
+    }
+
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+        self.sim.mresetz(q)
+    }
+
+    fn reset(&mut self, q: usize) {
+        self.sim.reset(q);
+    }
+
+    fn rx(&mut self, theta: f64, q: usize) {
+        self.sim.rx(theta, q);
+    }
+
+    fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
+        self.sim.rxx(theta, q0, q1);
+    }
+
+    fn ry(&mut self, theta: f64, q: usize) {
+        self.sim.ry(theta, q);
+    }
+
+    fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
+        self.sim.ryy(theta, q0, q1);
+    }
+
+    fn rz(&mut self, theta: f64, q: usize) {
+        self.sim.rz(theta, q);
+    }
+
+    fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
+        self.sim.rzz(theta, q0, q1);
+    }
+
+    fn sadj(&mut self, q: usize) {
+        self.sim.sadj(q);
+    }
+
+    fn s(&mut self, q: usize) {
+        self.sim.s(q);
+    }
+
+    fn swap(&mut self, q0: usize, q1: usize) {
+        self.sim.swap(q0, q1);
+    }
+
+    fn tadj(&mut self, q: usize) {
+        self.sim.tadj(q);
+    }
+
+    fn t(&mut self, q: usize) {
+        self.sim.t(q);
+    }
+
+    fn x(&mut self, q: usize) {
+        self.sim.x(q);
+    }
+
+    fn y(&mut self, q: usize) {
+        self.sim.y(q);
+    }
+
+    fn z(&mut self, q: usize) {
+        self.sim.z(q);
+    }
+
+    fn qubit_allocate(&mut self) -> usize {
+        self.sim.qubit_allocate()
+    }
+
+    fn qubit_release(&mut self, q: usize) {
+        self.sim.qubit_release(q);
+    }
+
+    fn capture_quantum_state(
+        &mut self,
+    ) -> (Vec<(num_bigint::BigUint, num_complex::Complex<f64>)>, usize) {
+        self.sim.capture_quantum_state()
+    }
+
+    fn qubit_is_zero(&mut self, q: usize) -> bool {
+        self.sim.qubit_is_zero(q)
+    }
+
+    fn reinit(&mut self) {
+        self.sim.reinit();
+    }
+
+    fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
+        match name {
+            "Add1" => Some(Ok(Value::Int(arg.unwrap_int() + 1))),
+            "Check" => Some(Err("cannot verify input".to_string())),
+            _ => None,
+        }
+    }
+}
+
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
     let mut fir_lowerer = crate::lower::Lowerer::new();
     let mut core = compile::core();
@@ -106,7 +234,14 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let lookup = Lookup {
         fir_store: &fir_store,
     };
-    eval_expr(entry, &lookup, map_hir_package_to_fir(id), out).map_err(|e| e.0)
+    eval_expr(
+        entry,
+        &mut CustomSim::default(),
+        &lookup,
+        map_hir_package_to_fir(id),
+        out,
+    )
+    .map_err(|e| e.0)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
@@ -910,6 +1045,36 @@ fn unknown_intrinsic() {
         "},
         "Test.Foo()",
         &expect!["unknown intrinsic `Foo`"],
+    );
+}
+
+#[test]
+fn custom_intrinsic_success() {
+    check_intrinsic_result(
+        indoc! {"
+            namespace Test {
+                function Add1(input : Int) : Int {
+                    body intrinsic;
+                }
+            }
+        "},
+        "Test.Add1(1)",
+        &expect!["2"],
+    );
+}
+
+#[test]
+fn custom_intrinsic_failure() {
+    check_intrinsic_result(
+        indoc! {"
+            namespace Test {
+                function Check(input : Int) : Int {
+                    body intrinsic;
+                }
+            }
+        "},
+        "Test.Check(1)",
+        &expect!["intrinsic callable `Check` failed: cannot verify input"],
     );
 }
 

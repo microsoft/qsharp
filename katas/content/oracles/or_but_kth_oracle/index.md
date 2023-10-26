@@ -23,5 +23,5 @@ Feel free to explore implementing this operation with or without auxiliary qubit
   <summary><b>Need a hint?</b></summary>
   You can use the previously implemented oracles if needed by copying the code.
   <br/>
-  You can use <a href="https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/itemaccessexpressions">array slicing</a> to get parts of the array before and after the $k$-th element.
+  You can use <a href="https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/itemaccessexpressions" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
 </details>

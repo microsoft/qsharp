@@ -258,8 +258,12 @@ fn entry_call_operation() {
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
-    let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Call(callee, _) = &entry.kind else {
+        panic!("entry should be a call")
+    };
+    let ExprKind::Var(res, _) = &callee.kind else {
+        panic!("callee should be a variable")
+    };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -332,6 +336,7 @@ fn replace_node() {
         sources,
         TargetProfile::Full,
     );
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
 
@@ -340,8 +345,13 @@ fn replace_node() {
         .items
         .get(LocalItemId::from(1))
         .expect("package should have item")
-        .kind else { panic!("item should be a callable"); };
-    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
+        .kind
+    else {
+        panic!("item should be a callable");
+    };
+    let SpecBody::Impl(_, block) = &callable.body.body else {
+        panic!("callable body have a block")
+    };
     expect![[r#"
         Block 4 [39-56] [Type Int]:
             Stmt 5 [49-50]: Expr: Expr 8 [49-50] [Type Int]: Lit: Int(2)"#]]
@@ -408,6 +418,7 @@ fn insert_core_call() {
 
     let store = PackageStore::new(super::core());
     let mut unit = compile(&store, &[], sources, TargetProfile::Full);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     let mut inserter = Inserter { core: store.core() };
     inserter.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
@@ -452,7 +463,9 @@ fn package_dependency() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1, TargetProfile::Full));
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
 
     let sources2 = SourceMap::new(
         [(
@@ -469,29 +482,32 @@ fn package_dependency() {
         None,
     );
     let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
-    let foo_id = LocalItemId::from(1);
-    let ItemKind::Callable(callable) = &unit2
-        .package
-        .items
-        .get(foo_id)
-        .expect("package should have item")
-        .kind else { panic!("item should be a callable"); };
-    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
-    let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
-    assert_eq!(
-        &Res::Item(ItemId {
-            package: Some(package1),
-            item: foo_id,
-        }),
-        res
-    );
+    expect![[r#"
+        Package:
+            Item 0 [0-78] (Public):
+                Namespace (Ident 9 [10-18] "Package2"): Item 1
+            Item 1 [25-76] (Public):
+                Parent: 0
+                Callable 0 [25-76] (function):
+                    name: Ident 1 [34-37] "Bar"
+                    input: Pat 2 [37-39] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-76]: Impl:
+                        Block 4 [46-76] [Type Int]:
+                            Stmt 5 [56-70]: Expr: Expr 6 [56-70] [Type Int]: Call:
+                                Expr 7 [56-68] [Type (Unit -> Int)]: Var: Item 1 (Package 1)
+                                Expr 8 [68-70] [Type Unit]: Unit
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
 }
 
 #[test]
-fn package_dependency_internal() {
+fn package_dependency_internal_error() {
     let mut store = PackageStore::new(super::core());
 
     let sources1 = SourceMap::new(
@@ -508,7 +524,9 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, &[], sources1, TargetProfile::Full));
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
 
     let sources2 = SourceMap::new(
         [(
@@ -526,17 +544,190 @@ fn package_dependency_internal() {
     );
     let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
 
-    let ItemKind::Callable(callable) = &unit2
-        .package
-        .items
-        .get(LocalItemId::from(1))
-        .expect("package should have item")
-        .kind else { panic!("item should be a callable"); };
-    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
-    let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
-    assert_eq!(&Res::Err, res);
+    let errors: Vec<_> = unit2
+        .errors
+        .iter()
+        .map(|error| source_span(&unit2.sources, error))
+        .collect();
+    assert_eq!(vec![("test", Span { lo: 65, hi: 68 }),], errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-78] (Public):
+                Namespace (Ident 9 [10-18] "Package2"): Item 1
+            Item 1 [25-76] (Public):
+                Parent: 0
+                Callable 0 [25-76] (function):
+                    name: Ident 1 [34-37] "Bar"
+                    input: Pat 2 [37-39] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-76]: Impl:
+                        Block 4 [46-76] [Type Int]:
+                            Stmt 5 [56-70]: Expr: Expr 6 [56-70] [Type Int]: Call:
+                                Expr 7 [56-68] [Type ?]: Var: Err
+                                Expr 8 [68-70] [Type Unit]: Unit
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
+}
+
+#[test]
+fn package_dependency_udt() {
+    let mut store = PackageStore::new(super::core());
+
+    let sources1 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package1 {
+                    newtype Bar = Int;
+                    function Foo(bar : Bar) : Int {
+                        bar!
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
+
+    let sources2 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package2 {
+                    function Baz() : Int {
+                        Package1.Foo(Package1.Bar(1))
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-93] (Public):
+                Namespace (Ident 11 [10-18] "Package2"): Item 1
+            Item 1 [25-91] (Public):
+                Parent: 0
+                Callable 0 [25-91] (function):
+                    name: Ident 1 [34-37] "Baz"
+                    input: Pat 2 [37-39] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-91]: Impl:
+                        Block 4 [46-91] [Type Int]:
+                            Stmt 5 [56-85]: Expr: Expr 6 [56-85] [Type Int]: Call:
+                                Expr 7 [56-68] [Type (UDT<Item 1 (Package 1)> -> Int)]: Var: Item 2 (Package 1)
+                                Expr 8 [69-84] [Type UDT<Item 1 (Package 1)>]: Call:
+                                    Expr 9 [69-81] [Type (Int -> UDT<Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                    Expr 10 [82-83] [Type Int]: Lit: Int(1)
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
+}
+
+#[test]
+fn package_dependency_nested_udt() {
+    let mut store = PackageStore::new(super::core());
+
+    let sources1 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package1 {
+                    newtype Bar = Int;
+                    newtype Baz = Int;
+                    newtype Foo = (bar : Bar, Baz);
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
+    let package1 = store.insert(unit1);
+
+    let sources2 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package2 {
+                    function Test() : Int {
+                        let bar = Package1.Bar(1);
+                        let baz = Package1.Baz(2);
+                        let foo = Package1.Foo(bar, baz);
+                        let inner : Package1.Bar = foo::bar;
+                        let (_, other : Package1.Baz) = foo!;
+                        inner!
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-274] (Public):
+                Namespace (Ident 40 [10-18] "Package2"): Item 1
+            Item 1 [25-272] (Public):
+                Parent: 0
+                Callable 0 [25-272] (function):
+                    name: Ident 1 [34-38] "Test"
+                    input: Pat 2 [38-40] [Type Unit]: Unit
+                    output: Int
+                    functors: empty set
+                    body: SpecDecl 3 [25-272]: Impl:
+                        Block 4 [47-272] [Type Int]:
+                            Stmt 5 [57-83]: Local (Immutable):
+                                Pat 6 [61-64] [Type UDT<Item 1 (Package 1)>]: Bind: Ident 7 [61-64] "bar"
+                                Expr 8 [67-82] [Type UDT<Item 1 (Package 1)>]: Call:
+                                    Expr 9 [67-79] [Type (Int -> UDT<Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                    Expr 10 [80-81] [Type Int]: Lit: Int(1)
+                            Stmt 11 [92-118]: Local (Immutable):
+                                Pat 12 [96-99] [Type UDT<Item 2 (Package 1)>]: Bind: Ident 13 [96-99] "baz"
+                                Expr 14 [102-117] [Type UDT<Item 2 (Package 1)>]: Call:
+                                    Expr 15 [102-114] [Type (Int -> UDT<Item 2 (Package 1)>)]: Var: Item 2 (Package 1)
+                                    Expr 16 [115-116] [Type Int]: Lit: Int(2)
+                            Stmt 17 [127-160]: Local (Immutable):
+                                Pat 18 [131-134] [Type UDT<Item 3 (Package 1)>]: Bind: Ident 19 [131-134] "foo"
+                                Expr 20 [137-159] [Type UDT<Item 3 (Package 1)>]: Call:
+                                    Expr 21 [137-149] [Type ((UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>) -> UDT<Item 3 (Package 1)>)]: Var: Item 3 (Package 1)
+                                    Expr 22 [149-159] [Type (UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>)]: Tuple:
+                                        Expr 23 [150-153] [Type UDT<Item 1 (Package 1)>]: Var: Local 7
+                                        Expr 24 [155-158] [Type UDT<Item 2 (Package 1)>]: Var: Local 13
+                            Stmt 25 [169-205]: Local (Immutable):
+                                Pat 26 [173-193] [Type UDT<Item 1 (Package 1)>]: Bind: Ident 27 [173-178] "inner"
+                                Expr 28 [196-204] [Type UDT<Item 1 (Package 1)>]: Field:
+                                    Expr 29 [196-199] [Type UDT<Item 3 (Package 1)>]: Var: Local 19
+                                    Path(FieldPath { indices: [0] })
+                            Stmt 30 [214-251]: Local (Immutable):
+                                Pat 31 [218-243] [Type (UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>)]: Tuple:
+                                    Pat 32 [219-220] [Type UDT<Item 1 (Package 1)>]: Discard
+                                    Pat 33 [222-242] [Type UDT<Item 2 (Package 1)>]: Bind: Ident 34 [222-227] "other"
+                                Expr 35 [246-250] [Type (UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>)]: UnOp (Unwrap):
+                                    Expr 36 [246-249] [Type UDT<Item 3 (Package 1)>]: Var: Local 19
+                            Stmt 37 [260-266]: Expr: Expr 38 [260-266] [Type Int]: UnOp (Unwrap):
+                                Expr 39 [260-265] [Type UDT<Item 1 (Package 1)>]: Var: Local 27
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
+    .assert_eq(&unit2.package.to_string());
 }
 
 #[test]
@@ -676,4 +867,12 @@ fn two_files_error_eof() {
         .collect();
 
     assert_eq!(vec![("test1", Span { lo: 15, hi: 15 }),], errors);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-15] (Public):
+                Namespace (Ident 0 [10-13] "Foo"): <empty>
+            Item 1 [16-32] (Public):
+                Namespace (Ident 1 [26-29] "Bar"): <empty>"#]]
+    .assert_eq(&unit.package.to_string());
 }

@@ -6,7 +6,7 @@
 #![warn(missing_docs)]
 
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
-use indenter::{indented, Format, Indented};
+use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
@@ -22,14 +22,12 @@ fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
 ) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// A unique identifier for an HIR node.
@@ -89,8 +87,7 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be replaced");
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
@@ -200,6 +197,20 @@ pub enum Res {
     Local(NodeId),
 }
 
+impl Res {
+    /// Returns an updated resolution with the given package ID.
+    #[must_use]
+    pub fn with_package(&self, package: PackageId) -> Self {
+        match self {
+            Res::Item(id) if id.package.is_none() => Res::Item(ItemId {
+                package: Some(package),
+                item: id.item,
+            }),
+            _ => *self,
+        }
+    }
+}
+
 impl Display for Res {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
@@ -215,6 +226,8 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
+    /// The top-level statements in the package.
+    pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
 }
@@ -229,6 +242,9 @@ impl Display for Package {
         }
         for item in self.items.values() {
             write!(indent, "\n{item}")?;
+        }
+        for stmt in &self.stmts {
+            write!(indent, "\n{stmt}")?;
         }
         Ok(())
     }

@@ -7,102 +7,60 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
+use super::debug::format_call_stack;
 use crate::{
-    compile::{self, compile},
-    error::WithSource,
+    error::{self, WithStack},
+    incremental::Compiler,
 };
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
-use qsc_codegen::qir_base::generate_qir_for_stmt;
-use qsc_data_structures::index_map::IndexMap;
-use qsc_eval::backend::Backend;
+use qsc_codegen::qir_base::BaseProfSim;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_eval::{
-    backend::SparseSim,
+    backend::{Backend, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
-    eval_stmt,
-    output::Receiver,
-    val::{GlobalId, Value},
+    eval_expr, eval_stmt,
+    output::{GenericReceiver, Receiver},
+    val::{self, GlobalId, Value},
     Env, Global, NodeLookup, State, StepAction, StepResult, VariableInfo,
 };
 use qsc_fir::{
-    fir::{
-        Block, BlockId, CallableDecl, Expr, ExprId, LocalItemId, Package, PackageId, Pat, PatId,
-        Stmt, StmtId,
-    },
+    fir::{Block, BlockId, Expr, ExprId, ItemKind, Package, PackageId, Pat, PatId, Stmt, StmtId},
     visit::{self, Visitor},
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
-    incremental::{self, Compiler, Fragment},
+    error::WithSource,
 };
-use qsc_passes::{PackageType, PassContext};
-use std::{collections::HashSet, sync::Arc};
+use qsc_passes::PackageType;
+use rustc_hash::FxHashSet;
 use thiserror::Error;
-
-use super::{debug::format_call_stack, stateless};
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct Error(WithSource<Source, ErrorKind>);
 
 impl Error {
     #[must_use]
     pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
+        match &self {
+            Error::Eval(err) => err.stack_trace(),
+            _ => &None,
+        }
     }
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-enum ErrorKind {
+pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Compile(#[from] compile::Error),
+    Compile(#[from] crate::compile::Error),
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Pass(#[from] qsc_passes::Error),
+    Pass(#[from] WithSource<qsc_passes::Error>),
     #[error("runtime error")]
     #[diagnostic(transparent)]
-    Eval(#[from] qsc_eval::Error),
+    Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
-}
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct CompileError(WithSource<Source, compile::Error>);
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
-#[error(transparent)]
-pub struct LineError(WithSource<Arc<str>, LineErrorKind>);
-
-impl LineError {
-    #[must_use]
-    pub fn kind(&self) -> &LineErrorKind {
-        self.0.error()
-    }
-
-    #[must_use]
-    pub fn stack_trace(&self) -> &Option<String> {
-        self.0.stack_trace()
-    }
-}
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-pub enum LineErrorKind {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Compile(#[from] incremental::Error),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Pass(#[from] qsc_passes::Error),
-    #[error("runtime error")]
-    #[diagnostic(transparent)]
-    Eval(#[from] qsc_eval::Error),
     #[error("code generation target mismatch")]
     #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
     TargetMismatch,
@@ -110,9 +68,6 @@ pub enum LineErrorKind {
 
 struct Lookup<'a> {
     fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
-    package: PackageId,
-    udts: &'a HashSet<LocalItemId>,
-    callables: &'a IndexMap<LocalItemId, CallableDecl>,
 }
 
 impl<'a> Lookup<'a> {
@@ -125,7 +80,7 @@ impl<'a> Lookup<'a> {
 
 impl<'a> NodeLookup for Lookup<'a> {
     fn get(&self, id: GlobalId) -> Option<Global<'a>> {
-        get_global(self.fir_store, self.udts, self.callables, self.package, id)
+        get_global(self.fir_store, id)
     }
     fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
         self.get_package(package)
@@ -153,26 +108,41 @@ impl<'a> NodeLookup for Lookup<'a> {
     }
 }
 
+/// A Q# interpreter.
 pub struct Interpreter {
-    store: PackageStore,
-    package: PackageId,
+    /// The incremental Q# compiler.
     compiler: Compiler,
-    udts: HashSet<LocalItemId>,
-    callables: IndexMap<LocalItemId, CallableDecl>,
-    passes: PassContext,
-    env: Env,
-    sim: SparseSim,
-    lowerer: qsc_eval::lower::Lowerer,
-    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
-    state: State,
-    source_package: PackageId,
+    /// The `TargetProfile` used for compilation.
     target: TargetProfile,
+    /// The number of lines that have so far been compiled.
+    /// This field is used to generate a unique label
+    /// for each line evaluated with `eval_fragments`.
+    lines: u32,
+    // The FIR store
+    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
+    /// FIR lowerer
+    lowerer: qsc_eval::lower::Lowerer,
+    /// The ID of the current package.
+    /// This ID is valid both for the FIR store and the `PackageStore`.
+    package: PackageId,
+    /// The ID of the source package. The source package
+    /// is made up of the initial sources passed in when creating the interpreter.
+    /// This ID is valid both for the FIR store and the `PackageStore`.
+    source_package: PackageId,
+    /// The default simulator backend.
+    sim: SparseSim,
+    /// The evaluator environment.
+    env: Env,
+    /// The current state of the evaluator.
+    state: State,
 }
 
+pub type InterpretResult = Result<Value, Vec<Error>>;
+
 impl Interpreter {
+    /// Creates a new incremental compiler, compiling the passed in sources.
     /// # Errors
-    /// If the compilation of the standard library fails, an error is returned.
-    /// If the compilation of the sources fails, an error is returned.
+    /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
         std: bool,
         sources: SourceMap,
@@ -180,55 +150,31 @@ impl Interpreter {
         target: TargetProfile,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
-        let core = compile::core();
-        let core_fir = lowerer.lower_package(&core.package);
         let mut fir_store = IndexMap::new();
-        fir_store.insert(
-            map_hir_package_to_fir(qsc_hir::hir::PackageId::CORE),
-            core_fir,
-        );
-        let mut store = PackageStore::new(core);
-        let mut dependencies = Vec::new();
-        if std {
-            let std = compile::std(&store, target);
-            let std_fir = lowerer.lower_package(&std.package);
-            let id = store.insert(std);
-            fir_store.insert(map_hir_package_to_fir(id), std_fir);
-            dependencies.push(id);
+
+        let compiler = Compiler::new(std, sources, package_type, target).map_err(into_errors)?;
+
+        for (id, unit) in compiler.package_store().iter() {
+            fir_store.insert(
+                map_hir_package_to_fir(id),
+                lowerer.lower_package(&unit.package),
+            );
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
-        if !errors.is_empty() {
-            return Err(errors
-                .into_iter()
-                .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
-                .collect());
-        }
+        let source_package_id = compiler.source_package_id();
+        let package_id = compiler.package_id();
 
-        let user_fir = lowerer.lower_package(&unit.package);
-        let package = store.insert(unit);
-        fir_store.insert(map_hir_package_to_fir(package), user_fir);
-
-        dependencies.push(package);
-        let unit = CompileUnit::default();
-        let user_fir = lowerer.lower_package(&unit.package);
-        let user_package = store.insert(unit);
-        fir_store.insert(map_hir_package_to_fir(user_package), user_fir);
-        let compiler = Compiler::new(&store, dependencies);
         Ok(Self {
-            store,
-            package: map_hir_package_to_fir(user_package),
-            source_package: map_hir_package_to_fir(package),
             compiler,
-            udts: HashSet::new(),
-            callables: IndexMap::new(),
-            passes: PassContext::new(target),
+            lines: 0,
+            target,
+            fir_store,
+            lowerer,
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
-            state: State::new(map_hir_package_to_fir(package)),
-            lowerer,
-            fir_store,
-            target,
+            state: State::new(map_hir_package_to_fir(source_package_id)),
+            package: map_hir_package_to_fir(package_id),
+            source_package: map_hir_package_to_fir(source_package_id),
         })
     }
 
@@ -254,9 +200,6 @@ impl Interpreter {
     ) -> Result<StepResult, Vec<Error>> {
         let globals = Lookup {
             fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
         };
 
         self.state
@@ -269,22 +212,12 @@ impl Interpreter {
                 step,
             )
             .map_err(|(error, call_stack)| {
-                let package = self
-                    .store
-                    .get(map_fir_package_to_hir(self.package))
-                    .expect("package should be in store");
-
-                let stack_trace = if call_stack.is_empty() {
-                    None
-                } else {
-                    Some(self.render_call_stack(call_stack, &error))
-                };
-
-                vec![Error(WithSource::from_map(
-                    &package.sources,
-                    error.into(),
-                    stack_trace,
-                ))]
+                eval_error(
+                    self.compiler.package_store(),
+                    &self.fir_store,
+                    call_stack,
+                    error,
+                )
             })
     }
 
@@ -295,36 +228,23 @@ impl Interpreter {
         let expr = self.get_entry_expr()?;
         let globals = Lookup {
             fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
         };
 
-        qsc_eval::eval_expr(
-            &mut self.state,
+        eval_expr(
+            &mut State::new(self.source_package),
             expr,
             &globals,
-            &mut self.env,
+            &mut Env::with_empty_scope(),
             &mut self.sim,
             receiver,
         )
         .map_err(|(error, call_stack)| {
-            let package = self
-                .store
-                .get(map_fir_package_to_hir(self.package))
-                .expect("package should be in store");
-
-            let stack_trace = if call_stack.is_empty() {
-                None
-            } else {
-                Some(self.render_call_stack(call_stack, &error))
-            };
-
-            vec![Error(WithSource::from_map(
-                &package.sources,
-                error.into(),
-                stack_trace,
-            ))]
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
         })
     }
 
@@ -336,85 +256,58 @@ impl Interpreter {
         if let Some(entry) = unit.entry {
             return Ok(entry);
         };
-        let unit = self
-            .store
-            .get(map_fir_package_to_hir(self.source_package))
-            .expect("store should have package");
-        Err(vec![Error(WithSource::from_map(
-            &unit.sources,
-            ErrorKind::NoEntryPoint,
-            None,
-        ))])
+        Err(vec![Error::NoEntryPoint])
     }
 
     /// # Errors
-    /// If the parsing of the line fails, an error is returned.
-    /// If the compilation of the line fails, an error is returned.
-    /// If there is a runtime error when interpreting the line, an error is returned.
-    pub fn interpret_line(
+    /// If the parsing of the fragments fails, an error is returned.
+    /// If the compilation of the fragments fails, an error is returned.
+    /// If there is a runtime error when interpreting the fragments, an error is returned.
+    pub fn eval_fragments(
         &mut self,
         receiver: &mut impl Receiver,
-        line: &str,
-    ) -> Result<Value, Vec<LineError>> {
+        fragments: &str,
+    ) -> InterpretResult {
+        let label = self.next_line_label();
+
+        let increment = self
+            .compiler
+            .compile_fragments(&label, fragments)
+            .map_err(into_errors)?;
+
+        let stmts = self.lower(&increment);
+
+        // Updating the compiler state with the new AST/HIR nodes
+        // is not necessary for the interpreter to function, as all
+        // the state required for evaluation already exists in the
+        // FIR store. It could potentially save some memory
+        // *not* to do hold on to the AST/HIR, but it is done
+        // here to keep the package stores consistent.
+        self.compiler.update(increment);
+
         let mut result = Value::unit();
 
-        let mut fragments = self.compiler.compile_fragments(line).map_err(|errors| {
-            let source = line.into();
-            errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect::<Vec<_>>()
-        })?;
+        for stmt_id in stmts {
+            let globals = Lookup {
+                fir_store: &self.fir_store,
+            };
 
-        let pass_errors = fragments
-            .iter_mut()
-            .flat_map(|fragment| {
-                self.passes
-                    .run(self.store.core(), self.compiler.assigner_mut(), fragment)
-            })
-            .collect::<Vec<_>>();
-        if !pass_errors.is_empty() {
-            let source = line.into();
-            return Err(pass_errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect());
-        }
-
-        for fragment in fragments {
-            match fragment {
-                Fragment::Item(item) => match item.kind {
-                    qsc_hir::hir::ItemKind::Callable(callable) => {
-                        let callable = self.lower_callable_decl(&callable);
-
-                        self.callables
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id), callable);
-                    }
-                    qsc_hir::hir::ItemKind::Namespace(..) => {}
-                    qsc_hir::hir::ItemKind::Ty(..) => {
-                        self.udts
-                            .insert(qsc_eval::lower::lower_local_item_id(item.id));
-                    }
-                },
-                Fragment::Stmt(stmt) => {
-                    let stmt_id = self.lower_stmt(&stmt);
-
-                    match self.eval_stmt(receiver, stmt_id) {
-                        Ok(value) => result = value,
-                        Err((error, call_stack)) => {
-                            let stack_trace = if call_stack.is_empty() {
-                                None
-                            } else {
-                                Some(self.render_call_stack(call_stack, &error))
-                            };
-
-                            return Err(vec![LineError(WithSource::new(
-                                line.into(),
-                                error.into(),
-                                stack_trace,
-                            ))]);
-                        }
-                    }
+            match eval_stmt(
+                stmt_id,
+                &globals,
+                &mut self.env,
+                &mut self.sim,
+                self.package,
+                receiver,
+            ) {
+                Ok(value) => result = value,
+                Err((error, call_stack)) => {
+                    return Err(eval_error(
+                        self.compiler.package_store(),
+                        &self.fir_store,
+                        call_stack,
+                        error,
+                    ))
                 }
             }
         }
@@ -422,132 +315,139 @@ impl Interpreter {
         Ok(result)
     }
 
-    /// # Errors
-    /// If the currently configured target profile is not `TargetProfile::Base`, an error is returned.
-    /// If the parsing of the expr fails, an error is returned.
-    /// If the compilation of the expr fails, an error is returned.
-    /// If there is a runtime error when generating code for the expr, an error is returned.
-    /// # Panics
-    /// If internal compiler state is inconsistent, a panic may occur.
-    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<LineError>> {
+    /// Runs the given entry expression on a new instance of the environment and simulator,
+    /// but using the current compilation.
+    pub fn run(
+        &mut self,
+        receiver: &mut impl Receiver,
+        expr: &str,
+        shots: u32,
+    ) -> Result<Vec<InterpretResult>, Vec<Error>> {
+        self.run_with_sim(&mut SparseSim::new(), receiver, expr, shots)
+    }
+
+    /// Performs QIR codegen using the given entry expression on a new instance of the environment
+    /// and simulator but using the current compilation.
+    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<Error>> {
         if self.target != TargetProfile::Base {
-            return Err(vec![LineError(WithSource::new(
-                expr.into(),
-                LineErrorKind::TargetMismatch,
-                None,
-            ))]);
+            return Err(vec![Error::TargetMismatch]);
         }
 
-        let mut fragment = self.compiler.compile_expr(expr).map_err(|errors| {
-            let source = expr.into();
-            errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect::<Vec<_>>()
-        })?;
+        let mut sim = BaseProfSim::new();
+        let mut stdout = std::io::sink();
+        let mut out = GenericReceiver::new(&mut stdout);
 
-        let pass_errors = self.passes.run(
-            self.store.core(),
-            self.compiler.assigner_mut(),
-            &mut fragment,
-        );
-        if !pass_errors.is_empty() {
-            let source = expr.into();
-            return Err(pass_errors
-                .into_iter()
-                .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into(), None)))
-                .collect());
-        }
+        let val = self
+            .run_with_sim(&mut sim, &mut out, expr, 1)?
+            .into_iter()
+            .last()
+            .expect("execution should have at least one result")?;
 
-        let Fragment::Stmt(stmt) = fragment else {
-            panic!("only a stmt fragment should reach here.")
-        };
+        Ok(sim.finish(&val))
+    }
 
-        let stmt_id = self.lower_stmt(&stmt);
+    /// Runs the given entry expression on the given simulator with a new instance of the environment
+    /// but using the current compilation.
+    pub fn run_with_sim(
+        &mut self,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        receiver: &mut impl Receiver,
+        expr: &str,
+        shots: u32,
+    ) -> Result<Vec<InterpretResult>, Vec<Error>> {
+        let stmt_id = self.compile_expr_to_stmt(expr)?;
+
+        Ok(self.run_internal(sim, receiver, stmt_id, shots))
+    }
+
+    fn run_internal(
+        &mut self,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        receiver: &mut impl Receiver,
+        stmt_id: StmtId,
+        shots: u32,
+    ) -> Vec<InterpretResult> {
         let globals = Lookup {
             fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
         };
 
-        generate_qir_for_stmt(stmt_id, &globals, &mut self.env, self.package).map_err(
-            |(error, call_stack)| {
-                let stack_trace = if call_stack.is_empty() {
-                    None
-                } else {
-                    Some(self.render_call_stack(call_stack, &error))
-                };
+        let mut results: Vec<InterpretResult> = Vec::new();
+        for i in 0..shots {
+            results.push(
+                match eval_stmt(
+                    stmt_id,
+                    &globals,
+                    &mut Env::with_empty_scope(),
+                    sim,
+                    self.package,
+                    receiver,
+                ) {
+                    Ok(value) => Ok(value),
+                    Err((error, call_stack)) => Err(eval_error(
+                        self.compiler.package_store(),
+                        &self.fir_store,
+                        call_stack,
+                        error,
+                    )),
+                },
+            );
 
-                vec![LineError(WithSource::new(
-                    expr.into(),
-                    error.into(),
-                    stack_trace,
-                ))]
-            },
-        )
+            if i != 0 {
+                // If running more than one shot, re-initialize the simulator to start the next shot
+                // from a clean state.
+                sim.reinit();
+            }
+        }
+
+        results
     }
 
-    fn lower_callable_decl(&mut self, callable: &qsc_hir::hir::CallableDecl) -> CallableDecl {
-        let callable = self.lowerer.lower_callable_decl(callable);
-        self.update_fir_package();
-        callable
+    fn compile_expr_to_stmt(&mut self, expr: &str) -> Result<StmtId, Vec<Error>> {
+        let increment = self.compiler.compile_expr(expr).map_err(into_errors)?;
+
+        let stmts = self.lower(&increment);
+
+        // Updating the compiler state with the new AST/HIR nodes
+        // is not necessary for the interpreter to function, as all
+        // the state required for evaluation already exists in the
+        // FIR store. It could potentially save some memory
+        // *not* to do hold on to the AST/HIR, but it is done
+        // here to keep the package stores consistent.
+        self.compiler.update(increment);
+
+        assert!(stmts.len() == 1, "expected exactly one statement");
+        let stmt_id = stmts.get(0).expect("expected exactly one statement");
+
+        Ok(*stmt_id)
     }
 
-    fn lower_stmt(&mut self, stmt: &qsc_hir::hir::Stmt) -> StmtId {
-        let stmt_id = self.lowerer.lower_stmt(stmt);
-        self.update_fir_package();
-        stmt_id
-    }
-
-    fn update_fir_package(&mut self) {
-        let package = self
+    fn lower(&mut self, unit_addition: &qsc_frontend::incremental::Increment) -> Vec<StmtId> {
+        let fir_package = self
             .fir_store
             .get_mut(self.package)
             .expect("package should be in store");
 
-        self.lowerer.update_package(package);
+        self.lowerer
+            .lower_and_update_package(fir_package, &unit_addition.hir)
     }
 
-    fn eval_stmt(
-        &mut self,
-        receiver: &mut impl Receiver,
-        stmt: StmtId,
-    ) -> Result<Value, (qsc_eval::Error, Vec<Frame>)> {
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
-        };
-
-        eval_stmt(
-            stmt,
-            &globals,
-            &mut self.env,
-            &mut self.sim,
-            self.package,
-            receiver,
-        )
+    fn source_package(&self) -> &CompileUnit {
+        self.compiler
+            .package_store()
+            .get(map_fir_package_to_hir(self.source_package))
+            .expect("Could not load package")
     }
 
-    fn render_call_stack(&self, call_stack: Vec<Frame>, error: &dyn std::error::Error) -> String {
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
-        };
-        format_call_stack(&self.store, &globals, call_stack, error)
+    fn next_line_label(&mut self) -> String {
+        let label = format!("line_{}", self.lines);
+        self.lines += 1;
+        label
     }
 
     #[must_use]
     pub fn get_stack_frames(&self) -> Vec<StackFrame> {
         let globals = Lookup {
             fir_store: &self.fir_store,
-            package: self.package,
-            udts: &self.udts,
-            callables: &self.callables,
         };
         let frames = self.state.get_stack_frames();
         let stack_frames = frames
@@ -561,7 +461,8 @@ impl Interpreter {
                 };
 
                 let hir_package = self
-                    .store
+                    .compiler
+                    .package_store()
                     .get(map_fir_package_to_hir(frame.id.package))
                     .expect("package should exist");
                 let source = hir_package
@@ -587,10 +488,7 @@ impl Interpreter {
 
     #[must_use]
     pub fn get_breakpoints(&self, path: &str) -> Vec<BreakpointSpan> {
-        let unit = self
-            .store
-            .get(map_fir_package_to_hir(self.source_package))
-            .expect("Could not load package");
+        let unit = self.source_package();
 
         if let Some(source) = unit.sources.find_by_name(path) {
             let package = self
@@ -639,20 +537,17 @@ pub struct StackFrame {
     pub hi: u32,
 }
 
-fn get_global<'a>(
-    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
-    udts: &'a HashSet<LocalItemId>,
-    callables: &'a IndexMap<LocalItemId, CallableDecl>,
-    package: PackageId,
+fn get_global(
+    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
     id: GlobalId,
-) -> Option<Global<'a>> {
-    if id.package == package {
-        udts.contains(&id.item)
-            .then_some(Global::Udt)
-            .or_else(|| callables.get(id.item).map(Global::Callable))
-    } else {
-        stateless::get_global(fir_store, id)
-    }
+) -> Option<Global<'_>> {
+    fir_store
+        .get(id.package)
+        .and_then(|package| match &package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -666,7 +561,7 @@ pub struct BreakpointSpan {
 }
 
 struct BreakpointCollector<'a> {
-    statements: HashSet<BreakpointSpan>,
+    statements: FxHashSet<BreakpointSpan>,
     sources: &'a SourceMap,
     offset: u32,
     package: &'a Package,
@@ -675,7 +570,7 @@ struct BreakpointCollector<'a> {
 impl<'a> BreakpointCollector<'a> {
     fn new(sources: &'a SourceMap, offset: u32, package: &'a Package) -> Self {
         Self {
-            statements: HashSet::new(),
+            statements: FxHashSet::default(),
             sources,
             offset,
             package,
@@ -691,11 +586,15 @@ impl<'a> BreakpointCollector<'a> {
     fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
         let source: &Source = self.get_source(self.offset);
         if source.offset == self.offset {
-            self.statements.insert(BreakpointSpan {
+            let span = stmt.span - source.offset;
+            let bps = BreakpointSpan {
                 id: stmt.id.into(),
-                lo: stmt.span.lo - source.offset,
-                hi: stmt.span.hi - source.offset,
-            });
+                lo: span.lo,
+                hi: span.hi,
+            };
+            if span != Span::default() {
+                self.statements.insert(bps);
+            }
         }
     }
 }
@@ -742,4 +641,31 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
             .get(id)
             .expect("couldn't find stmt in FIR")
     }
+}
+
+fn eval_error(
+    package_store: &PackageStore,
+    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
+    call_stack: Vec<Frame>,
+    error: qsc_eval::Error,
+) -> Vec<Error> {
+    let stack_trace = if call_stack.is_empty() {
+        None
+    } else {
+        Some(format_call_stack(
+            package_store,
+            &Lookup { fir_store },
+            call_stack,
+            &error,
+        ))
+    };
+
+    vec![error::from_eval(error, package_store, stack_trace).into()]
+}
+
+fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
+    errors
+        .into_iter()
+        .map(|error| Error::Compile(error.into_with_source()))
+        .collect::<Vec<_>>()
 }

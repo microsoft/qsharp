@@ -1,6 +1,6 @@
 namespace Kata.Verification {
 
-    operation IsSeven_MarkingOracle_Reference(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+    operation IsSeven_MarkingOracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         Controlled X(x, y);
     }
 

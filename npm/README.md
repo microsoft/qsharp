@@ -68,7 +68,3 @@ at <src/vs/base/common/cancellation.ts>. This code uses a simplified version of 
 
 Node.js tests can be run via `node --test` (see
 <https://nodejs.org/dist/latest-v18.x/docs/api/test.html#test-runner-execution-model>).
-
-The test module was also added to Node.js v16.17.0, and Electron 22 (which VS Code plans to move to
-in first half of 2023) includes v16.17.1, so v16.17 should be our minimum Node.js
-version supported (it shipped in Aug 2022).

@@ -90,13 +90,13 @@ namespace Sample {
 
     /// # Summary
     /// Sets a qubit in state |0⟩ to |+⟩.
-    operation SetToPlus(q: Qubit) : Unit is Adj + Ctl {
+    operation SetToPlus(q : Qubit) : Unit is Adj + Ctl {
         H(q);
     }
 
     /// # Summary
     /// Sets a qubit in state |0⟩ to |−⟩.
-    operation SetToMinus(q: Qubit) : Unit is Adj + Ctl {
+    operation SetToMinus(q : Qubit) : Unit is Adj + Ctl {
         X(q);
         H(q);
     }

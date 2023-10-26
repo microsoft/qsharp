@@ -1,8 +1,8 @@
 [package]
 name = "qsc"
-version = "0.0.0"
 description = "Q# compiler"
 
+version.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
@@ -24,10 +24,13 @@ qsc_ast = { path = "../qsc_ast" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
+qsc_project = { path = "../qsc_project", features = ["fs"] }
+rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
+expect-test = { workspace = true }
 indoc = { workspace = true }
 
 [lib]

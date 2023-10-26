@@ -70,7 +70,7 @@ namespace Sample {
             else {
                 // Find divisor.
                 let gcd = GreatestCommonDivisorI(number, generator);
-                Message($"We have guessed a divisor {gcd} by accident. " + 
+                Message($"We have guessed a divisor {gcd} by accident. " +
                     "No quantum computation was done.");
 
                 // Set the flag `foundFactors` to true, indicating that we
@@ -85,7 +85,7 @@ namespace Sample {
         }
         until foundFactors
         fixup {
-            Message("The estimated period did not yield a valid factor. " + 
+            Message("The estimated period did not yield a valid factor. " +
                 "Trying again.");
         }
 
@@ -133,16 +133,17 @@ namespace Sample {
                     GreatestCommonDivisorI(halfPower + 1, modulus)
                 );
 
-                // Add a flag that we found the factors, and return computed
-                // non-trivial factors.
-                Message($"Found factor={factor}");
-                return (true, (factor, modulus / factor));
-            } else {
-                // Return a flag indicating we hit a trivial case and didn't get
-                // any factors.
-                Message($"Found trivial factors.");
-                return (false, (1, 1));
-            }
+                // Add a flag that we found the factors, and return only if computed
+                // non-trivial factors (not like 1:n or n:1)
+                if (factor != 1) and (factor != modulus) {
+                    Message($"Found factor={factor}");
+                    return (true, (factor, modulus / factor));
+                }
+            } 
+            // Return a flag indicating we hit a trivial case and didn't get
+            // any factors.
+            Message($"Found trivial factors.");
+            return (false, (1, 1));
         } else {
             // When period is odd we have to pick another generator to estimate
             // period of and start over.
@@ -297,7 +298,7 @@ namespace Sample {
 
     /// # Summary
     /// Interprets `target` as encoding unsigned little-endian integer k and
-    /// performs transformation |k⟩ ↦ |gᵖ⋅k mod N ⟩ where p is `power`, g is 
+    /// performs transformation |k⟩ ↦ |gᵖ⋅k mod N ⟩ where p is `power`, g is
     /// `generator` and N is `modulus`.
     ///
     /// # Input
@@ -359,7 +360,7 @@ namespace Sample {
     ///
     /// # Description
     /// Given the classical constants `c` and `modulus`, and an input quantum
-    /// register |𝑦⟩ in little-endian format, this operation computes 
+    /// register |𝑦⟩ in little-endian format, this operation computes
     /// `(c*x) % modulus` into |𝑦⟩.
     ///
     /// # Input
@@ -455,7 +456,7 @@ namespace Sample {
     /// Constant number to add to |𝑦⟩.
     /// ## y
     /// Quantum register of second summand and target; must not be empty.
-    operation AddConstant(c : Int, y : Qubit[]): Unit is Adj + Ctl {
+    operation AddConstant(c : Int, y : Qubit[]) : Unit is Adj + Ctl {
         // We are using this version instead of the library version that is
         // based on Fourier angles to show an advantage of sparse simulation
         // in this sample.

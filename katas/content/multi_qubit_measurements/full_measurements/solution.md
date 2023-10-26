@@ -7,7 +7,7 @@ First, we measure both qubits in the input array and store the result in `m1` an
 In other words, we treat the measurement results as the binary notation of the return value in big endian notation.
 
 @[solution]({
-"id": "full_measurements_solution",
+"id": "multi_qubit_measurements__full_measurements_solution",
 "codePath": "solution.qs"
 })
 
@@ -18,6 +18,6 @@ We can generalize this code to read out an integer in big endian notation from a
 * `ResultArrayAsInt` converts an array of bits given as `Result` to an integer, assuming little-endian notation (that's why we have to reverse the array before converting it).
 
 @[solution]({
-"id": "full_measurements_solution_alt",
+"id": "multi_qubit_measurements__full_measurements_solution_alt",
 "codePath": "solution_alt.qs"
 })

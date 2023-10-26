@@ -4,22 +4,22 @@
 #[cfg(test)]
 mod tests;
 
-use std::{collections::HashSet, mem::take};
+use std::mem::take;
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableDecl, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Res, Stmt,
+        Block, Expr, ExprKind, Ident, Mutability, NodeId, Package, Pat, PatKind, Res, Stmt,
         StmtKind,
     },
     mut_visit::{self, MutVisitor},
     ty::Ty,
     visit::{self, Visitor},
 };
+use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 use crate::{
@@ -47,41 +47,17 @@ pub enum Error {
 
 /// Generates adjoint inverted blocks for within-blocks across all conjugate expressions,
 /// eliminating the conjugate expression from the compilation unit.
-pub(super) fn invert_conjugate_exprs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
-    let mut pass = ConjugateElim {
-        core,
-        assigner: &mut unit.assigner,
-        errors: Vec::new(),
-    };
-    pass.visit_package(&mut unit.package);
-    pass.errors
-}
-
-pub(super) fn invert_conjugate_exprs_for_callable(
+pub(super) fn invert_conjugate_exprs(
     core: &Table,
+    package: &mut Package,
     assigner: &mut Assigner,
-    decl: &mut CallableDecl,
 ) -> Vec<Error> {
     let mut pass = ConjugateElim {
         core,
         assigner,
         errors: Vec::new(),
     };
-    pass.visit_callable_decl(decl);
-    pass.errors
-}
-
-pub(super) fn invert_conjugate_exprs_for_stmt(
-    core: &Table,
-    assigner: &mut Assigner,
-    stmt: &mut Stmt,
-) -> Vec<Error> {
-    let mut pass = ConjugateElim {
-        core,
-        assigner,
-        errors: Vec::new(),
-    };
-    pass.visit_stmt(stmt);
+    pass.visit_package(package);
     pass.errors
 }
 
@@ -96,7 +72,7 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
         match take(&mut expr.kind) {
             ExprKind::Conjugate(within, apply) => {
                 let mut usage = Usage {
-                    used: HashSet::new(),
+                    used: FxHashSet::default(),
                 };
                 usage.visit_block(&within);
                 let mut assign_check = AssignmentCheck {
@@ -204,7 +180,7 @@ impl ConjugateElim<'_> {
 }
 
 struct Usage {
-    used: HashSet<NodeId>,
+    used: FxHashSet<NodeId>,
 }
 
 impl<'a> Visitor<'a> for Usage {
@@ -219,7 +195,7 @@ impl<'a> Visitor<'a> for Usage {
 }
 
 struct AssignmentCheck {
-    used: HashSet<NodeId>,
+    used: FxHashSet<NodeId>,
     errors: Vec<Error>,
 }
 

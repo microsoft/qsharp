@@ -2,8 +2,8 @@ namespace Kata {
     open Microsoft.Quantum.Arrays;
 
     operation ArbitraryBitPattern_Oracle_Challenge(
-        x: Qubit[],
-        pattern: Bool[])
+        x : Qubit[],
+        pattern : Bool[])
     : Unit is Adj + Ctl {
         within {
             for i in IndexRange(x) {

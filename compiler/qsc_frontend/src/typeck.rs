@@ -15,14 +15,15 @@ use qsc_hir::{
     hir::{CallableKind, ItemId},
     ty::{FunctorSet, GenericArg, Ty, Udt},
 };
-use std::{collections::HashMap, fmt::Debug};
+use rustc_hash::FxHashMap;
+use std::fmt::Debug;
 use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Table {
-    pub udts: HashMap<ItemId, Udt>,
+    pub udts: FxHashMap<ItemId, Udt>,
 
     // AST nodes that get mapped to types are Expr, Block, Pat, and QubitInit nodes
     pub terms: IndexMap<NodeId, Ty>,

@@ -11,7 +11,7 @@ use crate::{
     typeck::convert::{self, MissingTyError},
 };
 use qsc_ast::{
-    ast::{self, NodeId},
+    ast::{self, NodeId, TopLevelNode},
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -19,19 +19,20 @@ use qsc_hir::{
     hir::{self, ItemId, PackageId},
     ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
-use std::{collections::HashMap, vec};
+use rustc_hash::FxHashMap;
+use std::vec;
 
 pub(crate) struct GlobalTable {
-    udts: HashMap<ItemId, Udt>,
-    terms: HashMap<ItemId, Scheme>,
+    udts: FxHashMap<ItemId, Udt>,
+    terms: FxHashMap<ItemId, Scheme>,
     errors: Vec<Error>,
 }
 
 impl GlobalTable {
     pub(crate) fn new() -> Self {
         Self {
-            udts: HashMap::new(),
-            terms: HashMap::new(),
+            udts: FxHashMap::default(),
+            terms: FxHashMap::default(),
             errors: Vec::new(),
         }
     }
@@ -44,11 +45,14 @@ impl GlobalTable {
             };
 
             match &item.kind {
-                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.scheme()),
+                hir::ItemKind::Callable(decl) => {
+                    self.terms.insert(item_id, decl.scheme().with_package(id))
+                }
                 hir::ItemKind::Namespace(..) => None,
                 hir::ItemKind::Ty(_, udt) => {
                     self.udts.insert(item_id, udt.clone());
-                    self.terms.insert(item_id, udt.cons_scheme(item_id))
+                    self.terms
+                        .insert(item_id, udt.cons_scheme(item_id).with_package(id))
                 }
             };
         }
@@ -56,7 +60,7 @@ impl GlobalTable {
 }
 
 pub(crate) struct Checker {
-    globals: HashMap<ItemId, Scheme>,
+    globals: FxHashMap<ItemId, Scheme>,
     table: Table,
     inferrer: Inferrer,
     new: Vec<NodeId>,
@@ -102,11 +106,18 @@ impl Checker {
                 entry,
             ));
         }
-    }
 
-    pub(crate) fn check_namespace(&mut self, names: &Names, namespace: &ast::Namespace) {
-        ItemCollector::new(self, names).visit_namespace(namespace);
-        ItemChecker::new(self, names).visit_namespace(namespace);
+        for top_level_node in &*package.nodes {
+            if let TopLevelNode::Stmt(stmt) = top_level_node {
+                self.new.append(&mut rules::stmt(
+                    names,
+                    &self.globals,
+                    &mut self.table,
+                    &mut self.inferrer,
+                    stmt,
+                ));
+            }
+        }
     }
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
@@ -162,19 +173,6 @@ impl Checker {
             &self.globals,
             &mut self.table,
             spec,
-        ));
-    }
-
-    pub(crate) fn check_stmt_fragment(&mut self, names: &Names, stmt: &ast::Stmt) {
-        ItemCollector::new(self, names).visit_stmt(stmt);
-        ItemChecker::new(self, names).visit_stmt(stmt);
-
-        self.new.append(&mut rules::stmt_fragment(
-            names,
-            &self.globals,
-            &mut self.table,
-            &mut self.inferrer,
-            stmt,
         ));
     }
 

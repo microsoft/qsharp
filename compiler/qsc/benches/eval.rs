@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use qsc::interpret::stateless;
+use qsc::{interpret::stateful, PackageType, TargetProfile};
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;
 
@@ -13,12 +13,13 @@ const LARGE: &str = include_str!("./large.qs");
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
         let sources = SourceMap::new([("Teleportation.qs".into(), TELEPORT.into())], None);
-        let evaluator = stateless::Interpreter::new(true, sources).expect("code should compile");
+        let mut evaluator =
+            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+                .expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.new_eval_context();
-            assert!(eval_ctx.eval_entry(&mut rec).is_ok());
+            assert!(evaluator.eval_entry(&mut rec).is_ok());
         })
     });
 }
@@ -26,12 +27,13 @@ pub fn teleport(c: &mut Criterion) {
 pub fn deutsch_jozsa(c: &mut Criterion) {
     c.bench_function("Deutsch-Jozsa evaluation", |b| {
         let sources = SourceMap::new([("DeutschJozsa.qs".into(), DEUTSCHJOZSA.into())], None);
-        let evaluator = stateless::Interpreter::new(true, sources).expect("code should compile");
+        let mut evaluator =
+            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+                .expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.new_eval_context();
-            assert!(eval_ctx.eval_entry(&mut rec).is_ok());
+            assert!(evaluator.eval_entry(&mut rec).is_ok());
         })
     });
 }
@@ -39,12 +41,13 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
 pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large file parity evaluation", |b| {
         let sources = SourceMap::new([("large.qs".into(), LARGE.into())], None);
-        let evaluator = stateless::Interpreter::new(true, sources).expect("code should compile");
+        let mut evaluator =
+            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+                .expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
-            let mut eval_ctx = evaluator.new_eval_context();
-            assert!(eval_ctx.eval_entry(&mut rec).is_ok());
+            assert!(evaluator.eval_entry(&mut rec).is_ok());
         })
     });
 }

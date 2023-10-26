@@ -7,6 +7,6 @@ $$
 $$
 
 @[solution]({
-    "id": "y_gate_solution",
+    "id": "single_qubit_gates__y_gate_solution",
     "codePath": "./Solution.qs"
 })

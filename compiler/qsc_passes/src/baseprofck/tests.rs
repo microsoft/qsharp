@@ -63,10 +63,16 @@ fn result_comparison_error() {
         }"},
         &expect![[r#"
             [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 78,
+                    },
+                ),
                 ResultComparison(
                     Span {
-                        lo: 42,
-                        hi: 54,
+                        lo: 41,
+                        hi: 53,
                     },
                 ),
             ]
@@ -82,14 +88,14 @@ fn result_literal_error() {
             [
                 ResultLiteral(
                     Span {
-                        lo: 2,
-                        hi: 5,
+                        lo: 1,
+                        hi: 4,
                     },
                 ),
                 ResultLiteral(
                     Span {
-                        lo: 7,
-                        hi: 11,
+                        lo: 6,
+                        hi: 10,
                     },
                 ),
             ]
@@ -110,8 +116,28 @@ fn non_result_return_error() {
             [
                 ReturnNonResult(
                     Span {
-                        lo: 1,
-                        hi: 55,
+                        lo: 0,
+                        hi: 54,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn unit_return_error() {
+    check(
+        indoc! {"{
+            operation Foo() : Unit {}
+            Foo()
+        }"},
+        &expect![[r#"
+            [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 43,
                     },
                 ),
             ]
@@ -129,10 +155,16 @@ fn unsupported_intrsinsic_error() {
         }"},
         &expect![[r#"
             [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 62,
+                    },
+                ),
                 UnsupportedIntrinsic(
                     Span {
-                        lo: 17,
-                        hi: 21,
+                        lo: 16,
+                        hi: 20,
                     },
                 ),
             ]

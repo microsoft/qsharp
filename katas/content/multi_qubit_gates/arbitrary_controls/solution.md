@@ -8,20 +8,20 @@ Finally, we'll need to remember to undo (\"uncompute\") the first step, otherwis
 As you can see in the first cell below, this can take quite some coding.
 
 @[solution]({
-    "id": "arbitrary_controlled_solution_a",
+    "id": "multi_qubit_gates__arbitrary_controlled_solution_a",
     "codePath": "./SolutionA.qs"
 })
 
 We can shorten the code a bit using the `within ... apply` construct which takes care of uncomputing the steps done in the first code block automatically:
 
 @[solution]({
-    "id": "arbitrary_controlled_solution_b",
+    "id": "multi_qubit_gates__arbitrary_controlled_solution_b",
     "codePath": "./SolutionB.qs"
 })
 
-Finally, here is how the exact same task could be realized using the library function [ApplyControlledOnBitString](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring).
+Finally, here is how the exact same task could be realized using the library function <a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring" target="_blank">ApplyControlledOnBitString</a>.
 
 @[solution]({
-    "id": "arbitrary_controlled_solution_c",
+    "id": "multi_qubit_gates__arbitrary_controlled_solution_c",
     "codePath": "./SolutionC.qs"
 })

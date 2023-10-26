@@ -6,5 +6,5 @@ Two integers $min$ and $max$ ($0 \leq min \leq max \leq 2^{10}-1$).
 **Goal:** Generate a random number in the range $[min, max]$ with an equal probability of getting each of the numbers in this range.
 
 > Useful Q# documentation: 
-> * [`BitSizeI` function](https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei)
+> * <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei" target="_blank">`BitSizeI` function</a>
 

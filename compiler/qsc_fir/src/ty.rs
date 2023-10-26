@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use indenter::{indented, Format, Indented};
+use indenter::{indented, Indented};
 use qsc_data_structures::span::Span;
+use rustc_hash::FxHashMap;
 
 use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
-    collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
 };
@@ -15,14 +15,12 @@ fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
 ) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// A type.
@@ -111,7 +109,7 @@ impl Scheme {
     /// Returns an error if the given arguments do not match the scheme parameters.
     pub fn instantiate(&self, args: &[GenericArg]) -> Result<Arrow, InstantiationError> {
         if args.len() == self.params.len() {
-            let args: HashMap<_, _> = self
+            let args: FxHashMap<_, _> = self
                 .params
                 .iter()
                 .enumerate()
@@ -472,10 +470,14 @@ impl Udt {
     fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
         let mut udt_def = &self.definition;
         for &index in &path.indices {
-            let UdtDefKind::Tuple(items) = &udt_def.kind else { return None };
+            let UdtDefKind::Tuple(items) = &udt_def.kind else {
+                return None;
+            };
             udt_def = &items[index];
         }
-        let UdtDefKind::Field(field) = &udt_def.kind else { return None };
+        let UdtDefKind::Field(field) = &udt_def.kind else {
+            return None;
+        };
         Some(field)
     }
 
@@ -544,7 +546,7 @@ impl Display for UdtDefKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for t in ts.iter() {
+                    for t in ts {
                         write!(indent, "\n{t}")?;
                     }
                 }

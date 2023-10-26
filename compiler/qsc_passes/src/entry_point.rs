@@ -7,7 +7,6 @@ mod tests;
 use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
@@ -42,15 +41,18 @@ pub enum Error {
 
 // If no entry expression is provided, generate one from the entry point callable.
 // Only one callable should be annotated with the entry point attribute.
-pub(super) fn generate_entry_expr(unit: &mut CompileUnit) -> Vec<super::Error> {
-    if unit.package.entry.is_some() {
+pub(super) fn generate_entry_expr(
+    package: &mut Package,
+    assigner: &mut Assigner,
+) -> Vec<super::Error> {
+    if package.entry.is_some() {
         return vec![];
     }
-    let callables = get_callables(&unit.package);
+    let callables = get_callables(package);
 
-    match create_entry_from_callables(&mut unit.assigner, callables) {
+    match create_entry_from_callables(assigner, callables) {
         Ok(expr) => {
-            unit.package.entry = Some(expr);
+            package.entry = Some(expr);
             vec![]
         }
         Err(errs) => errs,

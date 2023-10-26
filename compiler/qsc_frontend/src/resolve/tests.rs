@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 use super::{Error, Names, Res};
-use crate::resolve::Resolver;
+use crate::{compile, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Ident, NodeId, Package, Path},
+    ast::{Ident, NodeId, Package, Path, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -85,15 +85,24 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
-        namespaces: namespaces.into_boxed_slice(),
+        nodes: namespaces
+            .into_iter()
+            .map(TopLevelNode::Namespace)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         entry: None,
     };
 
     AstAssigner::new().visit_package(&mut package);
+
+    let mut cond_compile = compile::preprocess::Conditional::new(compile::TargetProfile::Full);
+    cond_compile.visit_package(&mut package);
+    let dropped_names = cond_compile.into_names();
+
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(&mut assigner).visit_package(&package);
     let (names, mut resolve_errors) = resolver.into_names();
     errors.append(&mut resolve_errors);
@@ -515,7 +524,7 @@ fn spec_param() {
 }
 
 #[test]
-fn spec_param_shadow() {
+fn spec_param_shadow_disallowed() {
     check(
         indoc! {"
             namespace Foo {
@@ -540,6 +549,8 @@ fn spec_param_shadow() {
                     }
                 }
             }
+
+            // DuplicateBinding("qs", Span { lo: 78, hi: 80 })
         "#]],
     );
 }
@@ -668,6 +679,90 @@ fn open_alias_shadows_global() {
                     item1();
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_parameters() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo(x: Int, y: Double, x: Bool) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1(local8: Int, local13: Double, local18: Bool) : Unit {}
+            }
+
+            // DuplicateBinding("x", Span { lo: 54, hi: 55 })
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_local_binding() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit {
+                    let (first, second, first) = (1, 2, 3);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    let (local14, local16, local18) = (1, 2, 3);
+                }
+            }
+
+            // DuplicateBinding("first", Span { lo: 74, hi: 79 })
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_for_loop() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit {
+                    for (key, val, key) in [(1, 1, 1)] {}
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    for (local15, local17, local19) in [(1, 1, 1)] {}
+                }
+            }
+
+            // DuplicateBinding("key", Span { lo: 69, hi: 72 })
+        "#]],
+    );
+}
+
+#[test]
+fn shadowing_disallowed_within_lambda_param() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit {
+                    let f = (x, y, x) -> x + y + 1;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    let local13 = (local17, local19, local21) -> local21 + local19 + 1;
+                }
+            }
+
+            // DuplicateBinding("x", Span { lo: 69, hi: 70 })
         "#]],
     );
 }
@@ -1742,6 +1837,32 @@ fn bind_items_in_qubit_use_block() {
 }
 
 #[test]
+fn use_bound_item_in_another_bound_item() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    function C() : Unit {
+                        D();
+                    }
+                    function D() : Unit {}
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    function item2() : Unit {
+                        item3();
+                    }
+                    function item3() : Unit {}
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn use_unbound_generic() {
     check(
         indoc! {"
@@ -1779,6 +1900,89 @@ fn resolve_local_generic() {
                     local9
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_callable() {
+    check(
+        indoc! {"
+            namespace A {
+                @Config(Base)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                @Config(Base)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 100, hi: 107 })
+        "#]],
+    );
+}
+
+#[test]
+fn multiple_definition_dropped_is_not_found() {
+    check(
+        indoc! {"
+            namespace A {
+                @Config(Full)
+                operation B() : Unit {}
+                @Config(Base)
+                operation B() : Unit {}
+                @Config(Base)
+                operation C() : Unit {}
+                @Config(Full)
+                operation C() : Unit {}
+            }
+            namespace D {
+                operation E() : Unit {
+                    B();
+                    C();
+                }
+                operation F() : Unit {
+                    open A;
+                    B();
+                    C();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                @Config(Full)
+                operation item1() : Unit {}
+                @Config(Base)
+                operation B() : Unit {}
+                @Config(Base)
+                operation C() : Unit {}
+                @Config(Full)
+                operation item2() : Unit {}
+            }
+            namespace item3 {
+                operation item4() : Unit {
+                    B();
+                    C();
+                }
+                operation item5() : Unit {
+                    open A;
+                    item1();
+                    item2();
+                }
+            }
+
+            // NotFound("B", Span { lo: 249, hi: 250 })
+            // NotFound("C", Span { lo: 262, hi: 263 })
         "#]],
     );
 }

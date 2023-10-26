@@ -10,7 +10,7 @@ __pycache__/
 .venv/
 /compiler/
 /jupyterlab/lib/
-/jupyterlab/qsharp_jupyterlab/labextension/
+/jupyterlab/qsharp-jupyterlab/labextension/
 /katas/**/*.md
 /library/
 /npm/dist/
@@ -21,4 +21,5 @@ __pycache__/
 /samples/
 /target/
 /vscode/out/
+/vscode/test/out/
 /wasm/

@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     /// # Summary
-    /// Applies the Hadamard transformation to a single qubit.x
+    /// Applies the Hadamard transformation to a single qubit.
     ///
     /// # Input
     /// ## qubit

@@ -35,9 +35,9 @@ namespace Sample {
     /// Implements Grover's algorithm, which searches all possible inputs to an
     /// operation to find a particular marked state.
     operation GroverSearch(
-        nQubits: Int,
-        iterations: Int,
-        phaseOracle: Qubit[] => Unit): Result[] {
+        nQubits : Int,
+        iterations : Int,
+        phaseOracle : Qubit[] => Unit) : Result[] {
 
         use qubits = Qubit[nQubits];
 
@@ -90,7 +90,7 @@ namespace Sample {
     /// # Summary
     /// Given a register in the all-zeros state, prepares a uniform
     /// superposition over all basis states.
-    operation PrepareUniform(inputQubits : Qubit[]): Unit is Adj + Ctl {
+    operation PrepareUniform(inputQubits : Qubit[]) : Unit is Adj + Ctl {
         for q in inputQubits {
             H(q);
         }
@@ -98,13 +98,13 @@ namespace Sample {
 
     /// # Summary
     /// Reflects about the all-ones state.
-    operation ReflectAboutAllOnes(inputQubits : Qubit[]): Unit {
+    operation ReflectAboutAllOnes(inputQubits : Qubit[]) : Unit {
         Controlled Z(Most(inputQubits), Tail(inputQubits));
     }
 
     /// # Summary
     /// Reflects about the uniform superposition state.
-    operation ReflectAboutUniform(inputQubits : Qubit[]): Unit {
+    operation ReflectAboutUniform(inputQubits : Qubit[]) : Unit {
         within {
             // Transform the uniform superposition to all-zero.
             Adjoint PrepareUniform(inputQubits);

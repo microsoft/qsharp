@@ -10,7 +10,7 @@ namespace QIR.Runtime {
         body intrinsic;
     }
 
-    operation AllocateQubitArray(size: Int) : Qubit[] {
+    operation AllocateQubitArray(size : Int) : Qubit[] {
         if size < 0 {
             fail "Cannot allocate qubit array with a negative length";
         }

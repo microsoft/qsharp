@@ -16,7 +16,7 @@ fn check(file: &str, expect: &Expect) {
     let mut unit = compile(&store, &[], sources, TargetProfile::Full);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let errors = generate_specs(store.core(), &mut unit);
+    let errors = generate_specs(store.core(), &mut unit.package, &mut unit.assigner);
     Validator::default().visit_package(&unit.package);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());

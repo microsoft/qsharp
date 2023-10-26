@@ -66,7 +66,7 @@ fn in_block_contains_std_functions() {
                             "0600FakeWithParam",
                         ),
                         detail: Some(
-                            "operation FakeWithParam(x: Int) : Unit",
+                            "operation FakeWithParam(x : Int) : Unit",
                         ),
                         additional_text_edits: Some(
                             [
@@ -311,6 +311,33 @@ fn top_level_contains_namespace() {
                         kind: Keyword,
                         sort_text: Some(
                             "0101namespace",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn attributes() {
+    check(
+        r#"
+        namespace Test {
+            ↘
+        }
+        "#,
+        &["@EntryPoint()"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "@EntryPoint()",
+                        kind: Property,
+                        sort_text: Some(
+                            "0201@EntryPoint()",
                         ),
                         detail: None,
                         additional_text_edits: None,

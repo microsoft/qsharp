@@ -23,5 +23,5 @@ represented by `pattern`.
 <br/>
 <details>
   <summary><b>Need a hint?</b></summary>
-  You need to flip the state of $|y\rangle$ if $|x\rangle$ matches the given pattern.  You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring">ControlledOnBitString</a> useful in your implementation.
+  You need to flip the state of $|y\rangle$ if $|x\rangle$ matches the given pattern.  You may find the Q# library function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring" target="_blank">ControlledOnBitString</a> useful in your implementation.
 </details>

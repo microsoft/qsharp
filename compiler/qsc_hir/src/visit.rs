@@ -48,6 +48,7 @@ pub trait Visitor<'a>: Sized {
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
     package.items.values().for_each(|i| vis.visit_item(i));
+    package.stmts.iter().for_each(|s| vis.visit_stmt(s));
     package.entry.iter().for_each(|e| vis.visit_expr(e));
 }
 

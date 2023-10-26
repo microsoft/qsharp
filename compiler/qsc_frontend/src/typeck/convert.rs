@@ -215,7 +215,7 @@ fn synthesize_functor_params_in_pat(
         }
         hir::PatKind::Tuple(items) => {
             let mut params = Vec::new();
-            for item in items.iter_mut() {
+            for item in &mut *items {
                 params.append(&mut synthesize_functor_params_in_pat(next_param, item));
             }
             if !params.is_empty() {

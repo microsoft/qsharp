@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    operation Or_Oracle_Reference(x: Qubit[], y: Qubit): Unit is Adj + Ctl {
+    operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);
         ApplyControlledOnInt(0, X, x, y);
     }

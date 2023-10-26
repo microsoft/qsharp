@@ -1,12 +1,13 @@
 namespace Kata.Verification {
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         Message("Testing one random bit generation...");
-        let result = RetryTestOperation(() => CheckUniformDistribution(Kata.RandomBit, 0, 1, 1000));
-        if result {
+        let randomnessVerifier = () => CheckUniformDistribution(Kata.RandomBit, 0, 1, 1000);
+        let isCorrect = IsSufficientlyRandom(randomnessVerifier);
+        if isCorrect {
             Message("All tests passed.");	
 	    }
-        result
+        isCorrect
     }
 
 }

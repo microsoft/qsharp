@@ -64,7 +64,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
             if let PatKind::Bind(id) = pat.kind {
                 let id = IdentTemplate {
                     id: id.id,
-                    span: id.span,
+                    span: stmt_span,
                     name: id.name,
                     ty: pat.ty,
                 };
@@ -308,14 +308,14 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
                 Some(s) => {
                     if let StmtKind::Expr(end) = &mut s.kind {
                         let end_capture = self.gen_ident(end.ty.clone(), end.span);
-                        *s = end_capture.gen_id_init(
+                        *s = end_capture.gen_steppable_id_init(
                             Mutability::Immutable,
                             take(end),
                             self.assigner,
                         );
                         Some(Stmt {
                             id: self.assigner.next_node(),
-                            span: s.span,
+                            span: Span::default(),
                             kind: StmtKind::Expr(end_capture.gen_local_ref(self.assigner)),
                         })
                     } else {
@@ -384,7 +384,7 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
 
     fn visit_stmt(&mut self, stmt: &mut Stmt) {
         // This function is not called by visit_block above, so the only time it will be used is for
-        // top-level statement fragments. Given that, the qubits allocated will always be live for
+        // top-level statements. Given that, the qubits allocated will always be live for
         // the entirety of a global scope, so only qubit allocations need to be generated.
         match stmt.kind.clone() {
             StmtKind::Qubit(_, pat, qubit_init, None) => {
@@ -500,10 +500,10 @@ fn create_general_dealloc_stmt(
 ) -> Stmt {
     Stmt {
         id: assigner.next_node(),
-        span: ident.span,
+        span: Span::default(),
         kind: StmtKind::Semi(Expr {
             id: assigner.next_node(),
-            span: ident.span,
+            span: Span::default(),
             ty: Ty::UNIT,
             kind: ExprKind::Call(Box::new(call_expr), Box::new(ident.gen_local_ref(assigner))),
         }),

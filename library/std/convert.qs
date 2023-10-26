@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Convert {
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
 
     /// # Summary
     /// Converts a given integer to an equivalent double-precision floating-point number.
@@ -164,6 +165,37 @@ namespace Microsoft.Quantum.Convert {
         }
 
         output
+    }
+
+    /// # Summary
+    /// Converts a complex number of type `Complex` to a complex
+    /// number of type `ComplexPolar`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = x + y𝑖.
+    ///
+    /// # Output
+    /// Complex number c = r⋅e^(t𝑖).
+    function ComplexAsComplexPolar (input : Complex) : ComplexPolar {
+        return ComplexPolar(AbsComplex(input), ArgComplex(input));
+    }
+
+    /// # Summary
+    /// Converts a complex number of type `ComplexPolar` to a complex
+    /// number of type `Complex`.
+    ///
+    /// # Input
+    /// ## input
+    /// Complex number c = r⋅e^(t𝑖).
+    ///
+    /// # Output
+    /// Complex number c = x + y𝑖.
+    function ComplexPolarAsComplex (input : ComplexPolar) : Complex {
+        return Complex(
+            input::Magnitude * Cos(input::Argument),
+            input::Magnitude * Sin(input::Argument)
+        );
     }
 
 }

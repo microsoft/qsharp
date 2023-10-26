@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
 
     // State preparation using partial measurements
-    operation RefImpl_T4(qs: Qubit[]): Unit is Adj {
+    operation RefImpl_T4(qs : Qubit[]) : Unit is Adj {
         // Rotate first qubit to (sqrt(2) |0⟩ + |1⟩) / sqrt(3)
         let theta = ArcSin(1.0 / Sqrt(3.0));
         Ry(2.0 * theta, qs[0]);
@@ -14,7 +14,7 @@ namespace Kata.Verification {
 
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         use qs = Qubit[2];
 
         // operate the test implementation

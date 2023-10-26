@@ -10,7 +10,7 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     debug::{map_hir_package_to_fir, Frame},
-    eval_expr, eval_stmt,
+    eval_expr,
     output::GenericReceiver,
     val::{GlobalId, Value},
     Env, Error, Global, NodeLookup, State,
@@ -27,6 +27,9 @@ const POSTFIX: &str = include_str!("./qir_base/postfix.ll");
 /// # Errors
 ///
 /// This function will return an error if execution was unable to complete.
+/// # Panics
+///
+/// This function will panic if compiler state is invalid or in out-of-memory conditions.
 pub fn generate_qir(
     store: &PackageStore,
     package: hir::PackageId,
@@ -35,7 +38,6 @@ pub fn generate_qir(
     let mut fir_store = IndexMap::new();
     let package = map_hir_package_to_fir(package);
     let mut sim = BaseProfSim::default();
-    sim.instrs.push_str(PREFIX);
 
     for (id, unit) in store.iter() {
         fir_store.insert(
@@ -60,35 +62,7 @@ pub fn generate_qir(
         &mut out,
     );
     match result {
-        Ok(val) => {
-            sim.write_output_recording(&val)
-                .expect("writing to string should succeed");
-            sim.instrs.push_str(POSTFIX);
-            Ok(sim.instrs)
-        }
-        Err((err, stack)) => Err((err, stack)),
-    }
-}
-
-/// # Errors
-/// This function will return an error if execution was unable to complete.
-pub fn generate_qir_for_stmt(
-    stmt: StmtId,
-    globals: &impl NodeLookup,
-    env: &mut Env,
-    package: PackageId,
-) -> std::result::Result<String, (Error, Vec<Frame>)> {
-    let mut sim = BaseProfSim::default();
-    sim.instrs.push_str(PREFIX);
-    let mut stdout = std::io::sink();
-    let mut out = GenericReceiver::new(&mut stdout);
-    match eval_stmt(stmt, globals, env, &mut sim, package, &mut out) {
-        Ok(val) => {
-            sim.write_output_recording(&val)
-                .expect("writing to string should succeed");
-            sim.instrs.push_str(POSTFIX);
-            Ok(sim.instrs)
-        }
+        Ok(val) => Ok(sim.finish(&val)),
         Err((err, stack)) => Err((err, stack)),
     }
 }
@@ -148,14 +122,37 @@ pub(super) fn get_global(
         })
 }
 
-#[derive(Default)]
-struct BaseProfSim {
+pub struct BaseProfSim {
     next_meas_id: usize,
     sim: QuantumSim,
     instrs: String,
 }
 
+impl Default for BaseProfSim {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BaseProfSim {
+    #[must_use]
+    pub fn new() -> Self {
+        let mut sim = BaseProfSim {
+            next_meas_id: 0,
+            sim: QuantumSim::new(),
+            instrs: String::new(),
+        };
+        sim.instrs.push_str(PREFIX);
+        sim
+    }
+
+    pub fn finish(mut self, val: &Value) -> String {
+        self.write_output_recording(val)
+            .expect("writing to string should succeed");
+        self.instrs.push_str(POSTFIX);
+        self.instrs
+    }
+
     #[must_use]
     fn get_meas_id(&mut self) -> usize {
         let id = self.next_meas_id;
@@ -266,7 +263,7 @@ impl Backend for BaseProfSim {
         let id = self.get_meas_id();
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__mz__body({}, {}) #1",
+            "  call void @__quantum__qis__m__body({}, {}) #1",
             Qubit(q),
             Result(id),
         )
@@ -278,12 +275,11 @@ impl Backend for BaseProfSim {
         let id = self.get_meas_id();
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__mz__body({}, {}) #1",
+            "  call void @__quantum__qis__mresetz__body({}, {}) #1",
             Qubit(q),
             Result(id),
         )
         .expect("writing to string should succeed");
-        self.reset(q);
         id
     }
 
@@ -299,7 +295,8 @@ impl Backend for BaseProfSim {
     fn rx(&mut self, theta: f64, q: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rx__body(double {theta}, {})",
+            "  call void @__quantum__qis__rx__body({}, {})",
+            Double(theta),
             Qubit(q),
         )
         .expect("writing to string should succeed");
@@ -308,7 +305,8 @@ impl Backend for BaseProfSim {
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rxx__body(double {theta}, {}, {})",
+            "  call void @__quantum__qis__rxx__body({}, {}, {})",
+            Double(theta),
             Qubit(q0),
             Qubit(q1),
         )
@@ -318,7 +316,8 @@ impl Backend for BaseProfSim {
     fn ry(&mut self, theta: f64, q: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__ry__body(double {theta}, {})",
+            "  call void @__quantum__qis__ry__body({}, {})",
+            Double(theta),
             Qubit(q),
         )
         .expect("writing to string should succeed");
@@ -327,7 +326,8 @@ impl Backend for BaseProfSim {
     fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__ryy__body(double {theta}, {}, {})",
+            "  call void @__quantum__qis__ryy__body({}, {}, {})",
+            Double(theta),
             Qubit(q0),
             Qubit(q1),
         )
@@ -337,7 +337,8 @@ impl Backend for BaseProfSim {
     fn rz(&mut self, theta: f64, q: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rz__body(double {theta}, {})",
+            "  call void @__quantum__qis__rz__body({}, {})",
+            Double(theta),
             Qubit(q),
         )
         .expect("writing to string should succeed");
@@ -346,7 +347,8 @@ impl Backend for BaseProfSim {
     fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
         writeln!(
             self.instrs,
-            "  call void @__quantum__qis__rzz__body(double {theta}, {}, {})",
+            "  call void @__quantum__qis__rzz__body({}, {}, {})",
+            Double(theta),
             Qubit(q0),
             Qubit(q1),
         )
@@ -443,6 +445,10 @@ impl Backend for BaseProfSim {
         // true to avoid a panic.
         true
     }
+
+    fn reinit(&mut self) {
+        *self = Self::default();
+    }
 }
 
 struct Qubit(usize);
@@ -458,5 +464,20 @@ struct Result(usize);
 impl Display for Result {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "%Result* inttoptr (i64 {} to %Result*)", self.0)
+    }
+}
+
+struct Double(f64);
+
+impl Display for Double {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let v = self.0;
+        if (v.floor() - v.ceil()).abs() < f64::EPSILON {
+            // The value is a whole number, which requires at least one decimal point
+            // to differentiate it from an integer value.
+            write!(f, "double {v:.1}")
+        } else {
+            write!(f, "double {v}")
+        }
     }
 }

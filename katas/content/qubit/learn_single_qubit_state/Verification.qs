@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         use q = Qubit();
 
         // Prepare the state that will be passed to the solution.

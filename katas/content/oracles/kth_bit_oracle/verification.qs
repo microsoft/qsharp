@@ -1,10 +1,10 @@
 namespace Kata.Verification {
-    operation KthBit_Oracle_Reference(x: Qubit[], k: Int): Unit is Adj + Ctl {
+    operation KthBit_Oracle_Reference(x : Qubit[], k : Int) : Unit is Adj + Ctl {
         Z(x[k]);
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         for N in 1..5 {
             for k in 0..(N-1) {
                 let isCorrect = CheckOperationsEqualReferenced(

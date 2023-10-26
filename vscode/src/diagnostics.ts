@@ -1,11 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, VSDiagnostic, qsharpLibraryUriScheme } from "qsharp";
+import {
+  ILanguageService,
+  VSDiagnostic,
+  qsharpLibraryUriScheme,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 
-export function startCheckingQSharp(languageService: ILanguageService) {
+export function startCheckingQSharp(
+  languageService: ILanguageService
+): vscode.Disposable[] {
   const diagCollection =
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
 
@@ -50,20 +56,41 @@ export function startCheckingQSharp(languageService: ILanguageService) {
             severity = vscode.DiagnosticSeverity.Information;
             break;
         }
-        return new vscode.Diagnostic(
+        const vscodeDiagnostic = new vscode.Diagnostic(
           new vscode.Range(getPosition(d.start_pos), getPosition(d.end_pos)),
           d.message,
           severity
         );
+        if (d.code) {
+          vscodeDiagnostic.code = d.code;
+        }
+        if (d.related) {
+          vscodeDiagnostic.relatedInformation = d.related.map((r) => {
+            return new vscode.DiagnosticRelatedInformation(
+              new vscode.Location(
+                vscode.Uri.parse(r.source),
+                new vscode.Range(
+                  getPosition(r.start_pos),
+                  getPosition(r.end_pos)
+                )
+              ),
+              r.message
+            );
+          });
+        }
+        return vscodeDiagnostic;
       })
     );
   }
 
   languageService.addEventListener("diagnostics", onDiagnostics);
 
-  return {
-    dispose: () => {
-      languageService.removeEventListener("diagnostics", onDiagnostics);
+  return [
+    {
+      dispose: () => {
+        languageService.removeEventListener("diagnostics", onDiagnostics);
+      },
     },
-  };
+    diagCollection,
+  ];
 }

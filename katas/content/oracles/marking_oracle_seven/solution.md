@@ -1,5 +1,5 @@
 @[solution]({
-    "id": "marking_oracle_seven_solution",
+    "id": "oracles__marking_oracle_seven_solution",
     "codePath": "solution.qs"
 })
 

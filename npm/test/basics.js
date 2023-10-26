@@ -3,7 +3,7 @@
 
 //@ts-check
 
-import assert from "node:assert";
+import assert from "node:assert/strict";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
 import {
@@ -432,7 +432,7 @@ test("cancel worker", () => {
       assert(cancelledArray.length === 2);
       assert(cancelledArray[0] === "terminated");
       assert(cancelledArray[1] === "terminated");
-      resolve(null);
+      resolve();
     }, 4);
   });
 });
@@ -468,8 +468,64 @@ test("language service diagnostics", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`,
-    true // PackageType "exe"
+}`
+  );
+  assert(gotDiagnostics);
+});
+
+test("diagnostics with related spans", async () => {
+  const languageService = getLanguageService();
+  let gotDiagnostics = false;
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.deepEqual(
+      {
+        code: "Qsc.Resolve.Ambiguous",
+        message:
+          "name error: `DumpMachine` could refer to the item in `Microsoft.Quantum.Diagnostics` or `Other`",
+        related: [
+          {
+            start_pos: 196,
+            end_pos: 207,
+            message: "ambiguous name",
+          },
+          {
+            start_pos: 87,
+            end_pos: 116,
+            message: "found in this namespace",
+          },
+          {
+            start_pos: 129,
+            end_pos: 134,
+            message: "and also in this namespace",
+          },
+        ],
+      },
+      {
+        code: event.detail.diagnostics[0].code,
+        message: event.detail.diagnostics[0].message,
+        related: event.detail.diagnostics[0].related?.map((r) => ({
+          start_pos: r.start_pos,
+          message: r.message,
+          end_pos: r.end_pos,
+        })),
+      }
+    );
+  });
+
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Other { operation DumpMachine() : Unit { } }
+    namespace Test {
+      open Microsoft.Quantum.Diagnostics;
+      open Other;
+      @EntryPoint()
+      operation Main() : Unit {
+        DumpMachine();
+      }
+    }`
   );
   assert(gotDiagnostics);
 });
@@ -496,12 +552,49 @@ test("language service diagnostics - web worker", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`,
-    true // PackageType "exe"
+}`
   );
   languageService.terminate();
   assert(gotDiagnostics);
 });
+
+test("language service configuration update", async () => {
+  const languageService = getLanguageServiceWorker();
+  let gotDiagnostics = false;
+  let expectedMessages = [
+    "entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+  ];
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
+    event.detail.diagnostics.map((d, i) =>
+      assert.equal(d.message, expectedMessages[i])
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    operation main() : Unit {
+    }
+}`
+  );
+  // Above document should have generated a missing entrypoint error
+  assert(gotDiagnostics);
+
+  // Reset expectations
+  gotDiagnostics = false;
+  expectedMessages = [];
+
+  await languageService.updateConfiguration({ packageType: "lib" });
+
+  languageService.terminate();
+
+  // Updating the config should cause another diagnostics event clearing the errors
+  assert(gotDiagnostics);
+});
+
 async function testCompilerError(useWorker) {
   const compiler = useWorker ? getCompilerWorker() : getCompiler();
   if (useWorker) {
@@ -560,9 +653,10 @@ test("debug service loading source without entry point attr fails - web worker",
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(false, result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
     debugService.terminate();
   }
@@ -576,9 +670,38 @@ test("debug service loading source with syntax error fails - web worker", async 
       `namespace Sample {
     operation main() : Result[]
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(false, result);
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with bad entry expr fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample { operation main() : Unit { } }`,
+      "SomeBadExpr()"
+    );
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source with good entry expr succeeds - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Sample { operation Main() : Unit { } }`,
+      "Sample.Main()"
+    );
+    assert.ok(typeof result === "string" && result.trim().length == 0);
   } finally {
     debugService.terminate();
   }
@@ -597,9 +720,10 @@ test("debug service loading source with entry point attr succeeds - web worker",
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(true, result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
   } finally {
     debugService.terminate();
   }
@@ -618,11 +742,12 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
+      undefined
     );
-    assert.equal(true, result);
+    assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
-    assert.equal(bps.length, 5);
+    assert.equal(bps.length, 4);
   } finally {
     debugService.terminate();
   }

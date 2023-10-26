@@ -3,6 +3,6 @@ We note that if we measure the first qubit in the computational basis, then an o
 Thus, if $ind=0$ and we measure $0$ or if $ind=1$ and we measure $1$, then after the measurement the second qubit will be in the desired state. On the other hand, if $ind=1$ and we measure $0$, or if $ind=0$ and we measure $1$, then the state of the second qubit after the measurement is not what we're looking for, but we can adjust it using the Pauli X gate.
 
 @[solution]({
-    "id": "state_modification_solution",
+    "id": "multi_qubit_measurements__state_modification_solution",
     "codePath": "solution.qs"
 })

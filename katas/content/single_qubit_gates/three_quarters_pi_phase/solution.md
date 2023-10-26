@@ -10,6 +10,6 @@ $$
 Note that $TS = ST$, so it doesn't matter in what order those gates are applied.
 
 @[solution]({
-    "id": "three_quarters_pi_solution",
+    "id": "single_qubit_gates__three_quarters_pi_solution",
     "codePath": "./Solution.qs"
 })

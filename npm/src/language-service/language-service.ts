@@ -3,11 +3,14 @@
 
 import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
-  IDiagnostic,
   ICompletionList,
   IHover,
   IDefinition,
+  ISignatureHelp,
   LanguageService,
+  IWorkspaceConfiguration,
+  IWorkspaceEdit,
+  ITextEdit,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -32,19 +35,30 @@ export type LanguageServiceEvent = {
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
-  updateDocument(
-    uri: string,
-    version: number,
-    code: string,
-    isExe: boolean
-  ): Promise<void>;
+  updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
+  updateDocument(uri: string, version: number, code: string): Promise<void>;
   closeDocument(uri: string): Promise<void>;
+
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
-  getHover(documentUri: string, offset: number): Promise<IHover | null>;
+  getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
   getDefinition(
     documentUri: string,
     offset: number
-  ): Promise<IDefinition | null>;
+  ): Promise<IDefinition | undefined>;
+  getSignatureHelp(
+    documentUri: string,
+    offset: number
+  ): Promise<ISignatureHelp | undefined>;
+  getRename(
+    documentUri: string,
+    offset: number,
+    newName: string
+  ): Promise<IWorkspaceEdit | undefined>;
+  prepareRename(
+    documentUri: string,
+    offset: number
+  ): Promise<ITextEdit | undefined>;
+
   dispose(): Promise<void>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
@@ -68,7 +82,7 @@ export class QSharpLanguageService implements ILanguageService {
     new EventTarget() as IServiceEventTarget<LanguageServiceEvent>;
 
   // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
-  private code: { [uri: string]: string } = {};
+  private code: { [uri: string]: string | undefined } = {};
 
   constructor(wasm: QscWasm) {
     log.info("Constructing a QSharpLanguageService instance");
@@ -77,14 +91,17 @@ export class QSharpLanguageService implements ILanguageService {
     );
   }
 
+  async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
+    this.languageService.update_configuration(config);
+  }
+
   async updateDocument(
     documentUri: string,
     version: number,
-    code: string,
-    isExe: boolean
+    code: string
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code, isExe);
+    this.languageService.update_document(documentUri, version, code);
   }
 
   async closeDocument(documentUri: string): Promise<void> {
@@ -97,11 +114,17 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number
   ): Promise<ICompletionList> {
     const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(
+        `getCompletions: expected ${documentUri} to be in the document map`
+      );
+      return { items: [] };
+    }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_completions(
       documentUri,
       convertedOffset
-    ) as ICompletionList;
+    );
     result.items.forEach((item) =>
       item.additionalTextEdits?.forEach((edit) => {
         const mappedSpan = mapUtf8UnitsToUtf16Units(
@@ -115,13 +138,17 @@ export class QSharpLanguageService implements ILanguageService {
     return result;
   }
 
-  async getHover(documentUri: string, offset: number): Promise<IHover | null> {
+  async getHover(
+    documentUri: string,
+    offset: number
+  ): Promise<IHover | undefined> {
     const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`getHover: expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    const result = this.languageService.get_hover(
-      documentUri,
-      convertedOffset
-    ) as IHover | null;
+    const result = this.languageService.get_hover(documentUri, convertedOffset);
     if (result) {
       const mappedSpan = mapUtf8UnitsToUtf16Units(
         [result.span.start, result.span.end],
@@ -136,13 +163,19 @@ export class QSharpLanguageService implements ILanguageService {
   async getDefinition(
     documentUri: string,
     offset: number
-  ): Promise<IDefinition | null> {
+  ): Promise<IDefinition | undefined> {
     let code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(
+        `getDefinition: expected ${documentUri} to be in the document map`
+      );
+      return undefined;
+    }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_definition(
       documentUri,
       convertedOffset
-    ) as IDefinition | null;
+    );
     if (result) {
       // Inspect the URL protocol (equivalent to the URI scheme + ":").
       // If the scheme is our library scheme, we need to call the wasm to
@@ -150,10 +183,107 @@ export class QSharpLanguageService implements ILanguageService {
       const url = new URL(result.source);
       if (url.protocol === qsharpLibraryUriScheme + ":") {
         code = wasm.get_library_source_content(url.pathname);
+        if (code === undefined) {
+          log.error(`getDefinition: expected ${url} to be in the library`);
+          return undefined;
+        }
       }
       result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
         result.offset
       ];
+    }
+    return result;
+  }
+
+  async getSignatureHelp(
+    documentUri: string,
+    offset: number
+  ): Promise<ISignatureHelp | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.get_signature_help(
+      documentUri,
+      convertedOffset
+    );
+    if (result) {
+      result.signatures = result.signatures.map((sig) => {
+        sig.parameters = sig.parameters.map((param) => {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [param.label.start, param.label.end],
+            sig.label
+          );
+          param.label.start = mappedSpan[param.label.start];
+          param.label.end = mappedSpan[param.label.end];
+          return param;
+        });
+        return sig;
+      });
+    }
+    return result;
+  }
+
+  async getRename(
+    documentUri: string,
+    offset: number,
+    newName: string
+  ): Promise<IWorkspaceEdit | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.get_rename(
+      documentUri,
+      convertedOffset,
+      newName
+    );
+
+    const mappedChanges: [string, ITextEdit[]][] = [];
+    for (const [uri, edits] of result.changes) {
+      const code = this.code[uri];
+      if (code) {
+        const mappedEdits = edits.map((edit) => {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [edit.range.start, edit.range.end],
+            code
+          );
+          edit.range.start = mappedSpan[edit.range.start];
+          edit.range.end = mappedSpan[edit.range.end];
+          return edit;
+        });
+        mappedChanges.push([uri, mappedEdits]);
+      }
+    }
+    result.changes = mappedChanges;
+    return result;
+  }
+
+  async prepareRename(
+    documentUri: string,
+    offset: number
+  ): Promise<ITextEdit | undefined> {
+    const code = this.code[documentUri];
+    if (code === undefined) {
+      log.error(`expected ${documentUri} to be in the document map`);
+      return undefined;
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.languageService.prepare_rename(
+      documentUri,
+      convertedOffset
+    );
+    if (result) {
+      const mappedSpan = mapUtf8UnitsToUtf16Units(
+        [result.range.start, result.range.end],
+        code
+      );
+      result.range.start = mappedSpan[result.range.start];
+      result.range.end = mappedSpan[result.range.end];
     }
     return result;
   }
@@ -176,14 +306,25 @@ export class QSharpLanguageService implements ILanguageService {
     this.eventHandler.removeEventListener(type, listener);
   }
 
-  onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
+  onDiagnostics(uri: string, version: number, diagnostics: VSDiagnostic[]) {
     try {
       const code = this.code[uri];
+      const empty = diagnostics.length === 0;
+      if (code === undefined && !empty) {
+        // We need the contents of the document to convert error offsets to utf16.
+        // But the contents aren't available after a document is closed.
+        // It is possible to get a diagnostics event after a document is closed,
+        // but it will be done with an empty array, to clear the diagnostics.
+        // In that case, it's ok not to have the document contents available,
+        // because there are no offsets to convert.
+        log.error(`onDiagnostics: expected ${uri} to be in the document map`);
+        return;
+      }
       const event = new Event("diagnostics") as LanguageServiceEvent & Event;
       event.detail = {
         uri,
         version,
-        diagnostics: mapDiagnostics(diagnostics, code),
+        diagnostics: empty ? [] : mapDiagnostics(diagnostics, code as string),
       };
       this.eventHandler.dispatchEvent(event);
     } catch (e) {

@@ -6,21 +6,21 @@ mod tests;
 
 use crate::{
     backend::Backend,
+    error::PackageSpan,
     output::Receiver,
     val::{self, Qubit, Value},
     Error,
 };
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
 use rand::Rng;
 use std::array;
 
 #[allow(clippy::too_many_lines)]
 pub(crate) fn call(
     name: &str,
-    name_span: Span,
+    name_span: PackageSpan,
     arg: Value,
-    arg_span: Span,
+    arg_span: PackageSpan,
     sim: &mut dyn Backend<ResultType = impl Into<val::Result>>,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {
@@ -35,12 +35,12 @@ pub(crate) fn call(
         "DumpMachine" => {
             let (state, qubit_count) = sim.capture_quantum_state();
             match out.state(state, qubit_count) {
-                Ok(_) => Ok(Value::unit()),
+                Ok(()) => Ok(Value::unit()),
                 Err(_) => Err(Error::OutputFail(name_span)),
             }
         }
         "Message" => match out.message(&arg.unwrap_string()) {
-            Ok(_) => Ok(Value::unit()),
+            Ok(()) => Ok(Value::unit()),
             Err(_) => Err(Error::OutputFail(name_span)),
         },
         "CheckZero" => Ok(Value::Bool(sim.qubit_is_zero(arg.unwrap_qubit().0))),
@@ -88,7 +88,7 @@ pub(crate) fn call(
                 sim.qubit_release(qubit);
                 Ok(Value::unit())
             } else {
-                Err(Error::ReleasedQubitNotZero(qubit))
+                Err(Error::ReleasedQubitNotZero(qubit, arg_span))
             }
         }
         "__quantum__qis__ccx__body" => {
@@ -123,7 +123,16 @@ pub(crate) fn call(
         "__quantum__qis__mresetz__body" => {
             Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0).into()))
         }
-        _ => Err(Error::UnknownIntrinsic(name.to_string(), name_span)),
+        _ => {
+            if let Some(result) = sim.custom_intrinsic(name, arg) {
+                match result {
+                    Ok(value) => Ok(value),
+                    Err(message) => Err(Error::IntrinsicFail(name.to_string(), message, name_span)),
+                }
+            } else {
+                Err(Error::UnknownIntrinsic(name.to_string(), name_span))
+            }
+        }
     }
 }
 
@@ -135,7 +144,7 @@ fn one_qubit_gate(mut gate: impl FnMut(usize), arg: Value) -> Value {
 fn two_qubit_gate(
     mut gate: impl FnMut(usize, usize),
     arg: Value,
-    arg_span: Span,
+    arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y] = unwrap_tuple(arg);
     if x == y {
@@ -155,7 +164,7 @@ fn one_qubit_rotation(mut gate: impl FnMut(f64, usize), arg: Value) -> Value {
 fn three_qubit_gate(
     mut gate: impl FnMut(usize, usize, usize),
     arg: Value,
-    arg_span: Span,
+    arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y, z] = unwrap_tuple(arg);
     if x == y || y == z || x == z {
@@ -169,7 +178,7 @@ fn three_qubit_gate(
 fn two_qubit_rotation(
     mut gate: impl FnMut(f64, usize, usize),
     arg: Value,
-    arg_span: Span,
+    arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y, z] = unwrap_tuple(arg);
     if y == z {

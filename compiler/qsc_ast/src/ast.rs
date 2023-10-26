@@ -19,14 +19,12 @@ fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
 ) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// The unique identifier for an AST node.
@@ -68,6 +66,12 @@ impl Display for NodeId {
     }
 }
 
+impl From<usize> for NodeId {
+    fn from(value: usize) -> Self {
+        Self(u32::try_from(value).expect("node ID should fit in u32"))
+    }
+}
+
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
         assert!(!value.is_default(), "default node ID should be replaced");
@@ -86,8 +90,7 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        assert!(!self.is_default(), "default node ID should be replaced");
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
@@ -109,8 +112,8 @@ impl Hash for NodeId {
 pub struct Package {
     /// The node ID.
     pub id: NodeId,
-    /// The namespaces in the package.
-    pub namespaces: Box<[Namespace]>,
+    /// The top-level syntax nodes in the package.
+    pub nodes: Box<[TopLevelNode]>,
     /// The entry expression for an executable package.
     pub entry: Option<Box<Expr>>,
 }
@@ -123,10 +126,28 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in self.namespaces.iter() {
-            write!(indent, "\n{ns}")?;
+        for node in &*self.nodes {
+            write!(indent, "\n{node}")?;
         }
         Ok(())
+    }
+}
+
+/// A node that can exist at the top level of a package.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TopLevelNode {
+    /// A namespace
+    Namespace(Namespace),
+    /// A statement
+    Stmt(Box<Stmt>),
+}
+
+impl Display for TopLevelNode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Namespace(n) => n.fmt(f),
+            Self::Stmt(s) => s.fmt(f),
+        }
     }
 }
 
@@ -162,7 +183,7 @@ impl Display for Namespace {
             indent = set_indentation(indent, 1);
         }
 
-        for i in self.items.iter() {
+        for i in &*self.items {
             write!(indent, "\n{i}")?;
         }
 
@@ -213,7 +234,7 @@ impl Display for Item {
             indent = set_indentation(indent, 1);
         }
 
-        for attr in self.attrs.iter() {
+        for attr in &*self.attrs {
             write!(indent, "\n{attr}")?;
         }
 
@@ -392,7 +413,7 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for param in self.generics.iter() {
+            for param in &*self.generics {
                 write!(indent, "\n{param}")?;
             }
             indent = set_indentation(indent, 1);
@@ -572,7 +593,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param(name) => write!(indent, "\nType Param {name}")?,
+            TyKind::Param(name) => write!(indent, "Type Param {name}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -610,7 +631,7 @@ impl Display for Block {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Block {} {}:", self.id, self.span)?;
             indent = set_indentation(indent, 1);
-            for s in self.stmts.iter() {
+            for s in &*self.stmts {
                 write!(indent, "\n{s}")?;
             }
         }

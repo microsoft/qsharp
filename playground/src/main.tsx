@@ -15,7 +15,7 @@ import {
   samples,
   getLanguageServiceWorker,
   ILanguageService,
-} from "qsharp";
+} from "qsharp-lang";
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
@@ -215,6 +215,9 @@ function registerMonacoLanguageServiceProviders(
             case "module":
               kind = monaco.languages.CompletionItemKind.Module;
               break;
+            case "property":
+              kind = monaco.languages.CompletionItemKind.Property;
+              break;
           }
           return {
             label: i.label,
@@ -241,6 +244,7 @@ function registerMonacoLanguageServiceProviders(
         }),
       };
     },
+    triggerCharacters: ["@"], // for attribute completions
   });
 
   monaco.languages.registerHoverProvider("qsharp", {
@@ -290,9 +294,109 @@ function registerMonacoLanguageServiceProviders(
           startLineNumber: definitionPosition.lineNumber,
           startColumn: definitionPosition.column,
           endLineNumber: definitionPosition.lineNumber,
-          endColumn: definitionPosition.column + 1,
+          endColumn: definitionPosition.column,
         },
       };
+    },
+  });
+
+  monaco.languages.registerSignatureHelpProvider("qsharp", {
+    signatureHelpTriggerCharacters: ["(", ","],
+    provideSignatureHelp: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      const sigHelpLs = await languageService.getSignatureHelp(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+      if (!sigHelpLs) return null;
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        dispose: () => {},
+        value: {
+          activeParameter: sigHelpLs.activeParameter,
+          activeSignature: sigHelpLs.activeSignature,
+          signatures: sigHelpLs.signatures.map((sig) => {
+            return {
+              label: sig.label,
+              documentation: {
+                value: sig.documentation,
+              } as monaco.IMarkdownString,
+              parameters: sig.parameters.map((param) => {
+                return {
+                  label: [param.label.start, param.label.end],
+                  documentation: {
+                    value: param.documentation,
+                  } as monaco.IMarkdownString,
+                };
+              }),
+            };
+          }),
+        },
+      };
+    },
+  });
+
+  monaco.languages.registerRenameProvider("qsharp", {
+    provideRenameEdits: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position,
+      newName: string
+    ) => {
+      const rename = await languageService.getRename(
+        model.uri.toString(),
+        model.getOffsetAt(position),
+        newName
+      );
+      if (!rename) return null;
+
+      const edits = rename.changes.flatMap(([uri, edits]) => {
+        return edits.map((edit) => {
+          const start = model.getPositionAt(edit.range.start);
+          const end = model.getPositionAt(edit.range.end);
+          const textEdit: monaco.languages.TextEdit = {
+            range: new monaco.Range(
+              start.lineNumber,
+              start.column,
+              end.lineNumber,
+              end.column
+            ),
+            text: edit.newText,
+          };
+          return {
+            resource: monaco.Uri.parse(uri),
+            textEdit: textEdit,
+          } as monaco.languages.IWorkspaceTextEdit;
+        });
+      });
+      return { edits: edits } as monaco.languages.WorkspaceEdit;
+    },
+    resolveRenameLocation: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position
+    ) => {
+      const prepareRename = await languageService.prepareRename(
+        model.uri.toString(),
+        model.getOffsetAt(position)
+      );
+      if (prepareRename) {
+        const start = model.getPositionAt(prepareRename.range.start);
+        const end = model.getPositionAt(prepareRename.range.end);
+        return {
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          text: prepareRename.newText,
+        } as monaco.languages.RenameLocation;
+      } else {
+        return {
+          rejectReason: "Rename is unavailable at this location.",
+        } as monaco.languages.RenameLocation & monaco.languages.Rejection;
+      }
     },
   });
 }

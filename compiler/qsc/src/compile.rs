@@ -1,17 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::error::WithSource;
 use miette::{Diagnostic, Report};
-use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::{
+    compile::{CompileUnit, PackageStore, SourceMap, TargetProfile},
+    error::WithSource,
+};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
 
+pub type Error = WithSource<ErrorKind>;
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub enum Error {
+pub enum ErrorKind {
     Frontend(#[from] qsc_frontend::compile::Error),
     Pass(#[from] qsc_passes::Error),
 }
@@ -27,12 +31,12 @@ pub fn compile(
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, target);
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
-        errors.push(error.into());
+        errors.push(WithSource::from_map(&unit.sources, error.into()));
     }
 
     if errors.is_empty() {
         for error in run_default_passes(store.core(), &mut unit, package_type, target) {
-            errors.push(error.into());
+            errors.push(WithSource::from_map(&unit.sources, error.into()));
         }
     }
 
@@ -52,7 +56,7 @@ pub fn core() -> CompileUnit {
         unit
     } else {
         for error in pass_errors {
-            let report = Report::new(WithSource::from_map(&unit.sources, error, None));
+            let report = Report::new(WithSource::from_map(&unit.sources, error));
             eprintln!("{report:?}");
         }
 
@@ -73,7 +77,7 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
         unit
     } else {
         for error in pass_errors {
-            let report = Report::new(WithSource::from_map(&unit.sources, error, None));
+            let report = Report::new(WithSource::from_map(&unit.sources, error));
             eprintln!("{report:?}");
         }
 

@@ -37,3 +37,7 @@ The following macros are available for katas composition:
 - @[section]: A kata is broken into multiple sections. This starts a new section. Exercises and Questions are their own sections.
     - id: Unique identifier for the section.
     - title: Title of the section.
+
+## Acknowledgements
+
+Content of these web-based katas is largely a port of the previous effort located in the [QuantumKatas](https://github.com/microsoft/QuantumKatas) repository. Please refer to that repository for a history of contributions.

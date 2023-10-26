@@ -4,31 +4,31 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
 
     // State selection using partial measurements
-    operation stateInitialize_StateSelction(alpha: Double, qs: Qubit[]): Unit {
+    operation stateInitialize_StateSelction(alpha : Double, qs : Qubit[]) : Unit {
         // Prepare the state to be input to the testImplementation
         // set the second qubit in a superposition a |0⟩ + b|1⟩
         // with a = cos alpha, b = sin alpha
-        Ry(2.0 * alpha, qs[1]); 
+        Ry(2.0 * alpha, qs[1]);
 
         H(qs[0]);
         // Apply CX gate
         CX(qs[0], qs[1]);
     }
 
-    operation statePrepare_StateSelction(alpha: Double, Choice: Int, qs: Qubit[]): Unit is Adj {
+    operation statePrepare_StateSelction(alpha : Double, Choice : Int, qs : Qubit[]) : Unit is Adj {
         // The expected state of the second qubit for the exercise.
 
         // set the second qubit in a superposition a |0⟩ + b|1⟩
         // with a = cos alpha, b = sin alpha
-        Ry(2.0 * alpha, qs[1]); 
-        if Choice == 1 { 
+        Ry(2.0 * alpha, qs[1]);
+        if Choice == 1 {
             // if the Choice is 1, change the state to b|0⟩ + a|1⟩
             X(qs[1]);
         }
     }
 
     @EntryPoint()
-    operation CheckSolution(): Bool {
+    operation CheckSolution() : Bool {
         use qs = Qubit[2];
         for i in 0 .. 5 {
             let alpha = (PI() * IntAsDouble(i)) / 5.0;
@@ -45,7 +45,7 @@ namespace Kata.Verification {
 
                 // apply adjoint reference operation and check that the result is correct
                 Adjoint statePrepare_StateSelction(alpha, Choice, qs);
-                
+
                 if not CheckAllZero(qs) {
                     ResetAll(qs);
                     return false;

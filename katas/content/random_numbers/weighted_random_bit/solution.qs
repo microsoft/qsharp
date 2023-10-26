@@ -1,7 +1,7 @@
 namespace Kata {
     open Microsoft.Quantum.Math;
 
-    operation WeightedRandomBit(x : Double): Int {
+    operation WeightedRandomBit(x : Double) : Int {
         // Calculate theta value.
         let theta = 2.0 *  ArcCos(Sqrt(x));  // (or) 2.0 * ArcSin(Sqrt(1.0 - x));
 

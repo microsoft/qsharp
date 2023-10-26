@@ -286,7 +286,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```qsharp
     /// X(q);
     /// ```
-    operation ApplyP(pauli: Pauli, target : Qubit): Unit is Adj + Ctl {
+    operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl {
         if   pauli == PauliX { X(target); }
         elif pauli == PauliY { Y(target); }
         elif pauli == PauliZ { Z(target); }
@@ -313,7 +313,7 @@ namespace Microsoft.Quantum.Canon {
     /// Z(target[1]);
     /// X(target[2]);
     /// ```
-    operation ApplyPauli(pauli: Pauli[], target: Qubit[]) : Unit is Adj + Ctl {
+    operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl {
         Fact(Length(pauli) == Length(target), "`pauli` and `target` must be of the same length.");
         for i in 0..Length(pauli)-1 {
             ApplyP(pauli[i], target[i]);
@@ -384,10 +384,10 @@ namespace Microsoft.Quantum.Canon {
     /// ApplyPauliFromBitString(PauliZ, false, n, qubits);
     /// ```
     operation ApplyPauliFromInt(
-        pauli: Pauli,
-        bitApply: Bool,
-        numberState: Int,
-        qubits: Qubit[]): Unit is Adj + Ctl {
+        pauli : Pauli,
+        bitApply : Bool,
+        numberState : Int,
+        qubits : Qubit[]) : Unit is Adj + Ctl {
 
         let length = Length(qubits);
         Fact(numberState >= 0, "number must be non-negative");
@@ -423,10 +423,10 @@ namespace Microsoft.Quantum.Canon {
     /// For example, `numberState = 537` means that `oracle`
     /// is applied if and only if `controlRegister` is in the state $\ket{537}$.
     operation ApplyControlledOnInt<'T>(
-        numberState: Int,
-        oracle: ('T => Unit is Adj + Ctl),
-        controlRegister: Qubit[],
-        target: 'T): Unit is Adj + Ctl {
+        numberState : Int,
+        oracle : ('T => Unit is Adj + Ctl),
+        controlRegister : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
 
         within {
             ApplyPauliFromInt(PauliX, false, numberState, controlRegister);
@@ -458,10 +458,10 @@ namespace Microsoft.Quantum.Canon {
     /// For example, `bits = [0,1,0,0,1]` means that `oracle` is applied if and only if `controlRegister`
     /// is in the state $\ket{0}\ket{1}\ket{0}\ket{0}\ket{1}$.
     operation ApplyControlledOnBitString<'T>(
-        bits: Bool[],
-        oracle: ('T => Unit is Adj + Ctl),
-        controlRegister: Qubit[],
-        target: 'T): Unit is Adj + Ctl {
+        bits : Bool[],
+        oracle : ('T => Unit is Adj + Ctl),
+        controlRegister : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
 
         // The control register must have enough bits to implement the requested control.
         Fact(Length(bits) <= Length(controlRegister), "Control register shorter than control pattern.");

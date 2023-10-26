@@ -2,7 +2,7 @@ namespace Kata {
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
-    operation RunExample(): Unit {
+    operation RunExample() : Unit {
         // This line allocates a qubit in state |0⟩.
         use q = Qubit();
         Message("State |0⟩:");
@@ -19,7 +19,7 @@ namespace Kata {
 
         // This line changes the qubit to state |-⟩ = (1/sqrt(2))(|0⟩ - |1⟩).
         // That is, this puts the qubit into a superposition where the absolute
-        // value of the probability amplitudes is 1/sqrt(2), which is 
+        // value of the probability amplitudes is 1/sqrt(2), which is
         // approximately 0.707107.
         H(q);
 

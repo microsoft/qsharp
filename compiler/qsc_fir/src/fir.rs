@@ -9,7 +9,7 @@
 #![warn(missing_docs)]
 
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
-use indenter::{indented, Format, Indented};
+use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
@@ -25,14 +25,12 @@ fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
 ) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// A unique identifier for an FIR node.
@@ -94,7 +92,7 @@ impl Eq for NodeId {}
 
 impl PartialOrd for NodeId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
@@ -180,7 +178,7 @@ macro_rules! fir_id {
 
         impl PartialOrd for $id {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                self.0.partial_cmp(&other.0)
+                Some(self.cmp(other))
             }
         }
 

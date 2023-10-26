@@ -1,5 +1,5 @@
-Suppose that you would like to schedule a meeting with your co-worker Jasmine. 
-You both work five day workweeks, and $|x\rangle$ and $|jasmine\rangle$ are 5-bit states represent your and Jasmine's schedules. 
+Suppose that you would like to schedule a meeting with your co-worker Jasmine.
+You both work five day workweeks, and $|x\rangle$ and $|jasmine\rangle$ are 5-bit states representing your and Jasmine's schedules.
 The schedules are indicators of a person being busy on that day: a $1$ bit means that person is busy on that day, and $0$ means they're free for a meeting that day. Implement a function that determines if you and Jasmine can schedule a meeting during the week, i.e., whether there is a day when both schedules have a $0$ simultaneously.
 
 **Inputs:**
@@ -16,7 +16,7 @@ Flip the state of $|y\rangle$ if you and Jasmine are both free on the same day f
 
 * If $|x\rangle=|10101\rangle$ and $|jasmine\rangle=|01010\rangle$, do nothing (there is no day on which you both are free).
 * If $|x\rangle=|10001\rangle$ and $|jasmine\rangle=|01010\rangle$, flip the state $|y\rangle$ (you are both free on Wednesday).
-* If $|x\rangle=|00000\rangle$ and $|jasmine\rangle=|00000\rangle$, flip the state $|z\rangle$ (you are both free all week).
+* If $|x\rangle=|00000\rangle$ and $|jasmine\rangle=|00000\rangle$, flip the state $|y\rangle$ (you are both free all week).
 * If $|x\rangle=|11111\rangle$ and $|jasmine\rangle=|11111\rangle$, do nothing (you are both busy all week).
     
 <br/>

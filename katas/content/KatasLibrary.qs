@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsEquivalence(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize: Int)
+        inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsEquivalenceStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize: Int)
+        inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsEquivalenceOnZeroState(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize: Int)
+        inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         use target = Qubit[inputSize];
@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsEquivalenceOnZeroStateStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize: Int)
+        inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         use control = Qubit();

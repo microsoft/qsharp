@@ -4,7 +4,8 @@
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, StringComponent, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -74,10 +75,10 @@ pub trait Visitor<'a>: Sized {
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
-    package
-        .namespaces
-        .iter()
-        .for_each(|n| vis.visit_namespace(n));
+    package.nodes.iter().for_each(|n| match n {
+        TopLevelNode::Namespace(ns) => vis.visit_namespace(ns),
+        TopLevelNode::Stmt(stmt) => vis.visit_stmt(stmt),
+    });
     package.entry.iter().for_each(|e| vis.visit_expr(e));
 }
 

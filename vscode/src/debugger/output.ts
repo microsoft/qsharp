@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget } from "qsharp";
+import { QscEventTarget } from "qsharp-lang";
 
 export function createDebugConsoleEventTarget(out: (message: string) => void) {
   const eventTarget = new QscEventTarget(false);

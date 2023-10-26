@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IDiagnostic } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
@@ -26,6 +25,7 @@ export interface ICompiler {
     shots: number,
     eventHandler: IQscEventTarget
   ): Promise<void>;
+  getQir(code: string): Promise<string>;
   checkExerciseSolution(
     user_code: string,
     exercise_sources: string[],
@@ -50,14 +50,18 @@ export class Compiler implements ICompiler {
    * @deprecated use the language service for errors and other editor features.
    */
   async checkCode(code: string): Promise<VSDiagnostic[]> {
-    let diags: IDiagnostic[] = [];
+    let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number, errors: IDiagnostic[]) => {
+      (uri: string, version: number, errors: VSDiagnostic[]) => {
         diags = errors;
       }
     );
-    languageService.update_document("code", 1, code, true /* exe */);
+    languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);
+  }
+
+  async getQir(code: string): Promise<string> {
+    return this.wasm.get_qir(code);
   }
 
   async getHir(code: string): Promise<string> {

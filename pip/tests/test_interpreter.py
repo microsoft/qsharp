@@ -135,8 +135,39 @@ def test_qirgen_compile_error() -> None:
     assert str(excinfo.value).startswith("Qsc.Resolve.NotFound") != -1
 
 
+def test_error_spans_from_multiple_lines() -> None:
+    e = Interpreter(TargetProfile.Full)
+
+    # Qsc.Resolve.Ambiguous is chosen as a test case
+    # because it contains multiple spans which can be from different lines
+    e.interpret("namespace Other { operation DumpMachine() : Unit { } }")
+    e.interpret("open Other;")
+    e.interpret("open Microsoft.Quantum.Diagnostics;")
+    with pytest.raises(QSharpError) as excinfo:
+        e.interpret("DumpMachine()")
+    assert str(excinfo.value).startswith("Qsc.Resolve.Ambiguous")
+
+
 def test_qirgen() -> None:
     e = Interpreter(TargetProfile.Base)
     e.interpret("operation Program() : Result { use q = Qubit(); return M(q) }")
     qir = e.qir("Program()")
     assert isinstance(qir, str)
+
+
+def test_run_with_shots() -> None:
+    e = Interpreter(TargetProfile.Full)
+
+    def callback(output):
+        nonlocal called
+        called += 1
+        assert output.__repr__() == "Hello, world!"
+
+    called = 0
+    e.interpret('operation Foo() : Unit { Message("Hello, world!"); }', callback)
+    assert called == 0
+
+    value = e.run("Foo()", 5, callback)
+    assert called == 5
+
+    assert value == [None, None, None, None, None]

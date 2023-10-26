@@ -6,9 +6,10 @@
 import { copyFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build } from "esbuild";
+import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
@@ -25,6 +26,7 @@ const buildOptions = {
   platform: "browser",
   target: ["es2020"],
   sourcemap: "linked",
+  //logLevel: "debug",
   define: { "import.meta.url": "undefined" },
 };
 
@@ -46,5 +48,30 @@ function buildBundle() {
   );
 }
 
-copyWasm();
-buildBundle();
+async function buildWatch() {
+  console.log("Building vscode extension in watch mode");
+
+  // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
+  /** @type {import("esbuild").Plugin} */
+  const buildPlugin = {
+    name: "Build Events",
+    setup(build) {
+      build.onStart(() => console.log("esbuild build started"));
+      build.onEnd(() => console.log("esbuild build complete"));
+    },
+  };
+  let ctx = await context({
+    ...buildOptions,
+    plugins: [buildPlugin],
+    color: false,
+  });
+
+  ctx.watch();
+}
+
+if (isWatch) {
+  buildWatch();
+} else {
+  copyWasm();
+  buildBundle();
+}

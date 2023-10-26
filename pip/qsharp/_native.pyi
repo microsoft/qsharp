@@ -49,6 +49,22 @@ class Interpreter:
         :raises QSharpError: If there is an error interpreting the input.
         """
         ...
+    def run(
+        self, entry_expr: str, shots: int, output_fn: Callable[[Output], None]
+    ) -> Any:
+        """
+        Runs the given Q# expressin for the given number of shots.
+        Each shot uses an independent instance of the simulator.
+
+        :param entry_expr: The entry expression.
+        :param shots: The number of shots to run.
+        :param output_fn: A callback function that will be called with each output.
+
+        :returns values: A list of results or runtime errors.
+
+        :raises QSharpError: If there is an error interpreting the input.
+        """
+        ...
     def qir(self, entry_expr: str) -> str:
         """
         Generates QIR from Q# source code.

@@ -5,6 +5,8 @@ use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
 
+use crate::val::Value;
+
 /// The trait that must be implemented by a quantum backend, whose functions will be invoked when
 /// quantum intrinsics are called.
 pub trait Backend {
@@ -36,6 +38,11 @@ pub trait Backend {
     fn qubit_release(&mut self, q: usize);
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize);
     fn qubit_is_zero(&mut self, q: usize) -> bool;
+    fn reinit(&mut self);
+
+    fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
+        None
+    }
 }
 
 /// Default backend used when targeting sparse simulation.
@@ -185,5 +192,9 @@ impl Backend for SparseSim {
 
     fn qubit_is_zero(&mut self, q: usize) -> bool {
         self.sim.qubit_is_zero(q)
+    }
+
+    fn reinit(&mut self) {
+        *self = Self::new();
     }
 }
