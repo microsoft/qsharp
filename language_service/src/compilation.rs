@@ -155,11 +155,7 @@ pub(crate) trait Lookup {
         this: hir::PackageId,
         item_id: &hir::ItemId,
     ) -> (&hir::Item, hir::PackageId, &hir::Package);
-    fn get_hir_res_item(
-        &self,
-        this: hir::PackageId,
-        res: &hir::Res,
-    ) -> (&hir::Item, PackageId, &hir::Package);
+    fn resolve_udt_res(&self, this: hir::PackageId, res: &hir::Res) -> (&hir::Item, PackageId);
 }
 
 impl Lookup for Compilation {
@@ -187,13 +183,16 @@ impl Lookup for Compilation {
         )
     }
 
-    fn get_hir_res_item(
+    fn resolve_udt_res(
         &self,
         package_id: hir::PackageId,
         res: &hir::Res,
-    ) -> (&hir::Item, hir::PackageId, &hir::Package) {
+    ) -> (&hir::Item, hir::PackageId) {
         match res {
-            hir::Res::Item(item_id) => self.find_item(package_id, item_id),
+            hir::Res::Item(item_id) => {
+                let (item, package_id, _) = self.find_item(package_id, item_id);
+                (item, package_id)
+            }
             _ => panic!("Expected res to be an item"),
         }
     }

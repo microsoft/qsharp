@@ -30,7 +30,7 @@ pub(crate) fn get_signature_help(
         compilation,
         offset,
         signature_help: None,
-        display: CodeDisplay { compilation },
+        display: CodeDisplay::new(compilation),
     };
 
     finder.visit_package(&ast.package);

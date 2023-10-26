@@ -214,18 +214,14 @@ impl CompletionListBuilder {
         // Reverse to collect symbols starting at the current package backwards
         all_except_core.reverse();
 
-        let get_callables = |package_id| {
-            Self::get_callables(
+        for (package_id, _) in &all_except_core {
+            self.push_sorted_completions(Self::get_callables(
                 compilation,
-                package_id,
+                *package_id,
                 opens,
                 start_of_namespace,
                 current_namespace_name.clone(),
-            )
-        };
-
-        for (package_id, _) in &all_except_core {
-            self.push_sorted_completions(get_callables(*package_id));
+            ));
         }
 
         self.push_sorted_completions(Self::get_core_callables(compilation, core));
@@ -307,7 +303,7 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package id should exist")
             .package;
-        let display = CodeDisplay { compilation };
+        let display = CodeDisplay::new(compilation);
 
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
@@ -393,7 +389,7 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package: &'a Package,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
-        let display = CodeDisplay { compilation };
+        let display = CodeDisplay::new(compilation);
 
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {

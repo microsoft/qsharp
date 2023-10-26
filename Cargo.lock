@@ -764,6 +764,7 @@ dependencies = [
  "qsc_hir",
  "qsc_passes",
  "qsc_project",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -817,6 +818,7 @@ dependencies = [
  "qsc_passes",
  "quantum-sparse-sim",
  "rand",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -827,6 +829,7 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -843,6 +846,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_hir",
  "qsc_parse",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -853,6 +857,7 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -879,6 +884,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_frontend",
  "qsc_hir",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -940,6 +946,7 @@ dependencies = [
  "miette",
  "qsc",
  "regex-lite",
+ "rustc-hash",
 ]
 
 [[package]]
