@@ -5,7 +5,8 @@ use expect_test::{expect, Expect};
 
 use super::{get_completions, CompletionItem};
 use crate::test_utils::{
-    compile_notebook_with_fake_stdlib, compile_with_fake_stdlib, get_source_and_marker_offsets,
+    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
+    get_source_and_marker_offsets,
 };
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
@@ -25,31 +26,14 @@ fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expec
     expect.assert_debug_eq(&checked_completions);
 }
 
-fn check_notebook(cells: &[(&str, &str)], completions_to_check: &[&str], expect: &Expect) {
-    let (mut cell_uri, mut offset) = (None, None);
-    let cells = cells
-        .iter()
-        .map(|c| {
-            let (source, cursor_offsets, _) = get_source_and_marker_offsets(c.1);
-            if !cursor_offsets.is_empty() {
-                assert!(
-                    cell_uri.replace(c.0).is_none(),
-                    "only one cell can have a cursor marker"
-                );
-                assert!(
-                    offset.replace(cursor_offsets[0]).is_none(),
-                    "only one cell can have a cursor marker"
-                );
-            }
-            (c.0, source)
-        })
-        .collect::<Vec<_>>();
-    let compilation = compile_notebook_with_fake_stdlib(cells.iter().map(|c| (c.0, c.1.as_str())));
-    let actual_completions = get_completions(
-        &compilation,
-        cell_uri.expect("input should have a cursor marker"),
-        offset.expect("input string should have a cursor marker"),
-    );
+fn check_notebook(
+    cells_with_markers: &[(&str, &str)],
+    completions_to_check: &[&str],
+    expect: &Expect,
+) {
+    let (compilation, cell_uri, offset, _, _) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let actual_completions = get_completions(&compilation, &cell_uri, offset);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
         .iter()
         .map(|comp| {
@@ -389,6 +373,46 @@ fn attributes() {
 }
 
 #[test]
+fn stdlib_udt() {
+    check(
+        r#"
+        namespace Test {
+            operation Test() : Unit {
+                ↘
+            }
+        "#,
+        &["TakesUdt"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "TakesUdt",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600TakesUdt",
+                        ),
+                        detail: Some(
+                            "function TakesUdt(input : Udt) : Udt",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 38,
+                                        end: 38,
+                                    },
+                                    "open FakeStdLib;\n    ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn notebook_top_level() {
     check_notebook(
         &[(
@@ -578,46 +602,6 @@ fn notebook_block() {
                         ),
                         detail: None,
                         additional_text_edits: None,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn stdlib_udt() {
-    check(
-        r#"
-        namespace Test {
-            operation Test() : Unit {
-                ↘
-            }
-        "#,
-        &["TakesUdt"],
-        &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "TakesUdt",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600TakesUdt",
-                        ),
-                        detail: Some(
-                            "function TakesUdt(input : Udt) : Udt",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                (
-                                    Span {
-                                        start: 38,
-                                        end: 38,
-                                    },
-                                    "open FakeStdLib;\n    ",
-                                ),
-                            ],
-                        ),
                     },
                 ),
             ]

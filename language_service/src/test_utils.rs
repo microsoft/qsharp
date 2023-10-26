@@ -80,7 +80,49 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     }
 }
 
-pub(crate) fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
+pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
+    cells_with_markers: &[(&str, &str)],
+) -> (Compilation, String, u32, Option<String>, Vec<u32>) {
+    let (mut cell_uri, mut offset, mut target_cell_uri, mut target_offsets) =
+        (None, None, None, Vec::new());
+    let cells = cells_with_markers
+        .iter()
+        .map(|c| {
+            let (source, cursor_offsets, targets) = get_source_and_marker_offsets(c.1);
+            if !cursor_offsets.is_empty() {
+                assert!(
+                    cell_uri.replace(c.0).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+                assert!(
+                    offset.replace(cursor_offsets[0]).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+            }
+            if !targets.is_empty() {
+                assert!(
+                    target_cell_uri.replace(c.0).is_none(),
+                    "only one cell can have a target marker"
+                );
+                target_offsets.extend(targets);
+            }
+            (c.0, source)
+        })
+        .collect::<Vec<_>>();
+
+    let compilation = compile_notebook_with_fake_stdlib(cells.iter().map(|c| (c.0, c.1.as_str())));
+    (
+        compilation,
+        cell_uri
+            .expect("input should have a cursor marker")
+            .to_string(),
+        offset.expect("input string should have a cursor marker"),
+        target_cell_uri.map(std::string::ToString::to_string),
+        target_offsets,
+    )
+}
+
+fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
 where
     I: Iterator<Item = (&'a str, &'a str)>,
 {

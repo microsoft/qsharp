@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use super::{get_rename, prepare_rename};
-use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
+use crate::test_utils::{
+    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
+    get_source_and_marker_offsets,
+};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
@@ -21,6 +24,20 @@ fn check_prepare(source_with_markers: &str, expect: &Expect) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual = prepare_rename(&compilation, "<source>", cursor_offsets[0]);
+    expect.assert_debug_eq(&actual);
+}
+
+fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
+    let (compilation, cell_uri, offset, _, _) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let actual = get_rename(&compilation, &cell_uri, offset);
+    expect.assert_debug_eq(&actual);
+}
+
+fn check_prepare_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
+    let (compilation, cell_uri, offset, _, _) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let actual = prepare_rename(&compilation, &cell_uri, offset);
     expect.assert_debug_eq(&actual);
 }
 
@@ -528,6 +545,41 @@ fn no_rename_std_udt_return_type() {
         }
     }
     "#,
+        &expect![[r#"
+            None
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_rename_across_cells() {
+    check_notebook(
+        &[
+            ("cell1", "operation Callee() : Unit {}"),
+            ("cell2", "◉C↘allee◉();"),
+        ],
+        &expect![[r#"
+            [
+                Span {
+                    start: 0,
+                    end: 6,
+                },
+                Span {
+                    start: 10,
+                    end: 16,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_rename_defined_in_later_cell() {
+    check_prepare_notebook(
+        &[
+            ("cell1", "C↘allee();"),
+            ("cell2", "operation Callee() : Unit {}"),
+        ],
         &expect![[r#"
             None
         "#]],
