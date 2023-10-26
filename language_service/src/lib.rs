@@ -235,7 +235,7 @@ impl<'a> LanguageService<'a> {
             let version = state.version;
             let contents = &state
                 .compilation
-                .unit
+                .user_unit
                 .sources
                 .find_by_name(uri)
                 .expect("source should be found")

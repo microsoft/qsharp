@@ -6,7 +6,7 @@ mod tests;
 
 use crate::protocol::Definition;
 use crate::qsc_utils::{
-    find_ident, map_offset, resolve_item_from_current_package, resolve_udt_res, span_contains,
+    find_ident, map_offset, resolve_item_relative_to_user_package, resolve_item_res, span_contains,
     span_touches, Compilation, QSHARP_LIBRARY_URI_SCHEME,
 };
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
@@ -19,8 +19,8 @@ pub(crate) fn get_definition(
     offset: u32,
 ) -> Option<Definition> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let ast_package = &compilation.unit.ast;
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
+    let ast_package = &compilation.user_unit.ast;
 
     let mut definition_finder = DefinitionFinder {
         compilation,
@@ -56,7 +56,7 @@ impl DefinitionFinder<'_> {
                     .unwrap_or_else(|| panic!("package should exist for id {id}"))
                     .sources
             }
-            None => &self.compilation.unit.sources,
+            None => &self.compilation.user_unit.sources,
         };
         let source = source_map
             .find_by_offset(lo)
@@ -148,9 +148,9 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.unit.ast.tys.terms.get(udt.id)
+                        self.compilation.user_unit.ast.tys.terms.get(udt.id)
                     {
-                        let (item, package_id) = resolve_udt_res(self.compilation, None, res);
+                        let (item, package_id) = resolve_item_res(self.compilation, None, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {
                                 if let Some(field) = udt.find_field_by_name(&field.name) {
@@ -172,12 +172,12 @@ impl<'a> Visitor<'a> for DefinitionFinder<'a> {
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'_ ast::Path) {
         if span_touches(path.span, self.offset) {
-            let res = self.compilation.unit.ast.names.get(path.id);
+            let res = self.compilation.user_unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
                         let (item, _, _) =
-                            resolve_item_from_current_package(self.compilation, item_id);
+                            resolve_item_relative_to_user_package(self.compilation, item_id);
                         let lo = match &item.kind {
                             hir::ItemKind::Callable(decl) => decl.name.span.lo,
                             hir::ItemKind::Namespace(_, _) => {

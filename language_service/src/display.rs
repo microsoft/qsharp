@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::qsc_utils::{resolve_udt_res, Compilation};
+use crate::qsc_utils::{resolve_item_res, Compilation};
 use qsc::{
     ast,
     hir::{self},
@@ -562,7 +562,7 @@ impl<'a> Display for HirTy<'a> {
             }
             hir::ty::Ty::Udt(res) => {
                 let (item, _) =
-                    resolve_udt_res(self.lookup.compilation, self.lookup.local_package_id, res);
+                    resolve_item_res(self.lookup.compilation, self.lookup.local_package_id, res);
                 match &item.kind {
                     hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                     _ => panic!("UDT has invalid resolution."),
@@ -580,7 +580,15 @@ struct TyId<'a> {
 
 impl<'a> Display for TyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(ty) = self.lookup.compilation.unit.ast.tys.terms.get(self.ty_id) {
+        if let Some(ty) = self
+            .lookup
+            .compilation
+            .user_unit
+            .ast
+            .tys
+            .terms
+            .get(self.ty_id)
+        {
             write!(
                 f,
                 "{}",

@@ -18,7 +18,7 @@ use crate::{
     display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
     qsc_utils::{
-        map_offset, resolve_item_from_current_package, span_contains, span_touches, Compilation,
+        map_offset, resolve_item_relative_to_user_package, span_contains, span_touches, Compilation,
     },
 };
 
@@ -28,8 +28,8 @@ pub(crate) fn get_signature_help(
     offset: u32,
 ) -> Option<SignatureHelp> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let package = &compilation.unit.ast.package;
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
+    let package = &compilation.user_unit.ast.package;
 
     let mut finder = SignatureHelpFinder {
         compilation,
@@ -80,7 +80,7 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 
 impl SignatureHelpFinder<'_> {
     fn process_indirect_callee(&mut self, callee: &ast::Expr, args: &ast::Expr) {
-        if let Some(ty) = self.compilation.unit.ast.tys.terms.get(callee.id) {
+        if let Some(ty) = self.compilation.user_unit.ast.tys.terms.get(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
                     label: self.display.hir_ty(None, ty).to_string(),
@@ -344,8 +344,8 @@ fn try_get_direct_callee<'a>(
     callee: &ast::Expr,
 ) -> Option<(Option<hir::PackageId>, &'a hir::CallableDecl, &'a str)> {
     if let ast::ExprKind::Path(path) = &*callee.kind {
-        if let Some(resolve::Res::Item(item_id)) = compilation.unit.ast.names.get(path.id) {
-            let (item, _, package_id) = resolve_item_from_current_package(compilation, item_id);
+        if let Some(resolve::Res::Item(item_id)) = compilation.user_unit.ast.names.get(path.id) {
+            let (item, _, package_id) = resolve_item_relative_to_user_package(compilation, item_id);
             if let hir::ItemKind::Callable(callee_decl) = &item.kind {
                 return Some((package_id, callee_decl, &item.doc));
             }

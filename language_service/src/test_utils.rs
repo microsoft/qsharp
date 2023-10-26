@@ -69,7 +69,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     Compilation {
         package_store,
         std_package_id,
-        unit,
+        user_unit: unit,
         errors,
     }
 }

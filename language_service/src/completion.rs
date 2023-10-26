@@ -24,12 +24,12 @@ pub(crate) fn get_completions(
     offset: u32,
 ) -> CompletionList {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
         offset,
-        context: if compilation.unit.ast.package.nodes.is_empty() {
+        context: if compilation.user_unit.ast.package.nodes.is_empty() {
             // The parser failed entirely, no context to go on
             Context::NoCompilation
         } else {
@@ -40,7 +40,7 @@ pub(crate) fn get_completions(
         start_of_namespace: None,
         current_namespace_name: None,
     };
-    context_finder.visit_package(&compilation.unit.ast.package);
+    context_finder.visit_package(&compilation.user_unit.ast.package);
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
@@ -178,7 +178,7 @@ impl CompletionListBuilder {
         start_of_namespace: Option<u32>,
         current_namespace_name: &Option<Rc<str>>,
     ) {
-        let current = &compilation.unit.package;
+        let current = &compilation.user_unit.package;
         let std = &compilation
             .package_store
             .get(compilation.std_package_id)

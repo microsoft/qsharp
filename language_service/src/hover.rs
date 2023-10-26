@@ -7,7 +7,7 @@ mod tests;
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::protocol::Hover;
 use crate::qsc_utils::{
-    find_ident, map_offset, protocol_span, resolve_item_from_current_package, resolve_udt_res,
+    find_ident, map_offset, protocol_span, resolve_item_relative_to_user_package, resolve_item_res,
     span_contains, span_touches, Compilation,
 };
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
@@ -22,8 +22,8 @@ pub(crate) fn get_hover(
     offset: u32,
 ) -> Option<Hover> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
-    let package = &compilation.unit.ast.package;
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
+    let package = &compilation.user_unit.ast.package;
 
     let mut hover_visitor = HoverVisitor::new(compilation, offset);
 
@@ -94,7 +94,10 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(decl.name.span, &self.compilation.unit.sources),
+                            span: protocol_span(
+                                decl.name.span,
+                                &self.compilation.user_unit.sources,
+                            ),
                         });
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.current_callable;
@@ -121,7 +124,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = markdown_fenced_block(self.display.ident_ty_def(ident, def));
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span, &self.compilation.unit.sources),
+                            span: protocol_span(ident.span, &self.compilation.user_unit.sources),
                         });
                     } else {
                         self.visit_ty_def(def);
@@ -154,7 +157,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         let contents = markdown_fenced_block(self.display.ident_ty(ident, ty));
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span, &self.compilation.unit.sources),
+                            span: protocol_span(ident.span, &self.compilation.user_unit.sources),
                         });
                     } else {
                         self.visit_ty(ty);
@@ -194,7 +197,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(ident.span, &self.compilation.unit.sources),
+                            span: protocol_span(ident.span, &self.compilation.user_unit.sources),
                         });
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -210,9 +213,9 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
                     if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.unit.ast.tys.terms.get(udt.id)
+                        self.compilation.user_unit.ast.tys.terms.get(udt.id)
                     {
-                        let (item, _) = resolve_udt_res(self.compilation, None, res);
+                        let (item, _) = resolve_item_res(self.compilation, None, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {
                                 if udt.find_field_by_name(&field.name).is_some() {
@@ -223,7 +226,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                                         contents,
                                         span: protocol_span(
                                             field.span,
-                                            &self.compilation.unit.sources,
+                                            &self.compilation.user_unit.sources,
                                         ),
                                     });
                                 }
@@ -247,12 +250,12 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
         if span_touches(path.span, self.offset) {
-            let res = self.compilation.unit.ast.names.get(path.id);
+            let res = self.compilation.user_unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
                         let (item, package, package_id) =
-                            resolve_item_from_current_package(self.compilation, item_id);
+                            resolve_item_relative_to_user_package(self.compilation, item_id);
 
                         let ns = item
                             .parent
@@ -285,7 +288,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         };
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(path.span, &self.compilation.unit.sources),
+                            span: protocol_span(path.span, &self.compilation.user_unit.sources),
                         });
                     }
                     resolve::Res::Local(node_id) => {
@@ -318,7 +321,7 @@ impl<'a> Visitor<'a> for HoverVisitor<'a> {
                         );
                         self.hover = Some(Hover {
                             contents,
-                            span: protocol_span(path.span, &self.compilation.unit.sources),
+                            span: protocol_span(path.span, &self.compilation.user_unit.sources),
                         });
                     }
                     _ => {}

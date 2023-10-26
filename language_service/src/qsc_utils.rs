@@ -17,7 +17,7 @@ pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
 pub(crate) struct Compilation {
     pub package_store: PackageStore,
     pub std_package_id: PackageId,
-    pub unit: CompileUnit,
+    pub user_unit: CompileUnit,
     pub errors: Vec<Error>,
 }
 
@@ -42,7 +42,7 @@ pub(crate) fn compile_document(
     Compilation {
         package_store,
         std_package_id,
-        unit,
+        user_unit: unit,
         errors,
     }
 }
@@ -80,44 +80,64 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
         + source_offset
 }
 
-pub(crate) fn resolve_item_from_current_package<'a>(
+/// Returns the hir `Item` node referred to by `item_id`,
+/// along with the `Package` and `PackageId` for the package
+/// that it was found in.
+pub(crate) fn resolve_item_relative_to_user_package<'a>(
     compilation: &'a Compilation,
-    id: &ItemId,
+    item_id: &ItemId,
 ) -> (&'a Item, &'a Package, Option<PackageId>) {
-    resolve(compilation, None, id)
+    resolve_item(compilation, None, item_id)
 }
 
-pub(crate) fn resolve_udt_res<'a>(
+/// Returns the hir `Item` node referred to by `res`.
+/// `Res`s can resolve to external packages, and the references
+/// are relative, so here we also need the
+/// local `PackageId` that the `res` itself came from.
+pub(crate) fn resolve_item_res<'a>(
     compilation: &'a Compilation,
-    local_package: Option<PackageId>,
+    local_package_id: Option<PackageId>,
     res: &hir::Res,
 ) -> (&'a Item, Option<PackageId>) {
     match res {
         hir::Res::Item(item_id) => {
-            let (item, _, package_id) = resolve(compilation, local_package, item_id);
+            let (item, _, package_id) = resolve_item(compilation, local_package_id, item_id);
             (item, package_id)
         }
         _ => panic!("expected to find item"),
     }
 }
 
-fn resolve<'a>(
+/// Returns the hir `Item` node referred to by `item_id`.
+/// `ItemId`s can refer to external packages, and the references
+/// are relative, so here we also need the local `PackageId`
+/// that the `ItemId` originates from.
+fn resolve_item<'a>(
     compilation: &'a Compilation,
     local_package_id: Option<PackageId>,
-    id: &ItemId,
+    item_id: &ItemId,
 ) -> (&'a Item, &'a Package, Option<PackageId>) {
-    let package_id = id.package.or(local_package_id);
-    let package = if let Some(external_package_id) = package_id {
+    // If the `ItemId` contains a package id, use that.
+    // Lack of a package id means the item is in the
+    // same package as the one this `ItemId` reference
+    // came from. So use the local package id passed in.
+    let package_id = item_id.package.or(local_package_id);
+    let package = if let Some(library_package_id) = package_id {
+        // stdlib or core
         &compilation
             .package_store
-            .get(external_package_id)
+            .get(library_package_id)
             .expect("package should exist in store")
             .package
     } else {
-        &compilation.unit.package
+        // user code
+        &compilation.user_unit.package
     };
     (
-        package.items.get(id.item).expect("item id should exist"),
+        package
+            .items
+            .get(item_id.item)
+            .expect("item id should exist"),
         package,
         package_id,
     )
