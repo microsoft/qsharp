@@ -282,6 +282,22 @@ pub struct ManifestDescriptor {
     root_directory: js_sys::JsString,
 }
 
+#[wasm_bindgen]
+impl ManifestDescriptor {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        exclude_files: js_sys::Array,
+        exclude_regexes: js_sys::Array,
+        root_directory: js_sys::JsString,
+    ) -> Self {
+        Self {
+            exclude_files,
+            exclude_regexes,
+            root_directory,
+        }
+    }
+}
+
 impl From<ManifestDescriptor> for qsc_project::ManifestDescriptor {
     fn from(value: ManifestDescriptor) -> Self {
         let exclude_files = value
@@ -305,32 +321,6 @@ impl From<ManifestDescriptor> for qsc_project::ManifestDescriptor {
             manifest_dir: root_directory,
         }
     }
-}
-
-/// When this function is called from JS, we return a list of sources that are included in the project.  
-#[wasm_bindgen]
-pub fn load_project(
-    mut proj: ProjectLoader,
-    manifest: ManifestDescriptor,
-) -> Result<js_sys::Array, String> {
-    let proj = proj
-        .load_project(manifest.into())
-        .map_err(|e| format!("{e:?}"))?;
-
-    let result: js_sys::Array = proj
-        .sources
-        .into_iter()
-        .map(|(file_name, file_contents)| {
-            js_sys::Array::from_iter(
-                vec![
-                    js_sys::JsString::from(&*file_name),
-                    js_sys::JsString::from(&*file_contents),
-                ]
-                .into_iter(),
-            )
-        })
-        .collect();
-    Ok(result)
 }
 
 pub struct JsFileEntry {
@@ -394,5 +384,38 @@ impl FileSystem for ProjectLoader {
         }
 
         todo!()
+    }
+}
+
+#[wasm_bindgen]
+impl ProjectLoader {
+    #[wasm_bindgen(constructor)]
+    pub fn new(lookup_fn: js_sys::Function, list_dir_fn: js_sys::Function) -> Self {
+        Self {
+            lookup_fn,
+            list_dir_fn,
+        }
+    }
+    /// When this function is called from JS, we return a list of sources that are included in the project.  
+    #[wasm_bindgen]
+    pub fn load(&mut self, manifest: ManifestDescriptor) -> Result<js_sys::Array, String> {
+        let proj = self
+            .load_project(manifest.into())
+            .map_err(|e| format!("{e:?}"))?;
+
+        let result: js_sys::Array = proj
+            .sources
+            .into_iter()
+            .map(|(file_name, file_contents)| {
+                js_sys::Array::from_iter(
+                    vec![
+                        js_sys::JsString::from(&*file_name),
+                        js_sys::JsString::from(&*file_contents),
+                    ]
+                    .into_iter(),
+                )
+            })
+            .collect();
+        Ok(result)
     }
 }

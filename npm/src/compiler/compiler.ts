@@ -68,6 +68,24 @@ export class Compiler implements ICompiler {
     return this.wasm.get_hir(code);
   }
 
+  // TODO return type -- not sure if this is correct
+  async loadProject(files: {[key: string]: string}): Promise<string[]> {
+    let lookup_fn = (path: string): string | undefined =>  files[path];
+    // TODO below fn
+    let list_dir_fn= (path: string): string | undefined =>  files[path];
+
+    let projectLoader = new this.wasm.ProjectLoader(lookup_fn, list_dir_fn);
+
+    let manifestDescriptor = new this.wasm.ManifestDescriptor(["TODO exclude files"], ["TODO exclude regexes"], "TODO root dir");
+
+
+    let project = projectLoader.load( manifestDescriptor);
+    
+    log.info(JSON.stringify(project, null, 2));
+
+    return project;
+;  }
+
   async run(
     code: string,
     expr: string,
