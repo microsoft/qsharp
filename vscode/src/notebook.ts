@@ -3,7 +3,6 @@
 
 import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
-import { EventType, sendTelemetryEvent } from "./telemetry.js";
 import { WorkspaceTreeProvider } from "./azure/treeView.js";
 import { getPythonCodeForWorkspace } from "./azure/workspaceActions.js";
 import { notebookTemplate } from "./notebookTemplate.js";
@@ -58,7 +57,6 @@ export function registerQSharpNotebookHandlers() {
             cell.document,
             qsharpLanguageId
           );
-          sendTelemetryEvent(EventType.QSharpJupyterCellInitialized);
         }
       }
     }
