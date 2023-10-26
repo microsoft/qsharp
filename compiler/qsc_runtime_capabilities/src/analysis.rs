@@ -7,7 +7,14 @@ use qsc_fir::{
     ty::{Prim, Ty},
 };
 
-use crate::{CapsBundle, StoreCapabilities};
+use indenter::{indented, Indented};
+use std::{
+    fmt::{self, Display, Formatter, Write},
+    fs::{self, File},
+    io::{self, Read, Write as IoWrite},
+};
+
+use crate::{set_indentation, CapsBundle, StoreCapabilities};
 
 #[derive(Debug)]
 struct PackageCapsScaffolding {
@@ -18,6 +25,83 @@ struct PackageCapsScaffolding {
     pub pats: IndexMap<PatId, Option<CapsBundle>>,
 }
 
+impl Display for PackageCapsScaffolding {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+
+        // Display callables.
+        write!(indent, "\ncallables:")?;
+        for (id, callable) in self.callables.iter() {
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nCallable: {id}")?;
+            indent = set_indentation(indent, 2);
+            if let Some(c) = callable {
+                write!(indent, "{c}")?;
+            } else {
+                write!(indent, "\nNone")?;
+            }
+        }
+
+        // Display blocks.
+        indent = set_indentation(indent, 0);
+        write!(indent, "\nblocks:")?;
+        for (id, block) in self.blocks.iter() {
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nBlock: {id}")?;
+            indent = set_indentation(indent, 2);
+            if let Some(b) = block {
+                write!(indent, "{b}")?;
+            } else {
+                write!(indent, "\nNone")?;
+            }
+        }
+
+        // Display statements.
+        indent = set_indentation(indent, 0);
+        write!(indent, "\nstatements:")?;
+        for (id, statement) in self.stmts.iter() {
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nStatement: {id}")?;
+            indent = set_indentation(indent, 2);
+            if let Some(s) = statement {
+                write!(indent, "{s}")?;
+            } else {
+                write!(indent, "\nNone")?;
+            }
+        }
+
+        // Display expressions.
+        indent = set_indentation(indent, 0);
+        write!(indent, "\nexpressions:")?;
+        for (id, expression) in self.exprs.iter() {
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nExpression: {id}")?;
+            indent = set_indentation(indent, 2);
+            if let Some(e) = expression {
+                write!(indent, "{e}")?;
+            } else {
+                write!(indent, "\nNone")?;
+            }
+        }
+
+        // Display patterns.
+        indent = set_indentation(indent, 0);
+        write!(indent, "\npatterns:")?;
+        for (id, pattern) in self.pats.iter() {
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nPattern: {id}")?;
+            indent = set_indentation(indent, 2);
+            if let Some(p) = pattern {
+                write!(indent, "{p}")?;
+            } else {
+                write!(indent, "\nNone")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 // CONSIDER (cesarzc): Might need to do this a per specialization basis.
 #[derive(Debug)]
 struct CallableCapsScaffolding {
@@ -25,11 +109,58 @@ struct CallableCapsScaffolding {
     pub parameter_caps: Option<Vec<CapsBundle>>,
 }
 
-// CONSIDER (cesarzc): This seems the same
+impl Display for CallableCapsScaffolding {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "\nis_quantum_source: {:?}", self.intrinsic_caps)?;
+        write!(indent, "\nparameter_caps:")?;
+        if let Some(param_caps) = &self.parameter_caps {
+            indent = set_indentation(indent, 1);
+            for cap in param_caps {
+                write!(indent, "\n{cap}")?;
+            }
+        } else {
+            write!(f, " None")?;
+        }
+        Ok(())
+    }
+}
+
+// CONSIDER (cesarzc): This seems the same as `CallableCapsScaffolding`.
 #[derive(Debug)]
 struct BlockCapsScaffolding {
     pub intrinsic_caps: Option<CapsBundle>,
     pub parameter_caps: Option<Vec<CapsBundle>>,
+}
+
+impl Display for BlockCapsScaffolding {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "\nis_quantum_source: {:?}", self.intrinsic_caps)?;
+        write!(indent, "\nparameter_caps:")?;
+        if let Some(param_caps) = &self.parameter_caps {
+            indent = set_indentation(indent, 1);
+            for cap in param_caps {
+                write!(indent, "\n{cap}")?;
+            }
+        } else {
+            write!(f, "None")?;
+        }
+        Ok(())
+    }
+}
+
+// DBG (cesarzc): For debugging purposes only.
+fn save_package_scaffoldings_to_files(
+    store: &IndexMap<PackageId, PackageCapsScaffolding>,
+    sweep_number: u8,
+) {
+    for (id, package) in store.iter() {
+        let filename = format!("dbg/sweep{sweep_number}.p{id}.txt");
+        let mut package_file = File::create(filename).expect("File could be created");
+        let package_string = format!("{package}");
+        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+    }
 }
 
 pub struct Analyzer {
@@ -51,6 +182,7 @@ impl Analyzer {
 
     pub fn analyze_runtime_capabilities(&mut self, store: &PackageStore) -> StoreCapabilities {
         self.initialize(store);
+        save_package_scaffoldings_to_files(&self.store, 0);
         // TODO (cesarzc): should convert the store somehow.
         StoreCapabilities(IndexMap::new())
     }

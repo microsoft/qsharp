@@ -364,8 +364,14 @@ impl Display for Package {
         for block in self.blocks.values() {
             write!(indent, "\n{block}")?;
         }
+        for statement in self.stmts.values() {
+            write!(indent, "\n{statement}")?;
+        }
         for expression in self.exprs.values() {
             write!(indent, "\n{expression}")?;
+        }
+        for pattern in self.pats.values() {
+            write!(indent, "\n{pattern}")?;
         }
         Ok(())
     }

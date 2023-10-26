@@ -141,6 +141,7 @@ fn save_fir_store_to_files(store: &qsc_fir::fir::PackageStore) {
     }
 }
 
+// DBG (cesarzc): For debugging purposes only.
 fn save_store_capabilities_to_files(store: &qsc_runtime_capabilities::StoreCapabilities) {
     for (id, package) in store.0.iter() {
         let filename = format!("dbg/caps.p{id}.txt");
