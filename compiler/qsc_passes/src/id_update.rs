@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::hash_map::Entry;
 
 use qsc_hir::{
     assigner::Assigner,
@@ -13,17 +13,18 @@ use qsc_hir::{
         walk_spec_decl, walk_stmt, MutVisitor,
     },
 };
+use rustc_hash::FxHashMap;
 
 pub(crate) struct NodeIdRefresher<'a> {
     assigner: &'a mut Assigner,
-    replacements: HashMap<NodeId, NodeId>,
+    replacements: FxHashMap<NodeId, NodeId>,
 }
 
 impl<'a> NodeIdRefresher<'a> {
     pub(crate) fn new(assigner: &'a mut Assigner) -> Self {
         Self {
             assigner,
-            replacements: HashMap::new(),
+            replacements: FxHashMap::default(),
         }
     }
 

@@ -15,6 +15,7 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
+use qsc_project::{FileSystem, Manifest, StdFs};
 use qsc_runtime_capabilities::analysis::Analyzer;
 use std::{
     concat,
@@ -26,8 +27,8 @@ use std::{
 };
 
 #[derive(Debug, Parser)]
-#[command(version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"), arg_required_else_help(true))]
-#[clap(group(ArgGroup::new("input").args(["entry", "sources"]).required(true).multiple(true)))]
+#[command(version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"), arg_required_else_help(false))]
+#[clap(group(ArgGroup::new("input").args(["entry", "sources"]).required(false).multiple(true)))]
 struct Cli {
     /// Disable automatic inclusion of the standard library.
     #[arg(long)]
@@ -76,11 +77,22 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, target)));
     }
 
-    let sources = cli
+    let mut sources = cli
         .sources
         .iter()
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
+
+    if sources.is_empty() {
+        let fs = StdFs;
+        let manifest = Manifest::load()?;
+        if let Some(manifest) = manifest {
+            let project = fs.load_project(manifest)?;
+            let mut project_sources = project.sources;
+
+            sources.append(&mut project_sources);
+        }
+    }
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));

@@ -763,7 +763,9 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "qsc_project",
  "qsc_runtime_capabilities",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -817,6 +819,7 @@ dependencies = [
  "qsc_passes",
  "quantum-sparse-sim",
  "rand",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -827,6 +830,7 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -843,6 +847,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_hir",
  "qsc_parse",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -853,6 +858,7 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -879,6 +885,20 @@ dependencies = [
  "qsc_data_structures",
  "qsc_frontend",
  "qsc_hir",
+ "rustc-hash",
+ "thiserror",
+]
+
+[[package]]
+name = "qsc_project"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "miette",
+ "qsc_project",
+ "regex-lite",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -935,6 +955,7 @@ dependencies = [
  "miette",
  "qsc",
  "regex-lite",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1053,9 +1074,9 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustix"
-version = "0.38.19"
+version = "0.38.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "745ecfa778e66b2b63c88a61cb36e0eea109e803b0b86bf9879fbc77c70e86ed"
+checksum = "67ce50cb2e16c2903e30d1cbccfd8387a74b9d4c938b6a4c5ec6cc7556f7a8a0"
 dependencies = [
  "bitflags 2.4.1",
  "errno",
@@ -1195,9 +1216,9 @@ dependencies = [
 
 [[package]]
 name = "target-lexicon"
-version = "0.12.11"
+version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d0e916b1148c8e263850e1ebcbd046f333e0683c724876bb0da63ea4373dc8a"
+checksum = "14c39fd04924ca3a864207c66fc2cd7d22d7c016007f9ce846cbb9326331930a"
 
 [[package]]
 name = "termcolor"

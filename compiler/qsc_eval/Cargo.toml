@@ -18,6 +18,7 @@ qsc_fir = { path = "../qsc_fir" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_hir = { path = "../qsc_hir" }
 rand =  { workspace = true }
+rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

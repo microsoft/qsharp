@@ -10,8 +10,9 @@ use qsc_hir::{
         Prim, Scheme, Ty, Udt,
     },
 };
+use rustc_hash::FxHashMap;
 use std::{
-    collections::{hash_map::Entry, HashMap, VecDeque},
+    collections::{hash_map::Entry, VecDeque},
     fmt::Debug,
 };
 
@@ -137,7 +138,7 @@ impl Class {
         }
     }
 
-    fn check(self, udts: &HashMap<ItemId, Udt>, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+    fn check(self, udts: &FxHashMap<ItemId, Udt>, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         match self {
             Class::Add(ty) if check_add(&ty) => (Vec::new(), Vec::new()),
             Class::Add(ty) => (
@@ -401,7 +402,7 @@ impl Inferrer {
     }
 
     /// Solves for all variables given the accumulated constraints.
-    pub(super) fn solve(&mut self, udts: &HashMap<ItemId, Udt>) -> Vec<Error> {
+    pub(super) fn solve(&mut self, udts: &FxHashMap<ItemId, Udt>) -> Vec<Error> {
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in self.solver.constrain(udts, constraint).into_iter().rev() {
                 self.constraints.push_front(constraint);
@@ -450,8 +451,8 @@ impl Inferrer {
 #[derive(Debug)]
 struct Solver {
     solution: Solution,
-    pending_tys: HashMap<InferTyId, Vec<Class>>,
-    pending_functors: HashMap<InferFunctorId, FunctorSetValue>,
+    pending_tys: FxHashMap<InferTyId, Vec<Class>>,
+    pending_functors: FxHashMap<InferFunctorId, FunctorSetValue>,
     errors: Vec<Error>,
 }
 
@@ -459,15 +460,15 @@ impl Solver {
     fn new() -> Self {
         Self {
             solution: Solution::default(),
-            pending_tys: HashMap::new(),
-            pending_functors: HashMap::new(),
+            pending_tys: FxHashMap::default(),
+            pending_functors: FxHashMap::default(),
             errors: Vec::new(),
         }
     }
 
     fn constrain(
         &mut self,
-        udts: &HashMap<ItemId, Udt>,
+        udts: &FxHashMap<ItemId, Udt>,
         constraint: Constraint,
     ) -> Vec<Constraint> {
         match constraint {
@@ -488,7 +489,12 @@ impl Solver {
         }
     }
 
-    fn class(&mut self, udts: &HashMap<ItemId, Udt>, class: Class, span: Span) -> Vec<Constraint> {
+    fn class(
+        &mut self,
+        udts: &FxHashMap<ItemId, Udt>,
+        class: Class,
+        span: Span,
+    ) -> Vec<Constraint> {
         let unknown_dependency = class.dependencies().into_iter().any(|ty| {
             if ty == &Ty::Err {
                 true
@@ -862,7 +868,7 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_has_field(
-    udts: &HashMap<ItemId, Udt>,
+    udts: &FxHashMap<ItemId, Udt>,
     record: Ty,
     name: String,
     item: Ty,
@@ -887,7 +893,9 @@ fn check_has_field(
                 Some(ty) => (
                     vec![Constraint::Eq {
                         expected: item,
-                        actual: ty.clone(),
+                        actual: id
+                            .package
+                            .map_or_else(|| ty.clone(), |package_id| ty.with_package(package_id)),
                         span,
                     }],
                     Vec::new(),
@@ -995,7 +1003,7 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_unwrap(
-    udts: &HashMap<ItemId, Udt>,
+    udts: &FxHashMap<ItemId, Udt>,
     wrapper: Ty,
     base: Ty,
     span: Span,
@@ -1005,7 +1013,10 @@ fn check_unwrap(
             return (
                 vec![Constraint::Eq {
                     expected: base,
-                    actual: udt.get_pure_ty(),
+                    actual: id.package.map_or_else(
+                        || udt.get_pure_ty(),
+                        |package_id| udt.get_pure_ty().with_package(package_id),
+                    ),
                     span,
                 }],
                 Vec::new(),
