@@ -272,12 +272,65 @@ pub fn check_exercise_solution(
 #[wasm_bindgen]
 pub struct ProjectLoader {
     lookup_fn: js_sys::Function,
+    list_dir_fn: js_sys::Function,
 }
 
 #[wasm_bindgen]
-pub fn load_project(mut proj: ProjectLoader) {
-    proj.load_project(todo!());
-    todo!()
+pub struct ManifestDescriptor {
+    exclude_files: js_sys::Array,
+    exclude_regexes: js_sys::Array,
+    root_directory: js_sys::JsString,
+}
+
+impl From<ManifestDescriptor> for qsc_project::ManifestDescriptor {
+    fn from(value: ManifestDescriptor) -> Self {
+        let exclude_files = value
+            .exclude_files
+            .into_iter()
+            .filter_map(|arr_value| arr_value.as_string())
+            .collect();
+        let exclude_regexes = value
+            .exclude_regexes
+            .into_iter()
+            .filter_map(|arr_value| arr_value.as_string())
+            .collect();
+        let root_directory = PathBuf::from(String::from(value.root_directory));
+        qsc_project::ManifestDescriptor {
+            manifest: qsc_project::Manifest {
+                author: None,
+                license: None,
+                exclude_regexes,
+                exclude_files,
+            },
+            manifest_dir: root_directory,
+        }
+    }
+}
+
+/// When this function is called from JS, we return a list of sources that are included in the project.  
+#[wasm_bindgen]
+pub fn load_project(
+    mut proj: ProjectLoader,
+    manifest: ManifestDescriptor,
+) -> Result<js_sys::Array, String> {
+    let proj = proj
+        .load_project(manifest.into())
+        .map_err(|e| format!("{e:?}"))?;
+
+    let result: js_sys::Array = proj
+        .sources
+        .into_iter()
+        .map(|(file_name, file_contents)| {
+            js_sys::Array::from_iter(
+                vec![
+                    js_sys::JsString::from(&*file_name),
+                    js_sys::JsString::from(&*file_contents),
+                ]
+                .into_iter(),
+            )
+        })
+        .collect();
+    Ok(result)
 }
 
 pub struct JsFileEntry {
@@ -327,6 +380,19 @@ impl FileSystem for ProjectLoader {
     }
 
     fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
+        let path = path.to_string_lossy().to_string();
+        let list_dir_fn = |path: String| {
+            self.list_dir_fn
+                .call1(&JsValue::null(), &JsValue::from(path))
+        };
+
+        let result = list_dir_fn(path.clone());
+        let result = result.map_err(|e| miette!("error loading file: {:?}", e))?;
+
+        if !result.is_array() {
+            return todo!("item is not array");
+        }
+
         todo!()
     }
 }
