@@ -1,22 +1,39 @@
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{BlockId, CallableDecl, ExprId, ItemKind, LocalItemId, Package, PackageId, PackageStore},
+    fir::{
+        BlockId, CallableDecl, ExprId, ItemKind, LocalItemId, Package, PackageId, PackageStore,
+        PatId, StmtId,
+    },
     ty::{Prim, Ty},
 };
 
-use crate::{
-    BlockCapabilities, CallableCapabilities, Capabilities, ExpressionCapabilities,
-    PackageCapabilities, StoreCapabilities,
-};
+use crate::{CapsBundle, StoreCapabilities};
 
-// TODO: Create this struct properly.
 #[derive(Debug)]
-struct PackageCapabilitiesScaffold {
-    pub callables: Vec<Option<CallableCapabilities>>,
+struct PackageCapsScaffolding {
+    pub callables: IndexMap<LocalItemId, Option<CallableCapsScaffolding>>,
+    pub blocks: IndexMap<BlockId, Option<BlockCapsScaffolding>>,
+    pub stmts: IndexMap<StmtId, Option<CapsBundle>>,
+    pub exprs: IndexMap<ExprId, Option<CapsBundle>>,
+    pub pats: IndexMap<PatId, Option<CapsBundle>>,
+}
+
+// CONSIDER (cesarzc): Might need to do this a per specialization basis.
+#[derive(Debug)]
+struct CallableCapsScaffolding {
+    pub intrinsic_caps: Option<CapsBundle>,
+    pub parameter_caps: Option<Vec<CapsBundle>>,
+}
+
+// CONSIDER (cesarzc): This seems the same
+#[derive(Debug)]
+struct BlockCapsScaffolding {
+    pub intrinsic_caps: Option<CapsBundle>,
+    pub parameter_caps: Option<Vec<CapsBundle>>,
 }
 
 pub struct Analyzer {
-    store: IndexMap<PackageId, PackageCapabilities>,
+    store: IndexMap<PackageId, PackageCapsScaffolding>,
 }
 
 impl Default for Analyzer {
@@ -34,7 +51,8 @@ impl Analyzer {
 
     pub fn analyze_runtime_capabilities(&mut self, store: &PackageStore) -> StoreCapabilities {
         self.initialize(store);
-        StoreCapabilities(self.store.drain().collect())
+        // TODO (cesarzc): should convert the store somehow.
+        StoreCapabilities(IndexMap::new())
     }
 
     fn initialize(&mut self, store: &PackageStore) {
@@ -48,9 +66,9 @@ impl Analyzer {
 struct Initializer;
 
 impl Initializer {
-    pub fn from_package(package: &Package) -> PackageCapabilities {
+    pub fn from_package(package: &Package) -> PackageCapsScaffolding {
         // Initialize callables.
-        let mut callables = IndexMap::<LocalItemId, Option<CallableCapabilities>>::new();
+        let mut callables = IndexMap::<LocalItemId, Option<CallableCapsScaffolding>>::new();
         for (id, item) in package.items.iter() {
             let capabilities = match &item.kind {
                 ItemKind::Callable(c) => Some(Self::from_callable(c)),
@@ -60,39 +78,64 @@ impl Initializer {
         }
 
         // Initialize blocks.
-        let mut blocks = IndexMap::<BlockId, BlockCapabilities>::new();
+        let mut blocks = IndexMap::<BlockId, Option<BlockCapsScaffolding>>::new();
         for (id, _) in package.blocks.iter() {
-            let capabilities = BlockCapabilities {
-                inherent: Capabilities(Vec::new()),
-            };
-            blocks.insert(id, capabilities);
+            blocks.insert(id, None);
+        }
+
+        // Initialize statements.
+        let mut stmts = IndexMap::<StmtId, Option<CapsBundle>>::new();
+        for (id, _) in package.stmts.iter() {
+            stmts.insert(id, None);
         }
 
         // Initialize expressions.
-        let mut expressions = IndexMap::<ExprId, ExpressionCapabilities>::new();
+        let mut exprs = IndexMap::<ExprId, Option<CapsBundle>>::new();
         for (id, _) in package.exprs.iter() {
-            let capabilities = ExpressionCapabilities {
-                inherent: Capabilities(Vec::new()),
-            };
-            expressions.insert(id, capabilities);
+            exprs.insert(id, None);
         }
-        PackageCapabilities {
+
+        // Initialize patterns.
+        let mut pats = IndexMap::<PatId, Option<CapsBundle>>::new();
+        for (id, _) in package.pats.iter() {
+            pats.insert(id, None);
+        }
+
+        PackageCapsScaffolding {
             callables,
             blocks,
-            expressions,
+            stmts,
+            exprs,
+            pats,
         }
     }
 
-    fn from_callable(callable: &CallableDecl) -> CallableCapabilities {
+    fn from_callable(callable: &CallableDecl) -> CallableCapsScaffolding {
+        // TODO (cesarzc): Separate into from_function and from_operation.
+
+        // Parameter capabilities for QIS callables depend on the parameter type.
+        // E.g.: Int -> {IntegerComputations}, Double -> {FloatingPointComputations}, Qubit -> {}.
+        let is_qis_callable = callable.name.name.starts_with("__quantum__qis");
+        // TODO (cesarzc): Implement.
+        let parameter_caps = None;
+
+        //
         let is_output_type_result = match callable.output {
             Ty::Prim(p) => p == Prim::Result,
             _ => false,
         };
-        let is_qis_callable = callable.name.name.starts_with("__quantum__qis");
         let is_quantum_source = is_output_type_result && is_qis_callable;
-        CallableCapabilities {
-            is_quantum_source,
-            inherent: Capabilities(Vec::new()),
+        let mut intrinsic_caps = None;
+        if is_quantum_source {
+            intrinsic_caps = Some(CapsBundle {
+                is_quantum_source: true,
+                caps: Vec::new(),
+            });
+        }
+
+        CallableCapsScaffolding {
+            intrinsic_caps,
+            parameter_caps,
         }
     }
 }

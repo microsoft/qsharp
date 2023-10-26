@@ -30,6 +30,7 @@ pub enum RuntimeCapability {
     HigherLevelConstructs,
 }
 
+// TODO (cesarzc): Probably should remove.
 #[derive(Debug)]
 pub struct Capabilities(Vec<RuntimeCapability>);
 
@@ -37,6 +38,26 @@ impl Display for Capabilities {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         for capability in self.0.iter() {
+            write!(indent, "\n{capability:?}")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct CapsBundle {
+    pub is_quantum_source: bool,
+    // TODO (cesarzc): This should be FxHashSet.
+    pub caps: Vec<RuntimeCapability>,
+}
+
+impl Display for CapsBundle {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "\nis_quantum_source: {}", self.is_quantum_source)?;
+        write!(indent, "\ncapabilities:")?;
+        indent = set_indentation(indent, 1);
+        for capability in self.caps.iter() {
             write!(indent, "\n{capability:?}")?;
         }
         Ok(())
