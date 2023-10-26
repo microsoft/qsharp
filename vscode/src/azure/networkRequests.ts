@@ -11,7 +11,7 @@ const publicMgmtEndpoint = "https://management.azure.com";
 export async function azureRequest(
   uri: string,
   token: string,
-  associationId?: string,
+  correlationId?: string,
   method = "GET",
   body?: string
 ) {
@@ -30,12 +30,12 @@ export async function azureRequest(
 
     if (!response.ok) {
       log.error("Azure request failed", response);
-      if (associationId) {
+      if (correlationId) {
         sendTelemetryEvent(
           EventType.AzureRequestFailed,
           {
             reason: `request to azure returned code ${response.status}`,
-            associationId,
+            correlationId,
           },
           {}
         );
@@ -49,10 +49,10 @@ export async function azureRequest(
 
     return result;
   } catch (e) {
-    if (associationId) {
+    if (correlationId) {
       sendTelemetryEvent(
         EventType.AzureRequestFailed,
-        { reason: `request to azure failed to return`, associationId },
+        { reason: `request to azure failed to return`, correlationId },
         {}
       );
     }
@@ -67,7 +67,7 @@ export async function storageRequest(
   method: string,
   extraHeaders?: [string, string][],
   body?: string | Uint8Array,
-  associationId?: string
+  correlationId?: string
 ) {
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
@@ -88,12 +88,12 @@ export async function storageRequest(
     const response = await fetch(uri, { method, headers, body });
     if (!response.ok) {
       log.error("Storage request failed", response);
-      if (associationId) {
+      if (correlationId) {
         sendTelemetryEvent(
           EventType.StorageRequestFailed,
           {
             reason: `request to storage on azure returned code ${response.status}`,
-            associationId,
+            correlationId,
           },
           {}
         );
@@ -104,10 +104,13 @@ export async function storageRequest(
     return response;
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
-    if (associationId) {
+    if (correlationId) {
       sendTelemetryEvent(
         EventType.StorageRequestFailed,
-        { reason: `request to storage on azure failed to return`, associationId },
+        {
+          reason: `request to storage on azure failed to return`,
+          correlationId,
+        },
         {}
       );
     }
@@ -193,8 +196,8 @@ export class StorageUris {
 }
 
 export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
-  const associationId = getRandomGuid();
-  sendTelemetryEvent(EventType.CheckCorsStart, { associationId }, {});
+  const correlationId = getRandomGuid();
+  sendTelemetryEvent(EventType.CheckCorsStart, { correlationId }, {});
 
   log.debug("Checking CORS configuration for the workspace");
 
@@ -203,7 +206,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
-    associationId,
+    correlationId,
     "POST",
     body
   );
@@ -251,7 +254,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   log.debug("Pre-flighted GET request didn't throw, so CORS seems good");
   sendTelemetryEvent(
     EventType.CheckCorsEnd,
-    { associationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+    { correlationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
     {}
   );
 }

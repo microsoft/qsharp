@@ -54,108 +54,108 @@ type EventTypes = {
     measurements: { timeToCompletionMs: number; completionListLength: number };
   };
   [EventType.GenerateQirStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: { qirLength: number };
   };
   [EventType.RenderQuantumStateStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.RenderQuantumStateEnd]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.SubmitToAzureStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.SubmitToAzureEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
     measurements: Empty;
   };
   [EventType.AuthSessionStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.AuthSessionEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
     measurements: Empty;
   };
   [EventType.QueryWorkspacesStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.QueryWorkspacesEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
     measurements: Empty;
   };
   [EventType.AzureRequestFailed]: {
-    properties: { associationId: string; reason?: string };
+    properties: { correlationId: string; reason?: string };
     measurements: Empty;
   };
   [EventType.StorageRequestFailed]: {
-    properties: { associationId: string; reason?: string };
+    properties: { correlationId: string; reason?: string };
     measurements: Empty;
   };
   [EventType.GetJobFilesStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.GetJobFilesEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
     measurements: Empty;
   };
   [EventType.QueryWorkspaceStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.QueryWorkspaceEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
     measurements: Empty;
   };
   [EventType.CheckCorsStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.CheckCorsEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
     measurements: Empty;
   };
   [EventType.InitializeRuntimeStart]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.InitializeRuntimeEnd]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
     };
@@ -163,13 +163,13 @@ type EventTypes = {
   };
   [EventType.DebugSessionEvent]: {
     properties: {
-      associationId: string;
+      correlationId: string;
       event: DebugEvent;
     };
     measurements: Empty;
   };
   [EventType.Launch]: {
-    properties: { associationId: string };
+    properties: { correlationId: string };
     measurements: Empty;
   };
   [EventType.OpenedDocument]: {
