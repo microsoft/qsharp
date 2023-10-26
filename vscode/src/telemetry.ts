@@ -187,9 +187,9 @@ export enum QsharpDocumentType {
 export enum UserFlowStatus {
   // "Aborted" means the flow was intentionally canceled or left, either by us or the user
   Aborted = "Aborted",
-  CompletedSuccessfully = "CompletedSuccessfully",
+  Succeeded = "Succeeded",
   // "CompletedWithFailure" means something that we can action -- service request failure, exceptions, etc.
-  CompletedWithFailure = "CompletedWithFailure",
+  Failed = "Failed",
 }
 
 export enum DebugEvent {

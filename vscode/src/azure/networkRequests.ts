@@ -254,7 +254,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   log.debug("Pre-flighted GET request didn't throw, so CORS seems good");
   sendTelemetryEvent(
     EventType.CheckCorsEnd,
-    { correlationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+    { correlationId, flowStatus: UserFlowStatus.Succeeded },
     {}
   );
 }

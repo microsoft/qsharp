@@ -165,7 +165,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
-      { correlationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+      { correlationId, flowStatus: UserFlowStatus.Succeeded },
       {}
     );
   }

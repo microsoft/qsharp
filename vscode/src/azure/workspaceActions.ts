@@ -44,7 +44,7 @@ export async function getAuthSession(
       EventType.AuthSessionEnd,
       {
         correlationId,
-        flowStatus: UserFlowStatus.CompletedSuccessfully,
+        flowStatus: UserFlowStatus.Succeeded,
       },
       {}
     );
@@ -55,7 +55,7 @@ export async function getAuthSession(
       {
         correlationId,
         reason: "exception in getAuthSession",
-        flowStatus: UserFlowStatus.CompletedWithFailure,
+        flowStatus: UserFlowStatus.Failed,
       },
       {}
     );
@@ -132,7 +132,7 @@ export async function queryWorkspaces(): Promise<
       {
         correlationId,
         reason: "no auth session returned",
-        flowStatus: UserFlowStatus.CompletedWithFailure,
+        flowStatus: UserFlowStatus.Failed,
       },
       {}
     );
@@ -155,7 +155,7 @@ export async function queryWorkspaces(): Promise<
       {
         correlationId,
         reason: "no tenants exist for account",
-        flowStatus: UserFlowStatus.CompletedWithFailure,
+        flowStatus: UserFlowStatus.Failed,
       },
       {}
     );
@@ -425,7 +425,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
 
   sendTelemetryEvent(
     EventType.QueryWorkspaceEnd,
-    { correlationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+    { correlationId, flowStatus: UserFlowStatus.Succeeded },
     {}
   );
 
@@ -471,7 +471,7 @@ export async function getJobFiles(
   const blob = await file.text();
   sendTelemetryEvent(
     EventType.GetJobFilesEnd,
-    { correlationId, flowStatus: UserFlowStatus.CompletedSuccessfully },
+    { correlationId, flowStatus: UserFlowStatus.Succeeded },
     {}
   );
   return blob;
@@ -594,7 +594,7 @@ export async function submitJob(
     {
       correlationId,
       reason: "job submitted",
-      flowStatus: UserFlowStatus.CompletedSuccessfully,
+      flowStatus: UserFlowStatus.Succeeded,
     },
     {}
   );
