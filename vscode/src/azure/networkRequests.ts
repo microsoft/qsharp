@@ -34,7 +34,7 @@ export async function azureRequest(
         sendTelemetryEvent(
           EventType.AzureRequestFailed,
           {
-            reason: `request to ${uri} returned code ${response.status}`,
+            reason: `request to azure returned code ${response.status}`,
             associationId,
           },
           {}
@@ -52,7 +52,7 @@ export async function azureRequest(
     if (associationId) {
       sendTelemetryEvent(
         EventType.AzureRequestFailed,
-        { reason: `request to ${uri} failed to return`, associationId },
+        { reason: `request to azure failed to return`, associationId },
         {}
       );
     }
@@ -92,7 +92,7 @@ export async function storageRequest(
         sendTelemetryEvent(
           EventType.StorageRequestFailed,
           {
-            reason: `request to ${uri} returned code ${response.status}`,
+            reason: `request to storage on azure returned code ${response.status}`,
             associationId,
           },
           {}
@@ -107,7 +107,7 @@ export async function storageRequest(
     if (associationId) {
       sendTelemetryEvent(
         EventType.StorageRequestFailed,
-        { reason: `request to ${uri} failed to return`, associationId },
+        { reason: `request to storage on azure failed to return`, associationId },
         {}
       );
     }
