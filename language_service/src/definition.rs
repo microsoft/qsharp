@@ -17,7 +17,7 @@ pub(crate) fn get_definition(
     offset: u32,
 ) -> Option<Definition> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     let mut definition_finder = DefinitionFinder {
         compilation,
@@ -25,7 +25,7 @@ pub(crate) fn get_definition(
     };
 
     let mut locator = IdentifierLocator::new(&mut definition_finder, offset, compilation);
-    locator.visit_package(&compilation.unit.ast.package);
+    locator.visit_package(&compilation.user_unit.ast.package);
 
     definition_finder
         .definition
@@ -51,7 +51,7 @@ impl DefinitionFinder<'_> {
                     .unwrap_or_else(|| panic!("package should exist for id {id}"))
                     .sources
             }
-            None => &self.compilation.unit.sources,
+            None => &self.compilation.user_unit.sources,
         };
         let source = source_map
             .find_by_offset(lo)
@@ -76,7 +76,7 @@ impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
     fn at_callable_ref(
         &mut self,
         _: &'a ast::Path,
-        item_id: &'a hir::ItemId,
+        item_id: &'_ hir::ItemId,
         _: &'a hir::Item,
         _: &'a hir::Package,
         decl: &'a hir::CallableDecl,
@@ -91,7 +91,7 @@ impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
     fn at_new_type_ref(
         &mut self,
         _: &'a ast::Path,
-        item_id: &'a hir::ItemId,
+        item_id: &'_ hir::ItemId,
         _: &'a hir::Item,
         _: &'a hir::Package,
         type_name: &'a hir::Ident,
@@ -108,7 +108,7 @@ impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
         &mut self,
         _: &'a ast::NodeId,
         _: &'a ast::Ident,
-        item_id: &'a hir::ItemId,
+        item_id: &'_ hir::ItemId,
         field_def: &'a hir::ty::UdtField,
     ) {
         let span = field_def

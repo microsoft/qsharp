@@ -4,7 +4,10 @@
 use std::mem::replace;
 use std::rc::Rc;
 
-use crate::qsc_utils::{find_ident, find_item, span_contains, span_touches, Compilation};
+use crate::qsc_utils::{
+    find_ident, resolve_item_relative_to_user_package, resolve_item_res, span_contains,
+    span_touches, Compilation,
+};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 
@@ -20,7 +23,7 @@ pub(crate) trait LocatorAPI<'package> {
     fn at_callable_ref(
         &mut self,
         path: &'package ast::Path,
-        item_id: &'package hir::ItemId,
+        item_id: &'_ hir::ItemId,
         item: &'package hir::Item,
         package: &'package hir::Package,
         decl: &'package hir::CallableDecl,
@@ -32,7 +35,7 @@ pub(crate) trait LocatorAPI<'package> {
     fn at_new_type_ref(
         &mut self,
         path: &'package ast::Path,
-        item_id: &'package hir::ItemId,
+        item_id: &'_ hir::ItemId,
         item: &'package hir::Item,
         package: &'package hir::Package,
         type_name: &'package hir::Ident,
@@ -52,7 +55,7 @@ pub(crate) trait LocatorAPI<'package> {
         &mut self,
         expr_id: &'package ast::NodeId,
         field_ref: &'package ast::Ident,
-        item_id: &'package hir::ItemId,
+        item_id: &'_ hir::ItemId,
         field_def: &'package hir::ty::UdtField,
     ) {
     }
@@ -162,7 +165,7 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
                 }
                 ast::ItemKind::Ty(ident, def) => {
                     if let Some(resolve::Res::Item(item_id)) =
-                        self.compilation.unit.ast.names.get(ident.id)
+                        self.compilation.user_unit.ast.names.get(ident.id)
                     {
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
@@ -238,23 +241,19 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
                     if span_touches(field_ref.span, self.offset) =>
                 {
                     if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.unit.ast.tys.terms.get(udt.id)
+                        self.compilation.user_unit.ast.tys.terms.get(udt.id)
                     {
-                        match res {
-                            hir::Res::Item(item_id) => {
-                                if let (Some(item), _) = find_item(self.compilation, item_id) {
-                                    match &item.kind {
-                                        hir::ItemKind::Ty(_, udt) => {
-                                            if let Some(field_def) =
-                                                udt.find_field_by_name(&field_ref.name)
-                                            {
-                                                self.inner.at_field_ref(
-                                                    &expr.id, field_ref, item_id, field_def,
-                                                );
-                                            }
-                                        }
-                                        _ => panic!("UDT has invalid resolution."),
-                                    }
+                        let (item, resolved_item_id) =
+                            resolve_item_res(self.compilation, None, res);
+                        match &item.kind {
+                            hir::ItemKind::Ty(_, udt) => {
+                                if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
+                                    self.inner.at_field_ref(
+                                        &expr.id,
+                                        field_ref,
+                                        &resolved_item_id,
+                                        field_def,
+                                    );
                                 }
                             }
                             _ => panic!("UDT has invalid resolution."),
@@ -277,29 +276,39 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
         if span_touches(path.span, self.offset) {
-            let res = self.compilation.unit.ast.names.get(path.id);
+            let res = self.compilation.user_unit.ast.names.get(path.id);
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        if let (Some(item), Some(package)) = find_item(self.compilation, item_id) {
-                            match &item.kind {
-                                hir::ItemKind::Callable(decl) => {
-                                    self.inner
-                                        .at_callable_ref(path, item_id, item, package, decl);
-                                }
-                                hir::ItemKind::Ty(type_name, udt) => {
-                                    self.inner.at_new_type_ref(
-                                        path, item_id, item, package, type_name, udt,
-                                    );
-                                }
-                                hir::ItemKind::Namespace(_, _) => {
-                                    panic!(
-                                        "Reference node should not refer to a namespace: {}",
-                                        path.id
-                                    )
-                                }
+                        let (item, package, resolved_item_id) =
+                            resolve_item_relative_to_user_package(self.compilation, item_id);
+                        match &item.kind {
+                            hir::ItemKind::Callable(decl) => {
+                                self.inner.at_callable_ref(
+                                    path,
+                                    &resolved_item_id,
+                                    item,
+                                    package,
+                                    decl,
+                                );
                             }
-                        };
+                            hir::ItemKind::Ty(type_name, udt) => {
+                                self.inner.at_new_type_ref(
+                                    path,
+                                    &resolved_item_id,
+                                    item,
+                                    package,
+                                    type_name,
+                                    udt,
+                                );
+                            }
+                            hir::ItemKind::Namespace(_, _) => {
+                                panic!(
+                                    "Reference node should not refer to a namespace: {}",
+                                    path.id
+                                )
+                            }
+                        }
                     }
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.context.current_callable {

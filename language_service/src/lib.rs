@@ -9,7 +9,7 @@ use log::trace;
 use protocol::{CompletionList, Definition, Hover, SignatureHelp, WorkspaceConfigurationUpdate};
 use qsc::{PackageType, TargetProfile};
 use qsc_utils::Compilation;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 pub mod completion;
 pub mod definition;
@@ -32,7 +32,7 @@ pub struct LanguageService<'a> {
     /// workspace. Per-document configurations are not supported.
     configuration: WorkspaceConfiguration,
     /// Associate each known document with a separate compilation.
-    document_map: HashMap<String, DocumentState>,
+    document_map: FxHashMap<String, DocumentState>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<DiagnosticsReceiver<'a>>,
@@ -69,7 +69,7 @@ impl<'a> LanguageService<'a> {
     pub fn new(diagnostics_receiver: impl Fn(&str, u32, &[qsc::compile::Error]) + 'a) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
-            document_map: HashMap::new(),
+            document_map: FxHashMap::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
         }
     }
@@ -236,7 +236,7 @@ impl<'a> LanguageService<'a> {
             let version = state.version;
             let contents = &state
                 .compilation
-                .unit
+                .user_unit
                 .sources
                 .find_by_name(uri)
                 .expect("source should be found")

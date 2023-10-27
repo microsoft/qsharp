@@ -34,7 +34,7 @@ use qsc_frontend::{
     error::WithSource,
 };
 use qsc_passes::PackageType;
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 impl Error {
@@ -561,7 +561,7 @@ pub struct BreakpointSpan {
 }
 
 struct BreakpointCollector<'a> {
-    statements: HashSet<BreakpointSpan>,
+    statements: FxHashSet<BreakpointSpan>,
     sources: &'a SourceMap,
     offset: u32,
     package: &'a Package,
@@ -570,7 +570,7 @@ struct BreakpointCollector<'a> {
 impl<'a> BreakpointCollector<'a> {
     fn new(sources: &'a SourceMap, offset: u32, package: &'a Package) -> Self {
         Self {
-            statements: HashSet::new(),
+            statements: FxHashSet::default(),
             sources,
             offset,
             package,

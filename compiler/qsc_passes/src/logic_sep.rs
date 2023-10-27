@@ -11,7 +11,7 @@ use qsc_hir::{
     ty::Ty,
     visit::{walk_expr, Visitor},
 };
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -35,10 +35,10 @@ pub enum Error {
 /// Checks that the given block is separatable, meaning classical statements and quantum statements
 /// across the block and any nested expressions/blocks can be logically separated. On success, returns a `HashSet` of
 /// all quantum statement node ids, based on whether any operation calls are present in that statement.
-pub(crate) fn find_quantum_stmts(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
+pub(crate) fn find_quantum_stmts(block: &Block) -> Result<FxHashSet<NodeId>, Vec<Error>> {
     let mut pass = SepCheck {
         errors: Vec::new(),
-        op_call_present: HashSet::new(),
+        op_call_present: FxHashSet::default(),
         op_call_allowed: true,
         has_op_call: false,
     };
@@ -52,7 +52,7 @@ pub(crate) fn find_quantum_stmts(block: &Block) -> Result<HashSet<NodeId>, Vec<E
 
 struct SepCheck {
     errors: Vec<Error>,
-    op_call_present: HashSet<NodeId>,
+    op_call_present: FxHashSet<NodeId>,
     op_call_allowed: bool,
     has_op_call: bool,
 }

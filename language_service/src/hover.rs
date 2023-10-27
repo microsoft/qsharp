@@ -19,7 +19,7 @@ pub(crate) fn get_hover(
     offset: u32,
 ) -> Option<Hover> {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     let mut hover_visitor = HoverGenerator {
         compilation,
@@ -28,7 +28,7 @@ pub(crate) fn get_hover(
     };
 
     let mut locator = IdentifierLocator::new(&mut hover_visitor, offset, compilation);
-    locator.visit_package(&compilation.unit.ast.package);
+    locator.visit_package(&compilation.user_unit.ast.package);
     hover_visitor.hover
 }
 
@@ -52,7 +52,7 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(decl.name.span, &self.compilation.unit.sources),
+            span: protocol_span(decl.name.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -60,7 +60,7 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(type_name.span, &self.compilation.unit.sources),
+            span: protocol_span(type_name.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -73,7 +73,7 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(field_name.span, &self.compilation.unit.sources),
+            span: protocol_span(field_name.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -104,7 +104,7 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(ident.span, &self.compilation.unit.sources),
+            span: protocol_span(ident.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -112,37 +112,37 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         &mut self,
         expr_id: &'a ast::NodeId,
         field_ref: &'a ast::Ident,
-        _: &'a hir::ItemId,
+        _: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
         let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(field_ref.span, &self.compilation.unit.sources),
+            span: protocol_span(field_ref.span, &self.compilation.user_unit.sources),
         });
     }
 
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'a hir::ItemId,
+        item_id: &'_ hir::ItemId,
         _: &'a hir::Item,
         _: &'a hir::Package,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let contents = markdown_fenced_block(self.display.hir_udt(udt));
+        let contents = markdown_fenced_block(self.display.hir_udt(item_id.package, udt));
 
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.unit.sources),
+            span: protocol_span(path.span, &self.compilation.user_unit.sources),
         });
     }
 
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'a hir::ItemId,
+        item_id: &'_ hir::ItemId,
         item: &'a hir::Item,
         package: &'a hir::Package,
         decl: &'a hir::CallableDecl,
@@ -158,11 +158,15 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
                 },
             );
 
-        let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
+        let contents = display_callable(
+            &item.doc,
+            &ns,
+            self.display.hir_callable_decl(item_id.package, decl),
+        );
 
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.unit.sources),
+            span: protocol_span(path.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -196,7 +200,7 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.unit.sources),
+            span: protocol_span(path.span, &self.compilation.user_unit.sources),
         });
     }
 }
