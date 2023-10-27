@@ -324,25 +324,67 @@ namespace Microsoft.Quantum.Arithmetic {
     //
 
     //
-    // Operation: Add      |  Ripple-carry    | Carry look-ahead
-    // _________________________________________________________
-    // y += 5              |  IncByL_LowQubit✔|              N/A
-    // y += x              | IncByLE_LowQubit✔| IncByLE_LowDepth
-    // z = x + 5 (z was 0) |              N/A |              N/A
-    // z = x + y (z was 0) |   AddLE_LowQubit✔|   AddLE_LowDepth
-    // z += x + 5          |              N/A |              N/A
-    // z += x + y          |              N/A |              N/A
+    // Operation: Add      |    Ripple-carry    | Carry look-ahead
+    // ____________________________________________________________
+    // y += 5              |  RippleCarryIncByL✔|              N/A
+    // y += x              | RippleCarryIncByLE✔| LookAheadIncByLE
+    // z = x + 5 (z was 0) |                N/A |              N/A
+    // z = x + y (z was 0) |   RippleCarryAddLE✔|   LookAheadAddLE
+    // z += x + 5          |                N/A |              N/A
+    // z += x + y          |                N/A |              N/A
     //
 
     /// # Summary
     /// Increment a little-endian ys register by a BigInt number c
     ///
     /// # Description
-    /// Compute ys += c modulo 2ⁿ using a ripple carry architecture,
-    /// where ys is a little-endian register of length n > 0,
-    /// c >= 0 is a BigInt constant, and c < 2ⁿ.
+    /// Compute ys += c modulo 2ⁿ, where ys is a little-endian register
+    /// of length n > 0, c >= 0 is a BigInt constant, and c < 2ⁿ.
+    /// This operation can be used when the choice of implementation
+    /// is not important.
     @Config(Full)
-    operation IncByL_LowQubit (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
+    operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
+        RippleCarryIncByL(c, ys);
+    }
+
+    /// # Summary
+    /// Increments a little-endian register ys by a little-endian register xs
+    ///
+    /// # Description
+    /// Compute ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
+    /// n = Length(ys), and Length(xs) <= Length(ys).
+    /// This operation can be used when the choice of implementation
+    /// is not important.
+    @Config(Full)
+    operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+        RippleCarryIncByLE(xs, ys);
+    }
+
+    /// # Summary
+    /// Set a zero-initialized little-endian register zs to the sum of
+    /// little-endian registers xs and ys
+    ///
+    /// # Description
+    /// Compute zs := xs + ys, where xs, ys, and zs are little-endian
+    /// registers, Length(xs) = Length(ys), Length(xs) <= Length(zs) <= Length(xs)+1,
+    /// assuming zs is 0-initialized.
+    /// This operation can be used when the choice of implementation
+    /// is not important.
+    @Config(Full)
+    operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+        RippleCarryAddLE(xs, ys, zs);
+    }
+
+    /// # Summary
+    /// Increment a little-endian ys register by a BigInt number c
+    /// using the ripple-carry algorithm.
+    ///
+    /// # Description
+    /// Compute ys += c modulo 2ⁿ, where ys is a little-endian register
+    /// of length n > 0, c >= 0 is a BigInt constant, and c < 2ⁿ.
+    /// This operation uses the ripple-carry algorithm.
+    @Config(Full)
+    operation RippleCarryIncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1");
         Fact(c >= 0L, "Constant `c` must be non-negative");
@@ -358,7 +400,7 @@ namespace Microsoft.Quantum.Arithmetic {
             within {
                 ApplyXorInPlaceL(c >>> j, x);
             } apply {
-                IncByLE_LowQubit(x, ys[j...]);
+                RippleCarryIncByLE(x, ys[j...]);
             }
         }
     }
@@ -366,17 +408,18 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Increments a little-endian register ys by a little-endian register xs
+    /// using the ripple-carry algorithm.
     ///
     /// # Description
-    /// Compute ys += xs modulo 2ⁿ using a ripple carry architecture,
-    /// where xs and ys are little-endian registers, n = Length(ys), and
-    /// Length(xs) <= Length(ys). If Length(xs) != Length(ys), xs is padded
-    /// with 0-initialized qubits to match ys's length
+    /// Compute ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
+    /// n = Length(ys), and Length(xs) <= Length(ys).
+    /// Note that ff Length(xs) != Length(ys), xs is padded with 0-initialized
+    /// qubits to match ys's length
     ///
     /// # Reference:
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     @Config(Full)
-    operation IncByLE_LowQubit (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation RippleCarryIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
 
@@ -385,7 +428,7 @@ namespace Microsoft.Quantum.Arithmetic {
 
         if ysLen - xsLen >= 2 {
             use padding = Qubit[ysLen - xsLen - 1];
-            IncByLE_LowQubit(xs + padding, ys);
+            RippleCarryIncByLE(xs + padding, ys);
         } elif xsLen == 1 {
             if ysLen == 1 {
                 CNOT(xs[0], ys[0]);
@@ -407,20 +450,20 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     /// # Summary
-    /// Set a little-endian register zs to the sum of little-endian registers xs and ys
+    /// Set a zero-initialized little-endian register zs to the sum of
+    /// little-endian registers xs and ys using the ripple-carry algorithm.
     ///
     /// # Description 
-    /// Compute zs := xs + ys + zs[0] using a ripple carry architecture,
-    /// where xs, ys, and zs are little-endian registers, Length(xs) = Length(ys),
-    /// Length(xs) <= Length(zs) <= Length(xs)+1, assuming zs is 0-initialized
-    /// except for maybe zs[0], which can be in |0> or |1> state.
+    /// Compute zs := xs + ys + zs[0], where xs, ys, and zs are little-endian
+    /// registers, Length(xs) = Length(ys), Length(xs) <= Length(zs) <= Length(xs)+1,
+    /// assuming zs is 0-initialized except for maybe zs[0], which can be in |0> or |1> state.
     /// Use `zs[0]` as carry-in, and use `zs[n]` as carry-out, if `zs` is
     /// longer than `xs`.
     ///
     /// # Reference:
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     @Config(Full)
-    operation AddLE_LowQubit (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+    operation RippleCarryAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
         Fact(Length(ys) == xsLen, "Registers xs and ys must be of same length");

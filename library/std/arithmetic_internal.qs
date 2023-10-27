@@ -110,6 +110,7 @@ namespace Microsoft.Quantum.Arithmetic {
         }
         adjoint auto;
         controlled (ctls, ...) {
+            // TODO: Is it not controlled actually?
             Carry(carryIn, x, y, carryOut);
         }
         controlled adjoint auto;
