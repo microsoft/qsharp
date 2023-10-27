@@ -190,7 +190,7 @@ impl CompletionListBuilder {
             .expect("expected to find core package")
             .package;
 
-        let display = CodeDisplay::new(compilation);
+        let display = CodeDisplay { compilation };
 
         self.push_sorted_completions(Self::get_callables(
             None,

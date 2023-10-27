@@ -62,7 +62,7 @@ impl<'a> HoverVisitor<'a> {
             compilation,
             offset,
             hover: None,
-            display: CodeDisplay::new(compilation),
+            display: CodeDisplay { compilation },
             current_namespace: Rc::from(""),
             current_callable: None,
             in_params: false,

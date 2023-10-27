@@ -13,7 +13,7 @@ use std::{
 };
 
 pub(crate) struct CodeDisplay<'a> {
-    compilation: &'a Compilation,
+    pub(crate) compilation: &'a Compilation,
 }
 
 #[derive(Copy, Clone)]
@@ -24,10 +24,6 @@ struct HirLookup<'a> {
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
-    pub(crate) fn new(compilation: &'a Compilation) -> Self {
-        Self { compilation }
-    }
-
     pub(crate) fn hir_callable_decl(
         &self,
         package_id: Option<hir::PackageId>,
