@@ -33,11 +33,18 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     let std_source_map = SourceMap::new(
         [(
             "<std>".into(),
-            "namespace FakeStdLib {
+            r#"namespace FakeStdLib {
                 operation Fake() : Unit {}
                 operation FakeWithParam(x: Int) : Unit {}
                 operation FakeCtlAdj() : Unit is Ctl + Adj {}
-            }"
+                newtype Udt = (x: Int, y: Int);
+                newtype UdtWrapper = (inner: Udt);
+                newtype UdtFn = (Int -> Int);
+                newtype UdtFnWithUdtParams = (Udt -> Udt);
+                function TakesUdt(input : Udt) : Udt {
+                    fail "not implemented"
+                }
+            }"#
             .into(),
         )],
         None,
@@ -62,7 +69,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     Compilation {
         package_store,
         std_package_id,
-        unit,
+        user_unit: unit,
         errors,
     }
 }

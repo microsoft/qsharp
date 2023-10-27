@@ -24,12 +24,12 @@ pub(crate) fn get_completions(
     offset: u32,
 ) -> CompletionList {
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.unit.sources, source_name, offset);
+    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
         offset,
-        context: if compilation.unit.ast.package.nodes.is_empty() {
+        context: if compilation.user_unit.ast.package.nodes.is_empty() {
             // The parser failed entirely, no context to go on
             Context::NoCompilation
         } else {
@@ -40,7 +40,7 @@ pub(crate) fn get_completions(
         start_of_namespace: None,
         current_namespace_name: None,
     };
-    context_finder.visit_package(&compilation.unit.ast.package);
+    context_finder.visit_package(&compilation.user_unit.ast.package);
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
@@ -178,7 +178,7 @@ impl CompletionListBuilder {
         start_of_namespace: Option<u32>,
         current_namespace_name: &Option<Rc<str>>,
     ) {
-        let current = &compilation.unit.package;
+        let current = &compilation.user_unit.package;
         let std = &compilation
             .package_store
             .get(compilation.std_package_id)
@@ -192,18 +192,22 @@ impl CompletionListBuilder {
 
         let display = CodeDisplay { compilation };
 
-        let get_callables = |current, display| {
-            Self::get_callables(
-                current,
-                display,
-                opens,
-                start_of_namespace,
-                current_namespace_name.clone(),
-            )
-        };
-
-        self.push_sorted_completions(get_callables(current, &display));
-        self.push_sorted_completions(get_callables(std, &display));
+        self.push_sorted_completions(Self::get_callables(
+            None,
+            current,
+            &display,
+            opens,
+            start_of_namespace,
+            current_namespace_name.clone(),
+        ));
+        self.push_sorted_completions(Self::get_callables(
+            Some(compilation.std_package_id),
+            std,
+            &display,
+            opens,
+            start_of_namespace,
+            current_namespace_name.clone(),
+        ));
         self.push_sorted_completions(Self::get_core_callables(core, &display));
         self.push_completions(Self::get_namespaces(current));
         self.push_completions(Self::get_namespaces(std));
@@ -269,6 +273,7 @@ impl CompletionListBuilder {
     }
 
     fn get_callables<'a>(
+        package_id: Option<PackageId>,
         package: &'a Package,
         display: &'a CodeDisplay,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
@@ -283,8 +288,11 @@ impl CompletionListBuilder {
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
                                 let name = callable_decl.name.name.as_ref();
-                                let detail =
-                                    Some(display.hir_callable_decl(callable_decl).to_string());
+                                let detail = Some(
+                                    display
+                                        .hir_callable_decl(package_id, callable_decl)
+                                        .to_string(),
+                                );
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
@@ -360,7 +368,11 @@ impl CompletionListBuilder {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
-                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
+                let detail = Some(
+                    display
+                        .hir_callable_decl(Some(PackageId::CORE), callable_decl)
+                        .to_string(),
+                );
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
                 Some((

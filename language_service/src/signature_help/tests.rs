@@ -2978,3 +2978,174 @@ fn udt_constructor_call() {
         "#]],
     );
 }
+
+#[test]
+fn std_callable_with_udt() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Udt {
+            TakesUdt(↘)
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "function TakesUdt(input : Udt) : Udt",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 17,
+                                    end: 30,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 18,
+                                    end: 29,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_callable_with_std_udt_args() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Udt {
+            let callee = TakesUdt;
+            callee(↘)
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(Udt -> Udt)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_callable_with_std_udt() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let fn = UdtFn((x) -> x);
+            fn!(↘)
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(Int -> Int)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 1,
+                                    end: 4,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_callable_with_std_udt_with_params() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let fn = UdtFnWithUdtParams(TakesUdt);
+            fn!(↘)
+        }
+    }
+    "#,
+        &expect![[r#"
+    SignatureHelp {
+        signatures: [
+            SignatureInformation {
+                label: "(Udt -> Udt)",
+                documentation: None,
+                parameters: [
+                    ParameterInformation {
+                        label: Span {
+                            start: 1,
+                            end: 4,
+                        },
+                        documentation: None,
+                    },
+                    ParameterInformation {
+                        label: Span {
+                            start: 1,
+                            end: 4,
+                        },
+                        documentation: None,
+                    },
+                ],
+            },
+        ],
+        active_signature: 0,
+        active_parameter: 1,
+    }
+"#]],
+    );
+}
