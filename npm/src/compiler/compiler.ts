@@ -14,9 +14,6 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
-  /**
-   * @deprecated use the language service for errors and other editor features.
-   */
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
@@ -46,9 +43,6 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
-  /**
-   * @deprecated use the language service for errors and other editor features.
-   */
   async checkCode(code: string): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
