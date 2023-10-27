@@ -20,7 +20,7 @@ pub(crate) fn prepare_rename(
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
-    let mut prepare_rename = Rename2::new(compilation, true);
+    let mut prepare_rename = Rename::new(compilation, true);
     let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
     prepare_rename
@@ -36,7 +36,7 @@ pub(crate) fn get_rename(
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
-    let mut rename = Rename2::new(compilation, false);
+    let mut rename = Rename::new(compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
     rename
@@ -45,14 +45,14 @@ pub(crate) fn get_rename(
         .map(|s| protocol_span(s, &compilation.user_unit.sources))
         .collect::<Vec<_>>()
 }
-struct Rename2<'a> {
+struct Rename<'a> {
     compilation: &'a Compilation,
     locations: Vec<Span>,
     is_prepare: bool,
     prepare: Option<(Span, String)>,
 }
 
-impl<'a> Rename2<'a> {
+impl<'a> Rename<'a> {
     fn new(compilation: &'a Compilation, is_prepare: bool) -> Self {
         Self {
             compilation,
@@ -134,7 +134,7 @@ impl<'a> Rename2<'a> {
     }
 }
 
-impl<'a> Handler<'a> for Rename2<'a> {
+impl<'a> Handler<'a> for Rename<'a> {
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,
