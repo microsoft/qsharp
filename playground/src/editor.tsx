@@ -25,7 +25,7 @@ type ErrCollection = {
 
 function VSDiagsToMarkers(
   errors: VSDiagnostic[],
-  srcModel: monaco.editor.ITextModel
+  srcModel: monaco.editor.ITextModel,
 ): monaco.editor.IMarkerData[] {
   return errors.map((err) => {
     let severity = monaco.MarkerSeverity.Error;
@@ -95,7 +95,7 @@ export function Editor(props: {
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
   const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
-    []
+    [],
   );
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
@@ -144,14 +144,14 @@ export function Editor(props: {
         await props.compiler.checkExerciseSolution(
           code,
           sources,
-          props.evtTarget
+          props.evtTarget,
         );
       } else {
         performance.mark("compiler-run-start");
         await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
         const runTimer = performance.measure(
           "compiler-run",
-          "compiler-run-start"
+          "compiler-run-start",
         );
         log.logTelemetry({
           id: "compiler-run",
@@ -198,11 +198,11 @@ export function Editor(props: {
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
-        srcModel.getValue()
+        srcModel.getValue(),
       );
       const measure = performance.measure(
         "update-document",
-        "update-document-start"
+        "update-document-start",
       );
       log.info(`updateDocument took ${measure.duration}ms`);
     });

@@ -15,11 +15,11 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ) {
     const definition = await this.languageService.getDefinition(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
     );
     if (!definition) return null;
     const uri = vscode.Uri.parse(definition.source);

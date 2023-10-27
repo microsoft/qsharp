@@ -91,13 +91,13 @@ export function Kata(props: {
 
     // This gives an extra EventTarget we don't need for 'reading' types, but that's fine.
     handlerMap.current = props.kata.sections.map(
-      () => new QscEventTarget(true)
+      () => new QscEventTarget(true),
     );
   }
   const itemEvtHandlers = handlerMap.current || [];
 
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
-    undefined
+    undefined,
   );
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export function Kata(props: {
       if (section.type === "exercise") {
         titlePrefix = "⌨ Exercise: ";
         const descriptionDiv = parentDiv?.querySelector(
-          ".exercise-description"
+          ".exercise-description",
         );
         if (!descriptionDiv)
           throw new Error("exercise-description div not found");
@@ -119,7 +119,7 @@ export function Kata(props: {
         const solutionDiv = parentDiv?.querySelector(".exercise-solution");
         if (!solutionDiv) throw new Error("exercise-solution div not found");
         solutionDiv.innerHTML = ExplainedSolutionAsHtml(
-          section.explainedSolution
+          section.explainedSolution,
         );
       } else if (section.type === "lesson") {
         titlePrefix = "📖 Lesson: ";

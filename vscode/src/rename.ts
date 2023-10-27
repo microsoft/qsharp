@@ -16,12 +16,12 @@ class QSharpRenameProvider implements vscode.RenameProvider {
     position: vscode.Position,
     newName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ) {
     const rename = await this.languageService.getRename(
       document.uri.toString(),
       document.offsetAt(position),
-      newName
+      newName,
     );
     if (!rename) return null;
 
@@ -32,9 +32,9 @@ class QSharpRenameProvider implements vscode.RenameProvider {
         return new vscode.TextEdit(
           new vscode.Range(
             document.positionAt(edit.range.start),
-            document.positionAt(edit.range.end)
+            document.positionAt(edit.range.end),
           ),
-          edit.newText
+          edit.newText,
         );
       });
       workspaceEdit.set(vscode.Uri.parse(uri, true), vsEdits);
@@ -47,17 +47,17 @@ class QSharpRenameProvider implements vscode.RenameProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ) {
     const prepareRename = await this.languageService.prepareRename(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
     );
     if (prepareRename) {
       return {
         range: new vscode.Range(
           document.positionAt(prepareRename.range.start),
-          document.positionAt(prepareRename.range.end)
+          document.positionAt(prepareRename.range.end),
         ),
         placeholder: prepareRename.newText,
       };
