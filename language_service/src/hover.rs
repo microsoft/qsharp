@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
-use crate::identifier_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
+use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
 use crate::qsc_utils::{map_offset, protocol_span, Compilation};
 use qsc::ast::visit::Visitor;
@@ -27,7 +27,7 @@ pub(crate) fn get_hover(
         display: CodeDisplay { compilation },
     };
 
-    let mut locator = IdentifierLocator::new(&mut hover_visitor, offset, compilation);
+    let mut locator = Locator::new(&mut hover_visitor, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
     hover_visitor.hover
 }
@@ -43,7 +43,7 @@ struct HoverGenerator<'a> {
     compilation: &'a Compilation,
 }
 
-impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
+impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'a>,

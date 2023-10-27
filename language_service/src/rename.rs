@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::identifier_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
+use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol;
 use crate::qsc_utils::{map_offset, protocol_span, Compilation};
 use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
@@ -21,7 +21,7 @@ pub(crate) fn prepare_rename(
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     let mut prepare_rename = Rename2::new(compilation, true);
-    let mut locator = IdentifierLocator::new(&mut prepare_rename, offset, compilation);
+    let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
     prepare_rename
         .prepare
@@ -37,7 +37,7 @@ pub(crate) fn get_rename(
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     let mut rename = Rename2::new(compilation, false);
-    let mut locator = IdentifierLocator::new(&mut rename, offset, compilation);
+    let mut locator = Locator::new(&mut rename, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
     rename
         .locations
@@ -134,7 +134,7 @@ impl<'a> Rename2<'a> {
     }
 }
 
-impl<'a> LocatorAPI<'a> for Rename2<'a> {
+impl<'a> Handler<'a> for Rename2<'a> {
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,

@@ -12,7 +12,7 @@ use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor}
 use qsc::{ast, hir, resolve};
 
 #[allow(unused_variables)]
-pub(crate) trait LocatorAPI<'package> {
+pub(crate) trait Handler<'package> {
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'package>,
@@ -88,14 +88,14 @@ pub(crate) struct LocatorContext<'package> {
     pub(crate) current_udt_id: Option<&'package hir::ItemId>,
 }
 
-pub(crate) struct IdentifierLocator<'inner, 'package, T> {
+pub(crate) struct Locator<'inner, 'package, T> {
     inner: &'inner mut T,
     offset: u32,
     compilation: &'package Compilation,
     context: LocatorContext<'package>,
 }
 
-impl<'inner, 'package, T> IdentifierLocator<'inner, 'package, T> {
+impl<'inner, 'package, T> Locator<'inner, 'package, T> {
     pub(crate) fn new(
         inner: &'inner mut T,
         offset: u32,
@@ -118,9 +118,7 @@ impl<'inner, 'package, T> IdentifierLocator<'inner, 'package, T> {
     }
 }
 
-impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
-    for IdentifierLocator<'inner, 'package, T>
-{
+impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
             self.context.current_namespace = namespace.name.name.clone();

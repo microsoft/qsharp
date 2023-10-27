@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::identifier_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
+use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Definition;
 use crate::qsc_utils::{map_offset, Compilation, QSHARP_LIBRARY_URI_SCHEME};
 use qsc::ast::visit::Visitor;
@@ -24,7 +24,7 @@ pub(crate) fn get_definition(
         definition: None,
     };
 
-    let mut locator = IdentifierLocator::new(&mut definition_finder, offset, compilation);
+    let mut locator = Locator::new(&mut definition_finder, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
 
     definition_finder
@@ -68,7 +68,7 @@ impl DefinitionFinder<'_> {
     }
 }
 
-impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
+impl<'a> Handler<'a> for DefinitionFinder<'a> {
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,
