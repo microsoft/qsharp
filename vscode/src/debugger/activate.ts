@@ -7,6 +7,7 @@ import * as vscode from "vscode";
 import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
+import { getRandomGuid } from "../utils";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -196,7 +197,7 @@ class InlineDebugAdapterFactory
       worker,
       session.configuration,
     );
-    return qscSession.init().then(() => {
+    return qscSession.init(getRandomGuid()).then(() => {
       return new vscode.DebugAdapterInlineImplementation(qscSession);
     });
   }

@@ -4,6 +4,7 @@
 import { ILanguageService, samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
+import { EventType, sendTelemetryEvent } from "./telemetry";
 
 export function createCompletionItemProvider(
   languageService: ILanguageService,
@@ -33,9 +34,19 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     context: vscode.CompletionContext,
   ) {
+    const start = performance.now();
     const completions = await this.languageService.getCompletions(
       document.uri.toString(),
       document.offsetAt(position),
+    );
+    const end = performance.now();
+    sendTelemetryEvent(
+      EventType.ReturnCompletionList,
+      {},
+      {
+        timeToCompletionMs: end - start,
+        completionListLength: completions.items.length,
+      },
     );
     const results = completions.items.map((c) => {
       let kind;

@@ -16,7 +16,8 @@ use qsc_hir::{
     hir::{self, ItemId},
     ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Prim, Scheme, Ty},
 };
-use std::{collections::HashMap, convert::identity};
+use rustc_hash::FxHashMap;
+use std::convert::identity;
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
@@ -36,7 +37,7 @@ impl<T> Partial<T> {
 
 struct Context<'a> {
     names: &'a Names,
-    globals: &'a HashMap<ItemId, Scheme>,
+    globals: &'a FxHashMap<ItemId, Scheme>,
     table: &'a mut Table,
     return_ty: Option<Ty>,
     typed_holes: Vec<(NodeId, Span)>,
@@ -47,7 +48,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         names: &'a Names,
-        globals: &'a HashMap<ItemId, Scheme>,
+        globals: &'a FxHashMap<ItemId, Scheme>,
         table: &'a mut Table,
         inferrer: &'a mut Inferrer,
         new: Vec<NodeId>,
@@ -769,7 +770,7 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     names: &Names,
-    globals: &HashMap<ItemId, Scheme>,
+    globals: &FxHashMap<ItemId, Scheme>,
     table: &mut Table,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -781,7 +782,7 @@ pub(super) fn spec(
 
 pub(super) fn expr(
     names: &Names,
-    globals: &HashMap<ItemId, Scheme>,
+    globals: &FxHashMap<ItemId, Scheme>,
     table: &mut Table,
     expr: &Expr,
 ) -> Vec<Error> {
@@ -793,7 +794,7 @@ pub(super) fn expr(
 
 pub(super) fn stmt(
     names: &Names,
-    globals: &HashMap<ItemId, Scheme>,
+    globals: &FxHashMap<ItemId, Scheme>,
     table: &mut Table,
     inferrer: &mut Inferrer,
     stmt: &Stmt,
@@ -805,7 +806,7 @@ pub(super) fn stmt(
 
 pub(super) fn solve(
     names: &Names,
-    globals: &HashMap<ItemId, Scheme>,
+    globals: &FxHashMap<ItemId, Scheme>,
     table: &mut Table,
     inferrer: &mut Inferrer,
     new_nodes: Vec<NodeId>,

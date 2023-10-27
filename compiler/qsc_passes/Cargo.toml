@@ -13,6 +13,7 @@ miette = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_hir = { path = "../qsc_hir" }
+rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

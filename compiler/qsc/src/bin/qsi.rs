@@ -18,6 +18,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
+use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -72,12 +73,22 @@ impl Receiver for TerminalReceiver {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    let sources = cli
+    let mut sources = cli
         .sources
         .iter()
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
+    if sources.is_empty() {
+        let fs = StdFs;
+        let manifest = Manifest::load()?;
+        if let Some(manifest) = manifest {
+            let project = fs.load_project(manifest)?;
+            let mut project_sources = project.sources;
+
+            sources.append(&mut project_sources);
+        }
+    }
     if cli.exec {
         let mut interpreter = match Interpreter::new(
             !cli.nostdlib,
