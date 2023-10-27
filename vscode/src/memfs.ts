@@ -367,8 +367,11 @@ export class MemFS implements vscode.FileSystemProvider {
     this._emitter.event;
 
   watch(): vscode.Disposable {
-    // TODO: Docs say this shouldn't fire for excluded files, but it does...
-    // ignore, fires for all changes...
+    // NOTE: Docs for this API state, "It is the file system provider's job to
+    // call onDidChangeFile for every change given these rules. No event should
+    // be emitted for files that match any of the provided excludes.". But this
+    // implementation just fires on every change (see below). However most of the
+    // other implementations I've seen do the same, so assume this is harmless.
     return new vscode.Disposable(() => {
       return;
     });

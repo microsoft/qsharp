@@ -35,7 +35,13 @@ import {
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-import { EventType, sendTelemetryEvent } from "../telemetry";
+import {
+  DebugEvent,
+  EventType,
+  UserFlowStatus,
+  sendTelemetryEvent,
+} from "../telemetry";
+import { getRandomGuid } from "../utils";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -99,8 +105,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-  public async init(): Promise<void> {
-    const start = performance.now();
+  public async init(correlationId: string): Promise<void> {
+    sendTelemetryEvent(EventType.InitializeRuntimeStart, { correlationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
 
@@ -146,13 +152,21 @@ export class QscDebugSession extends LoggingDebugSession {
       this.breakpointLocations.set(this.program.toString(), mapped);
     } else {
       log.warn(`compilation failed. ${failureMessage}`);
+      sendTelemetryEvent(
+        EventType.InitializeRuntimeEnd,
+        {
+          correlationId,
+          reason: "compilation failed",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        {}
+      );
       this.failureMessage = failureMessage;
     }
-    const end = performance.now();
     sendTelemetryEvent(
-      EventType.DebugSessionStart,
-      {},
-      { timeToStartMs: end - start }
+      EventType.InitializeRuntimeEnd,
+      { correlationId, flowStatus: UserFlowStatus.Succeeded },
+      {}
     );
   }
 
@@ -250,6 +264,8 @@ export class QscDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: ILaunchRequestArguments
   ): Promise<void> {
+    const correlationId = getRandomGuid();
+    sendTelemetryEvent(EventType.Launch, { correlationId }, {});
     if (this.failureMessage != "") {
       log.info(
         "compilation failed. sending error response and stopping execution."
@@ -284,12 +300,22 @@ export class QscDebugSession extends LoggingDebugSession {
 
     if (args.noDebug) {
       log.trace(`Running without debugging`);
-      await this.runWithoutDebugging(args);
+      await this.runWithoutDebugging(args, correlationId);
     } else {
       log.trace(`Running with debugging`);
       if (this.config.stopOnEntry) {
+        sendTelemetryEvent(
+          EventType.DebugSessionEvent,
+          { correlationId, event: DebugEvent.StepIn },
+          {}
+        );
         await this.stepIn();
       } else {
+        sendTelemetryEvent(
+          EventType.DebugSessionEvent,
+          { correlationId, event: DebugEvent.Continue },
+          {}
+        );
         await this.continue();
       }
     }
@@ -356,7 +382,8 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   private async runWithoutDebugging(
-    args: ILaunchRequestArguments
+    args: ILaunchRequestArguments,
+    correlationId: string
   ): Promise<void> {
     const bps: number[] = [];
     // This will be replaced when the interpreter
@@ -374,7 +401,7 @@ export class QscDebugSession extends LoggingDebugSession {
       // Reset the interpreter for the next shot.
       // The interactive interpreter doesn't do this automatically,
       // and doesn't know how to deal with shots like the stateless version.
-      await this.init();
+      await this.init(correlationId);
       if (this.failureMessage != "") {
         log.info(
           "compilation failed. sending error response and stopping execution."
@@ -848,6 +875,12 @@ export class QscDebugSession extends LoggingDebugSession {
         variables: variables,
       };
     } else if (handle === "quantum") {
+      const correlationId = getRandomGuid();
+      sendTelemetryEvent(
+        EventType.RenderQuantumStateStart,
+        { correlationId },
+        {}
+      );
       const state = await this.debugService.captureQuantumState();
       const variables: DebugProtocol.Variable[] = state.map((entry) => {
         const variable: DebugProtocol.Variable = {
@@ -858,6 +891,11 @@ export class QscDebugSession extends LoggingDebugSession {
         };
         return variable;
       });
+      sendTelemetryEvent(
+        EventType.RenderQuantumStateEnd,
+        { correlationId },
+        {}
+      );
       response.body = {
         variables: variables,
       };

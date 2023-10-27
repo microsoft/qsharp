@@ -6,7 +6,8 @@ use crate::{
     ty::Scheme,
 };
 use qsc_data_structures::index_map;
-use std::{collections::HashMap, rc::Rc};
+use rustc_hash::FxHashMap;
+use std::rc::Rc;
 
 pub struct Global {
     pub namespace: Rc<str>,
@@ -32,8 +33,8 @@ pub struct Term {
 
 #[derive(Default)]
 pub struct Table {
-    tys: HashMap<Rc<str>, HashMap<Rc<str>, Ty>>,
-    terms: HashMap<Rc<str>, HashMap<Rc<str>, Term>>,
+    tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Ty>>,
+    terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Term>>,
 }
 
 impl Table {
@@ -50,8 +51,8 @@ impl Table {
 
 impl FromIterator<Global> for Table {
     fn from_iter<T: IntoIterator<Item = Global>>(iter: T) -> Self {
-        let mut tys: HashMap<_, HashMap<_, _>> = HashMap::new();
-        let mut terms: HashMap<_, HashMap<_, _>> = HashMap::new();
+        let mut tys: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
+        let mut terms: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         for global in iter {
             match global.kind {
                 Kind::Ty(ty) => {

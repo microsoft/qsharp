@@ -3,10 +3,10 @@
 
 use indenter::{indented, Indented};
 use qsc_data_structures::span::Span;
+use rustc_hash::FxHashMap;
 
 use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
-    collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
 };
@@ -109,7 +109,7 @@ impl Scheme {
     /// Returns an error if the given arguments do not match the scheme parameters.
     pub fn instantiate(&self, args: &[GenericArg]) -> Result<Arrow, InstantiationError> {
         if args.len() == self.params.len() {
-            let args: HashMap<_, _> = self
+            let args: FxHashMap<_, _> = self
                 .params
                 .iter()
                 .enumerate()
