@@ -4,6 +4,8 @@
 import * as vscode from "vscode";
 import { getCompilerWorker, log } from "qsharp-lang";
 import { isQsharpDocument } from "./common";
+import { EventType, sendTelemetryEvent } from "./telemetry";
+import { getRandomGuid } from "./utils";
 
 const generateQirTimeoutMs = 30000;
 
@@ -68,7 +70,14 @@ export async function getQirForActiveWindow(): Promise<string> {
     worker.terminate();
   }, generateQirTimeoutMs);
   try {
+    const correlationId = getRandomGuid();
+    sendTelemetryEvent(EventType.GenerateQirStart, { correlationId }, {});
     result = await worker.getQir(code);
+    sendTelemetryEvent(
+      EventType.GenerateQirEnd,
+      { correlationId },
+      { qirLength: result.length }
+    );
     clearTimeout(compilerTimeout);
   } catch (e: any) {
     log.error("Codegen error. ", e.toString());
