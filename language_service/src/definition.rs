@@ -69,8 +69,13 @@ impl DefinitionFinder<'_> {
 }
 
 impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
-    fn at_callable_def(&mut self, _: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
-        self.set_definition_from_position(decl.name.span.lo, None);
+    fn at_callable_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        _: &'a ast::CallableDecl,
+    ) {
+        self.set_definition_from_position(name.span.lo, None);
     }
 
     fn at_callable_ref(
@@ -92,7 +97,6 @@ impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
         _: &'a hir::Package,
         type_name: &'a hir::Ident,
         _: &'a hir::ty::Udt,
@@ -106,8 +110,8 @@ impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
 
     fn at_field_ref(
         &mut self,
-        _: &'a ast::NodeId,
         _: &'a ast::Ident,
+        _: &'a ast::NodeId,
         item_id: &'_ hir::ItemId,
         field_def: &'a hir::ty::UdtField,
     ) {
@@ -117,7 +121,7 @@ impl<'a> LocatorAPI<'a> for DefinitionFinder<'a> {
         self.set_definition_from_position(span.lo, item_id.package);
     }
 
-    fn at_local_def(&mut self, _: &LocatorContext<'a>, _: &'a ast::Pat, ident: &'a ast::Ident) {
+    fn at_local_def(&mut self, _: &LocatorContext<'a>, ident: &'a ast::Ident, _: &'a ast::Pat) {
         self.set_definition_from_position(ident.span.lo, None);
     }
 

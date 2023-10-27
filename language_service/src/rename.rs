@@ -135,11 +135,15 @@ impl<'a> Rename2<'a> {
 }
 
 impl<'a> LocatorAPI<'a> for Rename2<'a> {
-    fn at_callable_def(&mut self, _: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
-        if let Some(resolve::Res::Item(item_id)) =
-            self.compilation.user_unit.ast.names.get(decl.name.id)
+    fn at_callable_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        _: &'a ast::CallableDecl,
+    ) {
+        if let Some(resolve::Res::Item(item_id)) = self.compilation.user_unit.ast.names.get(name.id)
         {
-            self.get_spans_for_item_rename(item_id, &decl.name);
+            self.get_spans_for_item_rename(item_id, name);
         }
     }
 
@@ -166,7 +170,6 @@ impl<'a> LocatorAPI<'a> for Rename2<'a> {
         &mut self,
         path: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
         _: &'a hir::Package,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
@@ -187,8 +190,8 @@ impl<'a> LocatorAPI<'a> for Rename2<'a> {
 
     fn at_field_ref(
         &mut self,
-        _: &'a ast::NodeId,
         field_ref: &'a ast::Ident,
+        _: &'a ast::NodeId,
         item_id: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
@@ -198,8 +201,8 @@ impl<'a> LocatorAPI<'a> for Rename2<'a> {
     fn at_local_def(
         &mut self,
         context: &LocatorContext<'a>,
-        _: &'a ast::Pat,
         ident: &'a ast::Ident,
+        _: &'a ast::Pat,
     ) {
         if let Some(curr) = context.current_callable {
             self.get_spans_for_local_rename(ident.id, ident, curr);

@@ -16,6 +16,7 @@ pub(crate) trait LocatorAPI<'package> {
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'package>,
+        name: &'package ast::Ident,
         decl: &'package ast::CallableDecl,
     ) {
     }
@@ -36,7 +37,6 @@ pub(crate) trait LocatorAPI<'package> {
         &mut self,
         path: &'package ast::Path,
         item_id: &'_ hir::ItemId,
-        item: &'package hir::Item,
         package: &'package hir::Package,
         type_name: &'package hir::Ident,
         udt: &'package hir::ty::Udt,
@@ -53,8 +53,8 @@ pub(crate) trait LocatorAPI<'package> {
 
     fn at_field_ref(
         &mut self,
-        expr_id: &'package ast::NodeId,
         field_ref: &'package ast::Ident,
+        expr_id: &'package ast::NodeId,
         item_id: &'_ hir::ItemId,
         field_def: &'package hir::ty::UdtField,
     ) {
@@ -63,8 +63,8 @@ pub(crate) trait LocatorAPI<'package> {
     fn at_local_def(
         &mut self,
         context: &LocatorContext<'package>,
-        pat: &'package ast::Pat,
         ident: &'package ast::Ident,
+        pat: &'package ast::Pat,
     ) {
     }
 
@@ -135,7 +135,7 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_touches(decl.name.span, self.offset) {
-                        self.inner.at_callable_def(&self.context, decl);
+                        self.inner.at_callable_def(&self.context, &decl.name, decl);
                     } else if span_contains(decl.span, self.offset) {
                         let context = self.context.current_callable;
                         self.context.current_callable = Some(decl);
@@ -223,7 +223,7 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
                     if span_touches(ident.span, self.offset) {
-                        self.inner.at_local_def(&self.context, pat, ident);
+                        self.inner.at_local_def(&self.context, ident, pat);
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
                     }
@@ -249,8 +249,8 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
                             hir::ItemKind::Ty(_, udt) => {
                                 if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
                                     self.inner.at_field_ref(
-                                        &expr.id,
                                         field_ref,
+                                        &expr.id,
                                         &resolved_item_id,
                                         field_def,
                                     );
@@ -296,7 +296,6 @@ impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
                                 self.inner.at_new_type_ref(
                                     path,
                                     &resolved_item_id,
-                                    item,
                                     package,
                                     type_name,
                                     udt,

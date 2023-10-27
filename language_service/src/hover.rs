@@ -44,7 +44,12 @@ struct HoverGenerator<'a> {
 }
 
 impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
-    fn at_callable_def(&mut self, context: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
+    fn at_callable_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        decl: &'a ast::CallableDecl,
+    ) {
         let contents = display_callable(
             &context.current_item_doc,
             &context.current_namespace,
@@ -52,7 +57,7 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(decl.name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(name.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -80,8 +85,8 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
     fn at_local_def(
         &mut self,
         context: &LocatorContext<'a>,
-        pat: &'a ast::Pat,
         ident: &'a ast::Ident,
+        pat: &'a ast::Pat,
     ) {
         let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
         let kind = if context.in_params {
@@ -110,8 +115,8 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
 
     fn at_field_ref(
         &mut self,
-        expr_id: &'a ast::NodeId,
         field_ref: &'a ast::Ident,
+        expr_id: &'a ast::NodeId,
         _: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
@@ -126,7 +131,6 @@ impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
         &mut self,
         path: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
         _: &'a hir::Package,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
