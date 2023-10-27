@@ -54,8 +54,6 @@ async function runSuite(extensionTestsPath, workspacePath) {
     extensionTestsPath,
     folderPath: workspacePath,
     quality: "stable",
-    printServerLog: verbose,
-    verbose,
     waitForDebugger: waitForDebugger
       ? Number(waitForDebugger.slice(attachArgName.length))
       : undefined,

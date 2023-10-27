@@ -118,8 +118,9 @@ export class QSharpLanguageService implements ILanguageService {
     version: number,
     cells: { uri: string; version: number; code: string }[]
   ): Promise<void> {
-    // TODO: If a cell was deleted, it's cached copy will remain in the map.
-    // This is mostly harmless and annoying to fix so I'm leaving it for now.
+    // Note: If a cell was deleted, its uri & contents will remain in the map.
+    // This is harmless and it keeps the code simpler to just leave it this way
+    // instead of trying to maintain a perfect map.
     for (const cell of cells) {
       this.code[cell.uri] = cell.code;
     }
@@ -194,33 +195,46 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number
   ): Promise<IDefinition | undefined> {
-    let code = this.code[documentUri];
-    if (code === undefined) {
+    const sourceCode = this.code[documentUri];
+    if (sourceCode === undefined) {
       log.error(
         `getDefinition: expected ${documentUri} to be in the document map`
       );
       return undefined;
     }
-    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], sourceCode)[
+      offset
+    ];
     const result = this.languageService.get_definition(
       documentUri,
       convertedOffset
     );
     if (result) {
-      // Inspect the URL protocol (equivalent to the URI scheme + ":").
-      // If the scheme is our library scheme, we need to call the wasm to
-      // provide the library file's contents to do the utf8->utf16 mapping.
-      const url = new URL(result.source);
-      if (url.protocol === qsharpLibraryUriScheme + ":") {
-        code = wasm.get_library_source_content(url.pathname);
-        if (code === undefined) {
-          log.error(`getDefinition: expected ${url} to be in the library`);
-          return undefined;
+      let targetCode = this.code[result.source];
+      if (targetCode === undefined) {
+        // Inspect the URL protocol (equivalent to the URI scheme + ":").
+        // If the scheme is our library scheme, we need to call the wasm to
+        // provide the library file's contents to do the utf8->utf16 mapping.
+        const url = new URL(result.source);
+        if (url.protocol === qsharpLibraryUriScheme + ":") {
+          targetCode = wasm.get_library_source_content(url.pathname);
+          if (targetCode === undefined) {
+            log.error(`getDefinition: expected ${url} to be in the library`);
+            return undefined;
+          }
         }
       }
-      result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
-        result.offset
-      ];
+      if (targetCode) {
+        result.offset = mapUtf8UnitsToUtf16Units([result.offset], targetCode)[
+          result.offset
+        ];
+      } else {
+        // TODO: This is bad, we simply have to do the utf8 offset -> utf16 line/column
+        // conversion in the rust layer, file a bug
+        log.error(
+          `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`
+        );
+      }
     }
     return result;
   }

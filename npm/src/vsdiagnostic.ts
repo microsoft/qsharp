@@ -3,6 +3,7 @@
 
 import { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
 export { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
+import { log } from "./log.js";
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]
 // index), however VS Code and Monaco handle positions as utf-16 code unit positions
@@ -116,7 +117,7 @@ function mapStringIndexes(
   // TODO: May want to have a more configurable error reporting at some point. Avoid throwing here,
   // and just report and continue.
   if (posArrayIndex < sortedIndexes.length) {
-    console.error(
+    log.error(
       `Failed to map all ${sourceIndexType} indexes. Remaining indexes are: ${sortedIndexes.slice(
         posArrayIndex
       )}`

@@ -595,6 +595,45 @@ test("language service configuration update", async () => {
   assert(gotDiagnostics);
 });
 
+test("language service in notebook", async () => {
+  const languageService = getLanguageServiceWorker();
+  let gotDiagnostics = false;
+  let expectedMessages = [
+    "name error: `Foo` not found",
+    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation",
+  ];
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
+    event.detail.diagnostics.map((d, i) =>
+      assert.equal(d.message, expectedMessages[i])
+    );
+  });
+
+  await languageService.updateNotebookDocument("notebook.ipynb", 1, [
+    { uri: "cell1", version: 1, code: "operation Main() : Unit {}" },
+    { uri: "cell2", version: 1, code: "Foo()" },
+  ]);
+
+  // Above document should have generated a resolve error
+  assert(gotDiagnostics);
+
+  // Reset expectations
+  gotDiagnostics = false;
+  expectedMessages = [];
+
+  await languageService.updateNotebookDocument("notebook.ipynb", 2, [
+    { uri: "cell1", version: 2, code: "operation Main() : Unit {}" },
+    { uri: "cell2", version: 2, code: "Main()" },
+  ]);
+
+  languageService.terminate();
+
+  // Updating the notebook should cause another diagnostics event clearing the errors
+  assert(gotDiagnostics);
+});
+
 async function testCompilerError(useWorker) {
   const compiler = useWorker ? getCompilerWorker() : getCompiler();
   if (useWorker) {
