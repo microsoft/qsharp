@@ -37,6 +37,58 @@ export interface ICompiler {
 export type ICompilerWorker = ICompiler & IServiceProxy;
 export type CompilerState = ServiceState;
 
+type Entry = File | Dir 
+
+interface File {
+  t: 'file',
+  name: string,
+  contents: string
+}
+
+interface Dir {
+  t: 'dir'
+  name: string,
+  entries: Entry[]
+}
+
+function name(entry: Entry) : string {
+  return entry.name
+}
+
+
+function lookupFn (root: Dir, path: string) : File | null{
+  for (const entry of root.entries) {
+    if (entry.t === 'file' && name(entry) === path) {
+      return entry;
+    }
+  }
+
+  for (const entry of root.entries) {
+    if (entry.t === 'dir') {
+      let result= lookupFn(entry, path);
+      if (result !== null) { return result; }
+    }
+  }
+
+  return null
+}
+function listDir (root: Dir, path: string) : Entry[] {
+  for (const entry of root.entries) {
+    if (entry.t === 'dir' && name(entry) === path) {
+      return entry.entries;
+    }
+  }
+
+  for (const entry of root.entries) {
+    if (entry.t === 'dir') {
+      let result= listDir(entry, path);
+      if (result.length !== 0) { return result; }
+    }
+  }
+
+  return [];
+}
+
 export class Compiler implements ICompiler {
   private wasm: Wasm;
 
@@ -68,22 +120,22 @@ export class Compiler implements ICompiler {
     return this.wasm.get_hir(code);
   }
 
+
   // TODO return type -- not sure if this is correct
-  async loadProject(files: {[key: string]: string}): Promise<string[]> {
-    let lookup_fn = (path: string): string | undefined =>  files[path];
+  async loadProject(files: Dir): Promise<string[]> {
+    const lookup_fn = (path: string): string | undefined =>  files[path];
     // TODO below fn
-    let list_dir_fn= (path: string): string | undefined =>  files[path];
+    const listDirFn= (path: string) => listDir(files, path);
 
-    let projectLoader = new this.wasm.ProjectLoader(lookup_fn, list_dir_fn);
+    const projectLoader = new this.wasm.ProjectLoader(lookup_fn, listDirFn);
 
-    let manifestDescriptor = new this.wasm.ManifestDescriptor(["TODO exclude files"], ["TODO exclude regexes"], "TODO root dir");
+    const manifestDescriptor = new this.wasm.ManifestDescriptor(["TODO exclude files"], ["TODO exclude regexes"], "TODO root dir");
 
-
-    let project = projectLoader.load( manifestDescriptor);
+    const project = projectLoader.load( manifestDescriptor);
     
     log.info(JSON.stringify(project, null, 2));
 
-    return project;
+    return project
 ;  }
 
   async run(
