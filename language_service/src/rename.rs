@@ -4,10 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::cursor_locator::{CursorLocator, CursorLocatorAPI, LocatorContext};
+use crate::cursor_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
 use crate::protocol;
-use crate::qsc_utils::{map_offset, protocol_span, span_contains, span_touches, Compilation};
-use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor};
+use crate::qsc_utils::{map_offset, protocol_span, Compilation};
+use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
 use qsc::hir::{ty::Ty, Res};
 use qsc::{ast, hir, resolve, Span};
 use std::rc::Rc;
@@ -21,7 +21,7 @@ pub(crate) fn prepare_rename(
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
 
     let mut prepare_rename = Rename2::new(compilation, true);
-    let mut locator = CursorLocator::new(&mut prepare_rename, offset, compilation);
+    let mut locator = IdentifierLocator::new(&mut prepare_rename, offset, compilation);
     locator.visit_package(&compilation.unit.ast.package);
     prepare_rename
         .prepare
@@ -37,7 +37,7 @@ pub(crate) fn get_rename(
     let offset = map_offset(&compilation.unit.sources, source_name, offset);
 
     let mut rename = Rename2::new(compilation, false);
-    let mut locator = CursorLocator::new(&mut rename, offset, compilation);
+    let mut locator = IdentifierLocator::new(&mut rename, offset, compilation);
     locator.visit_package(&compilation.unit.ast.package);
     rename
         .locations
@@ -134,8 +134,8 @@ impl<'a> Rename2<'a> {
     }
 }
 
-impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
-    fn at_callable_def(&mut self, context: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
+impl<'a> LocatorAPI<'a> for Rename2<'a> {
+    fn at_callable_def(&mut self, _: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
         if let Some(resolve::Res::Item(item_id)) = self.compilation.unit.ast.names.get(decl.name.id)
         {
             self.get_spans_for_item_rename(item_id, &decl.name);
@@ -146,14 +146,14 @@ impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
         &mut self,
         path: &'a ast::Path,
         item_id: &'a hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
-        decl: &'a hir::CallableDecl,
+        _: &'a hir::Item,
+        _: &'a hir::Package,
+        _: &'a hir::CallableDecl,
     ) {
         self.get_spans_for_item_rename(item_id, &path.name);
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
         if let Some(resolve::Res::Item(item_id)) = self.compilation.unit.ast.names.get(type_name.id)
         {
             self.get_spans_for_item_rename(item_id, type_name);
@@ -164,10 +164,10 @@ impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
         &mut self,
         path: &'a ast::Path,
         item_id: &'a hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
-        type_name: &'a hir::Ident,
-        udt: &'a hir::ty::Udt,
+        _: &'a hir::Item,
+        _: &'a hir::Package,
+        _: &'a hir::Ident,
+        _: &'a hir::ty::Udt,
     ) {
         self.get_spans_for_item_rename(item_id, &path.name);
     }
@@ -176,7 +176,7 @@ impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         field_name: &'a ast::Ident,
-        ty: &'a ast::Ty,
+        _: &'a ast::Ty,
     ) {
         if let Some(item_id) = context.current_udt_id {
             self.get_spans_for_field_rename(item_id, field_name);
@@ -185,10 +185,10 @@ impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
 
     fn at_field_ref(
         &mut self,
-        expr_id: &'a ast::NodeId,
+        _: &'a ast::NodeId,
         field_ref: &'a ast::Ident,
         item_id: &'a hir::ItemId,
-        field_def: &'a hir::ty::UdtField,
+        _: &'a hir::ty::UdtField,
     ) {
         self.get_spans_for_field_rename(item_id, field_ref);
     }
@@ -196,7 +196,7 @@ impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
     fn at_local_def(
         &mut self,
         context: &LocatorContext<'a>,
-        pat: &'a ast::Pat,
+        _: &'a ast::Pat,
         ident: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
@@ -209,7 +209,7 @@ impl<'a> CursorLocatorAPI<'a> for Rename2<'a> {
         context: &LocatorContext<'a>,
         path: &'a ast::Path,
         node_id: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
             self.get_spans_for_local_rename(*node_id, &path.name, curr);

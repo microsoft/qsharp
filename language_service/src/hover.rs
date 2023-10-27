@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::cursor_locator::{CursorLocator, CursorLocatorAPI, LocatorContext};
+use crate::cursor_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::protocol::Hover;
 use crate::qsc_utils::{map_offset, protocol_span, Compilation};
@@ -27,7 +27,7 @@ pub(crate) fn get_hover(
         display: CodeDisplay { compilation },
     };
 
-    let mut locator = CursorLocator::new(&mut hover_visitor, offset, compilation);
+    let mut locator = IdentifierLocator::new(&mut hover_visitor, offset, compilation);
     locator.visit_package(&compilation.unit.ast.package);
     hover_visitor.hover
 }
@@ -43,7 +43,7 @@ struct HoverGenerator<'a> {
     compilation: &'a Compilation,
 }
 
-impl<'a> CursorLocatorAPI<'a> for HoverGenerator<'a> {
+impl<'a> LocatorAPI<'a> for HoverGenerator<'a> {
     fn at_callable_def(&mut self, context: &LocatorContext<'a>, decl: &'a ast::CallableDecl) {
         let contents = display_callable(
             &context.current_item_doc,
@@ -66,7 +66,7 @@ impl<'a> CursorLocatorAPI<'a> for HoverGenerator<'a> {
 
     fn at_field_def(
         &mut self,
-        context: &LocatorContext<'a>,
+        _: &LocatorContext<'a>,
         field_name: &'a ast::Ident,
         ty: &'a ast::Ty,
     ) {
@@ -112,8 +112,8 @@ impl<'a> CursorLocatorAPI<'a> for HoverGenerator<'a> {
         &mut self,
         expr_id: &'a ast::NodeId,
         field_ref: &'a ast::Ident,
-        item_id: &'a hir::ItemId,
-        field_def: &'a hir::ty::UdtField,
+        _: &'a hir::ItemId,
+        _: &'a hir::ty::UdtField,
     ) {
         let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
         self.hover = Some(Hover {
@@ -125,10 +125,10 @@ impl<'a> CursorLocatorAPI<'a> for HoverGenerator<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        item_id: &'a hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
-        type_name: &'a hir::Ident,
+        _: &'a hir::ItemId,
+        _: &'a hir::Item,
+        _: &'a hir::Package,
+        _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
         let contents = markdown_fenced_block(self.display.hir_udt(udt));
@@ -142,7 +142,7 @@ impl<'a> CursorLocatorAPI<'a> for HoverGenerator<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        item_id: &'a hir::ItemId,
+        _: &'a hir::ItemId,
         item: &'a hir::Item,
         package: &'a hir::Package,
         decl: &'a hir::CallableDecl,

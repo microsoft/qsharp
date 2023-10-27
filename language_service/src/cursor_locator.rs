@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// #[cfg(test)]
-// mod tests;
-
 use std::mem::replace;
 use std::rc::Rc;
 
@@ -11,7 +8,8 @@ use crate::qsc_utils::{find_ident, find_item, span_contains, span_touches, Compi
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 
-pub(crate) trait CursorLocatorAPI<'package> {
+#[allow(unused_variables)]
+pub(crate) trait LocatorAPI<'package> {
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'package>,
@@ -87,15 +85,19 @@ pub(crate) struct LocatorContext<'package> {
     pub(crate) current_udt_id: Option<&'package hir::ItemId>,
 }
 
-pub(crate) struct CursorLocator<'a, 'package, T> {
-    inner: &'a mut T,
+pub(crate) struct IdentifierLocator<'inner, 'package, T> {
+    inner: &'inner mut T,
     offset: u32,
     compilation: &'package Compilation,
     context: LocatorContext<'package>,
 }
 
-impl<'a, 'package, T> CursorLocator<'a, 'package, T> {
-    pub(crate) fn new(inner: &'a mut T, offset: u32, compilation: &'package Compilation) -> Self {
+impl<'inner, 'package, T> IdentifierLocator<'inner, 'package, T> {
+    pub(crate) fn new(
+        inner: &'inner mut T,
+        offset: u32,
+        compilation: &'package Compilation,
+    ) -> Self {
         Self {
             inner,
             offset,
@@ -113,8 +115,8 @@ impl<'a, 'package, T> CursorLocator<'a, 'package, T> {
     }
 }
 
-impl<'a, 'package, T: CursorLocatorAPI<'package>> Visitor<'package>
-    for CursorLocator<'a, 'package, T>
+impl<'inner, 'package, T: LocatorAPI<'package>> Visitor<'package>
+    for IdentifierLocator<'inner, 'package, T>
 {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
