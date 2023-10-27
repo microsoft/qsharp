@@ -26,7 +26,7 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
     const uri = vscode.Uri.parse(definition.source);
 
     const definitionPosition = (await openDocument(uri)).positionAt(
-      definition.offset
+      definition.offset,
     );
     return new vscode.Location(uri, definitionPosition);
   }
@@ -40,10 +40,10 @@ async function openDocument(uri: vscode.Uri) {
         doc
           .getCells()
           .filter((cell) =>
-            vscode.languages.match(qsharpDocumentFilter, cell.document)
+            vscode.languages.match(qsharpDocumentFilter, cell.document),
           )
-          .map((cell) => cell.document)
-      )
+          .map((cell) => cell.document),
+      ),
     )
     .find((doc) => doc.uri.toString() === uri.toString());
 

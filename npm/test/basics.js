@@ -609,7 +609,7 @@ test("language service in notebook", async () => {
     assert.equal(event.type, "diagnostics");
     assert.equal(event.detail.diagnostics.length, expectedMessages.length);
     event.detail.diagnostics.map((d, i) =>
-      assert.equal(d.message, expectedMessages[i])
+      assert.equal(d.message, expectedMessages[i]),
     );
   });
 

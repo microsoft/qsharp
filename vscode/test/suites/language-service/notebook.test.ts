@@ -14,7 +14,7 @@ suite("Q# Notebook Tests", () => {
   test("Cell language is set to Q#", async () => {
     await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
-      vscode.Uri.joinPath(workspaceFolderUri, "test-no-lang-metadata.ipynb")
+      vscode.Uri.joinPath(workspaceFolderUri, "test-no-lang-metadata.ipynb"),
     );
 
     // Test if the cell with the %%qsharp magic has been detected
@@ -58,7 +58,7 @@ suite("Q# Notebook Tests", () => {
   test("Diagnostics", async () => {
     await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
-      vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb")
+      vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
     );
 
     const thirdQSharpCellUri = notebook.cellAt(3).document.uri;
@@ -74,7 +74,7 @@ suite("Q# Notebook Tests", () => {
   test("Definition", async () => {
     await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
-      vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb")
+      vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
     );
 
     const firstQSharpCellUri = notebook.cellAt(1).document.uri;
@@ -87,7 +87,7 @@ suite("Q# Notebook Tests", () => {
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
       secondQSharpCellUri,
-      pos
+      pos,
     )) as vscode.Location[];
 
     const location = actualDefinition[0];

@@ -168,7 +168,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 
   // synchronize notebook cell contents
   subscriptions.push(
-    ...registerQSharpNotebookCellUpdateHandlers(languageService)
+    ...registerQSharpNotebookCellUpdateHandlers(languageService),
   );
 
   // synchronize configuration

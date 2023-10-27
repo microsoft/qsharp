@@ -44,7 +44,7 @@ export interface ILanguageService {
       uri: string;
       version: number;
       code: string;
-    }[]
+    }[],
   ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   closeNotebookDocument(notebookUri: string, cellUris: string[]): Promise<void>;
@@ -116,7 +116,7 @@ export class QSharpLanguageService implements ILanguageService {
   async updateNotebookDocument(
     notebookUri: string,
     version: number,
-    cells: { uri: string; version: number; code: string }[]
+    cells: { uri: string; version: number; code: string }[],
   ): Promise<void> {
     // Note: If a cell was deleted, its uri & contents will remain in the map.
     // This is harmless and it keeps the code simpler to just leave it this way
@@ -134,7 +134,7 @@ export class QSharpLanguageService implements ILanguageService {
 
   async closeNotebookDocument(
     documentUri: string,
-    cellUris: string[]
+    cellUris: string[],
   ): Promise<void> {
     cellUris.forEach((uri) => delete this.code[uri]);
     this.languageService.close_notebook_document(documentUri, cellUris);
@@ -233,7 +233,7 @@ export class QSharpLanguageService implements ILanguageService {
         // TODO: This is bad, we simply have to do the utf8 offset -> utf16 line/column
         // conversion in the rust layer, file a bug
         log.error(
-          `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`
+          `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`,
         );
       }
     }
@@ -354,7 +354,7 @@ export class QSharpLanguageService implements ILanguageService {
   onDiagnostics(
     uri: string,
     version: number | undefined,
-    diagnostics: VSDiagnostic[]
+    diagnostics: VSDiagnostic[],
   ) {
     try {
       const code = this.code[uri];

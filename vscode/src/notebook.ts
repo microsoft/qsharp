@@ -80,7 +80,7 @@ const openQSharpNotebooks = new Set<string>();
  * This one is for syncing with the language service
  */
 export function registerQSharpNotebookCellUpdateHandlers(
-  languageService: ILanguageService
+  languageService: ILanguageService,
 ) {
   vscode.workspace.notebookDocuments.forEach((notebook) => {
     updateIfQsharpNotebook(notebook);
@@ -90,19 +90,19 @@ export function registerQSharpNotebookCellUpdateHandlers(
   subscriptions.push(
     vscode.workspace.onDidOpenNotebookDocument((notebook) => {
       updateIfQsharpNotebook(notebook);
-    })
+    }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeNotebookDocument((event) => {
       updateIfQsharpNotebook(event.notebook);
-    })
+    }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidCloseNotebookDocument((notebook) => {
       closeIfKnownQsharpNotebook(notebook);
-    })
+    }),
   );
 
   function updateIfQsharpNotebook(notebook: vscode.NotebookDocument) {
@@ -120,7 +120,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
               version: cell.document.version,
               code: getQSharpText(cell.document),
             };
-          })
+          }),
         );
       } else {
         // All Q# cells could have been deleted, check if we know this doc from previous calls
@@ -134,7 +134,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
     if (openQSharpNotebooks.has(notebookUri)) {
       languageService.closeNotebookDocument(
         notebookUri,
-        getQSharpCells(notebook).map((cell) => cell.document.uri.toString())
+        getQSharpCells(notebook).map((cell) => cell.document.uri.toString()),
       );
       openQSharpNotebooks.delete(notebook.uri.toString());
     }
@@ -144,7 +144,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
     return notebook
       .getCells()
       .filter((cell) =>
-        vscode.languages.match(qsharpDocumentFilter, cell.document)
+        vscode.languages.match(qsharpDocumentFilter, cell.document),
       );
   }
 
