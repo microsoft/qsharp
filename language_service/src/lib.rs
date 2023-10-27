@@ -12,10 +12,10 @@ use qsc_utils::Compilation;
 use std::collections::HashMap;
 
 pub mod completion;
-mod cursor_locator;
 pub mod definition;
 mod display;
 pub mod hover;
+mod identifier_locator;
 pub mod protocol;
 mod qsc_utils;
 pub mod rename;

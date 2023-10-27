@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::cursor_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
+use crate::identifier_locator::{IdentifierLocator, LocatorAPI, LocatorContext};
 use crate::protocol;
 use crate::qsc_utils::{map_offset, protocol_span, Compilation};
 use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
