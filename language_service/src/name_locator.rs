@@ -18,8 +18,7 @@ pub(crate) trait Handler<'package> {
         context: &LocatorContext<'package>,
         name: &'package ast::Ident,
         decl: &'package ast::CallableDecl,
-    ) {
-    }
+    );
 
     fn at_callable_ref(
         &mut self,
@@ -28,10 +27,9 @@ pub(crate) trait Handler<'package> {
         item: &'package hir::Item,
         package: &'package hir::Package,
         decl: &'package hir::CallableDecl,
-    ) {
-    }
+    );
 
-    fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef) {}
+    fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
 
     fn at_new_type_ref(
         &mut self,
@@ -40,16 +38,14 @@ pub(crate) trait Handler<'package> {
         package: &'package hir::Package,
         type_name: &'package hir::Ident,
         udt: &'package hir::ty::Udt,
-    ) {
-    }
+    );
 
     fn at_field_def(
         &mut self,
         context: &LocatorContext<'package>,
         field_name: &'package ast::Ident,
         ty: &'package ast::Ty,
-    ) {
-    }
+    );
 
     fn at_field_ref(
         &mut self,
@@ -57,16 +53,14 @@ pub(crate) trait Handler<'package> {
         expr_id: &'package ast::NodeId,
         item_id: &'_ hir::ItemId,
         field_def: &'package hir::ty::UdtField,
-    ) {
-    }
+    );
 
     fn at_local_def(
         &mut self,
         context: &LocatorContext<'package>,
         ident: &'package ast::Ident,
         pat: &'package ast::Pat,
-    ) {
-    }
+    );
 
     fn at_local_ref(
         &mut self,
@@ -74,8 +68,7 @@ pub(crate) trait Handler<'package> {
         path: &'package ast::Path,
         node_id: &'package ast::NodeId,
         ident: &'package ast::Ident,
-    ) {
-    }
+    );
 }
 
 pub(crate) struct LocatorContext<'package> {
