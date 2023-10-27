@@ -13,7 +13,7 @@ export async function azureRequest(
   token: string,
   correlationId?: string,
   method = "GET",
-  body?: string
+  body?: string,
 ) {
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
@@ -37,7 +37,7 @@ export async function azureRequest(
             reason: `request to azure returned code ${response.status}`,
             correlationId,
           },
-          {}
+          {},
         );
       }
       throw Error(`Azure request failed: ${response.statusText}`);
@@ -53,7 +53,7 @@ export async function azureRequest(
       sendTelemetryEvent(
         EventType.AzureRequestFailed,
         { reason: `request to azure failed to return`, correlationId },
-        {}
+        {},
       );
     }
     log.error(`Failed to fetch ${uri}: ${e}`);
@@ -67,7 +67,7 @@ export async function storageRequest(
   method: string,
   extraHeaders?: [string, string][],
   body?: string | Uint8Array,
-  correlationId?: string
+  correlationId?: string,
 ) {
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
@@ -95,7 +95,7 @@ export async function storageRequest(
             reason: `request to storage on azure returned code ${response.status}`,
             correlationId,
           },
-          {}
+          {},
         );
       }
       throw Error(`Storage request failed: ${response.statusText}`);
@@ -111,7 +111,7 @@ export async function storageRequest(
           reason: `request to storage on azure failed to return`,
           correlationId,
         },
-        {}
+        {},
       );
     }
     throw e;
@@ -144,7 +144,7 @@ export class QuantumUris {
 
   constructor(
     public endpoint: string, // e.g. "https://westus.quantum.azure.com"
-    public id: string // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
+    public id: string, // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
   ) {}
 
   quotas() {
@@ -189,7 +189,7 @@ export class StorageUris {
     storageAccount: string,
     container: string,
     blob: string,
-    sas: string
+    sas: string,
   ) {
     return `https://${storageAccount}.blob.core.windows.net/${container}/${blob}?${sas}`;
   }
@@ -208,7 +208,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
     token,
     correlationId,
     "POST",
-    body
+    body,
   );
   const sasUri = decodeURI(sasResponse.sasUri);
 
@@ -255,14 +255,14 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   sendTelemetryEvent(
     EventType.CheckCorsEnd,
     { correlationId, flowStatus: UserFlowStatus.Succeeded },
-    {}
+    {},
   );
 }
 
 export async function compileToBitcode(
   compilerService: string,
   providerId: string,
-  qir: string
+  qir: string,
 ) {
   try {
     log.info("Using compiler service at " + compilerService);

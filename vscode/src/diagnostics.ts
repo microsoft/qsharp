@@ -10,7 +10,7 @@ import * as vscode from "vscode";
 import { qsharpLanguageId } from "./common.js";
 
 export function startCheckingQSharp(
-  languageService: ILanguageService
+  languageService: ILanguageService,
 ): vscode.Disposable[] {
   const diagCollection =
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
@@ -36,7 +36,7 @@ export function startCheckingQSharp(
       // for an already-closed document from the problems list.
       // Note: This mapping will break down if we ever send diagnostics for closed files.
       const document = vscode.workspace.textDocuments.filter(
-        (doc) => doc.uri.toString() === diagnostics.uri
+        (doc) => doc.uri.toString() === diagnostics.uri,
       )[0];
       return document.positionAt(offset);
     };
@@ -59,7 +59,7 @@ export function startCheckingQSharp(
         const vscodeDiagnostic = new vscode.Diagnostic(
           new vscode.Range(getPosition(d.start_pos), getPosition(d.end_pos)),
           d.message,
-          severity
+          severity,
         );
         if (d.code) {
           vscodeDiagnostic.code = d.code;
@@ -71,15 +71,15 @@ export function startCheckingQSharp(
                 vscode.Uri.parse(r.source),
                 new vscode.Range(
                   getPosition(r.start_pos),
-                  getPosition(r.end_pos)
-                )
+                  getPosition(r.end_pos),
+                ),
               ),
-              r.message
+              r.message,
             );
           });
         }
         return vscodeDiagnostic;
-      })
+      }),
     );
   }
 

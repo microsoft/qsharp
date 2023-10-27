@@ -54,7 +54,7 @@ async function wasmLoader(uriOrBuffer: string | ArrayBuffer) {
 }
 
 export function loadWasmModule(
-  uriOrBuffer: string | ArrayBuffer
+  uriOrBuffer: string | ArrayBuffer,
 ): Promise<void> {
   // Only initiate if not already in flight, to avoid race conditions
   if (!wasmModulePromise) {
@@ -86,7 +86,7 @@ async function instantiateWasm() {
 }
 
 export async function getLibrarySourceContent(
-  path: string
+  path: string,
 ): Promise<string | undefined> {
   await instantiateWasm();
   return wasm.get_library_source_content(path);
@@ -101,7 +101,7 @@ export async function getDebugService(): Promise<IDebugService> {
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.
 export function getDebugServiceWorker(
-  workerArg: string | Worker
+  workerArg: string | Worker,
 ): IDebugServiceWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
@@ -171,7 +171,7 @@ export async function getLanguageService(): Promise<ILanguageService> {
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.
 export function getLanguageServiceWorker(
-  workerArg: string | Worker
+  workerArg: string | Worker,
 ): ILanguageServiceWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 

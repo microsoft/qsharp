@@ -17,7 +17,7 @@ import { log } from "./log.js";
  */
 export function mapUtf16UnitsToUtf8Units(
   positions: Array<number>,
-  source: string
+  source: string,
 ): { [index: number]: number } {
   return mapStringIndexes(source, positions, "utf16");
 }
@@ -29,7 +29,7 @@ export function mapUtf16UnitsToUtf8Units(
  */
 export function mapUtf8UnitsToUtf16Units(
   positions: Array<number>,
-  source: string
+  source: string,
 ): { [index: number]: number } {
   return mapStringIndexes(source, positions, "utf8");
 }
@@ -37,7 +37,7 @@ export function mapUtf8UnitsToUtf16Units(
 function mapStringIndexes(
   buffer: string,
   indexes: Array<number>,
-  sourceIndexType: "utf8" | "utf16"
+  sourceIndexType: "utf8" | "utf16",
 ): { [index: number]: number } {
   const result: { [index: number]: number } = {};
   if (indexes.length === 0) return result;
@@ -119,8 +119,8 @@ function mapStringIndexes(
   if (posArrayIndex < sortedIndexes.length) {
     log.error(
       `Failed to map all ${sourceIndexType} indexes. Remaining indexes are: ${sortedIndexes.slice(
-        posArrayIndex
-      )}`
+        posArrayIndex,
+      )}`,
     );
   }
 
@@ -129,7 +129,7 @@ function mapStringIndexes(
 
 export function mapDiagnostics(
   diags: VSDiagnostic[],
-  code: string
+  code: string,
 ): VSDiagnostic[] {
   // Get a map of the Rust source positions to the JavaScript source positions
   const positions: number[] = [];

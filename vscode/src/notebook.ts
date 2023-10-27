@@ -34,7 +34,7 @@ export function registerQSharpNotebookHandlers() {
       if (notebookDocument.notebookType === jupyterNotebookType) {
         updateQSharpCellLanguages(notebookDocument.getCells());
       }
-    })
+    }),
   );
 
   subscriptions.push(
@@ -49,7 +49,7 @@ export function registerQSharpNotebookHandlers() {
           .flat();
         updateQSharpCellLanguages(changedCells.concat(addedCells));
       }
-    })
+    }),
   );
 
   function updateQSharpCellLanguages(cells: vscode.NotebookCell[]) {
@@ -63,7 +63,7 @@ export function registerQSharpNotebookHandlers() {
         ) {
           vscode.languages.setTextDocumentLanguage(
             cell.document,
-            qsharpLanguageId
+            qsharpLanguageId,
           );
           sendTelemetryEvent(EventType.QSharpJupyterCellInitialized);
         }
@@ -169,7 +169,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
 // Yes, this function is long, but mostly to deal with multi-folder VS Code workspace or multi
 // Azure Quantum workspace connection scenarios. The actual notebook creation is pretty simple.
 export function registerCreateNotebookCommand(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -191,7 +191,7 @@ export function registerCreateNotebookCommand(
                 })),
                 {
                   title: "Select a workspace to use in the notebook",
-                }
+                },
               )
             )?.id;
           }
@@ -205,7 +205,7 @@ export function registerCreateNotebookCommand(
               return getPythonCodeForWorkspace(
                 workspace.id,
                 workspace.endpointUri,
-                workspace.name
+                workspace.name,
               );
             }
           }
@@ -219,16 +219,16 @@ export function registerCreateNotebookCommand(
           `"# WORKSPACE_CONNECTION_CODE"`,
           JSON.stringify(
             "# Connect to the Azure Quantum workspace\n\n" +
-              getCodeForWorkspace(choice)
-          )
+              getCodeForWorkspace(choice),
+          ),
         );
 
         const document = await vscode.workspace.openNotebookDocument(
           "jupyter-notebook",
-          JSON.parse(content)
+          JSON.parse(content),
         );
         await vscode.window.showNotebookDocument(document);
-      }
-    )
+      },
+    ),
   );
 }

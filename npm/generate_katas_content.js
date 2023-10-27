@@ -40,7 +40,7 @@ function tryGetTitleFromSegment(segment, errorPrefix) {
   if (segment.type !== "markdown") {
     throw new Error(
       `${errorPrefix}\n` +
-        `segment is expected to be the title but found a segment of type '${segment.type}' instead`
+        `segment is expected to be the title but found a segment of type '${segment.type}' instead`,
     );
   }
 
@@ -50,7 +50,7 @@ function tryGetTitleFromSegment(segment, errorPrefix) {
     throw new Error(
       `${errorPrefix}\n` +
         `A title segment must be 1 line, but ${linesCount} lines are present\n` +
-        `Hint: is the markdown missing a @[section] macro?`
+        `Hint: is the markdown missing a @[section] macro?`,
     );
   }
   const title = tryGetTitleFromMarkdown(segment.markdown, errorPrefix);
@@ -103,18 +103,18 @@ function resolveSvgSegment(properties, baseFolderPath) {
   const requiredProperties = ["path"];
   const missingProperties = identifyMissingProperties(
     properties,
-    requiredProperties
+    requiredProperties,
   );
   if (missingProperties.length > 0) {
     throw new Error(
-      `SVG macro is missing the following properties: ${missingProperties}`
+      `SVG macro is missing the following properties: ${missingProperties}`,
     );
   }
 
   const svgPath = join(baseFolderPath, properties.path);
   const svg = tryReadFile(
     svgPath,
-    `Could not read the contents of the SVG file at ${svgPath}`
+    `Could not read the contents of the SVG file at ${svgPath}`,
   );
 
   properties["svg"] = svg;
@@ -135,7 +135,7 @@ function appendToMarkdownSegment(markdownSegment, segmentToAppend) {
     markdownSegment.markdown += "\n" + segmentToAppend.properties.svg;
   } else {
     throw new Error(
-      `Cannot append segment of type "${segmentToAppend.type}" into markdown segment`
+      `Cannot append segment of type "${segmentToAppend.type}" into markdown segment`,
     );
   }
 }
@@ -165,7 +165,7 @@ function coalesceSegments(segments) {
     if (currentSegment.type === "markdown" || currentSegment.type === "svg") {
       coalescedSegment = coalesceIntoSingleMarkdownSegment(
         currentSegment,
-        segmentsStack
+        segmentsStack,
       );
     } else {
       coalescedSegment = currentSegment;
@@ -195,7 +195,7 @@ function parseMarkdown(markdown) {
       const delta = match.index - latestProcessedIndex;
       if (delta > 0) {
         const textSegment = tryCreateMarkdownSegment(
-          markdown.substring(latestProcessedIndex, match.index)
+          markdown.substring(latestProcessedIndex, match.index),
         );
         if (textSegment !== null) {
           segments.push(textSegment);
@@ -209,7 +209,7 @@ function parseMarkdown(markdown) {
     } else {
       // No more matches were found, create a text segment with the remaining content.
       const textSegment = tryCreateMarkdownSegment(
-        markdown.substring(latestProcessedIndex, markdown.length)
+        markdown.substring(latestProcessedIndex, markdown.length),
       );
       if (textSegment !== null) {
         segments.push(textSegment);
@@ -226,11 +226,11 @@ function createExample(baseFolderPath, properties) {
   const requiredProperties = ["id", "codePath"];
   const missingProperties = identifyMissingProperties(
     properties,
-    requiredProperties
+    requiredProperties,
   );
   if (missingProperties.length > 0) {
     throw new Error(
-      `Example macro is missing the following properties: ${missingProperties}`
+      `Example macro is missing the following properties: ${missingProperties}`,
     );
   }
 
@@ -238,7 +238,7 @@ function createExample(baseFolderPath, properties) {
   const codePath = join(baseFolderPath, properties.codePath);
   const code = tryReadFile(
     codePath,
-    `Could not read the contents of the example code file at ${codePath}`
+    `Could not read the contents of the example code file at ${codePath}`,
   );
   return {
     type: "example",
@@ -257,11 +257,11 @@ function createSolution(baseFolderPath, properties) {
   const requiredProperties = ["id", "codePath"];
   const missingProperties = identifyMissingProperties(
     properties,
-    requiredProperties
+    requiredProperties,
   );
   if (missingProperties.length > 0) {
     throw new Error(
-      `Solution macro is missing the following properties: ${missingProperties}`
+      `Solution macro is missing the following properties: ${missingProperties}`,
     );
   }
 
@@ -269,7 +269,7 @@ function createSolution(baseFolderPath, properties) {
   const codePath = join(baseFolderPath, properties.codePath);
   const code = tryReadFile(
     codePath,
-    `Could not read the contents of the solution code file at ${codePath}`
+    `Could not read the contents of the solution code file at ${codePath}`,
   );
   return {
     type: "solution",
@@ -281,7 +281,7 @@ function createSolution(baseFolderPath, properties) {
 function createExplainedSolution(markdownFilePath) {
   const markdown = tryReadFile(
     markdownFilePath,
-    `Could not read solution markdown file at ${markdownFilePath}`
+    `Could not read solution markdown file at ${markdownFilePath}`,
   );
 
   const solutionFolderPath = dirname(markdownFilePath);
@@ -312,7 +312,7 @@ function createExplainedSolution(markdownFilePath) {
 function createAnswer(markdownFilePath) {
   const markdown = tryReadFile(
     markdownFilePath,
-    `Could not read answer markdown file at ${markdownFilePath}`
+    `Could not read answer markdown file at ${markdownFilePath}`,
   );
 
   const answerFolderPath = dirname(markdownFilePath);
@@ -340,21 +340,21 @@ function createQuestion(kataPath, properties) {
   const requiredProperties = ["descriptionPath", "answerPath"];
   const missingProperties = identifyMissingProperties(
     properties,
-    requiredProperties
+    requiredProperties,
   );
   if (missingProperties.length > 0) {
     throw new Error(
       `Question macro is missing the following properties\n` +
         `${missingProperties}\n` +
         `Macro properties:\n` +
-        `${JSON.stringify(properties, undefined, 2)}`
+        `${JSON.stringify(properties, undefined, 2)}`,
     );
   }
 
   // Generate the object using the macro properties.
   const descriptionMarkdown = tryReadFile(
     join(kataPath, properties.descriptionPath),
-    `Could not read descripton for question ${properties.id}`
+    `Could not read descripton for question ${properties.id}`,
   );
   const description = createTextContent(descriptionMarkdown);
   const answer = createAnswer(join(kataPath, properties.answerPath));
@@ -378,33 +378,33 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   ];
   const missingProperties = identifyMissingProperties(
     properties,
-    requiredProperties
+    requiredProperties,
   );
   if (missingProperties.length > 0) {
     throw new Error(
       `Exercise macro is missing the following properties\n` +
         `${missingProperties}\n` +
         `Macro properties:\n` +
-        `${JSON.stringify(properties, undefined, 2)}`
+        `${JSON.stringify(properties, undefined, 2)}`,
     );
   }
 
   // Generate the object using the macro properties.
   const descriptionMarkdown = tryReadFile(
     join(kataPath, properties.descriptionPath),
-    `Could not read descripton for exercise ${properties.id}`
+    `Could not read descripton for exercise ${properties.id}`,
   );
   const description = createTextContent(descriptionMarkdown);
   const resolvedCodePaths = properties.codePaths.map((path) =>
-    join(kataPath, path)
+    join(kataPath, path),
   );
   const sourceIds = aggregateSources(resolvedCodePaths, globalCodeSources);
   const placeholderCode = tryReadFile(
     join(kataPath, properties.placeholderSourcePath),
-    `Could not read placeholder code for exercise '${properties.id}'`
+    `Could not read placeholder code for exercise '${properties.id}'`,
   );
   const explainedSolution = createExplainedSolution(
-    join(kataPath, properties.solutionPath)
+    join(kataPath, properties.solutionPath),
   );
 
   return {
@@ -423,14 +423,14 @@ function createLessonSection(kataPath, properties, segmentsStack) {
   const requiredProperties = ["id", "title"];
   const missingProperties = identifyMissingProperties(
     properties,
-    requiredProperties
+    requiredProperties,
   );
   if (missingProperties.length > 0) {
     throw new Error(
       `Section macro is missing the following properties\n` +
         `${missingProperties}\n` +
         `Macro properties:\n` +
-        `${JSON.stringify(properties, undefined, 2)}`
+        `${JSON.stringify(properties, undefined, 2)}`,
     );
   }
 
@@ -457,7 +457,7 @@ function createLessonSection(kataPath, properties, segmentsStack) {
       throw new Error(
         `Lesson item could not be generated for segment of type '${currentSegment.type}'\n` +
           `segment:\n` +
-          `${JSON.stringify(currentSegment, undefined, 2)}`
+          `${JSON.stringify(currentSegment, undefined, 2)}`,
       );
     }
 
@@ -477,7 +477,7 @@ function createMacroSegment(match) {
   const propertiesJson = match.groups.json;
   const properties = tryParseJSON(
     propertiesJson,
-    `Invalid JSON for macro of type ${type}.\n` + `JSON: ${propertiesJson}`
+    `Invalid JSON for macro of type ${type}.\n` + `JSON: ${propertiesJson}`,
   );
   return {
     type,
@@ -511,13 +511,13 @@ function createKata(kataPath, id, title, segments, globalCodeSources) {
       section = createExerciseSection(
         kataPath,
         currentSegment.properties,
-        globalCodeSources
+        globalCodeSources,
       );
     } else if (currentSegment.type === "section") {
       section = createLessonSection(
         kataPath,
         currentSegment.properties,
-        segmentsStack
+        segmentsStack,
       );
     }
 
@@ -527,7 +527,7 @@ function createKata(kataPath, id, title, segments, globalCodeSources) {
         `Unexpexted segment of type '${currentSegment.type}'\n` +
           `segment:\n` +
           `${JSON.stringify(currentSegment, undefined, 2)}\n` +
-          `Hint: is the markdown missing a @[section] macro?`
+          `Hint: is the markdown missing a @[section] macro?`,
       );
     }
 
@@ -546,7 +546,7 @@ function generateKataContent(path, globalCodeSources) {
   const markdownPath = join(path, contentFileNames.kataMarkdown);
   const markdown = tryReadFile(
     markdownPath,
-    "Could not read the contents of the kata markdown file"
+    "Could not read the contents of the kata markdown file",
   );
 
   const kataId = basename(path);
@@ -556,7 +556,7 @@ function generateKataContent(path, globalCodeSources) {
   const firstSegment = rawSegments.at(0);
   const title = tryGetTitleFromSegment(
     firstSegment,
-    `Could not get title for kata '${kataId}'`
+    `Could not get title for kata '${kataId}'`,
   );
 
   // Do not use the first segment since it was already processed to get the kata's title.
@@ -607,11 +607,11 @@ function generateKatasContent(katasPath, outputPath) {
   const indexPath = join(katasPath, contentFileNames.katasIndex);
   const indexJson = tryReadFile(
     indexPath,
-    "Could not read the contents of the katas index file"
+    "Could not read the contents of the katas index file",
   );
   const katasDirs = tryParseJSON(
     indexJson,
-    `Invalid katas index at ${indexPath}`
+    `Invalid katas index at ${indexPath}`,
   );
 
   // Initialize an object where all the global code sources will be aggregated.
@@ -654,7 +654,7 @@ function generateKatasContent(katasPath, outputPath) {
   writeFileSync(
     contentJsPath,
     `export default ${JSON.stringify(katasContent, undefined, 2)}`,
-    "utf-8"
+    "utf-8",
   );
 }
 

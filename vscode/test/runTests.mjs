@@ -19,7 +19,7 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 const extensionDevelopmentPath = join(thisDir, "..");
 const attachArgName = "--waitForDebugger=";
 const waitForDebugger = process.argv.find((arg) =>
-  arg.startsWith(attachArgName)
+  arg.startsWith(attachArgName),
 );
 const verboseArgName = "--verbose";
 const verbose = process.argv.includes(verboseArgName);
@@ -28,13 +28,13 @@ try {
   // Language service tests
   await runSuite(
     join(thisDir, "out", "language-service", "index"),
-    join(thisDir, "suites", "language-service", "test-workspace")
+    join(thisDir, "suites", "language-service", "test-workspace"),
   );
 
   // Debugger tests
   await runSuite(
     join(thisDir, "out", "debugger", "index"),
-    join(thisDir, "..", "..", "samples")
+    join(thisDir, "..", "..", "samples"),
   );
 } catch (err) {
   console.error("Failed to run tests", err);

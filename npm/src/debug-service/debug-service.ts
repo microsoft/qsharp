@@ -22,7 +22,7 @@ export interface IDebugService {
   loadSource(
     path: string,
     source: string,
-    entry: string | undefined
+    entry: string | undefined,
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
@@ -30,19 +30,19 @@ export interface IDebugService {
   getStackFrames(): Promise<IStackFrame[]>;
   evalContinue(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult>;
   evalNext(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult>;
   evalStepIn(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult>;
   evalStepOut(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult>;
   dispose(): Promise<void>;
 }
@@ -65,7 +65,7 @@ export class QSharpDebugService implements IDebugService {
   async loadSource(
     path: string,
     source: string,
-    entry: string | undefined
+    entry: string | undefined,
   ): Promise<string> {
     this.code[path] = source;
     return this.debugService.load_source(path, source, entry);
@@ -79,7 +79,7 @@ export class QSharpDebugService implements IDebugService {
         // get any missing sources if possible
         if (!(frame.path in this.code)) {
           const content = await this.wasm.get_library_source_content(
-            frame.path
+            frame.path,
           );
           if (content) {
             this.code[frame.path] = content;
@@ -88,7 +88,7 @@ export class QSharpDebugService implements IDebugService {
         if (frame.path in this.code) {
           const mappedSpan = mapUtf8UnitsToUtf16Units(
             [frame.lo, frame.hi],
-            this.code[frame.path]
+            this.code[frame.path],
           );
           return {
             ...frame,
@@ -100,14 +100,14 @@ export class QSharpDebugService implements IDebugService {
           // and we couldn't load it, so just return it as-is
           return frame;
         }
-      })
+      }),
     );
     return stack_frames;
   }
 
   async evalNext(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
@@ -116,7 +116,7 @@ export class QSharpDebugService implements IDebugService {
 
   async evalStepIn(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
@@ -125,7 +125,7 @@ export class QSharpDebugService implements IDebugService {
 
   async evalStepOut(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
@@ -134,7 +134,7 @@ export class QSharpDebugService implements IDebugService {
 
   async evalContinue(
     bps: number[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<IStructStepResult> {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
@@ -155,7 +155,7 @@ export class QSharpDebugService implements IDebugService {
         id: span.id,
         lo: positionMap[span.lo],
         hi: positionMap[span.hi],
-      })
+      }),
     );
     return breakpoint_spans;
   }
