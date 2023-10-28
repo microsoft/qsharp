@@ -32,11 +32,9 @@ namespace Sample {
         Fact(Length(register) > 0, "Qubit register must not be empty.");
         Fact(
             CheckAllZero(register),
-            "Qubits in register are not in the |0〉 state.");
+            "Qubits are not in the |0〉 state.");
 
         H(register[0]);
-        for qubit in register[1...] {
-            CNOT(register[0], qubit);
-        }
+        ApplyToEach(CNOT(register[0], _), register[1...]);
     }
 }
