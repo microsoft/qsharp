@@ -32,6 +32,8 @@ namespace Sample {
         Fact(Length(register) > 0, "Qubit register must not be empty.");
         Fact(CheckAllZero(register), "Qubits are not in the |0〉 state.");
 
+        // Set the first qubit in the register into a 1/sqrt(2)(|0〉 + |1〉) superposition.
+        // Then apply a CNOT to the remaining qubits using the first qubit as control.
         H(register[0]);
         ApplyToEach(CNOT(register[0], _), register[1...]);
     }
