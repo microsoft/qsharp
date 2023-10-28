@@ -72,12 +72,12 @@ interface IServiceEventMessage {
 export interface IServiceEventTarget<TEvents extends IServiceEventMessage> {
   addEventListener<T extends TEvents["type"]>(
     type: T,
-    listener: (event: Event & Extract<TEvents, { type: T }>) => void
+    listener: (event: Event & Extract<TEvents, { type: T }>) => void,
   ): void;
 
   removeEventListener<T extends TEvents["type"]>(
     type: T,
-    listener: (event: Event & Extract<TEvents, { type: T }>) => void
+    listener: (event: Event & Extract<TEvents, { type: T }>) => void,
   ): void;
 
   dispatchEvent(event: Event & TEvents): boolean;
@@ -86,7 +86,7 @@ export interface IServiceEventTarget<TEvents extends IServiceEventMessage> {
 /** Holds state for a single request received by the proxy */
 type RequestState<
   TService extends ServiceMethods<TService>,
-  TServiceEventMsg extends IServiceEventMessage
+  TServiceEventMsg extends IServiceEventMessage,
 > = RequestMessage<TService> & {
   resolve: (val: any) => void;
   reject: (err: any) => void;
@@ -119,15 +119,15 @@ complete the request.
  */
 export function createProxy<
   TService extends ServiceMethods<TService>,
-  TServiceEventMsg extends IServiceEventMessage
+  TServiceEventMsg extends IServiceEventMessage,
 >(
   postMessage: (msg: RequestMessage<TService>) => void,
   terminator: () => void,
-  methods: MethodMap<TService>
+  methods: MethodMap<TService>,
 ): TService &
   IServiceProxy & {
     onMsgFromWorker: (
-      msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
+      msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
     ) => void;
   } {
   const queue: RequestState<TService, TServiceEventMsg>[] = [];
@@ -146,7 +146,7 @@ export function createProxy<
   function queueRequest(
     msg: RequestMessage<TService>,
     requestEventTarget?: IServiceEventTarget<TServiceEventMsg>,
-    cancellationToken?: CancellationToken
+    cancellationToken?: CancellationToken,
   ): Promise<ResultOf<ResponseMessage<TService>>> {
     return new Promise((resolve, reject) => {
       queue.push({
@@ -192,7 +192,7 @@ export function createProxy<
   }
 
   function onMsgFromWorker(
-    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
+    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
   ) {
     if (log.getLogLevel() >= 4)
       log.debug("Proxy: Received message from worker: %s", JSON.stringify(msg));
@@ -270,7 +270,7 @@ export function createProxy<
         case "request": {
           return queueRequest(
             { type: methodName, args } as RequestMessage<TService>,
-            requestEventTarget
+            requestEventTarget,
           );
         }
       }
@@ -284,7 +284,7 @@ export function createProxy<
     if (curr) {
       log.debug(
         "Proxy: Terminating running worker item of type: %s",
-        curr.type
+        curr.type,
       );
       curr.reject("terminated");
     }
@@ -293,7 +293,7 @@ export function createProxy<
       const item = queue.shift();
       log.debug(
         "Proxy: Terminating outstanding work item of type: %s",
-        item?.type
+        item?.type,
       );
       item?.reject("terminated");
     }
@@ -316,24 +316,24 @@ export function createProxy<
  */
 export function createDispatcher<
   TService extends ServiceMethods<TService>,
-  TServiceEventMsg extends IServiceEventMessage
+  TServiceEventMsg extends IServiceEventMessage,
 >(
   postMessage: (
-    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
+    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
   ) => void,
   service: TService,
   methods: MethodMap<TService>,
-  eventNames: TServiceEventMsg["type"][]
+  eventNames: TServiceEventMsg["type"][],
 ) {
   log.debug("Worker: Constructing WorkerEventHandler");
 
   function logAndPost(
-    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>
+    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
   ) {
     log.debug(
       "Worker: Sending %s message from worker: %o",
       msg.messageType,
-      msg
+      msg,
     );
     postMessage(msg);
   }
@@ -369,14 +369,14 @@ export function createDispatcher<
       .call(
         service,
         ...req.args,
-        methods[req.type] === "requestWithProgress" ? eventTarget : undefined
+        methods[req.type] === "requestWithProgress" ? eventTarget : undefined,
       )
       .then((result: any) =>
         logAndPost({
           messageType: "response",
           type: req.type,
           result: { success: true, result },
-        })
+        }),
       )
       .catch((err: any) =>
         logAndPost({
@@ -386,7 +386,7 @@ export function createDispatcher<
           messageType: "response",
           type: req.type,
           result: { success: false, error: err },
-        })
+        }),
       );
   };
 }

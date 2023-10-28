@@ -38,8 +38,8 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
 
       out(
         `  ${basis}  | ${complex} | ${probabilityPercent.toFixed(
-          4
-        )}%     | ${phase.toFixed(4)}`
+          4,
+        )}%     | ${phase.toFixed(4)}`,
       );
     });
     out("");

@@ -14,7 +14,7 @@ export function getRandomGuid(): string {
   // Convert the 16 bytes into 32 hex digits
   const hex = bytes.reduce(
     (acc, byte) => acc + byte.toString(16).padStart(2, "0"),
-    ""
+    "",
   );
 
   return (

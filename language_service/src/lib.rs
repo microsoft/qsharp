@@ -15,6 +15,7 @@ pub mod completion;
 pub mod definition;
 mod display;
 pub mod hover;
+mod name_locator;
 pub mod protocol;
 mod qsc_utils;
 pub mod rename;
@@ -235,7 +236,7 @@ impl<'a> LanguageService<'a> {
             let version = state.version;
             let contents = &state
                 .compilation
-                .unit
+                .user_unit
                 .sources
                 .find_by_name(uri)
                 .expect("source should be found")

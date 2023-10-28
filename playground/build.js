@@ -35,7 +35,7 @@ const buildOptions = {
 function copyLibs() {
   let monacoBase = join(
     libsDir,
-    `monaco-editor/${isRelease ? "min" : "dev"}/vs`
+    `monaco-editor/${isRelease ? "min" : "dev"}/vs`,
   );
   let monacoDest = join(thisDir, `public/libs/monaco/vs`);
 
@@ -52,7 +52,7 @@ function copyLibs() {
 
   let githubMarkdown = join(
     libsDir,
-    "github-markdown-css/github-markdown-light.css"
+    "github-markdown-css/github-markdown-light.css",
   );
   let githubMarkdownDest = join(thisDir, "public/libs/github-markdown.css");
   copyFileSync(githubMarkdown, githubMarkdownDest);
