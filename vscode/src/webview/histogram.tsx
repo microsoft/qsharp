@@ -3,8 +3,6 @@
 
 import { useRef, useState } from "preact/hooks";
 
-// TODO: Show the number of shots somewhere
-
 const enablePanning = false;
 const altKeyPans = true;
 
