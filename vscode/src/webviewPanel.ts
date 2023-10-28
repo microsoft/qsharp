@@ -24,7 +24,7 @@ const histogramRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 export function registerHistogramCommand(context: ExtensionContext) {
   const compilerWorkerScriptPath = Uri.joinPath(
     context.extensionUri,
-    "./out/compilerWorker.js"
+    "./out/compilerWorker.js",
   ).toString();
 
   context.subscriptions.push(
@@ -95,7 +95,7 @@ export function registerHistogramCommand(context: ExtensionContext) {
       } finally {
         worker.terminate();
       }
-    })
+    }),
   );
 }
 
@@ -114,7 +114,7 @@ export class QSharpWebViewPanel {
 
     this._panel.webview.html = this._getWebviewContent(
       this._panel.webview,
-      extensionUri
+      extensionUri,
     );
     this._setWebviewMessageListener(this._panel.webview);
   }
@@ -157,7 +157,7 @@ export class QSharpWebViewPanel {
         log.debug("Message for webview received", message);
       },
       undefined,
-      this._disposables
+      this._disposables,
     );
   }
 
@@ -173,12 +173,12 @@ export class QSharpWebViewPanel {
         ViewColumn.Beside,
         {
           enableScripts: true,
-        }
+        },
       );
 
       QSharpWebViewPanel.currentPanel = new QSharpWebViewPanel(
         panel,
-        extensionUri
+        extensionUri,
       );
     }
   }
