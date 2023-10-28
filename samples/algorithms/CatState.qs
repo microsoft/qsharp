@@ -30,9 +30,7 @@ namespace Sample {
     // in the zero state.
     operation PrepareCatState(register : Qubit[]) : Unit {
         Fact(Length(register) > 0, "Qubit register must not be empty.");
-        Fact(
-            CheckAllZero(register),
-            "Qubits are not in the |0〉 state.");
+        Fact(CheckAllZero(register), "Qubits are not in the |0〉 state.");
 
         H(register[0]);
         ApplyToEach(CNOT(register[0], _), register[1...]);
