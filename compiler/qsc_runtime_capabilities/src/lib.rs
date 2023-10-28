@@ -22,7 +22,7 @@ fn set_indentation<'a, 'b>(
 #[derive(Debug)]
 pub enum RuntimeCapability {
     ConditionalForwardBranching,
-    QubitReuse,
+    // QubitReuse, // CONSIDER (cesarzc): Possibly not needed.
     IntegerComputations,
     FloatingPointComputationg,
     BackwardsBranching,

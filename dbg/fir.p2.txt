@@ -1,0 +1,247 @@
+Package:
+    entry expression: 12638
+    Item 0 [1-664] (Public):
+        Namespace (Ident 2195 [11-28] "QuantumHelloWorld"): Item 1, Item 2, Item 3, Item 4
+    Item 1 [36-242] (Public):
+        Parent: 0
+        EntryPoint
+        Callable 1 [54-242] (operation):
+            name: Ident 2 [64-67] "RCA"
+            input: 1480
+            output: Result
+            functors: empty set
+            body: SpecDecl 3 [54-242]: Impl:
+                1057
+            adj: <none>
+            ctl: <none>
+            ctl-adj: <none>
+    Item 2 [248-478] (Public):
+        Parent: 0
+        Callable 2197 [248-478] (operation):
+            name: Ident 2198 [258-280] "InstrinsicallyAdaptive"
+            input: 1484
+            output: Bool
+            functors: empty set
+            body: SpecDecl 2199 [248-478]: Impl:
+                1059
+            adj: <none>
+            ctl: <none>
+            ctl-adj: <none>
+    Item 3 [484-574] (Public):
+        Parent: 0
+        Callable 2204 [484-574] (function):
+            name: Ident 2205 [493-496] "Foo"
+            input: 1489
+            output: Int
+            functors: empty set
+            body: SpecDecl 2207 [484-574]: Impl:
+                1061
+            adj: <none>
+            ctl: <none>
+            ctl-adj: <none>
+    Item 4 [580-662] (Public):
+        Parent: 0
+        Callable 2209 [580-662] (function):
+            name: Ident 2210 [589-592] "Bar"
+            input: 1493
+            output: Int
+            functors: empty set
+            body: SpecDecl 34 [580-662]: Impl:
+                1062
+            adj: <none>
+            ctl: <none>
+            ctl-adj: <none>
+    Block 1057 [79-242] [Type Result]:
+        2406
+        2407
+        2408
+        2409
+        2410
+        2411
+        2415
+    Block 1058 [222-235] [Type Unit]:
+        2412
+        2413
+        2414
+    Block 1059 [290-478] [Type Bool]:
+        2416
+        2417
+        2418
+        2419
+        2420
+        2422
+        2423
+        2424
+    Block 1060 [424-461] [Type Unit]:
+        2421
+    Block 1061 [521-574] [Type Int]:
+        2425
+        2426
+    Block 1062 [617-662] [Type Int]:
+        2427
+        2428
+    Stmt 2406 [89-113]: Semi: 12641
+    Stmt 2407 [122-142]: Local (Immutable):
+        1481
+        12644
+    Stmt 2408 [151-160]: Semi: 12647
+    Stmt 2409 [169-191]: Local (Immutable):
+        1482
+        12650
+    Stmt 2410 [200-213]: Semi: 12653
+    Stmt 2411 [222-236]: Semi: 12656
+    Stmt 2412 [0-0]: Local (Immutable):
+        1483
+        12657
+    Stmt 2413 [0-0]: Semi: 12658
+    Stmt 2414 [222-235]: Semi: 12661
+    Stmt 2415 [0-0]: Semi: 12663
+    Stmt 2416 [300-318]: Local (Mutable):
+        1485
+        12666
+    Stmt 2417 [327-347]: Local (Immutable):
+        1486
+        12667
+    Stmt 2418 [356-365]: Semi: 12670
+    Stmt 2419 [374-396]: Local (Immutable):
+        1487
+        12673
+    Stmt 2420 [405-461]: Expr: 12676
+    Stmt 2421 [438-451]: Semi: 12681
+    Stmt 2422 [471-472]: Local (Immutable):
+        1488
+        12684
+    Stmt 2423 [0-0]: Semi: 12685
+    Stmt 2424 [0-0]: Expr: 12688
+    Stmt 2425 [531-545]: Local (Immutable):
+        1492
+        12689
+    Stmt 2426 [554-568]: Semi: 12692
+    Stmt 2427 [627-641]: Local (Immutable):
+        1496
+        12696
+    Stmt 2428 [650-656]: Expr: 12699
+    Expr 12638 [54-242] [Type Result]: Call:
+        12639
+        12640
+    Expr 12639 [54-242] [Type Result]: Var: Item 1
+    Expr 12640 [54-242] [Type Unit]: Unit
+    Expr 12641 [89-112] [Type Unit]: Call:
+        12642
+        12643
+    Expr 12642 [89-96] [Type (String -> Unit)]: Var: Item 132 (Package 1)
+    Expr 12643 [97-111] [Type String]: String:
+        Lit: "Hello world!"
+    Expr 12644 [122-142] [Type Qubit]: Call:
+        12645
+        12646
+    Expr 12645 [122-142] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+    Expr 12646 [122-142] [Type Unit]: Unit
+    Expr 12647 [151-159] [Type Unit]: Call:
+        12648
+        12649
+    Expr 12648 [151-152] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 110 (Package 1)
+    Expr 12649 [153-158] [Type Qubit]: Var: Local 8
+    Expr 12650 [182-190] [Type Result]: Call:
+        12651
+        12652
+    Expr 12651 [182-183] [Type (Qubit => Result)]: Var: Item 112 (Package 1)
+    Expr 12652 [184-189] [Type Qubit]: Var: Local 8
+    Expr 12653 [200-212] [Type Unit]: Call:
+        12654
+        12655
+    Expr 12654 [200-205] [Type (Qubit => Unit)]: Var: Item 117 (Package 1)
+    Expr 12655 [206-211] [Type Qubit]: Var: Local 8
+    Expr 12656 [222-235] [Type Unit]: Expr Block: 1058
+    Expr 12657 [229-235] [Type Result]: Var: Local 42
+    Expr 12658 [0-0] [Type Unit]: Call:
+        12659
+        12660
+    Expr 12659 [122-142] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
+    Expr 12660 [122-142] [Type Qubit]: Var: Local 8
+    Expr 12661 [222-235] [Type Unit]: Return: 12662
+    Expr 12662 [229-235] [Type Result]: Var: Local 2196
+    Expr 12663 [0-0] [Type Unit]: Call:
+        12664
+        12665
+    Expr 12664 [122-142] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
+    Expr 12665 [122-142] [Type Qubit]: Var: Local 8
+    Expr 12666 [312-317] [Type Bool]: Lit: Bool(false)
+    Expr 12667 [327-347] [Type Qubit]: Call:
+        12668
+        12669
+    Expr 12668 [327-347] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+    Expr 12669 [327-347] [Type Unit]: Unit
+    Expr 12670 [356-364] [Type Unit]: Call:
+        12671
+        12672
+    Expr 12671 [356-357] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 110 (Package 1)
+    Expr 12672 [358-363] [Type Qubit]: Var: Local 2201
+    Expr 12673 [387-395] [Type Result]: Call:
+        12674
+        12675
+    Expr 12674 [387-388] [Type (Qubit => Result)]: Var: Item 112 (Package 1)
+    Expr 12675 [389-394] [Type Qubit]: Var: Local 2201
+    Expr 12676 [405-461] [Type Unit]: If:
+        12677
+        12680
+    Expr 12677 [409-422] [Type Bool]: BinOp (Eq):
+        12678
+        12679
+    Expr 12678 [409-415] [Type Result]: Var: Local 2202
+    Expr 12679 [419-422] [Type Result]: Lit: Result(One)
+    Expr 12680 [424-461] [Type Unit]: Expr Block: 1060
+    Expr 12681 [438-450] [Type Unit]: Assign:
+        12682
+        12683
+    Expr 12682 [442-443] [Type Bool]: Var: Local 2200
+    Expr 12683 [446-450] [Type Bool]: Lit: Bool(true)
+    Expr 12684 [471-472] [Type Bool]: Var: Local 2200
+    Expr 12685 [0-0] [Type Unit]: Call:
+        12686
+        12687
+    Expr 12686 [327-347] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
+    Expr 12687 [327-347] [Type Qubit]: Var: Local 2201
+    Expr 12688 [471-472] [Type Bool]: Var: Local 2203
+    Expr 12689 [539-544] [Type Int]: BinOp (Add):
+        12690
+        12691
+    Expr 12690 [539-540] [Type Int]: Var: Local 27
+    Expr 12691 [543-544] [Type Int]: Var: Local 2206
+    Expr 12692 [554-567] [Type Unit]: Return: 12693
+    Expr 12693 [561-567] [Type Int]: BinOp (Mul):
+        12694
+        12695
+    Expr 12694 [561-562] [Type Int]: Var: Local 2208
+    Expr 12695 [565-567] [Type Int]: Lit: Int(10)
+    Expr 12696 [635-640] [Type Int]: BinOp (Add):
+        12697
+        12698
+    Expr 12697 [635-636] [Type Int]: Var: Local 32
+    Expr 12698 [639-640] [Type Int]: Var: Local 2211
+    Expr 12699 [650-656] [Type Int]: BinOp (Mul):
+        12700
+        12701
+    Expr 12700 [650-651] [Type Int]: Var: Local 2212
+    Expr 12701 [654-656] [Type Int]: Lit: Int(10)
+    Pat 1480 [67-69] [Type Unit]: Unit
+    Pat 1481 [122-142] [Type Qubit]: Bind: Ident 8 [122-142] "qubit"
+    Pat 1482 [173-179] [Type Result]: Bind: Ident 42 [173-179] "result"
+    Pat 1483 [229-235] [Type Result]: Bind: Ident 2196 [229-235] "@generated_ident_114"
+    Pat 1484 [280-282] [Type Unit]: Unit
+    Pat 1485 [308-309] [Type Bool]: Bind: Ident 2200 [308-309] "b"
+    Pat 1486 [327-347] [Type Qubit]: Bind: Ident 2201 [327-347] "qubit"
+    Pat 1487 [378-384] [Type Result]: Bind: Ident 2202 [378-384] "result"
+    Pat 1488 [471-472] [Type Bool]: Bind: Ident 2203 [471-472] "@generated_ident_135"
+    Pat 1489 [496-514] [Type (Int, Int)]: Tuple:
+        1490
+        1491
+    Pat 1490 [497-504] [Type Int]: Bind: Ident 27 [497-498] "a"
+    Pat 1491 [506-513] [Type Int]: Bind: Ident 2206 [506-507] "b"
+    Pat 1492 [535-536] [Type Int]: Bind: Ident 2208 [535-536] "c"
+    Pat 1493 [592-610] [Type (Int, Int)]: Tuple:
+        1494
+        1495
+    Pat 1494 [593-600] [Type Int]: Bind: Ident 32 [593-594] "a"
+    Pat 1495 [602-609] [Type Int]: Bind: Ident 2211 [602-603] "b"
+    Pat 1496 [631-632] [Type Int]: Bind: Ident 2212 [631-632] "c"

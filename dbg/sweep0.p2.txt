@@ -1,0 +1,240 @@
+
+callables:
+    Callable: 0
+        None
+    Callable: 1
+        is_quantum_source: None
+        parameter_caps: None
+    Callable: 2
+        is_quantum_source: None
+        parameter_caps: None
+    Callable: 3
+        is_quantum_source: None
+        parameter_caps: None
+    Callable: 4
+        is_quantum_source: None
+        parameter_caps: None
+blocks:
+    Block: 1057
+        None
+    Block: 1058
+        None
+    Block: 1059
+        None
+    Block: 1060
+        None
+    Block: 1061
+        None
+    Block: 1062
+        None
+statements:
+    Statement: 2406
+        None
+    Statement: 2407
+        None
+    Statement: 2408
+        None
+    Statement: 2409
+        None
+    Statement: 2410
+        None
+    Statement: 2411
+        None
+    Statement: 2412
+        None
+    Statement: 2413
+        None
+    Statement: 2414
+        None
+    Statement: 2415
+        None
+    Statement: 2416
+        None
+    Statement: 2417
+        None
+    Statement: 2418
+        None
+    Statement: 2419
+        None
+    Statement: 2420
+        None
+    Statement: 2421
+        None
+    Statement: 2422
+        None
+    Statement: 2423
+        None
+    Statement: 2424
+        None
+    Statement: 2425
+        None
+    Statement: 2426
+        None
+    Statement: 2427
+        None
+    Statement: 2428
+        None
+expressions:
+    Expression: 12638
+        None
+    Expression: 12639
+        None
+    Expression: 12640
+        None
+    Expression: 12641
+        None
+    Expression: 12642
+        None
+    Expression: 12643
+        None
+    Expression: 12644
+        None
+    Expression: 12645
+        None
+    Expression: 12646
+        None
+    Expression: 12647
+        None
+    Expression: 12648
+        None
+    Expression: 12649
+        None
+    Expression: 12650
+        None
+    Expression: 12651
+        None
+    Expression: 12652
+        None
+    Expression: 12653
+        None
+    Expression: 12654
+        None
+    Expression: 12655
+        None
+    Expression: 12656
+        None
+    Expression: 12657
+        None
+    Expression: 12658
+        None
+    Expression: 12659
+        None
+    Expression: 12660
+        None
+    Expression: 12661
+        None
+    Expression: 12662
+        None
+    Expression: 12663
+        None
+    Expression: 12664
+        None
+    Expression: 12665
+        None
+    Expression: 12666
+        None
+    Expression: 12667
+        None
+    Expression: 12668
+        None
+    Expression: 12669
+        None
+    Expression: 12670
+        None
+    Expression: 12671
+        None
+    Expression: 12672
+        None
+    Expression: 12673
+        None
+    Expression: 12674
+        None
+    Expression: 12675
+        None
+    Expression: 12676
+        None
+    Expression: 12677
+        None
+    Expression: 12678
+        None
+    Expression: 12679
+        None
+    Expression: 12680
+        None
+    Expression: 12681
+        None
+    Expression: 12682
+        None
+    Expression: 12683
+        None
+    Expression: 12684
+        None
+    Expression: 12685
+        None
+    Expression: 12686
+        None
+    Expression: 12687
+        None
+    Expression: 12688
+        None
+    Expression: 12689
+        None
+    Expression: 12690
+        None
+    Expression: 12691
+        None
+    Expression: 12692
+        None
+    Expression: 12693
+        None
+    Expression: 12694
+        None
+    Expression: 12695
+        None
+    Expression: 12696
+        None
+    Expression: 12697
+        None
+    Expression: 12698
+        None
+    Expression: 12699
+        None
+    Expression: 12700
+        None
+    Expression: 12701
+        None
+patterns:
+    Pattern: 1480
+        None
+    Pattern: 1481
+        None
+    Pattern: 1482
+        None
+    Pattern: 1483
+        None
+    Pattern: 1484
+        None
+    Pattern: 1485
+        None
+    Pattern: 1486
+        None
+    Pattern: 1487
+        None
+    Pattern: 1488
+        None
+    Pattern: 1489
+        None
+    Pattern: 1490
+        None
+    Pattern: 1491
+        None
+    Pattern: 1492
+        None
+    Pattern: 1493
+        None
+    Pattern: 1494
+        None
+    Pattern: 1495
+        None
+    Pattern: 1496
+        None
