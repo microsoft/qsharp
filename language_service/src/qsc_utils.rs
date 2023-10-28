@@ -86,7 +86,7 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
 pub(crate) fn resolve_item_relative_to_user_package<'a>(
     compilation: &'a Compilation,
     item_id: &ItemId,
-) -> (&'a Item, &'a Package, Option<PackageId>) {
+) -> (&'a Item, &'a Package, ItemId) {
     resolve_item(compilation, None, item_id)
 }
 
@@ -98,11 +98,11 @@ pub(crate) fn resolve_item_res<'a>(
     compilation: &'a Compilation,
     local_package_id: Option<PackageId>,
     res: &hir::Res,
-) -> (&'a Item, Option<PackageId>) {
+) -> (&'a Item, ItemId) {
     match res {
         hir::Res::Item(item_id) => {
-            let (item, _, package_id) = resolve_item(compilation, local_package_id, item_id);
-            (item, package_id)
+            let (item, _, resolved_item_id) = resolve_item(compilation, local_package_id, item_id);
+            (item, resolved_item_id)
         }
         _ => panic!("expected to find item"),
     }
@@ -116,7 +116,7 @@ fn resolve_item<'a>(
     compilation: &'a Compilation,
     local_package_id: Option<PackageId>,
     item_id: &ItemId,
-) -> (&'a Item, &'a Package, Option<PackageId>) {
+) -> (&'a Item, &'a Package, ItemId) {
     // If the `ItemId` contains a package id, use that.
     // Lack of a package id means the item is in the
     // same package as the one this `ItemId` reference
@@ -139,7 +139,10 @@ fn resolve_item<'a>(
             .get(item_id.item)
             .expect("item id should exist"),
         package,
-        package_id,
+        ItemId {
+            package: package_id,
+            item: item_id.item,
+        },
     )
 }
 
