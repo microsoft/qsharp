@@ -161,6 +161,10 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showEstimates",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         },
@@ -244,6 +248,11 @@
       {
         "command": "qsharp-vscode.showHistogram",
         "title": "Show histogram",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showEstimates",
+        "title": "Show resource estimates",
         "category": "Q#"
       },
       {

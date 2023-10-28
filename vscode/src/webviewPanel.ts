@@ -24,8 +24,18 @@ const histogramRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 export function registerHistogramCommand(context: ExtensionContext) {
   const compilerWorkerScriptPath = Uri.joinPath(
     context.extensionUri,
-    "./out/compilerWorker.js",
+    "./out/compilerWorker.js"
   ).toString();
+
+  context.subscriptions.push(
+    commands.registerCommand("qsharp-vscode.showEstimates", async () => {
+      const message = {
+        command: "estimate",
+      };
+      QSharpWebViewPanel.render(context.extensionUri);
+      QSharpWebViewPanel.currentPanel?.sendMessage(message);
+    })
+  );
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showHistogram", async () => {
@@ -95,7 +105,7 @@ export function registerHistogramCommand(context: ExtensionContext) {
       } finally {
         worker.terminate();
       }
-    }),
+    })
   );
 }
 
@@ -114,7 +124,7 @@ export class QSharpWebViewPanel {
 
     this._panel.webview.html = this._getWebviewContent(
       this._panel.webview,
-      extensionUri,
+      extensionUri
     );
     this._setWebviewMessageListener(this._panel.webview);
   }
@@ -123,6 +133,10 @@ export class QSharpWebViewPanel {
     const webviewCss = getUri(webview, extensionUri, [
       "resources",
       "webview.css",
+    ]);
+    const texzillaJs = getUri(webview, extensionUri, [
+      "resources",
+      "TeXZilla-min.js",
     ]);
     const webviewJs = getUri(webview, extensionUri, [
       "out",
@@ -138,6 +152,7 @@ export class QSharpWebViewPanel {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Q#</title>
       <link rel="stylesheet" href="${webviewCss}" />
+      <script src="${texzillaJs}"></script>
       <script src="${webviewJs}"></script>
     </head>
     <body>
@@ -157,7 +172,7 @@ export class QSharpWebViewPanel {
         log.debug("Message for webview received", message);
       },
       undefined,
-      this._disposables,
+      this._disposables
     );
   }
 
@@ -173,12 +188,12 @@ export class QSharpWebViewPanel {
         ViewColumn.Beside,
         {
           enableScripts: true,
-        },
+        }
       );
 
       QSharpWebViewPanel.currentPanel = new QSharpWebViewPanel(
         panel,
-        extensionUri,
+        extensionUri
       );
     }
   }
