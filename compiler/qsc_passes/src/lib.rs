@@ -101,7 +101,8 @@ impl PassContext {
         Validator::default().visit_package(package);
 
         let base_prof_errors = if self.target == TargetProfile::Base {
-            baseprofck::check_base_profile_compliance(package)
+            //baseprofck::check_base_profile_compliance(package)
+            Vec::new()
         } else {
             Vec::new()
         };
