@@ -7,22 +7,22 @@ use qsc_fir::{
     ty::{Prim, Ty},
 };
 
-use indenter::{indented, Indented};
+use indenter::indented;
 use std::{
     fmt::{self, Display, Formatter, Write},
-    fs::{self, File},
-    io::{self, Read, Write as IoWrite},
+    fs::File,
+    io::Write as IoWrite,
 };
 
-use crate::{set_indentation, CapsBundle, StoreCapabilities};
+use crate::{set_indentation, RuntimePropeties, StoreCapabilities};
 
 #[derive(Debug)]
 struct PackageCapsScaffolding {
     pub callables: IndexMap<LocalItemId, Option<CallableCapsScaffolding>>,
     pub blocks: IndexMap<BlockId, Option<BlockCapsScaffolding>>,
-    pub stmts: IndexMap<StmtId, Option<CapsBundle>>,
-    pub exprs: IndexMap<ExprId, Option<CapsBundle>>,
-    pub pats: IndexMap<PatId, Option<CapsBundle>>,
+    pub stmts: IndexMap<StmtId, Option<RuntimePropeties>>,
+    pub exprs: IndexMap<ExprId, Option<RuntimePropeties>>,
+    pub pats: IndexMap<PatId, Option<RuntimePropeties>>,
 }
 
 impl Display for PackageCapsScaffolding {
@@ -105,8 +105,8 @@ impl Display for PackageCapsScaffolding {
 // CONSIDER (cesarzc): Might need to do this a per specialization basis.
 #[derive(Debug)]
 struct CallableCapsScaffolding {
-    pub intrinsic_caps: Option<CapsBundle>,
-    pub parameter_caps: Option<Vec<CapsBundle>>,
+    pub intrinsic_caps: Option<RuntimePropeties>,
+    pub parameter_caps: Option<Vec<RuntimePropeties>>,
 }
 
 impl Display for CallableCapsScaffolding {
@@ -129,8 +129,8 @@ impl Display for CallableCapsScaffolding {
 // CONSIDER (cesarzc): This seems the same as `CallableCapsScaffolding`.
 #[derive(Debug)]
 struct BlockCapsScaffolding {
-    pub intrinsic_caps: Option<CapsBundle>,
-    pub parameter_caps: Option<Vec<CapsBundle>>,
+    pub intrinsic_caps: Option<RuntimePropeties>,
+    pub parameter_caps: Option<Vec<RuntimePropeties>>,
 }
 
 impl Display for BlockCapsScaffolding {
@@ -153,10 +153,10 @@ impl Display for BlockCapsScaffolding {
 // DBG (cesarzc): For debugging purposes only.
 fn save_package_scaffoldings_to_files(
     store: &IndexMap<PackageId, PackageCapsScaffolding>,
-    sweep_number: u8,
+    phase: u8,
 ) {
     for (id, package) in store.iter() {
-        let filename = format!("dbg/sweep{sweep_number}.p{id}.txt");
+        let filename = format!("dbg/phase{phase}.package{id}.txt");
         let mut package_file = File::create(filename).expect("File could be created");
         let package_string = format!("{package}");
         write!(package_file, "{package_string}").expect("Writing to file should succeed.");
@@ -216,19 +216,19 @@ impl Initializer {
         }
 
         // Initialize statements.
-        let mut stmts = IndexMap::<StmtId, Option<CapsBundle>>::new();
+        let mut stmts = IndexMap::<StmtId, Option<RuntimePropeties>>::new();
         for (id, _) in package.stmts.iter() {
             stmts.insert(id, None);
         }
 
         // Initialize expressions.
-        let mut exprs = IndexMap::<ExprId, Option<CapsBundle>>::new();
+        let mut exprs = IndexMap::<ExprId, Option<RuntimePropeties>>::new();
         for (id, _) in package.exprs.iter() {
             exprs.insert(id, None);
         }
 
         // Initialize patterns.
-        let mut pats = IndexMap::<PatId, Option<CapsBundle>>::new();
+        let mut pats = IndexMap::<PatId, Option<RuntimePropeties>>::new();
         for (id, _) in package.pats.iter() {
             pats.insert(id, None);
         }
@@ -259,7 +259,7 @@ impl Initializer {
         let is_quantum_source = is_output_type_result && is_qis_callable;
         let mut intrinsic_caps = None;
         if is_quantum_source {
-            intrinsic_caps = Some(CapsBundle {
+            intrinsic_caps = Some(RuntimePropeties {
                 is_quantum_source: true,
                 caps: Vec::new(),
             });

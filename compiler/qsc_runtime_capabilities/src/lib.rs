@@ -45,13 +45,13 @@ impl Display for Capabilities {
 }
 
 #[derive(Debug)]
-pub struct CapsBundle {
+pub struct RuntimePropeties {
     pub is_quantum_source: bool,
     // TODO (cesarzc): This should be FxHashSet.
     pub caps: Vec<RuntimeCapability>,
 }
 
-impl Display for CapsBundle {
+impl Display for RuntimePropeties {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "\nis_quantum_source: {}", self.is_quantum_source)?;
