@@ -4,9 +4,11 @@
 import { marked } from "marked";
 import { estimatesData } from "./estimatesData";
 
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 export function Estimates() {
+  const [showDetail, setShowDetail] = useState(false);
+
   useEffect(() => {
     (window as any).MathJax.typeset();
   });
@@ -14,6 +16,9 @@ export function Estimates() {
   return (
     <div>
       <h2>Resource Estimates</h2>
+      <a href="#" onClick={() => setShowDetail(!showDetail)}>
+        {showDetail ? "Hide details" : "Show details"}
+      </a>
       {estimatesData.reportData.groups.map((group) => {
         return (
           <details className="estimate-details">
@@ -31,21 +36,25 @@ export function Estimates() {
                 const renderedExplanation = {
                   __html: marked(entry.explanation),
                 };
-                console.log(entry.explanation);
-                console.log(renderedExplanation);
                 return (
                   <tr>
-                    <td className="estimate-cell title-cell">
-                      <strong>{entry.label}</strong>
-                    </td>
+                    <td className="estimate-cell title-cell">{entry.label}</td>
                     <td className="estimate-cell value-cell">{value}</td>
                     <td className="estimate-cell">
-                      <strong>{entry.description}</strong>
-                      <hr />
-                      <div
-                        className="estimate-explanation"
-                        dangerouslySetInnerHTML={renderedExplanation}
-                      />
+                      {showDetail ? (
+                        <>
+                          <strong>{entry.description}</strong>
+                          <hr />
+                          <div
+                            className="estimate-explanation"
+                            dangerouslySetInnerHTML={renderedExplanation}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <span>{entry.description}</span>
+                        </>
+                      )}
                     </td>
                   </tr>
                 );

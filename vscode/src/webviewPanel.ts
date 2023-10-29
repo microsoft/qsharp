@@ -116,6 +116,8 @@ function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
 export class QSharpWebViewPanel {
   public static currentPanel: QSharpWebViewPanel | undefined;
   private readonly _panel: WebviewPanel;
+  private _ready = false;
+  private _queuedMessages: any[] = [];
   private _disposables: Disposable[] = [];
 
   private constructor(panel: WebviewPanel, extensionUri: Uri) {
@@ -172,14 +174,29 @@ window.MathJax = {
   }
 
   sendMessage(message: any) {
-    this._panel.webview.postMessage(message);
+    if (this._ready) {
+      console.log("Sending message to webview", message);
+      this._panel.webview.postMessage(message);
+    } else {
+      console.log("Queuing message to webview", message);
+      this._queuedMessages.push(message);
+    }
   }
 
   private _setWebviewMessageListener(webview: Webview) {
+    console.log("Setting up webview message listener");
     webview.onDidReceiveMessage(
       (message: any) => {
+        if (message.command === "ready") {
+          this._ready = true;
+          this._queuedMessages.forEach((message) =>
+            this._panel.webview.postMessage(message)
+          );
+          this._queuedMessages = [];
+        }
+
         // No messages are currently sent from the webview
-        log.debug("Message for webview received", message);
+        console.log("Message for webview received", message);
       },
       undefined,
       this._disposables
@@ -192,6 +209,7 @@ window.MathJax = {
       QSharpWebViewPanel.currentPanel._panel.reveal(ViewColumn.Beside);
     } else {
       // If a webview panel does not already exist create and show a new one
+      console.log("Creating new webview panel");
       const panel = window.createWebviewPanel(
         "qsharpWebView",
         "Q#",
