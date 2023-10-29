@@ -339,3 +339,40 @@
 .kata-override {
   background-color: var(--main-background);
 }
+
+.estimate-details {
+  padding: 1em;
+}
+
+.estimate-details > summary {
+  font-size: 1.1em;
+}
+
+.estimate-table {
+  margin-top: 1em;
+  font-size: 0.9em;
+}
+
+.estimate-cell {
+  vertical-align: top;
+  padding-right: 8px;
+}
+
+.title-cell {
+  font-weight: bold;
+  min-width: 120px;
+}
+
+.value-cell {
+  text-align: center;
+  min-width: 80px;
+}
+
+.estimate-explanation {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.estimate-assumption {
+  margin: 1em;
+}

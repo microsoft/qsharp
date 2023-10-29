@@ -6,11 +6,6 @@ import { estimatesData } from "./estimatesData";
 
 import { useEffect } from "preact/hooks";
 
-const testString = `
-$$H = \\frac{1}{\\sqrt{2}} \\left[\\begin{matrix}1 & 1 \\\\ 1 & -1\\end{matrix}\\right]$$
-$$CNOT = \\begin{bmatrix}1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 1 & 0\\end{bmatrix}$$
-`;
-
 export function Estimates() {
   useEffect(() => {
     (window as any).MathJax.typeset();
@@ -21,11 +16,11 @@ export function Estimates() {
       <h2>Resource Estimates</h2>
       {estimatesData.reportData.groups.map((group) => {
         return (
-          <details>
+          <details className="estimate-details">
             <summary>
               <strong>{group.title}</strong>
             </summary>
-            <table>
+            <table className="estimate-table">
               {group.entries.map((entry) => {
                 // entry.path is a '/' separated path to the value in the JSON to show
                 const path = entry.path.split("/");
@@ -40,12 +35,17 @@ export function Estimates() {
                 console.log(renderedExplanation);
                 return (
                   <tr>
-                    <td>{entry.label}</td>
-                    <td>{value}</td>
-                    <td>
+                    <td className="estimate-cell title-cell">
+                      <strong>{entry.label}</strong>
+                    </td>
+                    <td className="estimate-cell value-cell">{value}</td>
+                    <td className="estimate-cell">
                       <strong>{entry.description}</strong>
                       <hr />
-                      <div dangerouslySetInnerHTML={renderedExplanation} />
+                      <div
+                        className="estimate-explanation"
+                        dangerouslySetInnerHTML={renderedExplanation}
+                      />
                     </td>
                   </tr>
                 );
@@ -54,17 +54,19 @@ export function Estimates() {
           </details>
         );
       })}
-      <details>
+      <details className="estimate-details">
         <summary>
           <strong>Assumptions</strong>
         </summary>
-        <ul>
+        <ul className="estimate-table">
           {estimatesData.reportData.assumptions.map((assumption) => (
-            <li dangerouslySetInnerHTML={{ __html: marked(assumption) }} />
+            <li
+              className="estimate-assumption"
+              dangerouslySetInnerHTML={{ __html: marked(assumption) }}
+            />
           ))}
         </ul>
       </details>
-      <div>{testString}</div>
     </div>
   );
 }
