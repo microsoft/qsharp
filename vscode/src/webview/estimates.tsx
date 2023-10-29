@@ -4,16 +4,18 @@
 import { marked } from "marked";
 import { estimatesData } from "./estimatesData";
 
-const TeXZilla: {
-  filterString: (tex: string) => string;
-} = (window as any).TeXZilla;
+import { useEffect } from "preact/hooks";
 
-// TODO: Function to change \dfrac to \frac, and remove \rm
-function fixLatex(tex: string) {
-  return tex.replace(/\\dfrac/g, "\\frac").replace(/\\\\rm/g, "");
-}
+const testString = `
+$$H = \\frac{1}{\\sqrt{2}} \\left[\\begin{matrix}1 & 1 \\\\ 1 & -1\\end{matrix}\\right]$$
+$$CNOT = \\begin{bmatrix}1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 1 & 0\\end{bmatrix}$$
+`;
 
 export function Estimates() {
+  useEffect(() => {
+    (window as any).MathJax.typeset();
+  });
+
   return (
     <div>
       <h2>Resource Estimates</h2>
@@ -32,9 +34,7 @@ export function Estimates() {
                   estimatesData as any
                 );
                 const renderedExplanation = {
-                  __html: TeXZilla.filterString(
-                    marked(fixLatex(entry.explanation))
-                  ),
+                  __html: marked(entry.explanation),
                 };
                 console.log(entry.explanation);
                 console.log(renderedExplanation);
@@ -64,6 +64,7 @@ export function Estimates() {
           ))}
         </ul>
       </details>
+      <div>{testString}</div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+const libsDir = join(thisDir, "..", "node_modules");
 const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
@@ -41,11 +42,43 @@ function copyWasm() {
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
 
+function copyMathJax() {
+  let mathjaxBase = join(libsDir, `mathjax/es5`);
+  let mathjaxDest = join(thisDir, `out/mathjax`);
+
+  // To minimize the size of the extension, we only copy over the files we need
+  const toCopy = [
+    "tex-chtml.js",
+    "input/tex/extensions/physics.js",
+    "output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Math-Regular.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff",
+    "output/chtml/fonts/woff-v2/MathJax_Zero.woff",
+  ];
+
+  console.log("Copying the Mathjax files over from: " + mathjaxBase);
+  mkdirSync(mathjaxDest, { recursive: true });
+  toCopy.forEach((file) => {
+    const src = join(mathjaxBase, file);
+    const dest = join(mathjaxDest, file);
+
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(src, dest);
+  });
+}
+
 function buildBundle() {
   console.log("Running esbuild");
 
   build(buildOptions).then(() =>
-    console.log(`Built bundle to ${join(thisDir, "out")}`),
+    console.log(`Built bundle to ${join(thisDir, "out")}`)
   );
 }
 
@@ -74,5 +107,6 @@ if (isWatch) {
   buildWatch();
 } else {
   copyWasm();
+  copyMathJax();
   buildBundle();
 }

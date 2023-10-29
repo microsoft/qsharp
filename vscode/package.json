@@ -2,7 +2,7 @@
   "name": "qdk-test",
   "displayName": "[DEMO BUILD] Not for general use",
   "description": "Demo build",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "publisher": "quantum",
   "icon": "resources/qdk.png",
   "galleryBanner": {

@@ -134,9 +134,10 @@ export class QSharpWebViewPanel {
       "resources",
       "webview.css",
     ]);
-    const texzillaJs = getUri(webview, extensionUri, [
-      "resources",
-      "TeXZilla-min.js",
+    const mathjaxJs = getUri(webview, extensionUri, [
+      "out",
+      "mathjax",
+      "tex-chtml.js",
     ]);
     const webviewJs = getUri(webview, extensionUri, [
       "out",
@@ -152,8 +153,17 @@ export class QSharpWebViewPanel {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Q#</title>
       <link rel="stylesheet" href="${webviewCss}" />
-      <script src="${texzillaJs}"></script>
+      <script>
+window.MathJax = {
+  loader: {load: ['[tex]/physics']},
+  tex: {
+    packages: { "[+]": ["physics"] },
+    inlineMath: [['$', '$']]
+  }
+};
+      </script>
       <script src="${webviewJs}"></script>
+      <script type="text/javascript" id="MathJax-script" async src="${mathjaxJs}"></script>
     </head>
     <body>
     </body>
