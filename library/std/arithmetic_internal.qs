@@ -8,9 +8,10 @@ namespace Microsoft.Quantum.Arithmetic {
 
     // Computes ys += xs + carryIn using a ripple carry architecture
     @Config(Full)
-    internal operation AddWithCarryIn(carryIn : Qubit, xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    internal operation IncWithCarryIn(carryIn : Qubit, xs : Qubit[], ys : Qubit[])
+    : Unit is Adj + Ctl {
         // We assume that it has already been checked that xs and ys are of
-        // equal size and non-empty in Add
+        // equal size and non-empty in RippleCarryIncByLE
         if Length(xs) == 1 {
             if Length(ys) == 1 {
                 within {
@@ -19,16 +20,16 @@ namespace Microsoft.Quantum.Arithmetic {
                     CNOT(xs[0], ys[0]);
                 }
             } elif Length(ys) == 2 {
-                FullAdderInc(carryIn, xs[0], ys[0], ys[1]);
+                FullAdderForInc(carryIn, xs[0], ys[0], ys[1]);
             }
         } else {
             let (x0, xrest) = HeadAndRest(xs);
             let (y0, yrest) = HeadAndRest(ys);
 
             use carryOut = Qubit();
-            Carry(carryIn, x0, y0, carryOut);
-            AddWithCarryIn(carryOut, xrest, yrest);
-            Uncarry(carryIn, x0, y0, carryOut);
+            CarryForInc(carryIn, x0, y0, carryOut);
+            IncWithCarryIn(carryOut, xrest, yrest);
+            UncarryForInc(carryIn, x0, y0, carryOut);
         }
     }
 
@@ -36,23 +37,24 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Implements Half-adder. Adds qubit x to qubit y and sets carryOut appropriately
     /// assuming carryOut is in |0> state.
     @Config(Full)
-    internal operation HalfAdderInc(x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
+    internal operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit)
+    : Unit is Adj + Ctl {
         body (...) {
-            ApplyAndWith0Target(x, y, carryOut);
+            ApplyAndAssuming0Target(x, y, carryOut);
             CNOT(x, y);
         }
         adjoint auto;
 
         controlled (ctls, ...) {
-            Fact(Length(ctls) == 1, "HalfAdder should be controlled by exactly one control qubit.");
+            Fact(Length(ctls) == 1, "HalfAdderForInc should be controlled by exactly one control qubit.");
 
             let ctl = ctls[0];
             use helper = Qubit();
 
             within {
-                ApplyAndWith0Target(x, y, helper);
+                ApplyAndAssuming0Target(x, y, helper);
             } apply {
-                ApplyAndWith0Target(ctl, helper, carryOut);
+                ApplyAndAssuming0Target(ctl, helper, carryOut);
             }
             CCNOT(ctl, x, y);
         }
@@ -62,7 +64,8 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Summary
     /// Implements Full-adder. Adds qubit carryIn and x to qubit y and sets carryOut appropriately.
     @Config(Full)
-    internal operation FullAdderInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
+    internal operation FullAdderForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
+    : Unit is Adj + Ctl {
         body (...) {
             // TODO: cannot use `Carry` operation here
             CNOT(carryIn, x);
@@ -75,65 +78,71 @@ namespace Microsoft.Quantum.Arithmetic {
         adjoint auto;
 
         controlled (ctls, ...) {
-            Fact(Length(ctls) == 1, "FullAdder should be controlled by exactly one control qubit.");
+            Fact(Length(ctls) == 1, "FullAdderForInc should be controlled by exactly one control qubit.");
 
             let ctl = ctls[0];
             use helper = Qubit();
 
-            Carry(carryIn, x, y, helper);
+            CarryForInc(carryIn, x, y, helper);
             CCNOT(ctl, helper, carryOut);
-            Controlled Uncarry(ctls, (carryIn, x, y, helper));
+            Controlled UncarryForInc(ctls, (carryIn, x, y, helper));
         }
         controlled adjoint auto;
     }
 
     // Computes carryOut := carryIn + x + y
     @Config(Full)
-    internal operation FullAdder(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj {
+    internal operation FullAdder(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
+    : Unit is Adj {
         CNOT(x, y);
         CNOT(x, carryIn);
-        ApplyAndWith0Target(y, carryIn, carryOut);
+        ApplyAndAssuming0Target(y, carryIn, carryOut);
         CNOT(x, y);
         CNOT(x, carryOut);
         CNOT(y, carryIn);
     }
 
     /// # Summary
-    /// Compute carry bit for a full adder.
+    /// Computes carry bit for a full adder.
     @Config(Full)
-    internal operation Carry(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
+    internal operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
+    : Unit is Adj + Ctl {
         body (...) {
             CNOT(carryIn, x);
             CNOT(carryIn, y);
-            ApplyAndWith0Target(x, y, carryOut);
+            ApplyAndAssuming0Target(x, y, carryOut);
             CNOT(carryIn, carryOut);
         }
         adjoint auto;
         controlled (ctls, ...) {
-            // TODO: Is it not controlled actually?
-            Carry(carryIn, x, y, carryOut);
+            // This CarryForInc is intended to be used only in an in-place
+            // ripple-carry implementation. Only such particular use case allows
+            // for this simple implementation where controlled verions
+            // is the same as uncontrolled body.
+            CarryForInc(carryIn, x, y, carryOut);
         }
         controlled adjoint auto;
     }
 
     /// # Summary
-    /// Uncompute carry bit for a full adder.
+    /// Uncomputes carry bit for a full adder.
     @Config(Full)
-    internal operation Uncarry(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
+    internal operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
+    : Unit is Adj + Ctl {
         body (...) {
             CNOT(carryIn, carryOut);
-            Adjoint ApplyAndWith0Target(x, y, carryOut);
+            Adjoint ApplyAndAssuming0Target(x, y, carryOut);
             CNOT(carryIn, x);
             CNOT(x, y);
         }
         adjoint auto;
         controlled (ctls, ...) {
-            Fact(Length(ctls) == 1, "Uncarry should be controlled by exactly one control qubit.");
+            Fact(Length(ctls) == 1, "UncarryForInc should be controlled by exactly one control qubit.");
 
             let ctl = ctls[0];
 
             CNOT(carryIn, carryOut);
-            Adjoint ApplyAndWith0Target(x, y, carryOut);
+            Adjoint ApplyAndAssuming0Target(x, y, carryOut);
             CCNOT(ctl, x, y); // Controlled X(ctls + [x], y);
             CNOT(carryIn, x);
             CNOT(carryIn, y);
@@ -146,8 +155,12 @@ namespace Microsoft.Quantum.Arithmetic {
     /// in `target` assuming `target` is in |0> state. This allows for an
     /// otimized adjoint implementation.
     @Config(Full)
-    internal operation ApplyAndWith0Target(control1 : Qubit, control2 : Qubit, target: Qubit) : Unit is Adj {
+    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
+    : Unit is Adj {
         body (...) {
+            if not CheckZero(target) {
+                fail "ApplyAndAssuming0Target expects `target` to be in |0> state.";
+            }
             CCNOT(control1, control2, target);
         }
 

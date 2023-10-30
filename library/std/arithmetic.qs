@@ -18,10 +18,10 @@ namespace Microsoft.Quantum.Arithmetic {
     ///
     /// Let us denote `value` by a and let y be an unsigned integer encoded in `target`,
     /// then `ApplyXorInPlace` performs an operation given by the following map:
-    /// |y⟩ -> |y ⊕ a⟩, where ⊕ is the bitwise exclusive OR operator.
-    operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj+Ctl {
-        body(...) {
-            Fact(value >= 0, "value must be non-negative");
+    /// |y⟩ ↦ |y ⊕ a⟩, where ⊕ is the bitwise exclusive OR operator.
+    operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj + Ctl {
+        body (...) {
+            Fact(value >= 0, "`value` must be non-negative.");
             mutable runningValue = value;
             for q in target {
                 if (runningValue &&& 1) != 0 {
@@ -44,10 +44,10 @@ namespace Microsoft.Quantum.Arithmetic {
     ///
     /// Let us denote `value` by a and let y be an unsigned integer encoded in `target`,
     /// then `ApplyXorInPlace` performs an operation given by the following map:
-    /// |y⟩ -> |y ⊕ a⟩, where ⊕ is the bitwise exclusive OR operator.
-    operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj+Ctl {
-        body(...) {
-            Fact(value >= 0L, "value must be non-negative");
+    /// |y⟩ ↦ |y ⊕ a⟩, where ⊕ is the bitwise exclusive OR operator.
+    operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl {
+        body (...) {
+            Fact(value >= 0L, "`value` must be non-negative.");
             mutable runningValue = value;
             for q in target {
                 if (runningValue &&& 1L) != 0L {
@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.Arithmetic {
                 }
                 set runningValue >>>= 1;
             }
-            Fact(runningValue == 0L, "value is too large");
+            Fact(runningValue == 0L, "`value` is too large.");
         }
         adjoint self;
     }
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.Arithmetic {
             RippleCarryAdderTTK(xs + qs, Most(ys), Tail(ys));
         }
         else {
-            fail "xs must not contain more qubits than ys!";
+            fail "`xs` must not contain more qubits than `ys`.";
         }
     }
 
@@ -335,13 +335,13 @@ namespace Microsoft.Quantum.Arithmetic {
     //
 
     /// # Summary
-    /// Increment a little-endian ys register by a BigInt number c
+    /// Increments a little-endian register ys by a BigInt number c
     ///
     /// # Description
-    /// Compute ys += c modulo 2ⁿ, where ys is a little-endian register
-    /// of length n > 0, c >= 0 is a BigInt constant, and c < 2ⁿ.
-    /// This operation can be used when the choice of implementation
-    /// is not important.
+    /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register,
+    /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
+    /// NOTE: Use RippleCarryIncByL directly if the choice of implementation
+    /// is important.
     @Config(Full)
     operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByL(c, ys);
@@ -351,46 +351,49 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Increments a little-endian register ys by a little-endian register xs
     ///
     /// # Description
-    /// Compute ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
-    /// n = Length(ys), and Length(xs) <= Length(ys).
-    /// This operation can be used when the choice of implementation
-    /// is not important.
+    /// Computes ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
+    /// and Length(xs) ≤ Length(ys) = n.
+    /// NOTE: Use RippleCarryIncByLE or LookAheadIncByLE directly if
+    /// the choice of implementation is important.
     @Config(Full)
     operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByLE(xs, ys);
     }
 
     /// # Summary
-    /// Set a zero-initialized little-endian register zs to the sum of
+    /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys
     ///
     /// # Description
-    /// Compute zs := xs + ys, where xs, ys, and zs are little-endian
-    /// registers, Length(xs) = Length(ys), Length(xs) <= Length(zs) <= Length(xs)+1,
-    /// assuming zs is 0-initialized.
-    /// This operation can be used when the choice of implementation
-    /// is not important.
+    /// Computes zs := xs + ys modulo 2ⁿ, where xs, ys, and zs are little-endian registers,
+    /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized.
+    /// NOTE: Use RippleCarryAddLE or LookAheadAddLE directly if
+    /// the choice of implementation is important.
     @Config(Full)
     operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         RippleCarryAddLE(xs, ys, zs);
     }
 
     /// # Summary
-    /// Increment a little-endian ys register by a BigInt number c
+    /// Increments a little-endian register ys by a BigInt number c
     /// using the ripple-carry algorithm.
     ///
     /// # Description
-    /// Compute ys += c modulo 2ⁿ, where ys is a little-endian register
-    /// of length n > 0, c >= 0 is a BigInt constant, and c < 2ⁿ.
+    /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register
+    /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
     /// This operation uses the ripple-carry algorithm.
+    ///
+    /// # Reference
+    ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    ///       "Halving the cost of quantum addition" by Craig Gidney.
     @Config(Full)
     operation RippleCarryIncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         let ysLen = Length(ys);
-        Fact(ysLen > 0, "Length of `ys` must be at least 1");
-        Fact(c >= 0L, "Constant `c` must be non-negative");
-        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys)");
+        Fact(ysLen > 0, "Length of `ys` must be at least 1.");
+        Fact(c >= 0L, "Constant `c` must be non-negative.");
+        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
 
-        if c == 0L {
+        if c != 0L {
             // If c has j trailing zeroes than the j least significant
             // bits of y won't be affected by the addition and can
             // therefore be ignored by applying the addition only to
@@ -405,26 +408,27 @@ namespace Microsoft.Quantum.Arithmetic {
         }
     }
 
-
     /// # Summary
     /// Increments a little-endian register ys by a little-endian register xs
     /// using the ripple-carry algorithm.
     ///
     /// # Description
-    /// Compute ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
-    /// n = Length(ys), and Length(xs) <= Length(ys).
-    /// Note that ff Length(xs) != Length(ys), xs is padded with 0-initialized
-    /// qubits to match ys's length
+    /// Computes ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
+    /// and Length(xs) ≤ Length(ys) = n.
+    /// Note that if Length(xs) != Length(ys), xs is padded with 0-initialized
+    /// qubits to match ys's length.
+    /// This operation uses the ripple-carry algorithm.
     ///
-    /// # Reference:
+    /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    ///       "Halving the cost of quantum addition" by Craig Gidney.
     @Config(Full)
     operation RippleCarryIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
 
-        Fact(ysLen >= xsLen, "Register ys must be larger than register xs");
-        Fact(xsLen >= 1, "Registers xs and ys must contain at least one qubit");
+        Fact(ysLen >= xsLen, "Register `ys` must be longer than register `xs`.");
+        Fact(xsLen >= 1, "Registers `xs` and `ys` must contain at least one qubit.");
 
         if ysLen - xsLen >= 2 {
             use padding = Qubit[ysLen - xsLen - 1];
@@ -433,7 +437,7 @@ namespace Microsoft.Quantum.Arithmetic {
             if ysLen == 1 {
                 CNOT(xs[0], ys[0]);
             } elif ysLen == 2 {
-                HalfAdderInc(xs[0], ys[0], ys[1]); // TODO: Can we pass ys[1] here?
+                HalfAdderForInc(xs[0], ys[0], ys[1]); // TODO: Can we pass ys[1] here?
             }
         } else {
             let (x0, xrest) = (Head(xs), Rest(xs));
@@ -441,35 +445,38 @@ namespace Microsoft.Quantum.Arithmetic {
 
             use carryOut = Qubit();
             within {
-                ApplyAndWith0Target(x0, y0, carryOut);
+                ApplyAndAssuming0Target(x0, y0, carryOut);
             } apply {
-                AddWithCarryIn(carryOut, xrest, yrest);
+                IncWithCarryIn(carryOut, xrest, yrest);
             }
             CNOT(x0, y0);
         }
     }
 
     /// # Summary
-    /// Set a zero-initialized little-endian register zs to the sum of
+    /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys using the ripple-carry algorithm.
     ///
     /// # Description 
-    /// Compute zs := xs + ys + zs[0], where xs, ys, and zs are little-endian
-    /// registers, Length(xs) = Length(ys), Length(xs) <= Length(zs) <= Length(xs)+1,
-    /// assuming zs is 0-initialized except for maybe zs[0], which can be in |0> or |1> state.
-    /// Use `zs[0]` as carry-in, and use `zs[n]` as carry-out, if `zs` is
-    /// longer than `xs`.
+    /// Computes zs := xs + ys modulo 2ⁿ, where xs, ys, and zs are little-endian registers,
+    /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized,
+    /// except for maybe zs[0], which can be in |0> or |1> state and can be
+    /// used as carry-in.
+    /// NOTE: `zs[Length(xs)]` can be used as carry-out, if `zs` is longer than `xs`.
     ///
-    /// # Reference:
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    ///       "Halving the cost of quantum addition" by Craig Gidney.
     @Config(Full)
     operation RippleCarryAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
-        Fact(Length(ys) == xsLen, "Registers xs and ys must be of same length");
-        Fact(zsLen == xsLen or zsLen == xsLen + 1, "Register zs must be same length as xs or one bit longer");
+        Fact(Length(ys) == xsLen, "Registers `xs` and `ys` must be of same length.");
+        Fact(zsLen >= xsLen, "Register `zs` must be no shorter than register `xs`.");
 
-        for k in 0 .. zsLen - 2 {
+        // Since zs is zero-initialized, its bits at indexes higher than
+        // xsLen remain unsued as there will be no carry into them.
+        let top = MinI(zsLen-2, xsLen-1);
+        for k in 0 .. top {
             FullAdder(zs[k], xs[k], ys[k], zs[k + 1]);
         }
 
