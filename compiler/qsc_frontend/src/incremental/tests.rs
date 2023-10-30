@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use super::{Compiler, Increment};
-use crate::compile::{self, CompileUnit, PackageStore, TargetProfile};
+use crate::{
+    compile::{self, CompileUnit, PackageStore, TargetProfile},
+    incremental::Error,
+};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
@@ -17,6 +20,7 @@ fn one_callable() {
             &mut CompileUnit::default(),
             "test_1",
             "namespace Foo { operation Main() : Unit {} }",
+            fail_on_error,
         )
         .expect("compilation should succeed");
 
@@ -60,7 +64,12 @@ fn one_statement() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
     let unit = compiler
-        .compile_fragments(&mut CompileUnit::default(), "test_1", "use q = Qubit();")
+        .compile_fragments(
+            &mut CompileUnit::default(),
+            "test_1",
+            "use q = Qubit();",
+            fail_on_error,
+        )
         .expect("compilation should succeed");
 
     check_unit(
@@ -89,10 +98,39 @@ fn parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
     let errors = compiler
-        .compile_fragments(&mut CompileUnit::default(), "test_1", "}}")
+        .compile_fragments(&mut CompileUnit::default(), "test_1", "}}", fail_on_error)
         .expect_err("should fail");
 
-    assert!(!errors.is_empty());
+    expect![[r#"
+        [
+            WithSource {
+                sources: [
+                    Source {
+                        name: "test_1",
+                        contents: "}}",
+                        offset: 0,
+                    },
+                ],
+                error: Error(
+                    Parse(
+                        Error(
+                            Token(
+                                Eof,
+                                Close(
+                                    Brace,
+                                ),
+                                Span {
+                                    lo: 0,
+                                    hi: 1,
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&errors);
 }
 
 #[test]
@@ -111,6 +149,7 @@ fn conditional_compilation_not_available() {
                     Dropped();
                 }
             "},
+            fail_on_error,
         )
         .expect_err("should fail");
 
@@ -129,19 +168,25 @@ fn errors_across_multiple_lines() {
             &mut unit,
             "line_1",
             "namespace Other { operation DumpMachine() : Unit { } }",
+            fail_on_error,
         )
         .expect("should succeed");
 
     compiler
-        .compile_fragments(&mut unit, "line_2", "open Other;")
+        .compile_fragments(&mut unit, "line_2", "open Other;", fail_on_error)
         .expect("should succeed");
 
     compiler
-        .compile_fragments(&mut unit, "line_3", "open Microsoft.Quantum.Diagnostics;")
+        .compile_fragments(
+            &mut unit,
+            "line_3",
+            "open Microsoft.Quantum.Diagnostics;",
+            fail_on_error,
+        )
         .expect("should succeed");
 
     let errors = compiler
-        .compile_fragments(&mut unit, "line_4", "DumpMachine()")
+        .compile_fragments(&mut unit, "line_4", "DumpMachine()", fail_on_error)
         .expect_err("should fail");
 
     // Here we're validating that the compiler is able to return
@@ -177,6 +222,124 @@ fn errors_across_multiple_lines() {
     .assert_debug_eq(&labels);
 }
 
+#[test]
+fn continue_after_parse_error() {
+    let store = PackageStore::new(compile::core());
+    let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
+    let mut errors = Vec::new();
+
+    compiler
+        .compile_fragments(
+            &mut CompileUnit::default(),
+            "test_1",
+            "operation Main() : Foo {
+            }}",
+            |e| -> Result<(), ()> {
+                errors.extend(e);
+                Ok(())
+            },
+        )
+        .expect("compile_fragments should succeed");
+
+    expect![[r#"
+        [
+            WithSource {
+                sources: [
+                    Source {
+                        name: "test_1",
+                        contents: "operation Main() : Foo {\n            }}",
+                        offset: 0,
+                    },
+                ],
+                error: Error(
+                    Parse(
+                        Error(
+                            Token(
+                                Eof,
+                                Close(
+                                    Brace,
+                                ),
+                                Span {
+                                    lo: 38,
+                                    hi: 39,
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            },
+            WithSource {
+                sources: [
+                    Source {
+                        name: "test_1",
+                        contents: "operation Main() : Foo {\n            }}",
+                        offset: 0,
+                    },
+                ],
+                error: Error(
+                    Resolve(
+                        NotFound(
+                            "Foo",
+                            Span {
+                                lo: 19,
+                                hi: 22,
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&errors);
+}
+
+#[test]
+fn continue_after_lower_error() {
+    let store = PackageStore::new(compile::core());
+    let mut compiler = Compiler::new(&store, vec![], TargetProfile::Full);
+    let mut unit = CompileUnit::default();
+
+    let mut errors = Vec::new();
+
+    compiler
+        .compile_fragments(
+            &mut unit,
+            "test_1",
+            "operation A(q : Qubit) : Unit is Adj {
+                adjoint ... {}
+            }",
+            |e| -> Result<(), ()> {
+                errors = e;
+                Ok(())
+            },
+        )
+        .expect("compile_fragments should succeed");
+
+    expect![[r#"
+        [
+            WithSource {
+                sources: [
+                    Source {
+                        name: "test_1",
+                        contents: "operation A(q : Qubit) : Unit is Adj {\n                adjoint ... {}\n            }",
+                        offset: 0,
+                    },
+                ],
+                error: Error(
+                    Lower(
+                        MissingBody(
+                            Span {
+                                lo: 0,
+                                hi: 83,
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ]
+    "#]].assert_debug_eq(&errors);
+}
+
 fn check_unit(expect: &Expect, actual: &Increment) {
     let ast = format!("ast:\n{}", actual.ast.package);
 
@@ -207,4 +370,11 @@ fn check_unit(expect: &Expect, actual: &Increment) {
     let hir = format!("\nhir:\n{}", actual.hir);
 
     expect.assert_eq(&[ast, names, terms, hir].into_iter().collect::<String>());
+}
+
+fn fail_on_error(errors: Vec<Error>) -> Result<(), Vec<Error>> {
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    Ok(())
 }
