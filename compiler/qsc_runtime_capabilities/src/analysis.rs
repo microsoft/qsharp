@@ -224,7 +224,11 @@ impl<'a> Analyzer<'a> {
 
     pub fn run(&mut self) -> StoreCapabilities {
         save_package_analysis_to_files(&self.analysis_store, 0);
-        // TODO: Do something.
+        let mut functions_analyzer =
+            FunctionsAnalyzer::new(self.package_store, &mut self.analysis_store);
+        functions_analyzer.run();
+        save_package_analysis_to_files(&self.analysis_store, 1);
+        // TODO: Complete implementation.
         StoreCapabilities(IndexMap::new())
     }
 }
@@ -337,4 +341,20 @@ impl<'a> Initializer<'a> {
             _ => false,
         }
     }
+}
+
+struct FunctionsAnalyzer<'a, 'b> {
+    package_store: &'a PackageStore,
+    analysis_store: &'b mut AnalysisStore,
+}
+
+impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
+    pub fn new(package_store: &'a PackageStore, analysis_store: &'b mut AnalysisStore) -> Self {
+        Self {
+            package_store,
+            analysis_store,
+        }
+    }
+
+    pub fn run(&mut self) {}
 }
