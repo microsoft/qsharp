@@ -7,17 +7,17 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{self, CallableDecl, Ident, NodeId, TopLevelNode},
-    visit::{self as ast_visit, Visitor as AstVisitor},
+    visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global,
-    hir::{self, ItemId, LocalItemId, PackageId},
+    hir::{self, ItemId, ItemStatus, LocalItemId, PackageId},
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, rc::Rc, vec};
+use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -93,6 +93,11 @@ pub(super) enum Error {
     ))]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotAvailable(String, String, #[label] Span),
+
+    #[error("use of unimplemented item `{0}`")]
+    #[diagnostic(help("this item is not implemented and cannot be used"))]
+    #[diagnostic(code("Qsc.Resolve.Unimplemented"))]
+    Unimplemented(String, #[label] Span),
 }
 
 struct Scope {
@@ -238,10 +243,22 @@ impl Resolver {
         }
     }
 
+    fn check_item_status(&mut self, res: Res, name: String, span: Span) {
+        match res {
+            Res::Item(item) if item.status == ItemStatus::Unimplemented => {
+                self.errors.push(Error::Unimplemented(name, span));
+            }
+            _ => {}
+        }
+    }
+
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
-            Ok(id) => self.names.insert(name.id, id),
+            Ok(res) => {
+                self.check_item_status(res, name.name.to_string(), name.span);
+                self.names.insert(name.id, res);
+            }
             Err(err) => self.errors.push(err),
         }
     }
@@ -250,7 +267,10 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
-            Ok(id) => self.names.insert(path.id, id),
+            Ok(res) => {
+                self.check_item_status(res, path.name.name.to_string(), path.span);
+                self.names.insert(path.id, res);
+            }
             Err(err) => {
                 if let Error::NotFound(name, span) = err {
                     if let Some(dropped_name) =
@@ -390,8 +410,13 @@ impl AstVisitor<'_> for With<'_> {
         });
     }
 
-    // We do not perform name resolution on attributes, as those are checking during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {}
+    fn visit_attr(&mut self, attr: &ast::Attr) {
+        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
+            // The Config attribute arguments do not go through name resolution.
+            return;
+        }
+        walk_attr(self, attr);
+    }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         fn collect_param_names(pat: &ast::Pat, names: &mut FxHashSet<Rc<str>>) {
@@ -645,6 +670,13 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
     }
 }
 
+fn ast_attrs_as_hir_attrs(attrs: &[Box<ast::Attr>]) -> Vec<hir::Attr> {
+    attrs
+        .iter()
+        .filter_map(|attr| hir::Attr::from_str(attr.name.name.as_ref()).ok())
+        .collect()
+}
+
 fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
@@ -654,7 +686,9 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let res = Res::Item(next_id());
+            let mut item_id = next_id();
+            item_id.status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id);
             names.insert(decl.name.id, res);
             match scope
                 .terms
@@ -674,7 +708,9 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let res = Res::Item(next_id());
+            let mut item_id = next_id();
+            item_id.status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id);
             names.insert(name.id, res);
             match (
                 scope
@@ -768,6 +804,21 @@ fn resolve(
         if let Some(&res) = globals.get(kind, namespace, name_str) {
             // An unopened global is the last resort.
             return Ok(res);
+        }
+    }
+
+    if candidates.len() > 1 {
+        // If there are multiple candidates, remove unimplemented items.
+        let mut removals = Vec::new();
+        for res in candidates.keys() {
+            if let Res::Item(item) = res {
+                if item.status == ItemStatus::Unimplemented {
+                    removals.push(*res);
+                }
+            }
+        }
+        for res in removals {
+            candidates.remove(&res);
         }
     }
 
@@ -867,6 +918,7 @@ fn intrapackage(item: LocalItemId) -> ItemId {
     ItemId {
         package: None,
         item,
+        status: ItemStatus::Normal,
     }
 }
 

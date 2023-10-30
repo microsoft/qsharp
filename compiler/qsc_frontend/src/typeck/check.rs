@@ -16,7 +16,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
-    hir::{self, ItemId, PackageId},
+    hir::{self, ItemId, ItemStatus, PackageId},
     ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
 use rustc_hash::FxHashMap;
@@ -42,6 +42,7 @@ impl GlobalTable {
             let item_id = ItemId {
                 package: Some(id),
                 item: item.id,
+                status: ItemStatus::from_attrs(&item.attrs),
             };
 
             match &item.kind {
