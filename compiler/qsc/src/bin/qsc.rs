@@ -104,7 +104,7 @@ fn main() -> miette::Result<ExitCode> {
     let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
     let fir_store = fir_lowerer.lower_store(&store);
     save_fir_store_to_files(&fir_store); // DBG (cesarzc): For debugging purposes only.
-    let mut analyzer = Analyzer::new();
+    let mut analyzer = Analyzer::new(&fir_store);
     let store_capabilities = analyzer.analyze_runtime_capabilities(&fir_store);
     save_store_capabilities_to_files(&store_capabilities); // DBG (cesarzc): For debugging purposes only.
 

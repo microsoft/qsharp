@@ -2,6 +2,9 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, LocalItemId, PackageId};
 
 use indenter::{indented, Indented};
+
+use rustc_hash::FxHashSet;
+
 use std::fmt::{self, Display, Formatter, Write};
 
 pub mod analysis;
@@ -48,7 +51,7 @@ impl Display for Capabilities {
 pub struct RuntimePropeties {
     pub is_quantum_source: bool,
     // TODO (cesarzc): This should be FxHashSet.
-    pub caps: Vec<RuntimeCapability>,
+    pub caps: FxHashSet<RuntimeCapability>,
 }
 
 impl Display for RuntimePropeties {

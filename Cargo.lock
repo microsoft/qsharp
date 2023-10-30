@@ -909,6 +909,7 @@ dependencies = [
  "indenter",
  "qsc_data_structures",
  "qsc_fir",
+ "rustc-hash",
 ]
 
 [[package]]
