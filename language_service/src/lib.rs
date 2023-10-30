@@ -39,20 +39,25 @@ pub struct LanguageService<'a> {
     /// Currently these settings apply to all documents in the
     /// workspace. Per-document configurations are not supported.
     configuration: WorkspaceConfiguration,
-    /// Currently each Q# file is its own unique compilation.
-    /// For notebooks, each notebook is a compilation, each cell is a document
-    /// within that compilation.
-    /// CompilationUri is the document uri for single-file compilations,
-    /// notebook uri for notebooks
-    /// It's also where project-level errors get reported
+    /// A `CompilationUri` is an identifier for a unique compilation.
+    /// It is NOT required to be a uri that represents an actual document.
+    ///
+    /// For single Q# documents, the `CompilationUri` is the same as the
+    /// document uri.
+    ///
+    /// For notebooks, the `CompilationUri` is the notebook uri.
+    ///
+    /// The `CompilatinUri` is used when compilation-level errors get reported
+    /// to the client. Compilation-level errors are defined as errors without
+    /// an associated source document.
     compilations: FxHashMap<CompilationUri, Compilation>,
-    /// All documents known to the client.
-    /// (cell uri -> notebook uri, or identity in the case of single-file compilation)
-    /// Not all documents that make up the compilation need to be in this map -
-    /// only the ones known to the client.
+    /// All the documents that we were told about by the client.
+    ///
+    /// This map doesn't necessarily contain ALL the documents that
+    /// make up a compilation - only the ones that are currently open.
     open_documents: FxHashMap<DocumentUri, OpenDocument>,
-    /// Documents that errors were published to. We need to keep track
-    /// of this so we can clear errors from them when documents are removed
+    /// Documents that we have previously published errors about. We need to
+    /// keep track of this so we can clear errors from them when documents are removed
     /// from a compilation or when a recompilation occurs.
     documents_with_errors: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
@@ -77,7 +82,6 @@ impl Default for WorkspaceConfiguration {
 
 #[derive(Debug)]
 struct OpenDocument {
-    // TODO: versions are supposed to be associated with documents not compilations (??)
     /// This version is the document version provided by the client.
     /// It increases strictly with each text change, though this knowledge should
     /// not be important. The version is only ever used when publishing
@@ -166,7 +170,7 @@ impl<'a> LanguageService<'a> {
     pub fn update_notebook_document(
         &mut self,
         notebook_uri: &str,
-        cells: &[(&str, u32, &str)], // uri, version, text - basically  DidChangeTextDocumentParams
+        cells: &[(&str, u32, &str)], // uri, version, text - basically DidChangeTextDocumentParams in LSP
     ) {
         trace!("update_notebook_document: {notebook_uri}");
         let compilation = Compilation::new_notebook(cells.iter().map(|c| (c.0, c.2)));
@@ -210,9 +214,9 @@ impl<'a> LanguageService<'a> {
         }
 
         // The client should have sent all cell uris along with
-        // the notebook. We shouldn't need to refer to the open_documents
-        // map to find the cells, but still we validate the client
-        // is behaving consistently.
+        // the notebook. Validate our assumptions about the client
+        // here, by checking that all the cells for this notebook
+        // have been removed from the open documents map.
         for open_doc in self.open_documents.values() {
             assert!(
                 notebook_uri != open_doc.compilation.as_ref(),
@@ -293,13 +297,13 @@ impl<'a> LanguageService<'a> {
 
     // It gets really messy knowing when to clear diagnostics
     // when the document changes ownership between compilations, etc.
-    // So let's do it the simplest way possible. Refresh everything every time.
+    // So let's do it the simplest way possible. Republish all the diagnostics every time.
     fn publish_diagnostics(&mut self) {
         let last_docs_with_errors = take(&mut self.documents_with_errors);
 
         for (compilation_uri, compilation) in &self.compilations {
             trace!("publishing diagnostics for {compilation_uri}");
-            for (uri, errors) in errors_by_doc(compilation_uri, &compilation.errors) {
+            for (uri, errors) in map_errors_to_docs(compilation_uri, &compilation.errors) {
                 if !self.documents_with_errors.insert(uri.clone()) {
                     // We already published diagnostics for this document for
                     // a different compilation.
@@ -317,18 +321,11 @@ impl<'a> LanguageService<'a> {
         for uri in last_docs_with_errors.difference(&self.documents_with_errors) {
             self.publish_diagnostics_for_doc(uri, vec![]);
         }
-
-        // TODO: errors without an associated span
-        // let project_errors = compilation
-        //     .errors
-        //     .iter()
-        //     .filter(|e| e.labels().into_iter().flatten().next().is_none());
     }
 
     fn publish_diagnostics_for_doc(&self, uri: &str, errors: Vec<Error>) {
         let version = self.open_documents.get(uri).map(|d| d.version);
         trace!("publishing diagnostics for {uri} {version:?}): {errors:?}");
-        // Publish diagnostics
         (self.diagnostics_receiver)(DiagnosticUpdate {
             uri: uri.into(),
             version,
@@ -368,7 +365,7 @@ impl<'a> LanguageService<'a> {
     }
 }
 
-fn errors_by_doc(
+fn map_errors_to_docs(
     compilation_uri: &Arc<str>,
     errors: &Vec<Error>,
 ) -> FxHashMap<Arc<str>, Vec<Error>> {
