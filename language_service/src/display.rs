@@ -13,7 +13,7 @@ use std::{
 };
 
 pub(crate) struct CodeDisplay<'a> {
-    compilation: &'a Compilation,
+    pub(crate) compilation: &'a Compilation,
 }
 
 #[derive(Copy, Clone)]
@@ -24,10 +24,6 @@ struct HirLookup<'a> {
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
-    pub(crate) fn new(compilation: &'a Compilation) -> Self {
-        Self { compilation }
-    }
-
     pub(crate) fn hir_callable_decl(
         &self,
         package_id: hir::PackageId,
@@ -561,7 +557,7 @@ impl<'a> Display for HirTy<'a> {
                 }
             }
             hir::ty::Ty::Udt(res) => {
-                let (item, _) = self.lookup.compilation.resolve_udt_res(
+                let (item, _) = self.lookup.compilation.resolve_item_res(
                     self.lookup
                         .local_package_id
                         .unwrap_or(self.lookup.compilation.current),

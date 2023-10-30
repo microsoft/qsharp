@@ -30,7 +30,7 @@ pub(crate) fn get_signature_help(
         compilation,
         offset,
         signature_help: None,
-        display: CodeDisplay::new(compilation),
+        display: CodeDisplay { compilation },
     };
 
     finder.visit_package(&ast.package);
@@ -344,9 +344,16 @@ fn try_get_direct_callee<'a>(
     if let ast::ExprKind::Path(path) = &*callee.kind {
         if let Some(resolve::Res::Item(item_id)) = compilation.current_unit().ast.names.get(path.id)
         {
-            let (item, package_id, _) = compilation.find_item(compilation.current, item_id);
+            let (item, _, resolved_item_id) =
+                compilation.resolve_item_relative_to_user_package(item_id);
             if let hir::ItemKind::Callable(callee_decl) = &item.kind {
-                return Some((package_id, callee_decl, &item.doc));
+                return Some((
+                    resolved_item_id
+                        .package
+                        .expect("package id should be resolved"),
+                    callee_decl,
+                    &item.doc,
+                ));
             }
         }
     }

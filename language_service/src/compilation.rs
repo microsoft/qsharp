@@ -150,12 +150,20 @@ impl Compilation {
 pub(crate) trait Lookup {
     // TODO: rename all these to resolve_* or something
     fn find_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty>;
-    fn find_item(
+    fn resolve_item_relative_to_user_package(
         &self,
-        this: hir::PackageId,
         item_id: &hir::ItemId,
-    ) -> (&hir::Item, hir::PackageId, &hir::Package);
-    fn resolve_udt_res(&self, this: hir::PackageId, res: &hir::Res) -> (&hir::Item, PackageId);
+    ) -> (&hir::Item, &hir::Package, hir::ItemId);
+    fn resolve_item_res(
+        &self,
+        local_package_id: PackageId,
+        res: &hir::Res,
+    ) -> (&hir::Item, hir::ItemId);
+    fn resolve_item(
+        &self,
+        local_package_id: PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId);
 }
 
 impl Lookup for Compilation {
@@ -163,37 +171,63 @@ impl Lookup for Compilation {
         self.current_unit().ast.tys.terms.get(expr_id)
     }
 
-    fn find_item(
+    /// Returns the hir `Item` node referred to by `item_id`,
+    /// along with the `Package` and `PackageId` for the package
+    /// that it was found in.
+    fn resolve_item_relative_to_user_package(
         &self,
-        this: hir::PackageId,
         item_id: &hir::ItemId,
-    ) -> (&hir::Item, PackageId, &hir::Package) {
-        let package_id = item_id.package.unwrap_or(this);
-        let unit = self
-            .package_store
-            .get(package_id)
-            .expect("package id must be found in store");
-        (
-            unit.package
-                .items
-                .get(item_id.item)
-                .expect("expected to find item"),
-            package_id,
-            &unit.package,
-        )
+    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
+        self.resolve_item(self.current, item_id)
     }
 
-    fn resolve_udt_res(
+    /// Returns the hir `Item` node referred to by `res`.
+    /// `Res`s can resolve to external packages, and the references
+    /// are relative, so here we also need the
+    /// local `PackageId` that the `res` itself came from.
+    fn resolve_item_res(
         &self,
-        package_id: hir::PackageId,
+        local_package_id: PackageId,
         res: &hir::Res,
-    ) -> (&hir::Item, hir::PackageId) {
+    ) -> (&hir::Item, hir::ItemId) {
         match res {
             hir::Res::Item(item_id) => {
-                let (item, package_id, _) = self.find_item(package_id, item_id);
-                (item, package_id)
+                let (item, _, resolved_item_id) = self.resolve_item(local_package_id, item_id);
+                (item, resolved_item_id)
             }
-            _ => panic!("Expected res to be an item"),
+            _ => panic!("expected to find item"),
         }
+    }
+
+    /// Returns the hir `Item` node referred to by `item_id`.
+    /// `ItemId`s can refer to external packages, and the references
+    /// are relative, so here we also need the local `PackageId`
+    /// that the `ItemId` originates from.
+    fn resolve_item(
+        &self,
+        local_package_id: PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
+        // If the `ItemId` contains a package id, use that.
+        // Lack of a package id means the item is in the
+        // same package as the one this `ItemId` reference
+        // came from. So use the local package id passed in.
+        let package_id = item_id.package.unwrap_or(local_package_id);
+        let package = &self
+            .package_store
+            .get(package_id)
+            .expect("package should exist in store")
+            .package;
+        (
+            package
+                .items
+                .get(item_id.item)
+                .expect("item id should exist"),
+            package,
+            hir::ItemId {
+                package: Some(package_id),
+                item: item_id.item,
+            },
+        )
     }
 }

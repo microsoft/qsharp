@@ -303,7 +303,7 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package id should exist")
             .package;
-        let display = CodeDisplay::new(compilation);
+        let display = CodeDisplay { compilation };
 
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
@@ -389,7 +389,7 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package: &'a Package,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
-        let display = CodeDisplay::new(compilation);
+        let display = CodeDisplay { compilation };
 
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
