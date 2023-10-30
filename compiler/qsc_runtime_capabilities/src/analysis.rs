@@ -10,7 +10,6 @@ use qsc_fir::{
 use indenter::indented;
 use rustc_hash::FxHashSet;
 use std::{
-    collections::HashSet,
     fmt::{self, Display, Formatter, Write},
     fs::File,
     io::Write as IoWrite,
@@ -20,19 +19,25 @@ use crate::{set_indentation, RuntimeCapability, StoreCapabilities};
 
 // TODO (cesarzc): Use this throughout the code.
 #[derive(Debug)]
-struct StoreRuntimeProperties(IndexMap<PackageId, PackageCapsScaffolding>);
+pub struct AnalysisStore(IndexMap<PackageId, PackageAnalysis>);
+
+impl Default for AnalysisStore {
+    fn default() -> Self {
+        AnalysisStore(IndexMap::new())
+    }
+}
 
 // TODO (cesarzc): Rename this to PackageRuntimeProperties.
 #[derive(Debug)]
-struct PackageCapsScaffolding {
-    pub callables: IndexMap<LocalItemId, Option<CallableCapsScaffolding>>,
-    pub blocks: IndexMap<BlockId, Option<BlockCapsScaffolding>>,
-    pub stmts: IndexMap<StmtId, Option<RuntimePropetiesScaffolding>>,
-    pub exprs: IndexMap<ExprId, Option<RuntimePropetiesScaffolding>>,
-    pub pats: IndexMap<PatId, Option<RuntimePropetiesScaffolding>>,
+struct PackageAnalysis {
+    pub callables: IndexMap<LocalItemId, Option<CallableAnalysis>>,
+    pub blocks: IndexMap<BlockId, Option<BlockCapsAnalysis>>,
+    pub stmts: IndexMap<StmtId, Option<RuntimePropeties>>,
+    pub exprs: IndexMap<ExprId, Option<RuntimePropeties>>,
+    pub pats: IndexMap<PatId, Option<RuntimePropeties>>,
 }
 
-impl Display for PackageCapsScaffolding {
+impl Display for PackageAnalysis {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
 
@@ -111,12 +116,12 @@ impl Display for PackageCapsScaffolding {
 
 // CONSIDER (cesarzc): Might need to do this a per specialization basis.
 #[derive(Debug)]
-struct CallableCapsScaffolding {
-    pub inherent_caps: Option<RuntimePropetiesScaffolding>,
-    pub parameter_caps: Option<Vec<RuntimePropetiesScaffolding>>,
+struct CallableAnalysis {
+    pub inherent_caps: Option<RuntimePropeties>,
+    pub parameter_caps: Option<Vec<RuntimePropeties>>,
 }
 
-impl Display for CallableCapsScaffolding {
+impl Display for CallableAnalysis {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         let inherent_caps = match &self.inherent_caps {
@@ -139,12 +144,12 @@ impl Display for CallableCapsScaffolding {
 
 // CONSIDER (cesarzc): This seems the same as `CallableCapsScaffolding`.
 #[derive(Debug)]
-struct BlockCapsScaffolding {
-    pub inherent_caps: Option<RuntimePropetiesScaffolding>,
-    pub parameter_caps: Option<Vec<RuntimePropetiesScaffolding>>,
+struct BlockCapsAnalysis {
+    pub inherent_caps: Option<RuntimePropeties>,
+    pub parameter_caps: Option<Vec<RuntimePropeties>>,
 }
 
-impl Display for BlockCapsScaffolding {
+impl Display for BlockCapsAnalysis {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         let inherent_caps = match &self.inherent_caps {
@@ -166,13 +171,12 @@ impl Display for BlockCapsScaffolding {
 }
 
 #[derive(Debug)]
-pub struct RuntimePropetiesScaffolding {
+struct RuntimePropeties {
     pub is_quantum_source: Option<bool>,
-    // TODO (cesarzc): This should be FxHashSet.
     pub caps: Option<FxHashSet<RuntimeCapability>>,
 }
 
-impl Display for RuntimePropetiesScaffolding {
+impl Display for RuntimePropeties {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         let is_quantum_source = match self.is_quantum_source {
@@ -194,11 +198,8 @@ impl Display for RuntimePropetiesScaffolding {
 }
 
 // DBG (cesarzc): For debugging purposes only.
-fn save_package_scaffoldings_to_files(
-    store: &IndexMap<PackageId, PackageCapsScaffolding>,
-    phase: u8,
-) {
-    for (id, package) in store.iter() {
+fn save_package_analysis_to_files(store: &AnalysisStore, phase: u8) {
+    for (id, package) in store.0.iter() {
         let filename = format!("dbg/phase{phase}.package{id}.txt");
         let mut package_file = File::create(filename).expect("File could be created");
         let package_string = format!("{package}");
@@ -207,53 +208,47 @@ fn save_package_scaffoldings_to_files(
 }
 
 pub struct Analyzer<'a> {
-    package_store: Option<&'a PackageStore>,
-    analysis_store: IndexMap<PackageId, PackageCapsScaffolding>,
+    package_store: &'a PackageStore,
+    analysis_store: AnalysisStore,
 }
 
 impl<'a> Analyzer<'a> {
-    pub fn new() -> Self {
-        Self {
-            package_store: None,
-            analysis_store: IndexMap::new(),
-        }
-    }
-
-    pub fn enumerate_runtime_capabilities(
-        &mut self,
-        package_store: &PackageStore,
-    ) -> StoreCapabilities {
-        self.package_store = Some(package_store);
-        save_package_scaffoldings_to_files(&self.analysis_store, 0);
-        // TODO (cesarzc): should convert the store somehow.
-        StoreCapabilities(IndexMap::new())
-    }
-
-    fn initialize(&mut self, store: &PackageStore) {
-        for (id, package) in store.0.iter() {
-            let capabilities = Initializer::from_package(package);
-            self.analysis_store.insert(id, capabilities);
-        }
-    }
-}
-
-// TODO (cesarzc): Figure out lifetimes.
-struct Initializer<'a, 'b> {
-    package: &'a Package,
-    package_runtime_properties: &'b mut PackageCapsScaffolding,
-}
-
-impl<'a, 'b> Initializer<'a, 'b> {
     pub fn new(package_store: &'a PackageStore) -> Self {
+        let mut initializer = Initializer::new(package_store);
+        let analysis_store = initializer.create_analysis_store();
         Self {
             package_store,
-            analysis_store: IndexMap::new(),
+            analysis_store,
         }
     }
 
-    pub fn from_package(package: &Package) -> PackageCapsScaffolding {
+    pub fn run(&mut self) -> StoreCapabilities {
+        save_package_analysis_to_files(&self.analysis_store, 0);
+        // TODO: Do something.
+        StoreCapabilities(IndexMap::new())
+    }
+}
+struct Initializer<'a> {
+    package_store: &'a PackageStore,
+}
+
+impl<'a> Initializer<'a> {
+    pub fn new(package_store: &'a PackageStore) -> Self {
+        Self { package_store }
+    }
+
+    pub fn create_analysis_store(&mut self) -> AnalysisStore {
+        let mut analysis_store = AnalysisStore::default();
+        for (id, package) in self.package_store.0.iter() {
+            let package_analysis = self.from_package(package);
+            analysis_store.0.insert(id, package_analysis);
+        }
+        analysis_store
+    }
+
+    fn from_package(&mut self, package: &Package) -> PackageAnalysis {
         // Initialize callables.
-        let mut callables = IndexMap::<LocalItemId, Option<CallableCapsScaffolding>>::new();
+        let mut callables = IndexMap::<LocalItemId, Option<CallableAnalysis>>::new();
         for (id, item) in package.items.iter() {
             let capabilities = match &item.kind {
                 ItemKind::Callable(c) => Some(Self::from_callable(c)),
@@ -263,30 +258,30 @@ impl<'a, 'b> Initializer<'a, 'b> {
         }
 
         // Initialize blocks.
-        let mut blocks = IndexMap::<BlockId, Option<BlockCapsScaffolding>>::new();
+        let mut blocks = IndexMap::<BlockId, Option<BlockCapsAnalysis>>::new();
         for (id, _) in package.blocks.iter() {
             blocks.insert(id, None);
         }
 
         // Initialize statements.
-        let mut stmts = IndexMap::<StmtId, Option<RuntimePropetiesScaffolding>>::new();
+        let mut stmts = IndexMap::<StmtId, Option<RuntimePropeties>>::new();
         for (id, _) in package.stmts.iter() {
             stmts.insert(id, None);
         }
 
         // Initialize expressions.
-        let mut exprs = IndexMap::<ExprId, Option<RuntimePropetiesScaffolding>>::new();
+        let mut exprs = IndexMap::<ExprId, Option<RuntimePropeties>>::new();
         for (id, _) in package.exprs.iter() {
             exprs.insert(id, None);
         }
 
         // Initialize patterns.
-        let mut pats = IndexMap::<PatId, Option<RuntimePropetiesScaffolding>>::new();
+        let mut pats = IndexMap::<PatId, Option<RuntimePropeties>>::new();
         for (id, _) in package.pats.iter() {
             pats.insert(id, None);
         }
 
-        PackageCapsScaffolding {
+        PackageAnalysis {
             callables,
             blocks,
             stmts,
@@ -295,7 +290,7 @@ impl<'a, 'b> Initializer<'a, 'b> {
         }
     }
 
-    fn from_callable(callable: &CallableDecl) -> CallableCapsScaffolding {
+    fn from_callable(callable: &CallableDecl) -> CallableAnalysis {
         // TODO (cesarzc): Separate into from_function and from_operation.
 
         // Parameter capabilities for QIS callables depend on the parameter type.
@@ -312,25 +307,25 @@ impl<'a, 'b> Initializer<'a, 'b> {
         let is_quantum_source = is_output_type_result && is_qis_callable;
         let mut intrinsic_caps = None;
         if is_quantum_source {
-            intrinsic_caps = Some(RuntimePropetiesScaffolding {
+            intrinsic_caps = Some(RuntimePropeties {
                 is_quantum_source: Some(true),
                 caps: Some(FxHashSet::default()),
             });
         }
 
-        CallableCapsScaffolding {
+        CallableAnalysis {
             inherent_caps: intrinsic_caps,
             parameter_caps,
         }
     }
 
-    fn from_function(callable: &CallableDecl) -> CallableCapsScaffolding {
-        let inherent_caps = Some(RuntimePropetiesScaffolding {
+    fn from_function(callable: &CallableDecl) -> CallableAnalysis {
+        let inherent_caps = Some(RuntimePropeties {
             is_quantum_source: Some(false),
-            caps: Some(HashSet::default()),
+            caps: Some(FxHashSet::default()),
         });
 
-        CallableCapsScaffolding {
+        CallableAnalysis {
             inherent_caps,
             parameter_caps: None,
         }
