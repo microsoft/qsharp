@@ -7,27 +7,30 @@ use qsc::{
     compile::{self, Error},
     hir::{self, PackageId},
     incremental::Compiler,
-    CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
+    resolve, AstPackage, CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
 };
 use std::iter::successors;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
-/// Can be a single Q# source file or a notebook with Q# cells
-/// For notebooks the compilation represents the entire notebook
 pub(crate) struct Compilation {
-    /// Package store, containing the current package and all dependencies
+    /// Package store, containing the current package and all its dependencies.
     pub package_store: PackageStore,
-    /// ID of the current package
-    /// For standalone Q# source files, `Package` will only contain one `Source`
-    /// For notebooks, each `Source` in the `Package` represents a cell
-    pub current: PackageId,
+    /// The `PackageId` of the user package. User code
+    /// is non-library code, i.e. all code except the std and core libs.
+    pub user: PackageId,
     pub errors: Vec<Error>,
     pub kind: CompilationKind,
 }
 
 pub(crate) enum CompilationKind {
+    /// An open Q# document without a project manifest.
+    /// In an `OpenDocument` compilation, the user package always
+    /// contains a single `Source`.
     OpenDocument,
+    /// A Q# notebook. In a notebook compilation, the user package
+    /// contains multiple `Source`s, with each source corresponding
+    /// to a cell.
     Notebook,
 }
 
@@ -58,7 +61,7 @@ impl Compilation {
 
         Self {
             package_store,
-            current: package_id,
+            user: package_id,
             errors,
             kind: CompilationKind::OpenDocument,
         }
@@ -95,21 +98,38 @@ impl Compilation {
 
         Self {
             package_store,
-            current: package_id,
+            user: package_id,
             errors,
             kind: CompilationKind::Notebook,
         }
     }
 
-    pub fn current_unit(&self) -> &CompileUnit {
+    /// Gets the `CompileUnit` associated with user (non-library) code.
+    pub fn user_unit(&self) -> &CompileUnit {
         self.package_store
-            .get(self.current)
-            .expect("expected to find current package")
+            .get(self.user)
+            .expect("expected to find user package")
+    }
+
+    /// Returns the package and `SourceMap` offset associated with a code location.
+    pub(crate) fn resolve_offset(&self, source_name: &str, offset: u32) -> (&AstPackage, u32) {
+        let unit = self.user_unit();
+
+        // Map the file offset into a SourceMap offset
+        let offset = unit
+            .sources
+            .find_by_name(source_name)
+            .expect("source should exist in the source map")
+            .offset
+            + offset;
+
+        let ast_package = &unit.ast;
+        (ast_package, offset)
     }
 
     /// Regenerates the compilation with the same sources but the passed in configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: TargetProfile) {
-        let sources = self.sources();
+        let sources = self.user_source_contents();
 
         let new = match self.kind {
             CompilationKind::OpenDocument => {
@@ -119,15 +139,14 @@ impl Compilation {
             CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
         };
         self.package_store = new.package_store;
-        self.current = new.current;
+        self.user = new.user;
         self.errors = new.errors;
     }
 
-    /// Returns all initial sources that were used to create the compilation.
-    fn sources(&self) -> Vec<(&str, &str)> {
-        let sources = &self.current_unit().sources;
+    /// Returns the original sources that were used to create the compilation.
+    fn user_source_contents(&self) -> Vec<(&str, &str)> {
+        let sources = &self.user_unit().sources;
 
-        // TODO: There's got to be a cleaner way
         successors(sources.find_by_offset(0), |last| {
             sources
                 .find_by_offset(
@@ -148,8 +167,8 @@ impl Compilation {
 }
 
 pub(crate) trait Lookup {
-    // TODO: rename all these to resolve_* or something
-    fn find_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty>;
+    fn get_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty>;
+    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res>;
     fn resolve_item_relative_to_user_package(
         &self,
         item_id: &hir::ItemId,
@@ -167,8 +186,14 @@ pub(crate) trait Lookup {
 }
 
 impl Lookup for Compilation {
-    fn find_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty> {
-        self.current_unit().ast.tys.terms.get(expr_id)
+    /// Looks up the type of a node in user code
+    fn get_ty(&self, id: ast::NodeId) -> Option<&hir::ty::Ty> {
+        self.user_unit().ast.tys.terms.get(id)
+    }
+
+    /// Looks up the resolution of a node in user code
+    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res> {
+        self.user_unit().ast.names.get(id)
     }
 
     /// Returns the hir `Item` node referred to by `item_id`,
@@ -178,7 +203,7 @@ impl Lookup for Compilation {
         &self,
         item_id: &hir::ItemId,
     ) -> (&hir::Item, &hir::Package, hir::ItemId) {
-        self.resolve_item(self.current, item_id)
+        self.resolve_item(self.user, item_id)
     }
 
     /// Returns the hir `Item` node referred to by `res`.

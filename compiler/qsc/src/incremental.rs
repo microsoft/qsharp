@@ -85,6 +85,13 @@ impl Compiler {
         self.compile_fragments(source_name, source_contents, fail_on_error)
     }
 
+    /// Compiles Q# fragments. See [`compile_fragments_fail_fast`] for more details.
+    ///
+    /// This method calls an accumulator function with any errors returned
+    /// from each of the stages (parsing, lowering).
+    /// If the accumulator succeeds, compilation continues.
+    /// If the accumulator returns an error, compilation stops and the
+    /// error is returned to the caller.
     pub fn compile_fragments<F>(
         &mut self,
         source_name: &str,

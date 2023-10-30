@@ -7,7 +7,7 @@ mod tests;
 use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Definition;
-use crate::qsc_utils::{resolve_offset, QSHARP_LIBRARY_URI_SCHEME};
+use crate::qsc_utils::QSHARP_LIBRARY_URI_SCHEME;
 use qsc::ast::visit::Visitor;
 use qsc::hir::PackageId;
 use qsc::{ast, hir};
@@ -17,7 +17,7 @@ pub(crate) fn get_definition(
     source_name: &str,
     offset: u32,
 ) -> Option<Definition> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     let mut definition_finder = DefinitionFinder {
         compilation,
@@ -53,7 +53,7 @@ impl DefinitionFinder<'_> {
         // Note: Having a package_id means the position references a foreign package.
         // Currently the only supported foreign packages are our library packages,
         // URI's to which need to include our custom library scheme.
-        let source_name = if package_id == self.compilation.current {
+        let source_name = if package_id == self.compilation.user {
             source.name.to_string()
         } else {
             format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name)
@@ -70,7 +70,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        self.set_definition_from_position(name.span.lo, self.compilation.current);
+        self.set_definition_from_position(name.span.lo, self.compilation.user);
     }
 
     fn at_callable_ref(
@@ -88,7 +88,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        self.set_definition_from_position(type_name.span.lo, self.compilation.current);
+        self.set_definition_from_position(type_name.span.lo, self.compilation.user);
     }
 
     fn at_new_type_ref(
@@ -106,7 +106,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     }
 
     fn at_field_def(&mut self, _: &LocatorContext<'a>, field_name: &'a ast::Ident, _: &'a ast::Ty) {
-        self.set_definition_from_position(field_name.span.lo, self.compilation.current);
+        self.set_definition_from_position(field_name.span.lo, self.compilation.user);
     }
 
     fn at_field_ref(
@@ -126,7 +126,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     }
 
     fn at_local_def(&mut self, _: &LocatorContext<'a>, ident: &'a ast::Ident, _: &'a ast::Pat) {
-        self.set_definition_from_position(ident.span.lo, self.compilation.current);
+        self.set_definition_from_position(ident.span.lo, self.compilation.user);
     }
 
     fn at_local_ref(
@@ -136,6 +136,6 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &'a ast::NodeId,
         ident: &'a ast::Ident,
     ) {
-        self.set_definition_from_position(ident.span.lo, self.compilation.current);
+        self.set_definition_from_position(ident.span.lo, self.compilation.user);
     }
 }

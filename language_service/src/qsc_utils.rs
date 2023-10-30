@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{compilation::Compilation, protocol};
-use log::trace;
-use qsc::{ast, AstPackage, SourceMap, Span};
+use crate::protocol;
+use qsc::{ast, SourceMap, Span};
 
 pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
 
@@ -13,27 +12,6 @@ pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
 
 pub(crate) fn span_touches(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset <= span.hi
-}
-
-pub(crate) fn resolve_offset<'a>(
-    compilation: &'a Compilation,
-    source_name: &str,
-    offset: u32,
-) -> (&'a AstPackage, u32) {
-    let unit = compilation.current_unit();
-
-    // Map the file offset into a SourceMap offset
-    let offset = unit
-        .sources
-        .find_by_name(source_name)
-        .expect("source should exist in the source map")
-        .offset
-        + offset;
-
-    trace!("resolve_offset found overall offset {offset}");
-
-    let ast_package = &unit.ast;
-    (ast_package, offset)
 }
 
 pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Span {

@@ -4,10 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::Compilation;
+use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol;
-use crate::qsc_utils::{protocol_span, resolve_offset};
+use crate::qsc_utils::protocol_span;
 use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
 use qsc::hir::{ty::Ty, Res};
 use qsc::{ast, hir, resolve, Span};
@@ -18,14 +18,14 @@ pub(crate) fn prepare_rename(
     source_name: &str,
     offset: u32,
 ) -> Option<(protocol::Span, String)> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     let mut prepare_rename = Rename::new(compilation, true);
     let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
     locator.visit_package(&ast.package);
     prepare_rename
         .prepare
-        .map(|p| (protocol_span(p.0, &compilation.current_unit().sources), p.1))
+        .map(|p| (protocol_span(p.0, &compilation.user_unit().sources), p.1))
 }
 
 pub(crate) fn get_rename(
@@ -33,7 +33,7 @@ pub(crate) fn get_rename(
     source_name: &str,
     offset: u32,
 ) -> Vec<protocol::Span> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     let mut rename = Rename::new(compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);
@@ -41,7 +41,7 @@ pub(crate) fn get_rename(
     rename
         .locations
         .into_iter()
-        .map(|s| protocol_span(s, &compilation.current_unit().sources))
+        .map(|s| protocol_span(s, &compilation.user_unit().sources))
         .collect::<Vec<_>>()
 }
 
@@ -65,8 +65,8 @@ impl<'a> Rename<'a> {
     fn get_spans_for_item_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
         let package_id = item_id.package.expect("package id should be resolved");
         // Only rename items that are part of the user package
-        if package_id == self.compilation.current {
-            let user_unit = self.compilation.current_unit();
+        if package_id == self.compilation.user {
+            let user_unit = self.compilation.user_unit();
             if let Some(def) = user_unit.package.items.get(item_id.item) {
                 if self.is_prepare {
                     self.prepare = Some((ast_name.span, ast_name.name.to_string()));
@@ -91,8 +91,8 @@ impl<'a> Rename<'a> {
     fn get_spans_for_field_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
         let package_id = item_id.package.expect("package id should be resolved");
         // Only rename items that are part of the user package
-        if package_id == self.compilation.current {
-            let user_unit = self.compilation.current_unit();
+        if package_id == self.compilation.user {
+            let user_unit = self.compilation.user_unit();
             if let Some(def) = user_unit.package.items.get(item_id.item) {
                 if let hir::ItemKind::Ty(_, udt) = &def.kind {
                     if let Some(ty_field) = udt.find_field_by_name(&ast_name.name) {
@@ -145,13 +145,8 @@ impl<'a> Handler<'a> for Rename<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        if let Some(resolve::Res::Item(item_id)) =
-            self.compilation.current_unit().ast.names.get(name.id)
-        {
-            self.get_spans_for_item_rename(
-                &resolve_package(self.compilation.current, item_id),
-                name,
-            );
+        if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(name.id) {
+            self.get_spans_for_item_rename(&resolve_package(self.compilation.user, item_id), name);
         }
     }
 
@@ -167,11 +162,9 @@ impl<'a> Handler<'a> for Rename<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        if let Some(resolve::Res::Item(item_id)) =
-            self.compilation.current_unit().ast.names.get(type_name.id)
-        {
+        if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(type_name.id) {
             self.get_spans_for_item_rename(
-                &resolve_package(self.compilation.current, item_id),
+                &resolve_package(self.compilation.user, item_id),
                 type_name,
             );
         }
@@ -196,7 +189,7 @@ impl<'a> Handler<'a> for Rename<'a> {
     ) {
         if let Some(item_id) = context.current_udt_id {
             self.get_spans_for_field_rename(
-                &resolve_package(self.compilation.current, item_id),
+                &resolve_package(self.compilation.user, item_id),
                 field_name,
             );
         }
@@ -244,7 +237,7 @@ struct ItemRename<'a> {
 
 impl<'a> Visitor<'_> for ItemRename<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.current_unit().ast.names.get(path.id);
+        let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Item(item_id)) = res {
             if self.eq(item_id) {
                 self.locations.push(path.name.span);
@@ -254,7 +247,7 @@ impl<'a> Visitor<'_> for ItemRename<'a> {
 
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
-            let res = self.compilation.current_unit().ast.names.get(ty_path.id);
+            let res = self.compilation.get_res(ty_path.id);
             if let Some(resolve::Res::Item(item_id)) = res {
                 if self.eq(item_id) {
                     self.locations.push(ty_path.name.span);
@@ -269,7 +262,7 @@ impl<'a> Visitor<'_> for ItemRename<'a> {
 impl<'a> ItemRename<'a> {
     fn eq(&mut self, item_id: &hir::ItemId) -> bool {
         item_id.item == self.item_id.item
-            && item_id.package.unwrap_or(self.compilation.current)
+            && item_id.package.unwrap_or(self.compilation.user)
                 == self.item_id.package.expect("package id should be resolved")
     }
 }
@@ -286,14 +279,7 @@ impl<'a> Visitor<'_> for FieldRename<'a> {
         if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
             self.visit_expr(qualifier);
             if field_name.name == self.field_name {
-                if let Some(Ty::Udt(Res::Item(id))) = self
-                    .compilation
-                    .current_unit()
-                    .ast
-                    .tys
-                    .terms
-                    .get(qualifier.id)
-                {
+                if let Some(Ty::Udt(Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
                     if self.eq(id) {
                         self.locations.push(field_name.span);
                     }
@@ -308,7 +294,7 @@ impl<'a> Visitor<'_> for FieldRename<'a> {
 impl<'a> FieldRename<'a> {
     fn eq(&mut self, item_id: &hir::ItemId) -> bool {
         item_id.item == self.item_id.item
-            && item_id.package.unwrap_or(self.compilation.current)
+            && item_id.package.unwrap_or(self.compilation.user)
                 == self.item_id.package.expect("package id should be resolved")
     }
 }
@@ -332,7 +318,7 @@ impl<'a> Visitor<'_> for LocalRename<'a> {
     }
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.current_unit().ast.names.get(path.id);
+        let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Local(node_id)) = res {
             if *node_id == self.node_id {
                 self.locations.push(path.name.span);
