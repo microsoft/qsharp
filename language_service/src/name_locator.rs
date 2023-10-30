@@ -271,26 +271,16 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id) => {
-                        let (item, package, resolved_item_id) =
+                        let (item, package) =
                             resolve_item_relative_to_user_package(self.compilation, item_id);
                         match &item.kind {
                             hir::ItemKind::Callable(decl) => {
-                                self.inner.at_callable_ref(
-                                    path,
-                                    &resolved_item_id,
-                                    item,
-                                    package,
-                                    decl,
-                                );
+                                self.inner
+                                    .at_callable_ref(path, item_id, item, package, decl);
                             }
                             hir::ItemKind::Ty(type_name, udt) => {
-                                self.inner.at_new_type_ref(
-                                    path,
-                                    &resolved_item_id,
-                                    package,
-                                    type_name,
-                                    udt,
-                                );
+                                self.inner
+                                    .at_new_type_ref(path, item_id, package, type_name, udt);
                             }
                             hir::ItemKind::Namespace(_, _) => {
                                 panic!(

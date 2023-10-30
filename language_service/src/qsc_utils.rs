@@ -81,13 +81,13 @@ pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offse
 }
 
 /// Returns the hir `Item` node referred to by `item_id`,
-/// along with the `Package` and `PackageId` for the package
-/// that it was found in.
+/// along with the `Package` that it was found in.
 pub(crate) fn resolve_item_relative_to_user_package<'a>(
     compilation: &'a Compilation,
     item_id: &ItemId,
-) -> (&'a Item, &'a Package, ItemId) {
-    resolve_item(compilation, None, item_id)
+) -> (&'a Item, &'a Package) {
+    let (item, package, _) = resolve_item(compilation, None, item_id);
+    (item, package)
 }
 
 /// Returns the hir `Item` node referred to by `res`.

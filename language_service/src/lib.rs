@@ -18,6 +18,7 @@ pub mod hover;
 mod name_locator;
 pub mod protocol;
 mod qsc_utils;
+pub mod references;
 pub mod rename;
 pub mod signature_help;
 #[cfg(test)]
@@ -166,13 +167,13 @@ impl<'a> LanguageService<'a> {
     #[must_use]
     pub fn get_references(&self, uri: &str, offset: u32) -> Vec<Location> {
         trace!("get_references: uri: {uri:?}, offset: {offset:?}");
-        let res = definition::get_definition(
+        let refs = references::get_references(
             &self
             .document_map.get(uri).as_ref()
                 .expect("get_references should not be called before document has been initialized with update_document").compilation,
                 uri, offset);
-        trace!("get_references result: {res:?}");
-        res.into_iter().collect()
+        trace!("get_references result: {refs:?}");
+        refs
     }
 
     #[must_use]
