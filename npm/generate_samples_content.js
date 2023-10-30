@@ -27,5 +27,5 @@ const contentPath = join(sampleGeneratedDir, "samples.generated.ts");
 writeFileSync(
   contentPath,
   `export default ${JSON.stringify(result, undefined, 2)}`,
-  "utf-8"
+  "utf-8",
 );

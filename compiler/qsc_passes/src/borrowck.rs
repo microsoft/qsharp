@@ -4,14 +4,13 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashSet;
-
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{Expr, ExprKind, Mutability, NodeId, Pat, PatKind, Res, Stmt, StmtKind},
     visit::{walk_expr, walk_stmt, Visitor},
 };
+use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -35,7 +34,7 @@ pub enum Error {
 
 #[derive(Default)]
 pub(super) struct Checker {
-    mutable: HashSet<NodeId>,
+    mutable: FxHashSet<NodeId>,
     pub(super) errors: Vec<Error>,
 }
 

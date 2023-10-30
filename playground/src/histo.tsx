@@ -191,7 +191,7 @@ export function Histogram(props: {
     // consistent while the scroll is occuring (i.e. it is the point the mouse
     // was at when scrolling started).
     const mousePoint = new DOMPoint(e.clientX, e.clientY).matrixTransform(
-      svgElem.getScreenCTM()?.inverse()
+      svgElem.getScreenCTM()?.inverse(),
     );
 
     /*
@@ -235,7 +235,7 @@ export function Histogram(props: {
     const maxScrollRight = 1 - (barAreaWidth * newZoom - barAreaWidth);
     const boundScrollOffset = Math.min(
       Math.max(newScrollOffset, maxScrollRight),
-      1
+      1,
     );
 
     setScale({ zoom: newZoom, offset: boundScrollOffset });

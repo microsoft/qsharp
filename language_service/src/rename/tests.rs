@@ -517,3 +517,19 @@ fn no_rename_non_id_character() {
         "#]],
     );
 }
+
+#[test]
+fn no_rename_std_udt_return_type() {
+    check_prepare(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : U↘dt {
+        }
+    }
+    "#,
+        &expect![[r#"
+            None
+        "#]],
+    );
+}

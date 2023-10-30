@@ -29,25 +29,25 @@ const events: QscEventData["type"][] = ["DumpMachine", "Message", "Result"];
 
 export function createDebugServiceDispatcher(
   postMessage: (
-    msg: ResponseMessage<IDebugService> | EventMessage<QscEventData>
+    msg: ResponseMessage<IDebugService> | EventMessage<QscEventData>,
   ) => void,
-  service: IDebugService
+  service: IDebugService,
 ) {
   return createDispatcher<IDebugService, QscEventData>(
     postMessage,
     service,
     requests,
-    events
+    events,
   );
 }
 
 export function createDebugServiceProxy(
   postMessage: (msg: RequestMessage<IDebugService>) => void,
-  terminator: () => void
+  terminator: () => void,
 ) {
   return createProxy<IDebugService, QscEventData>(
     postMessage,
     terminator,
-    requests
+    requests,
   );
 }

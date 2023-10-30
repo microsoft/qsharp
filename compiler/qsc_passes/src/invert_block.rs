@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::collections::HashSet;
-
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
@@ -14,6 +12,7 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
     ty::{GenericArg, Prim, Ty},
 };
+use rustc_hash::FxHashSet;
 
 use crate::{
     common::{create_gen_core_ref, generated_name},
@@ -39,7 +38,7 @@ pub(crate) fn adj_invert_block(
 struct BlockInverter<'a> {
     core: &'a Table,
     assigner: &'a mut Assigner,
-    quantum_stmts: HashSet<NodeId>,
+    quantum_stmts: FxHashSet<NodeId>,
     should_reverse_loop: bool,
 }
 

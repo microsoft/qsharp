@@ -77,5 +77,5 @@ The main source file to show hooking up the compiler and Monaco on a web page is
 
 The test files in "./npm/test/basics.js" show minimal examples of the qsharp compiler API usage.
 `,
-  { encoding: "utf8" }
+  { encoding: "utf8" },
 );

@@ -81,7 +81,7 @@ export async function getKata(id: string): Promise<Kata> {
 }
 
 export async function getExerciseSources(
-  exercise: Exercise
+  exercise: Exercise,
 ): Promise<string[]> {
   return katasContent.globalCodeSources
     .filter((source) => exercise.sourceIds.indexOf(source.id) > -1)

@@ -24,13 +24,19 @@ import {
   registerCreateNotebookCommand,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { EventType, initTelemetry, sendTelemetryEvent } from "./telemetry.js";
+import {
+  EventType,
+  QsharpDocumentType,
+  initTelemetry,
+  sendTelemetryEvent,
+} from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
 import { createReferenceProvider } from "./references.js";
+import { initFileSystem } from "./memfs.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -58,6 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
   initCodegen(context);
   activateDebugger(context);
   registerCreateNotebookCommand(context);
+  initFileSystem(context);
 
   log.info("Q# extension activated.");
 }
@@ -104,6 +111,18 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
+      const documentType = isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
+        : isQsharpNotebookCell(document)
+        ? QsharpDocumentType.JupyterCell
+        : QsharpDocumentType.Other;
+      if (documentType !== QsharpDocumentType.Other) {
+        sendTelemetryEvent(
+          EventType.OpenedDocument,
+          { documentType },
+          { linesOfCode: document.lineCount }
+        );
+      }
       updateIfQsharpDocument(document);
     })
   );

@@ -3,14 +3,17 @@
 
 import { log } from "qsharp-lang";
 import { workspace } from "vscode";
+import { EventType, UserFlowStatus, sendTelemetryEvent } from "../telemetry";
+import { getRandomGuid } from "../utils";
 
 const publicMgmtEndpoint = "https://management.azure.com";
 
 export async function azureRequest(
   uri: string,
   token: string,
+  correlationId?: string,
   method = "GET",
-  body?: string
+  body?: string,
 ) {
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
@@ -27,6 +30,16 @@ export async function azureRequest(
 
     if (!response.ok) {
       log.error("Azure request failed", response);
+      if (correlationId) {
+        sendTelemetryEvent(
+          EventType.AzureRequestFailed,
+          {
+            reason: `request to azure returned code ${response.status}`,
+            correlationId,
+          },
+          {},
+        );
+      }
       throw Error(`Azure request failed: ${response.statusText}`);
     }
 
@@ -36,6 +49,13 @@ export async function azureRequest(
 
     return result;
   } catch (e) {
+    if (correlationId) {
+      sendTelemetryEvent(
+        EventType.AzureRequestFailed,
+        { reason: `request to azure failed to return`, correlationId },
+        {},
+      );
+    }
     log.error(`Failed to fetch ${uri}: ${e}`);
     throw e;
   }
@@ -46,7 +66,8 @@ export async function storageRequest(
   uri: string,
   method: string,
   extraHeaders?: [string, string][],
-  body?: string | Uint8Array
+  body?: string | Uint8Array,
+  correlationId?: string,
 ) {
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
@@ -67,12 +88,32 @@ export async function storageRequest(
     const response = await fetch(uri, { method, headers, body });
     if (!response.ok) {
       log.error("Storage request failed", response);
+      if (correlationId) {
+        sendTelemetryEvent(
+          EventType.StorageRequestFailed,
+          {
+            reason: `request to storage on azure returned code ${response.status}`,
+            correlationId,
+          },
+          {},
+        );
+      }
       throw Error(`Storage request failed: ${response.statusText}`);
     }
     log.debug(`Got response ${response.status} ${response.statusText}`);
     return response;
   } catch (e) {
     log.error(`Failed to fetch ${uri}: ${e}`);
+    if (correlationId) {
+      sendTelemetryEvent(
+        EventType.StorageRequestFailed,
+        {
+          reason: `request to storage on azure failed to return`,
+          correlationId,
+        },
+        {},
+      );
+    }
     throw e;
   }
 }
@@ -103,7 +144,7 @@ export class QuantumUris {
 
   constructor(
     public endpoint: string, // e.g. "https://westus.quantum.azure.com"
-    public id: string // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
+    public id: string, // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
   ) {}
 
   quotas() {
@@ -148,13 +189,16 @@ export class StorageUris {
     storageAccount: string,
     container: string,
     blob: string,
-    sas: string
+    sas: string,
   ) {
     return `https://${storageAccount}.blob.core.windows.net/${container}/${blob}?${sas}`;
   }
 }
 
 export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
+  const correlationId = getRandomGuid();
+  sendTelemetryEvent(EventType.CheckCorsStart, { correlationId }, {});
+
   log.debug("Checking CORS configuration for the workspace");
 
   // Get a sasUri for a container to check (it's name doesn't matter, CORS is service wide on a storage account)
@@ -162,8 +206,9 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
+    correlationId,
     "POST",
-    body
+    body,
   );
   const sasUri = decodeURI(sasResponse.sasUri);
 
@@ -207,12 +252,17 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
     ],
   });
   log.debug("Pre-flighted GET request didn't throw, so CORS seems good");
+  sendTelemetryEvent(
+    EventType.CheckCorsEnd,
+    { correlationId, flowStatus: UserFlowStatus.Succeeded },
+    {},
+  );
 }
 
 export async function compileToBitcode(
   compilerService: string,
   providerId: string,
-  qir: string
+  qir: string,
 ) {
   try {
     log.info("Using compiler service at " + compilerService);
