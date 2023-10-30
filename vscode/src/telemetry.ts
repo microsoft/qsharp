@@ -5,7 +5,6 @@ import { log } from "qsharp-lang";
 export enum EventType {
   InitializePlugin = "Qsharp.InitializePlugin",
   LoadLanguageService = "Qsharp.LoadLanguageService",
-  QSharpJupyterCellInitialized = "Qsharp.JupyterCellInitialized",
   ReturnCompletionList = "Qsharp.ReturnCompletionList",
   GenerateQirStart = "Qsharp.GenerateQirStart",
   GenerateQirEnd = "Qsharp.GenerateQirEnd",
@@ -44,10 +43,6 @@ type EventTypes = {
     measurements: {
       timeToStartMs: number;
     };
-  };
-  [EventType.QSharpJupyterCellInitialized]: {
-    properties: Empty;
-    measurements: Empty;
   };
   [EventType.ReturnCompletionList]: {
     properties: Empty;
