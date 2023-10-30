@@ -65,7 +65,6 @@ export function registerQSharpNotebookHandlers() {
             cell.document,
             qsharpLanguageId,
           );
-          sendTelemetryEvent(EventType.QSharpJupyterCellInitialized);
         }
       }
     }
