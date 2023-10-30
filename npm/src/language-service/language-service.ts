@@ -372,7 +372,7 @@ export class QSharpLanguageService implements ILanguageService {
       const event = new Event("diagnostics") as LanguageServiceEvent & Event;
       event.detail = {
         uri,
-        version: version ?? 99,
+        version: version ?? 0,
         diagnostics: empty ? [] : mapDiagnostics(diagnostics, code as string),
       };
       this.eventHandler.dispatchEvent(event);
