@@ -305,3 +305,117 @@ fn check_add_le() {
         ),
     );
 }
+
+#[test]
+fn check_ripple_carry_inc_by_l() {
+    test_expression(
+        {
+            "{  // More advanced cases for RippleCarryIncByL
+                open Microsoft.Quantum.Arithmetic;
+                use y0 = Qubit[10];
+                ApplyXorInPlace(172, y0);
+                IncByL(128L,y0);
+                let i0 = MeasureInteger(y0);
+                ResetAll(y0);
+                use y1 = Qubit[10];
+                ApplyXorInPlace(172, y1);
+                IncByL(0L,y1);
+                let i1 = MeasureInteger(y1);
+                ResetAll(y1);
+                return (i0, i1);
+            }"
+        },
+        &Value::Tuple(
+            vec![
+                Value::Int(300),
+                Value::Int(172),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le() {
+    test_expression(
+        {
+            "{  // More advanced cases for RippleCarryIncByLE
+                open Microsoft.Quantum.Arithmetic;
+                use x0 = Qubit[1];
+                use y0 = Qubit[2];
+                ApplyXorInPlace(3, y0);
+                IncByLE(x0,y0);
+                let i0 = MeasureInteger(y0);
+                ResetAll(x0+y0);
+                use x1 = Qubit[3];
+                use y1 = Qubit[10];
+                ApplyXorInPlace(7, x1);
+                ApplyXorInPlace(31, y1);
+                IncByLE(x1,y1);
+                let i1 = MeasureInteger(y1);
+                ResetAll(x1+y1);
+                use x2 = Qubit[3];
+                use y2 = Qubit[4];
+                ApplyXorInPlace(7, x2);
+                ApplyXorInPlace(7, y2);
+                IncByLE(x2,y2);
+                let i2 = MeasureInteger(y2);
+                ResetAll(x2+y2);
+                return (i0, i1, i2);
+            }"
+        },
+        &Value::Tuple(
+            vec![
+                Value::Int(3),
+                Value::Int(38),
+                Value::Int(14),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_ripple_carry_add_le() {
+    test_expression(
+        {
+            "{  // More advanced cases for RippleCarryAddLE
+                open Microsoft.Quantum.Arithmetic;
+                use x0 = Qubit[2];
+                use y0 = Qubit[2];
+                use z0 = Qubit[3];
+                ApplyXorInPlace(3, x0);
+                ApplyXorInPlace(3, y0);
+                AddLE(x0,y0,z0);
+                let i0 = MeasureInteger(z0);
+                ResetAll(x0+y0+z0);
+                use x1 = Qubit[2];
+                use y1 = Qubit[2];
+                use z1 = Qubit[4];
+                ApplyXorInPlace(3, x1);
+                ApplyXorInPlace(3, y1);
+                AddLE(x1,y1,z1);
+                let i1 = MeasureInteger(z1);
+                ResetAll(x1+y1+z1);
+                use x2 = Qubit[2];
+                use y2 = Qubit[2];
+                use z2 = Qubit[4];
+                ApplyXorInPlace(3, x2);
+                ApplyXorInPlace(3, y2);
+                X(z2[0]);
+                AddLE(x2,y2,z2);
+                let i2 = MeasureInteger(z2);
+                ResetAll(x2+y2+z2);
+                return (i0, i1, i2);
+        }"
+        },
+        &Value::Tuple(
+            vec![
+                Value::Int(6),
+                Value::Int(6),
+                Value::Int(7),
+            ]
+            .into(),
+        ),
+    );
+}

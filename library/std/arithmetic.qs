@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.Arithmetic {
             if ysLen == 1 {
                 CNOT(xs[0], ys[0]);
             } elif ysLen == 2 {
-                HalfAdderForInc(xs[0], ys[0], ys[1]); // TODO: Can we pass ys[1] here?
+                HalfAdderForInc(xs[0], ys[0], ys[1]);
             }
         } else {
             let (x0, xrest) = (Head(xs), Rest(xs));

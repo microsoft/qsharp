@@ -35,12 +35,11 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements Half-adder. Adds qubit x to qubit y and sets carryOut appropriately
-    /// assuming carryOut is in |0> state.
     @Config(Full)
     internal operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
-            ApplyAndAssuming0Target(x, y, carryOut);
+            CCNOT(x, y, carryOut);
             CNOT(x, y);
         }
         adjoint auto;
