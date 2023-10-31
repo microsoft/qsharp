@@ -1,8 +1,8 @@
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        BlockId, CallableDecl, ExprId, ItemKind, LocalItemId, Package, PackageId, PackageStore,
-        PatId, SpecBody, SpecGen, StmtId,
+        BlockId, CallableDecl, CallableKind, ExprId, ItemKind, LocalItemId, Package, PackageId,
+        PackageStore, PatId, SpecBody, SpecGen, StmtId,
     },
     ty::{Prim, Ty},
 };
@@ -178,7 +178,7 @@ struct RuntimePropeties {
 
 impl Display for RuntimePropeties {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
+        let mut indent = set_indentation(indented(f), 1);
         let is_quantum_source = match self.is_quantum_source {
             None => "None".to_string(),
             Some(iqs) => format!("{iqs}"),
@@ -255,7 +255,7 @@ impl<'a> Initializer<'a> {
         let mut callables = IndexMap::<LocalItemId, Option<CallableAnalysis>>::new();
         for (id, item) in package.items.iter() {
             let capabilities = match &item.kind {
-                ItemKind::Callable(c) => Some(Self::from_callable(c)),
+                ItemKind::Callable(c) => Some(self.from_callable(c)),
                 _ => None,
             };
             callables.insert(id, capabilities);
@@ -294,36 +294,14 @@ impl<'a> Initializer<'a> {
         }
     }
 
-    fn from_callable(callable: &CallableDecl) -> CallableAnalysis {
-        // TODO (cesarzc): Separate into from_function and from_operation.
-
-        // Parameter capabilities for QIS callables depend on the parameter type.
-        // E.g.: Int -> {IntegerComputations}, Double -> {FloatingPointComputations}, Qubit -> {}.
-        let is_qis_callable = callable.name.name.starts_with("__quantum__qis");
-        // TODO (cesarzc): Implement.
-        let parameter_caps = None;
-
-        //
-        let is_output_type_result = match callable.output {
-            Ty::Prim(p) => p == Prim::Result,
-            _ => false,
-        };
-        let is_quantum_source = is_output_type_result && is_qis_callable;
-        let mut intrinsic_caps = None;
-        if is_quantum_source {
-            intrinsic_caps = Some(RuntimePropeties {
-                is_quantum_source: Some(true),
-                caps: Some(FxHashSet::default()),
-            });
-        }
-
-        CallableAnalysis {
-            inherent_caps: intrinsic_caps,
-            parameter_caps,
+    fn from_callable(&mut self, callable: &CallableDecl) -> CallableAnalysis {
+        match callable.kind {
+            CallableKind::Function => self.from_function(callable),
+            CallableKind::Operation => self.from_operation(callable),
         }
     }
 
-    fn from_function(callable: &CallableDecl) -> CallableAnalysis {
+    fn from_function(&mut self, _callable: &CallableDecl) -> CallableAnalysis {
         let inherent_caps = Some(RuntimePropeties {
             is_quantum_source: Some(false),
             caps: Some(FxHashSet::default()),
@@ -331,6 +309,21 @@ impl<'a> Initializer<'a> {
 
         CallableAnalysis {
             inherent_caps,
+            parameter_caps: None, // TODO (cesarzc): Populare correctly.
+        }
+    }
+
+    fn from_operation(&mut self, callable: &CallableDecl) -> CallableAnalysis {
+        // TODO (cesarzc): Implement correctly.
+        let is_intrinsic = Self::is_intrinsic(callable);
+        let is_unit = matches!(callable.output, Ty::UNIT);
+        let is_quantum_source = is_intrinsic && !is_unit;
+        let inherent_caps = RuntimePropeties {
+            is_quantum_source: Some(is_quantum_source),
+            caps: Some(FxHashSet::default()), // TODO (cesarzc): Do the right thing.
+        };
+        CallableAnalysis {
+            inherent_caps: Some(inherent_caps),
             parameter_caps: None,
         }
     }
