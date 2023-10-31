@@ -26,7 +26,7 @@ export function messageHandler(e: MessageEvent) {
         const debugService = new QSharpDebugService(wasm);
         invokeDebugger = createDebugServiceDispatcher(
           self.postMessage.bind(self),
-          debugService
+          debugService,
         );
       }
       break;
@@ -34,7 +34,7 @@ export function messageHandler(e: MessageEvent) {
       if (!invokeDebugger) {
         log.error(
           `Received message before the debugger was initialized: %o`,
-          data
+          data,
         );
       } else {
         invokeDebugger(data);

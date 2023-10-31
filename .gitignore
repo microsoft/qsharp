@@ -4,6 +4,7 @@ __pycache__/
 .DS_Store
 .vscode/*
 .vscode-test-web/
+*.pem
 !.vscode/*.shared.json
 !.vscode/extensions.json
 /fuzz/target

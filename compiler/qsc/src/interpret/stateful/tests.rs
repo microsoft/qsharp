@@ -565,8 +565,10 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
-                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -590,14 +592,12 @@ mod given_interpreter {
                 declare void @__quantum__qis__y__body(%Qubit*)
                 declare void @__quantum__qis__z__body(%Qubit*)
                 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__reset__body(%Qubit*)
-                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
-                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
                 declare void @__quantum__rt__array_record_output(i64, i8*)
                 declare void @__quantum__rt__tuple_record_output(i64, i8*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags
@@ -631,8 +631,10 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
-                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -656,14 +658,12 @@ mod given_interpreter {
                 declare void @__quantum__qis__y__body(%Qubit*)
                 declare void @__quantum__qis__z__body(%Qubit*)
                 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__reset__body(%Qubit*)
-                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
-                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
                 declare void @__quantum__rt__array_record_output(i64, i8*)
                 declare void @__quantum__rt__tuple_record_output(i64, i8*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags
@@ -699,8 +699,10 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
-                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -724,14 +726,12 @@ mod given_interpreter {
                 declare void @__quantum__qis__y__body(%Qubit*)
                 declare void @__quantum__qis__z__body(%Qubit*)
                 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__reset__body(%Qubit*)
-                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
-                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
                 declare void @__quantum__rt__array_record_output(i64, i8*)
                 declare void @__quantum__rt__tuple_record_output(i64, i8*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags
@@ -750,11 +750,11 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                name error: `Bar` not found
-                   [line_1] [Bar]
-                type error: insufficient type information to infer type
-                   [line_1] [Bar()]
-            "#]],
+                    name error: `Bar` not found
+                       [line_1] [Bar]
+                    type error: insufficient type information to infer type
+                       [line_1] [Bar()]
+                "#]],
             );
         }
 
@@ -806,8 +806,10 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
-                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -831,14 +833,12 @@ mod given_interpreter {
                 declare void @__quantum__qis__y__body(%Qubit*)
                 declare void @__quantum__qis__z__body(%Qubit*)
                 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__reset__body(%Qubit*)
-                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
-                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
                 declare void @__quantum__rt__array_record_output(i64, i8*)
                 declare void @__quantum__rt__tuple_record_output(i64, i8*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags
@@ -862,11 +862,11 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                name error: `Bar` not found
-                   [line_2] [Bar]
-                type error: insufficient type information to infer type
-                   [line_2] [Bar()]
-            "#]],
+                    name error: `Bar` not found
+                       [line_2] [Bar]
+                    type error: insufficient type information to infer type
+                       [line_2] [Bar()]
+                "#]],
             );
         }
 
@@ -887,8 +887,10 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
-                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
-                  call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -912,14 +914,12 @@ mod given_interpreter {
                 declare void @__quantum__qis__y__body(%Qubit*)
                 declare void @__quantum__qis__z__body(%Qubit*)
                 declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__reset__body(%Qubit*)
-                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result* writeonly) #1
-                declare void @__quantum__qis__m__body(%Qubit*, %Result* writeonly) #1
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
                 declare void @__quantum__rt__array_record_output(i64, i8*)
                 declare void @__quantum__rt__tuple_record_output(i64, i8*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="custom" }
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags

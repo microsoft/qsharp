@@ -347,3 +347,43 @@ fn attributes() {
         "#]],
     );
 }
+
+#[test]
+fn stdlib_udt() {
+    check(
+        r#"
+        namespace Test {
+            operation Test() : Unit {
+                ↘
+            }
+        "#,
+        &["TakesUdt"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "TakesUdt",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600TakesUdt",
+                        ),
+                        detail: Some(
+                            "function TakesUdt(input : Udt) : Udt",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 38,
+                                        end: 38,
+                                    },
+                                    "open FakeStdLib;\n    ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

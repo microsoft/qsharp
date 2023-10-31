@@ -17,7 +17,7 @@ suite("Q# Language Service Tests", () => {
     assert.equal(
       doc.languageId,
       "qsharp",
-      "document language should be `qsharp`"
+      "document language should be `qsharp`",
     );
   });
 
@@ -26,12 +26,12 @@ suite("Q# Language Service Tests", () => {
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
       docUri,
-      new vscode.Position(0, 0)
+      new vscode.Position(0, 0),
     )) as vscode.CompletionList;
 
     assert.include(
       actualCompletionList.items.map((i) => i.label),
-      "operation"
+      "operation",
     );
   });
 
@@ -39,7 +39,7 @@ suite("Q# Language Service Tests", () => {
     await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19))
+      new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
     // Sanity check the test setup - is this the correct position?
     assert.equal(text, "foo");
@@ -47,7 +47,7 @@ suite("Q# Language Service Tests", () => {
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
       docUri,
-      new vscode.Position(4, 18) // cursor on the usage of foo
+      new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.Location[];
 
     const location = actualDefinition[0];
@@ -70,7 +70,7 @@ suite("Q# Language Service Tests", () => {
     await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19))
+      new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
     // Sanity check the test setup - is this the correct position?
     assert.equal(text, "foo");
@@ -78,7 +78,7 @@ suite("Q# Language Service Tests", () => {
     const actualHovers = (await vscode.commands.executeCommand(
       "vscode.executeHoverProvider",
       docUri,
-      new vscode.Position(4, 18) // cursor on the usage of foo
+      new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.Hover[];
 
     assert.lengthOf(actualHovers, 1);
@@ -91,7 +91,7 @@ suite("Q# Language Service Tests", () => {
     await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19))
+      new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
     // Sanity check the test setup - is this the correct position?
     assert.equal(text, "foo");
@@ -99,13 +99,13 @@ suite("Q# Language Service Tests", () => {
     const actualSignatureHelp = (await vscode.commands.executeCommand(
       "vscode.executeSignatureHelpProvider",
       docUri,
-      new vscode.Position(4, 18) // cursor on the usage of foo
+      new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.SignatureHelp;
 
     assert.lengthOf(actualSignatureHelp.signatures, 1);
     assert.include(
       actualSignatureHelp.signatures[0].label,
-      "function Message(msg : String)"
+      "function Message(msg : String)",
     );
   });
 });

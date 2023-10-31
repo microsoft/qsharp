@@ -12,7 +12,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    200
+    200,
   );
   disposables.push(statusBarItem);
 
@@ -32,7 +32,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
         // Q# document.
         statusBarItem.hide();
       }
-    })
+    }),
   );
 
   disposables.push(
@@ -44,7 +44,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
       ) {
         refreshStatusBarItemValue();
       }
-    })
+    }),
   );
 
   if (
@@ -79,7 +79,7 @@ function registerTargetProfileCommand() {
     async () => {
       const target = await vscode.window.showQuickPick(
         targetProfiles.map((profile) => profile.uiText),
-        { placeHolder: "Select the QIR target profile" }
+        { placeHolder: "Select the QIR target profile" },
       );
 
       if (target) {
@@ -88,10 +88,10 @@ function registerTargetProfileCommand() {
           .update(
             "targetProfile",
             getTargetProfileSetting(target),
-            vscode.ConfigurationTarget.Global
+            vscode.ConfigurationTarget.Global,
           );
       }
-    }
+    },
   );
 }
 

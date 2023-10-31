@@ -39,7 +39,7 @@ export function messageHandler(e: MessageEvent) {
         const compiler = new Compiler(wasm);
         invokeCompiler = createCompilerDispatcher(
           self.postMessage.bind(self),
-          compiler
+          compiler,
         );
       }
       break;
@@ -47,7 +47,7 @@ export function messageHandler(e: MessageEvent) {
       if (!invokeCompiler) {
         log.error(
           `Received message before the compiler was initialized: %o`,
-          data
+          data,
         );
       } else {
         invokeCompiler(data);
