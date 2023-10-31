@@ -310,7 +310,7 @@ fn check_add_le() {
 fn check_ripple_carry_inc_by_l() {
     test_expression(
         {
-            "{  // More advanced cases for RippleCarryIncByL
+            "{  // Corner cases for RippleCarryIncByL
                 open Microsoft.Quantum.Arithmetic;
                 use y0 = Qubit[10];
                 ApplyXorInPlace(172, y0);
@@ -330,10 +330,63 @@ fn check_ripple_carry_inc_by_l() {
 }
 
 #[test]
+fn check_ripple_carry_inc_by_l_exhaustive() {
+    test_expression(
+        {
+            "{
+                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Convert;
+                open Microsoft.Quantum.Diagnostics;
+                internal operation TestAddConstant(n : Int) : Unit {
+                    use ys = Qubit[n];
+                    for c in 0..(1 <<< n) - 1 {
+                        for ysValue in 0..(1 <<< n) - 1 {
+                            ApplyXorInPlace(ysValue, ys);
+                            IncByL(IntAsBigInt(c), ys);
+                            Fact(MeasureInteger(ys) == (c + ysValue) % (1 <<< n), $\"unexpected value for `ys` given c = {c} and ysValue = {ysValue}\");
+                            ResetAll(ys);
+                        }
+                    }
+                }
+                internal operation TestAddConstantCtl(n : Int) : Unit {
+                    use ctl = Qubit();
+                    use ys = Qubit[n];
+                    for isCtl in [false, true] {
+                        for c in 0..(1 <<< n) - 1 {
+                            for ysValue in 0..(1 <<< n) - 1 {
+                                within {
+                                    if isCtl {
+                                        X(ctl);
+                                    }
+                                } apply {
+                                    ApplyXorInPlace(ysValue, ys);
+                                    Controlled IncByL([ctl], (IntAsBigInt(c), ys));
+                                    Fact(MeasureInteger(ys) == (isCtl ? (c + ysValue) % (1 <<< n) | ysValue), $\"unexpected value for `ys` given c = {c} and ysValue = {ysValue}\");
+                                }
+                                ResetAll(ys);
+                                Reset(ctl);
+                            }
+                        }
+                    }
+                }
+            
+                for n in 1..4 {
+                    TestAddConstant(n);
+                }
+                for n in 1..4 {
+                    TestAddConstantCtl(n);
+                }
+            }"
+        },
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
 fn check_ripple_carry_inc_by_le() {
     test_expression(
         {
-            "{  // More advanced cases for RippleCarryIncByLE
+            "{  // Corner cases for RippleCarryIncByLE
                 open Microsoft.Quantum.Arithmetic;
                 use x0 = Qubit[1];
                 use y0 = Qubit[2];
@@ -359,6 +412,80 @@ fn check_ripple_carry_inc_by_le() {
             }"
         },
         &Value::Tuple(vec![Value::Int(3), Value::Int(38), Value::Int(14)].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_exhaustive() {
+    test_expression(
+        {
+            "{
+                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Convert;
+                open Microsoft.Quantum.Diagnostics;
+                internal operation TestAdd(n : Int) : Unit {
+                    use xs = Qubit[n];
+                    use ys = Qubit[n];
+                    for xsValue in 0..(1 <<< n) - 1 {
+                        for ysValue in 0..(1 <<< n) - 1 {
+                            ApplyXorInPlace(xsValue, xs);
+                            ApplyXorInPlace(ysValue, ys);
+                            IncByLE(xs, ys);
+                            Fact(MeasureInteger(ys) == (xsValue + ysValue) % (1 <<< n), $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            ResetAll(xs);
+                            ResetAll(ys);
+                        }
+                    }
+                    use xs = Qubit[n];
+                    use ys = Qubit[n + 1];
+                    for xsValue in 0..(1 <<< n) - 1 {
+                        for ysValue in 0..(1 <<< (n + 1)) - 1 {
+                            ApplyXorInPlace(xsValue, xs);
+                            ApplyXorInPlace(ysValue, ys);
+                            IncByLE(xs, ys);
+                            Fact(MeasureInteger(ys) == (xsValue + ysValue) % (1 <<< (n + 1)), $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            ResetAll(xs);
+                            ResetAll(ys);
+                        }
+                    }
+                }
+                internal operation TestAddCtl(n : Int) : Unit {
+                    use ctl = Qubit();
+                    use xs = Qubit[n];
+                    use ys = Qubit[n];
+                    for isCtl in [false, true] {
+                        for xsValue in 0..(1 <<< n) - 1 {
+                            for ysValue in 0..(1 <<< n) - 1 {
+                                within {
+                                    if isCtl {
+                                        X(ctl);
+                                    }
+                                } apply {
+                                    ApplyXorInPlace(xsValue, xs);
+                                    ApplyXorInPlace(ysValue, ys);
+                                    Controlled IncByLE([ctl], (xs, ys));
+                                    Fact(MeasureInteger(ys) == (isCtl ? (xsValue + ysValue) % (1 <<< n) | ysValue), $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                                    Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                                }
+                                ResetAll(xs);
+                                ResetAll(ys);
+                                Reset(ctl);
+                            }
+                        }
+                    }
+                }
+                for n in 1..4 {
+                    TestAdd(n);
+                }
+                for n in 1..4 {
+                    TestAddCtl(n);
+                }
+            
+            }"
+        },
+        &Value::Tuple(vec![].into()),
     );
 }
 
@@ -397,5 +524,57 @@ fn check_ripple_carry_add_le() {
         }"
         },
         &Value::Tuple(vec![Value::Int(6), Value::Int(6), Value::Int(7)].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_add_le_exhaustive() {
+    test_expression(
+        {
+            "{
+
+                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Convert;
+                open Microsoft.Quantum.Diagnostics;
+                internal operation TestAdd(n : Int) : Unit {
+                    use xs = Qubit[n];
+                    use ys = Qubit[n];
+                    use zs = Qubit[n];
+                    for xsValue in 0..(1 <<< n) - 1 {
+                        for ysValue in 0..(1 <<< n) - 1 {
+                            ApplyXorInPlace(xsValue, xs);
+                            ApplyXorInPlace(ysValue, ys);
+                            RippleCarryAddLE(xs, ys, zs);
+                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            Fact(MeasureInteger(ys) == ysValue, $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< n), $\"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            ResetAll(xs);
+                            ResetAll(ys);
+                            ResetAll(zs);
+                        }
+                    }
+                    use xs = Qubit[n];
+                    use ys = Qubit[n];
+                    use zs = Qubit[n + 1];
+                    for xsValue in 0..(1 <<< n) - 1 {
+                        for ysValue in 0..(1 <<< n) - 1 {
+                            ApplyXorInPlace(xsValue, xs);
+                            ApplyXorInPlace(ysValue, ys);
+                            RippleCarryAddLE(xs, ys, zs);
+                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            Fact(MeasureInteger(ys) == ysValue, $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< (n + 1)), $\"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}\");
+                            ResetAll(xs);
+                            ResetAll(ys);
+                            ResetAll(zs);
+                        }
+                    }
+                }
+                for n in 1..4 {
+                    TestAdd(n);
+                }
+        }"
+        },
+        &Value::Tuple(vec![].into()),
     );
 }
