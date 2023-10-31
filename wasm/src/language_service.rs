@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{diagnostic::VSDiagnostic, serializable_type};
+use crate::{diagnostic::VSDiagnostic, serializable_type, ManifestDescriptor};
 use js_sys::JsString;
 use qsc::{self};
 use serde::{Deserialize, Serialize};
@@ -56,6 +56,15 @@ impl LanguageService {
 
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         self.0.update_document(uri, version, text);
+    }
+
+    pub fn update_manifest(&mut self, manifest: ManifestDescriptor) {
+        self.0.update_manifest(manifest.into());
+    }
+
+    // TODO arg type
+    pub fn update_project_files(&mut self, project_files: JsString) {
+        self.0.update_project_files(project_files);
     }
 
     pub fn close_document(&mut self, uri: &str) {
@@ -232,6 +241,20 @@ serializable_type! {
     }"#,
     ICompletionList
 }
+
+// serializable_type! {
+//     IManifest,
+//     {
+//         pub exclude_files: Vec<String>,
+//         pub exclude_regexes: Vec<String>,
+//         pub root_dir: String,
+//     },
+//     r#"export interface IManifest {
+//         exclude_files: string[];
+//         exclude_regexes: string[];
+//         root_dir: string;
+//     }"#
+// }
 
 serializable_type! {
     CompletionItem,

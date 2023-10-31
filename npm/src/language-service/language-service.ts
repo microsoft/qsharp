@@ -20,6 +20,13 @@ import {
   mapUtf8UnitsToUtf16Units,
 } from "../vsdiagnostic.js";
 import { IServiceEventTarget, IServiceProxy } from "../worker-proxy.js";
+
+export interface Manifest {
+  excludeFiles: string[];
+  excludeRegexes: string[];
+  rootDirectory: string;
+}
+
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // Only one event type for now
@@ -102,6 +109,14 @@ export class QSharpLanguageService implements ILanguageService {
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
     this.languageService.update_configuration(config);
+  }
+
+  async updateProjectManifest(manifest: Manifest): Promise<void> {
+    this.languageService.update_manifest(manifest);
+  }
+
+  async updateProjectFiles(projectFiles: string[]): Promise<void> {
+    this.languageService.update_project_files(projectFiles);
   }
 
   async updateDocument(

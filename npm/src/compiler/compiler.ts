@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// TODO nothing else imports from lang service -- is this ok?
+import { Manifest } from "../language-service/language-service.js";
 import { log } from "../log.js";
 import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
@@ -34,52 +36,55 @@ export interface ICompiler {
 export type ICompilerWorker = ICompiler & IServiceProxy;
 export type CompilerState = ServiceState;
 
-type Entry = File | Dir 
+type Entry = File | Dir;
 
 interface File {
-  t: 'file',
-  name: string,
-  contents: string
+  t: "file";
+  name: string;
+  contents: string;
 }
 
 interface Dir {
-  t: 'dir'
-  name: string,
-  entries: Entry[]
+  t: "dir";
+  name: string;
+  entries: Entry[];
 }
 
-function name(entry: Entry) : string {
-  return entry.name
+function name(entry: Entry): string {
+  return entry.name;
 }
 
-
-function lookupFunction (root: Dir, path: string) : File | null{
+function lookupFunction(root: Dir, path: string): File | null {
   for (const entry of root.entries) {
-    if (entry.t === 'file' && name(entry) === path) {
+    if (entry.t === "file" && name(entry) === path) {
       return entry;
     }
   }
 
   for (const entry of root.entries) {
-    if (entry.t === 'dir') {
-      let result= lookupFunction(entry, path);
-      if (result !== null) { return result; }
+    if (entry.t === "dir") {
+      let result = lookupFunction(entry, path);
+      if (result !== null) {
+        return result;
+      }
     }
   }
-
-  return null
+  return null;
 }
-function listDir (root: Dir, path: string) : Entry[] {
+
+function listDir(root: Dir, path: string): Entry[] {
   for (const entry of root.entries) {
-    if (entry.t === 'dir' && name(entry) === path) {
+    if (entry.t === "dir" && name(entry) === path) {
       return entry.entries;
     }
   }
 
   for (const entry of root.entries) {
-    if (entry.t === 'dir') {
-      let result= listDir(entry, path);
-      if (result.length !== 0) { return result; }
+    if (entry.t === "dir") {
+      let result = listDir(entry, path);
+      if (result.length !== 0) {
+        return result;
+      }
     }
   }
 
@@ -114,24 +119,27 @@ export class Compiler implements ICompiler {
     return this.wasm.get_hir(code);
   }
 
-
   // TODO return type -- not sure if this is correct
-  async loadProject(files: Dir): Promise<string[]> {
+  async loadProject(files: Dir, manifest: Manifest): Promise<string[]> {
     // const lookup_fn = (path: string) =>  files.entries.filter((x) => name(x) == path)[0] || null;
     const lookupFn = (path: string) => lookupFunction(files, path);
     // TODO below fn
-    const listDirFn= (path: string) => listDir(files, path);
+    const listDirFn = (path: string) => listDir(files, path);
 
     const projectLoader = new this.wasm.ProjectLoader(lookupFn, listDirFn);
 
-    const manifestDescriptor = new this.wasm.ManifestDescriptor(["TODO exclude files"], ["TODO exclude regexes"], "TODO root dir");
+    const manifestDescriptor = new this.wasm.ManifestDescriptor(
+      ["TODO exclude files"],
+      ["TODO exclude regexes"],
+      "TODO root dir",
+    );
 
-    const project = projectLoader.load( manifestDescriptor);
-    
+    const project = projectLoader.load(manifestDescriptor);
+
     log.info(JSON.stringify(project, null, 2));
 
-    return project
-;  }
+    return project;
+  }
 
   async run(
     code: string,

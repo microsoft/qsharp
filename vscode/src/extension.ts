@@ -8,6 +8,7 @@ import {
   loadWasmModule,
   log,
   qsharpLibraryUriScheme,
+  Manifest,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
@@ -123,6 +124,9 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           { linesOfCode: document.lineCount },
         );
       }
+      if (documentType === QsharpDocumentType.Qsharp) {
+        const manifest = findManifest();
+      }
       updateIfQsharpDocument(document);
     }),
   );
@@ -140,6 +144,55 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       }
     }),
   );
+
+  function findManifest(): Manifest | null {
+    // TODO make the logic cd upwards from the current file instead of looking through all files
+    const result =
+      vscode.workspace.textDocuments.filter(
+        (doc) =>
+          doc.fileName.indexOf("qsharp.json") ===
+          doc.fileName.length - "qsharp.json".length,
+      )[0] || null;
+    if (result) {
+      const documentText = result.getText();
+      let manifestJson;
+      try {
+        manifestJson = JSON.parse(documentText);
+      } catch (e) {
+        vscode.window.showWarningMessage(
+          `Failed to parse qsharp.json project manifest as JSON: ${e}`,
+        );
+        return null;
+      }
+
+      if (!Array.isArray(manifestJson.excludeFiles)) {
+        vscode.window.showWarningMessage(
+          "The `excludeFiles` entry of the Q# project manifest should be an array of file names as strings.",
+        );
+      }
+
+      if (!Array.isArray(manifestJson.excludeRegexes)) {
+        vscode.window.showWarningMessage(
+          "The `excludeRegexes` entry of the Q# project manifest should be an array of regexes as strings.",
+        );
+      }
+
+      const excludeFiles: string[] = Array.isArray(manifestJson.excludeFiles)
+        ? manifestJson.excludeFiles
+        : [];
+      const excludeRegexes: string[] = Array.isArray(
+        manifestJson.excludeRegexes,
+      )
+        ? manifestJson.excludeRegexes
+        : [];
+      const rootDirectory: string = result.fileName.substring(
+        0,
+        "qsharp.json".length,
+      );
+
+      return { excludeFiles, excludeRegexes, rootDirectory };
+    } else return null;
+  }
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
@@ -307,4 +360,10 @@ function checkForOldQdk() {
     log.warn(bothReleaseAndPrereleaseWarningMessage);
     vscode.window.showWarningMessage(bothReleaseAndPrereleaseWarningMessage);
   }
+}
+// TODO dedup between this and compiler.ts
+export interface Manifest {
+  excludeFiles: string[];
+  excludeRegexes: string[];
+  rootDirectory: string;
 }

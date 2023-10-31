@@ -944,6 +944,7 @@ dependencies = [
  "log",
  "miette",
  "qsc",
+ "qsc_project",
  "regex-lite",
  "rustc-hash",
 ]
