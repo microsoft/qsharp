@@ -808,7 +808,9 @@ fn resolve(
     }
 
     if candidates.len() > 1 {
-        // If there are multiple candidates, remove unimplemented items.
+        // If there are multiple candidates, remove unimplemented items. This allows resolution to
+        // succeed in cases where both an older, unimplimented API and newer, implemented API with the
+        // same name are both in scope without forcing the user to fully qualify the name.
         let mut removals = Vec::new();
         for res in candidates.keys() {
             if let Res::Item(item) = res {
