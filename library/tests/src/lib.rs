@@ -5,6 +5,8 @@
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 #[cfg(test)]
+mod test_arithmetic;
+#[cfg(test)]
 mod test_arrays;
 #[cfg(test)]
 mod test_convert;
