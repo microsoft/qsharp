@@ -325,13 +325,7 @@ fn check_ripple_carry_inc_by_l() {
                 return (i0, i1);
             }"
         },
-        &Value::Tuple(
-            vec![
-                Value::Int(300),
-                Value::Int(172),
-            ]
-            .into(),
-        ),
+        &Value::Tuple(vec![Value::Int(300), Value::Int(172)].into()),
     );
 }
 
@@ -364,14 +358,7 @@ fn check_ripple_carry_inc_by_le() {
                 return (i0, i1, i2);
             }"
         },
-        &Value::Tuple(
-            vec![
-                Value::Int(3),
-                Value::Int(38),
-                Value::Int(14),
-            ]
-            .into(),
-        ),
+        &Value::Tuple(vec![Value::Int(3), Value::Int(38), Value::Int(14)].into()),
     );
 }
 
@@ -409,13 +396,6 @@ fn check_ripple_carry_add_le() {
                 return (i0, i1, i2);
         }"
         },
-        &Value::Tuple(
-            vec![
-                Value::Int(6),
-                Value::Int(6),
-                Value::Int(7),
-            ]
-            .into(),
-        ),
+        &Value::Tuple(vec![Value::Int(6), Value::Int(6), Value::Int(7)].into()),
     );
 }
