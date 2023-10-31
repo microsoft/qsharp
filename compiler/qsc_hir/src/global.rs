@@ -13,6 +13,7 @@ pub struct Global {
     pub namespace: Rc<str>,
     pub name: Rc<str>,
     pub visibility: Visibility,
+    pub status: ItemStatus,
     pub kind: Kind,
 }
 
@@ -94,14 +95,15 @@ impl PackageIter<'_> {
         let id = ItemId {
             package: self.id,
             item: item.id,
-            status: ItemStatus::from_attrs(item.attrs.as_ref()),
         };
+        let status = ItemStatus::from_attrs(item.attrs.as_ref());
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
                 namespace: Rc::clone(&namespace.name),
                 name: Rc::clone(&decl.name.name),
                 visibility: item.visibility,
+                status,
                 kind: Kind::Term(Term {
                     id,
                     scheme: decl.scheme(),
@@ -112,6 +114,7 @@ impl PackageIter<'_> {
                     namespace: Rc::clone(&namespace.name),
                     name: Rc::clone(&name.name),
                     visibility: item.visibility,
+                    status,
                     kind: Kind::Term(Term {
                         id,
                         scheme: def.cons_scheme(id),
@@ -122,6 +125,7 @@ impl PackageIter<'_> {
                     namespace: Rc::clone(&namespace.name),
                     name: Rc::clone(&name.name),
                     visibility: item.visibility,
+                    status,
                     kind: Kind::Ty(Ty { id }),
                 })
             }
@@ -129,6 +133,7 @@ impl PackageIter<'_> {
                 namespace: "".into(),
                 name: Rc::clone(&ident.name),
                 visibility: Visibility::Public,
+                status,
                 kind: Kind::Namespace,
             }),
             _ => None,

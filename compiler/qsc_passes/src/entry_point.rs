@@ -10,8 +10,8 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        Attr, CallableDecl, Expr, ExprKind, Item, ItemId, ItemKind, ItemStatus, LocalItemId,
-        Package, PatKind, Res,
+        Attr, CallableDecl, Expr, ExprKind, Item, ItemId, ItemKind, LocalItemId, Package, PatKind,
+        Res,
     },
     ty::Ty,
     visit::Visitor,
@@ -89,7 +89,6 @@ fn create_entry_from_callables(
                         let item_id = ItemId {
                             package: None,
                             item,
-                            status: ItemStatus::Normal,
                         };
                         let callee = Expr {
                             id: assigner.next_node(),

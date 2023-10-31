@@ -4,7 +4,7 @@
 use qsc::{
     ast,
     compile::{self, Error},
-    hir::{self, Item, ItemId, ItemStatus, Package, PackageId},
+    hir::{self, Item, ItemId, Package, PackageId},
     CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
 };
 
@@ -180,7 +180,6 @@ fn resolve_item<'a>(
         ItemId {
             package: package_id,
             item: item_id.item,
-            status: ItemStatus::Normal,
         },
     )
 }

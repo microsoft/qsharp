@@ -344,7 +344,7 @@ fn try_get_direct_callee<'a>(
     callee: &ast::Expr,
 ) -> Option<(Option<hir::PackageId>, &'a hir::CallableDecl, &'a str)> {
     if let ast::ExprKind::Path(path) = &*callee.kind {
-        if let Some(resolve::Res::Item(item_id)) = compilation.user_unit.ast.names.get(path.id) {
+        if let Some(resolve::Res::Item(item_id, _)) = compilation.user_unit.ast.names.get(path.id) {
             let (item, _, resolved_item_id) =
                 resolve_item_relative_to_user_package(compilation, item_id);
             if let hir::ItemKind::Callable(callee_decl) = &item.kind {

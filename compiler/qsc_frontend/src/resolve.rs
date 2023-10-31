@@ -36,7 +36,7 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// A global item.
-    Item(ItemId),
+    Item(ItemId, ItemStatus),
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
@@ -244,11 +244,8 @@ impl Resolver {
     }
 
     fn check_item_status(&mut self, res: Res, name: String, span: Span) {
-        match res {
-            Res::Item(item) if item.status == ItemStatus::Unimplemented => {
-                self.errors.push(Error::Unimplemented(name, span));
-            }
-            _ => {}
+        if let Res::Item(_, ItemStatus::Unimplemented) = res {
+            self.errors.push(Error::Unimplemented(name, span));
         }
     }
 
@@ -334,13 +331,25 @@ impl Resolver {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(decl.name.id, Res::Item(id));
+                self.names.insert(
+                    decl.name.id,
+                    Res::Item(
+                        id,
+                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                    ),
+                );
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(name.id, Res::Item(id));
+                self.names.insert(
+                    name.id,
+                    Res::Item(
+                        id,
+                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                    ),
+                );
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
@@ -595,14 +604,14 @@ impl GlobalTable {
                         .tys
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(ty.id));
+                        .insert(global.name, Res::Item(ty.id, global.status));
                 }
                 global::Kind::Term(term) => {
                     self.scope
                         .terms
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(term.id));
+                        .insert(global.name, Res::Item(term.id, global.status));
                 }
                 global::Kind::Namespace => {
                     self.scope.namespaces.insert(global.name);
@@ -621,7 +630,7 @@ fn bind_global_items(
 ) {
     names.insert(
         namespace.name.id,
-        Res::Item(intrapackage(assigner.next_item())),
+        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Normal),
     );
     scope.namespaces.insert(Rc::clone(&namespace.name.name));
 
@@ -686,9 +695,9 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let mut item_id = next_id();
-            item_id.status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id);
+            let item_id = next_id();
+            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id, status);
             names.insert(decl.name.id, res);
             match scope
                 .terms
@@ -708,9 +717,9 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let mut item_id = next_id();
-            item_id.status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id);
+            let item_id = next_id();
+            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id, status);
             names.insert(name.id, res);
             match (
                 scope
@@ -813,10 +822,8 @@ fn resolve(
         // same name are both in scope without forcing the user to fully qualify the name.
         let mut removals = Vec::new();
         for res in candidates.keys() {
-            if let Res::Item(item) = res {
-                if item.status == ItemStatus::Unimplemented {
-                    removals.push(*res);
-                }
+            if let Res::Item(_, ItemStatus::Unimplemented) = res {
+                removals.push(*res);
             }
         }
         for res in removals {
@@ -872,7 +879,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id));
+        return Some(Res::Item(id, ItemStatus::Normal));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
@@ -920,7 +927,6 @@ fn intrapackage(item: LocalItemId) -> ItemId {
     ItemId {
         package: None,
         item,
-        status: ItemStatus::Normal,
     }
 }
 

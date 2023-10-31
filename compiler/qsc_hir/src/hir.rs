@@ -174,8 +174,6 @@ pub struct ItemId {
     pub package: Option<PackageId>,
     /// The item ID.
     pub item: LocalItemId,
-    /// The item status.
-    pub status: ItemStatus,
 }
 
 impl Display for ItemId {
@@ -229,7 +227,6 @@ impl Res {
             Res::Item(id) if id.package.is_none() => Res::Item(ItemId {
                 package: Some(package),
                 item: id.item,
-                status: id.status,
             }),
             _ => *self,
         }

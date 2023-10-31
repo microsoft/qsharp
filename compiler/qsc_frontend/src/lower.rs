@@ -124,7 +124,7 @@ impl With<'_> {
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) =
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
             self.names.get(namespace.name.id)
         else {
             panic!("namespace should have item ID");
@@ -167,7 +167,7 @@ impl With<'_> {
         };
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::Item(item)) => item,
+            Some(&resolve::Res::Item(item, _)) => item,
             _ => panic!("item should have item ID"),
         };
 
@@ -714,7 +714,7 @@ impl With<'_> {
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.names.get(path.id) {
-            Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
+            Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,

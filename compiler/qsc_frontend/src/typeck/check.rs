@@ -16,7 +16,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
-    hir::{self, ItemId, ItemStatus, PackageId},
+    hir::{self, ItemId, PackageId},
     ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
 use rustc_hash::FxHashMap;
@@ -42,7 +42,6 @@ impl GlobalTable {
             let item_id = ItemId {
                 package: Some(id),
                 item: item.id,
-                status: ItemStatus::from_attrs(&item.attrs),
             };
 
             match &item.kind {
@@ -203,7 +202,7 @@ impl Visitor<'_> for ItemCollector<'_> {
     fn visit_item(&mut self, item: &ast::Item) {
         match &*item.kind {
             ast::ItemKind::Callable(decl) => {
-                let Some(&Res::Item(item)) = self.names.get(decl.name.id) else {
+                let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
                     panic!("callable should have item ID");
                 };
 
@@ -218,7 +217,7 @@ impl Visitor<'_> for ItemCollector<'_> {
             }
             ast::ItemKind::Ty(name, def) => {
                 let span = item.span;
-                let Some(&Res::Item(item)) = self.names.get(name.id) else {
+                let Some(&Res::Item(item, _)) = self.names.get(name.id) else {
                     panic!("type should have item ID");
                 };
 
