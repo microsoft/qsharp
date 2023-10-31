@@ -56,7 +56,7 @@ function name(entry: Entry) : string {
 }
 
 
-function lookupFn (root: Dir, path: string) : File | null{
+function lookupFunction (root: Dir, path: string) : File | null{
   for (const entry of root.entries) {
     if (entry.t === 'file' && name(entry) === path) {
       return entry;
@@ -65,7 +65,7 @@ function lookupFn (root: Dir, path: string) : File | null{
 
   for (const entry of root.entries) {
     if (entry.t === 'dir') {
-      let result= lookupFn(entry, path);
+      let result= lookupFunction(entry, path);
       if (result !== null) { return result; }
     }
   }
@@ -123,11 +123,12 @@ export class Compiler implements ICompiler {
 
   // TODO return type -- not sure if this is correct
   async loadProject(files: Dir): Promise<string[]> {
-    const lookup_fn = (path: string): string | undefined =>  files[path];
+    // const lookup_fn = (path: string) =>  files.entries.filter((x) => name(x) == path)[0] || null;
+    const lookupFn = (path: string) => lookupFunction(files, path);
     // TODO below fn
     const listDirFn= (path: string) => listDir(files, path);
 
-    const projectLoader = new this.wasm.ProjectLoader(lookup_fn, listDirFn);
+    const projectLoader = new this.wasm.ProjectLoader(lookupFn, listDirFn);
 
     const manifestDescriptor = new this.wasm.ManifestDescriptor(["TODO exclude files"], ["TODO exclude regexes"], "TODO root dir");
 
