@@ -2,7 +2,7 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
         BlockId, CallableDecl, CallableKind, ExprId, ItemKind, LocalItemId, Package, PackageId,
-        PackageStore, PatId, SpecBody, SpecGen, StmtId,
+        PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
     },
     ty::{Prim, Ty},
 };
@@ -31,7 +31,7 @@ impl Default for AnalysisStore {
 #[derive(Debug)]
 struct PackageAnalysis {
     pub callables: IndexMap<LocalItemId, Option<CallableAnalysis>>,
-    pub blocks: IndexMap<BlockId, Option<BlockCapsAnalysis>>,
+    pub blocks: IndexMap<BlockId, Option<BlockAnalysis>>,
     pub stmts: IndexMap<StmtId, Option<RuntimePropeties>>,
     pub exprs: IndexMap<ExprId, Option<RuntimePropeties>>,
     pub pats: IndexMap<PatId, Option<RuntimePropeties>>,
@@ -117,23 +117,23 @@ impl Display for PackageAnalysis {
 // CONSIDER (cesarzc): Might need to do this a per specialization basis.
 #[derive(Debug)]
 struct CallableAnalysis {
-    pub inherent_caps: Option<RuntimePropeties>,
-    pub parameter_caps: Option<Vec<RuntimePropeties>>,
+    pub inherent_properties: Option<RuntimePropeties>,
+    pub params_properties: Option<Vec<RuntimePropeties>>,
 }
 
 impl Display for CallableAnalysis {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        let inherent_caps = match &self.inherent_caps {
+        let inherent_caps = match &self.inherent_properties {
             None => "None".to_string(),
             Some(caps) => format!("{caps}"),
         };
         write!(indent, "\ninherent_caps: {inherent_caps}")?;
         write!(indent, "\nparameter_caps:")?;
-        if let Some(param_caps) = &self.parameter_caps {
+        if let Some(param_caps) = &self.params_properties {
             indent = set_indentation(indent, 1);
             for cap in param_caps {
-                write!(indent, "\n{cap}")?;
+                write!(indent, "{cap}")?;
             }
         } else {
             write!(f, " None")?;
@@ -142,26 +142,26 @@ impl Display for CallableAnalysis {
     }
 }
 
-// CONSIDER (cesarzc): This seems the same as `CallableCapsScaffolding`.
+// CONSIDER (cesarzc): This might change a bit since not all blocks are callable blocks.
 #[derive(Debug)]
-struct BlockCapsAnalysis {
-    pub inherent_caps: Option<RuntimePropeties>,
-    pub parameter_caps: Option<Vec<RuntimePropeties>>,
+struct BlockAnalysis {
+    pub inherent_properties: Option<RuntimePropeties>,
+    pub params_properties: Option<Vec<RuntimePropeties>>,
 }
 
-impl Display for BlockCapsAnalysis {
+impl Display for BlockAnalysis {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        let inherent_caps = match &self.inherent_caps {
+        let inherent_caps = match &self.inherent_properties {
             None => "None".to_string(),
             Some(caps) => format!("{caps}"),
         };
         write!(indent, "\ninherent_caps: {inherent_caps}")?;
         write!(indent, "\nparameter_caps:")?;
-        if let Some(param_caps) = &self.parameter_caps {
+        if let Some(param_caps) = &self.params_properties {
             indent = set_indentation(indent, 1);
             for cap in param_caps {
-                write!(indent, "\n{cap}")?;
+                write!(indent, "{cap}")?;
             }
         } else {
             write!(f, "None")?;
@@ -186,10 +186,13 @@ impl Display for RuntimePropeties {
         write!(indent, "\nis_quantum_source: {}", is_quantum_source)?;
         write!(indent, "\ncapabilities:")?;
         if let Some(caps) = &self.caps {
-            indent = set_indentation(indent, 1);
+            write!(indent, "\n{{")?;
+            indent = set_indentation(indent, 2);
             for capability in caps.iter() {
                 write!(indent, "\n{capability:?}")?;
             }
+            indent = set_indentation(indent, 1);
+            write!(indent, "\n}}")?;
         } else {
             write!(f, "None")?;
         }
@@ -232,6 +235,7 @@ impl<'a> Analyzer<'a> {
         StoreCapabilities(IndexMap::new())
     }
 }
+
 struct Initializer<'a> {
     package_store: &'a PackageStore,
 }
@@ -244,25 +248,25 @@ impl<'a> Initializer<'a> {
     pub fn create_analysis_store(&mut self) -> AnalysisStore {
         let mut analysis_store = AnalysisStore::default();
         for (id, package) in self.package_store.0.iter() {
-            let package_analysis = self.from_package(package);
+            let package_analysis = self.create_package_analysis(package);
             analysis_store.0.insert(id, package_analysis);
         }
         analysis_store
     }
 
-    fn from_package(&mut self, package: &Package) -> PackageAnalysis {
+    fn create_package_analysis(&mut self, package: &Package) -> PackageAnalysis {
         // Initialize callables.
         let mut callables = IndexMap::<LocalItemId, Option<CallableAnalysis>>::new();
         for (id, item) in package.items.iter() {
             let capabilities = match &item.kind {
-                ItemKind::Callable(c) => Some(self.from_callable(c)),
+                ItemKind::Callable(c) => Some(self.create_callable_analysis(c, &package.pats)),
                 _ => None,
             };
             callables.insert(id, capabilities);
         }
 
         // Initialize blocks.
-        let mut blocks = IndexMap::<BlockId, Option<BlockCapsAnalysis>>::new();
+        let mut blocks = IndexMap::<BlockId, Option<BlockAnalysis>>::new();
         for (id, _) in package.blocks.iter() {
             blocks.insert(id, None);
         }
@@ -294,37 +298,101 @@ impl<'a> Initializer<'a> {
         }
     }
 
-    fn from_callable(&mut self, callable: &CallableDecl) -> CallableAnalysis {
+    fn create_callable_analysis(
+        &mut self,
+        callable: &CallableDecl,
+        patterns: &IndexMap<PatId, Pat>, // N.B. Needed for figuring out initial parameter analysis.
+    ) -> CallableAnalysis {
         match callable.kind {
-            CallableKind::Function => self.from_function(callable),
-            CallableKind::Operation => self.from_operation(callable),
+            CallableKind::Function => self.create_function_analysis(callable, patterns),
+            CallableKind::Operation => self.create_operation_analysis(callable, patterns),
         }
     }
 
-    fn from_function(&mut self, _callable: &CallableDecl) -> CallableAnalysis {
+    fn create_function_analysis(
+        &mut self,
+        _callable: &CallableDecl,
+        patterns: &IndexMap<PatId, Pat>,
+    ) -> CallableAnalysis {
         let inherent_caps = Some(RuntimePropeties {
             is_quantum_source: Some(false),
             caps: Some(FxHashSet::default()),
         });
 
         CallableAnalysis {
-            inherent_caps,
-            parameter_caps: None, // TODO (cesarzc): Populare correctly.
+            inherent_properties: inherent_caps,
+            params_properties: None, // TODO (cesarzc): Populare correctly.
         }
     }
 
-    fn from_operation(&mut self, callable: &CallableDecl) -> CallableAnalysis {
-        // TODO (cesarzc): Implement correctly.
-        let is_intrinsic = Self::is_intrinsic(callable);
-        let is_unit = matches!(callable.output, Ty::UNIT);
-        let is_quantum_source = is_intrinsic && !is_unit;
-        let inherent_caps = RuntimePropeties {
-            is_quantum_source: Some(is_quantum_source),
-            caps: Some(FxHashSet::default()), // TODO (cesarzc): Do the right thing.
-        };
+    fn create_operation_analysis(
+        &mut self,
+        operation: &CallableDecl,
+        patterns: &IndexMap<PatId, Pat>,
+    ) -> CallableAnalysis {
+        let is_intrinsic = Self::is_intrinsic(operation);
+
+        // Analysis `body intrinsic` operations is complete at initialization.
+        if is_intrinsic {
+            // Determine whether the operation is an inherent quantum source.
+            let is_unit = matches!(operation.output, Ty::UNIT);
+            let is_quantum_source = is_intrinsic && !is_unit;
+
+            // Intrinsic operations have no inherent capabilities.
+            let inherent_caps = FxHashSet::default();
+            let inherent_properties = RuntimePropeties {
+                is_quantum_source: Some(is_quantum_source),
+                caps: Some(inherent_caps),
+            };
+
+            // Determine the parameters' properties based on the input pattern.
+            // TODO (cesarzc): Set appropriate values in the pattern index map.
+            let input_pattern = patterns
+                .get(operation.input)
+                .expect("Pattern should exist.");
+
+            let input_params_types = Self::get_params_types_from_pattern(input_pattern);
+            let mut params_properties = Vec::<RuntimePropeties>::new();
+            for param_type in input_params_types {
+                let mut param_caps = FxHashSet::<RuntimeCapability>::default();
+                let caps = get_capabilities_for_type(&param_type);
+                for cap in caps {
+                    param_caps.insert(cap);
+                }
+                let properties = RuntimePropeties {
+                    is_quantum_source: Some(is_quantum_source), // Parameters share the same
+                    caps: Some(param_caps),
+                };
+                params_properties.push(properties);
+            }
+
+            return CallableAnalysis {
+                inherent_properties: Some(inherent_properties),
+                params_properties: Some(params_properties),
+            };
+        }
+
+        // Analysis for operations that are not `body intrinsic` will be performed at later phases.
         CallableAnalysis {
-            inherent_caps: Some(inherent_caps),
-            parameter_caps: None,
+            inherent_properties: None,
+            params_properties: None,
+        }
+    }
+
+    // CONSIDER (cesarzc): Might get reused in some other place.
+    fn get_params_types_from_pattern(pattern: &Pat) -> Vec<Ty> {
+        match pattern.kind {
+            PatKind::Bind(_) => match pattern.ty {
+                Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
+                    vec![pattern.ty.clone()]
+                }
+                _ => panic!("Unexpected pattern type"),
+            },
+            PatKind::Tuple(_) => match &pattern.ty {
+                Ty::Tuple(vector) => vector.clone(),
+                _ => panic!("Unexpected pattern type"),
+            },
+            _ => panic!("Parameter"),
         }
     }
 
@@ -350,4 +418,40 @@ impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
     }
 
     pub fn run(&mut self) {}
+}
+
+fn get_capabilities_for_types(tuple: &Vec<Ty>) -> Vec<RuntimeCapability> {
+    let mut caps = Vec::<RuntimeCapability>::default();
+    for item_type in tuple.iter() {
+        let item_caps = get_capabilities_for_type(item_type);
+        caps.extend(item_caps);
+    }
+    caps
+}
+
+fn get_capabilities_for_type(ty: &Ty) -> Vec<RuntimeCapability> {
+    match ty {
+        Ty::Array(_) => vec![RuntimeCapability::HigherLevelConstructs],
+        Ty::Arrow(_) => vec![RuntimeCapability::HigherLevelConstructs],
+        Ty::Prim(prim) => get_capabilities_for_primitive_type(prim),
+        Ty::Tuple(v) => get_capabilities_for_types(v),
+        Ty::Udt(_) => vec![RuntimeCapability::HigherLevelConstructs],
+        _ => panic!("Unexpected type"),
+    }
+}
+
+fn get_capabilities_for_primitive_type(primitive: &Prim) -> Vec<RuntimeCapability> {
+    match primitive {
+        Prim::BigInt => vec![RuntimeCapability::HigherLevelConstructs],
+        Prim::Bool => vec![RuntimeCapability::ConditionalForwardBranching],
+        Prim::Double => vec![RuntimeCapability::FloatingPointComputationg],
+        Prim::Int => vec![RuntimeCapability::IntegerComputations],
+        Prim::Pauli => vec![RuntimeCapability::IntegerComputations],
+        Prim::Qubit => vec![],
+        Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
+            vec![RuntimeCapability::IntegerComputations]
+        }
+        Prim::Result => vec![RuntimeCapability::ConditionalForwardBranching],
+        Prim::String => vec![RuntimeCapability::HigherLevelConstructs],
+    }
 }

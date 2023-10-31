@@ -7,6 +7,7 @@ namespace QuantumHelloWorld {
         H(qubit);
         let result = M(qubit);
         Reset(qubit);
+        let a = FFoo(0);
         return result;
     }
 
@@ -22,13 +23,25 @@ namespace QuantumHelloWorld {
         b
     }
 
-    function Foo(a : Int, b : Int) : Int {
-        let c = a + b;
-        return c * 10;
+    function FFoo(a : Int) : Int {
+        return a * 10;
     }
 
-    function Bar(a : Int, b : Int) : Int {
+    function FBar(a : Int, b : Int) : Int {
         let c = a + b;
         c * 10
+    }
+
+    function FBas(a : Double[]) : Double {
+        a[0]
+    }
+
+    function FBat(a : Double[], i : Int) : Double {
+        a[i]
+    }
+
+    function FBau(a : (Int, Int)) : (Int, Int) {
+        let (a0, a1) = a;
+        return (a0 + 1, a1 + 1);
     }
 }

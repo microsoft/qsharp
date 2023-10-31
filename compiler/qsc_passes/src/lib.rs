@@ -94,18 +94,18 @@ impl PassContext {
             Vec::new()
         };
 
+        println!("Loop Unification");
         LoopUni { core, assigner }.visit_package(package);
         Validator::default().visit_package(package);
 
         ReplaceQubitAllocation::new(core, assigner).visit_package(package);
         Validator::default().visit_package(package);
 
-        let base_prof_errors = if self.target == TargetProfile::Base {
-            //baseprofck::check_base_profile_compliance(package)
-            Vec::new()
-        } else {
-            Vec::new()
-        };
+        //let base_prof_errors = if self.target == TargetProfile::Base {
+        //    baseprofck::check_base_profile_compliance(package)
+        //} else {
+        //    Vec::new()
+        //};
 
         callable_errors
             .into_iter()
@@ -114,7 +114,7 @@ impl PassContext {
             .chain(spec_errors.into_iter().map(Error::SpecGen))
             .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
             .chain(entry_point_errors)
-            .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
+            //.chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
             .collect()
     }
 }
