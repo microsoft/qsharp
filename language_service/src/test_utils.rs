@@ -74,7 +74,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
 
     Compilation {
         package_store,
-        current: package_id,
+        user: package_id,
         kind: CompilationKind::OpenDocument,
         errors,
     }
@@ -160,7 +160,7 @@ where
 
     Compilation {
         package_store,
-        current: package_id,
+        user: package_id,
         errors,
         kind: CompilationKind::Notebook,
     }

@@ -8,7 +8,7 @@ use crate::{
     compilation::{Compilation, Lookup},
     display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
-    qsc_utils::{resolve_offset, span_contains, span_touches},
+    qsc_utils::{span_contains, span_touches},
 };
 use qsc::{
     ast::{
@@ -24,13 +24,13 @@ pub(crate) fn get_signature_help(
     source_name: &str,
     offset: u32,
 ) -> Option<SignatureHelp> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     let mut finder = SignatureHelpFinder {
         compilation,
         offset,
         signature_help: None,
-        display: CodeDisplay::new(compilation),
+        display: CodeDisplay { compilation },
     };
 
     finder.visit_package(&ast.package);
@@ -75,15 +75,12 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 
 impl SignatureHelpFinder<'_> {
     fn process_indirect_callee(&mut self, callee: &ast::Expr, args: &ast::Expr) {
-        if let Some(ty) = self.compilation.find_ty(callee.id) {
+        if let Some(ty) = self.compilation.get_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
-                    label: self
-                        .display
-                        .hir_ty(self.compilation.current, ty)
-                        .to_string(),
+                    label: self.display.hir_ty(self.compilation.user, ty).to_string(),
                     documentation: None,
-                    parameters: self.get_type_params(self.compilation.current, &arrow.input),
+                    parameters: self.get_type_params(self.compilation.user, &arrow.input),
                 };
 
                 // Capture arrow.input structure in a fake HIR Pat.
@@ -342,11 +339,17 @@ fn try_get_direct_callee<'a>(
     callee: &ast::Expr,
 ) -> Option<(hir::PackageId, &'a hir::CallableDecl, &'a str)> {
     if let ast::ExprKind::Path(path) = &*callee.kind {
-        if let Some(resolve::Res::Item(item_id)) = compilation.current_unit().ast.names.get(path.id)
-        {
-            let (item, package_id, _) = compilation.find_item(compilation.current, item_id);
+        if let Some(resolve::Res::Item(item_id)) = compilation.get_res(path.id) {
+            let (item, _, resolved_item_id) =
+                compilation.resolve_item_relative_to_user_package(item_id);
             if let hir::ItemKind::Callable(callee_decl) = &item.kind {
-                return Some((package_id, callee_decl, &item.doc));
+                return Some((
+                    resolved_item_id
+                        .package
+                        .expect("package id should be resolved"),
+                    callee_decl,
+                    &item.doc,
+                ));
             }
         }
     }

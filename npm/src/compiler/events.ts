@@ -25,7 +25,7 @@ export type IQscEventTarget = IServiceEventTarget<QscEventData>;
 // Convenience method that also provides type safety
 export function makeEvent<E extends QscEvents>(
   type: E["type"],
-  detail: E["detail"]
+  detail: E["detail"],
 ): E {
   const event = new Event(type) as E;
   event.detail = detail;
@@ -56,14 +56,14 @@ export class QscEventTarget implements IQscEventTarget {
   // Overrides for the base EventTarget methods to limit to expected event types
   addEventListener<T extends QscUiEvents["type"]>(
     type: T,
-    listener: (event: Extract<QscEvents, { type: T }>) => void
+    listener: (event: Extract<QscEvents, { type: T }>) => void,
   ): void {
     this.eventTarget.addEventListener(type, listener as EventListener);
   }
 
   removeEventListener<T extends QscUiEvents["type"]>(
     type: T,
-    listener: (event: Extract<QscEvents, { type: T }>) => void
+    listener: (event: Extract<QscEvents, { type: T }>) => void,
   ): void {
     this.eventTarget.removeEventListener(type, listener as EventListener);
   }
@@ -83,7 +83,7 @@ export class QscEventTarget implements IQscEventTarget {
     if (captureEvents) {
       this.addEventListener("Message", (ev) => this.onMessage(ev.detail));
       this.addEventListener("DumpMachine", (ev) =>
-        this.onDumpMachine(ev.detail)
+        this.onDumpMachine(ev.detail),
       );
       this.addEventListener("Result", (ev) => this.onResult(ev.detail));
     }

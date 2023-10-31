@@ -16,17 +16,17 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ) {
     const definition = await this.languageService.getDefinition(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
     );
     if (!definition) return null;
     const uri = vscode.Uri.parse(definition.source);
 
     const definitionPosition = (await openDocument(uri)).positionAt(
-      definition.offset
+      definition.offset,
     );
     return new vscode.Location(uri, definitionPosition);
   }
@@ -40,10 +40,10 @@ async function openDocument(uri: vscode.Uri) {
         doc
           .getCells()
           .filter((cell) =>
-            vscode.languages.match(qsharpDocumentFilter, cell.document)
+            vscode.languages.match(qsharpDocumentFilter, cell.document),
           )
-          .map((cell) => cell.document)
-      )
+          .map((cell) => cell.document),
+      ),
     )
     .find((doc) => doc.uri.toString() === uri.toString());
 

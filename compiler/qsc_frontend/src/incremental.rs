@@ -95,6 +95,12 @@ impl Compiler {
     /// get information about the newly added items, or do other modifications.
     /// It is then the caller's responsibility to merge
     /// these packages into the current `CompileUnit`.
+    ///
+    /// This method calls an accumulator function with any errors returned
+    /// from each of the stages (parsing, lowering), instead of failing.
+    /// If the accumulator succeeds, compilation continues.
+    /// If the accumulator returns an error, compilation stops and the
+    /// error is returned to the caller.
     pub fn compile_fragments<F, E>(
         &mut self,
         unit: &mut CompileUnit,

@@ -9,7 +9,7 @@ use std::rc::Rc;
 use crate::compilation::{Compilation, CompilationKind};
 use crate::display::CodeDisplay;
 use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
-use crate::qsc_utils::{resolve_offset, span_contains};
+use crate::qsc_utils::span_contains;
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 
@@ -24,7 +24,7 @@ pub(crate) fn get_completions(
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
@@ -303,7 +303,7 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package id should exist")
             .package;
-        let display = CodeDisplay::new(compilation);
+        let display = CodeDisplay { compilation };
 
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
@@ -389,7 +389,7 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package: &'a Package,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
-        let display = CodeDisplay::new(compilation);
+        let display = CodeDisplay { compilation };
 
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {

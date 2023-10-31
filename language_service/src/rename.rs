@@ -4,35 +4,28 @@
 #[cfg(test)]
 mod tests;
 
+use crate::compilation::{Compilation, Lookup};
+use crate::name_locator::{Handler, Locator, LocatorContext};
+use crate::protocol;
+use crate::qsc_utils::protocol_span;
+use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
+use qsc::hir::{ty::Ty, Res};
+use qsc::{ast, hir, resolve, Span};
 use std::rc::Rc;
-
-use qsc::{
-    ast::{
-        self,
-        visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty, walk_ty_def, Visitor},
-    },
-    hir::{self, ty::Ty, Res},
-    resolve, Span,
-};
-
-use crate::{
-    compilation::Compilation,
-    protocol,
-    qsc_utils::{protocol_span, resolve_offset, span_contains, span_touches},
-};
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> Option<(protocol::Span, String)> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
-    let mut prepare_rename = Rename::new(compilation, offset, true);
-    prepare_rename.visit_package(&ast.package);
+    let mut prepare_rename = Rename::new(compilation, true);
+    let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
+    locator.visit_package(&ast.package);
     prepare_rename
         .prepare
-        .map(|p| (protocol_span(p.0, &compilation.current_unit().sources), p.1))
+        .map(|p| (protocol_span(p.0, &compilation.user_unit().sources), p.1))
 }
 
 pub(crate) fn get_rename(
@@ -40,34 +33,29 @@ pub(crate) fn get_rename(
     source_name: &str,
     offset: u32,
 ) -> Vec<protocol::Span> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
-    let mut rename_visitor = Rename::new(compilation, offset, false);
-    rename_visitor.visit_package(&ast.package);
-    rename_visitor
+    let mut rename = Rename::new(compilation, false);
+    let mut locator = Locator::new(&mut rename, offset, compilation);
+    locator.visit_package(&ast.package);
+    rename
         .locations
         .into_iter()
-        .map(|s| protocol_span(s, &compilation.current_unit().sources))
+        .map(|s| protocol_span(s, &compilation.user_unit().sources))
         .collect::<Vec<_>>()
 }
 
 struct Rename<'a> {
     compilation: &'a Compilation,
-    offset: u32,
-    current_callable: Option<&'a ast::CallableDecl>,
-    current_udt_id: Option<&'a hir::ItemId>,
     locations: Vec<Span>,
     is_prepare: bool,
     prepare: Option<(Span, String)>,
 }
 
 impl<'a> Rename<'a> {
-    fn new(compilation: &'a Compilation, offset: u32, is_prepare: bool) -> Self {
+    fn new(compilation: &'a Compilation, is_prepare: bool) -> Self {
         Self {
             compilation,
-            offset,
-            current_callable: None,
-            current_udt_id: None,
             locations: vec![],
             is_prepare,
             prepare: None,
@@ -75,10 +63,11 @@ impl<'a> Rename<'a> {
     }
 
     fn get_spans_for_item_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
-        // Only rename items that are part of the local package
-        if item_id.package.is_none() {
-            let current_unit = self.compilation.current_unit();
-            if let Some(def) = current_unit.package.items.get(item_id.item) {
+        let package_id = item_id.package.expect("package id should be resolved");
+        // Only rename items that are part of the user package
+        if package_id == self.compilation.user {
+            let user_unit = self.compilation.user_unit();
+            if let Some(def) = user_unit.package.items.get(item_id.item) {
                 if self.is_prepare {
                     self.prepare = Some((ast_name.span, ast_name.name.to_string()));
                 } else {
@@ -91,7 +80,7 @@ impl<'a> Rename<'a> {
                         compilation: self.compilation,
                         locations: vec![],
                     };
-                    rename.visit_package(&current_unit.ast.package);
+                    rename.visit_package(&user_unit.ast.package);
                     rename.locations.push(def_span);
                     self.locations = rename.locations;
                 }
@@ -100,10 +89,11 @@ impl<'a> Rename<'a> {
     }
 
     fn get_spans_for_field_rename(&mut self, item_id: &hir::ItemId, ast_name: &ast::Ident) {
-        // Only rename items that are part of the local package
-        if item_id.package.is_none() {
-            let current_unit = self.compilation.current_unit();
-            if let Some(def) = current_unit.package.items.get(item_id.item) {
+        let package_id = item_id.package.expect("package id should be resolved");
+        // Only rename items that are part of the user package
+        if package_id == self.compilation.user {
+            let user_unit = self.compilation.user_unit();
+            if let Some(def) = user_unit.package.items.get(item_id.item) {
                 if let hir::ItemKind::Ty(_, udt) = &def.kind {
                     if let Some(ty_field) = udt.find_field_by_name(&ast_name.name) {
                         if self.is_prepare {
@@ -118,7 +108,7 @@ impl<'a> Rename<'a> {
                                 compilation: self.compilation,
                                 locations: vec![],
                             };
-                            rename.visit_package(&current_unit.ast.package);
+                            rename.visit_package(&user_unit.ast.package);
                             rename.locations.push(def_span);
                             self.locations = rename.locations;
                         }
@@ -128,139 +118,113 @@ impl<'a> Rename<'a> {
         }
     }
 
-    fn get_spans_for_local_rename(&mut self, node_id: ast::NodeId, ast_name: &ast::Ident) {
-        if let Some(curr) = self.current_callable {
-            if self.is_prepare {
-                self.prepare = Some((ast_name.span, ast_name.name.to_string()));
-            } else {
-                let mut rename = LocalRename {
-                    node_id,
-                    compilation: self.compilation,
-                    locations: vec![],
-                };
-                rename.visit_callable_decl(curr);
-                self.locations = rename.locations;
-            }
+    fn get_spans_for_local_rename(
+        &mut self,
+        node_id: ast::NodeId,
+        ast_name: &ast::Ident,
+        current_callable: &ast::CallableDecl,
+    ) {
+        if self.is_prepare {
+            self.prepare = Some((ast_name.span, ast_name.name.to_string()));
+        } else {
+            let mut rename = LocalRename {
+                node_id,
+                compilation: self.compilation,
+                locations: vec![],
+            };
+            rename.visit_callable_decl(current_callable);
+            self.locations = rename.locations;
         }
     }
 }
 
-impl<'a> Visitor<'a> for Rename<'a> {
-    // Handles callable and UDT definitions
-    fn visit_item(&mut self, item: &'a ast::Item) {
-        if span_contains(item.span, self.offset) {
-            match &*item.kind {
-                ast::ItemKind::Callable(decl) => {
-                    if span_touches(decl.name.span, self.offset) {
-                        if let Some(resolve::Res::Item(item_id)) =
-                            self.compilation.current_unit().ast.names.get(decl.name.id)
-                        {
-                            self.get_spans_for_item_rename(item_id, &decl.name);
-                        }
-                    } else if span_contains(decl.span, self.offset) {
-                        let context = self.current_callable;
-                        self.current_callable = Some(decl);
-                        walk_callable_decl(self, decl);
-                        self.current_callable = context;
-                    }
-                    // Note: the `item.span` can cover things like doc
-                    // comment, attributes, and visibility keywords, which aren't
-                    // things we want to have logic for, while the `decl.span` is
-                    // specific to the contents of the callable decl, which we do want
-                    // logic for. If the `if` or `else if` above is not met, then
-                    // the cursor is at one of these non-decl parts of the item,
-                    // and we want to do nothing.
-                }
-                ast::ItemKind::Ty(ident, def) => {
-                    if let Some(resolve::Res::Item(item_id)) =
-                        self.compilation.current_unit().ast.names.get(ident.id)
-                    {
-                        if span_touches(ident.span, self.offset) {
-                            self.get_spans_for_item_rename(item_id, ident);
-                        } else if span_contains(def.span, self.offset) {
-                            let context = self.current_udt_id;
-                            self.current_udt_id = Some(item_id);
-                            self.visit_ty_def(def);
-                            self.current_udt_id = context;
-                        }
-                    }
-                }
-                _ => {}
-            }
+impl<'a> Handler<'a> for Rename<'a> {
+    fn at_callable_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        _: &'a ast::CallableDecl,
+    ) {
+        if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(name.id) {
+            self.get_spans_for_item_rename(&resolve_package(self.compilation.user, item_id), name);
         }
     }
 
-    // Handles UDT field definitions
-    fn visit_ty_def(&mut self, def: &'a ast::TyDef) {
-        if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
-            if let Some(ident) = ident {
-                if span_touches(ident.span, self.offset) {
-                    if let Some(item_id) = self.current_udt_id {
-                        self.get_spans_for_field_rename(item_id, ident);
-                    }
-                } else {
-                    self.visit_ty(ty);
-                }
-            } else {
-                self.visit_ty(ty);
-            }
-        } else {
-            walk_ty_def(self, def);
+    fn at_callable_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::Item,
+        _: &'a hir::Package,
+        _: &'a hir::CallableDecl,
+    ) {
+        self.get_spans_for_item_rename(item_id, &path.name);
+    }
+
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+        if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(type_name.id) {
+            self.get_spans_for_item_rename(
+                &resolve_package(self.compilation.user, item_id),
+                type_name,
+            );
         }
     }
 
-    // Handles local variable definitions
-    fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        if span_touches(pat.span, self.offset) {
-            match &*pat.kind {
-                ast::PatKind::Bind(ident, anno) => {
-                    if span_touches(ident.span, self.offset) {
-                        self.get_spans_for_local_rename(ident.id, ident);
-                    } else if let Some(ty) = anno {
-                        self.visit_ty(ty);
-                    }
-                }
-                _ => walk_pat(self, pat),
-            }
+    fn at_new_type_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::Package,
+        _: &'a hir::Ident,
+        _: &'a hir::ty::Udt,
+    ) {
+        self.get_spans_for_item_rename(item_id, &path.name);
+    }
+
+    fn at_field_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        field_name: &'a ast::Ident,
+        _: &'a ast::Ty,
+    ) {
+        if let Some(item_id) = context.current_udt_id {
+            self.get_spans_for_field_rename(
+                &resolve_package(self.compilation.user, item_id),
+                field_name,
+            );
         }
     }
 
-    // Handles UDT field references
-    fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_touches(expr.span, self.offset) {
-            match &*expr.kind {
-                ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
-                    if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.current_unit().ast.tys.terms.get(udt.id)
-                    {
-                        match res {
-                            hir::Res::Item(item_id) => {
-                                self.get_spans_for_field_rename(item_id, field);
-                            }
-                            _ => panic!("UDT has invalid resolution."),
-                        }
-                    }
-                }
-                _ => walk_expr(self, expr),
-            }
+    fn at_field_ref(
+        &mut self,
+        field_ref: &'a ast::Ident,
+        _: &'a ast::NodeId,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::ty::UdtField,
+    ) {
+        self.get_spans_for_field_rename(item_id, field_ref);
+    }
+
+    fn at_local_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        ident: &'a ast::Ident,
+        _: &'a ast::Pat,
+    ) {
+        if let Some(curr) = context.current_callable {
+            self.get_spans_for_local_rename(ident.id, ident, curr);
         }
     }
 
-    // Handles local variable, UDT, and callable references
-    fn visit_path(&mut self, path: &'_ ast::Path) {
-        if span_touches(path.span, self.offset) {
-            let res = self.compilation.current_unit().ast.names.get(path.id);
-            if let Some(res) = res {
-                match &res {
-                    resolve::Res::Item(item_id) => {
-                        self.get_spans_for_item_rename(item_id, &path.name);
-                    }
-                    resolve::Res::Local(node_id) => {
-                        self.get_spans_for_local_rename(*node_id, &path.name);
-                    }
-                    _ => {}
-                }
-            }
+    fn at_local_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        path: &'a ast::Path,
+        node_id: &'a ast::NodeId,
+        _: &'a ast::Ident,
+    ) {
+        if let Some(curr) = context.current_callable {
+            self.get_spans_for_local_rename(*node_id, &path.name, curr);
         }
     }
 }
@@ -273,9 +237,9 @@ struct ItemRename<'a> {
 
 impl<'a> Visitor<'_> for ItemRename<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.current_unit().ast.names.get(path.id);
+        let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Item(item_id)) = res {
-            if *item_id == *self.item_id {
+            if self.eq(item_id) {
                 self.locations.push(path.name.span);
             }
         }
@@ -283,15 +247,23 @@ impl<'a> Visitor<'_> for ItemRename<'a> {
 
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
-            let res = self.compilation.current_unit().ast.names.get(ty_path.id);
+            let res = self.compilation.get_res(ty_path.id);
             if let Some(resolve::Res::Item(item_id)) = res {
-                if *item_id == *self.item_id {
+                if self.eq(item_id) {
                     self.locations.push(ty_path.name.span);
                 }
             }
         } else {
             walk_ty(self, ty);
         }
+    }
+}
+
+impl<'a> ItemRename<'a> {
+    fn eq(&mut self, item_id: &hir::ItemId) -> bool {
+        item_id.item == self.item_id.item
+            && item_id.package.unwrap_or(self.compilation.user)
+                == self.item_id.package.expect("package id should be resolved")
     }
 }
 
@@ -307,15 +279,8 @@ impl<'a> Visitor<'_> for FieldRename<'a> {
         if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
             self.visit_expr(qualifier);
             if field_name.name == self.field_name {
-                if let Some(Ty::Udt(Res::Item(id))) = self
-                    .compilation
-                    .current_unit()
-                    .ast
-                    .tys
-                    .terms
-                    .get(qualifier.id)
-                {
-                    if id == self.item_id {
+                if let Some(Ty::Udt(Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
+                    if self.eq(id) {
                         self.locations.push(field_name.span);
                     }
                 }
@@ -323,6 +288,14 @@ impl<'a> Visitor<'_> for FieldRename<'a> {
         } else {
             walk_expr(self, expr);
         }
+    }
+}
+
+impl<'a> FieldRename<'a> {
+    fn eq(&mut self, item_id: &hir::ItemId) -> bool {
+        item_id.item == self.item_id.item
+            && item_id.package.unwrap_or(self.compilation.user)
+                == self.item_id.package.expect("package id should be resolved")
     }
 }
 
@@ -345,11 +318,18 @@ impl<'a> Visitor<'_> for LocalRename<'a> {
     }
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.current_unit().ast.names.get(path.id);
+        let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Local(node_id)) = res {
             if *node_id == self.node_id {
                 self.locations.push(path.name.span);
             }
         }
+    }
+}
+
+fn resolve_package(local_package_id: hir::PackageId, item_id: &hir::ItemId) -> hir::ItemId {
+    hir::ItemId {
+        item: item_id.item,
+        package: item_id.package.or(Some(local_package_id)),
     }
 }

@@ -30,5 +30,5 @@ const buildOptions = {
 console.log("Running esbuild");
 
 build(buildOptions).then(() =>
-  console.log(`Built tests to ${join(thisDir, "out")}`)
+  console.log(`Built tests to ${join(thisDir, "out")}`),
 );

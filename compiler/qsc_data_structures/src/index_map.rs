@@ -84,6 +84,13 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
         self.values.get_mut(index).and_then(Option::as_mut)
     }
 
+    pub fn remove(&mut self, key: K) {
+        let index: usize = key.into();
+        if index < self.values.len() {
+            self.values[index] = None;
+        }
+    }
+
     pub fn clear(&mut self) {
         self.values.clear();
     }

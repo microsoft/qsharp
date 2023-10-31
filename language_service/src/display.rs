@@ -13,35 +13,31 @@ use std::{
 };
 
 pub(crate) struct CodeDisplay<'a> {
-    compilation: &'a Compilation,
+    pub(crate) compilation: &'a Compilation,
 }
 
 #[derive(Copy, Clone)]
 struct HirLookup<'a> {
     compilation: &'a Compilation,
-    local_package_id: Option<hir::PackageId>,
+    local_package_id: hir::PackageId,
 }
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
-    pub(crate) fn new(compilation: &'a Compilation) -> Self {
-        Self { compilation }
-    }
-
     pub(crate) fn hir_callable_decl(
         &self,
         package_id: hir::PackageId,
         decl: &'a hir::CallableDecl,
     ) -> impl Display + '_ {
         HirCallableDecl {
-            lookup: self.lookup(Some(package_id)),
+            lookup: self.lookup(package_id),
             decl,
         }
     }
 
     pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
         AstCallableDecl {
-            lookup: self.lookup(None),
+            lookup: self.lookup(self.compilation.user),
             decl,
         }
     }
@@ -52,7 +48,7 @@ impl<'a> CodeDisplay<'a> {
         ty_id: ast::NodeId,
     ) -> impl Display + '_ {
         IdentTyId {
-            lookup: self.lookup(None),
+            lookup: self.lookup(self.compilation.user),
             ident,
             ty_id,
         }
@@ -60,7 +56,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> impl Display + '_ {
         PathTyId {
-            lookup: self.lookup(None),
+            lookup: self.lookup(self.compilation.user),
             path,
             ty_id,
         }
@@ -84,7 +80,7 @@ impl<'a> CodeDisplay<'a> {
         udt: &'a hir::ty::Udt,
     ) -> impl Display + '_ {
         HirUdt {
-            lookup: self.lookup(Some(package_id)),
+            lookup: self.lookup(package_id),
             udt,
         }
     }
@@ -95,7 +91,7 @@ impl<'a> CodeDisplay<'a> {
         ty: &'a hir::ty::Ty,
     ) -> impl Display + '_ {
         HirTy {
-            lookup: self.lookup(Some(package_id)),
+            lookup: self.lookup(package_id),
             ty,
         }
     }
@@ -106,7 +102,7 @@ impl<'a> CodeDisplay<'a> {
         pat: &'a hir::Pat,
     ) -> impl Display + '_ {
         HirPat {
-            lookup: self.lookup(Some(package_id)),
+            lookup: self.lookup(package_id),
             pat,
         }
     }
@@ -117,13 +113,13 @@ impl<'a> CodeDisplay<'a> {
         decl: &hir::CallableDecl,
     ) -> u32 {
         HirCallableDecl {
-            lookup: self.lookup(Some(package_id)),
+            lookup: self.lookup(package_id),
             decl,
         }
         .get_param_offset()
     }
 
-    fn lookup(&self, package_id: Option<hir::PackageId>) -> HirLookup<'_> {
+    fn lookup(&self, package_id: hir::PackageId) -> HirLookup<'_> {
         HirLookup {
             compilation: self.compilation,
             local_package_id: package_id,
@@ -561,12 +557,10 @@ impl<'a> Display for HirTy<'a> {
                 }
             }
             hir::ty::Ty::Udt(res) => {
-                let (item, _) = self.lookup.compilation.resolve_udt_res(
-                    self.lookup
-                        .local_package_id
-                        .unwrap_or(self.lookup.compilation.current),
-                    res,
-                );
+                let (item, _) = self
+                    .lookup
+                    .compilation
+                    .resolve_item_res(self.lookup.local_package_id, res);
                 match &item.kind {
                     hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                     _ => panic!("UDT has invalid resolution."),
@@ -584,7 +578,7 @@ struct TyId<'a> {
 
 impl<'a> Display for TyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(ty) = self.lookup.compilation.find_ty(self.ty_id) {
+        if let Some(ty) = self.lookup.compilation.get_ty(self.ty_id) {
             write!(
                 f,
                 "{}",

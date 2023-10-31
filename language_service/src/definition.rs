@@ -4,29 +4,28 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::{Compilation, Lookup};
+use crate::compilation::Compilation;
+use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Definition;
-use crate::qsc_utils::{
-    find_ident, resolve_offset, span_contains, span_touches, QSHARP_LIBRARY_URI_SCHEME,
-};
-use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_pat, walk_ty_def, Visitor};
+use crate::qsc_utils::QSHARP_LIBRARY_URI_SCHEME;
+use qsc::ast::visit::Visitor;
 use qsc::hir::PackageId;
-use qsc::{ast, hir, resolve};
+use qsc::{ast, hir};
 
 pub(crate) fn get_definition(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> Option<Definition> {
-    let (ast, offset) = resolve_offset(compilation, source_name, offset);
+    let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     let mut definition_finder = DefinitionFinder {
         compilation,
-        offset,
         definition: None,
-        curr_callable: None,
     };
-    definition_finder.visit_package(&ast.package);
+
+    let mut locator = Locator::new(&mut definition_finder, offset, compilation);
+    locator.visit_package(&ast.package);
 
     definition_finder
         .definition
@@ -38,9 +37,7 @@ pub(crate) fn get_definition(
 
 struct DefinitionFinder<'a> {
     compilation: &'a Compilation,
-    offset: u32,
     definition: Option<(String, u32)>,
-    curr_callable: Option<&'a ast::CallableDecl>,
 }
 
 impl DefinitionFinder<'_> {
@@ -56,7 +53,7 @@ impl DefinitionFinder<'_> {
         // Note: Having a package_id means the position references a foreign package.
         // Currently the only supported foreign packages are our library packages,
         // URI's to which need to include our custom library scheme.
-        let source_name = if package_id == self.compilation.current {
+        let source_name = if package_id == self.compilation.user {
             source.name.to_string()
         } else {
             format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name)
@@ -66,143 +63,79 @@ impl DefinitionFinder<'_> {
     }
 }
 
-impl<'a> Visitor<'a> for DefinitionFinder<'a> {
-    // Handles callable and UDT definitions
-    fn visit_item(&mut self, item: &'a ast::Item) {
-        if span_contains(item.span, self.offset) {
-            match &*item.kind {
-                ast::ItemKind::Callable(decl) => {
-                    if span_touches(decl.name.span, self.offset) {
-                        self.set_definition_from_position(
-                            decl.name.span.lo,
-                            self.compilation.current,
-                        );
-                    } else if span_contains(decl.span, self.offset) {
-                        let context = self.curr_callable;
-                        self.curr_callable = Some(decl);
-                        walk_callable_decl(self, decl);
-                        self.curr_callable = context;
-                    }
-                    // Note: the `item.span` can cover things like doc
-                    // comment, attributes, and visibility keywords, which aren't
-                    // things we want to have hover logic for, while the `decl.span` is
-                    // specific to the contents of the callable decl, which we do want
-                    // hover logic for. If the `if` or `else if` above is not met, then
-                    // the user is hovering over one of these non-decl parts of the item,
-                    // and we want to do nothing.
-                }
-                ast::ItemKind::Ty(ident, def) => {
-                    if span_touches(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo, self.compilation.current);
-                    } else {
-                        self.visit_ty_def(def);
-                    }
-                }
-                _ => {}
-            }
-        }
+impl<'a> Handler<'a> for DefinitionFinder<'a> {
+    fn at_callable_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        _: &'a ast::CallableDecl,
+    ) {
+        self.set_definition_from_position(name.span.lo, self.compilation.user);
     }
 
-    // Handles UDT field definitions
-    fn visit_ty_def(&mut self, def: &'a ast::TyDef) {
-        if span_contains(def.span, self.offset) {
-            if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
-                if let Some(ident) = ident {
-                    if span_touches(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo, self.compilation.current);
-                    } else {
-                        self.visit_ty(ty);
-                    }
-                } else {
-                    self.visit_ty(ty);
-                }
-            } else {
-                walk_ty_def(self, def);
-            }
-        }
+    fn at_callable_ref(
+        &mut self,
+        _: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::Item,
+        _: &'a hir::Package,
+        decl: &'a hir::CallableDecl,
+    ) {
+        self.set_definition_from_position(
+            decl.name.span.lo,
+            item_id.package.expect("package id should be resolved"),
+        );
     }
 
-    // Handles local variable definitions
-    fn visit_pat(&mut self, pat: &'a ast::Pat) {
-        if span_touches(pat.span, self.offset) {
-            match &*pat.kind {
-                ast::PatKind::Bind(ident, anno) => {
-                    if span_touches(ident.span, self.offset) {
-                        self.set_definition_from_position(ident.span.lo, self.compilation.current);
-                    } else if let Some(ty) = anno {
-                        self.visit_ty(ty);
-                    }
-                }
-                _ => walk_pat(self, pat),
-            }
-        }
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+        self.set_definition_from_position(type_name.span.lo, self.compilation.user);
     }
 
-    // Handles UDT field references
-    fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_touches(expr.span, self.offset) {
-            match &*expr.kind {
-                ast::ExprKind::Field(udt, field) if span_touches(field.span, self.offset) => {
-                    if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.find_ty(udt.id) {
-                        let (item, package_id) = self
-                            .compilation
-                            .resolve_udt_res(self.compilation.current, res);
-                        match &item.kind {
-                            hir::ItemKind::Ty(_, udt) => {
-                                if let Some(field) = udt.find_field_by_name(&field.name) {
-                                    let span = field
-                                        .name_span
-                                        .expect("field found via name should have a name");
-                                    self.set_definition_from_position(span.lo, package_id);
-                                }
-                            }
-                            _ => panic!("UDT has invalid resolution."),
-                        }
-                    }
-                }
-                _ => walk_expr(self, expr),
-            }
-        }
+    fn at_new_type_ref(
+        &mut self,
+        _: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::Package,
+        type_name: &'a hir::Ident,
+        _: &'a hir::ty::Udt,
+    ) {
+        self.set_definition_from_position(
+            type_name.span.lo,
+            item_id.package.expect("package id should be resolved"),
+        );
     }
 
-    // Handles local variable, UDT, and callable references
-    fn visit_path(&mut self, path: &'_ ast::Path) {
-        if span_touches(path.span, self.offset) {
-            let res = &self.compilation.current_unit().ast.names.get(path.id);
-            if let Some(res) = res {
-                match &res {
-                    resolve::Res::Item(item_id) => {
-                        let (item, package_id, _) = self
-                            .compilation
-                            .find_item(self.compilation.current, item_id);
+    fn at_field_def(&mut self, _: &LocatorContext<'a>, field_name: &'a ast::Ident, _: &'a ast::Ty) {
+        self.set_definition_from_position(field_name.span.lo, self.compilation.user);
+    }
 
-                        let lo = match &item.kind {
-                            hir::ItemKind::Callable(decl) => decl.name.span.lo,
-                            hir::ItemKind::Namespace(_, _) => {
-                                panic!(
-                                    "Reference node should not refer to a namespace: {}",
-                                    path.id
-                                )
-                            }
-                            hir::ItemKind::Ty(ident, _) => ident.span.lo,
-                        };
-                        self.set_definition_from_position(lo, package_id);
-                    }
-                    resolve::Res::Local(node_id) => {
-                        if let Some(curr) = self.curr_callable {
-                            {
-                                if let Some(ident) = find_ident(node_id, curr) {
-                                    self.set_definition_from_position(
-                                        ident.span.lo,
-                                        self.compilation.current,
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
+    fn at_field_ref(
+        &mut self,
+        _: &'a ast::Ident,
+        _: &'a ast::NodeId,
+        item_id: &'_ hir::ItemId,
+        field_def: &'a hir::ty::UdtField,
+    ) {
+        let span = field_def
+            .name_span
+            .expect("field found via name should have a name");
+        self.set_definition_from_position(
+            span.lo,
+            item_id.package.expect("package id should be resolved"),
+        );
+    }
+
+    fn at_local_def(&mut self, _: &LocatorContext<'a>, ident: &'a ast::Ident, _: &'a ast::Pat) {
+        self.set_definition_from_position(ident.span.lo, self.compilation.user);
+    }
+
+    fn at_local_ref(
+        &mut self,
+        _: &LocatorContext<'a>,
+        _: &'a ast::Path,
+        _: &'a ast::NodeId,
+        ident: &'a ast::Ident,
+    ) {
+        self.set_definition_from_position(ident.span.lo, self.compilation.user);
     }
 }

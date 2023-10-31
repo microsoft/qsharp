@@ -35,7 +35,7 @@ let wasm: Wasm | null = null;
 const require = createRequire(import.meta.url);
 
 export async function getLibrarySourceContent(
-  path: string
+  path: string,
 ): Promise<string | undefined> {
   if (!wasm) {
     wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
@@ -63,7 +63,7 @@ export function getCompilerWorker(): ICompilerWorker {
   const proxy = createCompilerProxy(
     // If you lose the 'this' binding, some environments have issues.
     worker.postMessage.bind(worker),
-    () => worker.terminate()
+    () => worker.terminate(),
   );
 
   // Let proxy handle response and event messages from the worker
@@ -87,7 +87,7 @@ export function getDebugServiceWorker(): IDebugServiceWorker {
   const proxy = createDebugServiceProxy(
     // If you lose the 'this' binding, some environments have issues.
     worker.postMessage.bind(worker),
-    () => worker.terminate()
+    () => worker.terminate(),
   );
 
   // Let proxy handle response and event messages from the worker
@@ -107,14 +107,14 @@ export function getLanguageServiceWorker(): ILanguageServiceWorker {
     join(thisDir, "./language-service/worker-node.js"),
     {
       workerData: { qscLogLevel: log.getLogLevel() },
-    }
+    },
   );
 
   // Create the proxy which will forward method calls to the worker
   const proxy = createLanguageServiceProxy(
     // If you lose the 'this' binding, some environments have issues.
     worker.postMessage.bind(worker),
-    () => worker.terminate()
+    () => worker.terminate(),
   );
 
   // Let proxy handle response and event messages from the worker
