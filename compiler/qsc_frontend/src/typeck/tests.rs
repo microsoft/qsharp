@@ -1111,7 +1111,7 @@ fn ternop_update_udt_unknown_field_name() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #19 79-81 "()" : Unit
             #21 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ Third <- 3;\n    }" : Unit
             #23 101-102 "p" : UDT<Item 1>
@@ -1126,7 +1126,7 @@ fn ternop_update_udt_unknown_field_name() {
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 133, hi: 148 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1146,7 +1146,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #19 81-83 "()" : Unit
             #21 89-91 "{}" : Unit
             #25 109-111 "()" : Unit
@@ -1163,7 +1163,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 163, hi: 178 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2011,7 +2011,7 @@ fn newtype_does_not_match_base_ty() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #12 56-58 "()" : Unit
             #16 65-78 "{ NewInt(5) }" : UDT<Item 1>
             #18 67-76 "NewInt(5)" : UDT<Item 1>
@@ -2019,7 +2019,7 @@ fn newtype_does_not_match_base_ty() {
             #22 73-76 "(5)" : Int
             #23 74-75 "5" : Int
             Error(Type(Error(TyMismatch(Prim(Int), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 67, hi: 76 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2034,7 +2034,7 @@ fn newtype_does_not_match_other_newtype() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #18 84-86 "()" : Unit
             #22 97-111 "{ NewInt1(5) }" : UDT<Item 1>
             #24 99-109 "NewInt1(5)" : UDT<Item 1>
@@ -2042,7 +2042,7 @@ fn newtype_does_not_match_other_newtype() {
             #28 106-109 "(5)" : Int
             #29 107-108 "5" : Int
             Error(Type(Error(TyMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 99, hi: 109 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2104,7 +2104,7 @@ fn newtype_field_invalid() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #13 59-68 "(x : Foo)" : UDT<Item 1>
             #14 60-67 "x : Foo" : UDT<Item 1>
             #20 74-106 "{\n        let y = x::Nope;\n    }" : Unit
@@ -2113,7 +2113,7 @@ fn newtype_field_invalid() {
             #25 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Nope", Span { lo: 92, hi: 99 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 92, hi: 99 }))))
-        "##]],
+        "#]],
     );
 }
 
