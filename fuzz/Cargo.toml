@@ -24,6 +24,3 @@ name = "compile"
 path = "fuzz_targets/compile.rs"
 test = false
 doc = false
-
-[lib]
-doctest = false
