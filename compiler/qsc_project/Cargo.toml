@@ -22,3 +22,6 @@ qsc_project = { path = ".", features = ["fs"] }
 
 [features]
 fs = []
+
+[lib]
+doctest = false

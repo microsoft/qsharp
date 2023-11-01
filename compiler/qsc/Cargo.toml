@@ -35,6 +35,7 @@ indoc = { workspace = true }
 
 [lib]
 bench = false
+doctest = false
 
 [[bin]]
 name = "qsc"
