@@ -25,3 +25,6 @@ expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }
+
+[lib]
+doctest = false

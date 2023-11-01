@@ -19,89 +19,89 @@
 /// When the TypeScript type identifier is provided to the macro, the
 /// `From` trait is implemented for conversion between the TypeScript type
 /// (`JsValue`) and the Rust struct using `serde_wasm_bindgen`.
-//
-// # Examples
-//
-// The following defines a struct named `Hover` along with its corresponding
-// TypeScript type declaration.
-//
-// This type can now be used as the argument or return type
-// in a Rust method exported by wasm-bindgen. Converting between
-// the TypeScript type and the Rust struct is trivial using
-// `into()` since the `From` trait implementation is generated
-// by the macro:
-//
-// ```
-// # #[macro_use] extern crate qsc_wasm;
-// # use serde::{Deserialize, Serialize};
-// # use wasm_bindgen::prelude::*;
-//
-// serializable_type! {
-//     Hover,
-//     {
-//         pub contents: String,
-//         pub span: Span,
-//     },
-//     r#"export interface IHover {
-//         contents: string;
-//         span: ISpan
-//     }"#,
-//     IHover
-// }
-//
-// serializable_type! {
-//     Span,
-//     {
-//         pub start: u32,
-//         pub end: u32,
-//     },
-//     r#"export interface ISpan {
-//         start: number;
-//         end: number;
-//     }"#
-// }
-//
-// #[wasm_bindgen]
-// pub fn get_hover() -> Option<IHover> {
-//     let hover = Hover { contents: "foo".into(), span: Span { start: 0, end: 0 } };
-//     Some(hover.into())
-// }
-// ```
-//
-// The generated TypeScript method signature would be:
-//
-// ```ts
-// function get_hover(): IHover | undefined;
-// ```
-//
-// The last argument into the macro can be omitted
-// if the TypeScript type doesn't need to be directly referenced from
-// Rust code, i.e. if the struct isn't meant to be used
-// in method signatures.
-//
-// The following data type is serializable, and can be used within
-// other serializable structs, but since we omitted the TypeScript
-// interface identifier, it cannot be referenced by its TypeScript type
-// name in Rust code. Therefore it cannot be used directly in method
-// signatures.
-//
-// ```
-// # #[macro_use] extern crate qsc_wasm;
-// # use serde::{Deserialize, Serialize};
-//
-// serializable_type! {
-//     Span,
-//     {
-//         pub start: u32,
-//         pub end: u32,
-//     },
-//     r#"export interface ISpan {
-//         start: number;
-//         end: number;
-//     }"#
-// }
-// ```
-//
+///
+/// # Examples
+///
+/// The following defines a struct named `Hover` along with its corresponding
+/// TypeScript type declaration.
+///
+/// This type can now be used as the argument or return type
+/// in a Rust method exported by wasm-bindgen. Converting between
+/// the TypeScript type and the Rust struct is trivial using
+/// `into()` since the `From` trait implementation is generated
+/// by the macro:
+///
+/// ```
+/// # #[macro_use] extern crate qsc_wasm;
+/// # use serde::{Deserialize, Serialize};
+/// # use wasm_bindgen::prelude::*;
+///
+/// serializable_type! {
+///     Hover,
+///     {
+///         pub contents: String,
+///         pub span: Span,
+///     },
+///     r#"export interface IHover {
+///         contents: string;
+///         span: ISpan
+///     }"#,
+///     IHover
+/// }
+///
+/// serializable_type! {
+///     Span,
+///     {
+///         pub start: u32,
+///         pub end: u32,
+///     },
+///     r#"export interface ISpan {
+///         start: number;
+///         end: number;
+///     }"#
+/// }
+///
+/// #[wasm_bindgen]
+/// pub fn get_hover() -> Option<IHover> {
+///     let hover = Hover { contents: "foo".into(), span: Span { start: 0, end: 0 } };
+///     Some(hover.into())
+/// }
+/// ```
+///
+/// The generated TypeScript method signature would be:
+///
+/// ```ts
+/// function get_hover(): IHover | undefined;
+/// ```
+///
+/// The last argument into the macro can be omitted
+/// if the TypeScript type doesn't need to be directly referenced from
+/// Rust code, i.e. if the struct isn't meant to be used
+/// in method signatures.
+///
+/// The following data type is serializable, and can be used within
+/// other serializable structs, but since we omitted the TypeScript
+/// interface identifier, it cannot be referenced by its TypeScript type
+/// name in Rust code. Therefore it cannot be used directly in method
+/// signatures.
+///
+/// ```
+/// # #[macro_use] extern crate qsc_wasm;
+/// # use serde::{Deserialize, Serialize};
+///
+/// serializable_type! {
+///     Span,
+///     {
+///         pub start: u32,
+///         pub end: u32,
+///     },
+///     r#"export interface ISpan {
+///         start: number;
+///         end: number;
+///     }"#
+/// }
+/// ```
+///
 #[macro_export]
 macro_rules! serializable_type {
     ($struct_ident: ident, $struct: tt, $typescript: literal) => {

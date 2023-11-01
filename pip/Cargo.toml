@@ -28,3 +28,6 @@ crate-type = ["cdylib"]
 
 [package.metadata.maturin]
 name = "qsharp._native"
+
+[lib]
+doctest = false
