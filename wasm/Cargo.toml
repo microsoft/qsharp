@@ -12,6 +12,7 @@ description = "Wasm module for the qsc compiler"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+doctest = false
 
 [dependencies]
 js-sys = { workspace = true }
@@ -34,6 +35,3 @@ getrandom = { workspace = true, features = ["js"] }
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
-
-[lib]
-doctest = false
