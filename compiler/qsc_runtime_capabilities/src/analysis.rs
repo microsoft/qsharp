@@ -34,7 +34,7 @@ struct PackageAnalysis {
     pub blocks: IndexMap<BlockId, Option<BlockAnalysis>>,
     pub stmts: IndexMap<StmtId, Option<RuntimePropeties>>,
     pub exprs: IndexMap<ExprId, Option<RuntimePropeties>>,
-    pub pats: IndexMap<PatId, Option<RuntimePropeties>>,
+    pub pats: IndexMap<PatId, Option<PatternAnalysis>>,
 }
 
 impl Display for PackageAnalysis {
@@ -138,6 +138,41 @@ impl Display for CallableAnalysis {
         } else {
             write!(f, " None")?;
         }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum PatternAnalysis {
+    IntrinsicCallableParameter,
+    CallableParameterTuple,
+    CallableParameterIdent(Vec<RuntimeCapability>),
+    Ident(RuntimePropeties),
+}
+
+impl Display for PatternAnalysis {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        match self {
+            PatternAnalysis::IntrinsicCallableParameter => {
+                write!(indent, "\nIntrinsicCallableParameter")?
+            }
+            PatternAnalysis::CallableParameterTuple => write!(indent, "\nCallableParameterTuple")?,
+            PatternAnalysis::CallableParameterIdent(caps) => {
+                write!(indent, "\nCallableParameterIdent: {{")?;
+                indent = set_indentation(indent, 1);
+                for cap in caps {
+                    write!(indent, "\n{cap:?}")?;
+                }
+                indent = set_indentation(indent, 0);
+                write!(indent, "\n}}")?;
+            }
+            PatternAnalysis::Ident(properties) => {
+                write!(indent, "\nIdent")?;
+                indent = set_indentation(indent, 1);
+                write!(indent, "\n{properties}")?;
+            }
+        };
         Ok(())
     }
 }
@@ -255,16 +290,6 @@ impl<'a> Initializer<'a> {
     }
 
     fn create_package_analysis(&mut self, package: &Package) -> PackageAnalysis {
-        // Initialize callables.
-        let mut callables = IndexMap::<LocalItemId, Option<CallableAnalysis>>::new();
-        for (id, item) in package.items.iter() {
-            let capabilities = match &item.kind {
-                ItemKind::Callable(c) => Some(self.create_callable_analysis(c, &package.pats)),
-                _ => None,
-            };
-            callables.insert(id, capabilities);
-        }
-
         // Initialize blocks.
         let mut blocks = IndexMap::<BlockId, Option<BlockAnalysis>>::new();
         for (id, _) in package.blocks.iter() {
@@ -284,9 +309,21 @@ impl<'a> Initializer<'a> {
         }
 
         // Initialize patterns.
-        let mut pats = IndexMap::<PatId, Option<RuntimePropeties>>::new();
+        let mut pats = IndexMap::<PatId, Option<PatternAnalysis>>::new();
         for (id, _) in package.pats.iter() {
             pats.insert(id, None);
+        }
+
+        // Initialize callables.
+        let mut callables = IndexMap::<LocalItemId, Option<CallableAnalysis>>::new();
+        for (id, item) in package.items.iter() {
+            let capabilities = match &item.kind {
+                ItemKind::Callable(c) => {
+                    Some(self.create_callable_analysis(c, &package.pats, &mut pats))
+                }
+                _ => None,
+            };
+            callables.insert(id, capabilities);
         }
 
         PackageAnalysis {
@@ -301,18 +338,24 @@ impl<'a> Initializer<'a> {
     fn create_callable_analysis(
         &mut self,
         callable: &CallableDecl,
-        patterns: &IndexMap<PatId, Pat>, // N.B. Needed for figuring out initial parameter analysis.
+        store_patterns: &IndexMap<PatId, Pat>, // N.B. Needed for figuring out initial parameter analysis.
+        analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>, // N.B. Needed for storing initial parameter analysis.
     ) -> CallableAnalysis {
         match callable.kind {
-            CallableKind::Function => self.create_function_analysis(callable, patterns),
-            CallableKind::Operation => self.create_operation_analysis(callable, patterns),
+            CallableKind::Function => {
+                self.create_function_analysis(callable, store_patterns, analysis_patterns)
+            }
+            CallableKind::Operation => {
+                self.create_operation_analysis(callable, store_patterns, analysis_patterns)
+            }
         }
     }
 
     fn create_function_analysis(
         &mut self,
         _callable: &CallableDecl,
-        patterns: &IndexMap<PatId, Pat>,
+        store_patterns: &IndexMap<PatId, Pat>,
+        analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>,
     ) -> CallableAnalysis {
         let inherent_caps = Some(RuntimePropeties {
             is_quantum_source: Some(false),
@@ -328,7 +371,8 @@ impl<'a> Initializer<'a> {
     fn create_operation_analysis(
         &mut self,
         operation: &CallableDecl,
-        patterns: &IndexMap<PatId, Pat>,
+        store_patterns: &IndexMap<PatId, Pat>,
+        analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>,
     ) -> CallableAnalysis {
         let is_intrinsic = Self::is_intrinsic(operation);
 
@@ -346,8 +390,7 @@ impl<'a> Initializer<'a> {
             };
 
             // Determine the parameters' properties based on the input pattern.
-            // TODO (cesarzc): Set appropriate values in the pattern index map.
-            let input_pattern = patterns
+            let input_pattern = store_patterns
                 .get(operation.input)
                 .expect("Pattern should exist.");
 
@@ -366,6 +409,11 @@ impl<'a> Initializer<'a> {
                 params_properties.push(properties);
             }
 
+            // Now that the runtime properties of the operation's parameters has been determined,
+            // mark the patterns related to the input parameters appropriately.
+            self.set_input_params_pattern_analysis(input_pattern, analysis_patterns);
+
+            // Return the created callable analysis object.
             return CallableAnalysis {
                 inherent_properties: Some(inherent_properties),
                 params_properties: Some(params_properties),
@@ -376,6 +424,27 @@ impl<'a> Initializer<'a> {
         CallableAnalysis {
             inherent_properties: None,
             params_properties: None,
+        }
+    }
+
+    fn set_input_params_pattern_analysis(
+        &mut self,
+        pattern: &Pat,
+        analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>,
+    ) {
+        analysis_patterns.insert(
+            pattern.id,
+            Some(PatternAnalysis::IntrinsicCallableParameter),
+        );
+        match &pattern.kind {
+            PatKind::Bind(_) => {} // Nothing else left to do.
+            PatKind::Tuple(ident_patterns) => {
+                for pat_id in ident_patterns.iter() {
+                    analysis_patterns
+                        .insert(*pat_id, Some(PatternAnalysis::IntrinsicCallableParameter));
+                }
+            }
+            _ => panic!("Only callable parameter patterns are expected"),
         }
     }
 
@@ -392,7 +461,7 @@ impl<'a> Initializer<'a> {
                 Ty::Tuple(vector) => vector.clone(),
                 _ => panic!("Unexpected pattern type"),
             },
-            _ => panic!("Parameter"),
+            _ => panic!("Only callable parameter patterns are expected"),
         }
     }
 
@@ -420,7 +489,7 @@ impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
     pub fn run(&mut self) {}
 }
 
-fn get_capabilities_for_types(tuple: &Vec<Ty>) -> Vec<RuntimeCapability> {
+fn get_capabilities_for_types(tuple: &[Ty]) -> Vec<RuntimeCapability> {
     let mut caps = Vec::<RuntimeCapability>::default();
     for item_type in tuple.iter() {
         let item_caps = get_capabilities_for_type(item_type);
