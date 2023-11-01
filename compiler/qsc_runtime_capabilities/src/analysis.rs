@@ -32,8 +32,8 @@ impl Default for AnalysisStore {
 struct PackageAnalysis {
     pub callables: IndexMap<LocalItemId, Option<CallableAnalysis>>,
     pub blocks: IndexMap<BlockId, Option<BlockAnalysis>>,
-    pub stmts: IndexMap<StmtId, Option<RuntimePropeties>>,
-    pub exprs: IndexMap<ExprId, Option<RuntimePropeties>>,
+    pub stmts: IndexMap<StmtId, Option<RuntimeProperties>>,
+    pub exprs: IndexMap<ExprId, Option<RuntimeProperties>>,
     pub pats: IndexMap<PatId, Option<PatternAnalysis>>,
 }
 
@@ -117,8 +117,8 @@ impl Display for PackageAnalysis {
 // CONSIDER (cesarzc): Might need to do this a per specialization basis.
 #[derive(Debug)]
 struct CallableAnalysis {
-    pub inherent_properties: Option<RuntimePropeties>,
-    pub params_properties: Option<Vec<RuntimePropeties>>,
+    pub inherent_properties: Option<RuntimeProperties>,
+    pub params_properties: Option<Vec<RuntimeProperties>>,
 }
 
 impl Display for CallableAnalysis {
@@ -147,7 +147,7 @@ enum PatternAnalysis {
     IntrinsicCallableParameter,
     CallableParameterTuple,
     CallableParameterIdent(Vec<RuntimeCapability>),
-    Ident(RuntimePropeties),
+    Ident(RuntimeProperties),
 }
 
 impl Display for PatternAnalysis {
@@ -180,8 +180,8 @@ impl Display for PatternAnalysis {
 // CONSIDER (cesarzc): This might change a bit since not all blocks are callable blocks.
 #[derive(Debug)]
 struct BlockAnalysis {
-    pub inherent_properties: Option<RuntimePropeties>,
-    pub params_properties: Option<Vec<RuntimePropeties>>,
+    pub inherent_properties: Option<RuntimeProperties>,
+    pub params_properties: Option<Vec<RuntimeProperties>>,
 }
 
 impl Display for BlockAnalysis {
@@ -206,12 +206,12 @@ impl Display for BlockAnalysis {
 }
 
 #[derive(Debug)]
-struct RuntimePropeties {
+struct RuntimeProperties {
     pub is_quantum_source: Option<bool>,
     pub caps: Option<FxHashSet<RuntimeCapability>>,
 }
 
-impl Display for RuntimePropeties {
+impl Display for RuntimeProperties {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 1);
         let is_quantum_source = match self.is_quantum_source {
@@ -297,13 +297,13 @@ impl<'a> Initializer<'a> {
         }
 
         // Initialize statements.
-        let mut stmts = IndexMap::<StmtId, Option<RuntimePropeties>>::new();
+        let mut stmts = IndexMap::<StmtId, Option<RuntimeProperties>>::new();
         for (id, _) in package.stmts.iter() {
             stmts.insert(id, None);
         }
 
         // Initialize expressions.
-        let mut exprs = IndexMap::<ExprId, Option<RuntimePropeties>>::new();
+        let mut exprs = IndexMap::<ExprId, Option<RuntimeProperties>>::new();
         for (id, _) in package.exprs.iter() {
             exprs.insert(id, None);
         }
@@ -353,18 +353,53 @@ impl<'a> Initializer<'a> {
 
     fn create_function_analysis(
         &mut self,
-        _callable: &CallableDecl,
+        function: &CallableDecl,
         store_patterns: &IndexMap<PatId, Pat>,
         analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>,
     ) -> CallableAnalysis {
-        let inherent_caps = Some(RuntimePropeties {
+        // Inherent properties for all functions are the same.
+        let inherent_properties = Some(RuntimeProperties {
             is_quantum_source: Some(false),
             caps: Some(FxHashSet::default()),
         });
 
+        // At this stage, parameters' properties can only be determined for `body instrinsic`
+        // functions.
+        let mut params_properties = None;
+        let is_intrinsic = Self::is_intrinsic(function);
+        if is_intrinsic {
+            // Determine whether parameters can be affect whether the function becomes a quantum
+            // source.
+            let is_unit = matches!(function.output, Ty::UNIT);
+            let is_quantum_source = !is_unit;
+
+            // Determine the parameters' properties based on the input pattern.
+            let input_pattern = store_patterns
+                .get(function.input)
+                .expect("Pattern should exist.");
+
+            let input_params_types = Self::get_params_types_from_pattern(input_pattern);
+            let mut runtime_properties = Vec::<RuntimeProperties>::new();
+            for param_type in input_params_types {
+                let mut param_caps = FxHashSet::<RuntimeCapability>::default();
+                let caps = get_capabilities_for_type(&param_type);
+                caps.iter().for_each(|c| _ = param_caps.insert(c.clone()));
+                let properties = RuntimeProperties {
+                    is_quantum_source: Some(is_quantum_source),
+                    caps: Some(param_caps),
+                };
+                runtime_properties.push(properties);
+            }
+            params_properties = Some(runtime_properties);
+
+            // Now that the runtime properties of the function's parameters has been determined,
+            // mark the patterns related to the input parameters appropriately.
+            self.set_input_params_pattern_analysis(input_pattern, analysis_patterns);
+        }
+
         CallableAnalysis {
-            inherent_properties: inherent_caps,
-            params_properties: None, // TODO (cesarzc): Populare correctly.
+            inherent_properties,
+            params_properties,
         }
     }
 
@@ -380,11 +415,11 @@ impl<'a> Initializer<'a> {
         if is_intrinsic {
             // Determine whether the operation is an inherent quantum source.
             let is_unit = matches!(operation.output, Ty::UNIT);
-            let is_quantum_source = is_intrinsic && !is_unit;
+            let is_quantum_source = !is_unit;
 
             // Intrinsic operations have no inherent capabilities.
             let inherent_caps = FxHashSet::default();
-            let inherent_properties = RuntimePropeties {
+            let inherent_properties = RuntimeProperties {
                 is_quantum_source: Some(is_quantum_source),
                 caps: Some(inherent_caps),
             };
@@ -395,15 +430,14 @@ impl<'a> Initializer<'a> {
                 .expect("Pattern should exist.");
 
             let input_params_types = Self::get_params_types_from_pattern(input_pattern);
-            let mut params_properties = Vec::<RuntimePropeties>::new();
+            let mut params_properties = Vec::<RuntimeProperties>::new();
             for param_type in input_params_types {
                 let mut param_caps = FxHashSet::<RuntimeCapability>::default();
                 let caps = get_capabilities_for_type(&param_type);
-                for cap in caps {
-                    param_caps.insert(cap);
-                }
-                let properties = RuntimePropeties {
-                    is_quantum_source: Some(is_quantum_source), // Parameters share the same
+                caps.iter().for_each(|c| _ = param_caps.insert(c.clone()));
+                let properties = RuntimeProperties {
+                    // The `is_quantum_source` property for all parameters is the
+                    is_quantum_source: Some(is_quantum_source),
                     caps: Some(param_caps),
                 };
                 params_properties.push(properties);
