@@ -458,12 +458,14 @@ namespace Microsoft.Quantum.Arithmetic {
     /// little-endian registers xs and ys using the ripple-carry algorithm.
     ///
     /// # Description 
-    /// Computes zs := xs + ys modulo 2ⁿ, where xs, ys, and zs are little-endian registers,
-    /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized,
-    /// except for maybe zs[0], which can be in |0> or |1> state and can be
-    /// used as carry-in.
+    /// Computes zs := xs + ys + zs[0] modulo 2ⁿ, where xs, ys, and zs are
+    /// little-endian registers, Length(xs) = Length(ys) ≤ Length(zs) = n,
+    /// assuming zs is 0-initialized, except for maybe zs[0], which can be
+    // in |0> or |1> state and can be used as carry-in.
+    /// This operation uses the ripple-carry algorithm.
     /// NOTE: `zs[Length(xs)]` can be used as carry-out, if `zs` is longer than `xs`.
     ///
+    /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
     @Config(Full)

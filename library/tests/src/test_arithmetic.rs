@@ -163,30 +163,40 @@ fn check_add_i_1_2() {
 }
 
 #[test]
-fn check_inc_by_l() {
+fn check_inc_by_l_simple() {
     test_expression(
         {
             "{ // Simple cases for IncByLE
                 open Microsoft.Quantum.Arithmetic;
+
                 use y0 = Qubit[1];
                 IncByL(0L,y0);
+                let i0 = MeasureInteger(y0);
+                ResetAll(y0);
+
                 use y1 = Qubit[1];
                 IncByL(1L,y1);
+                let i1 = MeasureInteger(y1);
+                ResetAll(y1);
+
                 use y2 = Qubit[1];
                 X(y2[0]);
                 IncByL(0L,y2);
+                let i2 = MeasureInteger(y2);
+                ResetAll(y2);
+
                 use y3 = Qubit[1];
                 X(y3[0]);
                 IncByL(1L,y3);
+                let i3 = MeasureInteger(y3);
+                ResetAll(y3);
+
                 use y4 = Qubit[20];
                 ApplyXorInPlace(279, y4);
                 IncByL(7895L,y4);
-                let i0 = MeasureInteger(y0);
-                let i1 = MeasureInteger(y1);
-                let i2 = MeasureInteger(y2);
-                let i3 = MeasureInteger(y3);
                 let i4 = MeasureInteger(y4);
-                ResetAll(y0+y1+y2+y3+y4);
+                ResetAll(y4);
+
                 return (i0, i1, i2, i3, i4);
         }"
         },
@@ -204,7 +214,7 @@ fn check_inc_by_l() {
 }
 
 #[test]
-fn check_inc_by_le() {
+fn check_inc_by_le_simple() {
     test_expression(
         {
             "{   // Simple cases for IncByLE
@@ -212,30 +222,39 @@ fn check_inc_by_le() {
                 use x0 = Qubit[1];
                 use y0 = Qubit[1];
                 IncByLE(x0,y0);
+                let i0 = MeasureInteger(y0);
+                ResetAll(x0+y0);
+
                 use x1 = Qubit[1];
                 use y1 = Qubit[1];
                 X(x1[0]);
                 IncByLE(x1,y1);
+                let i1 = MeasureInteger(y1);
+                ResetAll(x1+y1);
+
                 use x2 = Qubit[1];
                 use y2 = Qubit[1];
                 X(y2[0]);
                 IncByLE(x2,y2);
+                let i2 = MeasureInteger(y2);
+                ResetAll(x2+y2);
+
                 use x3 = Qubit[1];
                 use y3 = Qubit[1];
                 X(x3[0]);
                 X(y3[0]);
                 IncByLE(x3,y3);
+                let i3 = MeasureInteger(y3);
+                ResetAll(x3+y3);
+
                 use x4 = Qubit[10];
                 use y4 = Qubit[10];
                 ApplyXorInPlace(279, x4);
                 ApplyXorInPlace(383, y4);
                 IncByLE(x4,y4);
-                let i0 = MeasureInteger(y0);
-                let i1 = MeasureInteger(y1);
-                let i2 = MeasureInteger(y2);
-                let i3 = MeasureInteger(y3);
                 let i4 = MeasureInteger(y4);
-                ResetAll(x0+x1+x2+x3+x4+y0+y1+y2+y3+y4);
+                ResetAll(x4+y4);
+
                 return (i0, i1, i2, i3, i4);
         }"
         },
@@ -253,43 +272,53 @@ fn check_inc_by_le() {
 }
 
 #[test]
-fn check_add_le() {
+fn check_add_le_simple() {
     test_expression(
         {
             "{   // Simple cases for AddLE
                 open Microsoft.Quantum.Arithmetic;
+
                 use x0 = Qubit[1];
                 use y0 = Qubit[1];
                 use z0 = Qubit[1];
                 AddLE(x0,y0,z0);
+                let i0 = MeasureInteger(z0);
+                ResetAll(x0+y0+z0);
+
                 use x1 = Qubit[1];
                 use y1 = Qubit[1];
                 use z1 = Qubit[1];
                 X(x1[0]);
                 AddLE(x1,y1,z1);
+                let i1 = MeasureInteger(z1);
+                ResetAll(x1+y1+z1);
+
                 use x2 = Qubit[1];
                 use y2 = Qubit[1];
                 use z2 = Qubit[1];
                 X(y2[0]);
                 AddLE(x2,y2,z2);
+                let i2 = MeasureInteger(z2);
+                ResetAll(x2+y2+z2);
+
                 use x3 = Qubit[1];
                 use y3 = Qubit[1];
                 use z3 = Qubit[1];
                 X(x3[0]);
                 X(y3[0]);
                 AddLE(x3,y3,z3);
+                let i3 = MeasureInteger(z3);
+                ResetAll(x3+y3+z3);
+
                 use x4 = Qubit[10];
                 use y4 = Qubit[10];
                 use z4 = Qubit[10];
                 ApplyXorInPlace(279, x4);
                 ApplyXorInPlace(383, y4);
                 AddLE(x4,y4,z4);
-                let i0 = MeasureInteger(z0);
-                let i1 = MeasureInteger(z1);
-                let i2 = MeasureInteger(z2);
-                let i3 = MeasureInteger(z3);
                 let i4 = MeasureInteger(z4);
-                ResetAll(x0+x1+x2+x3+x4+y0+y1+y2+y3+y4+z0+z1+z2+z3+z4);
+                ResetAll(x4+y4+z4);
+
                 return (i0, i1, i2, i3, i4);
         }"
         },
@@ -307,21 +336,24 @@ fn check_add_le() {
 }
 
 #[test]
-fn check_ripple_carry_inc_by_l() {
+fn check_ripple_carry_inc_by_l_branching() {
     test_expression(
         {
-            "{  // Corner cases for RippleCarryIncByL
+            "{  // Branching cases for RippleCarryIncByL
                 open Microsoft.Quantum.Arithmetic;
+
                 use y0 = Qubit[10];
                 ApplyXorInPlace(172, y0);
                 IncByL(128L,y0);
                 let i0 = MeasureInteger(y0);
                 ResetAll(y0);
+
                 use y1 = Qubit[10];
                 ApplyXorInPlace(172, y1);
                 IncByL(0L,y1);
                 let i1 = MeasureInteger(y1);
                 ResetAll(y1);
+
                 return (i0, i1);
             }"
         },
@@ -329,151 +361,94 @@ fn check_ripple_carry_inc_by_l() {
     );
 }
 
-const RIPPLE_CARRY_TEST_LIB: &str = r#"
-namespace Test {
-    open Microsoft.Quantum.Arithmetic;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-
-    operation TestAddConstant(n : Int) : Unit {
-        use ys = Qubit[n];
-        for c in 0..(1 <<< n) - 1 {
-            for ysValue in 0..(1 <<< n) - 1 {
-                ApplyXorInPlace(ysValue, ys);
-                IncByL(IntAsBigInt(c), ys);
-                Fact(MeasureInteger(ys) == (c + ysValue) % (1 <<< n), $"unexpected value for `ys` given c = {c} and ysValue = {ysValue}");
-                ResetAll(ys);
-            }
-        }
-    }
-
-    operation TestAddConstantCtl(n : Int) : Unit {
-        use ctl = Qubit();
-        use ys = Qubit[n];
-        for isCtl in [false, true] {
-            for c in 0..(1 <<< n) - 1 {
-                for ysValue in 0..(1 <<< n) - 1 {
-                    within {
-                        if isCtl {
-                            X(ctl);
-                        }
-                    } apply {
-                        ApplyXorInPlace(ysValue, ys);
-                        Controlled IncByL([ctl], (IntAsBigInt(c), ys));
-                        Fact(MeasureInteger(ys) == (isCtl ? (c + ysValue) % (1 <<< n) | ysValue), $"unexpected value for `ys` given c = {c} and ysValue = {ysValue}");
-                    }
-                    ResetAll(ys);
-                    Reset(ctl);
-                }
-            }
-        }
-    }
-}
-"#;
-
-// #[test]
-// fn check_ripple_carry_inc_by_l_exhaustive() {
-//     test_expression_with_lib(
-//         {
-//             "{
-//                 open Test;
-//                 for n in 1..4 {
-//                     TestAddConstant(n);
-//                 }
-//                 for n in 1..4 {
-//                     TestAddConstantCtl(n);
-//                 }
-//             }"
-//         },
-//         RIPPLE_CARRY_TEST_LIB,
-//         &Value::Tuple(vec![].into()),
-//     );
-// }
+const RIPPLE_CARRY_INC_BY_L_TEST_LIB: &str = include_str!("resources/ripple_carry_inc_by_l.qs");
 
 #[test]
-fn check_ripple_carry_inc_by_l_exhaustive_1() {
+fn check_ripple_carry_inc_by_l_exhaustive_bitwidth_1() {
     test_expression_with_lib(
-        "Test.TestAddConstant(1)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByL(1)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_l_exhaustive_2() {
+fn check_ripple_carry_inc_by_l_exhaustive_bitwidth_2() {
     test_expression_with_lib(
-        "Test.TestAddConstant(2)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByL(2)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_l_exhaustive_3() {
+fn check_ripple_carry_inc_by_l_exhaustive_bitwidth_3() {
     test_expression_with_lib(
-        "Test.TestAddConstant(3)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByL(3)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_l_exhaustive_4() {
+fn check_ripple_carry_inc_by_l_exhaustive_bitwidth_4() {
     test_expression_with_lib(
-        "Test.TestAddConstant(4)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByL(4)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_1() {
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_1() {
     test_expression_with_lib(
-        "Test.TestAddConstantCtl(1)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByLCtl(1)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_2() {
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_2() {
     test_expression_with_lib(
-        "Test.TestAddConstantCtl(2)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByLCtl(2)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_3() {
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_3() {
     test_expression_with_lib(
-        "Test.TestAddConstantCtl(3)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByLCtl(3)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_4() {
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_4() {
     test_expression_with_lib(
-        "Test.TestAddConstantCtl(4)",
-        RIPPLE_CARRY_TEST_LIB,
+        "Test.TestRippleCarryIncByLCtl(4)",
+        RIPPLE_CARRY_INC_BY_L_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le() {
+fn check_ripple_carry_inc_by_le_branching() {
     test_expression(
         {
-            "{  // Corner cases for RippleCarryIncByLE
+            "{  // Branching cases for RippleCarryIncByLE
                 open Microsoft.Quantum.Arithmetic;
+
                 use x0 = Qubit[1];
                 use y0 = Qubit[2];
                 ApplyXorInPlace(3, y0);
                 IncByLE(x0,y0);
                 let i0 = MeasureInteger(y0);
                 ResetAll(x0+y0);
+
                 use x1 = Qubit[3];
                 use y1 = Qubit[10];
                 ApplyXorInPlace(7, x1);
@@ -481,6 +456,7 @@ fn check_ripple_carry_inc_by_le() {
                 IncByLE(x1,y1);
                 let i1 = MeasureInteger(y1);
                 ResetAll(x1+y1);
+
                 use x2 = Qubit[3];
                 use y2 = Qubit[4];
                 ApplyXorInPlace(7, x2);
@@ -488,6 +464,7 @@ fn check_ripple_carry_inc_by_le() {
                 IncByLE(x2,y2);
                 let i2 = MeasureInteger(y2);
                 ResetAll(x2+y2);
+
                 return (i0, i1, i2);
             }"
         },
@@ -497,104 +474,85 @@ fn check_ripple_carry_inc_by_le() {
 
 const RIPPLE_CARRY_INC_BY_LE_TEST_LIB: &str = include_str!("resources/ripple_carry_inc_by_le.qs");
 
-// #[test]
-// fn check_ripple_carry_inc_by_le_exhaustive() {
-//     test_expression_with_lib(
-//         {
-//             "{
-//                 open Test;
-//                 for n in 1..4 {
-//                     TestAdd(n);
-//                 }
-//                 for n in 1..4 {
-//                     TestAddCtl(n);
-//                 }
-
-//             }"
-//         },
-//         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
-//         &Value::Tuple(vec![].into()),
-//     );
-// }
-
 #[test]
-fn check_ripple_carry_inc_by_le_exhaustive_1() {
+fn check_ripple_carry_inc_by_le_exhaustive_bitwidth_1() {
     test_expression_with_lib(
-        "Test.TestAdd(1)",
+        "Test.TestRippleCarryIncByLE(1)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_exhaustive_2() {
+fn check_ripple_carry_inc_by_le_exhaustive_bitwidth_2() {
     test_expression_with_lib(
-        "Test.TestAdd(2)",
+        "Test.TestRippleCarryIncByLE(2)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_exhaustive_3() {
+fn check_ripple_carry_inc_by_le_exhaustive_bitwidth_3() {
     test_expression_with_lib(
-        "Test.TestAdd(3)",
+        "Test.TestRippleCarryIncByLE(3)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_exhaustive_4() {
+fn check_ripple_carry_inc_by_le_exhaustive_bitwidth_4() {
     test_expression_with_lib(
-        "Test.TestAdd(4)",
+        "Test.TestRippleCarryIncByLE(4)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_ctl_exhaustive_1() {
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_1() {
     test_expression_with_lib(
-        "Test.TestAddCtl(1)",
+        "Test.TestRippleCarryIncByLECtl(1)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_ctl_exhaustive_2() {
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_2() {
     test_expression_with_lib(
-        "Test.TestAddCtl(2)",
+        "Test.TestRippleCarryIncByLECtl(2)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_ctl_exhaustive_3() {
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_3() {
     test_expression_with_lib(
-        "Test.TestAddCtl(3)",
+        "Test.TestRippleCarryIncByLECtl(3)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_inc_by_le_ctl_exhaustive_4() {
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_bitwidth_4() {
     test_expression_with_lib(
-        "Test.TestAddCtl(4)",
+        "Test.TestRippleCarryIncByLECtl(4)",
         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_add_le() {
+fn check_ripple_carry_add_le_branching() {
     test_expression(
         {
-            "{  // More advanced cases for RippleCarryAddLE
+            "{  // Branching cases for RippleCarryAddLE
                 open Microsoft.Quantum.Arithmetic;
+
                 use x0 = Qubit[2];
                 use y0 = Qubit[2];
                 use z0 = Qubit[3];
@@ -603,6 +561,7 @@ fn check_ripple_carry_add_le() {
                 AddLE(x0,y0,z0);
                 let i0 = MeasureInteger(z0);
                 ResetAll(x0+y0+z0);
+
                 use x1 = Qubit[2];
                 use y1 = Qubit[2];
                 use z1 = Qubit[4];
@@ -611,6 +570,7 @@ fn check_ripple_carry_add_le() {
                 AddLE(x1,y1,z1);
                 let i1 = MeasureInteger(z1);
                 ResetAll(x1+y1+z1);
+
                 use x2 = Qubit[2];
                 use y2 = Qubit[2];
                 use z2 = Qubit[4];
@@ -620,6 +580,7 @@ fn check_ripple_carry_add_le() {
                 AddLE(x2,y2,z2);
                 let i2 = MeasureInteger(z2);
                 ResetAll(x2+y2+z2);
+
                 return (i0, i1, i2);
         }"
         },
@@ -627,95 +588,39 @@ fn check_ripple_carry_add_le() {
     );
 }
 
-const RIPPLE_CARRY_ADD_LE_TEST_LIB: &str = r#"
-namespace Test {
-    open Microsoft.Quantum.Arithmetic;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    operation TestAdd(n : Int) : Unit {
-        use xs = Qubit[n];
-        use ys = Qubit[n];
-        use zs = Qubit[n];
-        for xsValue in 0..(1 <<< n) - 1 {
-            for ysValue in 0..(1 <<< n) - 1 {
-                ApplyXorInPlace(xsValue, xs);
-                ApplyXorInPlace(ysValue, ys);
-                RippleCarryAddLE(xs, ys, zs);
-                Fact(MeasureInteger(xs) == xsValue, $"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}");
-                Fact(MeasureInteger(ys) == ysValue, $"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}");
-                Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< n), $"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}");
-                ResetAll(xs);
-                ResetAll(ys);
-                ResetAll(zs);
-            }
-        }
-        use xs = Qubit[n];
-        use ys = Qubit[n];
-        use zs = Qubit[n + 1];
-        for xsValue in 0..(1 <<< n) - 1 {
-            for ysValue in 0..(1 <<< n) - 1 {
-                ApplyXorInPlace(xsValue, xs);
-                ApplyXorInPlace(ysValue, ys);
-                RippleCarryAddLE(xs, ys, zs);
-                Fact(MeasureInteger(xs) == xsValue, $"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}");
-                Fact(MeasureInteger(ys) == ysValue, $"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}");
-                Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< (n + 1)), $"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}");
-                ResetAll(xs);
-                ResetAll(ys);
-                ResetAll(zs);
-            }
-        }
-    }
-}
-"#;
-
-// #[test]
-// fn check_ripple_carry_add_le_exhaustive() {
-//     test_expression_with_lib(
-//         {
-//             "{
-//                 open Test;
-//                 for n in 1..4 {
-//                     TestAdd(n);
-//                 }
-//         }"
-//         },
-//         RIPPLE_CARRY_ADD_LE_TEST_LIB,
-//         &Value::Tuple(vec![].into()),
-//     );
-// }
+const RIPPLE_CARRY_ADD_LE_TEST_LIB: &str = include_str!("resources/ripple_carry_add_le.qs");
 
 #[test]
-fn check_ripple_carry_add_le_exhaustive_1() {
+fn check_ripple_carry_add_le_exhaustive_bitwidth_1() {
     test_expression_with_lib(
-        "Test.TestAdd(1)",
+        "Test.TestRippleCarryAddLE(1)",
         RIPPLE_CARRY_ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_add_le_exhaustive_2() {
+fn check_ripple_carry_add_le_exhaustive_bitwidth_2() {
     test_expression_with_lib(
-        "Test.TestAdd(2)",
+        "Test.TestRippleCarryAddLE(2)",
         RIPPLE_CARRY_ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_add_le_exhaustive_3() {
+fn check_ripple_carry_add_le_exhaustive_bitwidth_3() {
     test_expression_with_lib(
-        "Test.TestAdd(3)",
+        "Test.TestRippleCarryAddLE(3)",
         RIPPLE_CARRY_ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
 
 #[test]
-fn check_ripple_carry_add_le_exhaustive_4() {
+fn check_ripple_carry_add_le_exhaustive_bitwidth_4() {
     test_expression_with_lib(
-        "Test.TestAdd(4)",
+        "Test.TestRippleCarryAddLE(4)",
         RIPPLE_CARRY_ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
