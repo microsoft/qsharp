@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::test_expression;
+use crate::{test_expression, test_expression_with_lib};
 use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.Arithmetic namespace
@@ -329,55 +329,135 @@ fn check_ripple_carry_inc_by_l() {
     );
 }
 
+const RIPPLE_CARRY_TEST_LIB: &str = r#"
+namespace Test {
+    open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Diagnostics;
+
+    operation TestAddConstant(n : Int) : Unit {
+        use ys = Qubit[n];
+        for c in 0..(1 <<< n) - 1 {
+            for ysValue in 0..(1 <<< n) - 1 {
+                ApplyXorInPlace(ysValue, ys);
+                IncByL(IntAsBigInt(c), ys);
+                Fact(MeasureInteger(ys) == (c + ysValue) % (1 <<< n), $"unexpected value for `ys` given c = {c} and ysValue = {ysValue}");
+                ResetAll(ys);
+            }
+        }
+    }
+
+    operation TestAddConstantCtl(n : Int) : Unit {
+        use ctl = Qubit();
+        use ys = Qubit[n];
+        for isCtl in [false, true] {
+            for c in 0..(1 <<< n) - 1 {
+                for ysValue in 0..(1 <<< n) - 1 {
+                    within {
+                        if isCtl {
+                            X(ctl);
+                        }
+                    } apply {
+                        ApplyXorInPlace(ysValue, ys);
+                        Controlled IncByL([ctl], (IntAsBigInt(c), ys));
+                        Fact(MeasureInteger(ys) == (isCtl ? (c + ysValue) % (1 <<< n) | ysValue), $"unexpected value for `ys` given c = {c} and ysValue = {ysValue}");
+                    }
+                    ResetAll(ys);
+                    Reset(ctl);
+                }
+            }
+        }
+    }
+}
+"#;
+
+// #[test]
+// fn check_ripple_carry_inc_by_l_exhaustive() {
+//     test_expression_with_lib(
+//         {
+//             "{
+//                 open Test;
+//                 for n in 1..4 {
+//                     TestAddConstant(n);
+//                 }
+//                 for n in 1..4 {
+//                     TestAddConstantCtl(n);
+//                 }
+//             }"
+//         },
+//         RIPPLE_CARRY_TEST_LIB,
+//         &Value::Tuple(vec![].into()),
+//     );
+// }
+
 #[test]
-fn check_ripple_carry_inc_by_l_exhaustive() {
-    test_expression(
-        {
-            "{
-                open Microsoft.Quantum.Arithmetic;
-                open Microsoft.Quantum.Convert;
-                open Microsoft.Quantum.Diagnostics;
-                internal operation TestAddConstant(n : Int) : Unit {
-                    use ys = Qubit[n];
-                    for c in 0..(1 <<< n) - 1 {
-                        for ysValue in 0..(1 <<< n) - 1 {
-                            ApplyXorInPlace(ysValue, ys);
-                            IncByL(IntAsBigInt(c), ys);
-                            Fact(MeasureInteger(ys) == (c + ysValue) % (1 <<< n), $\"unexpected value for `ys` given c = {c} and ysValue = {ysValue}\");
-                            ResetAll(ys);
-                        }
-                    }
-                }
-                internal operation TestAddConstantCtl(n : Int) : Unit {
-                    use ctl = Qubit();
-                    use ys = Qubit[n];
-                    for isCtl in [false, true] {
-                        for c in 0..(1 <<< n) - 1 {
-                            for ysValue in 0..(1 <<< n) - 1 {
-                                within {
-                                    if isCtl {
-                                        X(ctl);
-                                    }
-                                } apply {
-                                    ApplyXorInPlace(ysValue, ys);
-                                    Controlled IncByL([ctl], (IntAsBigInt(c), ys));
-                                    Fact(MeasureInteger(ys) == (isCtl ? (c + ysValue) % (1 <<< n) | ysValue), $\"unexpected value for `ys` given c = {c} and ysValue = {ysValue}\");
-                                }
-                                ResetAll(ys);
-                                Reset(ctl);
-                            }
-                        }
-                    }
-                }
-            
-                for n in 1..4 {
-                    TestAddConstant(n);
-                }
-                for n in 1..4 {
-                    TestAddConstantCtl(n);
-                }
-            }"
-        },
+fn check_ripple_carry_inc_by_l_exhaustive_1() {
+    test_expression_with_lib(
+        "Test.TestAddConstant(1)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_l_exhaustive_2() {
+    test_expression_with_lib(
+        "Test.TestAddConstant(2)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_l_exhaustive_3() {
+    test_expression_with_lib(
+        "Test.TestAddConstant(3)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_l_exhaustive_4() {
+    test_expression_with_lib(
+        "Test.TestAddConstant(4)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_1() {
+    test_expression_with_lib(
+        "Test.TestAddConstantCtl(1)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_2() {
+    test_expression_with_lib(
+        "Test.TestAddConstantCtl(2)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_3() {
+    test_expression_with_lib(
+        "Test.TestAddConstantCtl(3)",
+        RIPPLE_CARRY_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_rupple_carry_inc_by_l_ctl_exhaustive_4() {
+    test_expression_with_lib(
+        "Test.TestAddConstantCtl(4)",
+        RIPPLE_CARRY_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -415,76 +495,96 @@ fn check_ripple_carry_inc_by_le() {
     );
 }
 
+const RIPPLE_CARRY_INC_BY_LE_TEST_LIB: &str = include_str!("resources/ripple_carry_inc_by_le.qs");
+
+// #[test]
+// fn check_ripple_carry_inc_by_le_exhaustive() {
+//     test_expression_with_lib(
+//         {
+//             "{
+//                 open Test;
+//                 for n in 1..4 {
+//                     TestAdd(n);
+//                 }
+//                 for n in 1..4 {
+//                     TestAddCtl(n);
+//                 }
+
+//             }"
+//         },
+//         RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+//         &Value::Tuple(vec![].into()),
+//     );
+// }
+
 #[test]
-fn check_ripple_carry_inc_by_le_exhaustive() {
-    test_expression(
-        {
-            "{
-                open Microsoft.Quantum.Arithmetic;
-                open Microsoft.Quantum.Convert;
-                open Microsoft.Quantum.Diagnostics;
-                internal operation TestAdd(n : Int) : Unit {
-                    use xs = Qubit[n];
-                    use ys = Qubit[n];
-                    for xsValue in 0..(1 <<< n) - 1 {
-                        for ysValue in 0..(1 <<< n) - 1 {
-                            ApplyXorInPlace(xsValue, xs);
-                            ApplyXorInPlace(ysValue, ys);
-                            IncByLE(xs, ys);
-                            Fact(MeasureInteger(ys) == (xsValue + ysValue) % (1 <<< n), $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            ResetAll(xs);
-                            ResetAll(ys);
-                        }
-                    }
-                    use xs = Qubit[n];
-                    use ys = Qubit[n + 1];
-                    for xsValue in 0..(1 <<< n) - 1 {
-                        for ysValue in 0..(1 <<< (n + 1)) - 1 {
-                            ApplyXorInPlace(xsValue, xs);
-                            ApplyXorInPlace(ysValue, ys);
-                            IncByLE(xs, ys);
-                            Fact(MeasureInteger(ys) == (xsValue + ysValue) % (1 <<< (n + 1)), $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            ResetAll(xs);
-                            ResetAll(ys);
-                        }
-                    }
-                }
-                internal operation TestAddCtl(n : Int) : Unit {
-                    use ctl = Qubit();
-                    use xs = Qubit[n];
-                    use ys = Qubit[n];
-                    for isCtl in [false, true] {
-                        for xsValue in 0..(1 <<< n) - 1 {
-                            for ysValue in 0..(1 <<< n) - 1 {
-                                within {
-                                    if isCtl {
-                                        X(ctl);
-                                    }
-                                } apply {
-                                    ApplyXorInPlace(xsValue, xs);
-                                    ApplyXorInPlace(ysValue, ys);
-                                    Controlled IncByLE([ctl], (xs, ys));
-                                    Fact(MeasureInteger(ys) == (isCtl ? (xsValue + ysValue) % (1 <<< n) | ysValue), $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                                    Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                                }
-                                ResetAll(xs);
-                                ResetAll(ys);
-                                Reset(ctl);
-                            }
-                        }
-                    }
-                }
-                for n in 1..4 {
-                    TestAdd(n);
-                }
-                for n in 1..4 {
-                    TestAddCtl(n);
-                }
-            
-            }"
-        },
+fn check_ripple_carry_inc_by_le_exhaustive_1() {
+    test_expression_with_lib(
+        "Test.TestAdd(1)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_exhaustive_2() {
+    test_expression_with_lib(
+        "Test.TestAdd(2)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_exhaustive_3() {
+    test_expression_with_lib(
+        "Test.TestAdd(3)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_exhaustive_4() {
+    test_expression_with_lib(
+        "Test.TestAdd(4)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_1() {
+    test_expression_with_lib(
+        "Test.TestAddCtl(1)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_2() {
+    test_expression_with_lib(
+        "Test.TestAddCtl(2)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_3() {
+    test_expression_with_lib(
+        "Test.TestAddCtl(3)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_inc_by_le_ctl_exhaustive_4() {
+    test_expression_with_lib(
+        "Test.TestAddCtl(4)",
+        RIPPLE_CARRY_INC_BY_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -527,54 +627,96 @@ fn check_ripple_carry_add_le() {
     );
 }
 
-#[test]
-fn check_ripple_carry_add_le_exhaustive() {
-    test_expression(
-        {
-            "{
+const RIPPLE_CARRY_ADD_LE_TEST_LIB: &str = r#"
+namespace Test {
+    open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Diagnostics;
+    operation TestAdd(n : Int) : Unit {
+        use xs = Qubit[n];
+        use ys = Qubit[n];
+        use zs = Qubit[n];
+        for xsValue in 0..(1 <<< n) - 1 {
+            for ysValue in 0..(1 <<< n) - 1 {
+                ApplyXorInPlace(xsValue, xs);
+                ApplyXorInPlace(ysValue, ys);
+                RippleCarryAddLE(xs, ys, zs);
+                Fact(MeasureInteger(xs) == xsValue, $"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}");
+                Fact(MeasureInteger(ys) == ysValue, $"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}");
+                Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< n), $"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}");
+                ResetAll(xs);
+                ResetAll(ys);
+                ResetAll(zs);
+            }
+        }
+        use xs = Qubit[n];
+        use ys = Qubit[n];
+        use zs = Qubit[n + 1];
+        for xsValue in 0..(1 <<< n) - 1 {
+            for ysValue in 0..(1 <<< n) - 1 {
+                ApplyXorInPlace(xsValue, xs);
+                ApplyXorInPlace(ysValue, ys);
+                RippleCarryAddLE(xs, ys, zs);
+                Fact(MeasureInteger(xs) == xsValue, $"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}");
+                Fact(MeasureInteger(ys) == ysValue, $"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}");
+                Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< (n + 1)), $"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}");
+                ResetAll(xs);
+                ResetAll(ys);
+                ResetAll(zs);
+            }
+        }
+    }
+}
+"#;
 
-                open Microsoft.Quantum.Arithmetic;
-                open Microsoft.Quantum.Convert;
-                open Microsoft.Quantum.Diagnostics;
-                internal operation TestAdd(n : Int) : Unit {
-                    use xs = Qubit[n];
-                    use ys = Qubit[n];
-                    use zs = Qubit[n];
-                    for xsValue in 0..(1 <<< n) - 1 {
-                        for ysValue in 0..(1 <<< n) - 1 {
-                            ApplyXorInPlace(xsValue, xs);
-                            ApplyXorInPlace(ysValue, ys);
-                            RippleCarryAddLE(xs, ys, zs);
-                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            Fact(MeasureInteger(ys) == ysValue, $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< n), $\"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            ResetAll(xs);
-                            ResetAll(ys);
-                            ResetAll(zs);
-                        }
-                    }
-                    use xs = Qubit[n];
-                    use ys = Qubit[n];
-                    use zs = Qubit[n + 1];
-                    for xsValue in 0..(1 <<< n) - 1 {
-                        for ysValue in 0..(1 <<< n) - 1 {
-                            ApplyXorInPlace(xsValue, xs);
-                            ApplyXorInPlace(ysValue, ys);
-                            RippleCarryAddLE(xs, ys, zs);
-                            Fact(MeasureInteger(xs) == xsValue, $\"unexpected value for `xs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            Fact(MeasureInteger(ys) == ysValue, $\"unexpected value for `ys` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            Fact(MeasureInteger(zs) == (xsValue + ysValue) % (1 <<< (n + 1)), $\"unexpected value for `zs` given xsValue = {xsValue} and ysValue = {ysValue}\");
-                            ResetAll(xs);
-                            ResetAll(ys);
-                            ResetAll(zs);
-                        }
-                    }
-                }
-                for n in 1..4 {
-                    TestAdd(n);
-                }
-        }"
-        },
+// #[test]
+// fn check_ripple_carry_add_le_exhaustive() {
+//     test_expression_with_lib(
+//         {
+//             "{
+//                 open Test;
+//                 for n in 1..4 {
+//                     TestAdd(n);
+//                 }
+//         }"
+//         },
+//         RIPPLE_CARRY_ADD_LE_TEST_LIB,
+//         &Value::Tuple(vec![].into()),
+//     );
+// }
+
+#[test]
+fn check_ripple_carry_add_le_exhaustive_1() {
+    test_expression_with_lib(
+        "Test.TestAdd(1)",
+        RIPPLE_CARRY_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_add_le_exhaustive_2() {
+    test_expression_with_lib(
+        "Test.TestAdd(2)",
+        RIPPLE_CARRY_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_add_le_exhaustive_3() {
+    test_expression_with_lib(
+        "Test.TestAdd(3)",
+        RIPPLE_CARRY_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_ripple_carry_add_le_exhaustive_4() {
+    test_expression_with_lib(
+        "Test.TestAdd(4)",
+        RIPPLE_CARRY_ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
