@@ -56,19 +56,14 @@ pub(crate) fn span_touches(span: Span, offset: u32) -> bool {
 }
 
 pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Span {
-    // Note that lo and hi offsets will usually be the same as
-    // the span will usually come from a single source.
-    let lo_offset = source_map
+    // Note that lo and hi offsets must always come from the same source.
+    let offset = source_map
         .find_by_offset(span.lo)
         .expect("source should exist for offset")
         .offset;
-    let hi_offset = source_map
-        .find_by_offset(span.hi)
-        .expect("source should exist for offset")
-        .offset;
     protocol::Span {
-        start: span.lo - lo_offset,
-        end: span.hi - hi_offset,
+        start: span.lo - offset,
+        end: span.hi - offset,
     }
 }
 

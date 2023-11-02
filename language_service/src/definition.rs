@@ -27,15 +27,12 @@ pub(crate) fn get_definition(
     let mut locator = Locator::new(&mut definition_finder, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
 
-    definition_finder.definition.map(|(name, offset)| Location {
-        source: name,
-        offset,
-    })
+    definition_finder.definition
 }
 
 struct DefinitionFinder<'a> {
     compilation: &'a Compilation,
-    definition: Option<(String, u32)>,
+    definition: Option<Location>,
 }
 
 impl DefinitionFinder<'_> {
@@ -62,7 +59,10 @@ impl DefinitionFinder<'_> {
             None => source.name.to_string(),
         };
 
-        self.definition = Some((source_name, lo - source.offset));
+        self.definition = Some(Location {
+            source: source_name,
+            offset: lo - source.offset,
+        });
     }
 }
 

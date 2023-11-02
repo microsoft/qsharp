@@ -44,6 +44,9 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
                 function TakesUdt(input : Udt) : Udt {
                     fail "not implemented"
                 }
+                operation RefFake() : Unit {
+                    Fake();
+                }
             }"#
             .into(),
         )],

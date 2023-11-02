@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::name_locator::{Handler, Locator, LocatorContext};
-use crate::protocol;
+use crate::protocol::{self, LocationSpan};
 use crate::qsc_utils::{map_offset, protocol_span, Compilation};
 use crate::references::{find_field_locations, find_item_locations, find_local_locations};
 use qsc::ast::visit::Visitor;
@@ -31,22 +31,18 @@ pub(crate) fn get_rename(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
-) -> Vec<protocol::Span> {
+) -> Vec<LocationSpan> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     let mut rename = Rename::new(compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);
     locator.visit_package(&compilation.user_unit.ast.package);
-    rename
-        .locations
-        .into_iter()
-        .map(|s| protocol_span(s, &compilation.user_unit.sources))
-        .collect::<Vec<_>>()
+    rename.locations
 }
 struct Rename<'a> {
     compilation: &'a Compilation,
-    locations: Vec<Span>,
+    locations: Vec<LocationSpan>,
     is_prepare: bool,
     prepare: Option<(Span, String)>,
 }

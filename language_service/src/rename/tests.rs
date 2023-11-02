@@ -39,17 +39,26 @@ fn callable_def() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 79,
-                    end: 82,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 31,
+                        end: 34,
+                    },
                 },
-                Span {
-                    start: 161,
-                    end: 164,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 79,
+                        end: 82,
+                    },
                 },
-                Span {
-                    start: 31,
-                    end: 34,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 161,
+                        end: 164,
+                    },
                 },
             ]
         "#]],
@@ -71,17 +80,26 @@ fn callable_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 79,
-                    end: 82,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 31,
+                        end: 34,
+                    },
                 },
-                Span {
-                    start: 161,
-                    end: 164,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 79,
+                        end: 82,
+                    },
                 },
-                Span {
-                    start: 31,
-                    end: 34,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 161,
+                        end: 164,
+                    },
                 },
             ]
         "#]],
@@ -101,17 +119,26 @@ fn parameter_def() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 35,
-                    end: 36,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 35,
+                        end: 36,
+                    },
                 },
-                Span {
-                    start: 90,
-                    end: 91,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 90,
+                        end: 91,
+                    },
                 },
-                Span {
-                    start: 105,
-                    end: 106,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 105,
+                        end: 106,
+                    },
                 },
             ]
         "#]],
@@ -131,17 +158,26 @@ fn parameter_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 35,
-                    end: 36,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 35,
+                        end: 36,
+                    },
                 },
-                Span {
-                    start: 90,
-                    end: 91,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 90,
+                        end: 91,
+                    },
                 },
-                Span {
-                    start: 105,
-                    end: 106,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 105,
+                        end: 106,
+                    },
                 },
             ]
         "#]],
@@ -161,17 +197,26 @@ fn local_def() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 83,
-                    end: 87,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 83,
+                        end: 87,
+                    },
                 },
-                Span {
-                    start: 105,
-                    end: 109,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 105,
+                        end: 109,
+                    },
                 },
-                Span {
-                    start: 114,
-                    end: 118,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 114,
+                        end: 118,
+                    },
                 },
             ]
         "#]],
@@ -191,17 +236,26 @@ fn local_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 83,
-                    end: 87,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 83,
+                        end: 87,
+                    },
                 },
-                Span {
-                    start: 105,
-                    end: 109,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 105,
+                        end: 109,
+                    },
                 },
-                Span {
-                    start: 114,
-                    end: 118,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 114,
+                        end: 118,
+                    },
                 },
             ]
         "#]],
@@ -222,17 +276,26 @@ fn udt_def() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 81,
-                    end: 84,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 29,
+                        end: 32,
+                    },
                 },
-                Span {
-                    start: 114,
-                    end: 117,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 81,
+                        end: 84,
+                    },
                 },
-                Span {
-                    start: 29,
-                    end: 32,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 114,
+                        end: 117,
+                    },
                 },
             ]
         "#]],
@@ -253,17 +316,26 @@ fn udt_constructor_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 81,
-                    end: 84,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 29,
+                        end: 32,
+                    },
                 },
-                Span {
-                    start: 114,
-                    end: 117,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 81,
+                        end: 84,
+                    },
                 },
-                Span {
-                    start: 29,
-                    end: 32,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 114,
+                        end: 117,
+                    },
                 },
             ]
         "#]],
@@ -284,17 +356,26 @@ fn udt_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 81,
-                    end: 84,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 29,
+                        end: 32,
+                    },
                 },
-                Span {
-                    start: 114,
-                    end: 117,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 81,
+                        end: 84,
+                    },
                 },
-                Span {
-                    start: 29,
-                    end: 32,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 114,
+                        end: 117,
+                    },
                 },
             ]
         "#]],
@@ -319,17 +400,26 @@ fn udt_field_def() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 147,
-                    end: 150,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 36,
+                        end: 39,
+                    },
                 },
-                Span {
-                    start: 175,
-                    end: 178,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 147,
+                        end: 150,
+                    },
                 },
-                Span {
-                    start: 36,
-                    end: 39,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 175,
+                        end: 178,
+                    },
                 },
             ]
         "#]],
@@ -354,17 +444,26 @@ fn udt_field_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 147,
-                    end: 150,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 36,
+                        end: 39,
+                    },
                 },
-                Span {
-                    start: 175,
-                    end: 178,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 147,
+                        end: 150,
+                    },
                 },
-                Span {
-                    start: 36,
-                    end: 39,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 175,
+                        end: 178,
+                    },
                 },
             ]
         "#]],
@@ -389,17 +488,26 @@ fn udt_field_complex_ref() {
     "#},
         &expect![[r#"
             [
-                Span {
-                    start: 147,
-                    end: 150,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 36,
+                        end: 39,
+                    },
                 },
-                Span {
-                    start: 175,
-                    end: 178,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 147,
+                        end: 150,
+                    },
                 },
-                Span {
-                    start: 36,
-                    end: 39,
+                LocationSpan {
+                    source: "<source>",
+                    span: Span {
+                        start: 175,
+                        end: 178,
+                    },
                 },
             ]
         "#]],

@@ -66,6 +66,12 @@ pub struct Location {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct LocationSpan {
+    pub source: String,
+    pub span: Span,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct Hover {
     pub contents: String,
     pub span: Span,

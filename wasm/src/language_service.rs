@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::collections::HashMap;
+
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use qsc::{self, compile};
 use serde::{Deserialize, Serialize};
@@ -167,20 +169,27 @@ impl LanguageService {
     pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
         let locations = self.0.get_rename(uri, offset);
 
-        let renames = locations
-            .into_iter()
-            .map(|s| TextEdit {
+        let mut renames: HashMap<String, Vec<TextEdit>> = HashMap::new();
+        for location in locations {
+            let text_edit = TextEdit {
                 range: Span {
-                    start: s.start,
-                    end: s.end,
+                    start: location.span.start,
+                    end: location.span.end,
                 },
                 newText: new_name.to_string(),
-            })
-            .collect::<Vec<_>>();
+            };
+
+            if let Some(locs) = renames.get_mut(&location.source) {
+                locs.push(text_edit);
+            } else {
+                renames.insert(location.source, vec![text_edit]);
+            }
+        }
 
         let workspace_edit = WorkspaceEdit {
-            changes: vec![(uri.to_string(), renames)],
+            changes: renames.into_iter().collect(),
         };
+
         workspace_edit.into()
     }
 
