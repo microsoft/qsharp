@@ -1,8 +1,8 @@
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableKind, ExprId, ItemKind, LocalItemId, NodeId, Package,
-        PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
+        Block, BlockId, CallableDecl, CallableKind, ExprId, ItemId, ItemKind, LocalItemId, NodeId,
+        Package, PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
     },
     ty::{Prim, Ty},
 };
@@ -30,6 +30,7 @@ impl Default for AnalysisStore {
 // TODO (cesarzc): Rename this to PackageRuntimeProperties.
 #[derive(Debug)]
 struct PackageAnalysis {
+    //pub callable_applications: IndexMap<LocalItemId, Option<Vec<CallableApplication>>>,
     pub callables: IndexMap<LocalItemId, Option<CallableAnalysis>>,
     pub blocks: IndexMap<BlockId, Option<BlockAnalysis>>,
     pub stmts: IndexMap<StmtId, Option<RuntimeProperties>>,
@@ -112,6 +113,23 @@ impl Display for PackageAnalysis {
 
         Ok(())
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct CallableApplicationIndex(usize);
+
+pub struct CallableApplicationId {
+    pub callable_id: ItemId,
+    pub application_index: CallableApplicationIndex,
+}
+
+#[derive(Debug)]
+struct CallableApplication {
+    // CONSIDER (cesarzc): Might be helpful to have the (global) ItemId and the application index?
+    pub is_quantum_source: bool,
+    pub runtime_capabilities: FxHashSet<RuntimeCapability>,
+    // CONSIDER (cesarzc): Maybe we can add diagnostic information here such as expression ID to provide good errors to
+    // the user when checking against a target.
 }
 
 // CONSIDER (cesarzc): Might need to do this a per specialization basis.
