@@ -217,12 +217,17 @@ pub(crate) fn find_item_locations(
     let mut locations = vec![];
 
     if include_declaration {
-        let (def, _) = resolve_item_relative_to_user_package(compilation, item_id);
+        let (def, _, resolved_item_id) =
+            resolve_item_relative_to_user_package(compilation, item_id);
         let def_span = match &def.kind {
             hir::ItemKind::Callable(decl) => decl.name.span,
             hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
         };
-        locations.push(get_location_span(compilation, def_span, item_id.package));
+        locations.push(get_location_span(
+            compilation,
+            def_span,
+            resolved_item_id.package,
+        ));
     }
 
     let mut find_refs = FindItemRefs {
@@ -251,7 +256,8 @@ pub(crate) fn find_field_locations(
     let mut locations = vec![];
 
     if include_declaration {
-        let (ty_def, _) = resolve_item_relative_to_user_package(compilation, ty_item_id);
+        let (ty_def, _, resolved_ty_item_id) =
+            resolve_item_relative_to_user_package(compilation, ty_item_id);
         if let hir::ItemKind::Ty(_, udt) = &ty_def.kind {
             let ty_field = udt
                 .find_field_by_name(&field_name)
@@ -259,7 +265,11 @@ pub(crate) fn find_field_locations(
             let def_span = ty_field
                 .name_span
                 .expect("field found via name should have a name");
-            locations.push(get_location_span(compilation, def_span, ty_item_id.package));
+            locations.push(get_location_span(
+                compilation,
+                def_span,
+                resolved_ty_item_id.package,
+            ));
         } else {
             panic!("item id resolved to non-type: {ty_item_id}");
         }
