@@ -272,7 +272,7 @@ impl Interpreter {
 
         let increment = self
             .compiler
-            .compile_fragments(&label, fragments)
+            .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
         let stmts = self.lower(&increment);

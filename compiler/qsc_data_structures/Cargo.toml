@@ -10,3 +10,6 @@ repository.workspace = true
 
 [dependencies]
 miette = { workspace = true }
+
+[lib]
+doctest = false
