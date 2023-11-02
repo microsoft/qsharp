@@ -63,7 +63,7 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations = find_item_locations(item_id, self.compilation);
+                self.locations = find_item_locations(item_id, self.compilation, true);
             }
         }
     }
@@ -75,7 +75,7 @@ impl<'a> Rename<'a> {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
                 self.locations =
-                    find_field_locations(item_id, ast_name.name.clone(), self.compilation);
+                    find_field_locations(item_id, ast_name.name.clone(), self.compilation, true);
             }
         }
     }
@@ -89,7 +89,8 @@ impl<'a> Rename<'a> {
         if self.is_prepare {
             self.prepare = Some((ast_name.span, ast_name.name.to_string()));
         } else {
-            self.locations = find_local_locations(node_id, current_callable, self.compilation);
+            self.locations =
+                find_local_locations(node_id, current_callable, self.compilation, true);
         }
     }
 }

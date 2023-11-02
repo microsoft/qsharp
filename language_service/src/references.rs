@@ -11,7 +11,7 @@ use crate::protocol::{Location, LocationSpan};
 use crate::qsc_utils::{
     map_offset, resolve_item_relative_to_user_package, Compilation, QSHARP_LIBRARY_URI_SCHEME,
 };
-use qsc::ast::visit::{walk_expr, walk_namespace, walk_ty, Visitor};
+use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
 use qsc::hir::ty::Ty;
 use qsc::hir::{ItemId, PackageId, Res};
 use qsc::{ast, hir, resolve, AstPackage, Span};
@@ -20,12 +20,14 @@ pub(crate) fn get_references(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
+    include_declaration: bool,
 ) -> Vec<Location> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
     let mut references_finder = ReferencesFinder {
         compilation,
+        include_declaration,
         references: vec![],
     };
 
@@ -37,6 +39,7 @@ pub(crate) fn get_references(
 
 struct ReferencesFinder<'a> {
     compilation: &'a Compilation,
+    include_declaration: bool,
     references: Vec<Location>,
 }
 
@@ -88,7 +91,9 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     ) {
         if let Some(resolve::Res::Item(item_id)) = self.compilation.user_unit.ast.names.get(name.id)
         {
-            for reference in find_item_locations(item_id, self.compilation) {
+            for reference in
+                find_item_locations(item_id, self.compilation, self.include_declaration)
+            {
                 self.add_ref_from_location(reference);
             }
         }
@@ -102,7 +107,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
-        for reference in find_item_locations(item_id, self.compilation) {
+        for reference in find_item_locations(item_id, self.compilation, self.include_declaration) {
             self.add_ref_from_location(reference);
         }
     }
@@ -111,7 +116,9 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         if let Some(resolve::Res::Item(item_id)) =
             self.compilation.user_unit.ast.names.get(type_name.id)
         {
-            for reference in find_item_locations(item_id, self.compilation) {
+            for reference in
+                find_item_locations(item_id, self.compilation, self.include_declaration)
+            {
                 self.add_ref_from_location(reference);
             }
         }
@@ -125,7 +132,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        for reference in find_item_locations(item_id, self.compilation) {
+        for reference in find_item_locations(item_id, self.compilation, self.include_declaration) {
             self.add_ref_from_location(reference);
         }
     }
@@ -137,9 +144,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Ty,
     ) {
         if let Some(ty_item_id) = context.current_udt_id {
-            for reference in
-                find_field_locations(ty_item_id, field_name.name.clone(), self.compilation)
-            {
+            for reference in find_field_locations(
+                ty_item_id,
+                field_name.name.clone(),
+                self.compilation,
+                self.include_declaration,
+            ) {
                 self.add_ref_from_location(reference);
             }
         }
@@ -152,7 +162,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         item_id: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
-        for reference in find_field_locations(item_id, field_ref.name.clone(), self.compilation) {
+        for reference in find_field_locations(
+            item_id,
+            field_ref.name.clone(),
+            self.compilation,
+            self.include_declaration,
+        ) {
             self.add_ref_from_location(reference);
         }
     }
@@ -164,7 +179,9 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Pat,
     ) {
         if let Some(curr) = context.current_callable {
-            for reference in find_local_locations(ident.id, curr, self.compilation) {
+            for reference in
+                find_local_locations(ident.id, curr, self.compilation, self.include_declaration)
+            {
                 self.add_ref_from_location(reference);
             }
         }
@@ -178,7 +195,9 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         ident: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            for reference in find_local_locations(ident.id, curr, self.compilation) {
+            for reference in
+                find_local_locations(ident.id, curr, self.compilation, self.include_declaration)
+            {
                 self.add_ref_from_location(reference);
             }
         }
@@ -223,6 +242,7 @@ fn get_location_span(
 pub(crate) fn find_item_locations(
     item_id: &hir::ItemId,
     compilation: &Compilation,
+    include_declaration: bool,
 ) -> Vec<LocationSpan> {
     let (def, _) = resolve_item_relative_to_user_package(compilation, item_id);
     let def_span = match &def.kind {
@@ -238,29 +258,31 @@ pub(crate) fn find_item_locations(
 
     //////////////////////////////// VERY SIMILAR CODE BLOCK /////////////////////////////////////////////
     let mut locations = vec![];
-    locations.push(get_location_span(compilation, def_span, item_id.package));
-    if let Some(library_package_id) = item_id.package {
-        let def_unit = compilation
-            .package_store
-            .get(library_package_id)
-            .expect("package should exist in store");
+    if include_declaration {
+        locations.push(get_location_span(compilation, def_span, item_id.package));
+        if let Some(library_package_id) = item_id.package {
+            let def_unit = compilation
+                .package_store
+                .get(library_package_id)
+                .expect("package should exist in store");
 
-        let mut find_refs = FindItemRefs {
-            item_id: &ItemId {
-                package: None,
-                item: item_id.item,
-            },
-            ast_package: &def_unit.ast,
-            locations: vec![],
-        };
+            let mut find_refs = FindItemRefs {
+                item_id: &ItemId {
+                    package: None,
+                    item: item_id.item,
+                },
+                ast_package: &def_unit.ast,
+                locations: vec![],
+            };
 
-        find_refs.visit_package(&def_unit.ast.package);
-        locations.extend(
-            find_refs
-                .locations
-                .drain(..)
-                .map(|l| get_location_span(compilation, l, item_id.package)),
-        );
+            find_refs.visit_package(&def_unit.ast.package);
+            locations.extend(
+                find_refs
+                    .locations
+                    .drain(..)
+                    .map(|l| get_location_span(compilation, l, item_id.package)),
+            );
+        }
     }
 
     find_refs.visit_package(&compilation.user_unit.ast.package);
@@ -279,6 +301,7 @@ pub(crate) fn find_field_locations(
     ty_item_id: &hir::ItemId,
     field_name: Rc<str>,
     compilation: &Compilation,
+    include_declaration: bool,
 ) -> Vec<LocationSpan> {
     let (ty_def, _) = resolve_item_relative_to_user_package(compilation, ty_item_id);
     if let hir::ItemKind::Ty(_, udt) = &ty_def.kind {
@@ -298,30 +321,32 @@ pub(crate) fn find_field_locations(
 
         //////////////////////////////// VERY SIMILAR CODE BLOCK /////////////////////////////////////////////
         let mut locations = vec![];
-        locations.push(get_location_span(compilation, def_span, ty_item_id.package));
-        if let Some(library_package_id) = ty_item_id.package {
-            let def_unit = compilation
-                .package_store
-                .get(library_package_id)
-                .expect("package should exist in store");
+        if include_declaration {
+            locations.push(get_location_span(compilation, def_span, ty_item_id.package));
+            if let Some(library_package_id) = ty_item_id.package {
+                let def_unit = compilation
+                    .package_store
+                    .get(library_package_id)
+                    .expect("package should exist in store");
 
-            let mut find_refs = FindFieldRefs {
-                ty_item_id: &ItemId {
-                    package: None,
-                    item: ty_item_id.item,
-                },
-                field_name,
-                ast_package: &def_unit.ast,
-                locations: vec![],
-            };
+                let mut find_refs = FindFieldRefs {
+                    ty_item_id: &ItemId {
+                        package: None,
+                        item: ty_item_id.item,
+                    },
+                    field_name,
+                    ast_package: &def_unit.ast,
+                    locations: vec![],
+                };
 
-            find_refs.visit_package(&def_unit.ast.package);
-            locations.extend(
-                find_refs
-                    .locations
-                    .drain(..)
-                    .map(|l| get_location_span(compilation, l, ty_item_id.package)),
-            );
+                find_refs.visit_package(&def_unit.ast.package);
+                locations.extend(
+                    find_refs
+                        .locations
+                        .drain(..)
+                        .map(|l| get_location_span(compilation, l, ty_item_id.package)),
+                );
+            }
         }
 
         find_refs.visit_package(&compilation.user_unit.ast.package);
@@ -343,10 +368,12 @@ pub(crate) fn find_local_locations(
     node_id: ast::NodeId,
     callable: &ast::CallableDecl,
     compilation: &Compilation,
+    include_declaration: bool,
 ) -> Vec<LocationSpan> {
     let mut find_refs = FindLocalLocations {
         node_id,
         compilation,
+        include_declaration,
         locations: vec![],
     };
     find_refs.visit_callable_decl(callable);
@@ -414,18 +441,21 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
 struct FindLocalLocations<'a> {
     node_id: ast::NodeId,
     compilation: &'a Compilation,
+    include_declaration: bool,
     locations: Vec<Span>,
 }
 
 impl<'a> Visitor<'_> for FindLocalLocations<'a> {
     fn visit_pat(&mut self, pat: &'_ ast::Pat) {
-        match &*pat.kind {
-            ast::PatKind::Bind(ident, _) => {
-                if ident.id == self.node_id {
-                    self.locations.push(ident.span);
+        if self.include_declaration {
+            match &*pat.kind {
+                ast::PatKind::Bind(ident, _) => {
+                    if ident.id == self.node_id {
+                        self.locations.push(ident.span);
+                    }
                 }
+                _ => ast::visit::walk_pat(self, pat),
             }
-            _ => ast::visit::walk_pat(self, pat),
         }
     }
 

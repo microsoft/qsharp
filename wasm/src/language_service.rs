@@ -108,8 +108,13 @@ impl LanguageService {
         })
     }
 
-    pub fn get_references(&self, uri: &str, offset: u32) -> Vec<ILocation> {
-        let locations = self.0.get_references(uri, offset);
+    pub fn get_references(
+        &self,
+        uri: &str,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Vec<ILocation> {
+        let locations = self.0.get_references(uri, offset, include_declaration);
         locations
             .into_iter()
             .map(|loc| {

@@ -19,7 +19,8 @@ class QSharpReferenceProvider implements vscode.ReferenceProvider {
   ) {
     const lsReferences = await this.languageService.getReferences(
       document.uri.toString(),
-      document.offsetAt(position)
+      document.offsetAt(position),
+      context.includeDeclaration,
     );
     if (!lsReferences) return [];
     const references = [];

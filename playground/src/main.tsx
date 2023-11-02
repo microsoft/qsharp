@@ -308,7 +308,8 @@ function registerMonacoLanguageServiceProviders(
     ) => {
       const lsReferences = await languageService.getReferences(
         model.uri.toString(),
-        model.getOffsetAt(position)
+        model.getOffsetAt(position),
+        context.includeDeclaration,
       );
       if (!lsReferences) return [];
       const references: monaco.languages.Location[] = [];

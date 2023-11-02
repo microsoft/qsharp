@@ -167,13 +167,18 @@ impl<'a> LanguageService<'a> {
     }
 
     #[must_use]
-    pub fn get_references(&self, uri: &str, offset: u32) -> Vec<Location> {
-        trace!("get_references: uri: {uri:?}, offset: {offset:?}");
+    pub fn get_references(
+        &self,
+        uri: &str,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Vec<Location> {
+        trace!("get_references: uri: {uri:?}, offset: {offset:?}, include_declaration: {include_declaration:?}");
         let refs = references::get_references(
             &self
             .document_map.get(uri).as_ref()
                 .expect("get_references should not be called before document has been initialized with update_document").compilation,
-                uri, offset);
+                uri, offset, include_declaration);
         trace!("get_references result: {refs:?}");
         refs
     }

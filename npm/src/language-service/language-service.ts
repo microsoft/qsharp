@@ -45,7 +45,11 @@ export interface ILanguageService {
     documentUri: string,
     offset: number
   ): Promise<ILocation | undefined>;
-  getReferences(documentUri: string, offset: number): Promise<ILocation[]>;
+  getReferences(
+    documentUri: string,
+    offset: number,
+    includeDeclaration: boolean
+  ): Promise<ILocation[]>;
   getSignatureHelp(
     documentUri: string,
     offset: number
@@ -198,7 +202,8 @@ export class QSharpLanguageService implements ILanguageService {
 
   async getReferences(
     documentUri: string,
-    offset: number
+    offset: number,
+    includeDeclaration: boolean
   ): Promise<ILocation[]> {
     const code = this.code[documentUri];
     if (code === undefined) {
@@ -210,7 +215,8 @@ export class QSharpLanguageService implements ILanguageService {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const results = this.languageService.get_references(
       documentUri,
-      convertedOffset
+      convertedOffset,
+      includeDeclaration
     );
     if (results && results.length > 0) {
       const references: ILocation[] = [];
