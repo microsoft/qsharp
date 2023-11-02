@@ -8,7 +8,6 @@ import {
   loadWasmModule,
   log,
   qsharpLibraryUriScheme,
-  Manifest,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
@@ -126,6 +125,11 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       }
       if (documentType === QsharpDocumentType.Qsharp) {
         const manifest = findManifest();
+        if (manifest) {
+          const lookupFn = (path) => j
+          // construct callbacks to find files and load dirs
+          // pass them to lang service via wasm
+        }
       }
       updateIfQsharpDocument(document);
     }),

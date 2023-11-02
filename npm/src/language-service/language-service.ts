@@ -111,14 +111,6 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.update_configuration(config);
   }
 
-  async updateProjectManifest(manifest: Manifest): Promise<void> {
-    this.languageService.update_manifest(manifest);
-  }
-
-  async updateProjectFiles(projectFiles: string[]): Promise<void> {
-    this.languageService.update_project_files(projectFiles);
-  }
-
   async updateDocument(
     documentUri: string,
     version: number,
