@@ -304,7 +304,7 @@ function registerMonacoLanguageServiceProviders(
     provideReferences: async (
       model: monaco.editor.ITextModel,
       position: monaco.Position,
-      context: monaco.languages.ReferenceContext
+      context: monaco.languages.ReferenceContext,
     ) => {
       const lsReferences = await languageService.getReferences(
         model.uri.toString(),

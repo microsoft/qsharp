@@ -15,7 +15,7 @@ class QSharpReferenceProvider implements vscode.ReferenceProvider {
     position: vscode.Position,
     context: vscode.ReferenceContext,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ) {
     const lsReferences = await this.languageService.getReferences(
       document.uri.toString(),
