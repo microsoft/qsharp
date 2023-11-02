@@ -115,13 +115,6 @@ impl<'a> LanguageService<'a> {
             self.recompile_all();
         }
     }
-    pub fn update_manifest(&mut self, manifest: qsc_project::ManifestDescriptor) {
-        todo!()
-    }
-
-    pub fn update_project_files(&mut self, files: Vec<String>) {
-        todo!()
-    }
 
     /// Indicates that the document has been opened or the source has been updated.
     /// This should be called before any language service requests have been made

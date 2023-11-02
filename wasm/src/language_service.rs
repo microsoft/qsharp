@@ -58,15 +58,6 @@ impl LanguageService {
         self.0.update_document(uri, version, text);
     }
 
-    pub fn update_manifest(&mut self, manifest: ManifestDescriptor) {
-        self.0.update_manifest(manifest.into());
-    }
-
-    // TODO arg type
-    pub fn update_project_files(&mut self, project_files: JsString) {
-        self.0.update_project_files(project_files);
-    }
-
     pub fn close_document(&mut self, uri: &str) {
         self.0.close_document(uri);
     }
