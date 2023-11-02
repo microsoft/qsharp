@@ -276,7 +276,7 @@ fn std_call() {
     "#,
         &expect![[r#"
             Some(
-                Definition {
+                Location {
                     source: "qsharp-library-source:<std>",
                     offset: 49,
                 },
@@ -375,7 +375,7 @@ fn std_udt() {
     "#,
         &expect![[r#"
             Some(
-                Definition {
+                Location {
                     source: "qsharp-library-source:<std>",
                     offset: 210,
                 },
@@ -398,7 +398,7 @@ fn std_udt_udt_field() {
     "#,
         &expect![[r#"
             Some(
-                Definition {
+                Location {
                     source: "qsharp-library-source:<std>",
                     offset: 217,
                 },
