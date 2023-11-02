@@ -20,7 +20,7 @@ namespace Sample {
         // Show the cat state.
         DumpMachine();
 
-        // Measure the and reset qubits before releasing them.
+        // Measure and reset qubits before releasing them.
         let results = MeasureEachZ(register);
         ResetAll(register);
         return results;
