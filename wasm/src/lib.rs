@@ -330,6 +330,38 @@ pub struct JsFileEntry {
     path: String,
 }
 
+impl From<[String; 2]> for JsFileEntry {
+    fn from([path_string, _contents]: [String; 2]) -> Self {
+        let path = PathBuf::from(path_string.clone());
+        let name = path
+            .file_name()
+            .map(|x| x.to_string_lossy())
+            .unwrap_or_default()
+            .to_string();
+
+        let extension = path
+            .extension()
+            .map(|x| x.to_string_lossy())
+            .unwrap_or_default()
+            .to_string();
+
+        let ty = if path.is_dir() {
+            EntryType::Folder
+        } else if path.is_file() {
+            EntryType::File
+        } else {
+            EntryType::Symlink
+        };
+
+        Self {
+            ty,
+            extension,
+            name,
+            path: path_string,
+        }
+    }
+}
+
 impl DirEntry for JsFileEntry {
     type Error = String;
 
@@ -383,7 +415,35 @@ impl FileSystem for ProjectLoader {
             return todo!("item is not array");
         }
 
-        todo!()
+        match result.dyn_into::<js_sys::Array>() {
+            Ok(values) => Ok(values
+                .into_iter()
+                .map(|inner_arr| -> miette::Result<_> {
+                    Ok(inner_arr
+                        // .map(&mut |x: JsValue, _ix, _arr| x)
+                        .dyn_into::<js_sys::Array>()
+                        .map_err(|e| miette!("Failed to cast inner tuples to js array: {e:?}"))?
+                        .into_iter()
+                        .map(|x| x.as_string().unwrap_or_default()))
+                })
+                .collect::<Result<Vec<_>, _>>()?
+                .iter_mut()
+                .map(|arr| {
+                    if arr.count() == 2 {
+                        // safety: iter was counted above
+                        Ok(JsFileEntry::from([
+                            arr.next().unwrap(),
+                            arr.next().unwrap(),
+                        ]))
+                    } else {
+                        Err(miette!("Result contained array that was not of length two"))
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()?),
+            Err(e) => Err(miette!(
+                "directory listing function did not return a list of file entries: {e:?}"
+            )),
+        }
     }
 }
 
