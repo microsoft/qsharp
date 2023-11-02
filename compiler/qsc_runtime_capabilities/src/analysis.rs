@@ -1,8 +1,8 @@
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        BlockId, CallableDecl, CallableKind, ExprId, ItemKind, LocalItemId, Package, PackageId,
-        PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
+        Block, BlockId, CallableDecl, CallableKind, ExprId, ItemKind, LocalItemId, NodeId, Package,
+        PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
     },
     ty::{Prim, Ty},
 };
@@ -118,6 +118,7 @@ impl Display for PackageAnalysis {
 #[derive(Debug)]
 struct CallableAnalysis {
     pub inherent_properties: Option<RuntimeProperties>,
+    // CONSIDER (cesarzc): It might make sense to set this to pattern IDs that match to the resolutions to avoid data duplication.
     pub params_properties: Option<Vec<RuntimeProperties>>,
 }
 
@@ -315,6 +316,7 @@ impl<'a> Initializer<'a> {
         }
 
         // Initialize callables.
+        // COSIDER (cesarzc): Might be important for callables to be done last.
         let mut callables = IndexMap::<LocalItemId, Option<CallableAnalysis>>::new();
         for (id, item) in package.items.iter() {
             let capabilities = match &item.kind {
@@ -357,6 +359,7 @@ impl<'a> Initializer<'a> {
         store_patterns: &IndexMap<PatId, Pat>,
         analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>,
     ) -> CallableAnalysis {
+        // CONSIDER (cesarzc): Maybe only set inherent properties for functions at this stage.
         // Inherent properties for all functions are the same.
         let inherent_properties = Some(RuntimeProperties {
             is_quantum_source: Some(false),
@@ -366,7 +369,7 @@ impl<'a> Initializer<'a> {
         // At this stage, parameters' properties can only be determined for `body instrinsic`
         // functions.
         let mut params_properties = None;
-        let is_intrinsic = Self::is_intrinsic(function);
+        let is_intrinsic = is_intrinsic(function);
         if is_intrinsic {
             // Determine whether parameters can be affect whether the function becomes a quantum
             // source.
@@ -378,7 +381,7 @@ impl<'a> Initializer<'a> {
                 .get(function.input)
                 .expect("Pattern should exist.");
 
-            let input_params_types = Self::get_params_types_from_pattern(input_pattern);
+            let input_params_types = get_params_types_from_pattern(input_pattern);
             let mut runtime_properties = Vec::<RuntimeProperties>::new();
             for param_type in input_params_types {
                 let mut param_caps = FxHashSet::<RuntimeCapability>::default();
@@ -409,7 +412,7 @@ impl<'a> Initializer<'a> {
         store_patterns: &IndexMap<PatId, Pat>,
         analysis_patterns: &mut IndexMap<PatId, Option<PatternAnalysis>>,
     ) -> CallableAnalysis {
-        let is_intrinsic = Self::is_intrinsic(operation);
+        let is_intrinsic = is_intrinsic(operation);
 
         // Analysis `body intrinsic` operations is complete at initialization.
         if is_intrinsic {
@@ -429,7 +432,7 @@ impl<'a> Initializer<'a> {
                 .get(operation.input)
                 .expect("Pattern should exist.");
 
-            let input_params_types = Self::get_params_types_from_pattern(input_pattern);
+            let input_params_types = get_params_types_from_pattern(input_pattern);
             let mut params_properties = Vec::<RuntimeProperties>::new();
             for param_type in input_params_types {
                 let mut param_caps = FxHashSet::<RuntimeCapability>::default();
@@ -481,30 +484,6 @@ impl<'a> Initializer<'a> {
             _ => panic!("Only callable parameter patterns are expected"),
         }
     }
-
-    // CONSIDER (cesarzc): Might get reused in some other place.
-    fn get_params_types_from_pattern(pattern: &Pat) -> Vec<Ty> {
-        match pattern.kind {
-            PatKind::Bind(_) => match pattern.ty {
-                Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
-                    vec![pattern.ty.clone()]
-                }
-                _ => panic!("Unexpected pattern type"),
-            },
-            PatKind::Tuple(_) => match &pattern.ty {
-                Ty::Tuple(vector) => vector.clone(),
-                _ => panic!("Unexpected pattern type"),
-            },
-            _ => panic!("Only callable parameter patterns are expected"),
-        }
-    }
-
-    fn is_intrinsic(callable: &CallableDecl) -> bool {
-        match callable.body.body {
-            SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
-            _ => false,
-        }
-    }
 }
 
 struct FunctionsAnalyzer<'a, 'b> {
@@ -520,7 +499,80 @@ impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
         }
     }
 
-    pub fn run(&mut self) {}
+    pub fn run(&mut self) {
+        for (id, package) in self.package_store.0.iter() {
+            let mut package_analysis = self
+                .analysis_store
+                .0
+                .get_mut(id)
+                .expect("`PackageAnalysis` should exist");
+            Self::analyze_package_functions(package, &mut package_analysis);
+        }
+    }
+
+    fn analyze_package_functions(package: &Package, package_analysis: &mut PackageAnalysis) {
+        for (item_id, item) in package.items.iter() {
+            // Only analyze functions.
+            if let ItemKind::Callable(callable) = &item.kind {
+                if callable.kind == CallableKind::Function {
+                    Self::analyze_function(item_id, callable, package, package_analysis);
+                }
+            }
+        }
+    }
+
+    fn analyze_function(
+        function_id: LocalItemId,
+        function: &CallableDecl,
+        package: &Package,
+        package_analysis: &mut PackageAnalysis,
+    ) {
+        let mut function_analysis = package_analysis
+            .callables
+            .get_mut(function_id)
+            .expect("`CallableAnalysis` should exist")
+            .as_mut()
+            .expect("`CallableAnalysis` should be initialized");
+
+        // Do the analysis if the parameters' properties have not been set.
+        if function_analysis.params_properties.is_none() {
+            let store_patterns = &package.pats;
+            let input_pattern = store_patterns
+                .get(function.input)
+                .expect("Pattern should exist.");
+            let params_resolutions = get_params_resolutions(input_pattern, store_patterns);
+            // CONSIDER (cesarzc): This probably has to be done for all specializations, not just body.
+            let function_block = match function.body.body {
+                SpecBody::Impl(_, block_id) => {
+                    package.blocks.get(block_id).expect("`Block` should exist")
+                }
+                _ => panic!("Automatically generated specializations are not supported."),
+            };
+
+            // Determine the properties for each parameter.
+            let mut params_properties = Vec::<RuntimeProperties>::new();
+            for resolution in params_resolutions {
+                let caps = Self::get_capabilities_for_resolution(resolution, function_block);
+                let properties = RuntimeProperties {
+                    is_quantum_source: Some(true), // TODO (cesarzc): Do this properly instead of using shortcut.
+                    caps: Some(caps),
+                };
+                params_properties.push(properties);
+            }
+
+            // Q: (cesarzc): Why is this not working?
+            function_analysis.params_properties = Some(params_properties);
+        }
+    }
+
+    fn get_capabilities_for_resolution(
+        resolution: NodeId,
+        block: &Block,
+    ) -> FxHashSet<RuntimeCapability> {
+        let mut caps = FxHashSet::<RuntimeCapability>::default();
+        // TODO (cesarzc): Implement.
+        caps
+    }
 }
 
 fn get_capabilities_for_types(tuple: &[Ty]) -> Vec<RuntimeCapability> {
@@ -556,5 +608,48 @@ fn get_capabilities_for_primitive_type(primitive: &Prim) -> Vec<RuntimeCapabilit
         }
         Prim::Result => vec![RuntimeCapability::ConditionalForwardBranching],
         Prim::String => vec![RuntimeCapability::HigherLevelConstructs],
+    }
+}
+
+fn get_params_resolutions(pattern: &Pat, store_patterns: &IndexMap<PatId, Pat>) -> Vec<NodeId> {
+    let mut resolutions = Vec::<NodeId>::new();
+    match &pattern.kind {
+        PatKind::Bind(ident) => resolutions.push(ident.id),
+        PatKind::Tuple(pattern_ids) => {
+            for pat_id in pattern_ids {
+                let pat = store_patterns.get(*pat_id).expect("`Pattern` should exist");
+                // CONSIDER (cesarzc): Goes into nested params, consider it when using data produced by this function.
+                let mut param_resolutions = get_params_resolutions(pat, store_patterns);
+                resolutions.append(&mut param_resolutions);
+            }
+        }
+        _ => panic!("Only callable parameter patterns are expected"),
+    };
+    resolutions
+}
+
+fn get_params_types_from_pattern(pattern: &Pat) -> Vec<Ty> {
+    match pattern.kind {
+        PatKind::Bind(_) => match pattern.ty {
+            Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
+                vec![pattern.ty.clone()]
+            }
+            _ => panic!(
+                "Unexpected pattern type {} for pattern {}",
+                pattern.ty, pattern.id
+            ),
+        },
+        PatKind::Tuple(_) => match &pattern.ty {
+            Ty::Tuple(vector) => vector.clone(),
+            _ => panic!("Unexpected pattern type"),
+        },
+        _ => panic!("Only callable parameter patterns are expected"),
+    }
+}
+
+fn is_intrinsic(callable: &CallableDecl) -> bool {
+    match callable.body.body {
+        SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
+        _ => false,
     }
 }

@@ -264,6 +264,7 @@ namespace Microsoft.Quantum.Arrays {
     /// for ((idx, element) in Enumerated(array)) { ... }
     /// ```
     function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[] {
+        // CONSIDER (cesarzc): This is where the weird pattern seems to be coming from.
         MappedByIndex((index, element) -> (index, element), array)
     }
 
