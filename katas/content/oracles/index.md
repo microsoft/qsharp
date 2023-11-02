@@ -398,7 +398,7 @@ Here we will compare the reference implementation of `Meeting_Oracle` to the cla
 Congratulations! In this kata you have learned to build quantum oracles. Here are a few key concepts to keep in mind:
 * A quantum oracle is an "opaque box" operation that is used as input to another algorithm.
 * Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$ it multiplies the phase of the basis state $\ket{x}$ by $-1$.
-* Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it doen't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$ it flips the state of the qubit $\ket{y} for the basis state $\ket{x}$.
+* Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it doen't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$ it flips the state of the qubit $\ket{y}$ for the basis state $\ket{x}$.
 
 **Next Steps**
 
