@@ -384,3 +384,29 @@
 .estimate-assumption {
   margin: 1em;
 }
+
+#pieChart {
+  fill: var(--vscode-editor-foreground);
+}
+
+.spaceReport {
+  display: flex;
+  flex-direction: column;
+}
+
+.spaceReportHeader {
+  font-size: 14px;
+  background-color: #eee;
+  background-color: var(--vscode-list-hoverBackground);
+  border-top: 0.5px gray solid;
+  border-bottom: 0.5px gray solid;
+  padding: 12px;
+}
+.spaceReportRow {
+  display: flex;
+  font-size: 12px;
+  padding: 12px 24px;
+}
+.spaceDetailText {
+  width: 200px;
+}

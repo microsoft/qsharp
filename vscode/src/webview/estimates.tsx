@@ -5,6 +5,7 @@ import { marked } from "marked";
 import { estimatesData } from "./estimatesData";
 
 import { useEffect, useState } from "preact/hooks";
+import { SpaceChart } from "./spaceChart";
 
 export function Estimates() {
   const [showDetail, setShowDetail] = useState(false);
@@ -15,8 +16,12 @@ export function Estimates() {
 
   return (
     <div>
-      <h2>Resource Estimates</h2>
-      <a href="#" onClick={() => setShowDetail(!showDetail)}>
+      <h2 style="margin: 24px 8px;">Resource Estimates</h2>
+      <a
+        href="#"
+        style="font-size: 10px"
+        onClick={() => setShowDetail(!showDetail)}
+      >
         {showDetail ? "Hide details" : "Show details"}
       </a>
       {estimatesData.reportData.groups.map((group) => {
@@ -76,6 +81,8 @@ export function Estimates() {
           ))}
         </ul>
       </details>
+      <h2 style="margin: 24px 8px;">Space diagram</h2>
+      <SpaceChart />
     </div>
   );
 }

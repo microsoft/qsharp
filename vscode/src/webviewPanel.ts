@@ -216,6 +216,7 @@ window.MathJax = {
         ViewColumn.Beside,
         {
           enableScripts: true,
+          retainContextWhenHidden: true,
         }
       );
 
