@@ -164,7 +164,8 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 
 export async function getLanguageService(): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm);
+  return new QSharpLanguageService(wasm, new wasm.ProjectLoader(() => {},
+     () => {}));
 }
 
 // Create the compiler inside a WebWorker and proxy requests.

@@ -8,6 +8,7 @@ import {
   loadWasmModule,
   log,
   qsharpLibraryUriScheme,
+  projectLoader,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
@@ -126,7 +127,12 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       if (documentType === QsharpDocumentType.Qsharp) {
         const manifest = findManifest();
         if (manifest) {
-          const lookupFn = (path) => j
+          const lookupFn = (path) => vscode.workspace.findFiles(path).then(res => res[0]);
+
+          const listDirFn = (path) => vscode.workspace.findFiles(path);
+
+          let projectLoader = 
+
           // construct callbacks to find files and load dirs
           // pass them to lang service via wasm
         }

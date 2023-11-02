@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{diagnostic::VSDiagnostic, serializable_type, ManifestDescriptor};
+use crate::{diagnostic::VSDiagnostic, serializable_type, ManifestDescriptor, ProjectLoader};
 use js_sys::JsString;
 use qsc::{self};
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ pub struct LanguageService(qsls::LanguageService<'static>);
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(diagnostics_callback: DiagnosticsCallback) -> Self {
+    pub fn new(diagnostics_callback: DiagnosticsCallback, project_loader: ProjectLoader) -> Self {
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")

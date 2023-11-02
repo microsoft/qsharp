@@ -25,6 +25,7 @@ import {
   QSharpDebugService,
 } from "./debug-service/debug-service.js";
 import { createDebugServiceProxy } from "./debug-service/worker-proxy.js";
+import { ProjectLoader } from "../lib/web/qsc_wasm.js";
 
 export { qsharpLibraryUriScheme };
 
@@ -96,9 +97,9 @@ export function getDebugServiceWorker(): IDebugServiceWorker {
   return proxy;
 }
 
-export function getLanguageService(): ILanguageService {
+export function getLanguageService(projectLoader: ProjectLoader): ILanguageService {
   if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-  return new QSharpLanguageService(wasm);
+  return new QSharpLanguageService(wasm, projectLoader);
 }
 
 export function getLanguageServiceWorker(): ILanguageServiceWorker {
