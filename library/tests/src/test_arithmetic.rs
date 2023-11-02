@@ -692,4 +692,3 @@ fn check_fourier_inc_by_le_exhaustive_bitwidth_3() {
         &Value::Tuple(vec![].into()),
     );
 }
-
