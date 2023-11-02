@@ -476,6 +476,8 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
+    // TODO: This needs description.
+    // TODO: Need to figure out if it's actually "LE".
     operation QFTLE (qs : Qubit[]) : Unit is Adj {
         open Microsoft.Quantum.Arrays;
         for (i, q) in Reversed(Enumerated(qs)) {
