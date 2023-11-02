@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::collections::HashMap;
-
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use qsc::{self, compile};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -174,7 +173,7 @@ impl LanguageService {
     pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
         let locations = self.0.get_rename(uri, offset);
 
-        let mut renames: HashMap<String, Vec<TextEdit>> = HashMap::new();
+        let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
         for location in locations {
             let text_edit = TextEdit {
                 range: Span {
