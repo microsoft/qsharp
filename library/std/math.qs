@@ -684,6 +684,39 @@ namespace Microsoft.Quantum.Math {
         size
     }
 
+    /// # Summary
+    /// For a non-zero integer `a`, returns the number of trailing zero bits
+    /// in the binary representation of `a`.
+    function TrailingZeroCountI (a : Int) : Int {
+        Fact(a != 0, "TrailingZeroCountI: `a` cannot be 0.");
+
+        mutable count = 0;
+        mutable n = a;
+        while n &&& 1 == 0 {
+            set count += 1;
+            set n >>>= 1;
+        }
+
+        count
+    }
+
+    /// # Summary
+    /// For a non-zero integer `a`, returns the number of trailing zero bits
+    /// in the binary representation of `a`.
+    function TrailingZeroCountL (a : BigInt) : Int {
+        Fact(a != 0L, "TrailingZeroCountL: `a` cannot be 0.");
+
+        mutable count = 0;
+        mutable n = a;
+        while n &&& 1L == 0L {
+            set count += 1;
+            set n >>>= 1;
+        }
+
+        count
+    }
+
+
     //
     // Combinatorics
     //

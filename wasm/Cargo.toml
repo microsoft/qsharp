@@ -12,6 +12,7 @@ description = "Wasm module for the qsc compiler"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+doctest = false
 
 [dependencies]
 js-sys = { workspace = true }

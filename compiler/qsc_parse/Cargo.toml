@@ -19,3 +19,6 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
+
+[lib]
+doctest = false

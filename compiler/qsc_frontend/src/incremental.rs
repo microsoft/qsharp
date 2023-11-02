@@ -95,34 +95,39 @@ impl Compiler {
     /// get information about the newly added items, or do other modifications.
     /// It is then the caller's responsibility to merge
     /// these packages into the current `CompileUnit`.
-    pub fn compile_fragments(
+    ///
+    /// This method calls an accumulator function with any errors returned
+    /// from each of the stages (parsing, lowering), instead of failing.
+    /// If the accumulator succeeds, compilation continues.
+    /// If the accumulator returns an error, compilation stops and the
+    /// error is returned to the caller.
+    pub fn compile_fragments<F, E>(
         &mut self,
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-    ) -> Result<Increment, Vec<Error>> {
+        mut accumulate_errors: F,
+    ) -> Result<Increment, E>
+    where
+        F: FnMut(Vec<Error>) -> Result<(), E>,
+    {
         let (mut ast, parse_errors) =
             Self::parse_fragments(&mut unit.sources, source_name, source_contents);
 
-        if !parse_errors.is_empty() {
-            return Err(parse_errors);
-        }
+        accumulate_errors(parse_errors)?;
 
-        let (hir, lower_errors) = self.resolve_check_lower(unit, &mut ast);
+        let (hir, errors) = self.resolve_check_lower(unit, &mut ast);
 
-        if lower_errors.is_empty() {
-            Ok(Increment {
-                ast: AstPackage {
-                    package: ast,
-                    names: self.resolver.names().clone(),
-                    tys: self.checker.table().clone(),
-                },
-                hir,
-            })
-        } else {
-            self.lowerer.clear_items();
-            Err(lower_errors)
-        }
+        accumulate_errors(errors)?;
+
+        Ok(Increment {
+            ast: AstPackage {
+                package: ast,
+                names: self.resolver.names().clone(),
+                tys: self.checker.table().clone(),
+            },
+            hir,
+        })
     }
 
     /// Compiles an entry expression.
@@ -148,21 +153,20 @@ impl Compiler {
             return Err(parse_errors);
         }
 
-        let (package, errors) = self.resolve_check_lower(unit, &mut ast);
+        let (hir, errors) = self.resolve_check_lower(unit, &mut ast);
 
-        if errors.is_empty() {
-            Ok(Increment {
-                ast: AstPackage {
-                    package: ast,
-                    names: self.resolver.names().clone(),
-                    tys: self.checker.table().clone(),
-                },
-                hir: package,
-            })
-        } else {
-            self.lowerer.clear_items();
-            Err(errors)
+        if !errors.is_empty() {
+            return Err(errors);
         }
+
+        Ok(Increment {
+            ast: AstPackage {
+                package: ast,
+                names: self.resolver.names().clone(),
+                tys: self.checker.table().clone(),
+            },
+            hir,
+        })
     }
 
     pub fn update(&mut self, unit: &mut CompileUnit, new: Increment) {
@@ -199,11 +203,26 @@ impl Compiler {
 
         let package = self.lower(&mut unit.assigner, &*ast);
 
-        let errors: Vec<Error> = self
+        let errors = self
+            .resolver
             .drain_errors()
-            .into_iter()
+            .map(|e| compile::Error(e.into()))
+            .chain(
+                self.checker
+                    .drain_errors()
+                    .map(|e| compile::Error(e.into())),
+            )
+            .chain(
+                self.lowerer
+                    .drain_errors()
+                    .map(|e| compile::Error(e.into())),
+            )
             .map(|e| WithSource::from_map(&unit.sources, e))
-            .collect();
+            .collect::<Vec<_>>();
+
+        if !errors.is_empty() {
+            self.lowerer.clear_items();
+        }
 
         (package, errors)
     }
@@ -283,23 +302,6 @@ impl Compiler {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
             .lower_package(package)
-    }
-
-    fn drain_errors(&mut self) -> Vec<compile::Error> {
-        self.resolver
-            .drain_errors()
-            .map(|e| compile::Error(e.into()))
-            .chain(
-                self.checker
-                    .drain_errors()
-                    .map(|e| compile::Error(e.into())),
-            )
-            .chain(
-                self.lowerer
-                    .drain_errors()
-                    .map(|e| compile::Error(e.into())),
-            )
-            .collect()
     }
 }
 
