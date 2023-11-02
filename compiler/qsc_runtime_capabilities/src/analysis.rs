@@ -137,7 +137,7 @@ impl Display for CallableAnalysis {
                 write!(indent, "{cap}")?;
             }
         } else {
-            write!(f, " None")?;
+            write!(f, " NONES")?;
         }
         Ok(())
     }
@@ -200,7 +200,7 @@ impl Display for BlockAnalysis {
                 write!(indent, "{cap}")?;
             }
         } else {
-            write!(f, "None")?;
+            write!(f, " NONES")?;
         }
         Ok(())
     }
@@ -506,7 +506,7 @@ impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
                 .0
                 .get_mut(id)
                 .expect("`PackageAnalysis` should exist");
-            Self::analyze_package_functions(package, &mut package_analysis);
+            Self::analyze_package_functions(package, package_analysis);
         }
     }
 
@@ -527,7 +527,7 @@ impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
         package: &Package,
         package_analysis: &mut PackageAnalysis,
     ) {
-        let mut function_analysis = package_analysis
+        let function_analysis = package_analysis
             .callables
             .get_mut(function_id)
             .expect("`CallableAnalysis` should exist")
@@ -560,7 +560,6 @@ impl<'a, 'b> FunctionsAnalyzer<'a, 'b> {
                 params_properties.push(properties);
             }
 
-            // Q: (cesarzc): Why is this not working?
             function_analysis.params_properties = Some(params_properties);
         }
     }
