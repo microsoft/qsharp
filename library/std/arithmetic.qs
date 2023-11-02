@@ -494,7 +494,7 @@ namespace Microsoft.Quantum.Arithmetic {
     ///
     /// # Description
     /// Computes zs := xs + ys + zs[0] modulo 2ⁿ, where xs, ys, and zs are
-    /// little-endian registers, Length(xs) = Length(ys) ≤ Length(zs) = n (!!!),
+    /// little-endian registers, Length(xs) = Length(ys) ≤ Length(zs) = n,
     /// assuming zs is 0-initialized, except for maybe zs[0], which can be
     /// in |0> or |1> state and can be used as carry-in.
     /// NOTE: `zs[Length(xs)]` can be used as carry-out, if `zs` is longer than `xs`.
@@ -504,13 +504,14 @@ namespace Microsoft.Quantum.Arithmetic {
     ///     - [arXiv:quant-ph/0406142](https://arxiv.org/abs/quant-ph/0406142)
     ///      "A logarithmic-depth quantum carry-lookahead adder" by
     ///      Thomas G. Draper, Samuel A. Kutin, Eric M. Rains, Krysta M. Svore
+    @Config(Full)
     operation LookAheadAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
         Fact(Length(ys) == xsLen, "Registers `xs` and `ys` must be of same length.");
-        Fact(zsLen == xsLen or zsLen == xsLen + 1, "Register `zs` must be same length as `xs` or one bit longer.");
+        Fact(zsLen >= xsLen, "Register `zs` must be no shorter than register `xs`.");
 
-        if zsLen == xsLen + 1 { // with carry-out
+        if zsLen > xsLen { // with carry-out
             // compute initial generate values
             for k in 0..xsLen - 1 {
                 ApplyAndAssuming0Target(xs[k], ys[k], zs[k + 1]);
@@ -521,7 +522,7 @@ namespace Microsoft.Quantum.Arithmetic {
                 ApplyToEachA(CNOT, Zipped(xs, ys));
             } apply {
                 if xsLen > 1 {
-                    ComputeCarries(Rest(ys), Rest(zs));
+                    ComputeCarries(Rest(ys), zs[1..xsLen]);
                 }
 
                 // compute sum into carries
@@ -529,7 +530,7 @@ namespace Microsoft.Quantum.Arithmetic {
                     CNOT(ys[k], zs[k]);
                 }
             }
-        } else { // without carry-out
+        } else { // xsLen == zsLen, so without carry-out
             LookAheadAddLE(Most(xs), Most(ys), zs);
             CNOT(Tail(xs), Tail(zs));
             CNOT(Tail(ys), Tail(zs));

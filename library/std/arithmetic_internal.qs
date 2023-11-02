@@ -176,8 +176,10 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Computes carries for the look-ahead adder
+    @Config(Full)
     internal operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
         let n = Length(gs);
+        Fact(Length(ps)+1 == n, "Register gs must be one qubit longer than register gs.");
 
         let T = Floor(Lg(IntAsDouble(n)));
         use qs = Qubit[n - PopulationCountI(n) - T];
@@ -197,7 +199,7 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     /// # Summary
-    /// Computes all p[i, j] values for the look-ahead adder
+    /// Computes all p[i, j] values in workspace for the look-ahead adder.
     ///
     /// The register array `pWorkspace` has T entries, where T = ⌊log₂ n⌋.
     ///
@@ -212,6 +214,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// in `pWorkspace[t][m - 1]` and use that for k = 2ᵗ × m + 2ᵗ⁻¹, p[i, k] and p[k, j]
     /// have already been computed in round t - 1 in `pWorkspace[t - 1][2 * m - 1]` and
     /// `pWorkspace[t - 1][2 * m]`, respectively.
+    @Config(Full)
     internal operation PRounds(pWorkspace : Qubit[][]) : Unit is Adj {
         for ws in Windows(2, pWorkspace) {
             // note that we are using Rest, since pWorkspace[t - 1][0] is never
@@ -225,7 +228,7 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     /// # Summary
-    /// Computes g[i ∧ (i + 1), i + 1] into gs[i] for the look-ahead adder
+    /// Computes g[i ∧ (i + 1), i + 1] into gs[i] for the look-ahead adder.
     ///
     /// The register gs has n entries initialized to gs[i] = g[i, i + 1].
     ///
@@ -246,6 +249,8 @@ namespace Microsoft.Quantum.Arithmetic {
         }
     }
 
+    /// # Summary
+    /// Computes carries into gs for the look-ahead adder.
     internal operation CRounds(pWorkspace : Qubit[][], gs : Qubit[]) : Unit is Adj {
         let n = Length(gs);
 
