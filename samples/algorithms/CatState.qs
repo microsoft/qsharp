@@ -3,9 +3,9 @@
 ///
 /// # Description
 /// A cat state is a highly entangled state where the qubits are in a
-/// superposition of all |0...0〉 or all |0...0〉.
+/// superposition of all |0...0〉 or all |1...1〉.
 ///
-/// This Q# program implements a cat state.
+/// This Q# program implements a cat state of 5 qubits.
 namespace Sample {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Measurement;
