@@ -5,6 +5,8 @@ namespace Microsoft.Quantum.Arithmetic {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Convert;
+
 
     // Computes ys += xs + carryIn using a ripple carry architecture
     @Config(Full)
@@ -169,6 +171,98 @@ namespace Microsoft.Quantum.Arithmetic {
                 Reset(target);
                 CZ(control1, control2);
             }
+        }
+    }
+
+    /// # Summary
+    /// Computes carries for the look-ahead adder
+    internal operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
+        let n = Length(gs);
+
+        let T = Floor(Lg(IntAsDouble(n)));
+        use qs = Qubit[n - PopulationCountI(n) - T];
+
+        let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
+        let pWorkspace = [ps] + Partitioned(registerPartition, qs);
+
+        within {
+            PRounds(pWorkspace);
+        } apply {
+            // U_G
+            GRounds(pWorkspace, gs);
+
+            // U_C
+            CRounds(pWorkspace, gs);
+        }
+    }
+
+    /// # Summary
+    /// Computes all p[i, j] values for the look-ahead adder
+    ///
+    /// The register array `pWorkspace` has T entries, where T = ⌊log₂ n⌋.
+    ///
+    /// The first entry `pWorkspace[0]` is initialized with `P_0` which is
+    /// computed before `ComputeCarries` is called.  The other registers are
+    /// 0-initialized and will be computed in successive rounds t = 1, ..., T - 1.
+    ///
+    /// In each round t we compute
+    ///
+    /// p[i, j] = p[2ᵗ × m, 2ᵗ × (m + 1)] = p[i, k] ∧ p[k, j]
+    ///
+    /// in `pWorkspace[t][m - 1]` and use that for k = 2ᵗ × m + 2ᵗ⁻¹, p[i, k] and p[k, j]
+    /// have already been computed in round t - 1 in `pWorkspace[t - 1][2 * m - 1]` and
+    /// `pWorkspace[t - 1][2 * m]`, respectively.
+    internal operation PRounds(pWorkspace : Qubit[][]) : Unit is Adj {
+        for ws in Windows(2, pWorkspace) {
+            // note that we are using Rest, since pWorkspace[t - 1][0] is never
+            // accessed in round t.
+            let (current, next) = (Rest(ws[0]), ws[1]);
+
+            for (m, target) in Enumerated(next) {
+                ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], target);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Computes g[i ∧ (i + 1), i + 1] into gs[i] for the look-ahead adder
+    ///
+    /// The register gs has n entries initialized to gs[i] = g[i, i + 1].
+    ///
+    /// After successive rounds t = 1, ..., T, the register is updated to
+    /// gs[i] = g[i ∧ (i + 1), i + 1], from which we can compute the carries
+    /// in the C-rounds.
+    internal operation GRounds(pWorkspace : Qubit[][], gs : Qubit[]) : Unit is Adj {
+        let T = Length(pWorkspace);
+        let n = Length(gs);
+
+        for t in 1..T {
+            let length = Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1;
+            let ps = pWorkspace[t - 1][0..2...];
+
+            for m in 0..length {
+                CCNOT(gs[2^t * m + 2^(t - 1) - 1], ps[m], gs[2^t * m + 2^t - 1]);
+            }
+        }
+    }
+
+    internal operation CRounds(pWorkspace : Qubit[][], gs : Qubit[]) : Unit is Adj {
+        let n = Length(gs);
+
+        let start = Floor(Lg(IntAsDouble(2 * n) / 3.0));
+        for t in start..-1..1 {
+            let length = Floor(IntAsDouble(n - 2^(t - 1)) / IntAsDouble(2^t));
+            let ps = pWorkspace[t - 1][1..2...];
+
+            for m in 1..length {
+                CCNOT(gs[2^t * m - 1], ps[m - 1], gs[2^t * m + 2^(t - 1) - 1]);
+            }
+        }
+    }
+
+    internal operation PhaseGradient (qs : Qubit[]) : Unit is Adj + Ctl {
+        for (i, q) in Enumerated(qs) {
+            R1Frac(1, i, q);
         }
     }
 

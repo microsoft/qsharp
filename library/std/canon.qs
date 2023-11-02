@@ -476,4 +476,14 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
+    operation QFTLE (qs : Qubit[]) : Unit is Adj {
+        open Microsoft.Quantum.Arrays;
+        for (i, q) in Reversed(Enumerated(qs)) {
+            H(q);
+            for (j, q2) in Enumerated(Reversed(qs[...i - 1])) {
+                Controlled R1Frac([q], (1, j + 1, q2));
+            }
+        }
+    }
+
 }

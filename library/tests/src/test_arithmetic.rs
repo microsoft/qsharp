@@ -625,3 +625,71 @@ fn check_ripple_carry_add_le_exhaustive_bitwidth_4() {
         &Value::Tuple(vec![].into()),
     );
 }
+
+const LOOKAHEAD_ADD_LE_TEST_LIB: &str = include_str!("resources/lookahead_add_le.qs");
+
+#[test]
+fn check_lookahead_add_le_exhaustive_bitwidth_1() {
+    test_expression_with_lib(
+        "Test.TestLookAheadAddLE(1)",
+        LOOKAHEAD_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_lookahead_add_le_exhaustive_bitwidth_2() {
+    test_expression_with_lib(
+        "Test.TestLookAheadAddLE(2)",
+        LOOKAHEAD_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_lookahead_add_le_exhaustive_bitwidth_3() {
+    test_expression_with_lib(
+        "Test.TestLookAheadAddLE(3)",
+        LOOKAHEAD_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_lookahead_add_le_exhaustive_bitwidth_4() {
+    test_expression_with_lib(
+        "Test.TestLookAheadAddLE(4)",
+        LOOKAHEAD_ADD_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+const FOURIER_INC_BY_LE_TEST_LIB: &str = include_str!("resources/fourier_inc_by_le.qs");
+
+#[test]
+fn check_fourier_carry_inc_by_le_exhaustive_bitwidth_1() {
+    test_expression_with_lib(
+        "Test.TestFourierIncByLE(1)",
+        FOURIER_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_fourier_carry_inc_by_le_exhaustive_bitwidth_2() {
+    test_expression_with_lib(
+        "Test.TestFourierIncByLE(2)",
+        FOURIER_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_fourier_inc_by_le_exhaustive_bitwidth_3() {
+    test_expression_with_lib(
+        "Test.TestFourierIncByLE(3)",
+        FOURIER_INC_BY_LE_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
