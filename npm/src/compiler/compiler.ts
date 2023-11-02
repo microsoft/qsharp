@@ -121,7 +121,6 @@ export class Compiler implements ICompiler {
 
   // TODO return type -- not sure if this is correct
   async loadProject(files: Dir, manifest: Manifest): Promise<string[]> {
-    // const lookup_fn = (path: string) =>  files.entries.filter((x) => name(x) == path)[0] || null;
     const lookupFn = (path: string) => lookupFunction(files, path);
     // TODO below fn
     const listDirFn = (path: string) => listDir(files, path);
