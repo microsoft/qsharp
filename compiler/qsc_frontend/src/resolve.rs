@@ -420,11 +420,10 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_attr(&mut self, attr: &ast::Attr) {
-        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
-            // The Config attribute arguments do not go through name resolution.
-            return;
+        // The Config attribute arguments do not go through name resolution.
+        if hir::Attr::from_str(attr.name.name.as_ref()) != Ok(hir::Attr::Config) {
+            walk_attr(self, attr);
         }
-        walk_attr(self, attr);
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
