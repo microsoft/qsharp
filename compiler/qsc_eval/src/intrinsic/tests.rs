@@ -1173,3 +1173,75 @@ fn qubit_not_unique_three_qubit_error_second_third() {
         &expect!["qubits in gate invocation are not unique"],
     );
 }
+
+#[test]
+fn single_qubit_rotation_nan_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Rx(Microsoft.Quantum.Math.ArcSin(2.0), q);
+        }"},
+        &expect!["invalid rotation angle: NaN"],
+    );
+}
+
+#[test]
+fn two_qubit_rotation_nan_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Rxx(Microsoft.Quantum.Math.ArcSin(2.0), q1, q2);
+        }"},
+        &expect!["invalid rotation angle: NaN"],
+    );
+}
+
+#[test]
+fn single_qubit_rotation_inf_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Rx(-Microsoft.Quantum.Math.Log(0.0), q);
+        }"},
+        &expect!["invalid rotation angle: inf"],
+    );
+}
+
+#[test]
+fn two_qubit_rotation_inf_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Rxx(-Microsoft.Quantum.Math.Log(0.0), q1, q2);
+        }"},
+        &expect!["invalid rotation angle: inf"],
+    );
+}
+
+#[test]
+fn single_qubit_rotation_neg_inf_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Rx(Microsoft.Quantum.Math.Log(0.0), q);
+        }"},
+        &expect!["invalid rotation angle: -inf"],
+    );
+}
+
+#[test]
+fn two_qubit_rotation_neg_inf_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2) = (Qubit(), Qubit());
+            Rxx(Microsoft.Quantum.Math.Log(0.0), q1, q2);
+        }"},
+        &expect!["invalid rotation angle: -inf"],
+    );
+}
