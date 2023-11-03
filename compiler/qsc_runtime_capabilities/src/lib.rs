@@ -5,7 +5,7 @@ use indenter::{indented, Indented};
 
 use std::fmt::{self, Display, Formatter, Write};
 
-pub mod analysis;
+pub mod analysis_legacy;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,

@@ -16,7 +16,7 @@ use qsc_frontend::{
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
-use qsc_runtime_capabilities::analysis::Analyzer;
+use qsc_runtime_capabilities::analysis_legacy::Analyzer;
 use std::{
     concat,
     fs::{self, File},
