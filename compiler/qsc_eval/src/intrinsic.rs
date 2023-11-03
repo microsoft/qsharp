@@ -97,15 +97,21 @@ pub(crate) fn call(
         "__quantum__qis__cx__body" => two_qubit_gate(|ctl, q| sim.cx(ctl, q), arg, arg_span),
         "__quantum__qis__cy__body" => two_qubit_gate(|ctl, q| sim.cy(ctl, q), arg, arg_span),
         "__quantum__qis__cz__body" => two_qubit_gate(|ctl, q| sim.cz(ctl, q), arg, arg_span),
-        "__quantum__qis__rx__body" => Ok(one_qubit_rotation(|theta, q| sim.rx(theta, q), arg)),
+        "__quantum__qis__rx__body" => {
+            one_qubit_rotation(|theta, q| sim.rx(theta, q), arg, arg_span)
+        }
         "__quantum__qis__rxx__body" => {
             two_qubit_rotation(|theta, q0, q1| sim.rxx(theta, q0, q1), arg, arg_span)
         }
-        "__quantum__qis__ry__body" => Ok(one_qubit_rotation(|theta, q| sim.ry(theta, q), arg)),
+        "__quantum__qis__ry__body" => {
+            one_qubit_rotation(|theta, q| sim.ry(theta, q), arg, arg_span)
+        }
         "__quantum__qis__ryy__body" => {
             two_qubit_rotation(|theta, q0, q1| sim.ryy(theta, q0, q1), arg, arg_span)
         }
-        "__quantum__qis__rz__body" => Ok(one_qubit_rotation(|theta, q| sim.rz(theta, q), arg)),
+        "__quantum__qis__rz__body" => {
+            one_qubit_rotation(|theta, q| sim.rz(theta, q), arg, arg_span)
+        }
         "__quantum__qis__rzz__body" => {
             two_qubit_rotation(|theta, q0, q1| sim.rzz(theta, q0, q1), arg, arg_span)
         }
@@ -155,10 +161,19 @@ fn two_qubit_gate(
     }
 }
 
-fn one_qubit_rotation(mut gate: impl FnMut(f64, usize), arg: Value) -> Value {
+fn one_qubit_rotation(
+    mut gate: impl FnMut(f64, usize),
+    arg: Value,
+    arg_span: PackageSpan,
+) -> Result<Value, Error> {
     let [x, y] = unwrap_tuple(arg);
-    gate(x.unwrap_double(), y.unwrap_qubit().0);
-    Value::unit()
+    let angle = x.unwrap_double();
+    if angle.is_nan() || angle.is_infinite() {
+        Err(Error::InvalidRotationAngle(angle, arg_span))
+    } else {
+        gate(angle, y.unwrap_qubit().0);
+        Ok(Value::unit())
+    }
 }
 
 fn three_qubit_gate(
@@ -181,10 +196,13 @@ fn two_qubit_rotation(
     arg_span: PackageSpan,
 ) -> Result<Value, Error> {
     let [x, y, z] = unwrap_tuple(arg);
+    let angle = x.unwrap_double();
     if y == z {
         Err(Error::QubitUniqueness(arg_span))
+    } else if angle.is_nan() || angle.is_infinite() {
+        Err(Error::InvalidRotationAngle(angle, arg_span))
     } else {
-        gate(x.unwrap_double(), y.unwrap_qubit().0, z.unwrap_qubit().0);
+        gate(angle, y.unwrap_qubit().0, z.unwrap_qubit().0);
         Ok(Value::unit())
     }
 }
