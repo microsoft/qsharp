@@ -63,6 +63,13 @@ pub struct LanguageService<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    /// Contains the filesystem-emulating read-file callback for reading project files
+    /// from the editor
+    read_file_callback: Box<dyn Fn(std::path::PathBuf) -> (Arc<str>, Arc<str>) + 'a>,
+    /// Contains the filesystem-emulating list-directory callback for listing project directories
+    /// we could make this generic, `impl qsc_project::DirEntry`, to support running the language
+    /// service on more exotic filesystems
+    list_directory_callback: Box<dyn Fn(std::path::PathBuf) -> Vec<qsc_project::JsFileEntry> + 'a>,
 }
 
 #[derive(Debug)]
@@ -92,13 +99,19 @@ struct OpenDocument {
 }
 
 impl<'a> LanguageService<'a> {
-    pub fn new(diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a) -> Self {
+    pub fn new(
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        read_file_callback: impl Fn(std::path::PathBuf) -> (Arc<str>, Arc<str>) + 'a,
+        list_directory_callback: impl Fn(std::path::PathBuf) -> Vec<qsc_project::JsFileEntry> + 'a,
+    ) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
             compilations: FxHashMap::default(),
             open_documents: FxHashMap::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
+            read_file_callback: Box::new(read_file_callback),
+            list_directory_callback: Box::new(list_directory_callback),
         }
     }
 

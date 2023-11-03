@@ -615,15 +615,19 @@ fn close_notebook_clears_errors() {
 type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
 
 fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'_> {
-    LanguageService::new(|update: DiagnosticUpdate| {
-        let mut v = received.borrow_mut();
+    LanguageService::new(
+        |update: DiagnosticUpdate| {
+            let mut v = received.borrow_mut();
 
-        v.push((
-            update.uri.to_string(),
-            update.version,
-            update.errors.iter().map(|e| e.error().clone()).collect(),
-        ));
-    })
+            v.push((
+                update.uri.to_string(),
+                update.version,
+                update.errors.iter().map(|e| e.error().clone()).collect(),
+            ));
+        },
+        |_x| todo!("fs tests"),
+        |_x| todo!("fs tests"),
+    )
 }
 
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
