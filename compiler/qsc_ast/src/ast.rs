@@ -317,7 +317,7 @@ impl Display for Attr {
 }
 
 /// A type definition.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct TyDef {
     /// The node ID.
     pub id: NodeId,
@@ -334,7 +334,7 @@ impl Display for TyDef {
 }
 
 /// A type definition kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum TyDefKind {
     /// A field definition with an optional name but required type.
     Field(Option<Box<Ident>>, Box<Ty>),
@@ -342,6 +342,9 @@ pub enum TyDefKind {
     Paren(Box<TyDef>),
     /// A tuple.
     Tuple(Box<[Box<TyDef>]>),
+    /// An invalid type definition.
+    #[default]
+    Err,
 }
 
 impl Display for TyDefKind {
@@ -372,6 +375,7 @@ impl Display for TyDefKind {
                     }
                 }
             }
+            TyDefKind::Err => write!(indent, "Err")?,
         }
         Ok(())
     }
@@ -541,7 +545,7 @@ impl Display for FunctorExprKind {
 }
 
 /// A type.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Ty {
     /// The node ID.
     pub id: NodeId,
@@ -558,7 +562,7 @@ impl Display for Ty {
 }
 
 /// A type kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum TyKind {
     /// An array type.
     Array(Box<Ty>),
@@ -574,6 +578,9 @@ pub enum TyKind {
     Param(Box<Ident>),
     /// A tuple type.
     Tuple(Box<[Ty]>),
+    /// An invalid type.
+    #[default]
+    Err,
 }
 
 impl Display for TyKind {
@@ -607,6 +614,7 @@ impl Display for TyKind {
                     }
                 }
             }
+            TyKind::Err => write!(indent, "Err")?,
         }
         Ok(())
     }
@@ -1082,7 +1090,7 @@ pub enum StringComponent {
 }
 
 /// A pattern.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Pat {
     /// The node ID.
     pub id: NodeId,
@@ -1099,7 +1107,7 @@ impl Display for Pat {
 }
 
 /// A pattern kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum PatKind {
     /// A binding with an optional type annotation.
     Bind(Box<Ident>, Option<Box<Ty>>),
@@ -1111,6 +1119,9 @@ pub enum PatKind {
     Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Box<[Box<Pat>]>),
+    /// An invalid pattern.
+    #[default]
+    Err,
 }
 
 impl Display for PatKind {
@@ -1150,13 +1161,14 @@ impl Display for PatKind {
                     }
                 }
             }
+            PatKind::Err => write!(indent, "Err")?,
         }
         Ok(())
     }
 }
 
 /// A qubit initializer.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct QubitInit {
     /// The node ID.
     pub id: NodeId,
@@ -1173,7 +1185,7 @@ impl Display for QubitInit {
 }
 
 /// A qubit initializer kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum QubitInitKind {
     /// An array of qubits: `Qubit[a]`.
     Array(Box<Expr>),
@@ -1183,6 +1195,9 @@ pub enum QubitInitKind {
     Single,
     /// A tuple: `(a, b, c)`.
     Tuple(Box<[Box<QubitInit>]>),
+    /// An invalid initializer.
+    #[default]
+    Err,
 }
 
 impl Display for QubitInitKind {
@@ -1211,13 +1226,14 @@ impl Display for QubitInitKind {
                     }
                 }
             }
+            QubitInitKind::Err => write!(indent, "Err")?,
         }
         Ok(())
     }
 }
 
 /// A path to a declaration.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Path {
     /// The node ID.
     pub id: NodeId,
@@ -1249,6 +1265,16 @@ pub struct Ident {
     pub span: Span,
     /// The identifier name.
     pub name: Rc<str>,
+}
+
+impl Default for Ident {
+    fn default() -> Self {
+        Ident {
+            id: NodeId::default(),
+            span: Span::default(),
+            name: "".into(),
+        }
+    }
 }
 
 impl Display for Ident {

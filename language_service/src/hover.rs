@@ -233,7 +233,7 @@ fn is_param(param_pats: &[&ast::Pat], node_id: ast::NodeId) -> bool {
     fn find_in_pat(pat: &ast::Pat, node_id: ast::NodeId) -> bool {
         match &*pat.kind {
             ast::PatKind::Bind(ident, _) => node_id == ident.id,
-            ast::PatKind::Discard(_) | ast::PatKind::Elided => false,
+            ast::PatKind::Discard(_) | ast::PatKind::Elided | ast::PatKind::Err => false,
             ast::PatKind::Paren(inner) => find_in_pat(inner, node_id),
             ast::PatKind::Tuple(inner) => inner.iter().any(|x| find_in_pat(x, node_id)),
         }
