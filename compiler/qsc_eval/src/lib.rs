@@ -964,7 +964,7 @@ impl State {
             BinOp::Gte => self.eval_binop_simple(eval_binop_gte),
             BinOp::Lt => self.eval_binop_simple(eval_binop_lt),
             BinOp::Lte => self.eval_binop_simple(eval_binop_lte),
-            BinOp::Mod => self.eval_binop_simple(eval_binop_mod),
+            BinOp::Mod => self.eval_binop_with_error(span, eval_binop_mod)?,
             BinOp::Mul => self.eval_binop_simple(eval_binop_mul),
             BinOp::Neq => {
                 let rhs_val = self.pop_val();
@@ -1496,7 +1496,7 @@ fn eval_binop_add(lhs_val: Value, rhs_val: Value) -> Value {
         }
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
-            Value::Int(val + rhs)
+            Value::Int(val.wrapping_add(rhs))
         }
         Value::String(val) => {
             let rhs = rhs_val.unwrap_string();
@@ -1535,7 +1535,7 @@ fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
             if rhs == 0 {
                 Err(Error::DivZero(rhs_span))
             } else {
-                Ok(Value::Int(val / rhs))
+                Ok(Value::Int(val.wrapping_div(rhs)))
             }
         }
         Value::Double(val) => {
@@ -1570,11 +1570,12 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
             if rhs_val < 0 {
                 Err(Error::InvalidNegativeInt(rhs_val, rhs_span))
             } else {
-                let rhs_val: u32 = match rhs_val.try_into() {
-                    Ok(v) => Ok(v),
+                let result: i64 = match rhs_val.try_into() {
+                    Ok(v) => val.checked_pow(v)
+                        .ok_or(Error::IntTooLarge(rhs_val, rhs_span)),
                     Err(_) => Err(Error::IntTooLarge(rhs_val, rhs_span)),
                 }?;
-                Ok(Value::Int(val.pow(rhs_val)))
+                Ok(Value::Int(result))
             }
         }
         _ => panic!("value should support exp"),
@@ -1653,19 +1654,31 @@ fn eval_binop_lte(lhs_val: Value, rhs_val: Value) -> Value {
     }
 }
 
-fn eval_binop_mod(lhs_val: Value, rhs_val: Value) -> Value {
+fn eval_binop_mod(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Result<Value, Error> {
     match lhs_val {
         Value::BigInt(val) => {
             let rhs = rhs_val.unwrap_big_int();
-            Value::BigInt(val % rhs)
+            if rhs == BigInt::from(0) {
+                Err(Error::DivZero(rhs_span))
+            } else {
+                Ok(Value::BigInt(val % rhs))
+            }
         }
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
-            Value::Int(val % rhs)
+            if rhs == 0 {
+                Err(Error::DivZero(rhs_span))
+            } else {
+                Ok(Value::Int(val.wrapping_rem(rhs)))
+            }
         }
         Value::Double(val) => {
             let rhs = rhs_val.unwrap_double();
-            Value::Double(val % rhs)
+            if rhs == 0.0 {
+                Err(Error::DivZero(rhs_span))
+            } else {
+                Ok(Value::Double(val % rhs))
+            }
         }
         _ => panic!("value should support mod"),
     }
@@ -1679,7 +1692,7 @@ fn eval_binop_mul(lhs_val: Value, rhs_val: Value) -> Value {
         }
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
-            Value::Int(val * rhs)
+            Value::Int(val.wrapping_mul(rhs))
         }
         Value::Double(val) => {
             let rhs = rhs_val.unwrap_double();
@@ -1716,9 +1729,9 @@ fn eval_binop_shl(lhs_val: Value, rhs_val: Value) -> Value {
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
             if rhs > 0 {
-                Value::Int(val << rhs)
+                Value::Int(val.wrapping_shl(rhs as u32))
             } else {
-                Value::Int(val >> rhs.abs())
+                Value::Int(val.wrapping_shr(rhs.wrapping_abs() as u32))
             }
         }
         _ => panic!("value should support shl"),
@@ -1738,9 +1751,9 @@ fn eval_binop_shr(lhs_val: Value, rhs_val: Value) -> Value {
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
             if rhs > 0 {
-                Value::Int(val >> rhs)
+                Value::Int(val.wrapping_shr(rhs as u32))
             } else {
-                Value::Int(val << rhs.abs())
+                Value::Int(val.wrapping_shl(rhs.wrapping_abs() as u32))
             }
         }
         _ => panic!("value should support shr"),
@@ -1759,7 +1772,7 @@ fn eval_binop_sub(lhs_val: Value, rhs_val: Value) -> Value {
         }
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
-            Value::Int(val - rhs)
+            Value::Int(val.wrapping_sub(rhs))
         }
         _ => panic!("value is not subtractable"),
     }
