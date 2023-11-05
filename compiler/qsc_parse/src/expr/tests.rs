@@ -45,13 +45,19 @@ fn lit_int_overflow_min() {
         "9_223_372_036_854_775_808",
         &expect!["Expr _id_ [0-25]: Lit: Int(-9223372036854775808)"],
     );
+}
 
+#[test]
+fn lit_int_overflow_min_hexadecimal() {
     check(
         expr,
         "0x8000000000000000",
         &expect!["Expr _id_ [0-18]: Lit: Int(-9223372036854775808)"],
     );
+}
 
+#[test]
+fn lit_int_overflow_min_binary() {
     check(
         expr,
         "0b1000000000000000000000000000000000000000000000000000000000000000",
@@ -76,7 +82,10 @@ fn lit_int_too_big() {
             )
         "#]],
     );
+}
 
+#[test]
+fn lit_int_too_big_hexadecimal() {
     check(
         expr,
         "0x8000000000000001",
@@ -92,7 +101,10 @@ fn lit_int_too_big() {
             )
         "#]],
     );
+}
 
+#[test]
+fn lit_int_too_big_binary() {
     check(
         expr,
         "0b1000000000000000000000000000000000000000000000000000000000000001",
