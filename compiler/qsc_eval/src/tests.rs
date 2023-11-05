@@ -483,8 +483,9 @@ fn binop_add_int() {
 #[test]
 fn binop_add_int_wrap() {
     check_expr(
-        "", "0x7FFFFFFFFFFFFFFF + 1",
-        &expect!["-9223372036854775808"]
+        "",
+        "0x7FFFFFFFFFFFFFFF + 1",
+        &expect!["-9223372036854775808"],
     );
 }
 
@@ -575,8 +576,9 @@ fn binop_div_int() {
 #[test]
 fn binop_div_int_wrap() {
     check_expr(
-        "", "(-0x8000000000000000) / (-1)",
-        &expect!["-9223372036854775808"]
+        "",
+        "(-0x8000000000000000) / (-1)",
+        &expect!["-9223372036854775808"],
     );
 }
 
@@ -1069,10 +1071,7 @@ fn binop_mod_int() {
 
 #[test]
 fn binop_mod_int_wrap() {
-    check_expr(
-        "", "(-0x8000000000000000) % (-1)",
-        &expect!["0"]
-    );
+    check_expr("", "(-0x8000000000000000) % (-1)", &expect!["0"]);
 }
 
 #[test]
@@ -1140,9 +1139,10 @@ fn binop_mul_int() {
 #[test]
 fn binop_mul_int_wrap() {
     check_expr(
-        "", "0x7FFFFFFFFFFFFFFF * 0xFF",
-        &expect!["9223372036854775553"]
-    )
+        "",
+        "0x7FFFFFFFFFFFFFFF * 0xFF",
+        &expect!["9223372036854775553"],
+    );
 }
 
 #[test]
@@ -1355,9 +1355,10 @@ fn binop_sub_int() {
 #[test]
 fn binop_sub_int_wrap() {
     check_expr(
-        "", "-0x8000000000000000 - 1",
-        &expect!["9223372036854775807"]
-    )
+        "",
+        "-0x8000000000000000 - 1",
+        &expect!["9223372036854775807"],
+    );
 }
 
 #[test]

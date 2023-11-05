@@ -1571,7 +1571,8 @@ fn eval_binop_exp(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
                 Err(Error::InvalidNegativeInt(rhs_val, rhs_span))
             } else {
                 let result: i64 = match rhs_val.try_into() {
-                    Ok(v) => val.checked_pow(v)
+                    Ok(v) => val
+                        .checked_pow(v)
                         .ok_or(Error::IntTooLarge(rhs_val, rhs_span)),
                     Err(_) => Err(Error::IntTooLarge(rhs_val, rhs_span)),
                 }?;
@@ -1716,6 +1717,7 @@ fn eval_binop_orb(lhs_val: Value, rhs_val: Value) -> Value {
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 fn eval_binop_shl(lhs_val: Value, rhs_val: Value) -> Value {
     match lhs_val {
         Value::BigInt(val) => {
@@ -1738,6 +1740,7 @@ fn eval_binop_shl(lhs_val: Value, rhs_val: Value) -> Value {
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 fn eval_binop_shr(lhs_val: Value, rhs_val: Value) -> Value {
     match lhs_val {
         Value::BigInt(val) => {
