@@ -36,12 +36,26 @@ fn lit_int_max() {
 // NOTE: Since we need to support literals of value i64::MIN while also parsing the negative sign
 // as a unary operator, we need to allow one special case of overflow that is the absolute value
 // of i64::MIN. This will wrap to a negative value. See the `lit_int_min` test below.
+// To check for other issues with handling i64::MIN, hexadecimal and binary literals
+// of i64::MIN also need to be tested.
 #[test]
 fn lit_int_overflow_min() {
     check(
         expr,
         "9_223_372_036_854_775_808",
         &expect!["Expr _id_ [0-25]: Lit: Int(-9223372036854775808)"],
+    );
+
+    check(
+        expr,
+        "0x8000000000000000",
+        &expect!["Expr _id_ [0-18]: Lit: Int(-9223372036854775808)"],
+    );
+
+    check(
+        expr,
+        "0b1000000000000000000000000000000000000000000000000000000000000000",
+        &expect!["Expr _id_ [0-66]: Lit: Int(-9223372036854775808)"],
     );
 }
 
@@ -57,6 +71,38 @@ fn lit_int_too_big() {
                     Span {
                         lo: 0,
                         hi: 25,
+                    },
+                ),
+            )
+        "#]],
+    );
+
+    check(
+        expr,
+        "0x8000000000000001",
+        &expect![[r#"
+            Error(
+                Lit(
+                    "integer",
+                    Span {
+                        lo: 0,
+                        hi: 18,
+                    },
+                ),
+            )
+        "#]],
+    );
+
+    check(
+        expr,
+        "0b1000000000000000000000000000000000000000000000000000000000000001",
+        &expect![[r#"
+            Error(
+                Lit(
+                    "integer",
+                    Span {
+                        lo: 0,
+                        hi: 66,
                     },
                 ),
             )
