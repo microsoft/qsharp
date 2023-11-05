@@ -1311,9 +1311,34 @@ fn binop_shl_int_negative() {
 }
 
 #[test]
-fn binop_shl_int_wrap() {
-    check_expr("", "5<<<65", &expect!["10"]);
-    check_expr("", "5<<<(-0x8000000000000000)", &expect!["5"]);
+fn binop_shl_int_truncate() {
+    check_expr("", "1 <<< 63", &expect!["-9223372036854775808"]);
+    check_expr("", "2 <<< 63", &expect!["0"]);
+}
+
+#[test]
+fn binop_shl_int_overflow() {
+    check_expr(
+        "",
+        "1 <<< 64",
+        &expect![[r#"
+            (
+                IntTooLarge(
+                    64,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
 }
 
 #[test]
@@ -1337,9 +1362,34 @@ fn binop_shr_int_negative() {
 }
 
 #[test]
-fn binop_shr_int_wrap() {
-    check_expr("", "5>>>65", &expect!["2"]);
-    check_expr("", "5>>>(-0x8000000000000000)", &expect!["5"]);
+fn binop_shr_int_truncate() {
+    check_expr("", "(-9223372036854775808) >>> 63", &expect!["-1"]);
+    check_expr("", "1 >>> 63", &expect!["0"]);
+}
+
+#[test]
+fn binop_shr_int_overflow() {
+    check_expr(
+        "",
+        "1 >>> 64",
+        &expect![[r#"
+            (
+                IntTooLarge(
+                    64,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
 }
 
 #[test]

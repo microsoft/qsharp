@@ -979,8 +979,8 @@ impl State {
                     self.push_expr(rhs.expect("rhs should be provided with binop andl"));
                 }
             }
-            BinOp::Shl => self.eval_binop_simple(eval_binop_shl),
-            BinOp::Shr => self.eval_binop_simple(eval_binop_shr),
+            BinOp::Shl => self.eval_binop_with_error(span, eval_binop_shl)?,
+            BinOp::Shr => self.eval_binop_with_error(span, eval_binop_shr)?,
             BinOp::Sub => self.eval_binop_simple(eval_binop_sub),
             BinOp::XorB => self.eval_binop_simple(eval_binop_xorb),
         }
@@ -1717,9 +1717,8 @@ fn eval_binop_orb(lhs_val: Value, rhs_val: Value) -> Value {
     }
 }
 
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-fn eval_binop_shl(lhs_val: Value, rhs_val: Value) -> Value {
-    match lhs_val {
+fn eval_binop_shl(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Result<Value, Error> {
+    Ok(match lhs_val {
         Value::BigInt(val) => {
             let rhs = rhs_val.unwrap_int();
             if rhs > 0 {
@@ -1730,19 +1729,26 @@ fn eval_binop_shl(lhs_val: Value, rhs_val: Value) -> Value {
         }
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
-            if rhs > 0 {
-                Value::Int(val.wrapping_shl(rhs as u32))
+            Value::Int(if rhs > 0 {
+                let shift: u32 = rhs.try_into().or(Err(Error::IntTooLarge(rhs, rhs_span)))?;
+                val.checked_shl(shift)
+                    .ok_or(Error::IntTooLarge(rhs, rhs_span))?
             } else {
-                Value::Int(val.wrapping_shr(rhs.wrapping_abs() as u32))
-            }
+                let shift: u32 = rhs
+                    .checked_neg()
+                    .ok_or(Error::IntTooLarge(rhs, rhs_span))?
+                    .try_into()
+                    .or(Err(Error::IntTooLarge(rhs, rhs_span)))?;
+                val.checked_shr(shift)
+                    .ok_or(Error::IntTooLarge(rhs, rhs_span))?
+            })
         }
         _ => panic!("value should support shl"),
-    }
+    })
 }
 
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-fn eval_binop_shr(lhs_val: Value, rhs_val: Value) -> Value {
-    match lhs_val {
+fn eval_binop_shr(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Result<Value, Error> {
+    Ok(match lhs_val {
         Value::BigInt(val) => {
             let rhs = rhs_val.unwrap_int();
             if rhs > 0 {
@@ -1753,14 +1759,22 @@ fn eval_binop_shr(lhs_val: Value, rhs_val: Value) -> Value {
         }
         Value::Int(val) => {
             let rhs = rhs_val.unwrap_int();
-            if rhs > 0 {
-                Value::Int(val.wrapping_shr(rhs as u32))
+            Value::Int(if rhs > 0 {
+                let shift: u32 = rhs.try_into().or(Err(Error::IntTooLarge(rhs, rhs_span)))?;
+                val.checked_shr(shift)
+                    .ok_or(Error::IntTooLarge(rhs, rhs_span))?
             } else {
-                Value::Int(val.wrapping_shl(rhs.wrapping_abs() as u32))
-            }
+                let shift: u32 = rhs
+                    .checked_neg()
+                    .ok_or(Error::IntTooLarge(rhs, rhs_span))?
+                    .try_into()
+                    .or(Err(Error::IntTooLarge(rhs, rhs_span)))?;
+                val.checked_shl(shift)
+                    .ok_or(Error::IntTooLarge(rhs, rhs_span))?
+            })
         }
         _ => panic!("value should support shr"),
-    }
+    })
 }
 
 fn eval_binop_sub(lhs_val: Value, rhs_val: Value) -> Value {
