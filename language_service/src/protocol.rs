@@ -62,12 +62,6 @@ impl CompletionItem {
 #[derive(Debug, PartialEq)]
 pub struct Location {
     pub source: String,
-    pub offset: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct LocationSpan {
-    pub source: String,
     pub span: Span,
 }
 

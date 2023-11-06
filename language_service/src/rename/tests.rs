@@ -39,21 +39,21 @@ fn callable_def() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 31,
                         end: 34,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 79,
                         end: 82,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 161,
@@ -80,21 +80,21 @@ fn callable_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 31,
                         end: 34,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 79,
                         end: 82,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 161,
@@ -119,21 +119,21 @@ fn parameter_def() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 35,
                         end: 36,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 90,
                         end: 91,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 105,
@@ -158,21 +158,21 @@ fn parameter_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 35,
                         end: 36,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 90,
                         end: 91,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 105,
@@ -197,21 +197,21 @@ fn local_def() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 83,
                         end: 87,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 105,
                         end: 109,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 114,
@@ -236,21 +236,21 @@ fn local_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 83,
                         end: 87,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 105,
                         end: 109,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 114,
@@ -276,21 +276,21 @@ fn udt_def() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 29,
                         end: 32,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 81,
                         end: 84,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 114,
@@ -316,21 +316,21 @@ fn udt_constructor_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 29,
                         end: 32,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 81,
                         end: 84,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 114,
@@ -356,21 +356,21 @@ fn udt_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 29,
                         end: 32,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 81,
                         end: 84,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 114,
@@ -400,21 +400,21 @@ fn udt_field_def() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 36,
                         end: 39,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 147,
                         end: 150,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 175,
@@ -444,21 +444,21 @@ fn udt_field_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 36,
                         end: 39,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 147,
                         end: 150,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 175,
@@ -488,21 +488,21 @@ fn udt_field_complex_ref() {
     "#},
         &expect![[r#"
             [
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 36,
                         end: 39,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 147,
                         end: 150,
                     },
                 },
-                LocationSpan {
+                Location {
                     source: "<source>",
                     span: Span {
                         start: 175,

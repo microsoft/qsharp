@@ -7,7 +7,7 @@ mod tests;
 use std::rc::Rc;
 
 use crate::name_locator::{Handler, Locator, LocatorContext};
-use crate::protocol::{Location, LocationSpan};
+use crate::protocol::Location;
 use crate::qsc_utils::{
     map_offset, resolve_item_relative_to_user_package, Compilation, QSHARP_LIBRARY_URI_SCHEME,
 };
@@ -21,7 +21,7 @@ pub(crate) fn get_references(
     source_name: &str,
     offset: u32,
     include_declaration: bool,
-) -> Vec<LocationSpan> {
+) -> Vec<Location> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
@@ -40,7 +40,7 @@ pub(crate) fn get_references(
 struct ReferencesFinder<'a> {
     compilation: &'a Compilation,
     include_declaration: bool,
-    references: Vec<LocationSpan>,
+    references: Vec<Location>,
 }
 
 impl<'a> Handler<'a> for ReferencesFinder<'a> {
@@ -165,11 +165,11 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     }
 }
 
-fn get_location_span(
+pub(crate) fn get_location_span(
     compilation: &Compilation,
     location: Span,
     package_id: Option<PackageId>,
-) -> LocationSpan {
+) -> Location {
     let package = if let Some(library_package_id) = package_id {
         compilation
             .package_store
@@ -191,7 +191,7 @@ fn get_location_span(
         None => source.name.to_string(),
     };
 
-    LocationSpan {
+    Location {
         source: source_name,
         span: crate::protocol::Span {
             start: location.lo - source.offset,
@@ -204,7 +204,7 @@ pub(crate) fn find_item_locations(
     item_id: &hir::ItemId,
     compilation: &Compilation,
     include_declaration: bool,
-) -> Vec<LocationSpan> {
+) -> Vec<Location> {
     let mut locations = vec![];
 
     if include_declaration {
@@ -243,7 +243,7 @@ pub(crate) fn find_field_locations(
     field_name: Rc<str>,
     compilation: &Compilation,
     include_declaration: bool,
-) -> Vec<LocationSpan> {
+) -> Vec<Location> {
     let mut locations = vec![];
 
     if include_declaration {
@@ -289,7 +289,7 @@ pub(crate) fn find_local_locations(
     callable: &ast::CallableDecl,
     compilation: &Compilation,
     include_declaration: bool,
-) -> Vec<LocationSpan> {
+) -> Vec<Location> {
     let mut find_refs = FindLocalLocations {
         node_id,
         compilation,

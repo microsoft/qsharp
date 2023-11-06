@@ -6,9 +6,7 @@
 
 use crate::qsc_utils::compile_document;
 use log::trace;
-use protocol::{
-    CompletionList, Hover, Location, LocationSpan, SignatureHelp, WorkspaceConfigurationUpdate,
-};
+use protocol::{CompletionList, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate};
 use qsc::{PackageType, TargetProfile};
 use qsc_utils::Compilation;
 use rustc_hash::FxHashMap;
@@ -172,7 +170,7 @@ impl<'a> LanguageService<'a> {
         uri: &str,
         offset: u32,
         include_declaration: bool,
-    ) -> Vec<LocationSpan> {
+    ) -> Vec<Location> {
         trace!("get_references: uri: {uri:?}, offset: {offset:?}, include_declaration: {include_declaration:?}");
         let refs = references::get_references(
             &self
@@ -208,7 +206,7 @@ impl<'a> LanguageService<'a> {
     }
 
     #[must_use]
-    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<LocationSpan> {
+    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<Location> {
         trace!("get_rename: uri: {uri:?}, offset: {offset:?}");
         let res = rename::get_rename(
             &self

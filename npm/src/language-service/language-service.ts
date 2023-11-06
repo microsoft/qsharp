@@ -6,7 +6,6 @@ import type {
   ICompletionList,
   IHover,
   ILocation,
-  ILocationSpan,
   ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
@@ -50,7 +49,7 @@ export interface ILanguageService {
     documentUri: string,
     offset: number,
     includeDeclaration: boolean
-  ): Promise<ILocationSpan[]>;
+  ): Promise<ILocation[]>;
   getSignatureHelp(
     documentUri: string,
     offset: number
@@ -194,9 +193,12 @@ export class QSharpLanguageService implements ILanguageService {
           return undefined;
         }
       }
-      result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
-        result.offset
-      ];
+      const mappedSpan = mapUtf8UnitsToUtf16Units(
+        [result.span.start, result.span.end],
+        code
+      );
+      result.span.start = mappedSpan[result.span.start];
+      result.span.end = mappedSpan[result.span.end];
     }
     return result;
   }
@@ -205,7 +207,7 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
     includeDeclaration: boolean
-  ): Promise<ILocationSpan[]> {
+  ): Promise<ILocation[]> {
     const code = this.code[documentUri];
     if (code === undefined) {
       log.error(
@@ -220,7 +222,7 @@ export class QSharpLanguageService implements ILanguageService {
       includeDeclaration
     );
     if (results && results.length > 0) {
-      const references: ILocationSpan[] = [];
+      const references: ILocation[] = [];
       for (const result of results) {
         let resultCode: string | undefined = code;
         // Inspect the URL protocol (equivalent to the URI scheme + ":").

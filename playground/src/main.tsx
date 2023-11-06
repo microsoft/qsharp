@@ -287,14 +287,15 @@ function registerMonacoLanguageServiceProviders(
       if (!definition) return null;
       const uri = monaco.Uri.parse(definition.source);
       if (uri.toString() !== model.uri.toString()) return null;
-      const definitionPosition = model.getPositionAt(definition.offset);
+      const defStartPosition = model.getPositionAt(definition.span.start);
+      const defEndPosition = model.getPositionAt(definition.span.end);
       return {
         uri,
         range: {
-          startLineNumber: definitionPosition.lineNumber,
-          startColumn: definitionPosition.column,
-          endLineNumber: definitionPosition.lineNumber,
-          endColumn: definitionPosition.column,
+          startLineNumber: defStartPosition.lineNumber,
+          startColumn: defStartPosition.column,
+          endLineNumber: defEndPosition.lineNumber,
+          endColumn: defEndPosition.column,
         },
       };
     },
