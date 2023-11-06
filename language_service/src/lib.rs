@@ -172,7 +172,7 @@ impl<'a> LanguageService<'a> {
         uri: &str,
         offset: u32,
         include_declaration: bool,
-    ) -> Vec<Location> {
+    ) -> Vec<LocationSpan> {
         trace!("get_references: uri: {uri:?}, offset: {offset:?}, include_declaration: {include_declaration:?}");
         let refs = references::get_references(
             &self

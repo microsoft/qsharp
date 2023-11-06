@@ -21,7 +21,7 @@ pub(crate) fn get_references(
     source_name: &str,
     offset: u32,
     include_declaration: bool,
-) -> Vec<Location> {
+) -> Vec<LocationSpan> {
     // Map the file offset into a SourceMap offset
     let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
 
@@ -40,16 +40,7 @@ pub(crate) fn get_references(
 struct ReferencesFinder<'a> {
     compilation: &'a Compilation,
     include_declaration: bool,
-    references: Vec<Location>,
-}
-
-impl ReferencesFinder<'_> {
-    fn add_ref_from_location(&mut self, location: LocationSpan) {
-        self.references.push(Location {
-            source: location.source,
-            offset: location.span.start,
-        });
-    }
+    references: Vec<LocationSpan>,
 }
 
 impl<'a> Handler<'a> for ReferencesFinder<'a> {
@@ -64,7 +55,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
             for reference in
                 find_item_locations(item_id, self.compilation, self.include_declaration)
             {
-                self.add_ref_from_location(reference);
+                self.references.push(reference);
             }
         }
     }
@@ -78,7 +69,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::CallableDecl,
     ) {
         for reference in find_item_locations(item_id, self.compilation, self.include_declaration) {
-            self.add_ref_from_location(reference);
+            self.references.push(reference);
         }
     }
 
@@ -89,7 +80,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
             for reference in
                 find_item_locations(item_id, self.compilation, self.include_declaration)
             {
-                self.add_ref_from_location(reference);
+                self.references.push(reference);
             }
         }
     }
@@ -103,7 +94,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::ty::Udt,
     ) {
         for reference in find_item_locations(item_id, self.compilation, self.include_declaration) {
-            self.add_ref_from_location(reference);
+            self.references.push(reference);
         }
     }
 
@@ -120,7 +111,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
                 self.compilation,
                 self.include_declaration,
             ) {
-                self.add_ref_from_location(reference);
+                self.references.push(reference);
             }
         }
     }
@@ -138,7 +129,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
             self.compilation,
             self.include_declaration,
         ) {
-            self.add_ref_from_location(reference);
+            self.references.push(reference);
         }
     }
 
@@ -152,7 +143,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
             for reference in
                 find_local_locations(ident.id, curr, self.compilation, self.include_declaration)
             {
-                self.add_ref_from_location(reference);
+                self.references.push(reference);
             }
         }
     }
@@ -168,7 +159,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
             for reference in
                 find_local_locations(ident.id, curr, self.compilation, self.include_declaration)
             {
-                self.add_ref_from_location(reference);
+                self.references.push(reference);
             }
         }
     }

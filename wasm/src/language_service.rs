@@ -112,14 +112,17 @@ impl LanguageService {
         uri: &str,
         offset: u32,
         include_declaration: bool,
-    ) -> Vec<ILocation> {
+    ) -> Vec<ILocationSpan> {
         let locations = self.0.get_references(uri, offset, include_declaration);
         locations
             .into_iter()
             .map(|loc| {
-                Location {
+                LocationSpan {
                     source: loc.source,
-                    offset: loc.offset,
+                    span: Span {
+                        start: loc.span.start,
+                        end: loc.span.end,
+                    },
                 }
                 .into()
             })
@@ -291,6 +294,19 @@ serializable_type! {
         offset: number;
     }"#,
     ILocation
+}
+
+serializable_type! {
+    LocationSpan,
+    {
+        pub source: String,
+        pub span: Span,
+    },
+    r#"export interface ILocationSpan {
+        source: string;
+        span: ISpan;
+    }"#,
+    ILocationSpan
 }
 
 serializable_type! {

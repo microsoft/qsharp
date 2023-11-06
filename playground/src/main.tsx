@@ -317,14 +317,15 @@ function registerMonacoLanguageServiceProviders(
         const uri = monaco.Uri.parse(reference.source);
         // the playground doesn't support sources other than the current source
         if (uri.toString() == model.uri.toString()) {
-          const refPosition = model.getPositionAt(reference.offset);
+          const refStartPosition = model.getPositionAt(reference.span.start);
+          const refEndPosition = model.getPositionAt(reference.span.end);
           references.push({
             uri,
             range: {
-              startLineNumber: refPosition.lineNumber,
-              startColumn: refPosition.column,
-              endLineNumber: refPosition.lineNumber,
-              endColumn: refPosition.column,
+              startLineNumber: refStartPosition.lineNumber,
+              startColumn: refStartPosition.column,
+              endLineNumber: refEndPosition.lineNumber,
+              endColumn: refEndPosition.column,
             },
           });
         }

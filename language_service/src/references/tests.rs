@@ -24,7 +24,7 @@ fn check(source_with_markers: &str, include_declaration: bool) {
         include_declaration,
     )
     .into_iter()
-    .map(|l| l.offset)
+    .map(|l| l.span.start)
     .collect::<Vec<_>>();
     let count = target_offsets.len();
     for target in target_offsets {

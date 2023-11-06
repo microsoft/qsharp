@@ -6,6 +6,7 @@ import type {
   ICompletionList,
   IHover,
   ILocation,
+  ILocationSpan,
   ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
@@ -43,37 +44,37 @@ export interface ILanguageService {
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
   getDefinition(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ILocation | undefined>;
   getReferences(
     documentUri: string,
     offset: number,
-    includeDeclaration: boolean,
-  ): Promise<ILocation[]>;
+    includeDeclaration: boolean
+  ): Promise<ILocationSpan[]>;
   getSignatureHelp(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ISignatureHelp | undefined>;
   getRename(
     documentUri: string,
     offset: number,
-    newName: string,
+    newName: string
   ): Promise<IWorkspaceEdit | undefined>;
   prepareRename(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ITextEdit | undefined>;
 
   dispose(): Promise<void>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
-    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
   ): void;
 
   removeEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
-    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
   ): void;
 }
 
@@ -92,7 +93,7 @@ export class QSharpLanguageService implements ILanguageService {
   constructor(wasm: QscWasm) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService(
-      this.onDiagnostics.bind(this),
+      this.onDiagnostics.bind(this)
     );
   }
 
@@ -103,7 +104,7 @@ export class QSharpLanguageService implements ILanguageService {
   async updateDocument(
     documentUri: string,
     version: number,
-    code: string,
+    code: string
   ): Promise<void> {
     this.code[documentUri] = code;
     this.languageService.update_document(documentUri, version, code);
@@ -116,37 +117,36 @@ export class QSharpLanguageService implements ILanguageService {
 
   async getCompletions(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ICompletionList> {
     const code = this.code[documentUri];
     if (code === undefined) {
       log.error(
-        `getCompletions: expected ${documentUri} to be in the document map`,
+        `getCompletions: expected ${documentUri} to be in the document map`
       );
       return { items: [] };
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_completions(
       documentUri,
-      convertedOffset,
+      convertedOffset
     );
-    result.items.forEach(
-      (item) =>
-        item.additionalTextEdits?.forEach((edit) => {
-          const mappedSpan = mapUtf8UnitsToUtf16Units(
-            [edit.range.start, edit.range.end],
-            code,
-          );
-          edit.range.start = mappedSpan[edit.range.start];
-          edit.range.end = mappedSpan[edit.range.end];
-        }),
+    result.items.forEach((item) =>
+      item.additionalTextEdits?.forEach((edit) => {
+        const mappedSpan = mapUtf8UnitsToUtf16Units(
+          [edit.range.start, edit.range.end],
+          code
+        );
+        edit.range.start = mappedSpan[edit.range.start];
+        edit.range.end = mappedSpan[edit.range.end];
+      })
     );
     return result;
   }
 
   async getHover(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<IHover | undefined> {
     const code = this.code[documentUri];
     if (code === undefined) {
@@ -158,7 +158,7 @@ export class QSharpLanguageService implements ILanguageService {
     if (result) {
       const mappedSpan = mapUtf8UnitsToUtf16Units(
         [result.span.start, result.span.end],
-        code,
+        code
       );
       result.span.start = mappedSpan[result.span.start];
       result.span.end = mappedSpan[result.span.end];
@@ -168,19 +168,19 @@ export class QSharpLanguageService implements ILanguageService {
 
   async getDefinition(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ILocation | undefined> {
     let code = this.code[documentUri];
     if (code === undefined) {
       log.error(
-        `getDefinition: expected ${documentUri} to be in the document map`,
+        `getDefinition: expected ${documentUri} to be in the document map`
       );
       return undefined;
     }
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_definition(
       documentUri,
-      convertedOffset,
+      convertedOffset
     );
     if (result) {
       // Inspect the URL protocol (equivalent to the URI scheme + ":").
@@ -204,12 +204,12 @@ export class QSharpLanguageService implements ILanguageService {
   async getReferences(
     documentUri: string,
     offset: number,
-    includeDeclaration: boolean,
-  ): Promise<ILocation[]> {
+    includeDeclaration: boolean
+  ): Promise<ILocationSpan[]> {
     const code = this.code[documentUri];
     if (code === undefined) {
       log.error(
-        `getReferences: expected ${documentUri} to be in the document map`,
+        `getReferences: expected ${documentUri} to be in the document map`
       );
       return [];
     }
@@ -217,10 +217,10 @@ export class QSharpLanguageService implements ILanguageService {
     const results = this.languageService.get_references(
       documentUri,
       convertedOffset,
-      includeDeclaration,
+      includeDeclaration
     );
     if (results && results.length > 0) {
-      const references: ILocation[] = [];
+      const references: ILocationSpan[] = [];
       for (const result of results) {
         let resultCode: string | undefined = code;
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
@@ -234,12 +234,13 @@ export class QSharpLanguageService implements ILanguageService {
             return [];
           }
         }
-        references.push({
-          source: result.source,
-          offset: mapUtf8UnitsToUtf16Units([result.offset], resultCode)[
-            result.offset
-          ],
-        });
+        const mappedSpan = mapUtf8UnitsToUtf16Units(
+          [result.span.start, result.span.end],
+          resultCode
+        );
+        result.span.start = mappedSpan[result.span.start];
+        result.span.end = mappedSpan[result.span.end];
+        references.push(result);
       }
       return references;
     } else {
@@ -249,7 +250,7 @@ export class QSharpLanguageService implements ILanguageService {
 
   async getSignatureHelp(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ISignatureHelp | undefined> {
     const code = this.code[documentUri];
     if (code === undefined) {
@@ -259,14 +260,14 @@ export class QSharpLanguageService implements ILanguageService {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_signature_help(
       documentUri,
-      convertedOffset,
+      convertedOffset
     );
     if (result) {
       result.signatures = result.signatures.map((sig) => {
         sig.parameters = sig.parameters.map((param) => {
           const mappedSpan = mapUtf8UnitsToUtf16Units(
             [param.label.start, param.label.end],
-            sig.label,
+            sig.label
           );
           param.label.start = mappedSpan[param.label.start];
           param.label.end = mappedSpan[param.label.end];
@@ -281,7 +282,7 @@ export class QSharpLanguageService implements ILanguageService {
   async getRename(
     documentUri: string,
     offset: number,
-    newName: string,
+    newName: string
   ): Promise<IWorkspaceEdit | undefined> {
     const code = this.code[documentUri];
     if (code === undefined) {
@@ -292,7 +293,7 @@ export class QSharpLanguageService implements ILanguageService {
     const result = this.languageService.get_rename(
       documentUri,
       convertedOffset,
-      newName,
+      newName
     );
 
     const mappedChanges: [string, ITextEdit[]][] = [];
@@ -302,7 +303,7 @@ export class QSharpLanguageService implements ILanguageService {
         const mappedEdits = edits.map((edit) => {
           const mappedSpan = mapUtf8UnitsToUtf16Units(
             [edit.range.start, edit.range.end],
-            code,
+            code
           );
           edit.range.start = mappedSpan[edit.range.start];
           edit.range.end = mappedSpan[edit.range.end];
@@ -317,7 +318,7 @@ export class QSharpLanguageService implements ILanguageService {
 
   async prepareRename(
     documentUri: string,
-    offset: number,
+    offset: number
   ): Promise<ITextEdit | undefined> {
     const code = this.code[documentUri];
     if (code === undefined) {
@@ -327,12 +328,12 @@ export class QSharpLanguageService implements ILanguageService {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.prepare_rename(
       documentUri,
-      convertedOffset,
+      convertedOffset
     );
     if (result) {
       const mappedSpan = mapUtf8UnitsToUtf16Units(
         [result.range.start, result.range.end],
-        code,
+        code
       );
       result.range.start = mappedSpan[result.range.start];
       result.range.end = mappedSpan[result.range.end];
@@ -346,14 +347,14 @@ export class QSharpLanguageService implements ILanguageService {
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
-    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
   ) {
     this.eventHandler.addEventListener(type, listener);
   }
 
   removeEventListener<T extends LanguageServiceEvent["type"]>(
     type: T,
-    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void,
+    listener: (event: Extract<LanguageServiceEvent, { type: T }>) => void
   ) {
     this.eventHandler.removeEventListener(type, listener);
   }
