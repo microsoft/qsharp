@@ -37,7 +37,11 @@ import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
-import { findManifest, readFileCallback, directoryListingCallback } from "./projectSystem.js"
+import {
+  findManifest,
+  readFileCallback,
+  directoryListingCallback,
+} from "./projectSystem.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -115,15 +119,14 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       const documentType = isQsharpDocument(document)
         ? QsharpDocumentType.Qsharp
         : isQsharpNotebookCell(document)
-          ? QsharpDocumentType.JupyterCell
-          : QsharpDocumentType.Other;
+        ? QsharpDocumentType.JupyterCell
+        : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,
           { documentType },
           { linesOfCode: document.lineCount },
         );
-
       }
       updateIfQsharpDocument(document);
     }),
@@ -249,12 +252,16 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   // find the qsharp.json corresponding to this file
   const manifest = await findManifest(baseUri);
   // construct callback
-  const dirListCallback: ListDirectoryCallback = (path: string) => directoryListingCallback(baseUri, path);
+  const dirListCallback: ListDirectoryCallback = (path: string) =>
+    directoryListingCallback(baseUri, path);
 
   const readFileCallback2: ReadFileCallback = readFileCallback;
 
-
-  const languageService = await getLanguageService(readFileCallback2, dirListCallback, manifest);
+  const languageService = await getLanguageService(
+    readFileCallback2,
+    dirListCallback,
+    manifest,
+  );
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(
@@ -276,7 +283,8 @@ function registerConfigurationChangeHandlers(
 }
 
 export class QsTextDocumentContentProvider
-  implements vscode.TextDocumentContentProvider {
+  implements vscode.TextDocumentContentProvider
+{
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
   provideTextDocumentContent(
     uri: vscode.Uri,
