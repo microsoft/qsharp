@@ -37,6 +37,7 @@ import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
+import { findManifest fileLookupCallback, directoryListingCallback } from "./projectSystem.js"
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -122,6 +123,12 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           { documentType },
           { linesOfCode: document.lineCount },
         );
+
+        // find the qsharp.json corresponding to this file
+        const manifest = findManifest(document.fileName);
+        // construct callback
+        const fileLookupCallback = (path: string) =>  vscode.workspace.textDocuments.filter((x) => x.fileName === path)[0] || null;
+        const dirListingCallback = (path: string) =>  listDirectory(path);
       }
       updateIfQsharpDocument(document);
     }),
@@ -152,7 +159,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }
   }
 
-  return subscriptions;
+  return subscriptions;jkkkk
 }
 
 async function activateLanguageService(extensionUri: vscode.Uri) {
