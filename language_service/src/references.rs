@@ -9,11 +9,11 @@ use std::rc::Rc;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
 use crate::qsc_utils::{
-    map_offset, resolve_item_relative_to_user_package, Compilation, QSHARP_LIBRARY_URI_SCHEME,
+    map_offset, protocol_location, resolve_item_relative_to_user_package, Compilation,
 };
 use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
 use qsc::hir::ty::Ty;
-use qsc::hir::{PackageId, Res};
+use qsc::hir::Res;
 use qsc::{ast, hir, resolve, Span};
 
 pub(crate) fn get_references(
@@ -165,41 +165,6 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     }
 }
 
-pub(crate) fn get_location_span(
-    compilation: &Compilation,
-    location: Span,
-    package_id: Option<PackageId>,
-) -> Location {
-    let package = if let Some(library_package_id) = package_id {
-        compilation
-            .package_store
-            .get(library_package_id)
-            .expect("package should exist in store")
-    } else {
-        &compilation.user_unit
-    };
-    let source = package
-        .sources
-        .find_by_offset(location.lo)
-        .expect("source should exist in package");
-
-    // Note: Having a package_id means the position references a foreign package.
-    // Currently the only supported foreign packages are our library packages,
-    // URI's to which need to include our custom library scheme.
-    let source_name = match package_id {
-        Some(_) => format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name),
-        None => source.name.to_string(),
-    };
-
-    Location {
-        source: source_name,
-        span: crate::protocol::Span {
-            start: location.lo - source.offset,
-            end: location.hi - source.offset,
-        },
-    }
-}
-
 pub(crate) fn find_item_locations(
     item_id: &hir::ItemId,
     compilation: &Compilation,
@@ -214,7 +179,7 @@ pub(crate) fn find_item_locations(
             hir::ItemKind::Callable(decl) => decl.name.span,
             hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
         };
-        locations.push(get_location_span(
+        locations.push(protocol_location(
             compilation,
             def_span,
             resolved_item_id.package,
@@ -232,7 +197,7 @@ pub(crate) fn find_item_locations(
         find_refs
             .locations
             .drain(..)
-            .map(|l| get_location_span(compilation, l, None)),
+            .map(|l| protocol_location(compilation, l, None)),
     );
 
     locations
@@ -256,7 +221,7 @@ pub(crate) fn find_field_locations(
             let def_span = ty_field
                 .name_span
                 .expect("field found via name should have a name");
-            locations.push(get_location_span(
+            locations.push(protocol_location(
                 compilation,
                 def_span,
                 resolved_ty_item_id.package,
@@ -278,7 +243,7 @@ pub(crate) fn find_field_locations(
         find_refs
             .locations
             .drain(..)
-            .map(|l| get_location_span(compilation, l, None)),
+            .map(|l| protocol_location(compilation, l, None)),
     );
 
     locations
@@ -300,7 +265,7 @@ pub(crate) fn find_local_locations(
     find_refs
         .locations
         .into_iter()
-        .map(|l| get_location_span(compilation, l, None))
+        .map(|l| protocol_location(compilation, l, None))
         .collect()
 }
 

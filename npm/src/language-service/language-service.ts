@@ -208,14 +208,16 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number,
     includeDeclaration: boolean
   ): Promise<ILocation[]> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const sourceCode = this.code[documentUri];
+    if (sourceCode === undefined) {
       log.error(
         `getReferences: expected ${documentUri} to be in the document map`
       );
       return [];
     }
-    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], sourceCode)[
+      offset
+    ];
     const results = this.languageService.get_references(
       documentUri,
       convertedOffset,
@@ -224,7 +226,8 @@ export class QSharpLanguageService implements ILanguageService {
     if (results && results.length > 0) {
       const references: ILocation[] = [];
       for (const result of results) {
-        let resultCode: string | undefined = code;
+        let resultCode = this.code[result.source];
+
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
         // If the scheme is our library scheme, we need to call the wasm to
         // provide the library file's contents to do the utf8->utf16 mapping.
@@ -233,16 +236,22 @@ export class QSharpLanguageService implements ILanguageService {
           resultCode = wasm.get_library_source_content(url.pathname);
           if (resultCode === undefined) {
             log.error(`getReferences: expected ${url} to be in the library`);
-            return [];
           }
         }
-        const mappedSpan = mapUtf8UnitsToUtf16Units(
-          [result.span.start, result.span.end],
-          resultCode
-        );
-        result.span.start = mappedSpan[result.span.start];
-        result.span.end = mappedSpan[result.span.end];
-        references.push(result);
+
+        if (resultCode) {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [result.span.start, result.span.end],
+            resultCode
+          );
+          result.span.start = mappedSpan[result.span.start];
+          result.span.end = mappedSpan[result.span.end];
+          references.push(result);
+        } else {
+          log.error(
+            `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`
+          );
+        }
       }
       return references;
     } else {
