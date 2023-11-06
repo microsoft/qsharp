@@ -314,7 +314,7 @@ jobs:
       VSIX_FNAME=`ls $VSIX_RPATH`
       vsce publish --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
     condition: and(succeeded(), neq(variables['BUILD_TYPE'], 'dev'))
-    displayName: Publish pre-release VSCode Extension
+    displayName: Publish VSCode Extension
     env:
       VSCE_PAT: $(PAT)
 
