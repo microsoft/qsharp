@@ -4,9 +4,8 @@
 use expect_test::{expect, Expect};
 
 use super::{get_definition, Location};
-use crate::{
-    protocol::Span,
-    test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets},
+use crate::test_utils::{
+    compile_with_fake_stdlib, get_source_and_marker_offsets, target_offsets_to_spans,
 };
 
 /// Asserts that the definition given at the cursor position matches the expected range.
@@ -15,21 +14,15 @@ use crate::{
 fn assert_definition(source_with_markers: &str) {
     let (source, cursor_offsets, target_offsets) =
         get_source_and_marker_offsets(source_with_markers);
-    assert!(
-        target_offsets.len() == 2 || target_offsets.is_empty(),
-        "invalid number of `◉` markers in test"
-    );
+    let target_spans = target_offsets_to_spans(&target_offsets);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual_definition = get_definition(&compilation, "<source>", cursor_offsets[0]);
-    let expected_definition = if target_offsets.is_empty() {
+    let expected_definition = if target_spans.is_empty() {
         None
     } else {
         Some(Location {
             source: "<source>".to_string(),
-            span: Span {
-                start: target_offsets[0],
-                end: target_offsets[1],
-            },
+            span: target_spans[0],
         })
     };
     assert_eq!(&expected_definition, &actual_definition);
