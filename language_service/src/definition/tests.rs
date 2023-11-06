@@ -9,9 +9,9 @@ use crate::{
     test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets},
 };
 
-/// Asserts that the definition found at the given cursor position matches the expected range.
+/// Asserts that the definition given at the cursor position matches the expected range.
 /// The cursor position is indicated by a `↘` marker in the source text.
-/// The expected definition range is indicated by a `◉` marker in the source text.
+/// The expected definition range is indicated by `◉` markers in the source text.
 fn assert_definition(source_with_markers: &str) {
     let (source, cursor_offsets, target_offsets) =
         get_source_and_marker_offsets(source_with_markers);
@@ -35,6 +35,8 @@ fn assert_definition(source_with_markers: &str) {
     assert_eq!(&expected_definition, &actual_definition);
 }
 
+/// Asserts that the definition given at the cursor position matches the expected definition.
+/// The cursor position is indicated by a `↘` marker in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);

@@ -2,10 +2,14 @@
 // Licensed under the MIT License.
 
 use super::get_references;
-use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
+use crate::test_utils::{
+    compile_with_fake_stdlib, get_source_and_marker_offsets, target_offsets_to_spans,
+};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
+/// Asserts that the reference locations given at the cursor position matches the expected reference locations.
+/// The cursor position is indicated by a `↘` marker in the source text.
 fn check_with_std(source_with_markers: &str, expect: &Expect) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);
@@ -13,9 +17,13 @@ fn check_with_std(source_with_markers: &str, expect: &Expect) {
     expect.assert_debug_eq(&actual);
 }
 
+/// Asserts that the reference locations given at the cursor position matches the expected reference locations.
+/// The cursor position is indicated by a `↘` marker in the source text.
+/// The expected reference location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str, include_declaration: bool) {
     let (source, cursor_offsets, target_offsets) =
         get_source_and_marker_offsets(source_with_markers);
+    let target_spans = target_offsets_to_spans(&target_offsets);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual = get_references(
         &compilation,
@@ -24,13 +32,12 @@ fn check(source_with_markers: &str, include_declaration: bool) {
         include_declaration,
     )
     .into_iter()
-    .map(|l| l.span.start)
+    .map(|l| l.span)
     .collect::<Vec<_>>();
-    let count = target_offsets.len();
-    for target in target_offsets {
-        assert!(actual.contains(&target));
+    for target in &target_spans {
+        assert!(actual.contains(target));
     }
-    assert!(count == actual.len());
+    assert!(target_spans.len() == actual.len());
 }
 
 fn check_include_decl(source_with_markers: &str) {
@@ -58,15 +65,24 @@ fn std_callable_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    offset: 49,
+                    span: Span {
+                        start: 49,
+                        end: 53,
+                    },
                 },
                 Location {
                     source: "<source>",
-                    offset: 75,
+                    span: Span {
+                        start: 75,
+                        end: 79,
+                    },
                 },
                 Location {
                     source: "<source>",
-                    offset: 110,
+                    span: Span {
+                        start: 110,
+                        end: 114,
+                    },
                 },
             ]
         "#]],
@@ -75,90 +91,104 @@ fn std_callable_ref() {
 
 #[test]
 fn callable_def() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            operation ◉F↘oo() : Unit {
-                ◉Foo();
-                ◉Foo();
+            operation ◉F↘oo◉() : Unit {
+                ◉Foo◉();
+                ◉Foo◉();
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn callable_ref() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            operation ◉Foo() : Unit {
-                ◉Fo↘o();
-                ◉Foo();
+            operation ◉Foo◉() : Unit {
+                ◉Fo↘o◉();
+                ◉Foo◉();
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn callable_exclude_def() {
-    check_exclude_decl(indoc! {r#"
+    check_exclude_decl(
+        r#"
         namespace Test {
             operation Foo() : Unit {
-                ◉Fo↘o();
-                ◉Foo();
+                ◉Fo↘o◉();
+                ◉Foo◉();
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn udt_def() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            newtype ◉B↘ar = (fst : Int, snd : Int);
-            operation Foo(x : ◉Bar) : Unit {
-                let bar = ◉Bar(1, 2);
+            newtype ◉B↘ar◉ = (fst : Int, snd : Int);
+            operation Foo(x : ◉Bar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
                 let baz = bar::fst;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn udt_ref() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            newtype ◉Bar = (fst : Int, snd : Int);
-            operation Foo(x : ◉B↘ar) : Unit {
-                let bar = ◉Bar(1, 2);
+            newtype ◉Bar◉ = (fst : Int, snd : Int);
+            operation Foo(x : ◉B↘ar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
                 let baz = bar::fst;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn udt_ref_constructor() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            newtype ◉Bar = (fst : Int, snd : Int);
-            operation Foo(x : ◉Bar) : Unit {
-                let bar = ◉B↘ar(1, 2);
+            newtype ◉Bar◉ = (fst : Int, snd : Int);
+            operation Foo(x : ◉Bar◉) : Unit {
+                let bar = ◉B↘ar◉(1, 2);
                 let baz = bar::fst;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn udt_exclude_def() {
-    check_exclude_decl(indoc! {r#"
+    check_exclude_decl(
+        r#"
         namespace Test {
             newtype Bar = (fst : Int, snd : Int);
-            operation Foo(x : ◉B↘ar) : Unit {
-                let bar = ◉Bar(1, 2);
+            operation Foo(x : ◉B↘ar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
                 let baz = bar::fst;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
@@ -174,11 +204,17 @@ fn std_udt_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    offset: 210,
+                    span: Span {
+                        start: 210,
+                        end: 213,
+                    },
                 },
                 Location {
                     source: "<source>",
-                    offset: 60,
+                    span: Span {
+                        start: 60,
+                        end: 63,
+                    },
                 },
             ]
         "#]],
@@ -187,41 +223,47 @@ fn std_udt_ref() {
 
 #[test]
 fn field_def() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            newtype Bar = (◉f↘st : Int, snd : Int);
+            newtype Bar = (◉f↘st◉ : Int, snd : Int);
             operation Foo() : Unit {
                 let bar = Bar(1, 2);
-                let baz = bar::◉fst;
+                let baz = bar::◉fst◉;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn field_ref() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            newtype Bar = (◉fst : Int, snd : Int);
+            newtype Bar = (◉fst◉ : Int, snd : Int);
             operation Foo() : Unit {
                 let bar = Bar(1, 2);
-                let baz = bar::◉f↘st;
+                let baz = bar::◉f↘st◉;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn field_exclude_def() {
-    check_exclude_decl(indoc! {r#"
+    check_exclude_decl(
+        r#"
         namespace Test {
             newtype Bar = (fst : Int, snd : Int);
             operation Foo() : Unit {
                 let bar = Bar(1, 2);
-                let baz = bar::◉f↘st;
+                let baz = bar::◉f↘st◉;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
@@ -240,11 +282,17 @@ fn std_field_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    offset: 217,
+                    span: Span {
+                        start: 217,
+                        end: 218,
+                    },
                 },
                 Location {
                     source: "<source>",
-                    offset: 119,
+                    span: Span {
+                        start: 119,
+                        end: 120,
+                    },
                 },
             ]
         "#]],
@@ -253,104 +301,118 @@ fn std_field_ref() {
 
 #[test]
 fn local_def() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
             operation Foo() : Unit {
-                let ◉z↘ip = 3;
-                let zap = ◉zip;
+                let ◉z↘ip◉ = 3;
+                let zap = ◉zip◉;
             }
             operation Bar() : Unit {
                 let zip = 3;
                 let zap = zip;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn local_ref() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
             operation Foo() : Unit {
-                let ◉zip = 3;
-                let zap = ◉z↘ip;
+                let ◉zip◉ = 3;
+                let zap = ◉z↘ip◉;
             }
             operation Bar() : Unit {
                 let zip = 3;
                 let zap = zip;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn param_def() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
-            operation Foo(◉b↘ar : Int) : Unit {
+            operation Foo(◉b↘ar◉ : Int) : Unit {
                 let lambda = (bar, baz) => {
                     let zip = bar;
                 }
-                let zip = ◉bar;
+                let zip = ◉bar◉;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn param_ref() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
             operation Foo(bar : Int) : Unit {
-                let lambda = (◉bar, baz) => {
-                    let zip = ◉b↘ar;
+                let lambda = (◉bar◉, baz) => {
+                    let zip = ◉b↘ar◉;
                 }
                 let zip = bar;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn local_shadow_def() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
             operation Foo() : Unit {
                 let bar = 3;
                 {
-                    let ◉b↘ar = 2.0;
-                    let baz = ◉bar;
+                    let ◉b↘ar◉ = 2.0;
+                    let baz = ◉bar◉;
                 }
                 let baz = bar;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn local_shadow_ref() {
-    check_include_decl(indoc! {r#"
+    check_include_decl(
+        r#"
         namespace Test {
             operation Foo() : Unit {
                 let bar = 3;
                 {
-                    let ◉bar = 2.0;
-                    let baz = ◉ba↘r;
+                    let ◉bar◉ = 2.0;
+                    let baz = ◉ba↘r◉;
                 }
                 let baz = bar;
             }
         }
-    "#});
+    "#,
+    );
 }
 
 #[test]
 fn local_exclude_def() {
-    check_exclude_decl(indoc! {r#"
+    check_exclude_decl(
+        r#"
         namespace Test {
             operation Foo() : Unit {
                 let b↘ar = 3;
-                let baz = ◉bar;
+                let baz = ◉bar◉;
             }
         }
-    "#});
+    "#,
+    );
 }

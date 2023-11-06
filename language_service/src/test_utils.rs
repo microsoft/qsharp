@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::qsc_utils::Compilation;
+use crate::{protocol, qsc_utils::Compilation};
 use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap, TargetProfile};
 
 pub(crate) fn get_source_and_marker_offsets(
@@ -26,6 +26,19 @@ pub(crate) fn get_source_and_marker_offsets(
         source = source.replacen(markers, "", 1);
     }
     (source, cursor_offsets, target_offsets)
+}
+
+pub(crate) fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<protocol::Span> {
+    assert!(target_offsets.len() % 2 == 0);
+    let limit = target_offsets.len() / 2;
+    let mut spans = vec![];
+    for i in 0..limit {
+        spans.push(protocol::Span {
+            start: target_offsets[i * 2],
+            end: target_offsets[i * 2 + 1],
+        });
+    }
+    spans
 }
 
 pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str) -> Compilation {
