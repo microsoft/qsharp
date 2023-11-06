@@ -177,7 +177,7 @@ where
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
     while s.peek().kind == TokenKind::Comma {
-        s.push_error(Error(ErrorKind::MissingEntry(s.peek().span)));
+        s.push_error(Error(ErrorKind::MissingSeqEntry(s.peek().span)));
         xs.push(T::default());
         s.advance();
     }
@@ -185,7 +185,7 @@ where
         xs.push(x);
         if token(s, TokenKind::Comma).is_ok() {
             while s.peek().kind == TokenKind::Comma {
-                s.push_error(Error(ErrorKind::MissingEntry(s.peek().span)));
+                s.push_error(Error(ErrorKind::MissingSeqEntry(s.peek().span)));
                 xs.push(T::default());
                 s.advance();
             }

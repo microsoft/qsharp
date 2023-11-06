@@ -2181,3 +2181,197 @@ fn nested_interpolated_string_with_exprs() {
                 Lit: " baz""#]],
     );
 }
+
+#[test]
+fn duplicate_commas_in_tuple() {
+    check(
+        expr,
+        "(x,, y)",
+        &expect![[r#"
+            Expr _id_ [0-7]: Tuple:
+                Expr _id_ [1-2]: Path: Path _id_ [1-2] (Ident _id_ [1-2] "x")
+                Expr _id_ [0-0]: Err
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn many_duplicate_commas_in_tuple() {
+    check(
+        expr,
+        "(x,,,, y)",
+        &expect![[r#"
+            Expr _id_ [0-9]: Tuple:
+                Expr _id_ [1-2]: Path: Path _id_ [1-2] (Ident _id_ [1-2] "x")
+                Expr _id_ [0-0]: Err
+                Expr _id_ [0-0]: Err
+                Expr _id_ [0-0]: Err
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    ),
+                ),
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 4,
+                            hi: 5,
+                        },
+                    ),
+                ),
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn invalid_initial_comma_in_tuple() {
+    check(
+        expr,
+        "(, x)",
+        &expect![[r#"
+            Expr _id_ [0-5]: Tuple:
+                Expr _id_ [0-0]: Err
+                Expr _id_ [3-4]: Path: Path _id_ [3-4] (Ident _id_ [3-4] "x")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 1,
+                            hi: 2,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn many_invalid_initial_commas_in_tuple() {
+    check(
+        expr,
+        "(,,,, x)",
+        &expect![[r#"
+            Expr _id_ [0-8]: Tuple:
+                Expr _id_ [0-0]: Err
+                Expr _id_ [0-0]: Err
+                Expr _id_ [0-0]: Err
+                Expr _id_ [0-0]: Err
+                Expr _id_ [6-7]: Path: Path _id_ [6-7] (Ident _id_ [6-7] "x")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 1,
+                            hi: 2,
+                        },
+                    ),
+                ),
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 2,
+                            hi: 3,
+                        },
+                    ),
+                ),
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    ),
+                ),
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 4,
+                            hi: 5,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn duplicate_commas_in_pattern() {
+    check(
+        expr,
+        "set (x,, y) = (1, 2)",
+        &expect![[r#"
+            Expr _id_ [0-20]: Assign:
+                Expr _id_ [4-11]: Tuple:
+                    Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "x")
+                    Expr _id_ [0-0]: Err
+                    Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")
+                Expr _id_ [14-20]: Tuple:
+                    Expr _id_ [15-16]: Lit: Int(1)
+                    Expr _id_ [18-19]: Lit: Int(2)
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 7,
+                            hi: 8,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn invalid_initial_commas_in_pattern() {
+    check(
+        expr,
+        "set (, x) = (1, 2)",
+        &expect![[r#"
+            Expr _id_ [0-18]: Assign:
+                Expr _id_ [4-9]: Tuple:
+                    Expr _id_ [0-0]: Err
+                    Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "x")
+                Expr _id_ [12-18]: Tuple:
+                    Expr _id_ [13-14]: Lit: Int(1)
+                    Expr _id_ [16-17]: Lit: Int(2)
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}

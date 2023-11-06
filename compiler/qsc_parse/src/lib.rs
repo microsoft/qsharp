@@ -71,8 +71,8 @@ enum ErrorKind {
     #[diagnostic(code("Qsc.Parse.MissingParens"))]
     MissingParens(#[label] Span),
     #[error("missing entry in sequence")]
-    #[diagnostic(code("Qsc.Parse.MissingEntry"))]
-    MissingEntry(#[label] Span),
+    #[diagnostic(code("Qsc.Parse.MissingSeqEntry"))]
+    MissingSeqEntry(#[label] Span),
 }
 
 impl ErrorKind {
@@ -89,7 +89,7 @@ impl ErrorKind {
             Self::FloatingDocComment(span) => Self::FloatingDocComment(span + offset),
             Self::FloatingAttr(span) => Self::FloatingAttr(span + offset),
             Self::FloatingVisibility(span) => Self::FloatingVisibility(span + offset),
-            Self::MissingEntry(span) => Self::MissingEntry(span + offset),
+            Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
         }
     }
 }
