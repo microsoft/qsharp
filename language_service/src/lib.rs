@@ -28,7 +28,7 @@ use protocol::{
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{mem::take, sync::Arc};
+use std::{mem::take, path::PathBuf, sync::Arc};
 
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
@@ -63,6 +63,11 @@ pub struct LanguageService<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    /// Callback which lets the service read a file from the target filesystem
+    read_file: Box<dyn Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a>,
+    /// Callback which lets the service list directory contents
+    /// on the target file system
+    list_directory: Box<dyn Fn(PathBuf) -> Vec<PathBuf> + 'a>,
 }
 
 #[derive(Debug)]
@@ -92,13 +97,19 @@ struct OpenDocument {
 }
 
 impl<'a> LanguageService<'a> {
-    pub fn new(diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a) -> Self {
+    pub fn new(
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        read_file: impl Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a,
+        list_directory: impl Fn(PathBuf) -> Vec<PathBuf> + 'a,
+    ) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
             compilations: FxHashMap::default(),
             open_documents: FxHashMap::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
+            read_file: Box::new(read_file),
+            list_directory: Box::new(list_directory),
         }
     }
 

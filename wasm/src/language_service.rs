@@ -13,27 +13,58 @@ pub struct LanguageService(qsls::LanguageService<'static>);
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(diagnostics_callback: DiagnosticsCallback) -> Self {
+    pub fn new(
+        diagnostics_callback: DiagnosticsCallback,
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+    ) -> Self {
+        let read_file = read_file
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
+
+        let read_file = move |path| {
+            let res = diagnostics_callback
+                .call1(&JsValue::NULL, &path)
+                .expect("callback should succeed");
+        };
+
+        let list_directory = list_directory
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
+
+        let list_directory = move |path| {
+            list_directory
+                .call1(&JsValue::NULL, &path)
+                .expect("callback should succeed");
+        };
+
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
-        let inner = qsls::LanguageService::new(move |update| {
-            let diags = update
-                .errors
-                .iter()
-                .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
-                .collect::<Vec<_>>();
-            let _ = diagnostics_callback
-                .call3(
-                    &JsValue::NULL,
-                    &update.uri.into(),
-                    &update.version.into(),
-                    &serde_wasm_bindgen::to_value(&diags)
-                        .expect("conversion to VSDiagnostic should succeed"),
-                )
-                .expect("callback should succeed");
-        });
+
+        let inner = qsls::LanguageService::new(
+            move |update| {
+                let diags = update
+                    .errors
+                    .iter()
+                    .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
+                    .collect::<Vec<_>>();
+                let _ = diagnostics_callback
+                    .call3(
+                        &JsValue::NULL,
+                        &update.uri.into(),
+                        &update.version.into(),
+                        &serde_wasm_bindgen::to_value(&diags)
+                            .expect("conversion to VSDiagnostic should succeed"),
+                    )
+                    .expect("callback should succeed");
+            },
+            move |path| read_file(path.to_string_lossy().to_string()).await,
+            list_directory,
+        );
         LanguageService(inner)
     }
 
@@ -375,4 +406,16 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "(uri: string) => [string, string] | null")]
+    pub type ReadFileCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string[]>")]
+    pub type ListDirectoryCallback;
 }

@@ -37,7 +37,7 @@ import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
-import { findManifest fileLookupCallback, directoryListingCallback } from "./projectSystem.js"
+import { findManifest, readFileCallback, directoryListingCallback } from "./projectSystem.js"
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -115,8 +115,8 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       const documentType = isQsharpDocument(document)
         ? QsharpDocumentType.Qsharp
         : isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : QsharpDocumentType.Other;
+          ? QsharpDocumentType.JupyterCell
+          : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,
@@ -124,11 +124,6 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           { linesOfCode: document.lineCount },
         );
 
-        // find the qsharp.json corresponding to this file
-        const manifest = findManifest(document.fileName);
-        // construct callback
-        const fileLookupCallback = (path: string) =>  vscode.workspace.textDocuments.filter((x) => x.fileName === path)[0] || null;
-        const dirListingCallback = (path: string) =>  listDirectory(path);
       }
       updateIfQsharpDocument(document);
     }),
@@ -159,7 +154,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }
   }
 
-  return subscriptions;jkkkk
+  return subscriptions;
 }
 
 async function activateLanguageService(extensionUri: vscode.Uri) {
@@ -251,7 +246,15 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService();
+  // find the qsharp.json corresponding to this file
+  const manifest = await findManifest(baseUri);
+  // construct callback
+  const dirListCallback: ListDirectoryCallback = async (path: string) => await directoryListingCallback(baseUri, path).then(entries => entries.map(x => x.path));
+
+  const readFileCallback2: ReadFileCallback = readFileCallback;
+
+
+  const languageService = await getLanguageService(readFileCallback2, dirListCallback, manifest);
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(
@@ -273,8 +276,7 @@ function registerConfigurationChangeHandlers(
 }
 
 export class QsTextDocumentContentProvider
-  implements vscode.TextDocumentContentProvider
-{
+  implements vscode.TextDocumentContentProvider {
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
   provideTextDocumentContent(
     uri: vscode.Uri,
