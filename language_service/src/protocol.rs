@@ -11,7 +11,7 @@ pub struct WorkspaceConfigurationUpdate {
 }
 
 /// Represents a span of text used by the Language Server API
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Span {
     pub start: u32,
     pub end: u32,
@@ -60,9 +60,9 @@ impl CompletionItem {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Definition {
+pub struct Location {
     pub source: String,
-    pub offset: u32,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq)]

@@ -5,7 +5,7 @@ import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
   ICompletionList,
   IHover,
-  IDefinition,
+  ILocation,
   ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
@@ -44,7 +44,12 @@ export interface ILanguageService {
   getDefinition(
     documentUri: string,
     offset: number,
-  ): Promise<IDefinition | undefined>;
+  ): Promise<ILocation | undefined>;
+  getReferences(
+    documentUri: string,
+    offset: number,
+    includeDeclaration: boolean,
+  ): Promise<ILocation[]>;
   getSignatureHelp(
     documentUri: string,
     offset: number,
@@ -164,7 +169,7 @@ export class QSharpLanguageService implements ILanguageService {
   async getDefinition(
     documentUri: string,
     offset: number,
-  ): Promise<IDefinition | undefined> {
+  ): Promise<ILocation | undefined> {
     let code = this.code[documentUri];
     if (code === undefined) {
       log.error(
@@ -189,11 +194,70 @@ export class QSharpLanguageService implements ILanguageService {
           return undefined;
         }
       }
-      result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
-        result.offset
-      ];
+      const mappedSpan = mapUtf8UnitsToUtf16Units(
+        [result.span.start, result.span.end],
+        code,
+      );
+      result.span.start = mappedSpan[result.span.start];
+      result.span.end = mappedSpan[result.span.end];
     }
     return result;
+  }
+
+  async getReferences(
+    documentUri: string,
+    offset: number,
+    includeDeclaration: boolean,
+  ): Promise<ILocation[]> {
+    const sourceCode = this.code[documentUri];
+    if (sourceCode === undefined) {
+      log.error(
+        `getReferences: expected ${documentUri} to be in the document map`,
+      );
+      return [];
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], sourceCode)[
+      offset
+    ];
+    const results = this.languageService.get_references(
+      documentUri,
+      convertedOffset,
+      includeDeclaration,
+    );
+    if (results && results.length > 0) {
+      const references: ILocation[] = [];
+      for (const result of results) {
+        let resultCode = this.code[result.source];
+
+        // Inspect the URL protocol (equivalent to the URI scheme + ":").
+        // If the scheme is our library scheme, we need to call the wasm to
+        // provide the library file's contents to do the utf8->utf16 mapping.
+        const url = new URL(result.source);
+        if (url.protocol === qsharpLibraryUriScheme + ":") {
+          resultCode = wasm.get_library_source_content(url.pathname);
+          if (resultCode === undefined) {
+            log.error(`getReferences: expected ${url} to be in the library`);
+          }
+        }
+
+        if (resultCode) {
+          const mappedSpan = mapUtf8UnitsToUtf16Units(
+            [result.span.start, result.span.end],
+            resultCode,
+          );
+          result.span.start = mappedSpan[result.span.start];
+          result.span.end = mappedSpan[result.span.end];
+          references.push(result);
+        } else {
+          log.error(
+            `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`,
+          );
+        }
+      }
+      return references;
+    } else {
+      return [];
+    }
   }
 
   async getSignatureHelp(

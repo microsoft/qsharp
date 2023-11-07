@@ -3,6 +3,7 @@
 
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use qsc::{self, compile};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -95,15 +96,40 @@ impl LanguageService {
         .into()
     }
 
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<IDefinition> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<ILocation> {
         let definition = self.0.get_definition(uri, offset);
         definition.map(|definition| {
-            Definition {
+            Location {
                 source: definition.source,
-                offset: definition.offset,
+                span: Span {
+                    start: definition.span.start,
+                    end: definition.span.end,
+                },
             }
             .into()
         })
+    }
+
+    pub fn get_references(
+        &self,
+        uri: &str,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Vec<ILocation> {
+        let locations = self.0.get_references(uri, offset, include_declaration);
+        locations
+            .into_iter()
+            .map(|loc| {
+                Location {
+                    source: loc.source,
+                    span: Span {
+                        start: loc.span.start,
+                        end: loc.span.end,
+                    },
+                }
+                .into()
+            })
+            .collect()
     }
 
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<IHover> {
@@ -153,20 +179,21 @@ impl LanguageService {
     pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
         let locations = self.0.get_rename(uri, offset);
 
-        let renames = locations
-            .into_iter()
-            .map(|s| TextEdit {
+        let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
+        locations.into_iter().for_each(|l| {
+            renames.entry(l.source).or_default().push(TextEdit {
                 range: Span {
-                    start: s.start,
-                    end: s.end,
+                    start: l.span.start,
+                    end: l.span.end,
                 },
                 newText: new_name.to_string(),
             })
-            .collect::<Vec<_>>();
+        });
 
         let workspace_edit = WorkspaceEdit {
-            changes: vec![(uri.to_string(), renames)],
+            changes: renames.into_iter().collect(),
         };
+
         workspace_edit.into()
     }
 
@@ -254,16 +281,16 @@ serializable_type! {
 }
 
 serializable_type! {
-    Definition,
+    Location,
     {
         pub source: String,
-        pub offset: u32,
+        pub span: Span,
     },
-    r#"export interface IDefinition {
+    r#"export interface ILocation {
         source: string;
-        offset: number;
+        span: ISpan;
     }"#,
-    IDefinition
+    ILocation
 }
 
 serializable_type! {

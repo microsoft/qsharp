@@ -6,7 +6,7 @@
 
 use crate::qsc_utils::compile_document;
 use log::trace;
-use protocol::{CompletionList, Definition, Hover, SignatureHelp, WorkspaceConfigurationUpdate};
+use protocol::{CompletionList, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate};
 use qsc::{PackageType, TargetProfile};
 use qsc_utils::Compilation;
 use rustc_hash::FxHashMap;
@@ -18,6 +18,7 @@ pub mod hover;
 mod name_locator;
 pub mod protocol;
 mod qsc_utils;
+pub mod references;
 pub mod rename;
 pub mod signature_help;
 #[cfg(test)]
@@ -152,7 +153,7 @@ impl<'a> LanguageService<'a> {
     }
 
     #[must_use]
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Location> {
         trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
         let res = definition::get_definition(
             &self
@@ -161,6 +162,23 @@ impl<'a> LanguageService<'a> {
                 uri, offset);
         trace!("get_definition result: {res:?}");
         res
+    }
+
+    #[must_use]
+    pub fn get_references(
+        &self,
+        uri: &str,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Vec<Location> {
+        trace!("get_references: uri: {uri:?}, offset: {offset:?}, include_declaration: {include_declaration:?}");
+        let refs = references::get_references(
+            &self
+            .document_map.get(uri).as_ref()
+                .expect("get_references should not be called before document has been initialized with update_document").compilation,
+                uri, offset, include_declaration);
+        trace!("get_references result: {refs:?}");
+        refs
     }
 
     #[must_use]
@@ -188,7 +206,7 @@ impl<'a> LanguageService<'a> {
     }
 
     #[must_use]
-    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
+    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<Location> {
         trace!("get_rename: uri: {uri:?}, offset: {offset:?}");
         let res = rename::get_rename(
             &self
