@@ -264,12 +264,12 @@ fn save_package_analysis_to_files(store: &AnalysisStore, phase: u8) {
     }
 }
 
-pub struct Analyzer<'a> {
+pub struct LegacyAnalyzer<'a> {
     package_store: &'a PackageStore,
     analysis_store: AnalysisStore,
 }
 
-impl<'a> Analyzer<'a> {
+impl<'a> LegacyAnalyzer<'a> {
     pub fn new(package_store: &'a PackageStore) -> Self {
         let mut initializer = Initializer::new(package_store);
         let analysis_store = initializer.create_analysis_store();

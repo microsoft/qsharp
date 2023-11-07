@@ -16,7 +16,7 @@ use qsc_frontend::{
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
-use qsc_runtime_capabilities::analysis_legacy::Analyzer;
+use qsc_runtime_capabilities::{analysis::Analyzer, analysis_legacy::LegacyAnalyzer};
 use std::{
     concat,
     fs::{self, File},
@@ -105,9 +105,12 @@ fn main() -> miette::Result<ExitCode> {
     let fir_store = fir_lowerer.lower_store(&store);
     save_fir_store_to_files(&fir_store); // DBG (cesarzc): For debugging purposes only.
 
+    //let mut analyzer = LegacyAnalyzer::new(&fir_store);
+    //let store_capabilities = analyzer.run();
+    //save_store_capabilities_to_files(&store_capabilities); // DBG (cesarzc): For debugging purposes only.
+
     let mut analyzer = Analyzer::new(&fir_store);
-    let store_capabilities = analyzer.run();
-    save_store_capabilities_to_files(&store_capabilities); // DBG (cesarzc): For debugging purposes only.
+    let _store_rt_props = analyzer.run();
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
