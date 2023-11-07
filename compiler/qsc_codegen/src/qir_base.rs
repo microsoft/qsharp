@@ -121,6 +121,7 @@ pub(super) fn get_global(
 pub struct BaseProfSim {
     next_meas_id: usize,
     next_qubit_id: usize,
+    next_qubit_hardware_id: usize,
     qubit_map: IndexMap<usize, usize>,
     instrs: String,
     measurements: String,
@@ -138,6 +139,7 @@ impl BaseProfSim {
         let mut sim = BaseProfSim {
             next_meas_id: 0,
             next_qubit_id: 0,
+            next_qubit_hardware_id: 0,
             qubit_map: IndexMap::new(),
             instrs: String::new(),
             measurements: String::new(),
@@ -155,7 +157,7 @@ impl BaseProfSim {
         write!(
             self.instrs,
             include_str!("./qir_base/postfix.ll"),
-            self.next_qubit_id, self.next_meas_id
+            self.next_qubit_hardware_id, self.next_meas_id
         )
         .expect("writing to string should succeed");
 
@@ -173,8 +175,8 @@ impl BaseProfSim {
         if let Some(mapped) = self.qubit_map.get(qubit) {
             *mapped
         } else {
-            let mapped = self.next_qubit_id;
-            self.next_qubit_id += 1;
+            let mapped = self.next_qubit_hardware_id;
+            self.next_qubit_hardware_id += 1;
             self.qubit_map.insert(qubit, mapped);
             mapped
         }
@@ -301,13 +303,12 @@ impl Backend for BaseProfSim {
             Result(id),
         )
         .expect("writing to string should succeed");
+        self.reset(q);
         id
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        let id = self.m(q);
-        self.reset(q);
-        id
+        self.m(q)
     }
 
     fn reset(&mut self, q: usize) {
@@ -474,12 +475,12 @@ impl Backend for BaseProfSim {
     fn qubit_allocate(&mut self) -> usize {
         let id = self.next_qubit_id;
         self.next_qubit_id += 1;
-        self.qubit_map.insert(id, id);
+        let _ = self.map(id);
         id
     }
 
     fn qubit_release(&mut self, _q: usize) {
-        // Base Profile qubits are never released, since they cannot be reused.
+        self.next_qubit_id -= 1;
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
