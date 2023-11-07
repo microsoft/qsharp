@@ -159,12 +159,12 @@ fn use_tuple_duplicate_commas() {
                 Pat _id_ [4-13]: Tuple:
                     Pat _id_ [5-7]: Bind:
                         Ident _id_ [5-7] "q1"
-                    Pat _id_ [0-0]: Err
+                    Pat _id_ [8-8]: Err
                     Pat _id_ [10-12]: Bind:
                         Ident _id_ [10-12] "q2"
                 QubitInit _id_ [16-35] Tuple:
                     QubitInit _id_ [17-24] Single
-                    QubitInit _id_ [0-0] Err
+                    QubitInit _id_ [25-25] Err
                     QubitInit _id_ [27-34] Single
 
             [
@@ -172,7 +172,7 @@ fn use_tuple_duplicate_commas() {
                     MissingSeqEntry(
                         Span {
                             lo: 8,
-                            hi: 9,
+                            hi: 8,
                         },
                     ),
                 ),
@@ -180,7 +180,7 @@ fn use_tuple_duplicate_commas() {
                     MissingSeqEntry(
                         Span {
                             lo: 25,
-                            hi: 26,
+                            hi: 25,
                         },
                     ),
                 ),
@@ -196,14 +196,14 @@ fn use_tuple_initial_commas() {
         &expect![[r#"
             Stmt _id_ [0-39]: Qubit (Fresh)
                 Pat _id_ [4-15]: Tuple:
-                    Pat _id_ [0-0]: Err
-                    Pat _id_ [0-0]: Err
+                    Pat _id_ [5-5]: Err
+                    Pat _id_ [6-6]: Err
                     Pat _id_ [8-10]: Bind:
                         Ident _id_ [8-10] "q1"
                     Pat _id_ [12-14]: Bind:
                         Ident _id_ [12-14] "q2"
                 QubitInit _id_ [18-38] Tuple:
-                    QubitInit _id_ [0-0] Err
+                    QubitInit _id_ [19-19] Err
                     QubitInit _id_ [21-28] Single
                     QubitInit _id_ [30-37] Single
 
@@ -212,7 +212,7 @@ fn use_tuple_initial_commas() {
                     MissingSeqEntry(
                         Span {
                             lo: 5,
-                            hi: 6,
+                            hi: 5,
                         },
                     ),
                 ),
@@ -220,7 +220,7 @@ fn use_tuple_initial_commas() {
                     MissingSeqEntry(
                         Span {
                             lo: 6,
-                            hi: 7,
+                            hi: 6,
                         },
                     ),
                 ),
@@ -228,7 +228,7 @@ fn use_tuple_initial_commas() {
                     MissingSeqEntry(
                         Span {
                             lo: 19,
-                            hi: 20,
+                            hi: 19,
                         },
                     ),
                 ),

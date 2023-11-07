@@ -7,7 +7,7 @@
 
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::span::{Span, WithSpan};
 use std::{
     cmp::Ordering,
     fmt::{self, Display, Formatter, Write},
@@ -333,6 +333,12 @@ impl Display for TyDef {
     }
 }
 
+impl WithSpan for TyDef {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
 /// A type definition kind.
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum TyDefKind {
@@ -561,6 +567,12 @@ impl Display for Ty {
     }
 }
 
+impl WithSpan for Ty {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
 /// A type kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum TyKind {
@@ -727,6 +739,12 @@ pub struct Expr {
 impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Expr {} {}: {}", self.id, self.span, self.kind)
+    }
+}
+
+impl WithSpan for Expr {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 
@@ -1106,6 +1124,12 @@ impl Display for Pat {
     }
 }
 
+impl WithSpan for Pat {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
 /// A pattern kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum PatKind {
@@ -1184,6 +1208,12 @@ impl Display for QubitInit {
     }
 }
 
+impl WithSpan for QubitInit {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
 /// A qubit initializer kind.
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum QubitInitKind {
@@ -1256,6 +1286,12 @@ impl Display for Path {
     }
 }
 
+impl WithSpan for Path {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
@@ -1274,6 +1310,12 @@ impl Default for Ident {
             span: Span::default(),
             name: "".into(),
         }
+    }
+}
+
+impl WithSpan for Ident {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 

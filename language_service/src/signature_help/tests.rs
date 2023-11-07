@@ -295,7 +295,7 @@ fn insert_second_argument() {
                     },
                 ],
                 active_signature: 0,
-                active_parameter: 3,
+                active_parameter: 2,
             }
         "#]],
     );

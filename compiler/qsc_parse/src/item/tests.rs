@@ -310,7 +310,7 @@ fn ty_def_duplicate_comma() {
                 New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-25]: Tuple:
                     TyDef _id_ [15-18]: Field:
                         Type _id_ [15-18]: Path: Path _id_ [15-18] (Ident _id_ [15-18] "Int")
-                    TyDef _id_ [0-0]: Err
+                    TyDef _id_ [19-19]: Err
                     TyDef _id_ [21-24]: Field:
                         Type _id_ [21-24]: Path: Path _id_ [21-24] (Ident _id_ [21-24] "Int")
 
@@ -319,7 +319,7 @@ fn ty_def_duplicate_comma() {
                     MissingSeqEntry(
                         Span {
                             lo: 19,
-                            hi: 20,
+                            hi: 19,
                         },
                     ),
                 ),
@@ -335,7 +335,7 @@ fn ty_def_initial_comma() {
         &expect![[r#"
             Item _id_ [0-22]:
                 New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-21]: Tuple:
-                    TyDef _id_ [0-0]: Err
+                    TyDef _id_ [15-15]: Err
                     TyDef _id_ [17-20]: Field:
                         Type _id_ [17-20]: Path: Path _id_ [17-20] (Ident _id_ [17-20] "Int")
 
@@ -344,7 +344,7 @@ fn ty_def_initial_comma() {
                     MissingSeqEntry(
                         Span {
                             lo: 15,
-                            hi: 16,
+                            hi: 15,
                         },
                     ),
                 ),
@@ -363,7 +363,7 @@ fn ty_def_named_duplicate_comma() {
                     TyDef _id_ [15-22]: Field:
                         Ident _id_ [15-16] "X"
                         Type _id_ [19-22]: Path: Path _id_ [19-22] (Ident _id_ [19-22] "Int")
-                    TyDef _id_ [0-0]: Err
+                    TyDef _id_ [23-23]: Err
                     TyDef _id_ [25-28]: Field:
                         Type _id_ [25-28]: Path: Path _id_ [25-28] (Ident _id_ [25-28] "Int")
 
@@ -372,7 +372,7 @@ fn ty_def_named_duplicate_comma() {
                     MissingSeqEntry(
                         Span {
                             lo: 23,
-                            hi: 24,
+                            hi: 23,
                         },
                     ),
                 ),
@@ -541,7 +541,7 @@ fn function_duplicate_comma_in_ty_param() {
                     name: Ident _id_ [9-12] "Foo"
                     generics:
                         Ident _id_ [13-15] "'T"
-                        Ident _id_ [0-0] ""
+                        Ident _id_ [16-16] ""
                     input: Pat _id_ [18-20]: Unit
                     output: Type _id_ [23-27]: Path: Path _id_ [23-27] (Ident _id_ [23-27] "Unit")
                     body: Specializations:
@@ -552,7 +552,7 @@ fn function_duplicate_comma_in_ty_param() {
                     MissingSeqEntry(
                         Span {
                             lo: 16,
-                            hi: 17,
+                            hi: 16,
                         },
                     ),
                 ),

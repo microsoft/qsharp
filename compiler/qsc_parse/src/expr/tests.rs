@@ -2190,7 +2190,7 @@ fn duplicate_commas_in_tuple() {
         &expect![[r#"
             Expr _id_ [0-7]: Tuple:
                 Expr _id_ [1-2]: Path: Path _id_ [1-2] (Ident _id_ [1-2] "x")
-                Expr _id_ [0-0]: Err
+                Expr _id_ [3-3]: Err
                 Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")
 
             [
@@ -2198,7 +2198,7 @@ fn duplicate_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 3,
-                            hi: 4,
+                            hi: 3,
                         },
                     ),
                 ),
@@ -2214,9 +2214,9 @@ fn many_duplicate_commas_in_tuple() {
         &expect![[r#"
             Expr _id_ [0-9]: Tuple:
                 Expr _id_ [1-2]: Path: Path _id_ [1-2] (Ident _id_ [1-2] "x")
-                Expr _id_ [0-0]: Err
-                Expr _id_ [0-0]: Err
-                Expr _id_ [0-0]: Err
+                Expr _id_ [3-3]: Err
+                Expr _id_ [4-4]: Err
+                Expr _id_ [5-5]: Err
                 Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")
 
             [
@@ -2224,7 +2224,7 @@ fn many_duplicate_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 3,
-                            hi: 4,
+                            hi: 3,
                         },
                     ),
                 ),
@@ -2232,7 +2232,7 @@ fn many_duplicate_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 4,
-                            hi: 5,
+                            hi: 4,
                         },
                     ),
                 ),
@@ -2240,7 +2240,7 @@ fn many_duplicate_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 5,
-                            hi: 6,
+                            hi: 5,
                         },
                     ),
                 ),
@@ -2255,7 +2255,7 @@ fn invalid_initial_comma_in_tuple() {
         "(, x)",
         &expect![[r#"
             Expr _id_ [0-5]: Tuple:
-                Expr _id_ [0-0]: Err
+                Expr _id_ [1-1]: Err
                 Expr _id_ [3-4]: Path: Path _id_ [3-4] (Ident _id_ [3-4] "x")
 
             [
@@ -2263,7 +2263,7 @@ fn invalid_initial_comma_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 1,
-                            hi: 2,
+                            hi: 1,
                         },
                     ),
                 ),
@@ -2278,10 +2278,10 @@ fn many_invalid_initial_commas_in_tuple() {
         "(,,,, x)",
         &expect![[r#"
             Expr _id_ [0-8]: Tuple:
-                Expr _id_ [0-0]: Err
-                Expr _id_ [0-0]: Err
-                Expr _id_ [0-0]: Err
-                Expr _id_ [0-0]: Err
+                Expr _id_ [1-1]: Err
+                Expr _id_ [2-2]: Err
+                Expr _id_ [3-3]: Err
+                Expr _id_ [4-4]: Err
                 Expr _id_ [6-7]: Path: Path _id_ [6-7] (Ident _id_ [6-7] "x")
 
             [
@@ -2289,7 +2289,7 @@ fn many_invalid_initial_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 1,
-                            hi: 2,
+                            hi: 1,
                         },
                     ),
                 ),
@@ -2297,7 +2297,7 @@ fn many_invalid_initial_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 2,
-                            hi: 3,
+                            hi: 2,
                         },
                     ),
                 ),
@@ -2305,7 +2305,7 @@ fn many_invalid_initial_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 3,
-                            hi: 4,
+                            hi: 3,
                         },
                     ),
                 ),
@@ -2313,7 +2313,7 @@ fn many_invalid_initial_commas_in_tuple() {
                     MissingSeqEntry(
                         Span {
                             lo: 4,
-                            hi: 5,
+                            hi: 4,
                         },
                     ),
                 ),
@@ -2330,7 +2330,7 @@ fn duplicate_commas_in_pattern() {
             Expr _id_ [0-20]: Assign:
                 Expr _id_ [4-11]: Tuple:
                     Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "x")
-                    Expr _id_ [0-0]: Err
+                    Expr _id_ [7-7]: Err
                     Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")
                 Expr _id_ [14-20]: Tuple:
                     Expr _id_ [15-16]: Lit: Int(1)
@@ -2341,7 +2341,7 @@ fn duplicate_commas_in_pattern() {
                     MissingSeqEntry(
                         Span {
                             lo: 7,
-                            hi: 8,
+                            hi: 7,
                         },
                     ),
                 ),
@@ -2357,7 +2357,7 @@ fn invalid_initial_commas_in_pattern() {
         &expect![[r#"
             Expr _id_ [0-18]: Assign:
                 Expr _id_ [4-9]: Tuple:
-                    Expr _id_ [0-0]: Err
+                    Expr _id_ [5-5]: Err
                     Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "x")
                 Expr _id_ [12-18]: Tuple:
                     Expr _id_ [13-14]: Lit: Int(1)
@@ -2368,7 +2368,7 @@ fn invalid_initial_commas_in_pattern() {
                     MissingSeqEntry(
                         Span {
                             lo: 5,
-                            hi: 6,
+                            hi: 5,
                         },
                     ),
                 ),
