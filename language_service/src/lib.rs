@@ -48,7 +48,7 @@ struct WorkspaceConfiguration {
 impl Default for WorkspaceConfiguration {
     fn default() -> Self {
         Self {
-            target_profile: TargetProfile::Full,
+            target_profile: TargetProfile::Unrestricted,
             package_type: PackageType::Exe,
         }
     }

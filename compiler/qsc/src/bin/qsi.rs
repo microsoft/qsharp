@@ -94,7 +94,7 @@ fn main() -> miette::Result<ExitCode> {
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
-            TargetProfile::Full,
+            TargetProfile::Unrestricted,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -113,7 +113,7 @@ fn main() -> miette::Result<ExitCode> {
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
-        TargetProfile::Full,
+        TargetProfile::Unrestricted,
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

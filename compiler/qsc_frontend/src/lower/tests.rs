@@ -11,7 +11,7 @@ fn check_hir(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        TargetProfile::Unrestricted,
     );
     expect.assert_eq(&unit.package.to_string());
 }
@@ -22,7 +22,7 @@ fn check_errors(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        TargetProfile::Unrestricted,
     );
 
     let lower_errors: Vec<_> = unit
@@ -106,7 +106,7 @@ fn test_target_profile_full_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @Config(Full)
+                @Config(Unrestricted)
                 operation Foo() : Unit {
                     body ... {}
                 }
@@ -132,7 +132,7 @@ fn test_target_profile_attr_wrong_args() {
         &expect![[r#"
             [
                 InvalidAttrArgs(
-                    "Full or Base",
+                    "Unrestricted or Base",
                     Span {
                         lo: 29,
                         hi: 34,

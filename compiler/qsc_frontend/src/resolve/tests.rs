@@ -95,7 +95,8 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
 
     AstAssigner::new().visit_package(&mut package);
 
-    let mut cond_compile = compile::preprocess::Conditional::new(compile::TargetProfile::Full);
+    let mut cond_compile =
+        compile::preprocess::Conditional::new(compile::TargetProfile::Unrestricted);
     cond_compile.visit_package(&mut package);
     let dropped_names = cond_compile.into_names();
 
@@ -1937,13 +1938,13 @@ fn multiple_definition_dropped_is_not_found() {
     check(
         indoc! {"
             namespace A {
-                @Config(Full)
+                @Config(Unrestricted)
                 operation B() : Unit {}
                 @Config(Base)
                 operation B() : Unit {}
                 @Config(Base)
                 operation C() : Unit {}
-                @Config(Full)
+                @Config(Unrestricted)
                 operation C() : Unit {}
             }
             namespace D {
@@ -1960,13 +1961,13 @@ fn multiple_definition_dropped_is_not_found() {
         "},
         &expect![[r#"
             namespace item0 {
-                @Config(Full)
+                @Config(Unrestricted)
                 operation item1() : Unit {}
                 @Config(Base)
                 operation B() : Unit {}
                 @Config(Base)
                 operation C() : Unit {}
-                @Config(Full)
+                @Config(Unrestricted)
                 operation item2() : Unit {}
             }
             namespace item3 {
@@ -1981,8 +1982,8 @@ fn multiple_definition_dropped_is_not_found() {
                 }
             }
 
-            // NotFound("B", Span { lo: 249, hi: 250 })
-            // NotFound("C", Span { lo: 262, hi: 263 })
+            // NotFound("B", Span { lo: 265, hi: 266 })
+            // NotFound("C", Span { lo: 278, hi: 279 })
         "#]],
     );
 }

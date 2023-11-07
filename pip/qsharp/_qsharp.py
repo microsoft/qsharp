@@ -6,7 +6,7 @@ from ._native import Interpreter, TargetProfile
 _interpreter = None
 
 
-def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
+def init(target_profile: TargetProfile = TargetProfile.Unrestricted) -> None:
     """
     Initializes the Q# interpreter.
 

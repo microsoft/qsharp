@@ -40,7 +40,7 @@ mod given_interpreter_with_sources {
         fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted)?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];
@@ -60,7 +60,7 @@ mod given_interpreter_with_sources {
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted)?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];
@@ -76,7 +76,7 @@ mod given_interpreter_with_sources {
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted)?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];
@@ -99,7 +99,7 @@ mod given_interpreter_with_sources {
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted)?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];

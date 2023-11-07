@@ -64,7 +64,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     // be a valid string.
     const targetProfile = vscode.workspace
       .getConfiguration("Q#")
-      .get<string>("targetProfile", "full");
+      .get<string>("targetProfile", "unrestricted");
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
     statusBarItem.show();
@@ -73,7 +73,22 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   return disposables;
 }
 
+function initializeTargetProfile() {
+  const configuration = vscode.workspace.getConfiguration("Q#");
+  const current = configuration.get<string>("targetProfile", "unset");
+  // If the target profile is unset or full, set it to unrestricted.
+  if (current == "unset" || current == "full") {
+    configuration.update(
+      "targetProfile",
+      "unrestricted",
+      vscode.ConfigurationTarget.Global,
+    );
+  }
+}
+
 function registerTargetProfileCommand() {
+  initializeTargetProfile();
+
   return vscode.commands.registerCommand(
     "qsharp-vscode.setTargetProfile",
     async () => {
@@ -97,15 +112,15 @@ function registerTargetProfileCommand() {
 
 const targetProfiles = [
   { configName: "base", uiText: "QIR:Base" },
-  { configName: "full", uiText: "QIR:Full" },
+  { configName: "unrestricted", uiText: "QIR:Unrestricted" },
 ];
 
 function getTargetProfileUiText(targetProfile?: string) {
   switch (targetProfile) {
     case "base":
       return "QIR:Base";
-    case "full":
-      return "QIR:Full";
+    case "unrestricted":
+      return "QIR:Unrestricted";
     default:
       log.error("invalid target profile found");
       return "QIR:Invalid";
@@ -116,10 +131,10 @@ function getTargetProfileSetting(uiText: string) {
   switch (uiText) {
     case "QIR:Base":
       return "base";
-    case "QIR:Full":
-      return "full";
+    case "QIR:Unrestricted":
+      return "unrestricted";
     default:
       log.error("invalid target profile found");
-      return "full";
+      return "unrestricted";
   }
 }

@@ -29,7 +29,10 @@ export async function getQirForActiveWindow(): Promise<string> {
 
   const configuration = vscode.workspace.getConfiguration("Q#");
   // Check that the current target is base profile, and current doc has no errors.
-  const targetProfile = configuration.get<string>("targetProfile", "full");
+  const targetProfile = configuration.get<string>(
+    "targetProfile",
+    "unrestricted",
+  );
   if (targetProfile !== "base") {
     const result = await vscode.window.showWarningMessage(
       "Submitting to Azure is only supported when targeting the QIR base profile.",

@@ -27,12 +27,12 @@ impl<'a> Visitor<'a> for StmtSpans {
 
 fn check(block_str: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store, TargetProfile::Full));
+    let std = store.insert(compile::std(&store, TargetProfile::Unrestricted));
     let unit = compile(
         &store,
         &[std],
         SourceMap::new([], Some(block_str.into())),
-        TargetProfile::Full,
+        TargetProfile::Unrestricted,
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

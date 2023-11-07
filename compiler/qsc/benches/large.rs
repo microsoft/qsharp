@@ -12,14 +12,14 @@ pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large input file", |b| {
         b.iter(|| {
             let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store, TargetProfile::Full));
+            let std = store.insert(compile::std(&store, TargetProfile::Unrestricted));
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
             let (_, reports) = compile(
                 &store,
                 &[std],
                 sources,
                 PackageType::Exe,
-                TargetProfile::Full,
+                TargetProfile::Unrestricted,
             );
             assert!(reports.is_empty());
         })

@@ -227,11 +227,11 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 async function updateLanguageServiceProfile(languageService: ILanguageService) {
   const targetProfile = vscode.workspace
     .getConfiguration("Q#")
-    .get<string>("targetProfile", "full");
+    .get<string>("targetProfile", "unrestricted");
 
   switch (targetProfile) {
     case "base":
-    case "full":
+    case "unrestricted":
       break;
     default:
       log.warn(`Invalid value for target profile: ${targetProfile}`);
@@ -239,7 +239,7 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
   log.debug("Target profile set to: " + targetProfile);
 
   languageService.updateConfiguration({
-    targetProfile: targetProfile as "base" | "full",
+    targetProfile: targetProfile as "base" | "unrestricted",
   });
 }
 

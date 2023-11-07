@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Arithmetic {
     open Microsoft.Quantum.Math;
 
     // Computes ys += xs + carryIn using a ripple carry architecture
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation IncWithCarryIn(carryIn : Qubit, xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
         // We assume that it has already been checked that xs and ys are of
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements Half-adder. Adds qubit x to qubit y and sets carryOut appropriately
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements Full-adder. Adds qubit carryIn and x to qubit y and sets carryOut appropriately.
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation FullAdderForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     // Computes carryOut := carryIn + x + y
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation FullAdder(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj {
         CNOT(x, y);
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Computes carry bit for a full adder.
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -125,7 +125,7 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Uncomputes carry bit for a full adder.
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state. This allows for an
     /// otimized adjoint implementation.
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
     : Unit is Adj {
         body (...) {

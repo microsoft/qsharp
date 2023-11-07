@@ -38,7 +38,7 @@ pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) {
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
     let mut interpreter =
-        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted)
             .expect("test should compile");
     let result = interpreter
         .eval_entry(&mut out)

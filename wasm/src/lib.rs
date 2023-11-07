@@ -31,7 +31,7 @@ mod tests;
 thread_local! {
     static STORE_CORE_STD: (PackageStore, PackageId) = {
         let mut store = PackageStore::new(compile::core());
-        let std = store.insert(compile::std(&store, TargetProfile::Full));
+        let std = store.insert(compile::std(&store, TargetProfile::Unrestricted));
         (store, std)
     };
 }
@@ -97,7 +97,7 @@ pub fn get_hir(code: &str) -> String {
             &[*std],
             sources,
             PackageType::Exe,
-            TargetProfile::Full,
+            TargetProfile::Unrestricted,
         );
         unit.package
     });
@@ -163,7 +163,7 @@ where
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([(source_name.into(), code.into())], Some(expr.into()));
     let interpreter =
-        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full);
+        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted);
     if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149

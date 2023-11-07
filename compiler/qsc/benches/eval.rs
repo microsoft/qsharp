@@ -13,9 +13,13 @@ const LARGE: &str = include_str!("./large.qs");
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
         let sources = SourceMap::new([("Teleportation.qs".into(), TELEPORT.into())], None);
-        let mut evaluator =
-            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
-                .expect("code should compile");
+        let mut evaluator = stateful::Interpreter::new(
+            true,
+            sources,
+            PackageType::Exe,
+            TargetProfile::Unrestricted,
+        )
+        .expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
@@ -27,9 +31,13 @@ pub fn teleport(c: &mut Criterion) {
 pub fn deutsch_jozsa(c: &mut Criterion) {
     c.bench_function("Deutsch-Jozsa evaluation", |b| {
         let sources = SourceMap::new([("DeutschJozsa.qs".into(), DEUTSCHJOZSA.into())], None);
-        let mut evaluator =
-            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
-                .expect("code should compile");
+        let mut evaluator = stateful::Interpreter::new(
+            true,
+            sources,
+            PackageType::Exe,
+            TargetProfile::Unrestricted,
+        )
+        .expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
@@ -41,9 +49,13 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
 pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large file parity evaluation", |b| {
         let sources = SourceMap::new([("large.qs".into(), LARGE.into())], None);
-        let mut evaluator =
-            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
-                .expect("code should compile");
+        let mut evaluator = stateful::Interpreter::new(
+            true,
+            sources,
+            PackageType::Exe,
+            TargetProfile::Unrestricted,
+        )
+        .expect("code should compile");
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);

@@ -9,9 +9,9 @@ use crate::baseprofck::check_base_profile_compliance;
 
 fn check(expr: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store, TargetProfile::Full));
+    let std = store.insert(compile::std(&store, TargetProfile::Unrestricted));
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[std], sources, TargetProfile::Full);
+    let unit = compile(&store, &[std], sources, TargetProfile::Unrestricted);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = check_base_profile_compliance(&unit.package);

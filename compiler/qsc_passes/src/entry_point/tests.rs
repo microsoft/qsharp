@@ -12,7 +12,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        TargetProfile::Unrestricted,
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

@@ -37,7 +37,7 @@ use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TargetProfile {
-    Full,
+    Unrestricted,
     Base,
 }
 
@@ -45,7 +45,7 @@ impl TargetProfile {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
         match self {
-            Self::Full => "Full",
+            Self::Unrestricted => "Unrestricted",
             Self::Base => "Base",
         }
     }
@@ -61,7 +61,7 @@ impl FromStr for TargetProfile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Full" => Ok(TargetProfile::Full),
+            "Unrestricted" => Ok(TargetProfile::Unrestricted),
             "Base" => Ok(Self::Base),
             _ => Err(()),
         }

@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Remarks
     /// This operation resets its input register to the |00...0> state,
     /// suitable for releasing back to a target machine.
-    @Config(Full)
+    @Config(Unrestricted)
     operation MeasureInteger(target : Qubit[]) : Int {
         let nBits = Length(target);
         Fact(nBits < 64, $"`Length(target)` must be less than 64, but was {nBits}.");
@@ -342,7 +342,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
     /// NOTE: Use RippleCarryIncByL directly if the choice of implementation
     /// is important.
-    @Config(Full)
+    @Config(Unrestricted)
     operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByL(c, ys);
     }
@@ -355,7 +355,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// and Length(xs) ≤ Length(ys) = n.
     /// NOTE: Use RippleCarryIncByLE or LookAheadIncByLE directly if
     /// the choice of implementation is important.
-    @Config(Full)
+    @Config(Unrestricted)
     operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByLE(xs, ys);
     }
@@ -369,7 +369,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized.
     /// NOTE: Use RippleCarryAddLE or LookAheadAddLE directly if
     /// the choice of implementation is important.
-    @Config(Full)
+    @Config(Unrestricted)
     operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         RippleCarryAddLE(xs, ys, zs);
     }
@@ -386,7 +386,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
+    @Config(Unrestricted)
     operation RippleCarryIncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
@@ -422,7 +422,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
+    @Config(Unrestricted)
     operation RippleCarryIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
@@ -457,7 +457,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys using the ripple-carry algorithm.
     ///
-    /// # Description 
+    /// # Description
     /// Computes zs := xs + ys + zs[0] modulo 2ⁿ, where xs, ys, and zs are
     /// little-endian registers, Length(xs) = Length(ys) ≤ Length(zs) = n,
     /// assuming zs is 0-initialized, except for maybe zs[0], which can be
@@ -468,7 +468,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
+    @Config(Unrestricted)
     operation RippleCarryAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);

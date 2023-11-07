@@ -41,7 +41,7 @@ impl LanguageService {
             .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
                 target_profile: config.targetProfile.map(|s| match s.as_str() {
                     "base" => qsc::TargetProfile::Base,
-                    "full" => qsc::TargetProfile::Full,
+                    "unrestricted" => qsc::TargetProfile::Unrestricted,
                     _ => panic!("invalid target profile"),
                 }),
                 package_type: config.packageType.map(|s| match s.as_str() {
@@ -219,7 +219,7 @@ serializable_type! {
         pub packageType: Option<String>,
     },
     r#"export interface IWorkspaceConfiguration {
-        targetProfile?: "full" | "base";
+        targetProfile?: "unrestricted" | "base";
         packageType?: "exe" | "lib";
     }"#,
     IWorkspaceConfiguration

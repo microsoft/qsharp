@@ -12,7 +12,7 @@ fn compile(data: &[u8]) {
         thread_local! {
             static STORE_STD: (PackageStore, PackageId) = {
                 let mut store = PackageStore::new(qsc::compile::core());
-                let std = store.insert(qsc::compile::std(&store, TargetProfile::Full));
+                let std = store.insert(qsc::compile::std(&store, TargetProfile::Unrestricted));
                 (store, std)
             };
         }
@@ -23,7 +23,7 @@ fn compile(data: &[u8]) {
                 &[*std],
                 sources,
                 qsc::PackageType::Lib,
-                TargetProfile::Full,
+                TargetProfile::Unrestricted,
             );
         });
     }

@@ -39,10 +39,8 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
 /// A target profile describes the capabilities of the hardware or simulator
 /// which will be used to run the Q# program.
 pub(crate) enum TargetProfile {
-    /// Target supports the full set of capabilities required to run any Q# program.
-    ///
-    /// This option maps to the Full Profile as defined by the QIR specification.
-    Full,
+    /// Target supports the unrestricted set of capabilities required to run any Q# program.
+    Unrestricted,
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
@@ -61,7 +59,7 @@ impl Interpreter {
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Full => qsc::TargetProfile::Full,
+            TargetProfile::Unrestricted => qsc::TargetProfile::Unrestricted,
             TargetProfile::Base => qsc::TargetProfile::Base,
         };
         match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {

@@ -68,7 +68,7 @@ fn main() -> miette::Result<ExitCode> {
     let (package_type, target) = if cli.emit.contains(&Emit::Qir) {
         (PackageType::Exe, TargetProfile::Base)
     } else {
-        (PackageType::Lib, TargetProfile::Full)
+        (PackageType::Lib, TargetProfile::Unrestricted)
     };
 
     if !cli.nostdlib {

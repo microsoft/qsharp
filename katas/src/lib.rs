@@ -32,8 +32,12 @@ pub fn check_solution(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateful::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
-    let mut interpreter: Interpreter =
-        Interpreter::new(true, source_map, PackageType::Exe, TargetProfile::Full)?;
+    let mut interpreter: Interpreter = Interpreter::new(
+        true,
+        source_map,
+        PackageType::Exe,
+        TargetProfile::Unrestricted,
+    )?;
     interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success

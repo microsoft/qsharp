@@ -12,11 +12,9 @@ class TargetProfile:
     The target profile is a description of a target's capabilities.
     """
 
-    Full: ClassVar[Any]
+    Unrestricted: ClassVar[Any]
     """
     Describes the full set of capabilities required to run any Q# program.
-
-    This option maps to the Full Profile as defined by the QIR specification.
     """
 
     Base: ClassVar[Any]

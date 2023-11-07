@@ -225,9 +225,10 @@ impl With<'_> {
                 if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
                     if TargetProfile::is_target_str(path.name.name.as_ref())))
             {
-                self.lowerer
-                    .errors
-                    .push(Error::InvalidAttrArgs("Full or Base", attr.arg.span));
+                self.lowerer.errors.push(Error::InvalidAttrArgs(
+                    "Unrestricted or Base",
+                    attr.arg.span,
+                ));
             }
             None
         } else {

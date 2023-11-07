@@ -180,7 +180,7 @@ fn target_profile_update_fixes_error() {
     );
 
     ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(TargetProfile::Full),
+        target_profile: Some(TargetProfile::Unrestricted),
         package_type: None,
     });
 

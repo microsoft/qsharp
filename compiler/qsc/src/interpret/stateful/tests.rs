@@ -58,7 +58,7 @@ mod given_interpreter {
                     false,
                     SourceMap::default(),
                     PackageType::Lib,
-                    TargetProfile::Full,
+                    TargetProfile::Unrestricted,
                 )
                 .expect("interpreter should be created");
 
@@ -1062,7 +1062,7 @@ mod given_interpreter {
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Unrestricted)
                     .expect("interpreter should be created");
 
             let (result, output) = entry(&mut interpreter);
@@ -1080,7 +1080,7 @@ mod given_interpreter {
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Unrestricted)
                     .expect("interpreter should be created");
 
             let (result, output) = line(&mut interpreter, "Test.Main()");
@@ -1102,7 +1102,7 @@ mod given_interpreter {
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Unrestricted)
                     .expect("interpreter should be created");
 
             let (result, output) = line(&mut interpreter, "Test.Hello()");
@@ -1128,7 +1128,7 @@ mod given_interpreter {
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Unrestricted)
                     .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
@@ -1154,7 +1154,7 @@ mod given_interpreter {
             );
 
             let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
+                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Unrestricted)
                     .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_error(
@@ -1173,7 +1173,7 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            TargetProfile::Full,
+            TargetProfile::Unrestricted,
         )
         .expect("interpreter should be created")
     }

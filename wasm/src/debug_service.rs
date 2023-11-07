@@ -25,7 +25,7 @@ impl DebugService {
                 false,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Full,
+                TargetProfile::Unrestricted,
             )
             .expect("Couldn't create interpreter"),
         }
@@ -36,7 +36,12 @@ impl DebugService {
             [(path.into(), source.into())],
             entry.as_deref().map(|value| value.into()),
         );
-        match Interpreter::new(true, source_map, qsc::PackageType::Exe, TargetProfile::Full) {
+        match Interpreter::new(
+            true,
+            source_map,
+            qsc::PackageType::Exe,
+            TargetProfile::Unrestricted,
+        ) {
             Ok(interpreter) => {
                 self.interpreter = interpreter;
                 match self.interpreter.set_entry() {

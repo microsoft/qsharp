@@ -8,7 +8,7 @@ use qsc_frontend::compile::{PackageStore, TargetProfile};
 pub fn library(c: &mut Criterion) {
     let store = PackageStore::new(compile::core());
     c.bench_function("Standard library", |b| {
-        b.iter(|| compile::std(&store, TargetProfile::Full))
+        b.iter(|| compile::std(&store, TargetProfile::Unrestricted))
     });
 }
 
