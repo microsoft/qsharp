@@ -718,7 +718,7 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the number of 1 bits in the binary representation of integer `n`.
-    function PopulationCountI (n : Int) : Int {
+    function HammingWeightI (n : Int) : Int {
         let i1 = n - ((n >>> 1) &&& 0x5555555555555555);
         let i2 = (i1 &&& 0x3333333333333333) + ((i1 >>> 2) &&& 0x3333333333333333);
         // Multiplication may overflow. See https://github.com/microsoft/qsharp/issues/828

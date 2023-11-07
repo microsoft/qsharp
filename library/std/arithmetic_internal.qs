@@ -182,7 +182,7 @@ namespace Microsoft.Quantum.Arithmetic {
         Fact(Length(ps)+1 == n, "Register gs must be one qubit longer than register gs.");
 
         let T = Floor(Lg(IntAsDouble(n)));
-        use qs = Qubit[n - PopulationCountI(n) - T];
+        use qs = Qubit[n - HammingWeightI(n) - T];
 
         let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
         let pWorkspace = [ps] + Partitioned(registerPartition, qs);
