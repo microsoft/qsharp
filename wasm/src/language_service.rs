@@ -180,21 +180,15 @@ impl LanguageService {
         let locations = self.0.get_rename(uri, offset);
 
         let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
-        for location in locations {
-            let text_edit = TextEdit {
+        locations.into_iter().for_each(|l| {
+            renames.entry(l.source).or_default().push(TextEdit {
                 range: Span {
-                    start: location.span.start,
-                    end: location.span.end,
+                    start: l.span.start,
+                    end: l.span.end,
                 },
                 newText: new_name.to_string(),
-            };
-
-            if let Some(locs) = renames.get_mut(&location.source) {
-                locs.push(text_edit);
-            } else {
-                renames.insert(location.source, vec![text_edit]);
-            }
-        }
+            })
+        });
 
         let workspace_edit = WorkspaceEdit {
             changes: renames.into_iter().collect(),

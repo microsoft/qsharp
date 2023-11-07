@@ -52,11 +52,8 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     ) {
         if let Some(resolve::Res::Item(item_id)) = self.compilation.user_unit.ast.names.get(name.id)
         {
-            for reference in
-                find_item_locations(item_id, self.compilation, self.include_declaration)
-            {
-                self.references.push(reference);
-            }
+            self.references =
+                find_item_locations(item_id, self.compilation, self.include_declaration);
         }
     }
 
@@ -68,20 +65,15 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
-        for reference in find_item_locations(item_id, self.compilation, self.include_declaration) {
-            self.references.push(reference);
-        }
+        self.references = find_item_locations(item_id, self.compilation, self.include_declaration);
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
         if let Some(resolve::Res::Item(item_id)) =
             self.compilation.user_unit.ast.names.get(type_name.id)
         {
-            for reference in
-                find_item_locations(item_id, self.compilation, self.include_declaration)
-            {
-                self.references.push(reference);
-            }
+            self.references =
+                find_item_locations(item_id, self.compilation, self.include_declaration);
         }
     }
 
@@ -93,9 +85,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        for reference in find_item_locations(item_id, self.compilation, self.include_declaration) {
-            self.references.push(reference);
-        }
+        self.references = find_item_locations(item_id, self.compilation, self.include_declaration);
     }
 
     fn at_field_def(
@@ -105,14 +95,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Ty,
     ) {
         if let Some(ty_item_id) = context.current_udt_id {
-            for reference in find_field_locations(
+            self.references = find_field_locations(
                 ty_item_id,
                 field_name.name.clone(),
                 self.compilation,
                 self.include_declaration,
-            ) {
-                self.references.push(reference);
-            }
+            );
         }
     }
 
@@ -123,14 +111,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         item_id: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
-        for reference in find_field_locations(
+        self.references = find_field_locations(
             item_id,
             field_ref.name.clone(),
             self.compilation,
             self.include_declaration,
-        ) {
-            self.references.push(reference);
-        }
+        );
     }
 
     fn at_local_def(
@@ -140,11 +126,8 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Pat,
     ) {
         if let Some(curr) = context.current_callable {
-            for reference in
-                find_local_locations(ident.id, curr, self.compilation, self.include_declaration)
-            {
-                self.references.push(reference);
-            }
+            self.references =
+                find_local_locations(ident.id, curr, self.compilation, self.include_declaration);
         }
     }
 
@@ -156,11 +139,8 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         ident: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            for reference in
-                find_local_locations(ident.id, curr, self.compilation, self.include_declaration)
-            {
-                self.references.push(reference);
-            }
+            self.references =
+                find_local_locations(ident.id, curr, self.compilation, self.include_declaration);
         }
     }
 }
