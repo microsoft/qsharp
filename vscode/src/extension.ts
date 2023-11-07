@@ -252,13 +252,11 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   // find the qsharp.json corresponding to this file
   const manifest = await findManifest(baseUri);
   // construct callback
-  const dirListCallback: ListDirectoryCallback = (path: string) =>
+  const dirListCallback: (uri: string) => string[] = (path: string) =>
     directoryListingCallback(baseUri, path);
 
-  const readFileCallback2: ReadFileCallback = readFileCallback;
-
   const languageService = await getLanguageService(
-    readFileCallback2,
+    readFileCallback,
     dirListCallback,
     manifest,
   );

@@ -46,9 +46,18 @@ impl LanguageService {
         let list_directory = move |path_buf: PathBuf| {
             let path_buf_string = &path_buf.to_string_lossy().to_string();
             let path = JsValue::from_str(&path_buf_string);
-            list_directory
+            let res = list_directory
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed");
+
+            match res.dyn_into::<js_sys::Array>() {
+                Ok(arr) => arr
+                    .into_iter()
+                    .filter_map(|x| x.as_string())
+                    .map(PathBuf::from)
+                    .collect::<Vec<_>>(),
+                Err(e) => todo!("result wasn't an array error: {e:?}"),
+            }
         };
 
         let diagnostics_callback = diagnostics_callback

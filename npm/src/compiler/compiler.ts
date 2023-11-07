@@ -43,12 +43,14 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
-  async checkCode(code: string): Promise<VSDiagnostic[]> {
+  async checkCode(code: string, readFile: (uri: string) => string | null = () => null, listDirectory: (uri: string) => string[] = () => []): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
+      (_uri: string, _version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
+      readFile,
+      listDirectory,
     );
     languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);
