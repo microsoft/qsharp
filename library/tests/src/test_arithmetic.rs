@@ -709,7 +709,7 @@ fn check_lookahead_add_le_exhaustive_bitwidth_4() {
 const FOURIER_INC_BY_LE_TEST_LIB: &str = include_str!("resources/fourier_inc_by_le.qs");
 
 #[test]
-fn check_fourier_carry_inc_by_le_exhaustive_bitwidth_1() {
+fn check_fourier_inc_by_le_exhaustive_bitwidth_1() {
     test_expression_with_lib(
         "Test.TestFourierIncByLE(1)",
         FOURIER_INC_BY_LE_TEST_LIB,
@@ -718,7 +718,7 @@ fn check_fourier_carry_inc_by_le_exhaustive_bitwidth_1() {
 }
 
 #[test]
-fn check_fourier_carry_inc_by_le_exhaustive_bitwidth_2() {
+fn check_fourier_inc_by_le_exhaustive_bitwidth_2() {
     test_expression_with_lib(
         "Test.TestFourierIncByLE(2)",
         FOURIER_INC_BY_LE_TEST_LIB,

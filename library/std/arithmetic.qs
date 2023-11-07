@@ -551,7 +551,7 @@ namespace Microsoft.Quantum.Arithmetic {
     ///      "Addition on a Quantum Computer" by Thomas G. Draper
     operation FourierIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj {
         within {
-            QFTLE(ys);
+            ApplyQFT(ys);
         } apply {
             for (i, q) in Enumerated(xs) {
                 Controlled PhaseGradient([q], ys[i...]);
