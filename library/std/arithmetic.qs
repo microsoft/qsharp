@@ -326,12 +326,12 @@ namespace Microsoft.Quantum.Arithmetic {
     //
     // Operation: Add      |    Ripple-carry    | Carry look-ahead |    Fourier
     // ____________________|____________________|__________________|________________
-    // y += 5              |  RippleCarryIncByL✔|              N/A |            N/A
-    // y += x              | RippleCarryIncByLE✔| LookAheadIncByLE | FourierIncByLE✔
-    // z = x + 5 (z was 0) |                N/A |              N/A |            N/A
-    // z = x + y (z was 0) |   RippleCarryAddLE✔|   LookAheadAddLE✔|           N/A
-    // z += x + 5          |                N/A |              N/A |            N/A
-    // z += x + y          |                N/A |              N/A |            N/A
+    // y += 5              |  RippleCarryIncByL |                  |
+    // y += x              | RippleCarryIncByLE | LookAheadIncByLE | FourierIncByLE
+    // z = x + 5 (z was 0) |                    |                  |
+    // z = x + y (z was 0) |   RippleCarryAddLE |   LookAheadAddLE |
+    // z += x + 5          |                    |                  |
+    // z += x + y          |                    |                  |
     //
 
     /// # Summary
