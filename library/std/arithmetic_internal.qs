@@ -9,7 +9,6 @@ namespace Microsoft.Quantum.Arithmetic {
 
 
     // Computes ys += xs + carryIn using a ripple carry architecture
-    @Config(Full)
     internal operation IncWithCarryIn(carryIn : Qubit, xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
         // We assume that it has already been checked that xs and ys are of
@@ -37,7 +36,6 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements Half-adder. Adds qubit x to qubit y and sets carryOut appropriately
-    @Config(Full)
     internal operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -64,7 +62,6 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements Full-adder. Adds qubit carryIn and x to qubit y and sets carryOut appropriately.
-    @Config(Full)
     internal operation FullAdderForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -92,7 +89,6 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     // Computes carryOut := carryIn + x + y
-    @Config(Full)
     internal operation FullAdder(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj {
         CNOT(x, y);
@@ -105,7 +101,6 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Computes carry bit for a full adder.
-    @Config(Full)
     internal operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -127,7 +122,6 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Uncomputes carry bit for a full adder.
-    @Config(Full)
     internal operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     : Unit is Adj + Ctl {
         body (...) {
@@ -153,18 +147,45 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
-    /// in `target` assuming `target` is in |0> state. This allows for an
-    /// otimized adjoint implementation.
+    /// in `target` assuming `target` is in |0> state.
+    ///
+    /// # Description
+    /// Inverts `target` if and only if both controls are 1, but assumes that
+    /// `target` is in state 0. The operation has T-count 4, T-depth 2 and
+    /// requires no helper qubit, and may therefore be preferable to a CCNOT
+    /// operation, if `target` is known to be 0.
+    /// The adjoint of this operation is measurement based and requires no T
+    /// gates (but requires target to support branching on measurements).
+    /// Although the Toffoli gate (CCNOT) will perform faster in in simulations,
+    /// this version has lower T gate requirements.
+    /// # References
+    /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
+    ///   Phys. Rev. A 87, 022328, 2013
+    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
+    ///   doi:10.1103/PhysRevA.87.022328
     @Config(Full)
     internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
-    : Unit is Adj {
+    : Unit is Adj { // NOTE: Eventually this operation will be public and intrinsic.
         body (...) {
             if not CheckZero(target) {
                 fail "ApplyAndAssuming0Target expects `target` to be in |0> state.";
             }
-            CCNOT(control1, control2, target);
+            H(target);
+            T(target);
+            CNOT(control1, target);
+            CNOT(control2, target);
+            within {
+                CNOT(target, control1);
+                CNOT(target, control2);
+            }
+            apply {
+                Adjoint T(control1);
+                Adjoint T(control2);
+                T(target);
+            }
+            H(target);
+            S(target);            
         }
-
         adjoint (...) {
             H(target);
             if M(target) == One {
@@ -175,8 +196,44 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     /// # Summary
+    /// Applies AND gate between `control1` and `control2` and stores the result
+    /// in `target` assuming `target` is in |0> state.
+    ///
+    /// # Description
+    /// Inverts `target` if and only if both controls are 1, but assumes that
+    /// `target` is in state 0. The operation has T-count 4, T-depth 2 and
+    /// requires no helper qubit, and may therefore be preferable to a CCNOT
+    /// operation, if `target` is known to be 0.
+    /// This version is suitable for Base profile.
+    /// Although the Toffoli gate (CCNOT) will perform faster in in simulations,
+    /// this version has lower T gate requirements.
+    /// # References
+    /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
+    ///   Phys. Rev. A 87, 022328, 2013
+    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
+    ///   doi:10.1103/PhysRevA.87.022328
+    @Config(Base)
+    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
+    : Unit is Adj {
+        H(target);
+        T(target);
+        CNOT(control1, target);
+        CNOT(control2, target);
+        within {
+            CNOT(target, control1);
+            CNOT(target, control2);
+        }
+        apply {
+            Adjoint T(control1);
+            Adjoint T(control2);
+            T(target);
+        }
+        H(target);
+        S(target);
+    }
+
+    /// # Summary
     /// Computes carries for the look-ahead adder
-    @Config(Full)
     internal operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
         let n = Length(gs);
         Fact(Length(ps)+1 == n, "Register gs must be one qubit longer than register gs.");
@@ -214,7 +271,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// in `pWorkspace[t][m - 1]` and use that for k = 2ᵗ × m + 2ᵗ⁻¹, p[i, k] and p[k, j]
     /// have already been computed in round t - 1 in `pWorkspace[t - 1][2 * m - 1]` and
     /// `pWorkspace[t - 1][2 * m]`, respectively.
-    @Config(Full)
     internal operation PRounds(pWorkspace : Qubit[][]) : Unit is Adj {
         for ws in Windows(2, pWorkspace) {
             // note that we are using Rest, since pWorkspace[t - 1][0] is never

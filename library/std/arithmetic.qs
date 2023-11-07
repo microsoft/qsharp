@@ -324,14 +324,14 @@ namespace Microsoft.Quantum.Arithmetic {
     //
 
     //
-    // Operation: Add      |    Ripple-carry    | Carry look-ahead |    Fourier
-    // ____________________|____________________|__________________|________________
-    // y += 5              |  RippleCarryIncByL |                  |
-    // y += x              | RippleCarryIncByLE | LookAheadIncByLE | FourierIncByLE
-    // z = x + 5 (z was 0) |                    |                  |
-    // z = x + y (z was 0) |   RippleCarryAddLE |   LookAheadAddLE |
-    // z += x + 5          |                    |                  |
-    // z += x + y          |                    |                  |
+    // Operation: Add      | General |    Ripple-carry    | Carry look-ahead |    Fourier
+    // ____________________|_________|____________________|__________________|________________
+    // y += 5              |  IncByL |  RippleCarryIncByL |                  |
+    // y += x              | IncByLE | RippleCarryIncByLE | LookAheadIncByLE | FourierIncByLE
+    // z = x + 5 (z was 0) |         |                    |                  |
+    // z = x + y (z was 0) |   AddLE |   RippleCarryAddLE |   LookAheadAddLE |
+    // z += x + 5          |         |                    |                  |
+    // z += x + y          |         |                    |                  |
     //
 
     /// # Summary
@@ -342,7 +342,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
     /// NOTE: Use RippleCarryIncByL directly if the choice of implementation
     /// is important.
-    @Config(Full)
     operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByL(c, ys);
     }
@@ -355,7 +354,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// and Length(xs) ≤ Length(ys) = n.
     /// NOTE: Use RippleCarryIncByLE or LookAheadIncByLE directly if
     /// the choice of implementation is important.
-    @Config(Full)
     operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByLE(xs, ys);
     }
@@ -369,7 +367,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized.
     /// NOTE: Use RippleCarryAddLE or LookAheadAddLE directly if
     /// the choice of implementation is important.
-    @Config(Full)
     operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         RippleCarryAddLE(xs, ys, zs);
     }
@@ -386,7 +383,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
     operation RippleCarryIncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
@@ -422,7 +418,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
     operation RippleCarryIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
@@ -468,7 +463,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
     operation RippleCarryAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
@@ -504,7 +498,6 @@ namespace Microsoft.Quantum.Arithmetic {
     ///     - [arXiv:quant-ph/0406142](https://arxiv.org/abs/quant-ph/0406142)
     ///      "A logarithmic-depth quantum carry-lookahead adder" by
     ///      Thomas G. Draper, Samuel A. Kutin, Eric M. Rains, Krysta M. Svore
-    @Config(Full)
     operation LookAheadAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
