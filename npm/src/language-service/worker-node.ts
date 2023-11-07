@@ -24,7 +24,8 @@ const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-
 
 const postMessage = port.postMessage.bind(port);
 
-const compiler = new QSharpLanguageService(wasm);
+// pass in empty callbacks for `readFile` and `listDir`, as the worker thread doesn't support that yet. 
+const compiler = new QSharpLanguageService(wasm, () => null, () => []);
 const invokeCompiler = createLanguageServiceDispatcher(postMessage, compiler);
 
 function messageHandler(data: any) {

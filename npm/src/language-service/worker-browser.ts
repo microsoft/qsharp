@@ -23,7 +23,8 @@ export function messageHandler(e: MessageEvent) {
       {
         log.setLogLevel(data.qscLogLevel);
         wasm.initSync(data.wasmModule);
-        const languageService = new QSharpLanguageService(wasm);
+        // we pass in dummy arguments for `readFile` and `listDir` because the browser worker doesn't support the project system right now
+        const languageService = new QSharpLanguageService(wasm, () => null, () => []);
         invokeCompiler = createLanguageServiceDispatcher(
           self.postMessage.bind(self),
           languageService,

@@ -249,8 +249,6 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  // find the qsharp.json corresponding to this file
-  const manifest = await findManifest(baseUri);
   // construct callback
   const dirListCallback: (uri: string) => string[] = (path: string) =>
     directoryListingCallback(baseUri, path);
@@ -258,7 +256,6 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const languageService = await getLanguageService(
     readFileCallback,
     dirListCallback,
-    manifest,
   );
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();

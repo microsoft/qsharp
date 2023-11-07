@@ -1,13 +1,14 @@
 import { log } from "qsharp-lang";
+import { Utils } from 'vscode-uri';
 import * as vscode from "vscode";
-import * as path from "path";
 
+/** Returns the path to the manifest if one is found
+  * returns null otherwise
+  */
 export function findManifest(uri: vscode.Uri): string | null {
-  // /home/foo/bar/document.qs
-  const currentDocumentUri = uri;
+  // https://something.com/home/foo/bar/document.qs
+  let uriToQuery= uri;
 
-  // /home/foo/bar
-  let pathToQuery = path.dirname(currentDocumentUri.path);
 
   let attempts = 100;
 
@@ -17,10 +18,9 @@ export function findManifest(uri: vscode.Uri): string | null {
 
     // if path.relative(foo/bar/, foo/bar/qsharp.json) === qsharp.json, then this directory contains a qsharp.json,
     const listing = vscode.workspace.textDocuments
-      .filter((x) => x.uri.path.startsWith(pathToQuery))
+      .filter((x) => x.uri.path.startsWith(uriToQuery.path))
       .filter((doc) => {
-        const thisFilePath = doc.uri.path;
-        return path.relative(pathToQuery, thisFilePath) === "qsharp.json";
+        return doc.uri.path.toString().replace(uriToQuery.toString(), '') === "qsharp.json";
       });
 
     if (listing.length === 1) {
@@ -32,9 +32,9 @@ export function findManifest(uri: vscode.Uri): string | null {
       return listing[0].uri.path;
     }
 
-    const oldPathToQuery = pathToQuery;
-    pathToQuery = path.resolve(pathToQuery, "..");
-    if (oldPathToQuery === pathToQuery) {
+    const oldUriToQuery = uriToQuery;
+    uriToQuery = Utils.resolvePath(uriToQuery, "..");
+    if (oldUriToQuery === uriToQuery) {
       log.trace("no qsharp manifest file found");
       return null;
     }
@@ -60,14 +60,13 @@ export function directoryListingCallback(
     return [];
   }
 
-  const workspaceFolderPath: string = workspaceFolder.uri.path;
 
-  const absoluteDirectoryQuery = path.normalize(
-    workspaceFolderPath + "/" + directoryQuery,
+  const absoluteDirectoryQuery = Utils.resolvePath(
+    workspaceFolder.uri, "/" + directoryQuery
   );
 
   const filesInDir = vscode.workspace.textDocuments
-    .filter((doc) => doc.uri.path.startsWith(absoluteDirectoryQuery))
+    .filter((doc) => doc.uri.path.startsWith(absoluteDirectoryQuery.path))
     .map((doc) => doc.getText());
 
   return filesInDir;
