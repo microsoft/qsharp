@@ -27,7 +27,10 @@ class QSharpReferenceProvider implements vscode.ReferenceProvider {
     for (const reference of lsReferences) {
       const uri = vscode.Uri.parse(reference.source);
       const referenceDoc = await vscode.workspace.openTextDocument(uri);
-      const referenceRange = new vscode.Range(referenceDoc.positionAt(reference.span.start), referenceDoc.positionAt(reference.span.end));
+      const referenceRange = new vscode.Range(
+        referenceDoc.positionAt(reference.span.start),
+        referenceDoc.positionAt(reference.span.end),
+      );
       references.push(new vscode.Location(uri, referenceRange));
     }
     return references;
