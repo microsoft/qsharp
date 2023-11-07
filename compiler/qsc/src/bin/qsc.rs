@@ -16,7 +16,7 @@ use qsc_frontend::{
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
-use qsc_runtime_capabilities::{analysis::Analyzer, analysis_legacy::LegacyAnalyzer};
+use qsc_runtime_capabilities::analysis::Analyzer;
 use std::{
     concat,
     fs::{self, File},
@@ -146,14 +146,14 @@ fn save_fir_store_to_files(store: &qsc_fir::fir::PackageStore) {
 }
 
 // DBG (cesarzc): For debugging purposes only.
-fn save_store_capabilities_to_files(store: &qsc_runtime_capabilities::StoreCapabilities) {
-    for (id, package) in store.0.iter() {
-        let filename = format!("dbg/caps.package{id}.txt");
-        let mut package_file = File::create(filename).expect("File could be created");
-        let package_string = format!("{package}");
-        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
-    }
-}
+//fn save_store_capabilities_to_files(store: &qsc_runtime_capabilities::StoreCapabilities) {
+//    for (id, package) in store.0.iter() {
+//        let filename = format!("dbg/caps.package{id}.txt");
+//        let mut package_file = File::create(filename).expect("File could be created");
+//        let package_string = format!("{package}");
+//        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+//    }
+//}
 
 fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceContents)> {
     let path = path.as_ref();

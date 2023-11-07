@@ -1,12 +1,14 @@
 use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{ItemId, LocalItemId, PackageId, PackageStore};
+use qsc_fir::fir::{ItemId, ItemKind, LocalItemId, PackageId, PackageStore};
 
 use indenter::indented;
 use rustc_hash::FxHashSet;
 
 use std::{
     fmt::{Display, Formatter, Result, Write},
+    fs::File,
+    io::Write as IoWrite,
     vec::Vec,
 };
 
@@ -38,7 +40,7 @@ impl Display for PackageRtProps {
         write!(f, "Items:")?;
         for (id, item) in self.items.iter() {
             let mut indent = set_indentation(indented(f), 1);
-            write!(indent, "\nLocalItemId {id}: ")?;
+            write!(indent, "\nLocal Item ID {id}: ")?;
             match item {
                 None => {
                     _ = write!(f, "None");
@@ -53,8 +55,53 @@ impl Display for PackageRtProps {
         write!(f, "\nBlocks:")?;
         for (id, block) in self.blocks.iter() {
             let mut indent = set_indentation(indented(f), 1);
-            write!(indent, "\nBlockId {id}: ")?;
+            write!(indent, "\nBlock ID {id}: ")?;
             match block {
+                None => {
+                    _ = write!(f, "None");
+                }
+                Some(inner_elmt_props) => {
+                    let mut indent = set_indentation(indented(f), 2);
+                    write!(indent, "\n{inner_elmt_props}")?;
+                }
+            }
+        }
+
+        write!(f, "\nStatements:")?;
+        for (id, stmt) in self.stmts.iter() {
+            let mut indent = set_indentation(indented(f), 1);
+            write!(indent, "\nStatement ID {id}: ")?;
+            match stmt {
+                None => {
+                    _ = write!(f, "None");
+                }
+                Some(inner_elmt_props) => {
+                    let mut indent = set_indentation(indented(f), 2);
+                    write!(indent, "\n{inner_elmt_props}")?;
+                }
+            }
+        }
+
+        write!(f, "\nExpressions:")?;
+        for (id, expr) in self.exprs.iter() {
+            let mut indent = set_indentation(indented(f), 1);
+            write!(indent, "\nExpression ID {id}: ")?;
+            match expr {
+                None => {
+                    _ = write!(f, "None");
+                }
+                Some(inner_elmt_props) => {
+                    let mut indent = set_indentation(indented(f), 2);
+                    write!(indent, "\n{inner_elmt_props}")?;
+                }
+            }
+        }
+
+        write!(f, "\nPatterns:")?;
+        for (id, pat) in self.pats.iter() {
+            let mut indent = set_indentation(indented(f), 1);
+            write!(indent, "\nPattern ID {id}: ")?;
+            match pat {
                 None => {
                     _ = write!(f, "None");
                 }
@@ -267,7 +314,49 @@ impl<'a> Analyzer<'a> {
         }
     }
 
-    pub fn run<'b>(&'b mut self) -> &'b StoreRtProps {
+    pub fn run(&mut self) -> &StoreRtProps {
+        self.persist_store_rt_props(0);
+        self.initialize_packages_rt_props();
+        self.persist_store_rt_props(1);
         &self.store_rt_props
+    }
+
+    fn initialize_packages_rt_props(&mut self) {
+        for (package_id, _) in self.package_store.0.iter() {
+            self.initialize_package_rt_props(package_id);
+        }
+    }
+
+    fn intialize_package_rt_items(&mut self, package_id: PackageId) {
+        let package = self
+            .package_store
+            .0
+            .get(package_id)
+            .expect("Package should exist");
+        let package_rt_props = self
+            .store_rt_props
+            .0
+            .get_mut(package_id)
+            .expect("Package RT props should exist");
+        for (item_id, item) in package.items.iter() {
+            let item_rt_props = match item.kind {
+                ItemKind::Callable(_) => None,
+                ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => Some(ItemRtProps::NonCallable),
+            };
+            package_rt_props.items.insert(item_id, item_rt_props);
+        }
+    }
+
+    fn initialize_package_rt_props(&mut self, package_id: PackageId) {
+        self.intialize_package_rt_items(package_id);
+    }
+
+    fn persist_store_rt_props(&self, phase: u8) {
+        for (package_id, package) in self.store_rt_props.0.iter() {
+            let filename = format!("dbg/phase{phase}.package{package_id}.txt");
+            let mut package_file = File::create(filename).expect("File could be created");
+            let package_string = format!("{package}");
+            write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+        }
     }
 }
