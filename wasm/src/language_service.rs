@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::{path::PathBuf, sync::Arc};
+
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
 use qsc::{self};
@@ -23,18 +25,15 @@ impl LanguageService {
             .expect("expected a valid JS function")
             .clone();
 
-        let read_file = move |path: PathBuf| {
-            let path = JsValue::from_str(&path.to_string_lossy().to_string());
+        let read_file = move |path_buf: PathBuf| {
+            let path_buf_string = &path_buf.to_string_lossy().to_string();
+            let path = JsValue::from_str(&path_buf_string);
             let res = read_file
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed");
 
-            if res.is_null() {
-                todo!("handle file not found");
-            }
-
             match res.as_string() {
-                Some(res) => return (Arc::from(path), Arc::from(res)),
+                Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
                 None => unreachable!("JS callback did not return an expected type"),
             }
         };
@@ -44,7 +43,9 @@ impl LanguageService {
             .expect("expected a valid JS function")
             .clone();
 
-        let list_directory = move |path| {
+        let list_directory = move |path_buf: PathBuf| {
+            let path_buf_string = &path_buf.to_string_lossy().to_string();
+            let path = JsValue::from_str(&path_buf_string);
             list_directory
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed");
