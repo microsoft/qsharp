@@ -73,12 +73,12 @@ export function directoryListingCallback(
   return filesInDir;
 }
 
-export function readFileCallback(uri: string): [string, string] | null {
+export function readFileCallback(uri: string): string | null {
   const maybeDocument = vscode.workspace.textDocuments.filter(
     (x) => x.fileName === uri,
   )[0];
 
   return (
-    (maybeDocument && [maybeDocument.fileName, maybeDocument.getText()]) || null
+    (maybeDocument && maybeDocument.getText() || null)
   );
 }

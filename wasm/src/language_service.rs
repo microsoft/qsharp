@@ -23,10 +23,20 @@ impl LanguageService {
             .expect("expected a valid JS function")
             .clone();
 
-        let read_file = move |path| {
-            let res = diagnostics_callback
+        let read_file = move |path: PathBuf| {
+            let path = JsValue::from_str(&path.to_string_lossy().to_string());
+            let res = read_file
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed");
+
+            if res.is_null() {
+                todo!("handle file not found");
+            }
+
+            match res.as_string() {
+                Some(res) => return (Arc::from(path), Arc::from(res)),
+                None => unreachable!("JS callback did not return an expected type"),
+            }
         };
 
         let list_directory = list_directory
@@ -62,9 +72,10 @@ impl LanguageService {
                     )
                     .expect("callback should succeed");
             },
-            move |path| read_file(path.to_string_lossy().to_string()).await,
+            read_file,
             list_directory,
         );
+
         LanguageService(inner)
     }
 
@@ -410,12 +421,12 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => [string, string] | null")]
+    #[wasm_bindgen(typescript_type = "(uri: string) => string | null")]
     pub type ReadFileCallback;
 }
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string[]>")]
+    #[wasm_bindgen(typescript_type = "(uri: string) => string[]")]
     pub type ListDirectoryCallback;
 }
