@@ -1,8 +1,6 @@
 name: CI Build and Test
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
