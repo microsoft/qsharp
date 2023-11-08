@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use core::panic;
-
 use crate::resolve::{self, Names};
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Ident, Pat,
@@ -150,7 +148,11 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyEr
                     })
                     .collect(),
             ),
-            TyDefKind::Err => panic!("tydef error not expected here"),
+            TyDefKind::Err => UdtDefKind::Field(UdtField {
+                name_span: None,
+                name: None,
+                ty: Ty::Err,
+            }),
         },
     };
 
