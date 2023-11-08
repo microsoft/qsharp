@@ -167,28 +167,29 @@ impl<'a> LanguageService<'a> {
     /// containing the "%%qsharp" cell magic.
     ///
     /// LSP: notebookDocument/didOpen, notebookDocument/didChange
-    pub fn update_notebook_document(
-        &mut self,
-        notebook_uri: &str,
-        cells: &[(&str, u32, &str)], // uri, version, text - basically DidChangeTextDocumentParams in LSP
-    ) {
+    pub fn update_notebook_document<'b, I>(&mut self, notebook_uri: &str, cells: I)
+    where
+        I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
+    {
         trace!("update_notebook_document: {notebook_uri}");
-        let compilation = Compilation::new_notebook(cells.iter().map(|c| (c.0, c.2)));
 
         let compilation_uri: Arc<str> = notebook_uri.into();
+
+        let compilation =
+            Compilation::new_notebook(cells.map(|(cell_uri, version, cell_contents)| {
+                trace!("update_notebook_document: cell: {cell_uri} {version}");
+                self.open_documents.insert(
+                    (*cell_uri).into(),
+                    OpenDocument {
+                        version,
+                        compilation: compilation_uri.clone(),
+                    },
+                );
+                (cell_uri, cell_contents)
+            }));
+
         self.compilations
             .insert(compilation_uri.clone(), compilation);
-
-        for (cell_uri, version, _) in cells {
-            trace!("update_notebook_document: cell: {cell_uri} {version}");
-            self.open_documents.insert(
-                (*cell_uri).into(),
-                OpenDocument {
-                    version: *version,
-                    compilation: compilation_uri.clone(),
-                },
-            );
-        }
 
         self.publish_diagnostics();
     }
