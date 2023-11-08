@@ -44,6 +44,7 @@ impl Compilation {
     ) -> Self {
         trace!("compiling document {source_name}");
         // Source map only contains the current document.
+        todo!("this function needs to be adapted to take multiple files, and the entire compilation unit will be passed into the 'sources' array");
         let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
 
         let mut package_store = PackageStore::new(compile::core());

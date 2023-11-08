@@ -132,6 +132,8 @@ impl<'a> LanguageService<'a> {
     /// for the document, typically when the document is first opened in the editor.
     /// It should also be called whenever the source code is updated.
     ///
+    /// This is the "entry point" for the language service's logic, after its constructor.
+    ///
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         trace!("update_document: {uri} {version}");
@@ -144,6 +146,7 @@ impl<'a> LanguageService<'a> {
 
         // Associate each known document with a separate compilation.
         let uri: Arc<str> = uri.into();
+        todo!("the key for this insertion should be the project manifest path if one exists");
         self.compilations.insert(uri.clone(), compilation);
         self.open_documents.insert(
             uri.clone(),
