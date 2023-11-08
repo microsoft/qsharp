@@ -7,7 +7,9 @@ mod tests;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::{self, Location};
 use crate::qsc_utils::{map_offset, protocol_span, Compilation};
-use crate::references::{find_field_locations, find_item_locations, find_local_locations};
+use crate::references::{
+    find_field_locations, find_item_locations, find_local_locations, find_ty_param_locations,
+};
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir, resolve, Span};
 
@@ -80,6 +82,20 @@ impl<'a> Rename<'a> {
         }
     }
 
+    fn get_spans_for_type_param_rename(
+        &mut self,
+        param_id: &hir::ty::ParamId,
+        ast_name: &ast::Ident,
+        current_callable: &ast::CallableDecl,
+    ) {
+        if self.is_prepare {
+            self.prepare = Some((ast_name.span, ast_name.name.to_string()));
+        } else {
+            self.locations =
+                find_ty_param_locations(param_id, current_callable, self.compilation, true);
+        }
+    }
+
     fn get_spans_for_local_rename(
         &mut self,
         node_id: ast::NodeId,
@@ -133,7 +149,9 @@ impl<'a> Handler<'a> for Rename<'a> {
         name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
-        todo!();
+        if let Some(curr) = context.current_callable {
+            self.get_spans_for_type_param_rename(param_id, name, curr);
+        }
     }
 
     fn at_type_param_ref(
@@ -142,7 +160,9 @@ impl<'a> Handler<'a> for Rename<'a> {
         name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
-        todo!();
+        if let Some(curr) = context.current_callable {
+            self.get_spans_for_type_param_rename(param_id, name, curr);
+        }
     }
 
     fn at_new_type_ref(
