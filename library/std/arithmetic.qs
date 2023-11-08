@@ -324,14 +324,14 @@ namespace Microsoft.Quantum.Arithmetic {
     //
 
     //
-    // Operation: Add      |    Ripple-carry    | Carry look-ahead
-    // ____________________________________________________________
-    // y += 5              |  RippleCarryIncByL✔|              N/A
-    // y += x              | RippleCarryIncByLE✔| LookAheadIncByLE
-    // z = x + 5 (z was 0) |                N/A |              N/A
-    // z = x + y (z was 0) |   RippleCarryAddLE✔|   LookAheadAddLE
-    // z += x + 5          |                N/A |              N/A
-    // z += x + y          |                N/A |              N/A
+    // Operation: Add      | General |    Ripple-carry    | Carry look-ahead |    Fourier
+    // ____________________|_________|____________________|__________________|________________
+    // y += 5              |  IncByL |  RippleCarryIncByL |                  |
+    // y += x              | IncByLE | RippleCarryIncByLE | LookAheadIncByLE | FourierIncByLE
+    // z = x + 5 (z was 0) |         |                    |                  |
+    // z = x + y (z was 0) |   AddLE |   RippleCarryAddLE |   LookAheadAddLE |
+    // z += x + 5          |         |                    |                  |
+    // z += x + y          |         |                    |                  |
     //
 
     /// # Summary
@@ -342,7 +342,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
     /// NOTE: Use RippleCarryIncByL directly if the choice of implementation
     /// is important.
-    @Config(Full)
     operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByL(c, ys);
     }
@@ -355,7 +354,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// and Length(xs) ≤ Length(ys) = n.
     /// NOTE: Use RippleCarryIncByLE or LookAheadIncByLE directly if
     /// the choice of implementation is important.
-    @Config(Full)
     operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryIncByLE(xs, ys);
     }
@@ -369,7 +367,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized.
     /// NOTE: Use RippleCarryAddLE or LookAheadAddLE directly if
     /// the choice of implementation is important.
-    @Config(Full)
     operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         RippleCarryAddLE(xs, ys, zs);
     }
@@ -386,7 +383,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
     operation RippleCarryIncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
@@ -422,7 +418,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
     operation RippleCarryIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
@@ -468,7 +463,6 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    @Config(Full)
     operation RippleCarryAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
@@ -485,6 +479,76 @@ namespace Microsoft.Quantum.Arithmetic {
         if xsLen > 0 and xsLen == zsLen {
             CNOT(Tail(xs), Tail(zs));
             CNOT(Tail(ys), Tail(zs));
+        }
+    }
+
+    /// # Summary
+    /// Sets a zero-initialized little-endian register zs to the sum of
+    /// little-endian registers xs and ys using the carry-lookahead algorithm.
+    ///
+    /// # Description
+    /// Computes zs := xs + ys + zs[0] modulo 2ⁿ, where xs, ys, and zs are
+    /// little-endian registers, Length(xs) = Length(ys) ≤ Length(zs) = n,
+    /// assuming zs is 0-initialized, except for maybe zs[0], which can be
+    /// in |0> or |1> state and can be used as carry-in.
+    /// NOTE: `zs[Length(xs)]` can be used as carry-out, if `zs` is longer than `xs`.
+    /// This operation uses the carry-lookahead algorithm.
+    ///
+    /// # Reference
+    ///     - [arXiv:quant-ph/0406142](https://arxiv.org/abs/quant-ph/0406142)
+    ///      "A logarithmic-depth quantum carry-lookahead adder" by
+    ///      Thomas G. Draper, Samuel A. Kutin, Eric M. Rains, Krysta M. Svore
+    operation LookAheadAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+        let xsLen = Length(xs);
+        let zsLen = Length(zs);
+        Fact(Length(ys) == xsLen, "Registers `xs` and `ys` must be of same length.");
+        Fact(zsLen >= xsLen, "Register `zs` must be no shorter than register `xs`.");
+
+        if zsLen > xsLen { // with carry-out
+            // compute initial generate values
+            for k in 0..xsLen - 1 {
+                ApplyAndAssuming0Target(xs[k], ys[k], zs[k + 1]);
+            }
+
+            within {
+                // compute initial propagate values
+                ApplyToEachA(CNOT, Zipped(xs, ys));
+            } apply {
+                if xsLen > 1 {
+                    ComputeCarries(Rest(ys), zs[1..xsLen]);
+                }
+
+                // compute sum into carries
+                for k in 0..xsLen - 1 {
+                    CNOT(ys[k], zs[k]);
+                }
+            }
+        } else { // xsLen == zsLen, so without carry-out
+            LookAheadAddLE(Most(xs), Most(ys), zs);
+            CNOT(Tail(xs), Tail(zs));
+            CNOT(Tail(ys), Tail(zs));
+        }
+    }
+
+    /// # Summary
+    /// Increments a little-endian register ys by a little-endian register xs
+    /// using Quantum Fourier Transform.
+    ///
+    /// # Description
+    /// Computes ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
+    /// and Length(xs) = Length(ys) = n.
+    /// This operation uses Quantum Fourier Transform.
+    ///
+    /// # Reference
+    ///     - [arXiv:quant-ph/0008033](https://arxiv.org/abs/quant-ph/0008033)
+    ///      "Addition on a Quantum Computer" by Thomas G. Draper
+    operation FourierIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj {
+        within {
+            ApplyQFT(ys);
+        } apply {
+            for (i, q) in Enumerated(xs) {
+                Controlled PhaseGradient([q], ys[i...]);
+            }
         }
     }
 

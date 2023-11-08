@@ -10,7 +10,8 @@ namespace Test {
             for ysValue in 0..(1 <<< n) - 1 {
                 ApplyXorInPlace(ysValue, ys);
                 RippleCarryIncByL(IntAsBigInt(c), ys);
-                Fact(MeasureInteger(ys) == (c + ysValue) % (1 <<< n), $"unexpected value for `ys` given c = {c} and ysValue = {ysValue}");
+                Fact(MeasureInteger(ys) == (c + ysValue) % (1 <<< n),
+                    $"TestRippleCarryIncByL: Incorrect `ys` for c={c}, ys={ysValue}");
                 ResetAll(ys);
             }
         }
@@ -30,7 +31,8 @@ namespace Test {
                     } apply {
                         ApplyXorInPlace(ysValue, ys);
                         Controlled RippleCarryIncByL([ctl], (IntAsBigInt(c), ys));
-                        Fact(MeasureInteger(ys) == (isCtl ? (c + ysValue) % (1 <<< n) | ysValue), $"unexpected value for `ys` given c = {c} and ysValue = {ysValue}");
+                        Fact(MeasureInteger(ys) == (isCtl ? (c + ysValue) % (1 <<< n) | ysValue),
+                            $"TestRippleCarryIncByLCtl: Incorrect `ys` for c={c}, ys={ysValue}");
                     }
                     ResetAll(ys);
                     Reset(ctl);
