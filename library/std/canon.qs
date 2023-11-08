@@ -477,7 +477,7 @@ namespace Microsoft.Quantum.Canon {
     }
 
     /// # Summary
-    /// Applies Quantum Fourier Transform (QFT) to a quantum register.
+    /// Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.
     ///
     /// # Description
     /// Applies QFT to a little-endian register `qs` of length n
@@ -500,14 +500,6 @@ namespace Microsoft.Quantum.Canon {
                 Controlled R1Frac([qs[i]], (1, j+1, qs[i-j-1]));
             }
         }
-    }
-
-    /// # Summary
-    /// Applies Quantum Fourier Transform (QFT) to a quantum register
-    /// and reverses the result to match the big-endian format.
-    operation QFTLE (qs : Qubit[]) : Unit is Adj + Ctl {
-        ApplyQFT(qs);
-        SwapReverseRegister(qs);
     }
 
     /// # Summary

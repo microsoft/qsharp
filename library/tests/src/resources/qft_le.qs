@@ -2,7 +2,7 @@ namespace Test {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arrays;
 
-    internal operation PrepareEntangledState (
+    operation PrepareEntangledState (
         left : Qubit[],
         right : Qubit[]) : Unit is Adj + Ctl {
 
@@ -46,7 +46,6 @@ namespace Test {
         H(q1);
         Controlled R1Frac([q2], (2, 2, q1));
         H(q2);
-        SWAP(q1, q2);
     }
 
     /// # Summary
@@ -60,7 +59,6 @@ namespace Test {
         H(q2);
         Controlled R1Frac([q3], (2, 2, q2));
         H(q3);
-        SWAP(q1, q3);
     }
 
     /// # Summary
@@ -78,8 +76,6 @@ namespace Test {
         H(q3);
         Controlled R1Frac([q4], (2, 2, q3));
         H(q4);
-        SWAP(q1, q4);
-        SWAP(q2, q3);
     }
 
     /// # Summary
@@ -87,7 +83,6 @@ namespace Test {
     operation TestQFT(n: Int) : Unit {
         Fact(n>=1 and n<=4, "Only have four tests for QFT.");
         let testOperations = [QFT1, QFT2, QFT3, QFT4];
-        // NOTE: ApplyQFT is tested via QFTLE.
-        AssertOperationsEqualReferenced(n, testOperations[n-1], q => QFTLE(Reversed(q)));
+        AssertOperationsEqualReferenced(n, testOperations[n-1], q => ApplyQFT(Reversed(q)));
     }
 }
