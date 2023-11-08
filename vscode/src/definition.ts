@@ -33,6 +33,7 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
 }
 
 async function openDocument(uri: vscode.Uri) {
+  const uriString = uri.toString();
   // Search both text documents and notebook cell documents
   const doc = vscode.workspace.textDocuments
     .concat(
@@ -45,7 +46,7 @@ async function openDocument(uri: vscode.Uri) {
           .map((cell) => cell.document),
       ),
     )
-    .find((doc) => doc.uri.toString() === uri.toString());
+    .find((doc) => doc.uri.toString() === uriString);
 
   return doc || (await vscode.workspace.openTextDocument(uri));
 }
