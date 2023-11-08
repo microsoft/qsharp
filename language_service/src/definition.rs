@@ -59,6 +59,24 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         ));
     }
 
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        param_id: &'a hir::ty::ParamId,
+    ) {
+        todo!();
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        param_id: &'a hir::ty::ParamId,
+    ) {
+        todo!();
+    }
+
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
         self.definition = Some(protocol_location(self.compilation, type_name.span, None));
     }

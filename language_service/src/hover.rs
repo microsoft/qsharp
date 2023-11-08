@@ -61,6 +61,24 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        param_id: &'a hir::ty::ParamId,
+    ) {
+        todo!();
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        param_id: &'a hir::ty::ParamId,
+    ) {
+        todo!();
+    }
+
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
         let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
         self.hover = Some(Hover {

@@ -34,6 +34,20 @@ fn assert_no_rename(source_with_markers: &str) {
 }
 
 #[test]
+fn foo() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo<'↘T>(x : ◉'T◉) : Unit {}
+            operation Bar(x : Int) : Unit {
+                Foo(3);
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
 fn callable_def() {
     check(
         r#"

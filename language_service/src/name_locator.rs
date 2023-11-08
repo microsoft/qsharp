@@ -8,7 +8,7 @@ use crate::qsc_utils::{
     find_ident, resolve_item_relative_to_user_package, resolve_item_res, span_contains,
     span_touches, Compilation,
 };
-use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty_def, Visitor};
+use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 
 #[allow(unused_variables)]
@@ -27,6 +27,20 @@ pub(crate) trait Handler<'package> {
         item: &'package hir::Item,
         package: &'package hir::Package,
         decl: &'package hir::CallableDecl,
+    );
+
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'package>,
+        name: &'package ast::Ident,
+        param_id: &'package hir::ty::ParamId,
+    );
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'package>,
+        name: &'package ast::Ident,
+        param_id: &'package hir::ty::ParamId,
     );
 
     fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
@@ -119,7 +133,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
         }
     }
 
-    // Handles callable and UDT definitions
+    // Handles callable, UDT, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
         if span_contains(item.span, self.offset) {
             let context = replace(&mut self.context.current_item_doc, item.doc.clone());
@@ -132,7 +146,15 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         self.context.current_callable = Some(decl);
 
                         // walk callable decl
-                        decl.generics.iter().for_each(|p| self.visit_ident(p));
+                        decl.generics.iter().for_each(|p| {
+                            if span_touches(p.span, self.offset) {
+                                if let Some(resolve::Res::Param(param_id)) =
+                                    self.compilation.user_unit.ast.names.get(p.id)
+                                {
+                                    self.inner.at_type_param_def(&self.context, p, param_id);
+                                }
+                            }
+                        });
                         self.context.in_params = true;
                         self.visit_pat(&decl.input);
                         self.context.in_params = false;
@@ -204,6 +226,21 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 }
             } else {
                 walk_ty_def(self, def);
+            }
+        }
+    }
+
+    // Handles type param references
+    fn visit_ty(&mut self, ty: &'package ast::Ty) {
+        if span_touches(ty.span, self.offset) {
+            if let ast::TyKind::Param(param) = &*ty.kind {
+                if let Some(resolve::Res::Param(param_id)) =
+                    self.compilation.user_unit.ast.names.get(param.id)
+                {
+                    self.inner.at_type_param_ref(&self.context, param, param_id);
+                }
+            } else {
+                walk_ty(self, ty);
             }
         }
     }

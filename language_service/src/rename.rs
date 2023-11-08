@@ -127,6 +127,24 @@ impl<'a> Handler<'a> for Rename<'a> {
         }
     }
 
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        param_id: &'a hir::ty::ParamId,
+    ) {
+        todo!();
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        name: &'a ast::Ident,
+        param_id: &'a hir::ty::ParamId,
+    ) {
+        todo!();
+    }
+
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
