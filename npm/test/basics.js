@@ -656,6 +656,7 @@ test("debug service loading source without entry point attr fails - web worker",
         return [m1];
     }
 }`,
+      "base",
       undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
@@ -673,6 +674,7 @@ test("debug service loading source with syntax error fails - web worker", async 
     operation main() : Result[]
     }
 }`,
+      "base",
       undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
@@ -687,6 +689,7 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
     const result = await debugService.loadSource(
       "test.qs",
       `namespace Sample { operation main() : Unit { } }`,
+      "base",
       "SomeBadExpr()",
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
@@ -701,9 +704,11 @@ test("debug service loading source with good entry expr succeeds - web worker", 
     const result = await debugService.loadSource(
       "test.qs",
       `namespace Sample { operation Main() : Unit { } }`,
+      "full",
       "Sample.Main()",
     );
-    assert.ok(typeof result === "string" && result.trim().length == 0);
+    assert.ok(typeof result === "string");
+    assert.equal(result.trim(), "");
   } finally {
     debugService.terminate();
   }
@@ -723,9 +728,11 @@ test("debug service loading source with entry point attr succeeds - web worker",
         return [m1];
     }
 }`,
+      "base",
       undefined,
     );
-    assert.ok(typeof result === "string" && result.trim().length == 0);
+    assert.ok(typeof result === "string");
+    assert.equal(result.trim(), "");
   } finally {
     debugService.terminate();
   }
@@ -745,11 +752,37 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         return [m1];
     }
 }`,
+      "base",
       undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
     assert.equal(bps.length, 4);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service returns error when loading unknown target - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      "test.qs",
+      `namespace Test {
+    @EntryPoint()
+    operation main() : Result[] {
+        use q1 = Qubit();
+        return [M(q1)];
+    }
+}`,
+      "__unknown__",
+      undefined,
+    );
+    assert.ok(typeof result === "string");
+    assert.equal(
+      result.trim(),
+      "Qsc.Interpret.UnknownTarget\n\n  × unknown target: __unknown__",
+    );
   } finally {
     debugService.terminate();
   }

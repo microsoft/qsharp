@@ -80,7 +80,7 @@ impl<'a> MutVisitor for BlockInverter<'a> {
 }
 
 impl<'a> BlockInverter<'a> {
-    fn reverse_loop(&mut self, pat: &mut Pat, iterable: &mut Expr, block: &mut Block) -> Expr {
+    fn reverse_loop(&mut self, pat: &Pat, iterable: &Expr, block: &Block) -> Expr {
         let mut wrapper = Block {
             id: NodeId::default(),
             span: Span::default(),
@@ -209,9 +209,9 @@ impl<'a> BlockInverter<'a> {
     fn reverse_range_loop(
         &mut self,
         wrapper: &mut Block,
-        iterable: &mut Expr,
-        pat: &mut Pat,
-        block: &mut Block,
+        iterable: &Expr,
+        pat: &Pat,
+        block: &Block,
     ) {
         // Create a new binding for the range expr.
         let new_range_id = self.assigner.next_node();

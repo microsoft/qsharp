@@ -89,7 +89,7 @@ export class QscDebugSession extends LoggingDebugSession {
   public constructor(
     private fileAccessor: FileAccessor,
     private debugService: IDebugServiceWorker,
-    private config: vscode.DebugConfiguration,
+    private config: vscode.DebugConfiguration
   ) {
     super();
 
@@ -109,15 +109,18 @@ export class QscDebugSession extends LoggingDebugSession {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { correlationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
-
+    const targetProfile = vscode.workspace
+      .getConfiguration("Q#")
+      .get<string>("targetProfile", "full");
     const failureMessage = await this.debugService.loadSource(
       this.program.toString(),
       programText,
-      this.config.entry,
+      targetProfile,
+      this.config.entry
     );
     if (failureMessage == "") {
       const locations = await this.debugService.getBreakpoints(
-        this.program.toString(),
+        this.program.toString()
       );
       log.trace(`init breakpointLocations: %O`, locations);
       const mapped = locations.map((location) => {
@@ -159,14 +162,14 @@ export class QscDebugSession extends LoggingDebugSession {
           reason: "compilation failed",
           flowStatus: UserFlowStatus.Aborted,
         },
-        {},
+        {}
       );
       this.failureMessage = failureMessage;
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
       { correlationId, flowStatus: UserFlowStatus.Succeeded },
-      {},
+      {}
     );
   }
 
@@ -176,7 +179,7 @@ export class QscDebugSession extends LoggingDebugSession {
    */
   protected initializeRequest(
     response: DebugProtocol.InitializeResponse,
-    args: DebugProtocol.InitializeRequestArguments,
+    args: DebugProtocol.InitializeRequestArguments
   ): void {
     this.supportsVariableType = args.supportsVariableType ?? false;
 
@@ -252,7 +255,7 @@ export class QscDebugSession extends LoggingDebugSession {
    */
   protected configurationDoneRequest(
     response: DebugProtocol.ConfigurationDoneResponse,
-    args: DebugProtocol.ConfigurationDoneArguments,
+    args: DebugProtocol.ConfigurationDoneArguments
   ): void {
     super.configurationDoneRequest(response, args);
 
@@ -262,13 +265,13 @@ export class QscDebugSession extends LoggingDebugSession {
 
   protected async launchRequest(
     response: DebugProtocol.LaunchResponse,
-    args: ILaunchRequestArguments,
+    args: ILaunchRequestArguments
   ): Promise<void> {
     const correlationId = getRandomGuid();
     sendTelemetryEvent(EventType.Launch, { correlationId }, {});
     if (this.failureMessage != "") {
       log.info(
-        "compilation failed. sending error response and stopping execution.",
+        "compilation failed. sending error response and stopping execution."
       );
       this.writeToDebugConsole(this.failureMessage);
       this.sendErrorResponse(response, {
@@ -282,7 +285,7 @@ export class QscDebugSession extends LoggingDebugSession {
     // configure DAP logging
     logger.setup(
       args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop,
-      false,
+      false
     );
 
     // wait until configuration has finished (configurationDoneRequest has been called)
@@ -307,14 +310,14 @@ export class QscDebugSession extends LoggingDebugSession {
         sendTelemetryEvent(
           EventType.DebugSessionEvent,
           { correlationId, event: DebugEvent.StepIn },
-          {},
+          {}
         );
         await this.stepIn();
       } else {
         sendTelemetryEvent(
           EventType.DebugSessionEvent,
           { correlationId, event: DebugEvent.Continue },
-          {},
+          {}
         );
         await this.continue();
       }
@@ -327,7 +330,7 @@ export class QscDebugSession extends LoggingDebugSession {
         if (result.id == StepResultId.BreakpointHit) {
           const evt = new StoppedEvent(
             "breakpoint",
-            QscDebugSession.threadID,
+            QscDebugSession.threadID
           ) as DebugProtocol.StoppedEvent;
           evt.body.hitBreakpointIds = [result.value];
           log.trace(`raising breakpoint event`);
@@ -341,35 +344,35 @@ export class QscDebugSession extends LoggingDebugSession {
       },
       (error) => {
         this.endSession(`ending session due to error: ${error}`, 1);
-      },
+      }
     );
   }
 
   private async continue(): Promise<void> {
     const bps = this.getBreakpointIds();
     await this.eval_step(
-      async () => await this.debugService.evalContinue(bps, this.eventTarget),
+      async () => await this.debugService.evalContinue(bps, this.eventTarget)
     );
   }
 
   private async next(): Promise<void> {
     const bps = this.getBreakpointIds();
     await this.eval_step(
-      async () => await this.debugService.evalNext(bps, this.eventTarget),
+      async () => await this.debugService.evalNext(bps, this.eventTarget)
     );
   }
 
   private async stepIn(): Promise<void> {
     const bps = this.getBreakpointIds();
     await this.eval_step(
-      async () => await this.debugService.evalStepIn(bps, this.eventTarget),
+      async () => await this.debugService.evalStepIn(bps, this.eventTarget)
     );
   }
 
   private async stepOut(): Promise<void> {
     const bps = this.getBreakpointIds();
     await this.eval_step(
-      async () => await this.debugService.evalStepOut(bps, this.eventTarget),
+      async () => await this.debugService.evalStepOut(bps, this.eventTarget)
     );
   }
 
@@ -383,7 +386,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private async runWithoutDebugging(
     args: ILaunchRequestArguments,
-    correlationId: string,
+    correlationId: string
   ): Promise<void> {
     const bps: number[] = [];
     // This will be replaced when the interpreter
@@ -391,7 +394,7 @@ export class QscDebugSession extends LoggingDebugSession {
     for (let i = 0; i < args.shots; i++) {
       const result = await this.debugService.evalContinue(
         bps,
-        this.eventTarget,
+        this.eventTarget
       );
       if (result.id != StepResultId.Return) {
         await this.endSession(`execution didn't run to completion`, -1);
@@ -404,7 +407,7 @@ export class QscDebugSession extends LoggingDebugSession {
       await this.init(correlationId);
       if (this.failureMessage != "") {
         log.info(
-          "compilation failed. sending error response and stopping execution.",
+          "compilation failed. sending error response and stopping execution."
         );
         this.writeToDebugConsole(this.failureMessage);
         await this.endSession(`ending session`, -1);
@@ -427,7 +430,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   protected async continueRequest(
     response: DebugProtocol.ContinueResponse,
-    args: DebugProtocol.ContinueArguments,
+    args: DebugProtocol.ContinueArguments
   ): Promise<void> {
     log.trace(`continueRequest: %O`, args);
 
@@ -440,7 +443,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected async nextRequest(
     response: DebugProtocol.NextResponse,
     args: DebugProtocol.NextArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): Promise<void> {
     log.trace(`nextRequest: %O`, args);
 
@@ -451,7 +454,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected async stepInRequest(
     response: DebugProtocol.StepInResponse,
     args: DebugProtocol.StepInArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): Promise<void> {
     log.trace(`stepInRequest: %O`, args);
     this.sendResponse(response);
@@ -462,7 +465,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected async stepOutRequest(
     response: DebugProtocol.StepOutResponse,
     args: DebugProtocol.StepOutArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): Promise<void> {
     log.trace(`stepOutRequest: %O`, args);
     this.sendResponse(response);
@@ -473,7 +476,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected async breakpointLocationsRequest(
     response: DebugProtocol.BreakpointLocationsResponse,
     args: DebugProtocol.BreakpointLocationsArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): Promise<void> {
     log.trace(`breakpointLocationsRequest: %O`, args);
 
@@ -486,10 +489,10 @@ export class QscDebugSession extends LoggingDebugSession {
       .catch((e) => {
         log.trace(`Failed to open file: ${e}`);
         const fileUri = this.fileAccessor.resolvePathToUri(
-          args.source.path ?? "",
+          args.source.path ?? ""
         );
         log.trace(
-          "breakpointLocationsRequest, target file: " + fileUri.toString(),
+          "breakpointLocationsRequest, target file: " + fileUri.toString()
         );
         return undefined;
       });
@@ -540,7 +543,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const endOffset = file.offsetAt(endPos);
 
     log.trace(
-      `breakpointLocationsRequest: ${startLine}:${startCol} - ${endLine}:${endCol}`,
+      `breakpointLocationsRequest: ${startLine}:${startCol} - ${endLine}:${endCol}`
     );
     log.trace(`breakpointLocationsRequest: ${startOffset} - ${endOffset}`);
 
@@ -557,7 +560,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-              bp.fileLocation.startOffset <= endOffset,
+              bp.fileLocation.startOffset <= endOffset
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
@@ -578,7 +581,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected async setBreakPointsRequest(
     response: DebugProtocol.SetBreakpointsResponse,
     args: DebugProtocol.SetBreakpointsArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): Promise<void> {
     log.trace(`setBreakPointsRequest: %O`, args);
 
@@ -587,7 +590,7 @@ export class QscDebugSession extends LoggingDebugSession {
       .catch((e) => {
         log.trace(`setBreakPointsRequest - Failed to open file: ${e}`);
         const fileUri = this.fileAccessor.resolvePathToUri(
-          args.source.path ?? "",
+          args.source.path ?? ""
         );
         log.trace("setBreakPointsRequest, target file: " + fileUri.toString());
         return undefined;
@@ -604,7 +607,7 @@ export class QscDebugSession extends LoggingDebugSession {
     this.breakpoints.set(file.uri.toString(), []);
     log.trace(
       `setBreakPointsRequest: files in cache %O`,
-      this.breakpointLocations.keys(),
+      this.breakpointLocations.keys()
     );
     const locations = this.breakpointLocations.get(file.uri.toString()) ?? [];
     log.trace(`setBreakPointsRequest: got locations %O`, locations);
@@ -618,7 +621,7 @@ export class QscDebugSession extends LoggingDebugSession {
       .filter(
         (sourceBreakpoint) =>
           this.convertClientLineToDebugger(sourceBreakpoint.line) <
-          file.lineCount,
+          file.lineCount
       )
       .map((sourceBreakpoint) => {
         const isLineBreakpoint = !sourceBreakpoint.column;
@@ -650,7 +653,7 @@ export class QscDebugSession extends LoggingDebugSession {
     for (const bpOffset of desiredBpOffsets) {
       if (
         uniqOffsets.findIndex(
-          (u) => u[0] == bpOffset[0] && u[1] == bpOffset[1],
+          (u) => u[0] == bpOffset[0] && u[1] == bpOffset[1]
         ) == -1
       ) {
         uniqOffsets.push(bpOffset);
@@ -712,7 +715,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   protected async stackTraceRequest(
     response: DebugProtocol.StackTraceResponse,
-    args: DebugProtocol.StackTraceArguments,
+    args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
     log.trace(`stackTraceRequest: %O`, args);
     const debuggerStackFrames = await this.debugService.getStackFrames();
@@ -730,7 +733,7 @@ export class QscDebugSession extends LoggingDebugSession {
               log.error(`stackTraceRequest - Failed to open file: ${e}`);
               const fileUri = this.fileAccessor.resolvePathToUri(f.path ?? "");
               log.trace(
-                "stackTraceRequest, target file: " + fileUri.toString(),
+                "stackTraceRequest, target file: " + fileUri.toString()
               );
             });
           if (file) {
@@ -745,14 +748,14 @@ export class QscDebugSession extends LoggingDebugSession {
                 file.uri.toString(true),
                 undefined,
                 undefined,
-                "qsharp-adapter-data",
+                "qsharp-adapter-data"
               ),
               this.convertDebuggerLineToClient(start_pos.line),
-              this.convertDebuggerColumnToClient(start_pos.character),
+              this.convertDebuggerColumnToClient(start_pos.character)
             );
             sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
             sf.endColumn = this.convertDebuggerColumnToClient(
-              end_pos.character,
+              end_pos.character
             );
             return sf;
           } else {
@@ -774,18 +777,18 @@ export class QscDebugSession extends LoggingDebugSession {
                 uri.toString(),
                 0,
                 "internal core/std library",
-                "qsharp-adapter-data",
+                "qsharp-adapter-data"
               ) as DebugProtocol.Source;
               const sf = new StackFrame(
                 id,
                 f.name,
                 source as Source,
                 this.convertDebuggerLineToClient(start_pos.line),
-                this.convertDebuggerColumnToClient(start_pos.character),
+                this.convertDebuggerColumnToClient(start_pos.character)
               );
               sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
               sf.endColumn = this.convertDebuggerColumnToClient(
-                end_pos.character,
+                end_pos.character
               );
 
               return sf as DebugProtocol.StackFrame;
@@ -796,16 +799,16 @@ export class QscDebugSession extends LoggingDebugSession {
                 f.name,
                 undefined,
                 undefined,
-                undefined,
+                undefined
               );
             }
           }
         })
-        .filter(filterUndefined),
+        .filter(filterUndefined)
     );
     const stackFrames = mappedStackFrames.reverse();
     stackFrames.push(
-      new StackFrame(0, "entry", undefined) as DebugProtocol.StackFrame,
+      new StackFrame(0, "entry", undefined) as DebugProtocol.StackFrame
     );
     response.body = {
       stackFrames: stackFrames,
@@ -819,7 +822,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected disconnectRequest(
     response: DebugProtocol.DisconnectResponse,
     args: DebugProtocol.DisconnectArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): void {
     log.trace(`disconnectRequest: %O`, args);
     this.debugService.terminate();
@@ -829,7 +832,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   protected scopesRequest(
     response: DebugProtocol.ScopesResponse,
-    args: DebugProtocol.ScopesArguments,
+    args: DebugProtocol.ScopesArguments
   ): void {
     log.trace(`scopesRequest: %O`, args);
     response.body = {
@@ -837,7 +840,7 @@ export class QscDebugSession extends LoggingDebugSession {
         new Scope(
           "Quantum State",
           this.variableHandles.create("quantum"),
-          true,
+          true
         ),
         new Scope("Locals", this.variableHandles.create("locals"), false),
       ],
@@ -849,7 +852,7 @@ export class QscDebugSession extends LoggingDebugSession {
   protected async variablesRequest(
     response: DebugProtocol.VariablesResponse,
     args: DebugProtocol.VariablesArguments,
-    request?: DebugProtocol.Request,
+    request?: DebugProtocol.Request
   ): Promise<void> {
     log.trace(`variablesRequest: ${JSON.stringify(args, null, 2)}`);
 
@@ -879,7 +882,7 @@ export class QscDebugSession extends LoggingDebugSession {
       sendTelemetryEvent(
         EventType.RenderQuantumStateStart,
         { correlationId },
-        {},
+        {}
       );
       const state = await this.debugService.captureQuantumState();
       const variables: DebugProtocol.Variable[] = state.map((entry) => {
@@ -894,7 +897,7 @@ export class QscDebugSession extends LoggingDebugSession {
       sendTelemetryEvent(
         EventType.RenderQuantumStateEnd,
         { correlationId },
-        {},
+        {}
       );
       response.body = {
         variables: variables,
@@ -907,7 +910,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private createBreakpoint(
     id: number,
-    location: DebugProtocol.BreakpointLocation,
+    location: DebugProtocol.BreakpointLocation
   ): DebugProtocol.Breakpoint {
     const verified = true;
     const bp = new Breakpoint(verified) as DebugProtocol.Breakpoint;
@@ -922,7 +925,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private writeToStdOut(message: string): void {
     const evt: DebugProtocol.OutputEvent = new OutputEvent(
       `${message}\n`,
-      "stdout",
+      "stdout"
     );
     this.sendEvent(evt);
   }
@@ -930,7 +933,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private writeToDebugConsole(message: string): void {
     const evt: DebugProtocol.OutputEvent = new OutputEvent(
       `${message}\n`,
-      "console",
+      "console"
     );
     this.sendEvent(evt);
   }

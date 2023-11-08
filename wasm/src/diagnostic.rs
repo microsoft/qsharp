@@ -62,6 +62,7 @@ impl VSDiagnostic {
             stateful::Error::Eval(e) => error_labels(e.error()),
             stateful::Error::NoEntryPoint => Vec::new(),
             stateful::Error::TargetMismatch => Vec::new(),
+            stateful::Error::UnknownTarget(..) => Vec::new(),
         };
 
         Self::new(labels, source_name, err)

@@ -217,7 +217,7 @@ impl Resolver {
         self.dropped_names.extend(dropped_names);
     }
 
-    pub(super) fn bind_fragments(&mut self, ast: &mut ast::Package, assigner: &mut Assigner) {
+    pub(super) fn bind_fragments(&mut self, ast: &ast::Package, assigner: &mut Assigner) {
         for node in &mut ast.nodes.iter() {
             match node {
                 ast::TopLevelNode::Namespace(namespace) => {
