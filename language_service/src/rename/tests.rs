@@ -38,7 +38,7 @@ fn foo() {
     check(
         r#"
         namespace Test {
-            operation Foo<'↘T>(x : ◉'T◉) : Unit {}
+            operation Foo<'◉↘T◉>(x : '◉T◉) : Unit {}
             operation Bar(x : Int) : Unit {
                 Foo(3);
             }

@@ -42,6 +42,22 @@ pub(crate) fn get_rename(
     locator.visit_package(&compilation.user_unit.ast.package);
     rename.locations
 }
+
+fn remove_leading_quote_from_type_param_span(span: Span) -> Span {
+    // The name includes the leading single quote character, which we don't want as part of the rename.
+    assert!(span.hi - span.lo > 1, "Type parameter name is empty");
+    Span {
+        lo: span.lo + 1, // skip the leading single quote
+        ..span
+    }
+}
+
+fn remove_leading_quote_from_type_param_name(name: &str) -> String {
+    // The name includes the leading single quote character, which we don't want as part of the rename.
+    assert!(name.len() > 1, "Type parameter name is empty");
+    name[1..].to_string()
+}
+
 struct Rename<'a> {
     compilation: &'a Compilation,
     locations: Vec<Location>,
@@ -89,10 +105,27 @@ impl<'a> Rename<'a> {
         current_callable: &ast::CallableDecl,
     ) {
         if self.is_prepare {
-            self.prepare = Some((ast_name.span, ast_name.name.to_string()));
+            let updated_span = remove_leading_quote_from_type_param_span(ast_name.span);
+            let updated_name = remove_leading_quote_from_type_param_name(&ast_name.name);
+            self.prepare = Some((updated_span, updated_name));
         } else {
             self.locations =
-                find_ty_param_locations(param_id, current_callable, self.compilation, true);
+                find_ty_param_locations(param_id, current_callable, self.compilation, true)
+                    .into_iter()
+                    .map(|l| {
+                        assert!(
+                            l.span.end - l.span.start > 1,
+                            "Type parameter name is empty"
+                        );
+                        Location {
+                            span: protocol::Span {
+                                start: l.span.start + 1,
+                                ..l.span
+                            },
+                            ..l
+                        }
+                    })
+                    .collect();
         }
     }
 

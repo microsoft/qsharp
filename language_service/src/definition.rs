@@ -65,7 +65,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
-        todo!();
+        //todo!();
     }
 
     fn at_type_param_ref(
@@ -74,7 +74,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
-        todo!();
+        //todo!();
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
