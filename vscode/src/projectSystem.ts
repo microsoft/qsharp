@@ -2,12 +2,47 @@ import { log } from "qsharp-lang";
 import { Utils } from "vscode-uri";
 import * as vscode from "vscode";
 
-/** Returns the path to the manifest if one is found
+export function findManifest(
+  uri: string,
+): {
+  excludeFiles: string[];
+  excludeRegexes: string[];
+  manifestDirectory: string;
+} | null {
+  const manifestDocument = findManifestDocument(uri);
+  if (manifestDocument === null) {
+    return null;
+  }
+
+  let parsedManifest;
+  try {
+    parsedManifest = JSON.parse(manifestDocument.getText());
+  } catch (e) {
+    log.error(
+      "Found manifest document, but the Q# manifest was not valid JSON",
+      e,
+    );
+    return null;
+  }
+
+  return {
+    excludeFiles: parsedManifest.excludeFiles || [],
+    excludeRegexes: parsedManifest.excludeRegexes || [],
+    manifestDirectory: manifestDocument.uri.path,
+  };
+}
+
+/** Returns the manifest document if one is found
  * returns null otherwise
  */
-export function findManifest(uri: vscode.Uri): string | null {
+function findManifestDocument(uri: string): vscode.TextDocument | null {
+  let openedFile = readFile(uri);
+  if (openedFile === null) {
+    return null;
+  }
   // https://something.com/home/foo/bar/document.qs
-  let uriToQuery = uri;
+
+  let uriToQuery = openedFile.uri;
 
   let attempts = 100;
 
@@ -26,12 +61,12 @@ export function findManifest(uri: vscode.Uri): string | null {
       });
 
     if (listing.length === 1) {
-      return listing[0].uri.path;
+      return listing[0];
     } else if (listing.length > 1) {
       log.error(
         "Found multiple manifest files in the same directory -- this shouldn't be possible.",
       );
-      return listing[0].uri.path;
+      return listing[0];
     }
 
     const oldUriToQuery = uriToQuery;
@@ -75,9 +110,12 @@ export function directoryListingCallback(
 }
 
 export function readFileCallback(uri: string): string | null {
-  const maybeDocument = vscode.workspace.textDocuments.filter(
-    (x) => x.fileName === uri,
-  )[0];
+  const file = readFile(uri);
+  return (file && file.getText()) || null;
+}
 
-  return (maybeDocument && maybeDocument.getText()) || null;
+function readFile(uri: string): vscode.TextDocument | null {
+  return (
+    vscode.workspace.textDocuments.filter((x) => x.fileName === uri)[0] || null
+  );
 }

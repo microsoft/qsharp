@@ -256,6 +256,7 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const languageService = await getLanguageService(
     readFileCallback,
     dirListCallback,
+    findManifest,
   );
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();

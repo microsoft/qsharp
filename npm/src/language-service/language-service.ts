@@ -97,8 +97,14 @@ export class QSharpLanguageService implements ILanguageService {
     wasm: QscWasm,
     readFile: (uri: string) => string | null,
     listDir: (uri: string) => string[],
-    getManifest: (uri: string) => { excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null) 
-  {
+    getManifest: (
+      uri: string,
+    ) => {
+      excludeFiles: string[];
+      excludeRegexes: string[];
+      manifestDirectory: string;
+    } | null,
+  ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService(
       this.onDiagnostics.bind(this),

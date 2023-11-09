@@ -18,9 +18,7 @@ export interface ICompiler {
     code: string,
     readFile: (uri: string) => string | null,
     listDirectory: (uri: string) => string[],
-    getManifest: (
-      uri: string,
-    ) => {
+    getManifest: (uri: string) => {
       manifestDirectory: string;
       excludeRegexes: string[];
       excludeFiles: string[];
@@ -58,9 +56,7 @@ export class Compiler implements ICompiler {
     code: string,
     readFile: (uri: string) => string | null = () => null,
     listDirectory: (uri: string) => string[] = () => [],
-    getManifest: (
-      uri: string,
-    ) => {
+    getManifest: (uri: string) => {
       manifestDirectory: string;
       excludeRegexes: string[];
       excludeFiles: string[];
