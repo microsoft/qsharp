@@ -126,6 +126,7 @@ impl<'a> Context<'a> {
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
+            TyKind::Err => Ty::Err,
         }
     }
 
@@ -666,6 +667,7 @@ impl<'a> Context<'a> {
             PatKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
             }
+            PatKind::Err => Ty::Err,
         };
 
         self.record(pat.id, ty.clone());
@@ -696,6 +698,7 @@ impl<'a> Context<'a> {
                 }
                 self.diverge_if(diverges, converge(Ty::Tuple(tys)))
             }
+            QubitInitKind::Err => converge(Ty::Err),
         };
 
         self.record(init.id, ty.ty.clone());

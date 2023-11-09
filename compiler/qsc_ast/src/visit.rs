@@ -117,6 +117,7 @@ pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
         }
         TyDefKind::Paren(def) => vis.visit_ty_def(def),
         TyDefKind::Tuple(defs) => defs.iter().for_each(|d| vis.visit_ty_def(d)),
+        TyDefKind::Err => {}
     }
 }
 
@@ -161,7 +162,7 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
             vis.visit_ty(rhs);
             functors.iter().for_each(|f| vis.visit_functor_expr(f));
         }
-        TyKind::Hole => {}
+        TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Param(name) => vis.visit_ident(name),
@@ -283,7 +284,7 @@ pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
             ty.iter().for_each(|t| vis.visit_ty(t));
         }
         PatKind::Discard(ty) => ty.iter().for_each(|t| vis.visit_ty(t)),
-        PatKind::Elided => {}
+        PatKind::Elided | PatKind::Err => {}
         PatKind::Paren(pat) => vis.visit_pat(pat),
         PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
     }
@@ -293,7 +294,7 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
     match &*init.kind {
         QubitInitKind::Array(len) => vis.visit_expr(len),
         QubitInitKind::Paren(init) => vis.visit_qubit_init(init),
-        QubitInitKind::Single => {}
+        QubitInitKind::Single | QubitInitKind::Err => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
 }

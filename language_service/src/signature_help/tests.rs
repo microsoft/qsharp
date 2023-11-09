@@ -244,7 +244,6 @@ fn last_argument() {
     );
 }
 
-#[ignore = "Parser needs updating to handle `(1,, \"Four\")`"]
 #[test]
 fn insert_second_argument() {
     check(
@@ -257,7 +256,48 @@ fn insert_second_argument() {
             }
         }
     "#},
-        &expect![[r#""#]],
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo(x : Int, y : Double, z : String) : Unit",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 13,
+                                    end: 46,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 14,
+                                    end: 21,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 23,
+                                    end: 33,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 35,
+                                    end: 45,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
     );
 }
 

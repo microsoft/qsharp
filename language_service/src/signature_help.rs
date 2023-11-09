@@ -145,7 +145,7 @@ impl SignatureHelpFinder<'_> {
         let mut offset = self.display.get_param_offset(package_id, decl);
 
         match &decl.input.kind {
-            hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+            hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
                 self.make_wrapped_params(offset, package_id, &decl.input, doc)
             }
             hir::PatKind::Tuple(_) => {
@@ -198,7 +198,7 @@ impl SignatureHelpFinder<'_> {
         doc: &str,
     ) -> Vec<ParameterInformation> {
         match &pat.kind {
-            hir::PatKind::Bind(_) | hir::PatKind::Discard => {
+            hir::PatKind::Bind(_) | hir::PatKind::Discard | hir::PatKind::Err => {
                 let documentation = if let hir::PatKind::Bind(name) = &pat.kind {
                     let documentation = parse_doc_for_param(doc, &name.name);
                     (!documentation.is_empty()).then_some(documentation)
@@ -376,7 +376,7 @@ fn make_fake_pat(ty: &hir::ty::Ty) -> hir::Pat {
 fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
     fn count_params(params: &hir::Pat) -> i32 {
         match &params.kind {
-            hir::PatKind::Bind(_) | hir::PatKind::Discard => 1,
+            hir::PatKind::Bind(_) | hir::PatKind::Discard | hir::PatKind::Err => 1,
             hir::PatKind::Tuple(items) => items.iter().map(count_params).sum::<i32>() + 1,
         }
     }

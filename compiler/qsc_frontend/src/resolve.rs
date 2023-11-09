@@ -287,7 +287,7 @@ impl Resolver {
                 self.names.insert(name.id, Res::Local(name.id));
                 scope.vars.insert(Rc::clone(&name.name), name.id);
             }
-            ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
+            ast::PatKind::Discard(_) | ast::PatKind::Elided | ast::PatKind::Err => {}
             ast::PatKind::Paren(pat) => self.bind_pat_recursive(pat, bindings),
             ast::PatKind::Tuple(pats) => pats
                 .iter()
@@ -399,7 +399,7 @@ impl AstVisitor<'_> for With<'_> {
                 ast::PatKind::Bind(name, _) => {
                     names.insert(Rc::clone(&name.name));
                 }
-                ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
+                ast::PatKind::Discard(_) | ast::PatKind::Elided | ast::PatKind::Err => {}
                 ast::PatKind::Paren(pat) => collect_param_names(pat, names),
                 ast::PatKind::Tuple(pats) => {
                     pats.iter().for_each(|p| collect_param_names(p, names));

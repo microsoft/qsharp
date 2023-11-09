@@ -75,6 +75,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             }
             (Ty::Tuple(tys), errors)
         }
+        TyKind::Err => (Ty::Err, Vec::new()),
     }
 }
 
@@ -109,6 +110,7 @@ fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
 
             (Ty::Tuple(tys), errors)
         }
+        TyDefKind::Err => (Ty::Err, Vec::new()),
     }
 }
 
@@ -146,6 +148,11 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyEr
                     })
                     .collect(),
             ),
+            TyDefKind::Err => UdtDefKind::Field(UdtField {
+                name_span: None,
+                name: None,
+                ty: Ty::Err,
+            }),
         },
     };
 
@@ -210,7 +217,7 @@ fn synthesize_functor_params_in_pat(
     pat: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     match &mut pat.kind {
-        hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+        hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
             synthesize_functor_params(next_param, &mut pat.ty)
         }
         hir::PatKind::Tuple(items) => {
@@ -247,6 +254,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) 
             }
             (Ty::Tuple(tys), errors)
         }
+        PatKind::Err => (Ty::Err, Vec::new()),
     }
 }
 
