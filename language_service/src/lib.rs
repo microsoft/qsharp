@@ -145,7 +145,7 @@ impl<'a> LanguageService<'a> {
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string());
         let sources = if let Some(ref manifest) = manifest {
-            // if there is a manifest, this is a project
+            trace!("manifest found, this is a project"); // if there is a manifest, this is a project
             let project = match self.load_project(manifest) {
                 Ok(o) => o,
                 Err(e) => {
@@ -155,6 +155,7 @@ impl<'a> LanguageService<'a> {
             };
             project.sources
         } else {
+            trace!("no manifest found");
             vec![(Arc::from(uri), Arc::from(text))]
         };
         let compilation = Compilation::new_open_document(

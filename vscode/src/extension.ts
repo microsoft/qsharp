@@ -38,7 +38,7 @@ import { createRenameProvider } from "./rename.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
 import {
-  findManifest,
+  getManifest,
   readFileCallback,
   directoryListingCallback,
 } from "./projectSystem.js";
@@ -256,7 +256,7 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const languageService = await getLanguageService(
     readFileCallback,
     dirListCallback,
-    findManifest,
+    getManifest,
   );
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
