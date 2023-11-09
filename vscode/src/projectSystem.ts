@@ -37,10 +37,8 @@ export function getManifest(uri: string): {
  * returns null otherwise
  */
 function findManifestDocument(uri: string): vscode.TextDocument | null {
-  log.info('looking for manifest for uri ', uri);
   let openedFile = readFile(uri);
   if (openedFile === null) {
-    log.info("didn't even find open file")
     return null;
   }
   // https://something.com/home/foo/bar/document.qs
@@ -50,24 +48,19 @@ function findManifestDocument(uri: string): vscode.TextDocument | null {
   let attempts = 100;
 
   while (attempts > 0) {
-    log.info('beginning manifest search')
     // we can't use vscode.workspace.findFiles here because that is async
     // so we iterate through the workspace instead
 
     // if path.relative(foo/bar/, foo/bar/qsharp.json) === qsharp.json, then this directory contains a qsharp.json,
-    const listingsInThisFolder = vscode.workspace.textDocuments
-      .filter((x) => x.uri.path.startsWith(uriToQuery.path));
-    log.info("looked for things that start with", uriToQuery.path, 'found ', listingsInThisFolder.length, 'entries');
-    const qsharpJson = listingsInThisFolder
-      .filter((doc) => {
-        log.info('replacement of ', doc.uri.path.toString(), 'with ', uriToQuery.path.toString(), 'resulted in',
-          doc.uri.path.toString().replace(uriToQuery.path.toString(), "")
-        )
-        return (
-          doc.uri.path.toString().replace(uriToQuery.path.toString(), "") ===
-          "/qsharp.json"
-        );
-      });
+    const listingsInThisFolder = vscode.workspace.textDocuments.filter((x) =>
+      x.uri.path.startsWith(uriToQuery.path),
+    );
+    const qsharpJson = listingsInThisFolder.filter((doc) => {
+      return (
+        doc.uri.path.toString().replace(uriToQuery.path.toString(), "") ===
+        "/qsharp.json"
+      );
+    });
 
     if (qsharpJson.length === 1) {
       return qsharpJson[0];
@@ -124,9 +117,8 @@ export function readFileCallback(uri: string): string | null {
 }
 
 function readFile(uri: string): vscode.TextDocument | null {
-  log.info("there are ", vscode.workspace.textDocuments.length, 'text documents. looking for', uri);
-  log.info(vscode.workspace.textDocuments.map(doc => doc.uri.toString()));
   return (
-    vscode.workspace.textDocuments.filter((x) => x.uri.toString()  === uri)[0] || null
+    vscode.workspace.textDocuments.filter((x) => x.uri.toString() === uri)[0] ||
+    null
   );
 }
