@@ -18,7 +18,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
-use qsc_project::{FileSystem, Manifest, StdFs};
+use qsc_project::{FileSystemSync, Manifest, StdFs};
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},

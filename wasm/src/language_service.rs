@@ -30,7 +30,7 @@ impl LanguageService {
         let read_file = move |path_buf: PathBuf| {
             let path_buf_string = &path_buf.to_string_lossy().to_string();
             let path = JsValue::from_str(&path_buf_string);
-            let res = read_file
+            let res: js_sys::Promise = read_file
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed");
 

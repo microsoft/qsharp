@@ -3,7 +3,7 @@
 
 //! This module contains a project implementation using [std::fs].
 
-use crate::{DirEntry, EntryType, FileSystem};
+use crate::{DirEntry, EntryType, FileSystemSync};
 use miette::{Context, IntoDiagnostic};
 use std::convert::Infallible;
 use std::fs::DirEntry as StdEntry;
@@ -83,7 +83,7 @@ impl std::convert::From<std::fs::FileType> for EntryType {
     }
 }
 
-impl FileSystem for StdFs {
+impl FileSystemSync for StdFs {
     type Entry = StdEntry;
 
     fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {

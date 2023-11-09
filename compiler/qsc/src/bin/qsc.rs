@@ -15,7 +15,7 @@ use qsc_frontend::{
 };
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
-use qsc_project::{FileSystem, Manifest, StdFs};
+use qsc_project::{FileSystemSync, Manifest, StdFs};
 use std::{
     concat, fs,
     io::{self, Read},

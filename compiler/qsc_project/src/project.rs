@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::manifest::ManifestDescriptor;
+use async_trait::async_trait;
+use regex_lite::Regex;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-
-use regex_lite::Regex;
-
-use crate::manifest::ManifestDescriptor;
 
 /// Describes a Q# project
 #[derive(Default, Debug)]
@@ -27,11 +26,81 @@ pub enum EntryType {
 
 /// This trait represents a filesystem object. It is analogous to [std::fs::DirEntry].
 pub trait DirEntry {
-    type Error;
+    type Error: Send + Sync;
     fn entry_type(&self) -> Result<EntryType, Self::Error>;
     fn entry_extension(&self) -> String;
     fn entry_name(&self) -> String;
     fn path(&self) -> PathBuf;
+}
+/// This trait is used to abstract filesystem logic with regards to Q# projects.
+/// A Q# project requires some multi-file structure, but that may not actually be
+/// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
+/// cached implementation. This interface defines the minimal filesystem requirements
+/// for the Q# project system to function correctly.
+#[async_trait]
+pub trait FileSystem {
+    type Entry: DirEntry + Send + Sync;
+    /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
+    async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
+
+    /// Given a path, list its directory contents (if any).
+    async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
+
+    /// Given an initial path and some regexes to exclude, fetch files that don't match
+    /// those regexes.
+    async fn fetch_files_with_exclude_pattern(
+        &self,
+        exclude_patterns: &[Regex],
+        exclude_files: &[String],
+        initial_path: &Path,
+    ) -> miette::Result<Vec<Self::Entry>> {
+        let listing = self.list_directory(initial_path).await?;
+        let mut files = vec![];
+        for item in listing {
+            let file_name = item.entry_name();
+            let name = item.path().to_string_lossy().to_string();
+            if regex_matches(exclude_patterns, &name) || exclude_files.contains(&file_name) {
+                continue;
+            }
+            match item.entry_type() {
+                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
+                Ok(EntryType::Folder) => files.append(
+                    &mut self
+                        .fetch_files_with_exclude_pattern(
+                            exclude_patterns,
+                            exclude_files,
+                            &item.path(),
+                        )
+                        .await?,
+                ),
+                _ => (),
+            }
+        }
+        Ok(files)
+    }
+
+    /// Given a [ManifestDescriptor], load project sources.
+    async fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
+        let qs_files = self
+            .fetch_files_with_exclude_pattern(
+                &manifest.exclude_regexes()?,
+                manifest.exclude_files(),
+                &manifest.manifest_dir,
+            )
+            .await?;
+
+        let qs_files = qs_files.into_iter().map(|file| file.path());
+
+        let mut sources = Vec::with_capacity(qs_files.len());
+        for path in qs_files {
+            sources.push(self.read_file(&path).await?);
+        }
+
+        Ok(Project {
+            manifest: manifest.manifest.clone(),
+            sources,
+        })
+    }
 }
 
 /// This trait is used to abstract filesystem logic with regards to Q# projects.
@@ -39,7 +108,7 @@ pub trait DirEntry {
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
-pub trait FileSystem {
+pub trait FileSystemSync {
     type Entry: DirEntry;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
     fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;

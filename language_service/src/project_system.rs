@@ -1,4 +1,8 @@
-use std::path::PathBuf;
+use std::{
+    future::{self, Future},
+    path::PathBuf,
+    pin::Pin,
+};
 
 use crate::LanguageService;
 
@@ -12,7 +16,10 @@ impl qsc_project::FileSystem for LanguageService<'_> {
         Ok((self.read_file)(path.into()))
     }
 
-    fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        Ok((self.list_directory)(path.into()))
+    fn list_directory(
+        &self,
+        path: &std::path::Path,
+    ) -> Pin<Box<dyn Future<Output = miette::Result<Vec<Self::Entry>>>>> {
+        Box::pin(future::ready(Ok((self.list_directory)(path.into()))))
     }
 }

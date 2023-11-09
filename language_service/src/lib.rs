@@ -30,7 +30,7 @@ use protocol::{
 use qsc::{compile::Error, PackageType, TargetProfile};
 use qsc_project::FileSystem;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{mem::take, path::PathBuf, sync::Arc};
+use std::{future::Future, mem::take, path::PathBuf, pin::Pin, sync::Arc};
 
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
@@ -69,7 +69,7 @@ pub struct LanguageService<'a> {
     read_file: Box<dyn Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a>,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory: Box<dyn Fn(PathBuf) -> Vec<PathBuf> + 'a>,
+    list_directory: Box<dyn Fn(PathBuf) -> (Pin<Box<dyn Future<Output = Vec<PathBuf>>>>) + 'a>,
     /// Fetch the manifest file for a specific path
     get_manifest: Box<dyn Fn(String) -> Option<qsc_project::ManifestDescriptor> + 'a>,
 }
