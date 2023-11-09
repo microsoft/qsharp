@@ -2193,20 +2193,23 @@ fn duplicate_commas_in_arg_tuple() {
 #[test]
 fn ignore_item_in_attribute() {
     check_hir(
-        "namespace n{@E{function h():B{h }}function h():B{",
+        "namespace Test {
+            @Attr{function Bar() : Unit { Bar }}
+            function Foo() : Unit {}
+        }",
         &expect![[r#"
             Package:
-                Item 0 [0-49] (Public):
-                    Namespace (Ident 5 [10-11] "n"): Item 1
-                Item 1 [12-49] (Public):
+                Item 0 [0-112] (Public):
+                    Namespace (Ident 5 [10-14] "Test"): Item 1
+                Item 1 [29-102] (Public):
                     Parent: 0
-                    Callable 0 [34-49] (function):
-                        name: Ident 1 [43-44] "h"
-                        input: Pat 2 [44-46] [Type Unit]: Unit
-                        output: ?
+                    Callable 0 [78-102] (function):
+                        name: Ident 1 [87-90] "Foo"
+                        input: Pat 2 [90-92] [Type Unit]: Unit
+                        output: Unit
                         functors: empty set
-                        body: SpecDecl 3 [34-49]: Impl:
-                            Block 4 [48-49]: <empty>
+                        body: SpecDecl 3 [78-102]: Impl:
+                            Block 4 [100-102]: <empty>
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
