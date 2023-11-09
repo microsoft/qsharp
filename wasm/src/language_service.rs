@@ -490,20 +490,20 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => string | null")]
+    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
     pub type ReadFileCallback;
 }
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => string[]")]
+    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string[]>")]
     pub type ListDirectoryCallback;
 }
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
-        typescript_type = "(uri: string) => { excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null"
+        typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
     )]
     pub type GetManifestCallback;
 }

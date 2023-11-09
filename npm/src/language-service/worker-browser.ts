@@ -26,9 +26,9 @@ export function messageHandler(e: MessageEvent) {
         // we pass in dummy arguments for `readFile` and `listDir` because the browser worker doesn't support the project system right now
         const languageService = new QSharpLanguageService(
           wasm,
-          () => null,
-          () => [],
-          () => null,
+          () => Promise.resolve(null),
+          () => Promise.resolve([]),
+          () => Promise.resolve(null),
         );
         invokeCompiler = createLanguageServiceDispatcher(
           self.postMessage.bind(self),

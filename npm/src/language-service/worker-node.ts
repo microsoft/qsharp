@@ -27,9 +27,9 @@ const postMessage = port.postMessage.bind(port);
 // pass in empty callbacks for `readFile` and `listDir`, as the worker thread doesn't support that yet.
 const compiler = new QSharpLanguageService(
   wasm,
-  () => null,
-  () => [],
-  () => null,
+  () => Promise.resolve(null),
+  () => Promise.resolve([]),
+  () => Promise.resolve(null),
 );
 const invokeCompiler = createLanguageServiceDispatcher(postMessage, compiler);
 

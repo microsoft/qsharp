@@ -16,13 +16,13 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 export interface ICompiler {
   checkCode(
     code: string,
-    readFile: (uri: string) => string | null,
-    listDirectory: (uri: string) => string[],
-    getManifest: (uri: string) => {
+    readFile: (uri: string) => Promise<string | null>,
+    listDirectory: (uri: string) => Promise<string[]>,
+    getManifest: (uri: string) => Promise<{
       manifestDirectory: string;
       excludeRegexes: string[];
       excludeFiles: string[];
-    } | null,
+    } | null>,
   ): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
@@ -54,13 +54,15 @@ export class Compiler implements ICompiler {
 
   async checkCode(
     code: string,
-    readFile: (uri: string) => string | null = () => null,
-    listDirectory: (uri: string) => string[] = () => [],
-    getManifest: (uri: string) => {
+    readFile: (uri: string) => Promise<string | null> = () =>
+      Promise.resolve(null),
+    listDirectory: (uri: string) => Promise<string[]> = () =>
+      Promise.resolve([]),
+    getManifest: (uri: string) => Promise<{
       manifestDirectory: string;
       excludeRegexes: string[];
       excludeFiles: string[];
-    } | null = () => null,
+    } | null> = () => Promise.resolve(null),
   ): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(

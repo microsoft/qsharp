@@ -5,8 +5,6 @@ import { log } from "qsharp-lang";
 import { Utils, URI } from "vscode-uri";
 import * as vscode from "vscode";
 
-
-
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
  * was malformed.
@@ -65,7 +63,7 @@ async function findManifestDocument(
     }
 
     if (listing.length > 0) {
-      return await readFile(listing[0])
+      return await readFile(listing[0]);
     }
 
     const oldUriToQuery = uriToQuery;
@@ -81,12 +79,15 @@ async function findManifestDocument(
   }
 }
 
-
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
-export async function directoryListingCallback(baseUri: vscode.Uri, directoryQuery: string): Promise<vscode.Uri[]> {
+export async function directoryListingCallback(
+  baseUri: vscode.Uri,
+  directoryQuery: string,
+): Promise<string[]> {
   log.debug("querying directory for project system", directoryQuery);
-  const workspaceFolder: vscode.WorkspaceFolder | undefined = vscode.workspace.getWorkspaceFolder(baseUri);
+  const workspaceFolder: vscode.WorkspaceFolder | undefined =
+    vscode.workspace.getWorkspaceFolder(baseUri);
 
   if (!workspaceFolder) {
     log.trace("no workspace found; no project will be loaded");
@@ -99,24 +100,29 @@ export async function directoryListingCallback(baseUri: vscode.Uri, directoryQue
   );
   const pattern: vscode.RelativePattern = new vscode.RelativePattern(
     absoluteDirectoryQuery,
-    '/**/*.qs');
+    "/**/*.qs",
+  );
 
   const fileSearchResult = await vscode.workspace.findFiles(pattern);
 
-  return fileSearchResult;
+  return fileSearchResult.map((x) => x.toString());
 }
 
-export async function readFileCallback(uri: string): Promise<string | null >{
+export async function readFileCallback(uri: string): Promise<string | null> {
   const file = await readFile(uri);
-  return file?.content || null
+  return file?.content || null;
 }
 
-async function readFile(maybeUri: string | vscode.Uri): Promise<{ uri: vscode.Uri, content: string } | null> {
-  const uri: vscode.Uri = (maybeUri as any).path ? maybeUri as vscode.Uri : vscode.Uri.parse(maybeUri as string);
+async function readFile(
+  maybeUri: string | vscode.Uri,
+): Promise<{ uri: vscode.Uri; content: string } | null> {
+  const uri: vscode.Uri = (maybeUri as any).path
+    ? (maybeUri as vscode.Uri)
+    : vscode.Uri.parse(maybeUri as string);
   return await vscode.workspace.fs.readFile(uri).then((res) => {
     return {
       content: new TextDecoder().decode(res),
       uri: uri,
     };
-  })
+  });
 }

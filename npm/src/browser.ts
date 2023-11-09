@@ -163,13 +163,13 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(
-  readFile: (uri: string) => string | null,
-  listDir: (uri: string) => string[],
-  getManifest: (uri: string) => {
+  readFile: (uri: string) => Promise<string | null>,
+  listDir: (uri: string) => Promise<string[]>,
+  getManifest: (uri: string) => Promise<{
     excludeFiles: string[];
     excludeRegexes: string[];
     manifestDirectory: string;
-  } | null,
+  } | null>,
 ): Promise<ILanguageService> {
   await instantiateWasm();
   return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
