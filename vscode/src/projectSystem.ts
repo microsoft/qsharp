@@ -2,22 +2,28 @@
 // Licensed under the MIT License.
 
 import { log } from "qsharp-lang";
-import { Utils } from "vscode-uri";
+import { Utils, URI } from "vscode-uri";
 import * as vscode from "vscode";
 
-export function getManifest(uri: string): {
+
+
+/**
+ * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
+ * was malformed.
+ */
+export async function getManifest(uri: string): Promise<{
   excludeFiles: string[];
   excludeRegexes: string[];
   manifestDirectory: string;
-} | null {
-  const manifestDocument = findManifestDocument(uri);
+} | null> {
+  const manifestDocument = await findManifestDocument(uri);
   if (manifestDocument === null) {
     return null;
   }
 
   let parsedManifest;
   try {
-    parsedManifest = JSON.parse(manifestDocument.getText());
+    parsedManifest = JSON.parse(manifestDocument.manifestContents);
   } catch (e) {
     log.error(
       "Found manifest document, but the Q# manifest was not valid JSON",
@@ -29,46 +35,42 @@ export function getManifest(uri: string): {
   return {
     excludeFiles: parsedManifest.excludeFiles || [],
     excludeRegexes: parsedManifest.excludeRegexes || [],
-    manifestDirectory: manifestDocument.uri.path,
+    manifestDirectory: manifestDocument.manifestUri.toString(),
   };
 }
-
+  
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
-function findManifestDocument(uri: string): vscode.TextDocument | null {
-  let openedFile = readFile(uri);
-  if (openedFile === null) {
-    return null;
-  }
-  // https://something.com/home/foo/bar/document.qs
+async function findManifestDocument(
+  currentDocumentUriString: string,
+): Promise<{ manifestUri: vscode.Uri; manifestContents: string } | null> {
+  // /home/foo/bar/document.qs
+  const currentDocumentUri = URI.parse(currentDocumentUriString);
 
-  let uriToQuery = openedFile.uri;
+  // /home/foo/bar
+  let uriToQuery = Utils.dirname(currentDocumentUri);
 
   let attempts = 100;
 
-  while (attempts > 0) {
-    // we can't use vscode.workspace.findFiles here because that is async
-    // so we iterate through the workspace instead
+  while (true) {
+    attempts--;
+    let pattern = new vscode.RelativePattern(uriToQuery, "qsharp.json");
+    const listing = await vscode.workspace.findFiles(pattern);
 
-    // if path.relative(foo/bar/, foo/bar/qsharp.json) === qsharp.json, then this directory contains a qsharp.json,
-    const listingsInThisFolder = vscode.workspace.textDocuments.filter((x) =>
-      x.uri.path.startsWith(uriToQuery.path),
-    );
-    const qsharpJson = listingsInThisFolder.filter((doc) => {
-      return (
-        doc.uri.path.toString().replace(uriToQuery.path.toString(), "") ===
-        "/qsharp.json"
-      );
-    });
-
-    if (qsharpJson.length === 1) {
-      return qsharpJson[0];
-    } else if (qsharpJson.length > 1) {
+    if (listing.length > 1) {
       log.error(
         "Found multiple manifest files in the same directory -- this shouldn't be possible.",
       );
-      return qsharpJson[0];
+    }
+
+    if (listing.length > 0) {
+      return await vscode.workspace.fs.readFile(listing[0]).then((res) => {
+        return {
+          manifestContents: new TextDecoder().decode(res),
+          manifestUri: listing[0],
+        };
+      });
     }
 
     const oldUriToQuery = uriToQuery;
@@ -78,10 +80,10 @@ function findManifestDocument(uri: string): vscode.TextDocument | null {
       return null;
     }
 
-    // just in case there are weird FS edge cases involving infinite `..` never terminating
-    attempts--;
+    if (attempts === 0) {
+      return null;
+    }
   }
-  return null;
 }
 
 // this function currently assumes that `directoryQuery` will be a relative path from
