@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService } from "qsharp-lang";
+import { ILanguageService, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { qsharpDocumentFilter, qsharpLanguageId } from "./common.js";
 import { WorkspaceTreeProvider } from "./azure/treeView.js";
@@ -58,7 +58,7 @@ export function registerQSharpNotebookHandlers() {
         const document = cell.document;
         if (
           document.languageId !== qsharpLanguageId &&
-          document.lineAt(0).text.startsWith(qsharpCellMagic)
+          findQSharpCellMagic(document)
         ) {
           vscode.languages.setTextDocumentLanguage(
             cell.document,
@@ -73,6 +73,27 @@ export function registerQSharpNotebookHandlers() {
 }
 
 const openQSharpNotebooks = new Set<string>();
+
+/**
+ * Returns the position of the `%%qsharp` cell magic, or `undefined`
+ * if it does not exist.
+ */
+function findQSharpCellMagic(document: vscode.TextDocument) {
+  // Ignore whitespace before the cell magic
+  for (let i = 0; i < document.lineCount; i++) {
+    const line = document.lineAt(i);
+    if (line.isEmptyOrWhitespace) {
+      continue;
+    }
+    return line.text.startsWith(
+      qsharpCellMagic,
+      line.firstNonWhitespaceCharacterIndex,
+    )
+      ? new vscode.Position(i, line.firstNonWhitespaceCharacterIndex)
+      : undefined;
+  }
+  return undefined;
+}
 
 /**
  * This one is for syncing with the language service
@@ -147,16 +168,25 @@ export function registerQSharpNotebookCellUpdateHandlers(
   }
 
   function getQSharpText(document: vscode.TextDocument) {
-    // Erase the %%qsharp magic line if it's there
-    // Replace it with whitespace so that document offsets remain the same.
-    // This will save us from having to map offsets later when
-    // communicating with the language service.
-    if (document.lineAt(0).text.startsWith(qsharpCellMagic)) {
+    const magicPosition = findQSharpCellMagic(document);
+    if (magicPosition) {
+      const magicOffset = document.offsetAt(magicPosition);
+      // Erase the %%qsharp magic line if it's there.
+      // Replace it with whitespace so that document offsets remain the same.
+      // This will save us from having to map offsets later when
+      // communicating with the language service.
       return (
-        "".padStart(qsharpCellMagic.length) +
-        document.getText().substring(qsharpCellMagic.length)
+        "".padStart(magicOffset) + document.getText().substring(magicOffset)
       );
     } else {
+      // No %%qsharp magic. This can happen if the user manually sets the
+      // cell language to Q#. Python won't recognize the cell as a Q# cell,
+      // so this will fail at runtime, but as the language service we respect
+      // the manually set cell language, so we treat this as any other
+      // Q# cell. We could consider raising a warning here to help the user.
+      log.info(
+        "found Q# cell without %%qsharp magic: " + document.uri.toString(),
+      );
       return document.getText();
     }
   }

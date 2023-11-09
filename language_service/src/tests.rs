@@ -392,10 +392,11 @@ fn notebook_document_no_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
-        &[
+        [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
-        ],
+        ]
+        .into_iter(),
     );
 
     expect_errors(
@@ -413,10 +414,11 @@ fn notebook_document_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
-        &[
+        [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
-        ],
+        ]
+        .into_iter(),
     );
 
     expect_errors(
@@ -470,10 +472,11 @@ fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
-        &[
+        [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
-        ],
+        ]
+        .into_iter(),
     );
 
     expect_errors(
@@ -521,7 +524,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
-        &[("cell1", 1, "operation Main() : Unit {}")],
+        [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
     expect_errors(
@@ -547,10 +550,11 @@ fn close_notebook_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
-        &[
+        [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
-        ],
+        ]
+        .into_iter(),
     );
 
     expect_errors(

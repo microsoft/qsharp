@@ -181,9 +181,7 @@ impl LanguageService {
             notebook_uri,
             cells
                 .iter()
-                .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref()))
-                .collect::<Vec<(&str, u32, &str)>>()
-                .as_slice(),
+                .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref())),
         );
     }
 
