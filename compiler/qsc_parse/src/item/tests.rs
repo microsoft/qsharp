@@ -1318,6 +1318,7 @@ fn callable_missing_parens() {
             ]"#]],
     )
 }
+
 #[test]
 fn callable_missing_close_parens() {
     check_vec(
@@ -1346,6 +1347,7 @@ fn callable_missing_close_parens() {
             ]"#]],
     )
 }
+
 #[test]
 fn callable_missing_open_parens() {
     check_vec(

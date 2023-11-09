@@ -2189,3 +2189,26 @@ fn duplicate_commas_in_arg_tuple() {
                         ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn ignore_item_in_attribute() {
+    check_hir(
+        "namespace n{@E{function h():B{h }}function h():B{",
+        &expect![[r#"
+            Package:
+                Item 0 [0-49] (Public):
+                    Namespace (Ident 5 [10-11] "n"): Item 1
+                Item 1 [12-49] (Public):
+                    Parent: 0
+                    Callable 0 [34-49] (function):
+                        name: Ident 1 [43-44] "h"
+                        input: Pat 2 [44-46] [Type Unit]: Unit
+                        output: ?
+                        functors: empty set
+                        body: SpecDecl 3 [34-49]: Impl:
+                            Block 4 [48-49]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
