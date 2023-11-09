@@ -6,8 +6,9 @@ use std::{path::PathBuf, sync::Arc};
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
 use qsc::{self};
+use qsc_project::{Manifest, ManifestDescriptor};
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, JsObject};
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
@@ -19,6 +20,7 @@ impl LanguageService {
         diagnostics_callback: DiagnosticsCallback,
         read_file: ReadFileCallback,
         list_directory: ListDirectoryCallback,
+        get_manifest: GetManifestCallback,
     ) -> Self {
         let read_file = read_file
             .dyn_ref::<js_sys::Function>()
@@ -60,6 +62,64 @@ impl LanguageService {
             }
         };
 
+        let get_manifest = get_manifest
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
+
+        let get_manifest = move |uri: String| {
+            let path = JsValue::from_str(&uri);
+            let res = get_manifest
+                .call1(&JsValue::NULL, &path)
+                .expect("callback should succeed");
+
+            if res.is_null() {
+                todo!("no manifest -- this is not a project")
+            }
+
+            let manifest_dir =
+                match js_sys::Reflect::get(&res, &JsValue::from_str("manifestDirectory")) {
+                    Ok(v) => v
+                        .as_string()
+                        .expect("manifest callback did not return string"),
+                    Err(_) => todo!(),
+                };
+
+            let manifest_dir = PathBuf::from(manifest_dir);
+
+            let exclude_files = match js_sys::Reflect::get(&res, &JsValue::from_str("excludeFiles"))
+            {
+                Ok(v) => match v.dyn_into::<js_sys::Array>() {
+                    Ok(arr) => arr
+                        .into_iter()
+                        .filter_map(|x| x.as_string())
+                        .collect::<Vec<_>>(),
+                    Err(e) => todo!("result wasn't an array error: {e:?}"),
+                },
+                Err(_) => todo!(),
+            };
+            let exclude_regexes =
+                match js_sys::Reflect::get(&res, &JsValue::from_str("excludeRegexes")) {
+                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
+                        Ok(arr) => arr
+                            .into_iter()
+                            .filter_map(|x| x.as_string())
+                            .collect::<Vec<_>>(),
+                        Err(e) => todo!("result wasn't an array error: {e:?}"),
+                    },
+                    Err(_) => todo!(),
+                };
+
+            ManifestDescriptor {
+                manifest: Manifest {
+                    exclude_regexes,
+                    exclude_files,
+                    ..Default::default()
+                },
+                manifest_dir,
+            }
+        };
+
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
@@ -84,6 +144,7 @@ impl LanguageService {
             },
             read_file,
             list_directory,
+            get_manifest,
         );
 
         LanguageService(inner)
@@ -439,4 +500,12 @@ extern "C" {
 extern "C" {
     #[wasm_bindgen(typescript_type = "(uri: string) => string[]")]
     pub type ListDirectoryCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(
+        typescript_type = "(uri: string) => { excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null"
+    )]
+    pub type GetManifestCallback;
 }

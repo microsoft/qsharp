@@ -7,6 +7,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use qsc::{compile, PackageType, TargetProfile};
+use qsc_project::ManifestDescriptor;
 use std::{cell::RefCell, sync::Arc};
 
 #[test]
@@ -628,6 +629,10 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
         // TODO
         |_| (Arc::from(""), Arc::from("")),
         |_| Default::default(),
+        |_| ManifestDescriptor {
+            manifest: todo!(),
+            manifest_dir: todo!(),
+        },
     )
 }
 

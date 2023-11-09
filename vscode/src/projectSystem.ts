@@ -1,14 +1,13 @@
 import { log } from "qsharp-lang";
-import { Utils } from 'vscode-uri';
+import { Utils } from "vscode-uri";
 import * as vscode from "vscode";
 
 /** Returns the path to the manifest if one is found
-  * returns null otherwise
-  */
+ * returns null otherwise
+ */
 export function findManifest(uri: vscode.Uri): string | null {
   // https://something.com/home/foo/bar/document.qs
-  let uriToQuery= uri;
-
+  let uriToQuery = uri;
 
   let attempts = 100;
 
@@ -20,7 +19,10 @@ export function findManifest(uri: vscode.Uri): string | null {
     const listing = vscode.workspace.textDocuments
       .filter((x) => x.uri.path.startsWith(uriToQuery.path))
       .filter((doc) => {
-        return doc.uri.path.toString().replace(uriToQuery.toString(), '') === "qsharp.json";
+        return (
+          doc.uri.path.toString().replace(uriToQuery.toString(), "") ===
+          "qsharp.json"
+        );
       });
 
     if (listing.length === 1) {
@@ -60,9 +62,9 @@ export function directoryListingCallback(
     return [];
   }
 
-
   const absoluteDirectoryQuery = Utils.resolvePath(
-    workspaceFolder.uri, "/" + directoryQuery
+    workspaceFolder.uri,
+    "/" + directoryQuery,
   );
 
   const filesInDir = vscode.workspace.textDocuments
@@ -77,7 +79,5 @@ export function readFileCallback(uri: string): string | null {
     (x) => x.fileName === uri,
   )[0];
 
-  return (
-    (maybeDocument && maybeDocument.getText() || null)
-  );
+  return (maybeDocument && maybeDocument.getText()) || null;
 }

@@ -29,7 +29,7 @@ pub enum EntryType {
 pub trait DirEntry {
     type Error;
     fn entry_type(&self) -> Result<EntryType, Self::Error>;
-    fn extension(&self) -> String;
+    fn entry_extension(&self) -> String;
     fn entry_name(&self) -> String;
     fn path(&self) -> PathBuf;
 }
@@ -64,7 +64,7 @@ pub trait FileSystem {
                 continue;
             }
             match item.entry_type() {
-                Ok(EntryType::File) if item.extension() == "qs" => files.push(item),
+                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => files.append(&mut self.fetch_files_with_exclude_pattern(
                     exclude_patterns,
                     exclude_files,

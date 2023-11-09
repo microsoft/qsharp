@@ -93,14 +93,18 @@ export class QSharpLanguageService implements ILanguageService {
   // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
   private code: { [uri: string]: string | undefined } = {};
 
-  constructor(wasm: QscWasm,
+  constructor(
+    wasm: QscWasm,
     readFile: (uri: string) => string | null,
-    listDir: (uri: string) => string[]) {
+    listDir: (uri: string) => string[],
+    getManifest: (uri: string) => { excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null) 
+  {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService(
       this.onDiagnostics.bind(this),
       readFile,
-      listDir
+      listDir,
+      getManifest,
     );
   }
 

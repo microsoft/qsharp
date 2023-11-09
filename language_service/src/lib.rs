@@ -10,6 +10,7 @@ pub mod definition;
 mod display;
 pub mod hover;
 mod name_locator;
+mod project_system;
 pub mod protocol;
 mod qsc_utils;
 pub mod rename;
@@ -20,13 +21,14 @@ mod test_utils;
 mod tests;
 
 use compilation::Compilation;
-use log::trace;
+use log::{error, trace};
 use miette::Diagnostic;
 use protocol::{
     CompletionList, Definition, DiagnosticUpdate, Hover, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
+use qsc_project::FileSystem;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{mem::take, path::PathBuf, sync::Arc};
 
@@ -68,6 +70,8 @@ pub struct LanguageService<'a> {
     /// Callback which lets the service list directory contents
     /// on the target file system
     list_directory: Box<dyn Fn(PathBuf) -> Vec<PathBuf> + 'a>,
+    /// Fetch the manifest file for a specific path
+    get_manifest: Box<dyn Fn(String) -> qsc_project::ManifestDescriptor + 'a>,
 }
 
 #[derive(Debug)]
@@ -101,6 +105,7 @@ impl<'a> LanguageService<'a> {
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
         read_file: impl Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a,
         list_directory: impl Fn(PathBuf) -> Vec<PathBuf> + 'a,
+        get_manifest: impl Fn(String) -> qsc_project::ManifestDescriptor + 'a,
     ) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
@@ -110,6 +115,7 @@ impl<'a> LanguageService<'a> {
             diagnostics_receiver: Box::new(diagnostics_receiver),
             read_file: Box::new(read_file),
             list_directory: Box::new(list_directory),
+            get_manifest: Box::new(get_manifest),
         }
     }
 
@@ -137,6 +143,14 @@ impl<'a> LanguageService<'a> {
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         trace!("update_document: {uri} {version}");
+        let manifest = (self.get_manifest)(uri.to_string());
+        let project = match self.load_project(manifest) {
+            Ok(o) => o,
+            Err(e) => {
+                error!("failed to load manifest: {e:?}");
+                return;
+            }
+        };
         let compilation = Compilation::new_open_document(
             uri,
             text,

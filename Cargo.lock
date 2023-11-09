@@ -915,6 +915,7 @@ dependencies = [
  "num-complex",
  "qsc",
  "qsc_codegen",
+ "qsc_project",
  "qsls",
  "serde",
  "serde-wasm-bindgen",
@@ -943,6 +944,7 @@ dependencies = [
  "log",
  "miette",
  "qsc",
+ "qsc_project",
  "regex-lite",
  "rustc-hash",
 ]

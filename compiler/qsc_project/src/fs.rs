@@ -5,6 +5,7 @@
 
 use crate::{DirEntry, EntryType, FileSystem};
 use miette::{Context, IntoDiagnostic};
+use std::convert::Infallible;
 use std::fs::DirEntry as StdEntry;
 use std::path::Path;
 use std::{path::PathBuf, sync::Arc};
@@ -13,13 +14,46 @@ use std::{path::PathBuf, sync::Arc};
 #[derive(Default)]
 pub struct StdFs;
 
+impl DirEntry for PathBuf {
+    type Error = Infallible;
+
+    fn entry_type(&self) -> Result<EntryType, Self::Error> {
+        if self.is_file() {
+            Ok(EntryType::File)
+        } else if self.is_dir() {
+            Ok(EntryType::Folder)
+        } else if self.is_symlink() {
+            Ok(EntryType::Symlink)
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn entry_extension(&self) -> String {
+        self.extension()
+            .map(|x| x.to_string_lossy().to_string())
+            .unwrap_or_default()
+    }
+
+    fn entry_name(&self) -> String {
+        self.file_name()
+            .expect("canonicalized symlink cannot end in relative path")
+            .to_string_lossy()
+            .to_string()
+    }
+
+    fn path(&self) -> PathBuf {
+        self.clone()
+    }
+}
+
 impl DirEntry for StdEntry {
     type Error = crate::Error;
     fn entry_type(&self) -> Result<EntryType, Self::Error> {
         Ok(self.file_type()?.into())
     }
 
-    fn extension(&self) -> String {
+    fn entry_extension(&self) -> String {
         self.path()
             .extension()
             .map(|x| x.to_string_lossy().to_string())

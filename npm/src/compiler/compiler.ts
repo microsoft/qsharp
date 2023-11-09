@@ -14,7 +14,18 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
-  checkCode(code: string): Promise<VSDiagnostic[]>;
+  checkCode(
+    code: string,
+    readFile: (uri: string) => string | null,
+    listDirectory: (uri: string) => string[],
+    getManifest: (
+      uri: string,
+    ) => {
+      manifestDirectory: string;
+      excludeRegexes: string[];
+      excludeFiles: string[];
+    } | null,
+  ): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
     code: string,
@@ -43,7 +54,18 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
-  async checkCode(code: string, readFile: (uri: string) => string | null = () => null, listDirectory: (uri: string) => string[] = () => []): Promise<VSDiagnostic[]> {
+  async checkCode(
+    code: string,
+    readFile: (uri: string) => string | null = () => null,
+    listDirectory: (uri: string) => string[] = () => [],
+    getManifest: (
+      uri: string,
+    ) => {
+      manifestDirectory: string;
+      excludeRegexes: string[];
+      excludeFiles: string[];
+    } | null = () => null,
+  ): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
       (_uri: string, _version: number | undefined, errors: VSDiagnostic[]) => {
@@ -51,6 +73,7 @@ export class Compiler implements ICompiler {
       },
       readFile,
       listDirectory,
+      getManifest,
     );
     languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);

@@ -96,9 +96,13 @@ export function getDebugServiceWorker(): IDebugServiceWorker {
   return proxy;
 }
 
-export function getLanguageService(readFile: (uri: string) => string | null, listDir: (uri: string) => string[]) : ILanguageService {
+export function getLanguageService(
+  readFile: (uri: string) => string | null,
+  listDir: (uri: string) => string[],
+  getManifest: (uri: string) => { excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null
+): ILanguageService {
   if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-  return new QSharpLanguageService(wasm, readFile, listDir);
+  return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
 }
 
 export function getLanguageServiceWorker(): ILanguageServiceWorker {
