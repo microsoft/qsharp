@@ -71,7 +71,7 @@ pub struct LanguageService<'a> {
     /// on the target file system
     list_directory: Box<dyn Fn(PathBuf) -> Vec<PathBuf> + 'a>,
     /// Fetch the manifest file for a specific path
-    get_manifest: Box<dyn Fn(String) -> qsc_project::ManifestDescriptor + 'a>,
+    get_manifest: Box<dyn Fn(String) -> Option<qsc_project::ManifestDescriptor> + 'a>,
 }
 
 #[derive(Debug)]
@@ -105,7 +105,7 @@ impl<'a> LanguageService<'a> {
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
         read_file: impl Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a,
         list_directory: impl Fn(PathBuf) -> Vec<PathBuf> + 'a,
-        get_manifest: impl Fn(String) -> qsc_project::ManifestDescriptor + 'a,
+        get_manifest: impl Fn(String) -> Option<qsc_project::ManifestDescriptor> + 'a,
     ) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
@@ -144,23 +144,31 @@ impl<'a> LanguageService<'a> {
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string());
-        let project = match self.load_project(manifest) {
-            Ok(o) => o,
-            Err(e) => {
-                error!("failed to load manifest: {e:?}");
-                return;
-            }
+        let sources = if let Some(ref manifest) = manifest {
+            // if there is a manifest, this is a project
+            let project = match self.load_project(manifest) {
+                Ok(o) => o,
+                Err(e) => {
+                    error!("failed to load manifest: {e:?}");
+                    return;
+                }
+            };
+            project.sources
+        } else {
+            vec![(Arc::from(uri), Arc::from(text))]
         };
         let compilation = Compilation::new_open_document(
-            uri,
-            text,
+            sources,
             self.configuration.package_type,
             self.configuration.target_profile,
         );
-
-        // Associate each known document with a separate compilation.
-        let uri: Arc<str> = uri.into();
-        todo!("the key for this insertion should be the project manifest path if one exists");
+        // If we are in single file mode, use the file's path as the compilation identifier.
+        // If we are compiling a project, use the path to the project manifest
+        let uri: Arc<str> = if let Some(manifest) = manifest {
+            Arc::from(manifest.manifest_dir.to_string_lossy().to_string())
+        } else {
+            uri.into()
+        };
         self.compilations.insert(uri.clone(), compilation);
         self.open_documents.insert(
             uri.clone(),
@@ -201,7 +209,8 @@ impl<'a> LanguageService<'a> {
         cells: &[(&str, u32, &str)], // uri, version, text - basically DidChangeTextDocumentParams in LSP
     ) {
         trace!("update_notebook_document: {notebook_uri}");
-        let compilation = Compilation::new_notebook(cells.iter().map(|c| (c.0, c.2)));
+        let compilation =
+            Compilation::new_notebook(cells.iter().map(|c| (Arc::from(c.0), Arc::from(c.2))));
 
         let compilation_uri: Arc<str> = notebook_uri.into();
         self.compilations

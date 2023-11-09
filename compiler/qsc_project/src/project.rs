@@ -77,7 +77,7 @@ pub trait FileSystem {
     }
 
     /// Given a [ManifestDescriptor], load project sources.
-    fn load_project(&self, manifest: ManifestDescriptor) -> miette::Result<Project> {
+    fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
         let qs_files = self.fetch_files_with_exclude_pattern(
             &manifest.exclude_regexes()?,
             manifest.exclude_files(),
@@ -90,7 +90,7 @@ pub trait FileSystem {
 
         let sources = qs_sources.collect::<miette::Result<_>>()?;
         Ok(Project {
-            manifest: manifest.manifest,
+            manifest: manifest.manifest.clone(),
             sources,
         })
     }

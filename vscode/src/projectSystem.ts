@@ -2,9 +2,7 @@ import { log } from "qsharp-lang";
 import { Utils } from "vscode-uri";
 import * as vscode from "vscode";
 
-export function findManifest(
-  uri: string,
-): {
+export function findManifest(uri: string): {
   excludeFiles: string[];
   excludeRegexes: string[];
   manifestDirectory: string;

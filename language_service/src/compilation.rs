@@ -9,7 +9,7 @@ use qsc::{
     incremental::Compiler,
     resolve, AstPackage, CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
 };
-use std::iter::successors;
+use std::{iter::successors, sync::Arc};
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
@@ -37,15 +37,17 @@ pub(crate) enum CompilationKind {
 impl Compilation {
     /// Creates a new `Compilation` by compiling source from a single open document.
     pub(crate) fn new_open_document(
-        source_name: &str,
-        source_contents: &str,
+        sources: Vec<(Arc<str>, Arc<str>)>,
         package_type: PackageType,
         target_profile: TargetProfile,
     ) -> Self {
-        trace!("compiling document {source_name}");
+        if sources.len() == 1 {
+            trace!("compiling document {}", sources[0].0);
+        } else {
+            trace!("compiling package with {} sources", sources.len());
+        }
         // Source map only contains the current document.
-        todo!("this function needs to be adapted to take multiple files, and the entire compilation unit will be passed into the 'sources' array");
-        let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
+        let source_map = SourceMap::new(sources, None);
 
         let mut package_store = PackageStore::new(compile::core());
         let std_package_id = package_store.insert(compile::std(&package_store, target_profile));
@@ -71,7 +73,7 @@ impl Compilation {
     /// Creates a new `Compilation` by compiling sources from notebook cells.
     pub(crate) fn new_notebook<'a, I>(cells: I) -> Self
     where
-        I: Iterator<Item = (&'a str, &'a str)>,
+        I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
@@ -86,7 +88,7 @@ impl Compilation {
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
-                .compile_fragments(name, contents, |cell_errors| {
+                .compile_fragments(&*name, &*contents, |cell_errors| {
                     errors.extend(cell_errors);
                     Ok(()) // accumulate errors without failing
                 })
@@ -130,12 +132,15 @@ impl Compilation {
 
     /// Regenerates the compilation with the same sources but the passed in configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: TargetProfile) {
-        let sources = self.user_source_contents();
+        let sources = self
+            .user_source_contents()
+            .into_iter()
+            .map(|(a, b)| (Arc::from(a), Arc::from(b)))
+            .collect();
 
         let new = match self.kind {
             CompilationKind::OpenDocument => {
-                assert!(sources.len() == 1);
-                Self::new_open_document(sources[0].0, sources[0].1, package_type, target_profile)
+                Self::new_open_document(sources, package_type, target_profile)
             }
             CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
         };

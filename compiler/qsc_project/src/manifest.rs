@@ -16,7 +16,7 @@ use std::path::PathBuf;
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
 /// A Q# manifest, used to describe project metadata.
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,

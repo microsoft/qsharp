@@ -8,7 +8,7 @@ use js_sys::JsString;
 use qsc::{self};
 use qsc_project::{Manifest, ManifestDescriptor};
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::{prelude::*, JsObject};
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
@@ -74,7 +74,7 @@ impl LanguageService {
                 .expect("callback should succeed");
 
             if res.is_null() {
-                todo!("no manifest -- this is not a project")
+                return None;
             }
 
             let manifest_dir =
@@ -110,14 +110,14 @@ impl LanguageService {
                     Err(_) => todo!(),
                 };
 
-            ManifestDescriptor {
+            Some(ManifestDescriptor {
                 manifest: Manifest {
                     exclude_regexes,
                     exclude_files,
                     ..Default::default()
                 },
                 manifest_dir,
-            }
+            })
         };
 
         let diagnostics_callback = diagnostics_callback
