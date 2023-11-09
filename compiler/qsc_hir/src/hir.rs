@@ -189,7 +189,7 @@ impl Display for ItemId {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ItemStatus {
     /// The item is defined normally.
-    Normal,
+    Available,
     /// The item is marked as unimplemented and uses are disallowed.
     Unimplemented,
 }
@@ -203,7 +203,7 @@ impl ItemStatus {
                 return Self::Unimplemented;
             }
         }
-        Self::Normal
+        Self::Available
     }
 }
 

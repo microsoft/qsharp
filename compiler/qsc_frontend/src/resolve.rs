@@ -629,7 +629,7 @@ fn bind_global_items(
 ) {
     names.insert(
         namespace.name.id,
-        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Normal),
+        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
     );
     scope.namespaces.insert(Rc::clone(&namespace.name.name));
 
@@ -817,7 +817,7 @@ fn resolve(
 
     if candidates.len() > 1 {
         // If there are multiple candidates, remove unimplemented items. This allows resolution to
-        // succeed in cases where both an older, unimplimented API and newer, implemented API with the
+        // succeed in cases where both an older, unimplemented API and newer, implemented API with the
         // same name are both in scope without forcing the user to fully qualify the name.
         let mut removals = Vec::new();
         for res in candidates.keys() {
@@ -878,7 +878,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id, ItemStatus::Normal));
+        return Some(Res::Item(id, ItemStatus::Available));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
