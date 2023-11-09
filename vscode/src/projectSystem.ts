@@ -81,15 +81,12 @@ async function findManifestDocument(
   }
 }
 
+
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
-export function directoryListingCallback(
-  baseUri: vscode.Uri,
-  directoryQuery: string,
-): string[] {
+export async function directoryListingCallback(baseUri: vscode.Uri, directoryQuery: string): Promise<vscode.Uri[]> {
   log.debug("querying directory for project system", directoryQuery);
-  const workspaceFolder: vscode.WorkspaceFolder | undefined =
-    vscode.workspace.getWorkspaceFolder(baseUri);
+  const workspaceFolder: vscode.WorkspaceFolder | undefined = vscode.workspace.getWorkspaceFolder(baseUri);
 
   if (!workspaceFolder) {
     log.trace("no workspace found; no project will be loaded");
@@ -100,12 +97,13 @@ export function directoryListingCallback(
     workspaceFolder.uri,
     "/" + directoryQuery,
   );
+  const pattern: vscode.RelativePattern = new vscode.RelativePattern(
+    absoluteDirectoryQuery,
+    '/**/*.qs');
 
-  const filesInDir = vscode.workspace.textDocuments
-    .filter((doc) => doc.uri.path.startsWith(absoluteDirectoryQuery.path))
-    .map((doc) => doc.getText());
+  const fileSearchResult = await vscode.workspace.findFiles(pattern);
 
-  return filesInDir;
+  return fileSearchResult;
 }
 
 export async function readFileCallback(uri: string): Promise<string | null >{
