@@ -1658,7 +1658,7 @@ fn lambda_adj_calls_adj() {
                         name: Ident 7 [70-73] "Foo"
                         generics:
                             0: functor (Adj)
-                        input: Pat 8 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 9 [74-76] "op"
+                        input: Pat 8 [74-97] [Type (Qubit => Unit is Param<0>)]: Bind: Ident 9 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 10 [60-106]: Impl:

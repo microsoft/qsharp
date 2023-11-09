@@ -593,7 +593,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param(name) => write!(indent, "Type Param {name}")?,
+            TyKind::Param(name) => write!(indent, "Type Param: {name}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;

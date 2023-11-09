@@ -10,8 +10,8 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir,
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtDef, UdtDefKind,
-        UdtField,
+        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, TypeParamName,
+        UdtDef, UdtDefKind, UdtField,
     },
 };
 
@@ -227,7 +227,15 @@ fn synthesize_functor_params_in_pat(
 }
 
 fn ast_callable_generics(generics: &[Box<Ident>]) -> Vec<GenericParam> {
-    generics.iter().map(|_param| GenericParam::Ty).collect()
+    generics
+        .iter()
+        .map(|param| {
+            GenericParam::Ty(TypeParamName {
+                span: param.span,
+                name: param.name.clone(),
+            })
+        })
+        .collect()
 }
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {

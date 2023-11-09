@@ -1048,7 +1048,7 @@ fn lambda_operation_empty_closure() {
                         name: Ident 1 [28-31] "Foo"
                         generics:
                             0: functor (empty set)
-                        input: Pat 2 [32-48] [Type (Qubit => Unit is 0)]: Bind: Ident 3 [32-34] "op"
+                        input: Pat 2 [32-48] [Type (Qubit => Unit is Param<0>)]: Bind: Ident 3 [32-34] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [18-101]: Impl:
@@ -1131,7 +1131,7 @@ fn lambda_operation_closure() {
                         name: Ident 6 [90-93] "Foo"
                         generics:
                             0: functor (empty set)
-                        input: Pat 7 [94-111] [Type (Unit => Result is 0)]: Bind: Ident 8 [94-96] "op"
+                        input: Pat 7 [94-111] [Type (Unit => Result is Param<0>)]: Bind: Ident 8 [94-96] "op"
                         output: Result
                         functors: empty set
                         body: SpecDecl 9 [80-130]: Impl:
@@ -1215,7 +1215,7 @@ fn lambda_adj() {
                         name: Ident 7 [70-73] "Foo"
                         generics:
                             0: functor (Adj)
-                        input: Pat 8 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 9 [74-76] "op"
+                        input: Pat 8 [74-97] [Type (Qubit => Unit is Param<0>)]: Bind: Ident 9 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 10 [60-106]: Impl:
@@ -1980,9 +1980,9 @@ fn nested_params() {
                     Callable 0 [17-55] (function):
                         name: Ident 1 [26-29] "Foo"
                         generics:
-                            0: type
+                            0: type [30-32] "'T"
                             1: functor (empty set)
-                        input: Pat 2 [34-45] [Type (0 => Unit is 1)]: Bind: Ident 3 [34-35] "f"
+                        input: Pat 2 [34-45] [Type (Param<0> => Unit is Param<1>)]: Bind: Ident 3 [34-35] "f"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [17-55]: Impl:

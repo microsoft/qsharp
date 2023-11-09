@@ -72,7 +72,7 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "({item})[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name) => write!(f, "{name}"),
+            Ty::Param(param_id) => write!(f, "Param<{param_id}>"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -210,7 +210,7 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty => write!(f, "type"),
+            GenericParam::Ty(name) => write!(f, "type {name}"),
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
         }
     }
@@ -220,9 +220,24 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty,
+    Ty(TypeParamName),
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
+}
+
+/// The name of a generic type parameter.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TypeParamName {
+    /// The span.
+    pub span: Span,
+    /// The name.
+    pub name: Rc<str>,
+}
+
+impl Display for TypeParamName {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{} \"{}\"", self.span, self.name)
+    }
 }
 
 /// A generic parameter ID.
@@ -376,7 +391,7 @@ impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::Value(value) => Display::fmt(value, f),
-            Self::Param(param) => Display::fmt(param, f),
+            Self::Param(param) => write!(f, "Param<{param}>"),
             Self::Infer(infer) => Display::fmt(infer, f),
         }
     }
