@@ -23,7 +23,7 @@ export async function getManifest(uri: string): Promise<{
 
   let parsedManifest;
   try {
-    parsedManifest = JSON.parse(manifestDocument.manifestContents);
+    parsedManifest = JSON.parse(manifestDocument.content);
   } catch (e) {
     log.error(
       "Found manifest document, but the Q# manifest was not valid JSON",
@@ -35,16 +35,16 @@ export async function getManifest(uri: string): Promise<{
   return {
     excludeFiles: parsedManifest.excludeFiles || [],
     excludeRegexes: parsedManifest.excludeRegexes || [],
-    manifestDirectory: manifestDocument.manifestUri.toString(),
+    manifestDirectory: manifestDocument.uri.toString(),
   };
 }
-  
+
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
 async function findManifestDocument(
   currentDocumentUriString: string,
-): Promise<{ manifestUri: vscode.Uri; manifestContents: string } | null> {
+): Promise<{ uri: vscode.Uri; content: string } | null> {
   // /home/foo/bar/document.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
@@ -65,12 +65,7 @@ async function findManifestDocument(
     }
 
     if (listing.length > 0) {
-      return await vscode.workspace.fs.readFile(listing[0]).then((res) => {
-        return {
-          manifestContents: new TextDecoder().decode(res),
-          manifestUri: listing[0],
-        };
-      });
+      return await readFile(listing[0])
     }
 
     const oldUriToQuery = uriToQuery;
@@ -113,14 +108,17 @@ export function directoryListingCallback(
   return filesInDir;
 }
 
-export function readFileCallback(uri: string): string | null {
-  const file = readFile(uri);
-  return (file && file.getText()) || null;
+export async function readFileCallback(uri: string): Promise<string | null >{
+  const file = await readFile(uri);
+  return file?.content || null
 }
 
-function readFile(uri: string): vscode.TextDocument | null {
-  return (
-    vscode.workspace.textDocuments.filter((x) => x.uri.toString() === uri)[0] ||
-    null
-  );
+async function readFile(maybeUri: string | vscode.Uri): Promise<{ uri: vscode.Uri, content: string } | null> {
+  const uri: vscode.Uri = (maybeUri as any).path ? maybeUri as vscode.Uri : vscode.Uri.parse(maybeUri as string);
+  return await vscode.workspace.fs.readFile(uri).then((res) => {
+    return {
+      content: new TextDecoder().decode(res),
+      uri: uri,
+    };
+  })
 }
