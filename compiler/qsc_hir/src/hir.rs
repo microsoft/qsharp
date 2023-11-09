@@ -185,6 +185,28 @@ impl Display for ItemId {
     }
 }
 
+/// The status of an item.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum ItemStatus {
+    /// The item is defined normally.
+    Available,
+    /// The item is marked as unimplemented and uses are disallowed.
+    Unimplemented,
+}
+
+impl ItemStatus {
+    /// Create an item status from the given attributes list.
+    #[must_use]
+    pub fn from_attrs(attrs: &[Attr]) -> Self {
+        for attr in attrs {
+            if *attr == Attr::Unimplemented {
+                return Self::Unimplemented;
+            }
+        }
+        Self::Available
+    }
+}
+
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -1127,8 +1149,25 @@ impl Display for Ident {
 /// An attribute.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Attr {
+    /// Provide pre-processing information about when an item should be included in compilation.
+    Config,
     /// Indicates that a callable is an entry point to a program.
     EntryPoint,
+    /// Indicates that an item does not have an implementation available for use.
+    Unimplemented,
+}
+
+impl FromStr for Attr {
+    type Err = ();
+
+    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+        match s {
+            "Config" => Ok(Self::Config),
+            "EntryPoint" => Ok(Self::EntryPoint),
+            "Unimplemented" => Ok(Self::Unimplemented),
+            _ => Err(()),
+        }
+    }
 }
 
 /// A field.

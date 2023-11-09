@@ -102,7 +102,8 @@ impl<'a> Handler<'a> for Rename<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        if let Some(resolve::Res::Item(item_id)) = self.compilation.user_unit.ast.names.get(name.id)
+        if let Some(resolve::Res::Item(item_id, _)) =
+            self.compilation.user_unit.ast.names.get(name.id)
         {
             self.get_spans_for_item_rename(item_id, name);
         }
@@ -120,7 +121,7 @@ impl<'a> Handler<'a> for Rename<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        if let Some(resolve::Res::Item(item_id)) =
+        if let Some(resolve::Res::Item(item_id, _)) =
             self.compilation.user_unit.ast.names.get(type_name.id)
         {
             self.get_spans_for_item_rename(item_id, type_name);
