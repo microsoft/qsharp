@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import { log } from "qsharp-lang";
 import { Utils } from "vscode-uri";
 import * as vscode from "vscode";
