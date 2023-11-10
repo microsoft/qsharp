@@ -63,7 +63,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         &mut self,
         _: &LocatorContext<'a>,
         def_name: &'a ast::Ident,
-        _: &'a hir::ty::ParamId,
+        _: hir::ty::ParamId,
     ) {
         self.definition = Some(protocol_location(self.compilation, def_name.span, None));
     }
@@ -72,10 +72,10 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         _: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
-            if let Some(def_name) = curr.generics.get(usize::from(*param_id)) {
+            if let Some(def_name) = curr.generics.get(usize::from(param_id)) {
                 self.definition = Some(protocol_location(self.compilation, def_name.span, None));
             }
         }

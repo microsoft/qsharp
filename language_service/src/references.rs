@@ -72,7 +72,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         _: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
             self.references =
@@ -84,7 +84,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         _: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
             self.references =
@@ -274,7 +274,7 @@ pub(crate) fn find_local_locations(
 }
 
 pub(crate) fn find_ty_param_locations(
-    param_id: &hir::ty::ParamId,
+    param_id: hir::ty::ParamId,
     callable: &ast::CallableDecl,
     compilation: &Compilation,
     include_declaration: bool,
@@ -381,7 +381,7 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
 }
 
 struct FindTyParamLocations<'a> {
-    param_id: &'a hir::ty::ParamId,
+    param_id: hir::ty::ParamId,
     compilation: &'a Compilation,
     include_declaration: bool,
     locations: Vec<Span>,
@@ -393,7 +393,7 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
             decl.generics.iter().for_each(|p| {
                 let res = self.compilation.user_unit.ast.names.get(p.id);
                 if let Some(resolve::Res::Param(param_id)) = res {
-                    if *param_id == *self.param_id {
+                    if *param_id == self.param_id {
                         self.locations.push(p.span);
                     }
                 }
@@ -406,7 +406,7 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
         if let ast::TyKind::Param(param) = &*ty.kind {
             let res = self.compilation.user_unit.ast.names.get(param.id);
             if let Some(resolve::Res::Param(param_id)) = res {
-                if *param_id == *self.param_id {
+                if *param_id == self.param_id {
                     self.locations.push(param.span);
                 }
             }

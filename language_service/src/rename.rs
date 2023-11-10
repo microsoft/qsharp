@@ -100,7 +100,7 @@ impl<'a> Rename<'a> {
 
     fn get_spans_for_type_param_rename(
         &mut self,
-        param_id: &hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
         ast_name: &ast::Ident,
         current_callable: &ast::CallableDecl,
     ) {
@@ -180,7 +180,7 @@ impl<'a> Handler<'a> for Rename<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         def_name: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
             self.get_spans_for_type_param_rename(param_id, def_name, curr);
@@ -191,7 +191,7 @@ impl<'a> Handler<'a> for Rename<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         ref_name: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
             self.get_spans_for_type_param_rename(param_id, ref_name, curr);

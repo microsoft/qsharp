@@ -97,7 +97,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         def_name: &'a ast::Ident,
-        _: &'a hir::ty::ParamId,
+        _: hir::ty::ParamId,
     ) {
         let code = markdown_fenced_block(def_name.name.clone());
         let callable_name = &context
@@ -122,7 +122,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         ref_name: &'a ast::Ident,
-        _: &'a hir::ty::ParamId,
+        _: hir::ty::ParamId,
     ) {
         let code = markdown_fenced_block(ref_name.name.clone());
         let callable_name = &context

@@ -33,14 +33,14 @@ pub(crate) trait Handler<'package> {
         &mut self,
         context: &LocatorContext<'package>,
         def_name: &'package ast::Ident,
-        param_id: &'package hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     );
 
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'package>,
         ref_name: &'package ast::Ident,
-        param_id: &'package hir::ty::ParamId,
+        param_id: hir::ty::ParamId,
     );
 
     fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
@@ -151,7 +151,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                 if let Some(resolve::Res::Param(param_id)) =
                                     self.compilation.user_unit.ast.names.get(p.id)
                                 {
-                                    self.inner.at_type_param_def(&self.context, p, param_id);
+                                    self.inner.at_type_param_def(&self.context, p, *param_id);
                                 }
                             }
                         });
@@ -237,7 +237,8 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 if let Some(resolve::Res::Param(param_id)) =
                     self.compilation.user_unit.ast.names.get(param.id)
                 {
-                    self.inner.at_type_param_ref(&self.context, param, param_id);
+                    self.inner
+                        .at_type_param_ref(&self.context, param, *param_id);
                 }
             } else {
                 walk_ty(self, ty);
