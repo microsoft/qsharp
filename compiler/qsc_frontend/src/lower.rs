@@ -666,6 +666,7 @@ impl With<'_> {
             ast::PatKind::Tuple(items) => {
                 hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
             }
+            ast::PatKind::Err => hir::PatKind::Err,
         };
 
         hir::Pat {
@@ -692,6 +693,7 @@ impl With<'_> {
             ast::QubitInitKind::Tuple(items) => {
                 hir::QubitInitKind::Tuple(items.iter().map(|i| self.lower_qubit_init(i)).collect())
             }
+            ast::QubitInitKind::Err => hir::QubitInitKind::Err,
         };
 
         hir::QubitInit {

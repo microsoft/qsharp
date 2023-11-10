@@ -1015,6 +1015,8 @@ pub enum PatKind {
     Discard,
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
+    /// An invalid pattern.
+    Err,
 }
 
 impl Display for PatKind {
@@ -1036,6 +1038,7 @@ impl Display for PatKind {
                     }
                 }
             }
+            PatKind::Err => write!(indent, "Err")?,
         }
         Ok(())
     }
@@ -1073,6 +1076,8 @@ pub enum QubitInitKind {
     Single,
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<QubitInit>),
+    /// An invalid qubit initializer.
+    Err,
 }
 
 impl Display for QubitInitKind {
@@ -1096,6 +1101,7 @@ impl Display for QubitInitKind {
                     }
                 }
             }
+            QubitInitKind::Err => write!(indent, "Err")?,
         }
         Ok(())
     }

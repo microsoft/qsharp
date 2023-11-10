@@ -306,6 +306,7 @@ impl<'a> Display for HirPat<'a> {
                     write!(f, "()")
                 }
             }
+            hir::PatKind::Err => write!(f, "?"),
         }
     }
 }
@@ -376,6 +377,7 @@ impl<'a> Display for AstPat<'a> {
                     write!(f, "()")
                 }
             }
+            ast::PatKind::Err => write!(f, "?"),
         }
     }
 }
@@ -633,6 +635,7 @@ impl<'a> Display for AstTy<'a> {
                     write!(f, ")")
                 }
             }
+            ast::TyKind::Err => write!(f, "?"),
         }
     }
 }
@@ -692,6 +695,7 @@ impl<'a> Display for TyDef<'a> {
                     write!(f, ")")
                 }
             }
+            ast::TyDefKind::Err => write!(f, "?"),
         }
     }
 }
