@@ -34,6 +34,7 @@ pub(crate) fn get_hover(
 
 enum LocalKind {
     Param,
+    TypeParam,
     LambdaParam,
     Local,
 }
@@ -67,7 +68,23 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         def_name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
-        // todo!();
+        let code = markdown_fenced_block(def_name.name.clone());
+        let callable_name = &context
+            .current_callable
+            .expect("type params should only exist in callables")
+            .name
+            .name;
+        let contents = display_local(
+            &LocalKind::TypeParam,
+            &code,
+            &def_name.name,
+            &callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(def_name.span, &self.compilation.user_unit.sources),
+        });
     }
 
     fn at_type_param_ref(
@@ -76,7 +93,23 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         ref_name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
-        // todo!();
+        let code = markdown_fenced_block(ref_name.name.clone());
+        let callable_name = &context
+            .current_callable
+            .expect("type params should only exist in callables")
+            .name
+            .name;
+        let contents = display_local(
+            &LocalKind::TypeParam,
+            &code,
+            &ref_name.name,
+            callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(ref_name.span, &self.compilation.user_unit.sources),
+        });
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
@@ -114,15 +147,16 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         } else {
             LocalKind::Local
         };
-        let mut callable_name = Rc::from("");
-        if let Some(decl) = context.current_callable {
-            callable_name = decl.name.name.clone();
-        }
+        let callable_name = &context
+            .current_callable
+            .expect("locals should only exist in callables")
+            .name
+            .name;
         let contents = display_local(
             &kind,
             &code,
             &ident.name,
-            &callable_name,
+            callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -273,6 +307,13 @@ fn display_local(
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
+            )
+        }
+        LocalKind::TypeParam => {
+            let param_doc = parse_doc_for_param(callable_doc, local_name);
+            with_doc(
+                &param_doc,
+                format!("type parameter of `{callable_name}`\n{markdown}",),
             )
         }
         LocalKind::LambdaParam => format!("lambda parameter\n{markdown}"),
