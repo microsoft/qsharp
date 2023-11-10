@@ -287,16 +287,51 @@ function registerMonacoLanguageServiceProviders(
       if (!definition) return null;
       const uri = monaco.Uri.parse(definition.source);
       if (uri.toString() !== model.uri.toString()) return null;
-      const definitionPosition = model.getPositionAt(definition.offset);
+      const defStartPosition = model.getPositionAt(definition.span.start);
+      const defEndPosition = model.getPositionAt(definition.span.end);
       return {
         uri,
         range: {
-          startLineNumber: definitionPosition.lineNumber,
-          startColumn: definitionPosition.column,
-          endLineNumber: definitionPosition.lineNumber,
-          endColumn: definitionPosition.column,
+          startLineNumber: defStartPosition.lineNumber,
+          startColumn: defStartPosition.column,
+          endLineNumber: defEndPosition.lineNumber,
+          endColumn: defEndPosition.column,
         },
       };
+    },
+  });
+
+  monaco.languages.registerReferenceProvider("qsharp", {
+    provideReferences: async (
+      model: monaco.editor.ITextModel,
+      position: monaco.Position,
+      context: monaco.languages.ReferenceContext,
+    ) => {
+      const lsReferences = await languageService.getReferences(
+        model.uri.toString(),
+        model.getOffsetAt(position),
+        context.includeDeclaration,
+      );
+      if (!lsReferences) return [];
+      const references: monaco.languages.Location[] = [];
+      for (const reference of lsReferences) {
+        const uri = monaco.Uri.parse(reference.source);
+        // the playground doesn't support sources other than the current source
+        if (uri.toString() == model.uri.toString()) {
+          const refStartPosition = model.getPositionAt(reference.span.start);
+          const refEndPosition = model.getPositionAt(reference.span.end);
+          references.push({
+            uri,
+            range: {
+              startLineNumber: refStartPosition.lineNumber,
+              startColumn: refStartPosition.column,
+              endLineNumber: refEndPosition.lineNumber,
+              endColumn: refEndPosition.column,
+            },
+          });
+        }
+      }
+      return references;
     },
   });
 

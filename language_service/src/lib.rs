@@ -12,6 +12,7 @@ pub mod hover;
 mod name_locator;
 pub mod protocol;
 mod qsc_utils;
+pub mod references;
 pub mod rename;
 pub mod signature_help;
 #[cfg(test)]
@@ -23,8 +24,7 @@ use compilation::Compilation;
 use log::trace;
 use miette::Diagnostic;
 use protocol::{
-    CompletionList, Definition, DiagnosticUpdate, Hover, SignatureHelp,
-    WorkspaceConfigurationUpdate,
+    CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -238,11 +238,28 @@ impl<'a> LanguageService<'a> {
 
     /// LSP: textDocument/definition
     #[must_use]
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Location> {
         self.document_op(definition::get_definition, "get_definition", uri, offset)
     }
 
     /// LSP: textDocument/hover
+    #[must_use]
+    pub fn get_references(
+        &self,
+        uri: &str,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Vec<Location> {
+        self.document_op(
+            |compilation, uri, offset| {
+                references::get_references(compilation, uri, offset, include_declaration)
+            },
+            "get_references",
+            uri,
+            offset,
+        )
+    }
+
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
         self.document_op(hover::get_hover, "get_hover", uri, offset)
@@ -261,7 +278,7 @@ impl<'a> LanguageService<'a> {
 
     /// LSP: textDocument/rename
     #[must_use]
-    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
+    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<Location> {
         self.document_op(rename::get_rename, "get_rename", uri, offset)
     }
 

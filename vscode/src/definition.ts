@@ -24,11 +24,12 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
     );
     if (!definition) return null;
     const uri = vscode.Uri.parse(definition.source);
-
-    const definitionPosition = (await openDocument(uri)).positionAt(
-      definition.offset,
+    const definitionDoc = await openDocument(uri);
+    const definitionRange = new vscode.Range(
+      definitionDoc.positionAt(definition.span.start),
+      definitionDoc.positionAt(definition.span.end),
     );
-    return new vscode.Location(uri, definitionPosition);
+    return new vscode.Location(uri, definitionRange);
   }
 }
 

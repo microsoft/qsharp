@@ -20,6 +20,7 @@ const requests: MethodMap<ILanguageService> = {
   getCompletions: "request",
   getHover: "request",
   getDefinition: "request",
+  getReferences: "request",
   getSignatureHelp: "request",
   getRename: "request",
   prepareRename: "request",

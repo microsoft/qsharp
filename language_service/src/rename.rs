@@ -6,12 +6,11 @@ mod tests;
 
 use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
-use crate::protocol;
+use crate::protocol::{self, Location};
 use crate::qsc_utils::protocol_span;
-use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
-use qsc::hir::{ty::Ty, Res};
+use crate::references::{find_field_locations, find_item_locations, find_local_locations};
+use qsc::ast::visit::Visitor;
 use qsc::{ast, hir, resolve, Span};
-use std::rc::Rc;
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,
@@ -32,22 +31,18 @@ pub(crate) fn get_rename(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
-) -> Vec<protocol::Span> {
+) -> Vec<Location> {
     let (ast, offset) = compilation.resolve_offset(source_name, offset);
 
     let mut rename = Rename::new(compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);
     locator.visit_package(&ast.package);
-    rename
-        .locations
-        .into_iter()
-        .map(|s| protocol_span(s, &compilation.user_unit().sources))
-        .collect::<Vec<_>>()
+    rename.locations
 }
 
 struct Rename<'a> {
     compilation: &'a Compilation,
-    locations: Vec<Span>,
+    locations: Vec<Location>,
     is_prepare: bool,
     prepare: Option<(Span, String)>,
 }
@@ -66,24 +61,10 @@ impl<'a> Rename<'a> {
         let package_id = item_id.package.expect("package id should be resolved");
         // Only rename items that are part of the user package
         if package_id == self.compilation.user {
-            let user_unit = self.compilation.user_unit();
-            if let Some(def) = user_unit.package.items.get(item_id.item) {
-                if self.is_prepare {
-                    self.prepare = Some((ast_name.span, ast_name.name.to_string()));
-                } else {
-                    let def_span = match &def.kind {
-                        hir::ItemKind::Callable(decl) => decl.name.span,
-                        hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
-                    };
-                    let mut rename = ItemRename {
-                        item_id,
-                        compilation: self.compilation,
-                        locations: vec![],
-                    };
-                    rename.visit_package(&user_unit.ast.package);
-                    rename.locations.push(def_span);
-                    self.locations = rename.locations;
-                }
+            if self.is_prepare {
+                self.prepare = Some((ast_name.span, ast_name.name.to_string()));
+            } else {
+                self.locations = find_item_locations(item_id, self.compilation, true);
             }
         }
     }
@@ -92,28 +73,11 @@ impl<'a> Rename<'a> {
         let package_id = item_id.package.expect("package id should be resolved");
         // Only rename items that are part of the user package
         if package_id == self.compilation.user {
-            let user_unit = self.compilation.user_unit();
-            if let Some(def) = user_unit.package.items.get(item_id.item) {
-                if let hir::ItemKind::Ty(_, udt) = &def.kind {
-                    if let Some(ty_field) = udt.find_field_by_name(&ast_name.name) {
-                        if self.is_prepare {
-                            self.prepare = Some((ast_name.span, ast_name.name.to_string()));
-                        } else {
-                            let def_span = ty_field
-                                .name_span
-                                .expect("field found via name should have a name");
-                            let mut rename = FieldRename {
-                                item_id,
-                                field_name: ast_name.name.clone(),
-                                compilation: self.compilation,
-                                locations: vec![],
-                            };
-                            rename.visit_package(&user_unit.ast.package);
-                            rename.locations.push(def_span);
-                            self.locations = rename.locations;
-                        }
-                    }
-                }
+            if self.is_prepare {
+                self.prepare = Some((ast_name.span, ast_name.name.to_string()));
+            } else {
+                self.locations =
+                    find_field_locations(item_id, ast_name.name.clone(), self.compilation, true);
             }
         }
     }
@@ -127,13 +91,8 @@ impl<'a> Rename<'a> {
         if self.is_prepare {
             self.prepare = Some((ast_name.span, ast_name.name.to_string()));
         } else {
-            let mut rename = LocalRename {
-                node_id,
-                compilation: self.compilation,
-                locations: vec![],
-            };
-            rename.visit_callable_decl(current_callable);
-            self.locations = rename.locations;
+            self.locations =
+                find_local_locations(node_id, current_callable, self.compilation, true);
         }
     }
 }
@@ -225,104 +184,6 @@ impl<'a> Handler<'a> for Rename<'a> {
     ) {
         if let Some(curr) = context.current_callable {
             self.get_spans_for_local_rename(*node_id, &path.name, curr);
-        }
-    }
-}
-
-struct ItemRename<'a> {
-    item_id: &'a hir::ItemId,
-    compilation: &'a Compilation,
-    locations: Vec<Span>,
-}
-
-impl<'a> Visitor<'_> for ItemRename<'a> {
-    fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.get_res(path.id);
-        if let Some(resolve::Res::Item(item_id)) = res {
-            if self.eq(item_id) {
-                self.locations.push(path.name.span);
-            }
-        }
-    }
-
-    fn visit_ty(&mut self, ty: &'_ ast::Ty) {
-        if let ast::TyKind::Path(ty_path) = &*ty.kind {
-            let res = self.compilation.get_res(ty_path.id);
-            if let Some(resolve::Res::Item(item_id)) = res {
-                if self.eq(item_id) {
-                    self.locations.push(ty_path.name.span);
-                }
-            }
-        } else {
-            walk_ty(self, ty);
-        }
-    }
-}
-
-impl<'a> ItemRename<'a> {
-    fn eq(&mut self, item_id: &hir::ItemId) -> bool {
-        item_id.item == self.item_id.item
-            && item_id.package.unwrap_or(self.compilation.user)
-                == self.item_id.package.expect("package id should be resolved")
-    }
-}
-
-struct FieldRename<'a> {
-    item_id: &'a hir::ItemId,
-    field_name: Rc<str>,
-    compilation: &'a Compilation,
-    locations: Vec<Span>,
-}
-
-impl<'a> Visitor<'_> for FieldRename<'a> {
-    fn visit_expr(&mut self, expr: &'_ ast::Expr) {
-        if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
-            self.visit_expr(qualifier);
-            if field_name.name == self.field_name {
-                if let Some(Ty::Udt(Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
-                    if self.eq(id) {
-                        self.locations.push(field_name.span);
-                    }
-                }
-            }
-        } else {
-            walk_expr(self, expr);
-        }
-    }
-}
-
-impl<'a> FieldRename<'a> {
-    fn eq(&mut self, item_id: &hir::ItemId) -> bool {
-        item_id.item == self.item_id.item
-            && item_id.package.unwrap_or(self.compilation.user)
-                == self.item_id.package.expect("package id should be resolved")
-    }
-}
-
-struct LocalRename<'a> {
-    node_id: ast::NodeId,
-    compilation: &'a Compilation,
-    locations: Vec<Span>,
-}
-
-impl<'a> Visitor<'_> for LocalRename<'a> {
-    fn visit_pat(&mut self, pat: &'_ ast::Pat) {
-        match &*pat.kind {
-            ast::PatKind::Bind(ident, _) => {
-                if ident.id == self.node_id {
-                    self.locations.push(ident.span);
-                }
-            }
-            _ => ast::visit::walk_pat(self, pat),
-        }
-    }
-
-    fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.get_res(path.id);
-        if let Some(resolve::Res::Local(node_id)) = res {
-            if *node_id == self.node_id {
-                self.locations.push(path.name.span);
-            }
         }
     }
 }

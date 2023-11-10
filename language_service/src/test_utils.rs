@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compilation::{Compilation, CompilationKind};
+use crate::{
+    compilation::{Compilation, CompilationKind},
+    protocol,
+};
 use qsc::{
     compile, hir::PackageId, incremental::Compiler, PackageStore, PackageType, SourceMap,
     TargetProfile,
@@ -31,6 +34,19 @@ pub(crate) fn get_source_and_marker_offsets(
     (source, cursor_offsets, target_offsets)
 }
 
+pub(crate) fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<protocol::Span> {
+    assert!(target_offsets.len() % 2 == 0);
+    let limit = target_offsets.len() / 2;
+    let mut spans = vec![];
+    for i in 0..limit {
+        spans.push(protocol::Span {
+            start: target_offsets[i * 2],
+            end: target_offsets[i * 2 + 1],
+        });
+    }
+    spans
+}
+
 pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str) -> Compilation {
     let mut package_store = PackageStore::new(compile::core());
     let std_source_map = SourceMap::new(
@@ -46,6 +62,9 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
                 newtype UdtFnWithUdtParams = (Udt -> Udt);
                 function TakesUdt(input : Udt) : Udt {
                     fail "not implemented"
+                }
+                operation RefFake() : Unit {
+                    Fake();
                 }
             }"#
             .into(),
