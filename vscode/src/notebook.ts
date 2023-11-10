@@ -33,7 +33,7 @@ export function registerQSharpNotebookHandlers() {
       if (notebookDocument.notebookType === jupyterNotebookType) {
         updateQSharpCellLanguages(notebookDocument.getCells());
       }
-    }),
+    })
   );
 
   subscriptions.push(
@@ -48,7 +48,7 @@ export function registerQSharpNotebookHandlers() {
           .flat();
         updateQSharpCellLanguages(changedCells.concat(addedCells));
       }
-    }),
+    })
   );
 
   function updateQSharpCellLanguages(cells: vscode.NotebookCell[]) {
@@ -62,7 +62,7 @@ export function registerQSharpNotebookHandlers() {
         ) {
           vscode.languages.setTextDocumentLanguage(
             cell.document,
-            qsharpLanguageId,
+            qsharpLanguageId
           );
         }
       }
@@ -75,7 +75,7 @@ export function registerQSharpNotebookHandlers() {
 const openQSharpNotebooks = new Set<string>();
 
 /**
- * Returns the position of the `%%qsharp` cell magic, or `undefined`
+ * Returns the end position of the `%%qsharp` cell magic, or `undefined`
  * if it does not exist.
  */
 function findQSharpCellMagic(document: vscode.TextDocument) {
@@ -87,9 +87,12 @@ function findQSharpCellMagic(document: vscode.TextDocument) {
     }
     return line.text.startsWith(
       qsharpCellMagic,
-      line.firstNonWhitespaceCharacterIndex,
+      line.firstNonWhitespaceCharacterIndex
     )
-      ? new vscode.Position(i, line.firstNonWhitespaceCharacterIndex)
+      ? new vscode.Position(
+          i,
+          line.firstNonWhitespaceCharacterIndex + qsharpCellMagic.length
+        )
       : undefined;
   }
   return undefined;
@@ -99,7 +102,7 @@ function findQSharpCellMagic(document: vscode.TextDocument) {
  * This one is for syncing with the language service
  */
 export function registerQSharpNotebookCellUpdateHandlers(
-  languageService: ILanguageService,
+  languageService: ILanguageService
 ) {
   vscode.workspace.notebookDocuments.forEach((notebook) => {
     updateIfQsharpNotebook(notebook);
@@ -109,19 +112,19 @@ export function registerQSharpNotebookCellUpdateHandlers(
   subscriptions.push(
     vscode.workspace.onDidOpenNotebookDocument((notebook) => {
       updateIfQsharpNotebook(notebook);
-    }),
+    })
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeNotebookDocument((event) => {
       updateIfQsharpNotebook(event.notebook);
-    }),
+    })
   );
 
   subscriptions.push(
     vscode.workspace.onDidCloseNotebookDocument((notebook) => {
       closeIfKnownQsharpNotebook(notebook);
-    }),
+    })
   );
 
   function updateIfQsharpNotebook(notebook: vscode.NotebookDocument) {
@@ -139,7 +142,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
               version: cell.document.version,
               code: getQSharpText(cell.document),
             };
-          }),
+          })
         );
       } else {
         // All Q# cells could have been deleted, check if we know this doc from previous calls
@@ -153,7 +156,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
     if (openQSharpNotebooks.has(notebookUri)) {
       languageService.closeNotebookDocument(
         notebookUri,
-        getQSharpCells(notebook).map((cell) => cell.document.uri.toString()),
+        getQSharpCells(notebook).map((cell) => cell.document.uri.toString())
       );
       openQSharpNotebooks.delete(notebook.uri.toString());
     }
@@ -163,7 +166,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
     return notebook
       .getCells()
       .filter((cell) =>
-        vscode.languages.match(qsharpDocumentFilter, cell.document),
+        vscode.languages.match(qsharpDocumentFilter, cell.document)
       );
   }
 
@@ -185,7 +188,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
       // the manually set cell language, so we treat this as any other
       // Q# cell. We could consider raising a warning here to help the user.
       log.info(
-        "found Q# cell without %%qsharp magic: " + document.uri.toString(),
+        "found Q# cell without %%qsharp magic: " + document.uri.toString()
       );
       return document.getText();
     }
@@ -197,7 +200,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
 // Yes, this function is long, but mostly to deal with multi-folder VS Code workspace or multi
 // Azure Quantum workspace connection scenarios. The actual notebook creation is pretty simple.
 export function registerCreateNotebookCommand(
-  context: vscode.ExtensionContext,
+  context: vscode.ExtensionContext
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -219,7 +222,7 @@ export function registerCreateNotebookCommand(
                 })),
                 {
                   title: "Select a workspace to use in the notebook",
-                },
+                }
               )
             )?.id;
           }
@@ -233,7 +236,7 @@ export function registerCreateNotebookCommand(
               return getPythonCodeForWorkspace(
                 workspace.id,
                 workspace.endpointUri,
-                workspace.name,
+                workspace.name
               );
             }
           }
@@ -247,16 +250,16 @@ export function registerCreateNotebookCommand(
           `"# WORKSPACE_CONNECTION_CODE"`,
           JSON.stringify(
             "# Connect to the Azure Quantum workspace\n\n" +
-              getCodeForWorkspace(choice),
-          ),
+              getCodeForWorkspace(choice)
+          )
         );
 
         const document = await vscode.workspace.openNotebookDocument(
           "jupyter-notebook",
-          JSON.parse(content),
+          JSON.parse(content)
         );
         await vscode.window.showNotebookDocument(document);
-      },
-    ),
+      }
+    )
   );
 }
