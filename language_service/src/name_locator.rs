@@ -32,14 +32,14 @@ pub(crate) trait Handler<'package> {
     fn at_type_param_def(
         &mut self,
         context: &LocatorContext<'package>,
-        name: &'package ast::Ident,
+        def_name: &'package ast::Ident,
         param_id: &'package hir::ty::ParamId,
     );
 
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'package>,
-        name: &'package ast::Ident,
+        ref_name: &'package ast::Ident,
         param_id: &'package hir::ty::ParamId,
     );
 

@@ -179,22 +179,22 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_type_param_def(
         &mut self,
         context: &LocatorContext<'a>,
-        name: &'a ast::Ident,
+        def_name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
-            self.get_spans_for_type_param_rename(param_id, name, curr);
+            self.get_spans_for_type_param_rename(param_id, def_name, curr);
         }
     }
 
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        name: &'a ast::Ident,
+        ref_name: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
-            self.get_spans_for_type_param_rename(param_id, name, curr);
+            self.get_spans_for_type_param_rename(param_id, ref_name, curr);
         }
     }
 
