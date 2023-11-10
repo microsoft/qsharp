@@ -306,6 +306,7 @@ impl<'a> Display for HirPat<'a> {
                     write!(f, "()")
                 }
             }
+            hir::PatKind::Err => write!(f, "?"),
         }
     }
 }
@@ -376,6 +377,7 @@ impl<'a> Display for AstPat<'a> {
                     write!(f, "()")
                 }
             }
+            ast::PatKind::Err => write!(f, "?"),
         }
     }
 }
@@ -622,6 +624,7 @@ impl<'a> Display for AstTy<'a> {
             ast::TyKind::Path(path) => write!(f, "{}", Path { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => display_tuple(f, tys, |ty| AstTy { ty }),
+            ast::TyKind::Err => write!(f, "?"),
         }
     }
 }
@@ -668,6 +671,7 @@ impl<'a> Display for TyDef<'a> {
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),
             ast::TyDefKind::Tuple(tys) => display_tuple(f, tys, |def| TyDef { def }),
+            ast::TyDefKind::Err => write!(f, "?"),
         }
     }
 }

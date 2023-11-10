@@ -31,7 +31,7 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, res) in self.changes.iter().rev() {
             let name = match res {
-                Res::Item(item) => match item.package {
+                Res::Item(item, _) => match item.package {
                     None => format!("item{}", item.item),
                     Some(package) => format!("package{package}_item{}", item.item),
                 },

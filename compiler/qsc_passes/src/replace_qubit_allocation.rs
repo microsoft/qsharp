@@ -54,6 +54,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
                 QubitInitKind::Array(e) => (true, Some(take(e))),
                 QubitInitKind::Single => (true, None),
                 QubitInitKind::Tuple(_) => (false, None),
+                QubitInitKind::Err => panic!("QubitInitKind::Err"),
             }
         }
 
@@ -178,6 +179,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
                 };
                 (tuple_expr, ids)
             }
+            QubitInitKind::Err => panic!("QubitInitKind::Err"),
         }
     }
 
@@ -448,6 +450,7 @@ fn create_qubit_global_alloc(
                         .collect(),
                 ),
             },
+            QubitInitKind::Err => panic!("QubitInitKind::Err"),
         }
     }
 
