@@ -629,6 +629,48 @@ fn check_bitsize_l() {
     );
 }
 
+#[test]
+fn check_trailing_zero_count_i() {
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountI(7)",
+        &Value::Int(0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountI(2)",
+        &Value::Int(1),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountI(7616)",
+        &Value::Int(6),
+    );
+}
+
+#[test]
+fn check_trailing_zero_count_l() {
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountL(7L)",
+        &Value::Int(0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountL(2L)",
+        &Value::Int(1),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountL(1L<<<163)",
+        &Value::Int(163),
+    );
+}
+
+#[test]
+fn check_hamming_weight() {
+    test_expression("Microsoft.Quantum.Math.HammingWeightI(2)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.HammingWeightI(14)", &Value::Int(3));
+    test_expression(
+        "Microsoft.Quantum.Math.HammingWeightI(1<<<5)",
+        &Value::Int(1),
+    );
+}
+
 //
 // Combinatorics
 //
