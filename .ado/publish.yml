@@ -99,7 +99,7 @@ jobs:
 
   - script: |
       vsce package
-    condition: and(succeeded(), neq(variables['BUILD_TYPE'], 'dev'))
+    condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
 
@@ -313,7 +313,7 @@ jobs:
       VSIX_RPATH=../VSIX
       VSIX_FNAME=`ls $VSIX_RPATH`
       vsce publish --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
-    condition: and(succeeded(), neq(variables['BUILD_TYPE'], 'dev'))
+    condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
     displayName: Publish VSCode Extension
     env:
       VSCE_PAT: $(PAT)
