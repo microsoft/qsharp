@@ -16,9 +16,9 @@ use std::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
-    sync::Arc,
     result,
     str::FromStr,
+    sync::Arc,
 };
 
 fn set_indentation<'a, 'b>(

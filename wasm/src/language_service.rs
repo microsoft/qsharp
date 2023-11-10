@@ -9,10 +9,15 @@ use qsc::{self};
 use qsc_project::{Manifest, ManifestDescriptor};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
+async fn fut_to_string<F, T>(res: JsFuture, func: F) -> T where F: Fn(JsValue) -> T {
+    let res = res.await.expect("js future shouldn't throw an exception");
+    func(res)
+}
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
@@ -36,18 +41,15 @@ impl LanguageService {
                     .expect("callback should succeed")
                     .into();
 
-                let res: wasm_bindgen_futures::JsFuture = res.into();
-                async fn fut_to_string(res: wasm_bindgen_futures::JsFuture, path_buf_string: String) -> (Arc<str>, Arc<str>) 
-                {
-                    let res = res.await.expect("js future shouldn't throw an exception");
-                    match res.as_string() {
-                             Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-                             None => unreachable!("JS callback did not return an expected type"),
-                        } 
-                    
-                    
-                }
-                let leaked: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, path_buf_string.clone()));
+                let res:JsFuture = res.into();
+
+                let path_buf_string = path_buf_string.clone();
+                
+                let func = move |js_val: JsValue| match js_val.as_string() {
+                    Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
+                    None => unreachable!("JS callback did not return an expected type"),
+                };
+                let leaked: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
                 return leaked;
             };
 
@@ -61,16 +63,23 @@ impl LanguageService {
             let path = JsValue::from_str(&path_buf_string);
             let res: js_sys::Promise = list_directory
                 .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed").into();
+                .expect("callback should succeed")
+            .into();
 
-            match res.dyn_into::<js_sys::Array>() {
+            let res: JsFuture = res.into();
+
+                let func = move |js_val: JsValue| 
+            match js_val.dyn_into::<js_sys::Array>() {
                 Ok(arr) => arr
                     .into_iter()
                     .filter_map(|x| x.as_string())
                     .map(PathBuf::from)
                     .collect::<Vec<_>>(),
                 Err(e) => todo!("result wasn't an array error: {e:?}"),
-            }
+            };
+                let leaked: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
+                return leaked;
+            
         };
 
         let get_manifest = get_manifest
