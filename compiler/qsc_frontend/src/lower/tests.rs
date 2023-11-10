@@ -2071,9 +2071,9 @@ fn duplicate_commas_in_generics() {
                     Callable 0 [21-57] (function):
                         name: Ident 1 [30-33] "Foo"
                         generics:
-                            0: type
-                            1: type
-                        input: Pat 2 [40-46] [Type 0]: Bind: Ident 3 [40-41] "x"
+                            0: type [34-36] "'T"
+                            1: type [37-37] ""
+                        input: Pat 2 [40-46] [Type Param<0>]: Bind: Ident 3 [40-41] "x"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [21-57]: Impl:
