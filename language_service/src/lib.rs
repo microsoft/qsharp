@@ -35,6 +35,8 @@ use std::{future::Future, mem::take, path::PathBuf, pin::Pin, sync::Arc};
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
 
+// unsafe impl Send for LanguageService<'_> {}
+// unsafe impl Sync for LanguageService<'_> {}
 pub struct LanguageService<'a> {
     /// Workspace configuration can include compiler settings
     /// that affect error checking and other language server behavior.
@@ -64,14 +66,17 @@ pub struct LanguageService<'a> {
     documents_with_errors: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
-    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + Send + Sync + 'a>,
     /// Callback which lets the service read a file from the target filesystem
-    read_file: Box<dyn Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a>,
+    read_file: Box<
+        dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + Send + Sync + 'a,
+    >,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory: Box<dyn Fn(PathBuf) -> (Pin<Box<dyn Future<Output = Vec<PathBuf>>>>) + 'a>,
+    list_directory:
+        Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>> + Send + Sync + 'a>,
     /// Fetch the manifest file for a specific path
-    get_manifest: Box<dyn Fn(String) -> Option<qsc_project::ManifestDescriptor> + 'a>,
+    get_manifest: Box<dyn Fn(String) -> Option<qsc_project::ManifestDescriptor> + Send + Sync + 'a>,
 }
 
 #[derive(Debug)]
@@ -102,10 +107,16 @@ struct OpenDocument {
 
 impl<'a> LanguageService<'a> {
     pub fn new(
-        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        read_file: impl Fn(PathBuf) -> (Arc<str>, Arc<str>) + 'a,
-        list_directory: impl Fn(PathBuf) -> Vec<PathBuf> + 'a,
-        get_manifest: impl Fn(String) -> Option<qsc_project::ManifestDescriptor> + 'a,
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) + Send + Sync + 'a,
+        read_file: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>>
+            + Send
+            + Sync
+            + 'a,
+        list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>>
+            + Send
+            + Sync
+            + 'a,
+        get_manifest: impl Fn(String) -> Option<qsc_project::ManifestDescriptor> + Send + Sync + 'a,
     ) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
@@ -141,12 +152,12 @@ impl<'a> LanguageService<'a> {
     /// This is the "entry point" for the language service's logic, after its constructor.
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string());
         let sources = if let Some(ref manifest) = manifest {
             trace!("manifest found, this is a project"); // if there is a manifest, this is a project
-            let project = match self.load_project(manifest) {
+            let project = match self.load_project(manifest).await {
                 Ok(o) => o,
                 Err(e) => {
                     error!("failed to load manifest: {e:?}");

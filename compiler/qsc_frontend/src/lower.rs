@@ -19,7 +19,7 @@ use qsc_hir::{
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, Ty},
 };
-use std::{clone::Clone, rc::Rc, vec};
+use std::{clone::Clone, sync::Arc, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -142,7 +142,7 @@ impl With<'_> {
             id,
             span: namespace.span,
             parent: None,
-            doc: Rc::clone(&namespace.doc),
+            doc: Arc::clone(&namespace.doc),
             attrs: Vec::new(),
             visibility: hir::Visibility::Public,
             kind: hir::ItemKind::Namespace(name, items),
@@ -200,7 +200,7 @@ impl With<'_> {
             id,
             span: item.span,
             parent: self.lowerer.parent,
-            doc: Rc::clone(&item.doc),
+            doc: Arc::clone(&item.doc),
             attrs,
             visibility,
             kind,
@@ -633,7 +633,7 @@ impl With<'_> {
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
         match component {
             ast::StringComponent::Expr(expr) => hir::StringComponent::Expr(self.lower_expr(expr)),
-            ast::StringComponent::Lit(str) => hir::StringComponent::Lit(Rc::clone(str)),
+            ast::StringComponent::Lit(str) => hir::StringComponent::Lit(Arc::clone(str)),
         }
     }
 
@@ -801,7 +801,7 @@ fn lower_lit(lit: &ast::Lit) -> hir::ExprKind {
             hir::ExprKind::Lit(hir::Lit::Result(hir::Result::Zero))
         }
         ast::Lit::String(value) => {
-            hir::ExprKind::String(vec![hir::StringComponent::Lit(Rc::clone(value))])
+            hir::ExprKind::String(vec![hir::StringComponent::Lit(Arc::clone(value))])
         }
     }
 }

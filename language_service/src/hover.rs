@@ -12,7 +12,7 @@ use crate::qsc_utils::protocol_span;
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir};
 use std::fmt::Display;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub(crate) fn get_hover(
     compilation: &Compilation,
@@ -96,9 +96,9 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         } else {
             LocalKind::Local
         };
-        let mut callable_name = Rc::from("");
+        let mut callable_name = Arc::from("");
         if let Some(decl) = context.current_callable {
-            callable_name = decl.name.name.clone();
+            callable_name = Arc::from(&*decl.name.name);
         }
         let contents = display_local(
             &kind,
@@ -158,10 +158,10 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             .parent
             .and_then(|parent_id| package.items.get(parent_id))
             .map_or_else(
-                || Rc::from(""),
+                || Arc::from(""),
                 |parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
-                    _ => Rc::from(""),
+                    qsc::hir::ItemKind::Namespace(namespace, _) => Arc::from(&*namespace.name),
+                    _ => Arc::from(""),
                 },
             );
 

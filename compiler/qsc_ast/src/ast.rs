@@ -12,7 +12,7 @@ use std::{
     cmp::Ordering,
     fmt::{self, Display, Formatter, Write},
     hash::{Hash, Hasher},
-    rc::Rc,
+    sync::Arc,
 };
 
 fn set_indentation<'a, 'b>(
@@ -159,7 +159,7 @@ pub struct Namespace {
     /// The span.
     pub span: Span,
     /// The documentation.
-    pub doc: Rc<str>,
+    pub doc: Arc<str>,
     /// The namespace name.
     pub name: Box<Ident>,
     /// The items in the namespace.
@@ -199,7 +199,7 @@ pub struct Item {
     /// The span.
     pub span: Span,
     /// The documentation.
-    pub doc: Rc<str>,
+    pub doc: Arc<str>,
     /// The attributes.
     pub attrs: Box<[Box<Attr>]>,
     /// The visibility.
@@ -1078,7 +1078,7 @@ pub enum StringComponent {
     /// An expression.
     Expr(Box<Expr>),
     /// A string literal.
-    Lit(Rc<str>),
+    Lit(Arc<str>),
 }
 
 /// A pattern.
@@ -1248,7 +1248,7 @@ pub struct Ident {
     /// The span.
     pub span: Span,
     /// The identifier name.
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Display for Ident {
@@ -1310,7 +1310,7 @@ pub enum Lit {
     /// A measurement result literal.
     Result(Result),
     /// A string literal.
-    String(Rc<str>),
+    String(Arc<str>),
 }
 
 impl Display for Lit {

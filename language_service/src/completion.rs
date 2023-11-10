@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::compilation::{Compilation, CompilationKind};
 use crate::display::CodeDisplay;
@@ -45,7 +45,7 @@ pub(crate) fn get_completions(
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
         .opens
-        .extend(PRELUDE.into_iter().map(|ns| (Rc::from(ns), None)));
+        .extend(PRELUDE.into_iter().map(|ns| (Arc::from(ns), None)));
 
     // We don't attempt to be comprehensive or accurate when determining completions,
     // since that's not really possible without more sophisticated error recovery
@@ -195,9 +195,9 @@ impl CompletionListBuilder {
     fn push_globals(
         &mut self,
         compilation: &Compilation,
-        opens: &[(Rc<str>, Option<Rc<str>>)],
+        opens: &[(Arc<str>, Option<Arc<str>>)],
         start_of_namespace: Option<u32>,
-        current_namespace_name: &Option<Rc<str>>,
+        current_namespace_name: &Option<Arc<str>>,
     ) {
         let core = &compilation
             .package_store
@@ -294,9 +294,9 @@ impl CompletionListBuilder {
     fn get_callables<'a>(
         compilation: &'a Compilation,
         package_id: PackageId,
-        opens: &'a [(Rc<str>, Option<Rc<str>>)],
+        opens: &'a [(Arc<str>, Option<Arc<str>>)],
         start_of_namespace: Option<u32>,
-        current_namespace_name: Option<Rc<str>>,
+        current_namespace_name: Option<Arc<str>>,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
             .package_store
@@ -321,15 +321,15 @@ impl CompletionListBuilder {
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
-                                let mut qualification: Option<Rc<str>> = None;
+                                let mut qualification: Option<Arc<str>> = None;
                                 match &current_namespace_name {
-                                    Some(curr_ns) if *curr_ns == namespace.name => {}
+                                    Some(curr_ns) if **curr_ns == *namespace.name => {}
                                     _ => {
-                                        // open is an option of option of Rc<str>
+                                        // open is an option of option of Arc<str>
                                         // the first option tells if it found an open with the namespace name
                                         // the second, nested option tells if that open has an alias
                                         let open = opens.iter().find_map(|(name, alias)| {
-                                            if *name == namespace.name {
+                                            if **name == *namespace.name {
                                                 Some(alias)
                                             } else {
                                                 None
@@ -348,7 +348,7 @@ impl CompletionListBuilder {
                                                     ));
                                                     None
                                                 }
-                                                None => Some(namespace.name.clone()),
+                                                None => Some(Arc::from(&*namespace.name)),
                                             },
                                         }
                                     }
@@ -430,9 +430,9 @@ impl CompletionListBuilder {
 struct ContextFinder {
     offset: u32,
     context: Context,
-    opens: Vec<(Rc<str>, Option<Rc<str>>)>,
+    opens: Vec<(Arc<str>, Option<Arc<str>>)>,
     start_of_namespace: Option<u32>,
-    current_namespace_name: Option<Rc<str>>,
+    current_namespace_name: Option<Arc<str>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -447,7 +447,7 @@ enum Context {
 impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.current_namespace_name = Some(namespace.name.name.clone());
+            self.current_namespace_name = Some(Arc::from(&*namespace.name.name));
             self.context = Context::Namespace;
             self.opens = vec![];
             self.start_of_namespace = None;
@@ -462,8 +462,8 @@ impl Visitor<'_> for ContextFinder {
 
         if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
             self.opens.push((
-                name.name.clone(),
-                alias.as_ref().map(|alias| alias.name.clone()),
+                Arc::from(&*name.name),
+                alias.as_ref().map(|alias| Arc::from(&*alias.name)),
             ));
         }
 

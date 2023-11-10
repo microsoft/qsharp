@@ -16,7 +16,7 @@ use std::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
-    rc::Rc,
+    sync::Arc,
     result,
     str::FromStr,
 };
@@ -361,7 +361,7 @@ pub struct Item {
     /// The parent item.
     pub parent: Option<LocalItemId>,
     /// The documentation.
-    pub doc: Rc<str>,
+    pub doc: Arc<str>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -1025,7 +1025,7 @@ pub enum StringComponent {
     /// An expression.
     Expr(ExprId),
     /// A string literal.
-    Lit(Rc<str>),
+    Lit(Arc<str>),
 }
 
 /// A pattern.
@@ -1154,7 +1154,7 @@ pub struct Ident {
     /// The span.
     pub span: Span,
     /// The identifier name.
-    pub name: Rc<str>,
+    pub name: Arc<str>,
 }
 
 impl Display for Ident {

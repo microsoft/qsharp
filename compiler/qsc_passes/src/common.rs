@@ -11,17 +11,17 @@ use qsc_hir::{
     },
     ty::{GenericArg, Prim, Ty},
 };
-use std::rc::Rc;
+use std::sync::Arc;
 
-pub(crate) fn generated_name(name: &str) -> Rc<str> {
-    Rc::from(format!("@{name}"))
+pub(crate) fn generated_name(name: &str) -> Arc<str> {
+    Arc::from(format!("@{name}"))
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct IdentTemplate {
     pub id: NodeId,
     pub span: Span,
-    pub name: Rc<str>,
+    pub name: Arc<str>,
     pub ty: Ty,
 }
 

@@ -11,7 +11,7 @@ use crate::qsc_utils::protocol_span;
 use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
 use qsc::hir::{ty::Ty, Res};
 use qsc::{ast, hir, resolve, Span};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,
@@ -269,7 +269,7 @@ impl<'a> ItemRename<'a> {
 
 struct FieldRename<'a> {
     item_id: &'a hir::ItemId,
-    field_name: Rc<str>,
+    field_name: Arc<str>,
     compilation: &'a Compilation,
     locations: Vec<Span>,
 }

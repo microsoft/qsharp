@@ -6,14 +6,14 @@ use qsc_ast::{
     ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind},
     mut_visit::MutVisitor,
 };
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::TargetProfile;
 
 #[derive(PartialEq, Hash, Clone, Debug)]
 pub struct TrackedName {
-    pub name: Rc<str>,
-    pub namespace: Rc<str>,
+    pub name: Arc<str>,
+    pub namespace: Arc<str>,
 }
 
 pub(crate) struct Conditional {
@@ -88,12 +88,12 @@ impl MutVisitor for Conditional {
                     ItemKind::Callable(callable) => {
                         self.included_names.push(TrackedName {
                             name: callable.name.name.clone(),
-                            namespace: Rc::from(""),
+                            namespace: Arc::from(""),
                         });
                     }
                     ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                         name: ident.name.clone(),
-                        namespace: Rc::from(""),
+                        namespace: Arc::from(""),
                     }),
                     _ => {}
                 }
@@ -102,12 +102,12 @@ impl MutVisitor for Conditional {
                     ItemKind::Callable(callable) => {
                         self.dropped_names.push(TrackedName {
                             name: callable.name.name.clone(),
-                            namespace: Rc::from(""),
+                            namespace: Arc::from(""),
                         });
                     }
                     ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                         name: ident.name.clone(),
-                        namespace: Rc::from(""),
+                        namespace: Arc::from(""),
                     }),
                     _ => {}
                 }

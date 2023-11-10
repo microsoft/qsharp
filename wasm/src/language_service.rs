@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{path::PathBuf, sync::Arc};
+use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
@@ -27,18 +27,29 @@ impl LanguageService {
             .expect("expected a valid JS function")
             .clone();
 
-        let read_file = move |path_buf: PathBuf| {
-            let path_buf_string = &path_buf.to_string_lossy().to_string();
-            let path = JsValue::from_str(&path_buf_string);
-            let res: js_sys::Promise = read_file
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed");
+        let read_file = //: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> =
+            move |path_buf: PathBuf| {
+                let path_buf_string = &path_buf.to_string_lossy().to_string();
+                let path = JsValue::from_str(&path_buf_string);
+                let res: js_sys::Promise = read_file
+                    .call1(&JsValue::NULL, &path)
+                    .expect("callback should succeed")
+                    .into();
 
-            match res.as_string() {
-                Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-                None => unreachable!("JS callback did not return an expected type"),
-            }
-        };
+                let res: wasm_bindgen_futures::JsFuture = res.into();
+                async fn fut_to_string(res: wasm_bindgen_futures::JsFuture, path_buf_string: String) -> (Arc<str>, Arc<str>) 
+                {
+                    let res = res.await.expect("js future shouldn't throw an exception");
+                    match res.as_string() {
+                             Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
+                             None => unreachable!("JS callback did not return an expected type"),
+                        } 
+                    
+                    
+                }
+                let leaked: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, path_buf_string.clone()));
+                return leaked;
+            };
 
         let list_directory = list_directory
             .dyn_ref::<js_sys::Function>()
@@ -48,9 +59,9 @@ impl LanguageService {
         let list_directory = move |path_buf: PathBuf| {
             let path_buf_string = &path_buf.to_string_lossy().to_string();
             let path = JsValue::from_str(&path_buf_string);
-            let res = list_directory
+            let res: js_sys::Promise = list_directory
                 .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed");
+                .expect("callback should succeed").into();
 
             match res.dyn_into::<js_sys::Array>() {
                 Ok(arr) => arr

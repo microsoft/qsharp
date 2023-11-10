@@ -9,7 +9,7 @@ use qsc::{
 use regex_lite::Regex;
 use std::{
     fmt::{Display, Formatter, Result},
-    rc::Rc,
+    sync::Arc,
 };
 
 pub(crate) struct CodeDisplay<'a> {
@@ -410,7 +410,7 @@ impl<'a> Display for HirUdt<'a> {
 
 struct UdtDef<'a> {
     lookup: HirLookup<'a>,
-    name: Option<Rc<str>>,
+    name: Option<Arc<str>>,
     kind: UdtDefKind<'a>,
 }
 
@@ -424,7 +424,7 @@ impl<'a> UdtDef<'a> {
         match &def.kind {
             hir::ty::UdtDefKind::Field(field) => UdtDef {
                 lookup,
-                name: field.name.as_ref().cloned(),
+                name: field.name.as_ref().cloned().map(|x| Arc::from(&*x)),
                 kind: UdtDefKind::SingleTy(&field.ty),
             },
             hir::ty::UdtDefKind::Tuple(defs) => UdtDef {
