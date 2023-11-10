@@ -42,6 +42,7 @@ import {
   sendTelemetryEvent,
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
+import { getTarget } from "../config";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -109,9 +110,7 @@ export class QscDebugSession extends LoggingDebugSession {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { correlationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
-    const targetProfile = vscode.workspace
-      .getConfiguration("Q#")
-      .get<string>("targetProfile", "full");
+    const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
       this.program.toString(),
       programText,
