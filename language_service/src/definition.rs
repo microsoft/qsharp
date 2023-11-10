@@ -61,9 +61,9 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
 
     fn at_type_param_def(
         &mut self,
-        context: &LocatorContext<'a>,
+        _: &LocatorContext<'a>,
         def_name: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        _: &'a hir::ty::ParamId,
     ) {
         self.definition = Some(protocol_location(self.compilation, def_name.span, None));
     }
@@ -71,7 +71,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        ref_name: &'a ast::Ident,
+        _: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {

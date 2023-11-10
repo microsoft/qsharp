@@ -1027,3 +1027,37 @@ fn std_udt_udt_field() {
         "#]],
     );
 }
+
+#[test]
+fn ty_param_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<◉'↘T◉>(x : 'T) : 'T { x }
+        }
+    "#},
+        &expect![[r#"
+            type parameter of `Foo`
+            ```qsharp
+            'T
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn ty_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'T>(x : ◉'↘T◉) : 'T { x }
+        }
+    "#},
+        &expect![[r#"
+            type parameter of `Foo`
+            ```qsharp
+            'T
+            ```
+        "#]],
+    );
+}

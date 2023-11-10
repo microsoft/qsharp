@@ -71,24 +71,24 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     fn at_type_param_def(
         &mut self,
         context: &LocatorContext<'a>,
-        def_name: &'a ast::Ident,
+        _: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
             self.references =
-                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration)
+                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration);
         }
     }
 
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        ref_name: &'a ast::Ident,
+        _: &'a ast::Ident,
         param_id: &'a hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
             self.references =
-                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration)
+                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration);
         }
     }
 

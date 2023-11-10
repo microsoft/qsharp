@@ -62,11 +62,42 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
+    fn at_callable_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        item: &'a hir::Item,
+        package: &'a hir::Package,
+        decl: &'a hir::CallableDecl,
+    ) {
+        let ns = item
+            .parent
+            .and_then(|parent_id| package.items.get(parent_id))
+            .map_or_else(
+                || Rc::from(""),
+                |parent| match &parent.kind {
+                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
+                    _ => Rc::from(""),
+                },
+            );
+
+        let contents = display_callable(
+            &item.doc,
+            &ns,
+            self.display.hir_callable_decl(item_id.package, decl),
+        );
+
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(path.span, &self.compilation.user_unit.sources),
+        });
+    }
+
     fn at_type_param_def(
         &mut self,
         context: &LocatorContext<'a>,
         def_name: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        _: &'a hir::ty::ParamId,
     ) {
         let code = markdown_fenced_block(def_name.name.clone());
         let callable_name = &context
@@ -78,7 +109,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &LocalKind::TypeParam,
             &code,
             &def_name.name,
-            &callable_name,
+            callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -91,7 +122,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         &mut self,
         context: &LocatorContext<'a>,
         ref_name: &'a ast::Ident,
-        param_id: &'a hir::ty::ParamId,
+        _: &'a hir::ty::ParamId,
     ) {
         let code = markdown_fenced_block(ref_name.name.clone());
         let callable_name = &context
@@ -120,6 +151,22 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
+    fn at_new_type_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::Package,
+        _: &'a hir::Ident,
+        udt: &'a hir::ty::Udt,
+    ) {
+        let contents = markdown_fenced_block(self.display.hir_udt(item_id.package, udt));
+
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(path.span, &self.compilation.user_unit.sources),
+        });
+    }
+
     fn at_field_def(
         &mut self,
         _: &LocatorContext<'a>,
@@ -130,6 +177,20 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         self.hover = Some(Hover {
             contents,
             span: protocol_span(field_name.span, &self.compilation.user_unit.sources),
+        });
+    }
+
+    fn at_field_ref(
+        &mut self,
+        field_ref: &'a ast::Ident,
+        expr_id: &'a ast::NodeId,
+        _: &'_ hir::ItemId,
+        _: &'a hir::ty::UdtField,
+    ) {
+        let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(field_ref.span, &self.compilation.user_unit.sources),
         });
     }
 
@@ -162,67 +223,6 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         self.hover = Some(Hover {
             contents,
             span: protocol_span(ident.span, &self.compilation.user_unit.sources),
-        });
-    }
-
-    fn at_field_ref(
-        &mut self,
-        field_ref: &'a ast::Ident,
-        expr_id: &'a ast::NodeId,
-        _: &'_ hir::ItemId,
-        _: &'a hir::ty::UdtField,
-    ) {
-        let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(field_ref.span, &self.compilation.user_unit.sources),
-        });
-    }
-
-    fn at_new_type_ref(
-        &mut self,
-        path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Package,
-        _: &'a hir::Ident,
-        udt: &'a hir::ty::Udt,
-    ) {
-        let contents = markdown_fenced_block(self.display.hir_udt(item_id.package, udt));
-
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(path.span, &self.compilation.user_unit.sources),
-        });
-    }
-
-    fn at_callable_ref(
-        &mut self,
-        path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
-        decl: &'a hir::CallableDecl,
-    ) {
-        let ns = item
-            .parent
-            .and_then(|parent_id| package.items.get(parent_id))
-            .map_or_else(
-                || Rc::from(""),
-                |parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
-                    _ => Rc::from(""),
-                },
-            );
-
-        let contents = display_callable(
-            &item.doc,
-            &ns,
-            self.display.hir_callable_decl(item_id.package, decl),
-        );
-
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(path.span, &self.compilation.user_unit.sources),
         });
     }
 
