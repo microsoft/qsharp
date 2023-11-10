@@ -950,6 +950,7 @@ dependencies = [
 name = "qsls"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
  "enum-iterator",
  "expect-test",
  "indoc",
