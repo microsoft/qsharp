@@ -22,6 +22,7 @@ export interface IDebugService {
   loadSource(
     path: string,
     source: string,
+    target: "base" | "full",
     entry: string | undefined,
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
@@ -65,10 +66,11 @@ export class QSharpDebugService implements IDebugService {
   async loadSource(
     path: string,
     source: string,
+    target: "base" | "full",
     entry: string | undefined,
   ): Promise<string> {
     this.code[path] = source;
-    return this.debugService.load_source(path, source, entry);
+    return this.debugService.load_source(path, source, target, entry);
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {

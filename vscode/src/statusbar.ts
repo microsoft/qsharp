@@ -4,6 +4,7 @@
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
+import { getTarget, setTarget } from "./config";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
@@ -62,9 +63,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     // VS Code will return the default value defined by the extension
     // if none was set by the user, so targetProfile should always
     // be a valid string.
-    const targetProfile = vscode.workspace
-      .getConfiguration("Q#")
-      .get<string>("targetProfile", "full");
+    const targetProfile = getTarget();
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
     statusBarItem.show();
@@ -83,13 +82,7 @@ function registerTargetProfileCommand() {
       );
 
       if (target) {
-        vscode.workspace
-          .getConfiguration("Q#")
-          .update(
-            "targetProfile",
-            getTargetProfileSetting(target),
-            vscode.ConfigurationTarget.Global,
-          );
+        setTarget(getTargetProfileSetting(target));
       }
     },
   );
