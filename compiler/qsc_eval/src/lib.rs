@@ -80,6 +80,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.IntrinsicFail"))]
     IntrinsicFail(String, String, #[label] PackageSpan),
 
+    #[error("invalid rotation angle: {0}")]
+    #[diagnostic(code("Qsc.Eval.InvalidRotationAngle"))]
+    InvalidRotationAngle(f64, #[label("invalid rotation angle")] PackageSpan),
+
     #[error("negative integers cannot be used here: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
     InvalidNegativeInt(i64, #[label("invalid negative integer")] PackageSpan),
@@ -128,6 +132,7 @@ impl Error {
             | Error::InvalidIndex(_, span)
             | Error::IntrinsicFail(_, _, span)
             | Error::IntTooLarge(_, span)
+            | Error::InvalidRotationAngle(_, span)
             | Error::InvalidNegativeInt(_, span)
             | Error::MissingSpec(_, span)
             | Error::OutputFail(span)

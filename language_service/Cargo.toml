@@ -19,3 +19,6 @@ qsc = { path = "../compiler/qsc" }
 rustc-hash = { workspace = true }
 enum-iterator = { workspace = true }
 regex-lite = { workspace = true }
+
+[lib]
+doctest = false

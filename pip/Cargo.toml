@@ -25,6 +25,7 @@ pyo3 = { workspace = true, features = ["abi3-py37", "extension-module", "generat
 
 [lib]
 crate-type = ["cdylib"]
+doctest = false
 
 [package.metadata.maturin]
 name = "qsharp._native"
