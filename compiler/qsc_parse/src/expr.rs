@@ -431,20 +431,21 @@ fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
     lexeme
         .chars()
         .filter(|&c| c != '_')
-        .try_rfold((0i64, 1i64, false), |(value, place, overflow), c| {
-            if overflow {
-                return None;
-            }
-            let (increment, false) = i64::from(c.to_digit(radix)?).overflowing_mul(place) else {
-                return None;
-            };
-            let (new_value, overflow) = value.overflowing_add(increment);
+        .try_rfold((0i64, 1i64, false), |(value, place, mut overflow), c| {
+            let (increment, over) = i64::from(c.to_digit(radix)?).overflowing_mul(place);
+            overflow |= over;
+
+            let (new_value, over) = value.overflowing_add(increment);
+            overflow |= over;
+
             // Only treat as overflow if the value is not i64::MIN, since we need to allow once special
             // case of overflow to allow for minimum value literals.
             if overflow && new_value != i64::MIN {
                 return None;
             }
-            let (new_place, overflow) = place.overflowing_mul(multiplier);
+
+            let (new_place, over) = place.overflowing_mul(multiplier);
+            overflow |= over;
 
             // If the place overflows, we can still accept the value as long as it's the last digit.
             // Pass the overflow forward so that it fails if there are more digits.

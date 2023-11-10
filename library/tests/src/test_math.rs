@@ -67,6 +67,10 @@ fn check_abs_i() {
     test_expression("Microsoft.Quantum.Math.AbsI(0)", &Value::Int(0));
     test_expression("Microsoft.Quantum.Math.AbsI(1000)", &Value::Int(1000));
     test_expression("Microsoft.Quantum.Math.AbsI(-1000)", &Value::Int(1000));
+    test_expression(
+        "Microsoft.Quantum.Math.AbsI(-0x8000_0000_0000_0000)",
+        &Value::Int(-0x8000_0000_0000_0000),
+    );
 }
 
 #[test]

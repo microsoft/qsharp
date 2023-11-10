@@ -481,6 +481,15 @@ fn binop_add_int() {
 }
 
 #[test]
+fn binop_add_int_wrap() {
+    check_expr(
+        "",
+        "0x7FFFFFFFFFFFFFFF + 1",
+        &expect!["-9223372036854775808"],
+    );
+}
+
+#[test]
 fn binop_add_string() {
     check_expr("", r#""Hello," + " World!""#, &expect!["Hello, World!"]);
 }
@@ -562,6 +571,15 @@ fn binop_div_bigint_zero() {
 #[test]
 fn binop_div_int() {
     check_expr("", "12 / 3", &expect!["4"]);
+}
+
+#[test]
+fn binop_div_int_wrap() {
+    check_expr(
+        "",
+        "(-0x8000000000000000) / (-1)",
+        &expect!["-9223372036854775808"],
+    );
 }
 
 #[test]
@@ -843,6 +861,31 @@ fn binop_exp_int_negative_exp() {
 }
 
 #[test]
+fn binop_exp_int_too_large() {
+    check_expr(
+        "",
+        "100^50",
+        &expect![[r#"
+            (
+                IntTooLarge(
+                    50,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 4,
+                            hi: 6,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn binop_gt_bigint() {
     check_expr("", "23L > 3L", &expect!["true"]);
 }
@@ -998,13 +1041,90 @@ fn binop_mod_bigint() {
 }
 
 #[test]
+fn binop_mod_bigint_zero() {
+    check_expr(
+        "",
+        "12L % 0L",
+        &expect![[r#"
+            (
+                DivZero(
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn binop_mod_int() {
     check_expr("", "8 % 6", &expect!["2"]);
 }
 
 #[test]
+fn binop_mod_int_wrap() {
+    check_expr("", "(-0x8000000000000000) % (-1)", &expect!["0"]);
+}
+
+#[test]
+fn binop_mod_int_zero() {
+    check_expr(
+        "",
+        "12 % 0",
+        &expect![[r#"
+            (
+                DivZero(
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn binop_mod_double() {
     check_expr("", "8.411 % 6.833", &expect!["1.5779999999999994"]);
+}
+
+#[test]
+fn binop_mod_double_zero() {
+    check_expr(
+        "",
+        "1.2 % 0.0",
+        &expect![[r#"
+            (
+                DivZero(
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 9,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
 }
 
 #[test]
@@ -1015,6 +1135,14 @@ fn binop_mul_bigint() {
 #[test]
 fn binop_mul_int() {
     check_expr("", "8 * 6", &expect!["48"]);
+}
+#[test]
+fn binop_mul_int_wrap() {
+    check_expr(
+        "",
+        "0x7FFFFFFFFFFFFFFF * 0xFF",
+        &expect!["9223372036854775553"],
+    );
 }
 
 #[test]
@@ -1183,6 +1311,37 @@ fn binop_shl_int_negative() {
 }
 
 #[test]
+fn binop_shl_int_truncate() {
+    check_expr("", "1 <<< 63", &expect!["-9223372036854775808"]);
+    check_expr("", "2 <<< 63", &expect!["0"]);
+}
+
+#[test]
+fn binop_shl_int_overflow() {
+    check_expr(
+        "",
+        "1 <<< 64",
+        &expect![[r#"
+            (
+                IntTooLarge(
+                    64,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn binop_shr_bigint() {
     check_expr("", "4L >>> 2", &expect!["1"]);
 }
@@ -1203,6 +1362,37 @@ fn binop_shr_int_negative() {
 }
 
 #[test]
+fn binop_shr_int_truncate() {
+    check_expr("", "(-9223372036854775808) >>> 63", &expect!["-1"]);
+    check_expr("", "1 >>> 63", &expect!["0"]);
+}
+
+#[test]
+fn binop_shr_int_overflow() {
+    check_expr(
+        "",
+        "1 >>> 64",
+        &expect![[r#"
+            (
+                IntTooLarge(
+                    64,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn binop_sub_bigint() {
     check_expr("", "4L - 2L", &expect!["2"]);
 }
@@ -1210,6 +1400,15 @@ fn binop_sub_bigint() {
 #[test]
 fn binop_sub_int() {
     check_expr("", "4 - 2", &expect!["2"]);
+}
+
+#[test]
+fn binop_sub_int_wrap() {
+    check_expr(
+        "",
+        "-0x8000000000000000 - 1",
+        &expect!["9223372036854775807"],
+    );
 }
 
 #[test]
