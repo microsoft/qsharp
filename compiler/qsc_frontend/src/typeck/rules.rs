@@ -102,7 +102,7 @@ impl<'a> Context<'a> {
             TyKind::Hole => self.inferrer.fresh_ty(TySource::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
-                Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
+                Some(&Res::Item(item, _)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
                 None => Ty::Err,
@@ -364,7 +364,7 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => self.infer_expr(expr),
             ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
-                Some(Res::Item(item)) => {
+                Some(Res::Item(item, _)) => {
                     let scheme = self.globals.get(item).expect("item should have scheme");
                     let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
                     self.table.generics.insert(expr.id, args);

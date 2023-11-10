@@ -7,17 +7,17 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{self, CallableDecl, Ident, NodeId, TopLevelNode},
-    visit::{self as ast_visit, Visitor as AstVisitor},
+    visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global,
-    hir::{self, ItemId, LocalItemId, PackageId},
+    hir::{self, ItemId, ItemStatus, LocalItemId, PackageId},
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, rc::Rc, vec};
+use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -36,7 +36,7 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// A global item.
-    Item(ItemId),
+    Item(ItemId, ItemStatus),
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
@@ -93,6 +93,11 @@ pub(super) enum Error {
     ))]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotAvailable(String, String, #[label] Span),
+
+    #[error("use of unimplemented item `{0}`")]
+    #[diagnostic(help("this item is not implemented and cannot be used"))]
+    #[diagnostic(code("Qsc.Resolve.Unimplemented"))]
+    Unimplemented(String, #[label] Span),
 }
 
 struct Scope {
@@ -238,10 +243,19 @@ impl Resolver {
         }
     }
 
+    fn check_item_status(&mut self, res: Res, name: String, span: Span) {
+        if let Res::Item(_, ItemStatus::Unimplemented) = res {
+            self.errors.push(Error::Unimplemented(name, span));
+        }
+    }
+
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
         let namespace = None;
         match resolve(kind, &self.globals, &self.scopes, name, &namespace) {
-            Ok(id) => self.names.insert(name.id, id),
+            Ok(res) => {
+                self.check_item_status(res, name.name.to_string(), name.span);
+                self.names.insert(name.id, res);
+            }
             Err(err) => self.errors.push(err),
         }
     }
@@ -250,7 +264,10 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
         match resolve(kind, &self.globals, &self.scopes, name, namespace) {
-            Ok(id) => self.names.insert(path.id, id),
+            Ok(res) => {
+                self.check_item_status(res, path.name.name.to_string(), path.span);
+                self.names.insert(path.id, res);
+            }
             Err(err) => {
                 if let Error::NotFound(name, span) = err {
                     if let Some(dropped_name) =
@@ -314,13 +331,25 @@ impl Resolver {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(decl.name.id, Res::Item(id));
+                self.names.insert(
+                    decl.name.id,
+                    Res::Item(
+                        id,
+                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                    ),
+                );
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
-                self.names.insert(name.id, Res::Item(id));
+                self.names.insert(
+                    name.id,
+                    Res::Item(
+                        id,
+                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                    ),
+                );
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
@@ -390,8 +419,12 @@ impl AstVisitor<'_> for With<'_> {
         });
     }
 
-    // We do not perform name resolution on attributes, as those are checking during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {}
+    fn visit_attr(&mut self, attr: &ast::Attr) {
+        // The Config attribute arguments do not go through name resolution.
+        if hir::Attr::from_str(attr.name.name.as_ref()) != Ok(hir::Attr::Config) {
+            walk_attr(self, attr);
+        }
+    }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         fn collect_param_names(pat: &ast::Pat, names: &mut FxHashSet<Rc<str>>) {
@@ -570,14 +603,14 @@ impl GlobalTable {
                         .tys
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(ty.id));
+                        .insert(global.name, Res::Item(ty.id, global.status));
                 }
                 global::Kind::Term(term) => {
                     self.scope
                         .terms
                         .entry(global.namespace)
                         .or_default()
-                        .insert(global.name, Res::Item(term.id));
+                        .insert(global.name, Res::Item(term.id, global.status));
                 }
                 global::Kind::Namespace => {
                     self.scope.namespaces.insert(global.name);
@@ -596,7 +629,7 @@ fn bind_global_items(
 ) {
     names.insert(
         namespace.name.id,
-        Res::Item(intrapackage(assigner.next_item())),
+        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
     );
     scope.namespaces.insert(Rc::clone(&namespace.name.name));
 
@@ -645,6 +678,13 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
     }
 }
 
+fn ast_attrs_as_hir_attrs(attrs: &[Box<ast::Attr>]) -> Vec<hir::Attr> {
+    attrs
+        .iter()
+        .filter_map(|attr| hir::Attr::from_str(attr.name.name.as_ref()).ok())
+        .collect()
+}
+
 fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
@@ -654,7 +694,9 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let res = Res::Item(next_id());
+            let item_id = next_id();
+            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id, status);
             names.insert(decl.name.id, res);
             match scope
                 .terms
@@ -674,7 +716,9 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let res = Res::Item(next_id());
+            let item_id = next_id();
+            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id, status);
             names.insert(name.id, res);
             match (
                 scope
@@ -772,6 +816,21 @@ fn resolve(
     }
 
     if candidates.len() > 1 {
+        // If there are multiple candidates, remove unimplemented items. This allows resolution to
+        // succeed in cases where both an older, unimplemented API and newer, implemented API with the
+        // same name are both in scope without forcing the user to fully qualify the name.
+        let mut removals = Vec::new();
+        for res in candidates.keys() {
+            if let Res::Item(_, ItemStatus::Unimplemented) = res {
+                removals.push(*res);
+            }
+        }
+        for res in removals {
+            candidates.remove(&res);
+        }
+    }
+
+    if candidates.len() > 1 {
         let mut opens: Vec<_> = candidates.into_values().collect();
         opens.sort_unstable_by_key(|open| open.span);
         Err(Error::Ambiguous {
@@ -819,7 +878,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id));
+        return Some(Res::Item(id, ItemStatus::Available));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {

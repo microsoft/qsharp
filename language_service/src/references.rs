@@ -48,7 +48,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(name.id) {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(name.id) {
             self.references =
                 find_item_locations(item_id, self.compilation, self.include_declaration);
         }
@@ -66,7 +66,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(type_name.id) {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
             self.references =
                 find_item_locations(item_id, self.compilation, self.include_declaration);
         }
@@ -256,7 +256,7 @@ struct FindItemRefs<'a> {
 impl<'a> Visitor<'_> for FindItemRefs<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
         let res = self.compilation.get_res(path.id);
-        if let Some(resolve::Res::Item(item_id)) = res {
+        if let Some(resolve::Res::Item(item_id, _)) = res {
             if self.eq(item_id) {
                 self.locations.push(path.name.span);
             }
@@ -266,7 +266,7 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
             let res = self.compilation.get_res(ty_path.id);
-            if let Some(resolve::Res::Item(item_id)) = res {
+            if let Some(resolve::Res::Item(item_id, _)) = res {
                 if self.eq(item_id) {
                     self.locations.push(ty_path.name.span);
                 }

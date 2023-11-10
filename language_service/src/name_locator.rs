@@ -153,7 +153,8 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if let Some(resolve::Res::Item(item_id)) = self.compilation.get_res(ident.id) {
+                    if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(ident.id)
+                    {
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
 
@@ -265,7 +266,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
             let res = self.compilation.get_res(path.id);
             if let Some(res) = res {
                 match &res {
-                    resolve::Res::Item(item_id) => {
+                    resolve::Res::Item(item_id, _) => {
                         let (item, package, resolved_item_id) = self
                             .compilation
                             .resolve_item_relative_to_user_package(item_id);
