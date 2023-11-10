@@ -266,4 +266,7 @@ impl Visitor<'_> for ItemChecker<'_> {
         self.checker.check_callable_decl(self.names, decl);
         visit::walk_callable_decl(self, decl);
     }
+
+    // We do not typecheck attributes, as they are verified during lowering.
+    fn visit_attr(&mut self, _: &ast::Attr) {}
 }
