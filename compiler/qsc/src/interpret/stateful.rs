@@ -64,9 +64,6 @@ pub enum Error {
     #[error("code generation target mismatch")]
     #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
     TargetMismatch,
-    #[error("unknown target: {0}")]
-    #[diagnostic(code("Qsc.Interpret.UnknownTarget"))]
-    UnknownTarget(String),
 }
 
 struct Lookup<'a> {

@@ -2,15 +2,16 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
+export type Target = "base" | "full";
 
-export function getTarget(): string {
+export function getTarget(): Target {
   const target = vscode.workspace
     .getConfiguration("Q#")
-    .get<string>("targetProfile", "full");
+    .get<Target>("targetProfile", "full");
   return target;
 }
 
-export async function setTarget(target: string) {
+export async function setTarget(target: Target) {
   const config = vscode.workspace.getConfiguration("Q#");
   await config.update(
     "targetProfile",

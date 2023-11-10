@@ -45,11 +45,7 @@ impl DebugService {
         let target = match target_profile.as_str() {
             "base" => TargetProfile::Base,
             "full" => TargetProfile::Full,
-            _ => {
-                return render_error(qsc::interpret::stateful::Error::UnknownTarget(
-                    target_profile.to_string(),
-                ))
-            }
+            _ => panic!("Invalid target : {}", target_profile),
         };
         match Interpreter::new(true, source_map, qsc::PackageType::Exe, target) {
             Ok(interpreter) => {

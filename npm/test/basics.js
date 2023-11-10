@@ -762,28 +762,3 @@ test("debug service getting breakpoints after loaded source succeeds when file n
     debugService.terminate();
   }
 });
-
-test("debug service returns error when loading unknown target - web worker", async () => {
-  const debugService = getDebugServiceWorker();
-  try {
-    const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Test {
-    @EntryPoint()
-    operation main() : Result[] {
-        use q1 = Qubit();
-        return [M(q1)];
-    }
-}`,
-      "__unknown__",
-      undefined,
-    );
-    assert.ok(typeof result === "string");
-    assert.equal(
-      result.trim(),
-      "Qsc.Interpret.UnknownTarget\n\n  × unknown target: __unknown__",
-    );
-  } finally {
-    debugService.terminate();
-  }
-});
