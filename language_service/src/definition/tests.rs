@@ -33,18 +33,15 @@ fn assert_definition(source_with_markers: &str) {
 }
 
 fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
-    let (compilation, cell_uri, offset, target_cell_uri, target_offsets) =
+    let (compilation, cell_uri, offset, target_spans) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
-    let target_spans = target_offsets_to_spans(&target_offsets);
     let actual_definition = get_definition(&compilation, &cell_uri, offset);
     let expected_definition = if target_spans.is_empty() {
         None
     } else {
         Some(Location {
-            source: target_cell_uri
-                .expect("input should have a target marker")
-                .to_string(),
-            span: target_spans[0],
+            source: target_spans[0].0.clone(),
+            span: target_spans[0].1,
         })
     };
     assert_eq!(&expected_definition, &actual_definition);

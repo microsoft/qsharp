@@ -36,14 +36,14 @@ fn assert_no_rename(source_with_markers: &str) {
 }
 
 fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
-    let (compilation, cell_uri, offset, _, _) =
+    let (compilation, cell_uri, offset, _) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
     let actual = get_rename(&compilation, &cell_uri, offset);
     expect.assert_debug_eq(&actual);
 }
 
 fn check_prepare_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
-    let (compilation, cell_uri, offset, _, _) =
+    let (compilation, cell_uri, offset, _) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
     let actual = prepare_rename(&compilation, &cell_uri, offset);
     expect.assert_debug_eq(&actual);

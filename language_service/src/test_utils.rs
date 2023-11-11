@@ -101,9 +101,8 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
 
 pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
     cells_with_markers: &[(&str, &str)],
-) -> (Compilation, String, u32, Option<String>, Vec<u32>) {
-    let (mut cell_uri, mut offset, mut target_cell_uri, mut target_offsets) =
-        (None, None, None, Vec::new());
+) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
+    let (mut cell_uri, mut offset, mut target_spans) = (None, None, Vec::new());
     let cells = cells_with_markers
         .iter()
         .map(|c| {
@@ -119,11 +118,9 @@ pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
                 );
             }
             if !targets.is_empty() {
-                assert!(
-                    target_cell_uri.replace(c.0).is_none(),
-                    "only one cell can have a target marker"
-                );
-                target_offsets.extend(targets);
+                for span in target_offsets_to_spans(&targets) {
+                    target_spans.push((c.0.to_string(), span));
+                }
             }
             (c.0, source)
         })
@@ -136,8 +133,7 @@ pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
             .expect("input should have a cursor marker")
             .to_string(),
         offset.expect("input string should have a cursor marker"),
-        target_cell_uri.map(std::string::ToString::to_string),
-        target_offsets,
+        target_spans,
     )
 }
 

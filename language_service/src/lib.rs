@@ -175,6 +175,11 @@ impl<'a> LanguageService<'a> {
 
         let compilation_uri: Arc<str> = notebook_uri.into();
 
+        // First remove all previously known cells for this notebook
+        self.open_documents
+            .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
+
+        // Compile the notebook and add each cell into the document map
         let compilation =
             Compilation::new_notebook(cells.map(|(cell_uri, version, cell_contents)| {
                 trace!("update_notebook_document: cell: {cell_uri} {version}");

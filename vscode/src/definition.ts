@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpDocumentFilter } from "./common";
+import { loadDocument } from "./common";
 
 export function createDefinitionProvider(languageService: ILanguageService) {
   return new QSharpDefinitionProvider(languageService);
@@ -24,30 +24,11 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
     );
     if (!definition) return null;
     const uri = vscode.Uri.parse(definition.source);
-    const definitionDoc = await openDocument(uri);
+    const definitionDoc = await loadDocument(uri);
     const definitionRange = new vscode.Range(
       definitionDoc.positionAt(definition.span.start),
       definitionDoc.positionAt(definition.span.end),
     );
     return new vscode.Location(uri, definitionRange);
   }
-}
-
-async function openDocument(uri: vscode.Uri) {
-  const uriString = uri.toString();
-  // Search both text documents and notebook cell documents
-  const doc = vscode.workspace.textDocuments
-    .concat(
-      vscode.workspace.notebookDocuments.flatMap((doc) =>
-        doc
-          .getCells()
-          .filter((cell) =>
-            vscode.languages.match(qsharpDocumentFilter, cell.document),
-          )
-          .map((cell) => cell.document),
-      ),
-    )
-    .find((doc) => doc.uri.toString() === uriString);
-
-  return doc || (await vscode.workspace.openTextDocument(uri));
 }
