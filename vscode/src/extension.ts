@@ -15,11 +15,12 @@ import {
   isQsharpNotebookCell,
   qsharpDocumentFilter,
 } from "./common.js";
-import { createCompletionItemProvider } from "./completion.js";
-import { activateDebugger } from "./debugger/activate.js";
-import { createDefinitionProvider } from "./definition.js";
-import { startCheckingQSharp } from "./diagnostics.js";
-import { createHoverProvider } from "./hover.js";
+import { createCompletionItemProvider } from "./completion";
+import { activateDebugger } from "./debugger/activate";
+import { getTarget } from "./config";
+import { createDefinitionProvider } from "./definition";
+import { startCheckingQSharp } from "./diagnostics";
+import { createHoverProvider } from "./hover";
 import {
   registerCreateNotebookCommand,
   registerQSharpNotebookCellUpdateHandlers,
@@ -230,9 +231,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 }
 
 async function updateLanguageServiceProfile(languageService: ILanguageService) {
-  const targetProfile = vscode.workspace
-    .getConfiguration("Q#")
-    .get<string>("targetProfile", "full");
+  const targetProfile = getTarget();
 
   switch (targetProfile) {
     case "base":
