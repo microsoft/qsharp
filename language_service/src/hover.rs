@@ -19,7 +19,8 @@ pub(crate) fn get_hover(
     source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut hover_visitor = HoverGenerator {
         compilation,
@@ -28,7 +29,7 @@ pub(crate) fn get_hover(
     };
 
     let mut locator = Locator::new(&mut hover_visitor, offset, compilation);
-    locator.visit_package(&ast.package);
+    locator.visit_package(user_ast_package);
     hover_visitor.hover
 }
 

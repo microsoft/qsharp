@@ -46,7 +46,7 @@ pub(crate) fn protocol_location(
         .sources
         .find_by_offset(location.lo)
         .expect("source should exist for offset");
-    let source_name = if package_id == compilation.user {
+    let source_name = if package_id == compilation.user_package_id {
         source.name.to_string()
     } else {
         // Currently the only supported external packages are our library packages,

@@ -24,12 +24,13 @@ pub(crate) fn get_completions(
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
         offset,
-        context: if ast.package.nodes.is_empty() {
+        context: if user_ast_package.nodes.is_empty() {
             // The parser failed entirely, no context to go on
             Context::NoCompilation
         } else {
@@ -40,7 +41,7 @@ pub(crate) fn get_completions(
         start_of_namespace: None,
         current_namespace_name: None,
     };
-    context_finder.visit_package(&ast.package);
+    context_finder.visit_package(user_ast_package);
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder

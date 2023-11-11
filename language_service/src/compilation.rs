@@ -7,7 +7,7 @@ use qsc::{
     compile::{self, Error},
     hir::{self, PackageId},
     incremental::Compiler,
-    resolve, AstPackage, CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
+    resolve, CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
 };
 use std::iter::successors;
 
@@ -18,7 +18,7 @@ pub(crate) struct Compilation {
     pub package_store: PackageStore,
     /// The `PackageId` of the user package. User code
     /// is non-library code, i.e. all code except the std and core libs.
-    pub user: PackageId,
+    pub user_package_id: PackageId,
     pub errors: Vec<Error>,
     pub kind: CompilationKind,
 }
@@ -61,7 +61,7 @@ impl Compilation {
 
         Self {
             package_store,
-            user: package_id,
+            user_package_id: package_id,
             errors,
             kind: CompilationKind::OpenDocument,
         }
@@ -98,7 +98,7 @@ impl Compilation {
 
         Self {
             package_store,
-            user: package_id,
+            user_package_id: package_id,
             errors,
             kind: CompilationKind::Notebook,
         }
@@ -107,24 +107,20 @@ impl Compilation {
     /// Gets the `CompileUnit` associated with user (non-library) code.
     pub fn user_unit(&self) -> &CompileUnit {
         self.package_store
-            .get(self.user)
+            .get(self.user_package_id)
             .expect("expected to find user package")
     }
 
-    /// Returns the package and `SourceMap` offset associated with a code location.
-    pub(crate) fn resolve_offset(&self, source_name: &str, offset: u32) -> (&AstPackage, u32) {
+    /// Maps a source-relative offset from the user package
+    /// to a package (`SourceMap`)-relative offset.
+    pub(crate) fn source_offset_to_package_offset(&self, source_name: &str, offset: u32) -> u32 {
         let unit = self.user_unit();
 
-        // Map the file offset into a SourceMap offset
-        let offset = unit
-            .sources
+        unit.sources
             .find_by_name(source_name)
-            .expect("source should exist in the source map")
+            .expect("source should exist in the user source map")
             .offset
-            + offset;
-
-        let ast_package = &unit.ast;
-        (ast_package, offset)
+            + offset
     }
 
     /// Regenerates the compilation with the same sources but the passed in configuration options.
@@ -139,7 +135,7 @@ impl Compilation {
             CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
         };
         self.package_store = new.package_store;
-        self.user = new.user;
+        self.user_package_id = new.user_package_id;
         self.errors = new.errors;
     }
 
@@ -203,7 +199,7 @@ impl Lookup for Compilation {
         &self,
         item_id: &hir::ItemId,
     ) -> (&hir::Item, &hir::Package, hir::ItemId) {
-        self.resolve_item(self.user, item_id)
+        self.resolve_item(self.user_package_id, item_id)
     }
 
     /// Returns the hir `Item` node referred to by `res`.

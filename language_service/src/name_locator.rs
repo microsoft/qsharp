@@ -231,7 +231,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.get_ty(udt.id) {
                         let (item, resolved_item_id) = self
                             .compilation
-                            .resolve_item_res(self.compilation.user, res);
+                            .resolve_item_res(self.compilation.user_package_id, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {
                                 if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {

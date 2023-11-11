@@ -16,7 +16,8 @@ pub(crate) fn get_definition(
     source_name: &str,
     offset: u32,
 ) -> Option<Location> {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut definition_finder = DefinitionFinder {
         compilation,
@@ -24,7 +25,7 @@ pub(crate) fn get_definition(
     };
 
     let mut locator = Locator::new(&mut definition_finder, offset, compilation);
-    locator.visit_package(&ast.package);
+    locator.visit_package(user_ast_package);
 
     definition_finder.definition
 }
@@ -44,7 +45,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             name.span,
-            self.compilation.user,
+            self.compilation.user_package_id,
         ));
     }
 
@@ -67,7 +68,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             type_name.span,
-            self.compilation.user,
+            self.compilation.user_package_id,
         ));
     }
 
@@ -90,7 +91,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             field_name.span,
-            self.compilation.user,
+            self.compilation.user_package_id,
         ));
     }
 
@@ -115,7 +116,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             ident.span,
-            self.compilation.user,
+            self.compilation.user_package_id,
         ));
     }
 
@@ -129,7 +130,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             ident.span,
-            self.compilation.user,
+            self.compilation.user_package_id,
         ));
     }
 }

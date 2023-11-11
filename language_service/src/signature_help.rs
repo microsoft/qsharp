@@ -24,7 +24,8 @@ pub(crate) fn get_signature_help(
     source_name: &str,
     offset: u32,
 ) -> Option<SignatureHelp> {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut finder = SignatureHelpFinder {
         compilation,
@@ -33,7 +34,7 @@ pub(crate) fn get_signature_help(
         display: CodeDisplay { compilation },
     };
 
-    finder.visit_package(&ast.package);
+    finder.visit_package(user_ast_package);
 
     finder.signature_help
 }
@@ -78,9 +79,13 @@ impl SignatureHelpFinder<'_> {
         if let Some(ty) = self.compilation.get_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
-                    label: self.display.hir_ty(self.compilation.user, ty).to_string(),
+                    label: self
+                        .display
+                        .hir_ty(self.compilation.user_package_id, ty)
+                        .to_string(),
                     documentation: None,
-                    parameters: self.get_type_params(self.compilation.user, &arrow.input),
+                    parameters: self
+                        .get_type_params(self.compilation.user_package_id, &arrow.input),
                 };
 
                 // Capture arrow.input structure in a fake HIR Pat.

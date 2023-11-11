@@ -21,7 +21,8 @@ pub(crate) fn get_references(
     offset: u32,
     include_declaration: bool,
 ) -> Vec<Location> {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut references_finder = ReferencesFinder {
         compilation,
@@ -30,7 +31,7 @@ pub(crate) fn get_references(
     };
 
     let mut locator = Locator::new(&mut references_finder, offset, compilation);
-    locator.visit_package(&ast.package);
+    locator.visit_package(user_ast_package);
 
     references_finder.references
 }
@@ -173,7 +174,7 @@ pub(crate) fn find_item_locations(
         find_refs
             .locations
             .drain(..)
-            .map(|l| protocol_location(compilation, l, compilation.user)),
+            .map(|l| protocol_location(compilation, l, compilation.user_package_id)),
     );
 
     locations
@@ -221,7 +222,7 @@ pub(crate) fn find_field_locations(
         find_refs
             .locations
             .drain(..)
-            .map(|l| protocol_location(compilation, l, compilation.user)),
+            .map(|l| protocol_location(compilation, l, compilation.user_package_id)),
     );
 
     locations
@@ -243,7 +244,7 @@ pub(crate) fn find_local_locations(
     find_refs
         .locations
         .into_iter()
-        .map(|l| protocol_location(compilation, l, compilation.user))
+        .map(|l| protocol_location(compilation, l, compilation.user_package_id))
         .collect()
 }
 
@@ -280,7 +281,7 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
 impl<'a> FindItemRefs<'a> {
     fn eq(&mut self, item_id: &hir::ItemId) -> bool {
         item_id.item == self.item_id.item
-            && item_id.package.unwrap_or(self.compilation.user)
+            && item_id.package.unwrap_or(self.compilation.user_package_id)
                 == self.item_id.package.expect("package id should be resolved")
     }
 }
@@ -312,7 +313,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
 impl<'a> FindFieldRefs<'a> {
     fn eq(&mut self, item_id: &hir::ItemId) -> bool {
         item_id.item == self.ty_item_id.item
-            && item_id.package.unwrap_or(self.compilation.user)
+            && item_id.package.unwrap_or(self.compilation.user_package_id)
                 == self
                     .ty_item_id
                     .package
