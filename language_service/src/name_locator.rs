@@ -148,7 +148,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         // walk callable decl
                         decl.generics.iter().for_each(|p| {
                             if span_touches(p.span, self.offset) {
-                                if let Some(resolve::Res::Param(param_id)) =
+                                if let Some(resolve::Res::Param(_, param_id)) =
                                     self.compilation.user_unit.ast.names.get(p.id)
                                 {
                                     self.inner.at_type_param_def(&self.context, p, *param_id);
@@ -234,7 +234,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_ty(&mut self, ty: &'package ast::Ty) {
         if span_touches(ty.span, self.offset) {
             if let ast::TyKind::Param(param) = &*ty.kind {
-                if let Some(resolve::Res::Param(param_id)) =
+                if let Some(resolve::Res::Param(_, param_id)) =
                     self.compilation.user_unit.ast.names.get(param.id)
                 {
                     self.inner

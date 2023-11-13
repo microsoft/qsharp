@@ -42,7 +42,7 @@ pub enum Res {
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
-    Param(ParamId),
+    Param(ItemId, ParamId),
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -108,7 +108,7 @@ struct Scope {
     tys: FxHashMap<Rc<str>, ItemId>,
     terms: FxHashMap<Rc<str>, ItemId>,
     vars: FxHashMap<Rc<str>, NodeId>,
-    ty_vars: FxHashMap<Rc<str>, ParamId>,
+    ty_vars: FxHashMap<Rc<str>, (ItemId, ParamId)>,
 }
 
 impl Scope {
@@ -361,13 +361,22 @@ impl Resolver {
     }
 
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
+        // ToDo: This seems like the wrong way to get the item_id
+        let item_id = if let Some(Res::Item(item_id, _)) = self.names.get(decl.name.id) {
+            *item_id
+        } else {
+            panic!("Callable decl expected to have item_id in names map.");
+        };
+
         decl.generics.iter().enumerate().for_each(|(ix, ident)| {
             let scope = self
                 .scopes
                 .last_mut()
                 .expect("type parameters should have scope");
-            scope.ty_vars.insert(Rc::clone(&ident.name), ix.into());
-            self.names.insert(ident.id, Res::Param(ix.into()));
+            scope
+                .ty_vars
+                .insert(Rc::clone(&ident.name), (item_id, ix.into()));
+            self.names.insert(ident.id, Res::Param(item_id, ix.into()));
         });
     }
 }
@@ -872,8 +881,8 @@ fn resolve_scope_locals(
                 }
             }
             NameKind::Ty => {
-                if let Some(&id) = scope.ty_vars.get(name) {
-                    return Some(Res::Param(id));
+                if let Some(&(item_id, param_id)) = scope.ty_vars.get(name) {
+                    return Some(Res::Param(item_id, param_id));
                 }
             }
         }

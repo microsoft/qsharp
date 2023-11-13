@@ -49,7 +49,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
                 // as there is a syntactic difference between
                 // paths and parameters.
                 // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
+                Some(resolve::Res::Local(_) | resolve::Res::Param(_, _)) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
@@ -58,7 +58,9 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             (ty, Vec::new())
         }
         TyKind::Param(name) => match names.get(name.id) {
-            Some(resolve::Res::Param(id)) => (Ty::Param(*id), Vec::new()),
+            Some(resolve::Res::Param(item_id, param_id)) => {
+                (Ty::Param(*item_id, *param_id), Vec::new())
+            }
             Some(_) => unreachable!(
                 "A parameter should never resolve to a non-parameter type, as there \
                     is syntactic differentiation"
@@ -208,7 +210,7 @@ fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<Gener
             .iter_mut()
             .flat_map(|item| synthesize_functor_params(next_param, item))
             .collect(),
-        Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) | Ty::Err => Vec::new(),
+        Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_) | Ty::Err => Vec::new(),
     }
 }
 

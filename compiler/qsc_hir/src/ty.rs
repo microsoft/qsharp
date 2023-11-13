@@ -33,7 +33,7 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(ParamId),
+    Param(ItemId, ParamId),
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
@@ -52,7 +52,7 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
-            Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
@@ -72,7 +72,7 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "({item})[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(param_id) => write!(f, "Param<{param_id}>"),
+            Ty::Param(item_id, param_id) => write!(f, "Param<{item_id}, {param_id}>"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -169,7 +169,7 @@ fn instantiate_ty<'a>(
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(param) => match arg(param) {
+        Ty::Param(_, param) => match arg(param) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
             Some(_) => Err(InstantiationError::Kind(*param)),
             None => Ok(ty.clone()),
