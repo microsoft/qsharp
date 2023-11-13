@@ -533,7 +533,7 @@ fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::Functo
 
 fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
     match g {
-        qsc_hir::ty::GenericParam::Ty => qsc_fir::ty::GenericParam::Ty,
+        qsc_hir::ty::GenericParam::Ty(_) => qsc_fir::ty::GenericParam::Ty,
         qsc_hir::ty::GenericParam::Functor(value) => {
             qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
         }
