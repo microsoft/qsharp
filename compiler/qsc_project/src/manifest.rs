@@ -20,10 +20,14 @@ pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
-    #[serde(default)]
+    #[serde(default = "default_exclude_regexes")]
     pub exclude_regexes: Vec<String>,
     #[serde(default)]
     pub exclude_files: Vec<String>,
+}
+
+fn default_exclude_regexes() -> Vec<String> {
+    vec![".*node_modules.*".into(), ".*\\.git.*".into()]
 }
 
 /// Describes the contents and location of a Q# manifest file.
