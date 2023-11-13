@@ -1982,7 +1982,7 @@ fn nested_params() {
                         generics:
                             0: type [30-32] "'T"
                             1: functor (empty set)
-                        input: Pat 2 [34-45] [Type (Param<0> => Unit is Param<1>)]: Bind: Ident 3 [34-35] "f"
+                        input: Pat 2 [34-45] [Type (Param<Item 1, 0> => Unit is Param<1>)]: Bind: Ident 3 [34-35] "f"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [17-55]: Impl:
@@ -2073,7 +2073,7 @@ fn duplicate_commas_in_generics() {
                         generics:
                             0: type [34-36] "'T"
                             1: type [37-37] ""
-                        input: Pat 2 [40-46] [Type Param<0>]: Bind: Ident 3 [40-41] "x"
+                        input: Pat 2 [40-46] [Type Param<Item 1, 0>]: Bind: Ident 3 [40-41] "x"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [21-57]: Impl:
