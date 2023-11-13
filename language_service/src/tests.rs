@@ -533,9 +533,7 @@ fn notebook_update_remove_cell_clears_errors() {
             [
                 (
                     "cell2",
-                    Some(
-                        1,
-                    ),
+                    None,
                     [],
                 ),
             ]
