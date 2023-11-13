@@ -150,7 +150,7 @@ pub(crate) fn resolve_item_res<'a>(
 /// `ItemId`s can refer to external packages, and the references
 /// are relative, so here we also need the local `PackageId`
 /// that the `ItemId` originates from.
-fn resolve_item<'a>(
+pub(crate) fn resolve_item<'a>(
     compilation: &'a Compilation,
     local_package_id: Option<PackageId>,
     item_id: &ItemId,

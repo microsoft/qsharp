@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::qsc_utils::{resolve_item_res, Compilation};
+use crate::qsc_utils::{resolve_item, resolve_item_res, Compilation};
 use qsc::{
     ast,
-    hir::{self},
+    hir::{self, ty::GenericParam},
 };
 use regex_lite::Regex;
 use std::{
@@ -560,6 +560,27 @@ impl<'a> Display for HirTy<'a> {
                 match &item.kind {
                     hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                     _ => panic!("UDT has invalid resolution."),
+                }
+            }
+            hir::ty::Ty::Param(item_id, param_id) => {
+                let (item, _, _) = resolve_item(
+                    self.lookup.compilation,
+                    self.lookup.local_package_id,
+                    item_id,
+                );
+                match &item.kind {
+                    hir::ItemKind::Callable(decl) => {
+                        let param = decl
+                            .generics
+                            .get(usize::from(*param_id))
+                            .expect("Type parameter has invalid resolution.");
+                        if let GenericParam::Ty(name) = param {
+                            write!(f, "{}", name.name)
+                        } else {
+                            write!(f, "{}", self.ty)
+                        }
+                    }
+                    _ => panic!("Type parameter has invalid resolution."),
                 }
             }
             _ => write!(f, "{}", self.ty),
