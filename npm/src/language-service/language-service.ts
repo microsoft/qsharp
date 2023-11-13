@@ -5,12 +5,13 @@ import * as wasm from "../../lib/web/qsc_wasm.js";
 import type {
   ICompletionList,
   IHover,
-  IDefinition,
+  ILocation,
   ISignatureHelp,
   LanguageService,
   IWorkspaceConfiguration,
   IWorkspaceEdit,
   ITextEdit,
+  ISpan,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -53,7 +54,12 @@ export interface ILanguageService {
   getDefinition(
     documentUri: string,
     offset: number,
-  ): Promise<IDefinition | undefined>;
+  ): Promise<ILocation | undefined>;
+  getReferences(
+    documentUri: string,
+    offset: number,
+    includeDeclaration: boolean,
+  ): Promise<ILocation[]>;
   getSignatureHelp(
     documentUri: string,
     offset: number,
@@ -171,12 +177,7 @@ export class QSharpLanguageService implements ILanguageService {
     result.items.forEach(
       (item) =>
         item.additionalTextEdits?.forEach((edit) => {
-          const mappedSpan = mapUtf8UnitsToUtf16Units(
-            [edit.range.start, edit.range.end],
-            code,
-          );
-          edit.range.start = mappedSpan[edit.range.start];
-          edit.range.end = mappedSpan[edit.range.end];
+          updateSpanFromUtf8ToUtf16(edit.range, code);
         }),
     );
     return result;
@@ -194,12 +195,7 @@ export class QSharpLanguageService implements ILanguageService {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_hover(documentUri, convertedOffset);
     if (result) {
-      const mappedSpan = mapUtf8UnitsToUtf16Units(
-        [result.span.start, result.span.end],
-        code,
-      );
-      result.span.start = mappedSpan[result.span.start];
-      result.span.end = mappedSpan[result.span.end];
+      updateSpanFromUtf8ToUtf16(result.span, code);
     }
     return result;
   }
@@ -207,7 +203,7 @@ export class QSharpLanguageService implements ILanguageService {
   async getDefinition(
     documentUri: string,
     offset: number,
-  ): Promise<IDefinition | undefined> {
+  ): Promise<ILocation | undefined> {
     const sourceCode = this.code[documentUri];
     if (sourceCode === undefined) {
       log.error(
@@ -238,18 +234,67 @@ export class QSharpLanguageService implements ILanguageService {
         }
       }
       if (targetCode) {
-        result.offset = mapUtf8UnitsToUtf16Units([result.offset], targetCode)[
-          result.offset
-        ];
+        updateSpanFromUtf8ToUtf16(result.span, targetCode);
       } else {
-        // TODO: This is bad, we simply have to do the utf8 offset -> utf16 line/column
-        // conversion in the rust layer, file a bug
+        // https://github.com/microsoft/qsharp/issues/851
         log.error(
           `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`,
         );
       }
     }
     return result;
+  }
+
+  async getReferences(
+    documentUri: string,
+    offset: number,
+    includeDeclaration: boolean,
+  ): Promise<ILocation[]> {
+    const sourceCode = this.code[documentUri];
+    if (sourceCode === undefined) {
+      log.error(
+        `getReferences: expected ${documentUri} to be in the document map`,
+      );
+      return [];
+    }
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], sourceCode)[
+      offset
+    ];
+    const results = this.languageService.get_references(
+      documentUri,
+      convertedOffset,
+      includeDeclaration,
+    );
+    if (results && results.length > 0) {
+      const references: ILocation[] = [];
+      for (const result of results) {
+        let resultCode = this.code[result.source];
+
+        // Inspect the URL protocol (equivalent to the URI scheme + ":").
+        // If the scheme is our library scheme, we need to call the wasm to
+        // provide the library file's contents to do the utf8->utf16 mapping.
+        const url = new URL(result.source);
+        if (url.protocol === qsharpLibraryUriScheme + ":") {
+          resultCode = wasm.get_library_source_content(url.pathname);
+          if (resultCode === undefined) {
+            log.error(`getReferences: expected ${url} to be in the library`);
+          }
+        }
+
+        if (resultCode) {
+          updateSpanFromUtf8ToUtf16(result.span, resultCode);
+          references.push(result);
+        } else {
+          // https://github.com/microsoft/qsharp/issues/851
+          log.error(
+            `cannot do utf8->utf16 mapping for ${result.source} since contents are not available`,
+          );
+        }
+      }
+      return references;
+    } else {
+      return [];
+    }
   }
 
   async getSignatureHelp(
@@ -269,12 +314,7 @@ export class QSharpLanguageService implements ILanguageService {
     if (result) {
       result.signatures = result.signatures.map((sig) => {
         sig.parameters = sig.parameters.map((param) => {
-          const mappedSpan = mapUtf8UnitsToUtf16Units(
-            [param.label.start, param.label.end],
-            sig.label,
-          );
-          param.label.start = mappedSpan[param.label.start];
-          param.label.end = mappedSpan[param.label.end];
+          updateSpanFromUtf8ToUtf16(param.label, sig.label);
           return param;
         });
         return sig;
@@ -305,12 +345,7 @@ export class QSharpLanguageService implements ILanguageService {
       const code = this.code[uri];
       if (code) {
         const mappedEdits = edits.map((edit) => {
-          const mappedSpan = mapUtf8UnitsToUtf16Units(
-            [edit.range.start, edit.range.end],
-            code,
-          );
-          edit.range.start = mappedSpan[edit.range.start];
-          edit.range.end = mappedSpan[edit.range.end];
+          updateSpanFromUtf8ToUtf16(edit.range, code);
           return edit;
         });
         mappedChanges.push([uri, mappedEdits]);
@@ -335,12 +370,7 @@ export class QSharpLanguageService implements ILanguageService {
       convertedOffset,
     );
     if (result) {
-      const mappedSpan = mapUtf8UnitsToUtf16Units(
-        [result.range.start, result.range.end],
-        code,
-      );
-      result.range.start = mappedSpan[result.range.start];
-      result.range.end = mappedSpan[result.range.end];
+      updateSpanFromUtf8ToUtf16(result.range, code);
     }
     return result;
   }
@@ -392,4 +422,10 @@ export class QSharpLanguageService implements ILanguageService {
       log.error("Error in onDiagnostics", e);
     }
   }
+}
+
+function updateSpanFromUtf8ToUtf16(span: ISpan, code: string) {
+  const mappedSpan = mapUtf8UnitsToUtf16Units([span.start, span.end], code);
+  span.start = mappedSpan[span.start];
+  span.end = mappedSpan[span.end];
 }

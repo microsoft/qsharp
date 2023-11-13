@@ -75,7 +75,7 @@ export function registerQSharpNotebookHandlers() {
 const openQSharpNotebooks = new Set<string>();
 
 /**
- * Returns the position of the `%%qsharp` cell magic, or `undefined`
+ * Returns the end position of the `%%qsharp` cell magic, or `undefined`
  * if it does not exist.
  */
 function findQSharpCellMagic(document: vscode.TextDocument) {
@@ -89,7 +89,10 @@ function findQSharpCellMagic(document: vscode.TextDocument) {
       qsharpCellMagic,
       line.firstNonWhitespaceCharacterIndex,
     )
-      ? new vscode.Position(i, line.firstNonWhitespaceCharacterIndex)
+      ? new vscode.Position(
+          i,
+          line.firstNonWhitespaceCharacterIndex + qsharpCellMagic.length,
+        )
       : undefined;
   }
   return undefined;

@@ -21,3 +21,6 @@ qsc_hir = { path = "../qsc_hir" }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_passes = { path = "../qsc_passes" }
+
+[lib]
+doctest = false

@@ -929,6 +929,7 @@ dependencies = [
  "qsc_codegen",
  "qsc_project",
  "qsls",
+ "rustc-hash",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

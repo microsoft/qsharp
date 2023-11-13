@@ -24,7 +24,8 @@ pub(crate) fn get_signature_help(
     source_name: &str,
     offset: u32,
 ) -> Option<SignatureHelp> {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut finder = SignatureHelpFinder {
         compilation,
@@ -33,7 +34,7 @@ pub(crate) fn get_signature_help(
         display: CodeDisplay { compilation },
     };
 
-    finder.visit_package(&ast.package);
+    finder.visit_package(user_ast_package);
 
     finder.signature_help
 }
@@ -78,9 +79,13 @@ impl SignatureHelpFinder<'_> {
         if let Some(ty) = self.compilation.get_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
-                    label: self.display.hir_ty(self.compilation.user, ty).to_string(),
+                    label: self
+                        .display
+                        .hir_ty(self.compilation.user_package_id, ty)
+                        .to_string(),
                     documentation: None,
-                    parameters: self.get_type_params(self.compilation.user, &arrow.input),
+                    parameters: self
+                        .get_type_params(self.compilation.user_package_id, &arrow.input),
                 };
 
                 // Capture arrow.input structure in a fake HIR Pat.
@@ -140,7 +145,7 @@ impl SignatureHelpFinder<'_> {
         let mut offset = self.display.get_param_offset(package_id, decl);
 
         match &decl.input.kind {
-            hir::PatKind::Discard | hir::PatKind::Bind(_) => {
+            hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
                 self.make_wrapped_params(offset, package_id, &decl.input, doc)
             }
             hir::PatKind::Tuple(_) => {
@@ -193,7 +198,7 @@ impl SignatureHelpFinder<'_> {
         doc: &str,
     ) -> Vec<ParameterInformation> {
         match &pat.kind {
-            hir::PatKind::Bind(_) | hir::PatKind::Discard => {
+            hir::PatKind::Bind(_) | hir::PatKind::Discard | hir::PatKind::Err => {
                 let documentation = if let hir::PatKind::Bind(name) = &pat.kind {
                     let documentation = parse_doc_for_param(doc, &name.name);
                     (!documentation.is_empty()).then_some(documentation)
@@ -339,7 +344,7 @@ fn try_get_direct_callee<'a>(
     callee: &ast::Expr,
 ) -> Option<(hir::PackageId, &'a hir::CallableDecl, &'a str)> {
     if let ast::ExprKind::Path(path) = &*callee.kind {
-        if let Some(resolve::Res::Item(item_id)) = compilation.get_res(path.id) {
+        if let Some(resolve::Res::Item(item_id, _)) = compilation.get_res(path.id) {
             let (item, _, resolved_item_id) =
                 compilation.resolve_item_relative_to_user_package(item_id);
             if let hir::ItemKind::Callable(callee_decl) = &item.kind {
@@ -377,7 +382,7 @@ fn make_fake_pat(ty: &hir::ty::Ty) -> hir::Pat {
 fn process_args(args: &ast::Expr, location: u32, params: &hir::Pat) -> u32 {
     fn count_params(params: &hir::Pat) -> i32 {
         match &params.kind {
-            hir::PatKind::Bind(_) | hir::PatKind::Discard => 1,
+            hir::PatKind::Bind(_) | hir::PatKind::Discard | hir::PatKind::Err => 1,
             hir::PatKind::Tuple(items) => items.iter().map(count_params).sum::<i32>() + 1,
         }
     }

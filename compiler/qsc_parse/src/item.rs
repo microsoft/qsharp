@@ -230,6 +230,7 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
                 kind: Box::new(TyKind::Tuple(ty_tup.into_boxed_slice())),
             })
         }
+        TyDefKind::Err => None,
     }
 }
 

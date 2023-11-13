@@ -26,7 +26,7 @@
     "@vscode/debugadapter": "^1.63.0",
     "@vscode/debugprotocol": "^1.63.0",
     "@vscode/extension-telemetry": "^0.8.5",
-    "@vscode/test-web": "^0.0.47",
+    "@vscode/test-web": "^0.0.48",
     "chai": "^4.3.10",
     "esbuild": "^0.19.5",
     "eslint": "^8.51.0",

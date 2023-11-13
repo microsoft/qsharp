@@ -13,3 +13,6 @@ indenter = { workspace = true }
 num-bigint = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
 rustc-hash = { workspace = true }
+
+[lib]
+doctest = false

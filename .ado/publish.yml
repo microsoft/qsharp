@@ -91,9 +91,15 @@ jobs:
       python build.py --wasm --npm --vscode
     displayName: Build VSCode Extension
 
-  # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       vsce package --pre-release
+    condition: and(succeeded(), eq(variables['BUILD_TYPE'], 'dev'))
+    displayName: Pack pre-release VSCode Extension
+    workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
+
+  - script: |
+      vsce package
+    condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
     displayName: Pack VSCode Extension
     workingDirectory: '$(System.DefaultWorkingDirectory)/vscode'
 
@@ -294,11 +300,20 @@ jobs:
       npm install -g @vscode/vsce
     displayName: Install Prereqs for VSCode Ext Publishing
 
-  # TODO: When the VSCode Extension is ready for publishing, remove the `--pre-release` flag for 'stable' BUILD_TYPE
   - script: |
       VSIX_RPATH=../VSIX
       VSIX_FNAME=`ls $VSIX_RPATH`
       vsce publish --pre-release --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
+    condition: and(succeeded(), eq(variables['BUILD_TYPE'], 'dev'))
+    displayName: Publish pre-release VSCode Extension
+    env:
+      VSCE_PAT: $(PAT)
+
+  - script: |
+      VSIX_RPATH=../VSIX
+      VSIX_FNAME=`ls $VSIX_RPATH`
+      vsce publish --packagePath $VSIX_RPATH/$VSIX_FNAME 2>&1 > pub.log
+    condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
     displayName: Publish VSCode Extension
     env:
       VSCE_PAT: $(PAT)

@@ -684,6 +684,47 @@ namespace Microsoft.Quantum.Math {
         size
     }
 
+    /// # Summary
+    /// For a non-zero integer `a`, returns the number of trailing zero bits
+    /// in the binary representation of `a`.
+    function TrailingZeroCountI (a : Int) : Int {
+        Fact(a != 0, "TrailingZeroCountI: `a` cannot be 0.");
+
+        mutable count = 0;
+        mutable n = a;
+        while n &&& 1 == 0 {
+            set count += 1;
+            set n >>>= 1;
+        }
+
+        count
+    }
+
+    /// # Summary
+    /// For a non-zero integer `a`, returns the number of trailing zero bits
+    /// in the binary representation of `a`.
+    function TrailingZeroCountL (a : BigInt) : Int {
+        Fact(a != 0L, "TrailingZeroCountL: `a` cannot be 0.");
+
+        mutable count = 0;
+        mutable n = a;
+        while n &&& 1L == 0L {
+            set count += 1;
+            set n >>>= 1;
+        }
+
+        count
+    }
+
+    /// # Summary
+    /// Returns the number of 1 bits in the binary representation of integer `n`.
+    function HammingWeightI (n : Int) : Int {
+        let i1 = n - ((n >>> 1) &&& 0x5555555555555555);
+        let i2 = (i1 &&& 0x3333333333333333) + ((i1 >>> 2) &&& 0x3333333333333333);
+        // Multiplication may overflow. See https://github.com/microsoft/qsharp/issues/828
+        (((i2 + (i2 >>> 4)) &&& 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >>> 56
+    }
+
     //
     // Combinatorics
     //

@@ -15,11 +15,12 @@ import {
   isQsharpNotebookCell,
   qsharpDocumentFilter,
 } from "./common.js";
-import { createCompletionItemProvider } from "./completion.js";
-import { activateDebugger } from "./debugger/activate.js";
-import { createDefinitionProvider } from "./definition.js";
-import { startCheckingQSharp } from "./diagnostics.js";
-import { createHoverProvider } from "./hover.js";
+import { createCompletionItemProvider } from "./completion";
+import { activateDebugger } from "./debugger/activate";
+import { getTarget } from "./config";
+import { createDefinitionProvider } from "./definition";
+import { startCheckingQSharp } from "./diagnostics";
+import { createHoverProvider } from "./hover";
 import {
   registerCreateNotebookCommand,
   registerQSharpNotebookCellUpdateHandlers,
@@ -35,6 +36,7 @@ import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
+import { createReferenceProvider } from "./references.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
 import {
@@ -204,6 +206,14 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     ),
   );
 
+  // find references
+  subscriptions.push(
+    vscode.languages.registerReferenceProvider(
+      qsharpDocumentFilter,
+      createReferenceProvider(languageService),
+    ),
+  );
+
   // signature help
   subscriptions.push(
     vscode.languages.registerSignatureHelpProvider(
@@ -226,9 +236,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 }
 
 async function updateLanguageServiceProfile(languageService: ILanguageService) {
-  const targetProfile = vscode.workspace
-    .getConfiguration("Q#")
-    .get<string>("targetProfile", "full");
+  const targetProfile = getTarget();
 
   switch (targetProfile) {
     case "base":

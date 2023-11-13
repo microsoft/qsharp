@@ -398,6 +398,10 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 include_str!("../../../library/std/arithmetic.qs").into(),
             ),
             (
+                "arithmetic_internal.qs".into(),
+                include_str!("../../../library/std/arithmetic_internal.qs").into(),
+            ),
+            (
                 "arrays.qs".into(),
                 include_str!("../../../library/std/arrays.qs").into(),
             ),

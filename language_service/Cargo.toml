@@ -21,3 +21,6 @@ enum-iterator = { workspace = true }
 regex-lite = { workspace = true }
 qsc_project = { path = "../compiler/qsc_project" }
 async-trait = { workspace = true }
+
+[lib]
+doctest = false

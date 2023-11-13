@@ -31,7 +31,7 @@ fn check_notebook(
     completions_to_check: &[&str],
     expect: &Expect,
 ) {
-    let (compilation, cell_uri, offset, _, _) =
+    let (compilation, cell_uri, offset, _) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
     let actual_completions = get_completions(&compilation, &cell_uri, offset);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check

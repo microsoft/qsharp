@@ -476,4 +476,43 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
+    /// # Summary
+    /// Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.
+    ///
+    /// # Description
+    /// Applies QFT to a little-endian register `qs` of length n
+    /// containing |x₁⟩⊗|x₂⟩⊗…⊗|xₙ⟩. The qs[0] contains the
+    /// least significant bit xₙ. The state of qs[0] becomes
+    /// (|0⟩+𝑒^(2π𝑖[0.xₙ])|1⟩)/sqrt(2) after the operation.
+    ///
+    /// # Input
+    /// ## qs
+    /// Quantum register in a little-endian format to which the QFT is applied.
+    ///
+    /// # Reference
+    ///  - [Quantum Fourier transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
+    operation ApplyQFT (qs : Qubit[]) : Unit is Adj + Ctl {
+        let length = Length(qs);
+        Fact(length >= 1, "ApplyQFT: Length(qs) must be at least 1.");
+        for i in length-1..-1..0 {
+            H(qs[i]);
+            for j in 0..i-1 {
+                Controlled R1Frac([qs[i]], (1, j+1, qs[i-j-1]));
+            }
+        }
+    }
+
+    /// # Summary
+    /// Uses SWAP gates to reverse the order of the qubits in a register.
+    ///
+    /// # Input
+    /// ## register
+    /// The qubits order of which should be reversed using SWAP gates
+    operation SwapReverseRegister (register : Qubit[]) : Unit is Adj + Ctl {
+        let length = Length(register);
+        for i in 0 .. length/2 - 1 {
+            SWAP(register[i], register[(length - i) - 1]);
+        }
+    }
+
 }

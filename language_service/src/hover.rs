@@ -19,7 +19,8 @@ pub(crate) fn get_hover(
     source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    let (ast, offset) = compilation.resolve_offset(source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut hover_visitor = HoverGenerator {
         compilation,
@@ -28,7 +29,7 @@ pub(crate) fn get_hover(
     };
 
     let mut locator = Locator::new(&mut hover_visitor, offset, compilation);
-    locator.visit_package(&ast.package);
+    locator.visit_package(user_ast_package);
     hover_visitor.hover
 }
 
@@ -239,7 +240,7 @@ fn is_param(param_pats: &[&ast::Pat], node_id: ast::NodeId) -> bool {
     fn find_in_pat(pat: &ast::Pat, node_id: ast::NodeId) -> bool {
         match &*pat.kind {
             ast::PatKind::Bind(ident, _) => node_id == ident.id,
-            ast::PatKind::Discard(_) | ast::PatKind::Elided => false,
+            ast::PatKind::Discard(_) | ast::PatKind::Elided | ast::PatKind::Err => false,
             ast::PatKind::Paren(inner) => find_in_pat(inner, node_id),
             ast::PatKind::Tuple(inner) => inner.iter().any(|x| find_in_pat(x, node_id)),
         }

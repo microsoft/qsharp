@@ -202,7 +202,7 @@ impl Visitor<'_> for ItemCollector<'_> {
     fn visit_item(&mut self, item: &ast::Item) {
         match &*item.kind {
             ast::ItemKind::Callable(decl) => {
-                let Some(&Res::Item(item)) = self.names.get(decl.name.id) else {
+                let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
                     panic!("callable should have item ID");
                 };
 
@@ -217,7 +217,7 @@ impl Visitor<'_> for ItemCollector<'_> {
             }
             ast::ItemKind::Ty(name, def) => {
                 let span = item.span;
-                let Some(&Res::Item(item)) = self.names.get(name.id) else {
+                let Some(&Res::Item(item, _)) = self.names.get(name.id) else {
                     panic!("type should have item ID");
                 };
 
@@ -266,4 +266,7 @@ impl Visitor<'_> for ItemChecker<'_> {
         self.checker.check_callable_decl(self.names, decl);
         visit::walk_callable_decl(self, decl);
     }
+
+    // We do not typecheck attributes, as they are verified during lowering.
+    fn visit_attr(&mut self, _: &ast::Attr) {}
 }
