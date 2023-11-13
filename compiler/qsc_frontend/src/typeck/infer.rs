@@ -381,7 +381,7 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty(_) => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
+                GenericParam::Ty => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {

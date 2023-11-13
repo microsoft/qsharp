@@ -210,7 +210,7 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty(name) => write!(f, "type {name}"),
+            GenericParam::Ty => write!(f, "type"),
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
         }
     }
@@ -220,24 +220,9 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty(TypeParamName),
+    Ty,
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
-}
-
-/// The name of a generic type parameter.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TypeParamName {
-    /// The span.
-    pub span: Span,
-    /// The name.
-    pub name: Rc<str>,
-}
-
-impl Display for TypeParamName {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{} \"{}\"", self.span, self.name)
-    }
 }
 
 /// A generic parameter ID.
