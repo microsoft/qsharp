@@ -13,6 +13,7 @@ mod name_locator;
 mod project_system;
 pub mod protocol;
 mod qsc_utils;
+pub mod references;
 pub mod rename;
 pub mod signature_help;
 #[cfg(test)]
@@ -24,8 +25,7 @@ use compilation::Compilation;
 use log::{error, trace};
 use miette::Diagnostic;
 use protocol::{
-    CompletionList, Definition, DiagnosticUpdate, Hover, SignatureHelp,
-    WorkspaceConfigurationUpdate,
+    CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
 use qsc_project::FileSystem;
@@ -212,6 +212,11 @@ impl<'a> LanguageService<'a> {
 
         let compilation_uri: Arc<str> = notebook_uri.into();
 
+        // First remove all previously known cells for this notebook
+        self.open_documents
+            .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
+
+        // Compile the notebook and add each cell into the document map
         let compilation =
             Compilation::new_notebook(cells.map(|(cell_uri, version, cell_contents)| {
                 trace!("update_notebook_document: cell: {cell_uri} {version}");
@@ -275,11 +280,28 @@ impl<'a> LanguageService<'a> {
 
     /// LSP: textDocument/definition
     #[must_use]
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Location> {
         self.document_op(definition::get_definition, "get_definition", uri, offset)
     }
 
     /// LSP: textDocument/hover
+    #[must_use]
+    pub fn get_references(
+        &self,
+        uri: &str,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Vec<Location> {
+        self.document_op(
+            |compilation, uri, offset| {
+                references::get_references(compilation, uri, offset, include_declaration)
+            },
+            "get_references",
+            uri,
+            offset,
+        )
+    }
+
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
         self.document_op(hover::get_hover, "get_hover", uri, offset)
@@ -298,7 +320,7 @@ impl<'a> LanguageService<'a> {
 
     /// LSP: textDocument/rename
     #[must_use]
-    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<protocol::Span> {
+    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<Location> {
         self.document_op(rename::get_rename, "get_rename", uri, offset)
     }
 

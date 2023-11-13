@@ -39,22 +39,16 @@ fn check_none(source_with_markers: &str) {
 }
 
 fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
-    let (compilation, cell_uri, offset, _, target_offsets) =
+    let (compilation, cell_uri, offset, target_spans) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
 
     let actual = get_hover(&compilation, &cell_uri, offset).expect("Expected a hover.");
-    assert_eq!(
-        &actual.span,
-        &protocol::Span {
-            start: target_offsets[0],
-            end: target_offsets[1],
-        }
-    );
+    assert_eq!(&actual.span, &target_spans[0].1);
     expect.assert_eq(&actual.contents);
 }
 
 fn check_notebook_none(cells_with_markers: &[(&str, &str)]) {
-    let (compilation, cell_uri, offset, _, _) =
+    let (compilation, cell_uri, offset, _) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
 
     let actual = get_hover(&compilation, &cell_uri, offset);

@@ -37,7 +37,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
         AstCallableDecl {
-            lookup: self.lookup(self.compilation.user),
+            lookup: self.lookup(self.compilation.user_package_id),
             decl,
         }
     }
@@ -48,7 +48,7 @@ impl<'a> CodeDisplay<'a> {
         ty_id: ast::NodeId,
     ) -> impl Display + '_ {
         IdentTyId {
-            lookup: self.lookup(self.compilation.user),
+            lookup: self.lookup(self.compilation.user_package_id),
             ident,
             ty_id,
         }
@@ -56,7 +56,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> impl Display + '_ {
         PathTyId {
-            lookup: self.lookup(self.compilation.user),
+            lookup: self.lookup(self.compilation.user_package_id),
             path,
             ty_id,
         }
@@ -306,6 +306,7 @@ impl<'a> Display for HirPat<'a> {
                     write!(f, "()")
                 }
             }
+            hir::PatKind::Err => write!(f, "?"),
         }
     }
 }
@@ -376,6 +377,7 @@ impl<'a> Display for AstPat<'a> {
                     write!(f, "()")
                 }
             }
+            ast::PatKind::Err => write!(f, "?"),
         }
     }
 }
@@ -633,6 +635,7 @@ impl<'a> Display for AstTy<'a> {
                     write!(f, ")")
                 }
             }
+            ast::TyKind::Err => write!(f, "?"),
         }
     }
 }
@@ -692,6 +695,7 @@ impl<'a> Display for TyDef<'a> {
                     write!(f, ")")
                 }
             }
+            ast::TyDefKind::Err => write!(f, "?"),
         }
     }
 }

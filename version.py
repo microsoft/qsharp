@@ -55,10 +55,12 @@ update_file(
     r'version = "{}"'.format(pip_version),
 )
 
+# Publish the jupyterlab extension without the 'pre-release' tagging for rc builds.
+# It is already stable and the prior publishing (and yanking) of release versions causes issues.
 update_file(
     os.path.join(root_dir, "jupyterlab/pyproject.toml"),
     r'version = "0.0.0"',
-    r'version = "{}"'.format(pip_version),
+    r'version = "{}"'.format(pip_version if BUILD_TYPE == "dev" else version_triple),
 )
 
 update_file(

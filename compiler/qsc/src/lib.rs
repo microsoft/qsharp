@@ -10,7 +10,7 @@ pub mod incremental;
 pub mod interpret;
 
 pub use qsc_frontend::compile::{
-    AstPackage, CompileUnit, PackageStore, SourceContents, SourceMap, SourceName, TargetProfile,
+    CompileUnit, PackageStore, SourceContents, SourceMap, SourceName, TargetProfile,
 };
 
 pub mod resolve {

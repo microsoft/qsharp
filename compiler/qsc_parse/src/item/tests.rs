@@ -301,6 +301,86 @@ fn ty_def_tuple_lambda_args() {
 }
 
 #[test]
+fn ty_def_duplicate_comma() {
+    check(
+        parse,
+        "newtype Foo = (Int,, Int);",
+        &expect![[r#"
+            Item _id_ [0-26]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-25]: Tuple:
+                    TyDef _id_ [15-18]: Field:
+                        Type _id_ [15-18]: Path: Path _id_ [15-18] (Ident _id_ [15-18] "Int")
+                    TyDef _id_ [19-19]: Err
+                    TyDef _id_ [21-24]: Field:
+                        Type _id_ [21-24]: Path: Path _id_ [21-24] (Ident _id_ [21-24] "Int")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 19,
+                            hi: 19,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn ty_def_initial_comma() {
+    check(
+        parse,
+        "newtype Foo = (, Int);",
+        &expect![[r#"
+            Item _id_ [0-22]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-21]: Tuple:
+                    TyDef _id_ [15-15]: Err
+                    TyDef _id_ [17-20]: Field:
+                        Type _id_ [17-20]: Path: Path _id_ [17-20] (Ident _id_ [17-20] "Int")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 15,
+                            hi: 15,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn ty_def_named_duplicate_comma() {
+    check(
+        parse,
+        "newtype Foo = (X : Int,, Int);",
+        &expect![[r#"
+            Item _id_ [0-30]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-29]: Tuple:
+                    TyDef _id_ [15-22]: Field:
+                        Ident _id_ [15-16] "X"
+                        Type _id_ [19-22]: Path: Path _id_ [19-22] (Ident _id_ [19-22] "Int")
+                    TyDef _id_ [23-23]: Err
+                    TyDef _id_ [25-28]: Field:
+                        Type _id_ [25-28]: Path: Path _id_ [25-28] (Ident _id_ [25-28] "Int")
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 23,
+                            hi: 23,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn function_decl() {
     check(
         parse,
@@ -447,6 +527,36 @@ fn function_two_ty_params() {
                     output: Type _id_ [25-29]: Path: Path _id_ [25-29] (Ident _id_ [25-29] "Unit")
                     body: Specializations:
                         SpecDecl _id_ [32-47] (Body): Gen: Intrinsic"#]],
+    );
+}
+
+#[test]
+fn function_duplicate_comma_in_ty_param() {
+    check(
+        parse,
+        "function Foo<'T,,>() : Unit { body intrinsic; }",
+        &expect![[r#"
+            Item _id_ [0-47]:
+                Callable _id_ [0-47] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    generics:
+                        Ident _id_ [13-15] "'T"
+                        Ident _id_ [16-16] ""
+                    input: Pat _id_ [18-20]: Unit
+                    output: Type _id_ [23-27]: Path: Path _id_ [23-27] (Ident _id_ [23-27] "Unit")
+                    body: Specializations:
+                        SpecDecl _id_ [30-45] (Body): Gen: Intrinsic
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 16,
+                            hi: 16,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -1208,6 +1318,7 @@ fn callable_missing_parens() {
             ]"#]],
     )
 }
+
 #[test]
 fn callable_missing_close_parens() {
     check_vec(
@@ -1236,6 +1347,7 @@ fn callable_missing_close_parens() {
             ]"#]],
     )
 }
+
 #[test]
 fn callable_missing_open_parens() {
     check_vec(

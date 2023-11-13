@@ -876,3 +876,176 @@ fn two_files_error_eof() {
                 Namespace (Ident 1 [26-29] "Bar"): <empty>"#]]
     .assert_eq(&unit.package.to_string());
 }
+
+#[test]
+fn unimplemented_call_from_dependency_produces_error() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo {
+                    @Unimplemented()
+                    operation Bar() : Unit {}
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let mut store = PackageStore::new(super::core());
+    let lib = compile(&store, &[], lib_sources, TargetProfile::Full);
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+    let lib = store.insert(lib);
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Test {
+                    open Foo;
+                    operation Main() : Unit {
+                        Bar();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit = compile(&store, &[lib], sources, TargetProfile::Full);
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    Unimplemented(
+                        "Bar",
+                        Span {
+                            lo: 69,
+                            hi: 72,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn unimplemented_attribute_call_within_unit_error() {
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    @Unimplemented()
+                    operation Bar() : Unit {}
+                    operation Baz() : Unit {
+                        Bar();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let store = PackageStore::new(super::core());
+    let unit = compile(&store, &[], sources, TargetProfile::Full);
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    Unimplemented(
+                        "Bar",
+                        Span {
+                            lo: 104,
+                            hi: 107,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn unimplemented_attribute_with_non_unit_expr_error() {
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    @Unimplemented(1)
+                    operation Bar() : Unit {}
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let store = PackageStore::new(super::core());
+    let unit = compile(&store, &[], sources, TargetProfile::Full);
+    expect![[r#"
+        [
+            Error(
+                Lower(
+                    InvalidAttrArgs(
+                        "()",
+                        Span {
+                            lo: 34,
+                            hi: 37,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo {
+                    @Unimplemented()
+                    operation Bar() : Unit {}
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let mut store = PackageStore::new(super::core());
+    let lib = compile(&store, &[], lib_sources, TargetProfile::Full);
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+    let lib = store.insert(lib);
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Dependency {
+                    operation Bar() : Unit {}
+                }
+                namespace Test {
+                    open Foo;
+                    open Dependency;
+                    operation Main() : Unit {
+                        Bar();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit = compile(&store, &[lib], sources, TargetProfile::Full);
+    expect![[r#"
+        []
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}

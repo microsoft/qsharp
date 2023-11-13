@@ -6,6 +6,7 @@ import { getCompilerWorker, log } from "qsharp-lang";
 import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+import { getTarget, setTarget } from "./config";
 
 const generateQirTimeoutMs = 30000;
 
@@ -27,9 +28,8 @@ export async function getQirForActiveWindow(): Promise<string> {
     );
   }
 
-  const configuration = vscode.workspace.getConfiguration("Q#");
   // Check that the current target is base profile, and current doc has no errors.
-  const targetProfile = configuration.get<string>("targetProfile", "full");
+  const targetProfile = getTarget();
   if (targetProfile !== "base") {
     const result = await vscode.window.showWarningMessage(
       "Submitting to Azure is only supported when targeting the QIR base profile.",
@@ -43,11 +43,7 @@ export async function getQirForActiveWindow(): Promise<string> {
           "Please update the QIR target via the status bar selector or extension settings.",
       );
     } else {
-      await configuration.update(
-        "targetProfile",
-        "base",
-        vscode.ConfigurationTarget.Global,
-      );
+      setTarget("base");
     }
   }
 

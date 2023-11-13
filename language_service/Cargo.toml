@@ -20,3 +20,6 @@ rustc-hash = { workspace = true }
 enum-iterator = { workspace = true }
 regex-lite = { workspace = true }
 qsc_project = { path = "../compiler/qsc_project" }
+
+[lib]
+doctest = false

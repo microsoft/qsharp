@@ -9,7 +9,7 @@ use crate::{
     lex::{Delim, TokenKind},
     ErrorKind,
 };
-use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
+use qsc_ast::ast::{DefaultWithSpan, Ident, NodeId, Pat, PatKind, Path};
 use qsc_data_structures::span::Span;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -170,12 +170,29 @@ pub(super) fn many<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> 
     Ok(xs)
 }
 
-pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)> {
+pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
+where
+    T: DefaultWithSpan,
+{
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
+    while s.peek().kind == TokenKind::Comma {
+        let mut span = s.peek().span;
+        span.hi = span.lo;
+        s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
+        xs.push(T::default_with_span(span));
+        s.advance();
+    }
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
         if token(s, TokenKind::Comma).is_ok() {
+            while s.peek().kind == TokenKind::Comma {
+                let mut span = s.peek().span;
+                span.hi = span.lo;
+                s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
+                xs.push(T::default_with_span(span));
+                s.advance();
+            }
             final_sep = FinalSep::Present;
         } else {
             final_sep = FinalSep::Missing;

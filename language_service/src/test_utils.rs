@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compilation::{Compilation, CompilationKind};
+use crate::{
+    compilation::{Compilation, CompilationKind},
+    protocol,
+};
 use qsc::{
     compile, hir::PackageId, incremental::Compiler, PackageStore, PackageType, SourceMap,
     TargetProfile,
@@ -31,6 +34,19 @@ pub(crate) fn get_source_and_marker_offsets(
     (source, cursor_offsets, target_offsets)
 }
 
+pub(crate) fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<protocol::Span> {
+    assert!(target_offsets.len() % 2 == 0);
+    let limit = target_offsets.len() / 2;
+    let mut spans = vec![];
+    for i in 0..limit {
+        spans.push(protocol::Span {
+            start: target_offsets[i * 2],
+            end: target_offsets[i * 2 + 1],
+        });
+    }
+    spans
+}
+
 pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str) -> Compilation {
     let mut package_store = PackageStore::new(compile::core());
     let std_source_map = SourceMap::new(
@@ -46,6 +62,9 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
                 newtype UdtFnWithUdtParams = (Udt -> Udt);
                 function TakesUdt(input : Udt) : Udt {
                     fail "not implemented"
+                }
+                operation RefFake() : Unit {
+                    Fake();
                 }
             }"#
             .into(),
@@ -74,7 +93,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
 
     Compilation {
         package_store,
-        user: package_id,
+        user_package_id: package_id,
         kind: CompilationKind::OpenDocument,
         errors,
     }
@@ -82,9 +101,8 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
 
 pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
     cells_with_markers: &[(&str, &str)],
-) -> (Compilation, String, u32, Option<String>, Vec<u32>) {
-    let (mut cell_uri, mut offset, mut target_cell_uri, mut target_offsets) =
-        (None, None, None, Vec::new());
+) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
+    let (mut cell_uri, mut offset, mut target_spans) = (None, None, Vec::new());
     let cells = cells_with_markers
         .iter()
         .map(|c| {
@@ -100,11 +118,9 @@ pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
                 );
             }
             if !targets.is_empty() {
-                assert!(
-                    target_cell_uri.replace(c.0).is_none(),
-                    "only one cell can have a target marker"
-                );
-                target_offsets.extend(targets);
+                for span in target_offsets_to_spans(&targets) {
+                    target_spans.push((c.0.to_string(), span));
+                }
             }
             (c.0, source)
         })
@@ -117,8 +133,7 @@ pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
             .expect("input should have a cursor marker")
             .to_string(),
         offset.expect("input string should have a cursor marker"),
-        target_cell_uri.map(std::string::ToString::to_string),
-        target_offsets,
+        target_spans,
     )
 }
 
@@ -160,7 +175,7 @@ where
 
     Compilation {
         package_store,
-        user: package_id,
+        user_package_id: package_id,
         errors,
         kind: CompilationKind::Notebook,
     }

@@ -102,7 +102,7 @@ impl<'a> Context<'a> {
             TyKind::Hole => self.inferrer.fresh_ty(TySource::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
-                Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
+                Some(&Res::Item(item, _)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
                 None => Ty::Err,
@@ -126,6 +126,7 @@ impl<'a> Context<'a> {
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
+            TyKind::Err => Ty::Err,
         }
     }
 
@@ -363,7 +364,7 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => self.infer_expr(expr),
             ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
-                Some(Res::Item(item)) => {
+                Some(Res::Item(item, _)) => {
                     let scheme = self.globals.get(item).expect("item should have scheme");
                     let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
                     self.table.generics.insert(expr.id, args);
@@ -666,6 +667,7 @@ impl<'a> Context<'a> {
             PatKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
             }
+            PatKind::Err => Ty::Err,
         };
 
         self.record(pat.id, ty.clone());
@@ -696,6 +698,7 @@ impl<'a> Context<'a> {
                 }
                 self.diverge_if(diverges, converge(Ty::Tuple(tys)))
             }
+            QubitInitKind::Err => converge(Ty::Err),
         };
 
         self.record(init.id, ty.ty.clone());
