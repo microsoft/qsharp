@@ -400,7 +400,7 @@ fn check_ripple_carry_inc_by_l_exhaustive_bitwidth_4() {
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_1() {
+fn check_ripple_carry_inc_by_l_ctl_exhaustive_bitwidth_1() {
     test_expression_with_lib(
         "Test.TestRippleCarryIncByLCtl(1)",
         RIPPLE_CARRY_INC_BY_L_TEST_LIB,
@@ -409,7 +409,7 @@ fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_1() {
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_2() {
+fn check_ripple_carry_inc_by_l_ctl_exhaustive_bitwidth_2() {
     test_expression_with_lib(
         "Test.TestRippleCarryIncByLCtl(2)",
         RIPPLE_CARRY_INC_BY_L_TEST_LIB,
@@ -418,7 +418,7 @@ fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_2() {
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_3() {
+fn check_ripple_carry_inc_by_l_ctl_exhaustive_bitwidth_3() {
     test_expression_with_lib(
         "Test.TestRippleCarryIncByLCtl(3)",
         RIPPLE_CARRY_INC_BY_L_TEST_LIB,
@@ -427,7 +427,7 @@ fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_3() {
 }
 
 #[test]
-fn check_rupple_carry_inc_by_l_ctl_exhaustive_bitwidth_4() {
+fn check_ripple_carry_inc_by_l_ctl_exhaustive_bitwidth_4() {
     test_expression_with_lib(
         "Test.TestRippleCarryIncByLCtl(4)",
         RIPPLE_CARRY_INC_BY_L_TEST_LIB,
