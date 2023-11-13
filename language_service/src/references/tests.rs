@@ -422,7 +422,7 @@ fn ty_param_def() {
     check_include_decl(
         r#"
         namespace Test {
-            operation Foo<'◉↘T◉>(x : '◉T◉) : '◉T◉ { x }
+            operation Foo<◉'↘T◉>(x : ◉'T◉) : ◉'T◉ { x }
         }
     "#,
     );
@@ -433,7 +433,7 @@ fn ty_param_ref() {
     check_include_decl(
         r#"
         namespace Test {
-            operation Foo<'◉T◉>(x : '◉↘T◉) : '◉T◉ { x }
+            operation Foo<◉'T◉>(x : ◉'↘T◉) : ◉'T◉ { x }
         }
     "#,
     );
