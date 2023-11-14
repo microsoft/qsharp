@@ -88,7 +88,7 @@ def compile(entry_expr):
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
-def dump_machine():
+def dump_machine() -> (dict, int):
     """
     Returns the sparse state vector of the simulator as a
     (amplitudes, qubit_count) tuple, where amplitudes is a dictionary from state integer to

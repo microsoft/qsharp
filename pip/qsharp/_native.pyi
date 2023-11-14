@@ -75,7 +75,7 @@ class Interpreter:
         """
         ...
 
-    def dump_machine(self):
+    def dump_machine(self) -> (dict, int):
         """
         Returns the state of the simulator.
 
