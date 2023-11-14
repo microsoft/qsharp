@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Tuple
 
 class TargetProfile:
     """
@@ -75,7 +75,7 @@ class Interpreter:
         """
         ...
 
-    def dump_machine(self) -> (dict, int):
+    def dump_machine(self) -> Tuple[dict, int]:
         """
         Returns the state of the simulator.
 

@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from ._native import Interpreter, TargetProfile
+from typing import Tuple
 
 _interpreter = None
 
@@ -88,7 +89,7 @@ def compile(entry_expr):
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
-def dump_machine() -> (dict, int):
+def dump_machine() -> Tuple[dict, int]:
     """
     Returns the sparse state vector of the simulator as a
     (amplitudes, qubit_count) tuple, where amplitudes is a dictionary from state integer to

@@ -102,8 +102,8 @@ impl Interpreter {
     }
 
     /// Dumps the quantum state of the interpreter.
-    /// Returns a tuple of a dictionary mapping bitstrings to complex amplitudes and the
-    /// total number of allocated qubits.
+    /// Returns a tuple of (amplitudes, num_qubits), where amplitudes is a dictionary from integer indices to
+    /// pairs of real and imaginary amplitudes.
     fn dump_machine(&mut self, py: Python) -> (Py<PyDict>, usize) {
         let (state, num_qubits) = self.interpreter.get_quantum_state();
         (
