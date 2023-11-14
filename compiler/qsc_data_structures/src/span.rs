@@ -80,3 +80,13 @@ pub trait WithSpan {
     #[must_use]
     fn with_span(self, span: Span) -> Self;
 }
+
+impl<T> WithSpan for Box<T>
+where
+    T: WithSpan,
+{
+    fn with_span(mut self, span: Span) -> Self {
+        *self = (*self).with_span(span);
+        self
+    }
+}
