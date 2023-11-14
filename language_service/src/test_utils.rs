@@ -60,6 +60,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
                 operation RefFake() : Unit {
                     Fake();
                 }
+                operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
             }"#
             .into(),
         )],

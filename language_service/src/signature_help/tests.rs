@@ -3189,3 +3189,95 @@ fn indirect_callable_with_std_udt_with_params() {
 "#]],
     );
 }
+
+#[test]
+fn call_with_type_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B { b }
+            operation Bar() : Unit {
+                Foo(1,↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 21,
+                                    end: 37,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 28,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 30,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn std_callable_with_type_params() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let temp = FakeWithTypeParam(↘);
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation FakeWithTypeParam<'A>(a : 'A) : 'A",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 31,
+                                    end: 39,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 32,
+                                    end: 38,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
