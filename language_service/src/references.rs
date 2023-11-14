@@ -86,6 +86,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         context: &LocatorContext<'a>,
         _: &'a ast::Ident,
         param_id: hir::ty::ParamId,
+        _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
             self.references =
@@ -161,11 +162,15 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         context: &LocatorContext<'a>,
         _: &'a ast::Path,
         _: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references =
-                find_local_locations(ident.id, curr, self.compilation, self.include_declaration);
+            self.references = find_local_locations(
+                definition.id,
+                curr,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 }

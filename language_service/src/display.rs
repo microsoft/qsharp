@@ -470,7 +470,7 @@ impl Display for UdtDef<'_> {
                     }
                 )
             }
-            UdtDefKind::TupleTy(defs) => display_tuple(f, defs, |def| def),
+            UdtDefKind::TupleTy(defs) => fmt_tuple(f, defs, |def| def),
         }
     }
 }
@@ -540,7 +540,7 @@ impl<'a> Display for HirTy<'a> {
                 };
                 write!(f, "({input} {arrow} {output}{functors})",)
             }
-            hir::ty::Ty::Tuple(tys) => display_tuple(f, tys, |ty| HirTy {
+            hir::ty::Ty::Tuple(tys) => fmt_tuple(f, tys, |ty| HirTy {
                 lookup: self.lookup,
                 ty,
             }),
@@ -634,7 +634,7 @@ impl<'a> Display for AstTy<'a> {
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
             ast::TyKind::Path(path) => write!(f, "{}", Path { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
-            ast::TyKind::Tuple(tys) => display_tuple(f, tys, |ty| AstTy { ty }),
+            ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
         }
     }
@@ -681,13 +681,13 @@ impl<'a> Display for TyDef<'a> {
                 None => write!(f, "{}", AstTy { ty }),
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),
-            ast::TyDefKind::Tuple(tys) => display_tuple(f, tys, |def| TyDef { def }),
+            ast::TyDefKind::Tuple(tys) => fmt_tuple(f, tys, |def| TyDef { def }),
             ast::TyDefKind::Err => write!(f, "?"),
         }
     }
 }
 
-fn display_tuple<'a, 'b, D, I>(
+fn fmt_tuple<'a, 'b, D, I>(
     formatter: &'a mut Formatter,
     elements: &'b [I],
     map: impl Fn(&'b I) -> D,

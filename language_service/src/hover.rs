@@ -123,6 +123,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         context: &LocatorContext<'a>,
         ref_name: &'a ast::Ident,
         _: hir::ty::ParamId,
+        _: &'a ast::Ident,
     ) {
         let code = markdown_fenced_block(ref_name.name.clone());
         let callable_name = &context
@@ -231,9 +232,9 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         context: &LocatorContext<'a>,
         path: &'a ast::Path,
         node_id: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
-        let local_name = &ident.name;
+        let local_name = &definition.name;
         let callable_name = &context
             .current_callable
             .expect("locals should only exist in callables")
