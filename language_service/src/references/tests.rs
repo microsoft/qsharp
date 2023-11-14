@@ -444,6 +444,28 @@ fn local_exclude_def() {
 }
 
 #[test]
+fn ty_param_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation Foo<◉'↘T◉>(x : ◉'T◉) : ◉'T◉ { x }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn ty_param_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation Foo<◉'T◉>(x : ◉'↘T◉) : ◉'T◉ { x }
+        }
+    "#,
+    );
+}
+
+#[test]
 fn notebook_across_cells() {
     check_notebook_exclude_decl(&[
         ("cell1", "operation Callee() : Unit {}"),

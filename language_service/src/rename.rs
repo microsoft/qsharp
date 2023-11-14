@@ -8,7 +8,9 @@ use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::{self, Location};
 use crate::qsc_utils::protocol_span;
-use crate::references::{find_field_locations, find_item_locations, find_local_locations};
+use crate::references::{
+    find_field_locations, find_item_locations, find_local_locations, find_ty_param_locations,
+};
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir, resolve, Span};
 
@@ -40,6 +42,21 @@ pub(crate) fn get_rename(
     let mut locator = Locator::new(&mut rename, offset, compilation);
     locator.visit_package(user_ast_package);
     rename.locations
+}
+
+fn remove_leading_quote_from_type_param_span(span: Span) -> Span {
+    // The name includes the leading single quote character, which we don't want as part of the rename.
+    assert!(span.hi - span.lo > 1, "Type parameter name is empty");
+    Span {
+        lo: span.lo + 1, // skip the leading single quote
+        ..span
+    }
+}
+
+fn remove_leading_quote_from_type_param_name(name: &str) -> String {
+    // The name includes the leading single quote character, which we don't want as part of the rename.
+    assert!(name.len() > 1, "Type parameter name is empty");
+    name[1..].to_string()
 }
 
 struct Rename<'a> {
@@ -81,6 +98,37 @@ impl<'a> Rename<'a> {
                 self.locations =
                     find_field_locations(item_id, ast_name.name.clone(), self.compilation, true);
             }
+        }
+    }
+
+    fn get_spans_for_type_param_rename(
+        &mut self,
+        param_id: hir::ty::ParamId,
+        ast_name: &ast::Ident,
+        current_callable: &ast::CallableDecl,
+    ) {
+        if self.is_prepare {
+            let updated_span = remove_leading_quote_from_type_param_span(ast_name.span);
+            let updated_name = remove_leading_quote_from_type_param_name(&ast_name.name);
+            self.prepare = Some((updated_span, updated_name));
+        } else {
+            self.locations =
+                find_ty_param_locations(param_id, current_callable, self.compilation, true)
+                    .into_iter()
+                    .map(|l| {
+                        assert!(
+                            l.span.end - l.span.start > 1,
+                            "Type parameter name is empty"
+                        );
+                        Location {
+                            span: protocol::Span {
+                                start: l.span.start + 1,
+                                ..l.span
+                            },
+                            ..l
+                        }
+                    })
+                    .collect();
         }
     }
 
@@ -131,6 +179,29 @@ impl<'a> Handler<'a> for Rename<'a> {
                 &resolve_package(self.compilation.user_package_id, item_id),
                 type_name,
             );
+        }
+    }
+
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        def_name: &'a ast::Ident,
+        param_id: hir::ty::ParamId,
+    ) {
+        if let Some(curr) = context.current_callable {
+            self.get_spans_for_type_param_rename(param_id, def_name, curr);
+        }
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        ref_name: &'a ast::Ident,
+        param_id: hir::ty::ParamId,
+        _: &'a ast::Ident,
+    ) {
+        if let Some(curr) = context.current_callable {
+            self.get_spans_for_type_param_rename(param_id, ref_name, curr);
         }
     }
 

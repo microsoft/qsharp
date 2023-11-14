@@ -344,6 +344,41 @@ fn no_rename_std_udt_return_type() {
 }
 
 #[test]
+fn ty_param_def() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo<'◉↘T◉>(x : '◉T◉) : '◉T◉ { x }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn ty_param_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo<'◉T◉>(x : '◉↘T◉) : '◉T◉ { x }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn notebook_rename_defined_in_later_cell() {
+    check_prepare_notebook(
+        &[
+            ("cell1", "C↘allee();"),
+            ("cell2", "operation Callee() : Unit {}"),
+        ],
+        &expect![[r#"
+            None
+        "#]],
+    );
+}
+
+#[test]
 fn notebook_rename_across_cells() {
     check_notebook(
         &[
@@ -367,19 +402,6 @@ fn notebook_rename_across_cells() {
                     },
                 },
             ]
-        "#]],
-    );
-}
-
-#[test]
-fn notebook_rename_defined_in_later_cell() {
-    check_prepare_notebook(
-        &[
-            ("cell1", "C↘allee();"),
-            ("cell2", "operation Callee() : Unit {}"),
-        ],
-        &expect![[r#"
-            None
         "#]],
     );
 }
