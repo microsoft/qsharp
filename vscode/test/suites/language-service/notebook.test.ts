@@ -81,7 +81,6 @@ suite("Q# Notebook Tests", () => {
     const secondQSharpCellUri = notebook.cellAt(2).document.uri;
 
     const pos = new vscode.Position(2, 0); // cursor on the usage of Test()
-    console.error("please what");
 
     // Verify go to definition across cells
     const actualDefinition = (await vscode.commands.executeCommand(
