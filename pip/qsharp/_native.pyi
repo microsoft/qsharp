@@ -75,6 +75,14 @@ class Interpreter:
         """
         ...
 
+    def dump_machine(self):
+        """
+        Returns the state of the simulator.
+
+        :returns state: The state of the simulator.
+        """
+        ...
+
 class Result(Enum):
     """
     A Q# measurement result.

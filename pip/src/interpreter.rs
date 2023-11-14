@@ -6,8 +6,12 @@ use miette::Report;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
-    create_exception, exceptions::PyException, prelude::*, pyclass::CompareOp, types::PyList,
-    types::PyTuple,
+    create_exception,
+    exceptions::PyException,
+    prelude::*,
+    pyclass::CompareOp,
+    types::PyList,
+    types::{PyDict, PyTuple},
 };
 use qsc::{
     fir,
@@ -95,6 +99,28 @@ impl Interpreter {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
+    }
+
+    fn dump_machine(&mut self, py: Python) -> (Py<PyDict>, usize) {
+        let (state, num_qubits) = self.interpreter.get_quantum_state();
+        (
+            PyDict::from_sequence(
+                py,
+                PyList::new(
+                    py,
+                    state.into_iter().map(|(k, v)| {
+                        PyTuple::new(
+                            py,
+                            &[k.into_py(py), PyTuple::new(py, [v.re, v.im]).into_py(py)],
+                        )
+                    }),
+                )
+                .into_py(py),
+            )
+            .expect("should be able to create dict")
+            .into_py(py),
+            num_qubits,
+        )
     }
 
     fn run(
@@ -231,6 +257,7 @@ struct ValueWrapper(Value);
 impl IntoPy<PyObject> for ValueWrapper {
     fn into_py(self, py: Python) -> PyObject {
         match self.0 {
+            Value::BigInt(val) => val.into_py(py),
             Value::Int(val) => val.into_py(py),
             Value::Double(val) => val.into_py(py),
             Value::Bool(val) => val.into_py(py),

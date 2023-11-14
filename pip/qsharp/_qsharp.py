@@ -88,6 +88,16 @@ def compile(entry_expr):
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
+def dump_machine():
+    """
+    Returns the sparse state vector of the simulator as a
+    (amplitudes, qubit_count) tuple, where amplitudes is a dictionary from state integer to
+    pair of real and imaginary amplitudes.
+
+    :returns: The state of the simulator as a tuple.
+    """
+    return get_interpreter().dump_machine()
+
 
 # Class that wraps generated QIR, which can be used by
 # azure-quantum as input data.
