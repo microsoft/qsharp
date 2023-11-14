@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.Arithmetic {
         CCNOT(y, x, z);
     }
 
-	/// # Summary
+    /// # Summary
     /// Reflects a quantum register about a given classical integer.
     ///
     /// # Description
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Remarks
     /// This operation is implemented in-place, without explicit allocation of
     /// additional auxiliary qubits.
-	operation ReflectAboutInteger (index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
+    operation ReflectAboutInteger (index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
         within {
             // We want to reduce to the problem of reflecting about the all-ones
             // state. To do that, we apply our reflection within an application
@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.Arithmetic {
         } apply {
             Controlled Z(Most(reg), Tail(reg));
         }
-	}
+    }
 
     /// # Summary
     /// Automatically chooses between addition with
