@@ -107,22 +107,6 @@ impl Hash for NodeId {
     }
 }
 
-/// Trait that allows creation of a default value with a span.
-pub trait DefaultWithSpan {
-    /// Creates a default value with the given span by using the `Default` and `WithSpan` traits.
-    #[must_use]
-    fn default_with_span(span: Span) -> Self;
-}
-
-impl<T> DefaultWithSpan for Box<T>
-where
-    T: Default + WithSpan,
-{
-    fn default_with_span(span: Span) -> Self {
-        Box::new(T::default().with_span(span))
-    }
-}
-
 /// The root node of an AST.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
@@ -586,14 +570,6 @@ impl Display for Ty {
 impl WithSpan for Ty {
     fn with_span(self, span: Span) -> Self {
         Self { span, ..self }
-    }
-}
-
-impl DefaultWithSpan for Ty {
-    /// Creates a default value with the given span by using the `Default` and `WithSpan` traits.
-    #[must_use]
-    fn default_with_span(span: Span) -> Self {
-        Self::default().with_span(span)
     }
 }
 
