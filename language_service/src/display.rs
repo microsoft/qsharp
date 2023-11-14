@@ -193,8 +193,11 @@ impl HirCallableDecl<'_> {
         let offset = match self.decl.kind {
             hir::CallableKind::Function => "function".len(),
             hir::CallableKind::Operation => "operation".len(),
-        } + 1; // this is for the space between keyword and name
-        u32::try_from(offset + self.decl.name.name.len())
+        } + 1 // this is for the space between keyword and name
+        + self.decl.name.name.len()
+        + display_type_params(&self.decl.generics).len();
+
+        u32::try_from(offset)
             .expect("failed to cast usize to u32 while calculating parameter offset")
     }
 }
@@ -207,6 +210,8 @@ impl Display for HirCallableDecl<'_> {
         };
 
         write!(f, "{} {}", kind, self.decl.name.name)?;
+        let type_params = display_type_params(&self.decl.generics);
+        write!(f, "{type_params}")?;
         let input = HirPat {
             pat: &self.decl.input,
             lookup: self.lookup,
@@ -246,6 +251,16 @@ impl<'a> Display for AstCallableDecl<'a> {
         let functors = FunctorSetValue { functors };
 
         write!(f, "{} {}", kind, self.decl.name.name)?;
+        if !self.decl.generics.is_empty() {
+            let type_params = self
+                .decl
+                .generics
+                .iter()
+                .map(|p| p.name.clone())
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(f, "<{type_params}>")?;
+        }
         let input = AstPat {
             pat: &self.decl.input,
             lookup: self.lookup,
@@ -460,31 +475,6 @@ impl Display for UdtDef<'_> {
     }
 }
 
-fn display_tuple<'a, 'b, D, I>(
-    formatter: &'a mut Formatter,
-    elements: &'b [I],
-    map: impl Fn(&'b I) -> D,
-) -> Result
-where
-    D: Display,
-{
-    let mut elements = elements.iter();
-    if let Some(elem) = elements.next() {
-        write!(formatter, "({}", map(elem))?;
-        if elements.len() == 0 {
-            write!(formatter, ",)")?;
-        } else {
-            for elem in elements {
-                write!(formatter, ", {}", map(elem))?;
-            }
-            write!(formatter, ")")?;
-        }
-    } else {
-        write!(formatter, "Unit")?;
-    }
-    Ok(())
-}
-
 struct FunctorSet<'a> {
     functor_set: &'a hir::ty::FunctorSet,
 }
@@ -694,6 +684,47 @@ impl<'a> Display for TyDef<'a> {
             ast::TyDefKind::Tuple(tys) => display_tuple(f, tys, |def| TyDef { def }),
             ast::TyDefKind::Err => write!(f, "?"),
         }
+    }
+}
+
+fn display_tuple<'a, 'b, D, I>(
+    formatter: &'a mut Formatter,
+    elements: &'b [I],
+    map: impl Fn(&'b I) -> D,
+) -> Result
+where
+    D: Display,
+{
+    let mut elements = elements.iter();
+    if let Some(elem) = elements.next() {
+        write!(formatter, "({}", map(elem))?;
+        if elements.len() == 0 {
+            write!(formatter, ",)")?;
+        } else {
+            for elem in elements {
+                write!(formatter, ", {}", map(elem))?;
+            }
+            write!(formatter, ")")?;
+        }
+    } else {
+        write!(formatter, "Unit")?;
+    }
+    Ok(())
+}
+
+fn display_type_params(generics: &[GenericParam]) -> String {
+    let type_params = generics
+        .iter()
+        .filter_map(|generic| match generic {
+            GenericParam::Ty(name) => Some(name.name.clone()),
+            GenericParam::Functor(_) => None,
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    if type_params.is_empty() {
+        type_params
+    } else {
+        format!("<{type_params}>")
     }
 }
 
