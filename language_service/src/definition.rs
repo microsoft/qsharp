@@ -70,15 +70,12 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
 
     fn at_type_param_ref(
         &mut self,
-        context: &LocatorContext<'a>,
+        _: &LocatorContext<'a>,
         _: &'a ast::Ident,
-        param_id: hir::ty::ParamId,
+        _: hir::ty::ParamId,
+        def_name: &'a ast::Ident,
     ) {
-        if let Some(curr) = context.current_callable {
-            if let Some(def_name) = curr.generics.get(usize::from(param_id)) {
-                self.definition = Some(protocol_location(self.compilation, def_name.span, None));
-            }
-        }
+        self.definition = Some(protocol_location(self.compilation, def_name.span, None));
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
@@ -126,8 +123,8 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &LocatorContext<'a>,
         _: &'a ast::Path,
         _: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
-        self.definition = Some(protocol_location(self.compilation, ident.span, None));
+        self.definition = Some(protocol_location(self.compilation, definition.span, None));
     }
 }

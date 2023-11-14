@@ -193,6 +193,7 @@ impl<'a> Handler<'a> for Rename<'a> {
         context: &LocatorContext<'a>,
         ref_name: &'a ast::Ident,
         param_id: hir::ty::ParamId,
+        _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
             self.get_spans_for_type_param_rename(param_id, ref_name, curr);

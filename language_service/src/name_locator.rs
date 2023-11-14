@@ -41,6 +41,7 @@ pub(crate) trait Handler<'package> {
         context: &LocatorContext<'package>,
         ref_name: &'package ast::Ident,
         param_id: hir::ty::ParamId,
+        def_name: &'package ast::Ident,
     );
 
     fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
@@ -81,7 +82,7 @@ pub(crate) trait Handler<'package> {
         context: &LocatorContext<'package>,
         path: &'package ast::Path,
         node_id: &'package ast::NodeId,
-        ident: &'package ast::Ident,
+        definition: &'package ast::Ident,
     );
 }
 
@@ -237,8 +238,12 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 if let Some(resolve::Res::Param(param_id)) =
                     self.compilation.user_unit.ast.names.get(param.id)
                 {
-                    self.inner
-                        .at_type_param_ref(&self.context, param, *param_id);
+                    if let Some(curr) = self.context.current_callable {
+                        if let Some(def_name) = curr.generics.get(usize::from(*param_id)) {
+                            self.inner
+                                .at_type_param_ref(&self.context, param, *param_id, def_name);
+                        }
+                    }
                 }
             } else {
                 walk_ty(self, ty);
@@ -341,8 +346,13 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.context.current_callable {
                             {
-                                if let Some(ident) = find_ident(node_id, curr) {
-                                    self.inner.at_local_ref(&self.context, path, node_id, ident);
+                                if let Some(definition) = find_ident(node_id, curr) {
+                                    self.inner.at_local_ref(
+                                        &self.context,
+                                        path,
+                                        node_id,
+                                        definition,
+                                    );
                                 }
                             }
                         }
