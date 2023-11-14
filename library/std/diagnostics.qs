@@ -30,35 +30,16 @@ namespace Microsoft.Quantum.Diagnostics {
             fail message;
         }
     }
-
-    /// # Summary
-    /// Given two registers, prepares the maximally entangled state
-    /// between each pair of qubits on the respective registers.
-    /// All qubits must start in the |0⟩ state.
-    ///
-    /// # Input
-    /// ## left
-    /// A qubit array in the |0...0⟩ state
-    /// ## right
-    /// A qubit array in the |0...0⟩ state
-    internal operation PrepareEntangledState (left : Qubit[], right : Qubit[]) : Unit
-    is Adj + Ctl {
-        Fact( Length(left) == Length(right), "PrepareEntangledState: Lengths of qubits registers must be equal.");
-        for idxQubit in 0 .. Length(left) - 1  {
-            H(left[idxQubit]);
-            CNOT(left[idxQubit], right[idxQubit]);
-        }
-    }
     
     /// # Summary
-    /// Given two operations, asserts that they act identically for all input states.
+    /// Given two operations, checks that they act identically for all input states.
     ///
     /// # Description
-    /// This assertion is implemented by using the Choi–Jamiołkowski isomorphism to reduce
-    /// the assertion to one of a qubit state assertion on two entangled registers.
+    /// This check is implemented by using the Choi–Jamiołkowski isomorphism to reduce
+    /// this check to a check on two entangled registers.
     /// Thus, this operation needs only a single call to each operation being tested,
     /// but requires twice as many qubits to be allocated.
-    /// This assertion can be used to ensure, for instance, that an optimized version of an
+    /// This check can be used to ensure, for instance, that an optimized version of an
     /// operation acts identically to its naïve implementation, or that an operation
     /// which acts on a range of non-quantum inputs agrees with known cases.
     ///
@@ -90,18 +71,20 @@ namespace Microsoft.Quantum.Diagnostics {
 
         // Apply operations.
         within {
-            PrepareEntangledState(reference, target);
+            for i in 0 .. nQubits - 1  {
+                H(reference[i]);
+                CNOT(reference[i], target[i]);
+            }
         } apply {
             actual(target);
             Adjoint expected(target);
         }
 
         // Check and resturn result.
-        let areEqual = CheckAllZero(reference + target);
+        let areEqual = CheckAllZero(reference) and CheckAllZero(target);
         ResetAll(target);
         ResetAll(reference);
         areEqual
     }
-
 
 }
