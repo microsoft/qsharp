@@ -11,7 +11,7 @@ use crate::protocol::Location;
 use crate::qsc_utils::{
     map_offset, protocol_location, resolve_item_relative_to_user_package, Compilation,
 };
-use qsc::ast::visit::{walk_expr, walk_ty, Visitor};
+use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
 use qsc::hir::ty::Ty;
 use qsc::hir::Res;
 use qsc::{ast, hir, resolve, Span};
@@ -67,6 +67,31 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::CallableDecl,
     ) {
         self.references = find_item_locations(item_id, self.compilation, self.include_declaration);
+    }
+
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        _: &'a ast::Ident,
+        param_id: hir::ty::ParamId,
+    ) {
+        if let Some(curr) = context.current_callable {
+            self.references =
+                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration);
+        }
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        _: &'a ast::Ident,
+        param_id: hir::ty::ParamId,
+        _: &'a ast::Ident,
+    ) {
+        if let Some(curr) = context.current_callable {
+            self.references =
+                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration);
+        }
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
@@ -137,11 +162,15 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         context: &LocatorContext<'a>,
         _: &'a ast::Path,
         _: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references =
-                find_local_locations(ident.id, curr, self.compilation, self.include_declaration);
+            self.references = find_local_locations(
+                definition.id,
+                curr,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 }
@@ -250,6 +279,26 @@ pub(crate) fn find_local_locations(
         .collect()
 }
 
+pub(crate) fn find_ty_param_locations(
+    param_id: hir::ty::ParamId,
+    callable: &ast::CallableDecl,
+    compilation: &Compilation,
+    include_declaration: bool,
+) -> Vec<Location> {
+    let mut find_refs = FindTyParamLocations {
+        param_id,
+        compilation,
+        include_declaration,
+        locations: vec![],
+    };
+    find_refs.visit_callable_decl(callable);
+    find_refs
+        .locations
+        .into_iter()
+        .map(|l| protocol_location(compilation, l, None))
+        .collect()
+}
+
 struct FindItemRefs<'a> {
     item_id: &'a hir::ItemId,
     compilation: &'a Compilation,
@@ -333,6 +382,42 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
             if *node_id == self.node_id {
                 self.locations.push(path.name.span);
             }
+        }
+    }
+}
+
+struct FindTyParamLocations<'a> {
+    param_id: hir::ty::ParamId,
+    compilation: &'a Compilation,
+    include_declaration: bool,
+    locations: Vec<Span>,
+}
+
+impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
+    fn visit_callable_decl(&mut self, decl: &'_ ast::CallableDecl) {
+        if self.include_declaration {
+            decl.generics.iter().for_each(|p| {
+                let res = self.compilation.user_unit.ast.names.get(p.id);
+                if let Some(resolve::Res::Param(param_id)) = res {
+                    if *param_id == self.param_id {
+                        self.locations.push(p.span);
+                    }
+                }
+            });
+        }
+        walk_callable_decl(self, decl);
+    }
+
+    fn visit_ty(&mut self, ty: &'_ ast::Ty) {
+        if let ast::TyKind::Param(param) = &*ty.kind {
+            let res = self.compilation.user_unit.ast.names.get(param.id);
+            if let Some(resolve::Res::Param(param_id)) = res {
+                if *param_id == self.param_id {
+                    self.locations.push(param.span);
+                }
+            }
+        } else {
+            walk_ty(self, ty);
         }
     }
 }

@@ -416,3 +416,25 @@ fn local_exclude_def() {
     "#,
     );
 }
+
+#[test]
+fn ty_param_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation Foo<◉'↘T◉>(x : ◉'T◉) : ◉'T◉ { x }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn ty_param_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            operation Foo<◉'T◉>(x : ◉'↘T◉) : ◉'T◉ { x }
+        }
+    "#,
+    );
+}

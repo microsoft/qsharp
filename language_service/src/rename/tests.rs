@@ -326,3 +326,25 @@ fn no_rename_std_udt_return_type() {
     "#,
     );
 }
+
+#[test]
+fn ty_param_def() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo<'◉↘T◉>(x : '◉T◉) : '◉T◉ { x }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn ty_param_ref() {
+    check(
+        r#"
+        namespace Test {
+            operation Foo<'◉T◉>(x : '◉↘T◉) : '◉T◉ { x }
+        }
+    "#,
+    );
+}

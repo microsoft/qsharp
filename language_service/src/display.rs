@@ -453,22 +453,10 @@ impl Display for UdtDef<'_> {
                         ty,
                         lookup: self.lookup
                     }
-                )?;
+                )
             }
-            UdtDefKind::TupleTy(defs) => {
-                let mut elements = defs.iter();
-                if let Some(elem) = elements.next() {
-                    write!(f, "({elem}")?;
-                    for elem in elements {
-                        write!(f, ", {elem}")?;
-                    }
-                    write!(f, ")")?;
-                } else {
-                    write!(f, "Unit")?;
-                }
-            }
+            UdtDefKind::TupleTy(defs) => fmt_tuple(f, defs, |def| def),
         }
-        Ok(())
     }
 }
 
@@ -537,27 +525,10 @@ impl<'a> Display for HirTy<'a> {
                 };
                 write!(f, "({input} {arrow} {output}{functors})",)
             }
-            hir::ty::Ty::Tuple(tys) => {
-                if tys.is_empty() {
-                    write!(f, "Unit")
-                } else {
-                    write!(f, "(")?;
-                    for (count, ty) in tys.iter().enumerate() {
-                        if count != 0 {
-                            write!(f, ", ")?;
-                        }
-                        write!(
-                            f,
-                            "{}",
-                            HirTy {
-                                lookup: self.lookup,
-                                ty
-                            }
-                        )?;
-                    }
-                    write!(f, ")")
-                }
-            }
+            hir::ty::Ty::Tuple(tys) => fmt_tuple(f, tys, |ty| HirTy {
+                lookup: self.lookup,
+                ty,
+            }),
             hir::ty::Ty::Udt(res) => {
                 let (item, _) =
                     resolve_item_res(self.lookup.compilation, self.lookup.local_package_id, res);
@@ -627,20 +598,7 @@ impl<'a> Display for AstTy<'a> {
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
             ast::TyKind::Path(path) => write!(f, "{}", Path { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
-            ast::TyKind::Tuple(tys) => {
-                if tys.is_empty() {
-                    write!(f, "Unit")
-                } else {
-                    write!(f, "(")?;
-                    for (count, def) in tys.iter().enumerate() {
-                        if count != 0 {
-                            write!(f, ", ")?;
-                        }
-                        write!(f, "{}", AstTy { ty: def })?;
-                    }
-                    write!(f, ")")
-                }
-            }
+            ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
         }
     }
@@ -687,23 +645,35 @@ impl<'a> Display for TyDef<'a> {
                 None => write!(f, "{}", AstTy { ty }),
             },
             ast::TyDefKind::Paren(def) => write!(f, "{}", TyDef { def }),
-            ast::TyDefKind::Tuple(tys) => {
-                if tys.is_empty() {
-                    write!(f, "Unit")
-                } else {
-                    write!(f, "(")?;
-                    for (count, def) in tys.iter().enumerate() {
-                        if count != 0 {
-                            write!(f, ", ")?;
-                        }
-                        write!(f, "{}", TyDef { def })?;
-                    }
-                    write!(f, ")")
-                }
-            }
+            ast::TyDefKind::Tuple(tys) => fmt_tuple(f, tys, |def| TyDef { def }),
             ast::TyDefKind::Err => write!(f, "?"),
         }
     }
+}
+
+fn fmt_tuple<'a, 'b, D, I>(
+    formatter: &'a mut Formatter,
+    elements: &'b [I],
+    map: impl Fn(&'b I) -> D,
+) -> Result
+where
+    D: Display,
+{
+    let mut elements = elements.iter();
+    if let Some(elem) = elements.next() {
+        write!(formatter, "({}", map(elem))?;
+        if elements.len() == 0 {
+            write!(formatter, ",)")?;
+        } else {
+            for elem in elements {
+                write!(formatter, ", {}", map(elem))?;
+            }
+            write!(formatter, ")")?;
+        }
+    } else {
+        write!(formatter, "Unit")?;
+    }
+    Ok(())
 }
 
 //
