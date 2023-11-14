@@ -121,11 +121,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        ref_name: &'a ast::Ident,
+        reference: &'a ast::Ident,
         _: hir::ty::ParamId,
         _: &'a ast::Ident,
     ) {
-        let code = markdown_fenced_block(ref_name.name.clone());
+        let code = markdown_fenced_block(reference.name.clone());
         let callable_name = &context
             .current_callable
             .expect("type params should only exist in callables")
@@ -134,13 +134,13 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = display_local(
             &LocalKind::TypeParam,
             &code,
-            &ref_name.name,
+            &reference.name,
             callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(ref_name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(reference.span, &self.compilation.user_unit.sources),
         });
     }
 

@@ -73,9 +73,9 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &LocatorContext<'a>,
         _: &'a ast::Ident,
         _: hir::ty::ParamId,
-        def_name: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
-        self.definition = Some(protocol_location(self.compilation, def_name.span, None));
+        self.definition = Some(protocol_location(self.compilation, definition.span, None));
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {

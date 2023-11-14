@@ -39,9 +39,9 @@ pub(crate) trait Handler<'package> {
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'package>,
-        ref_name: &'package ast::Ident,
+        reference: &'package ast::Ident,
         param_id: hir::ty::ParamId,
-        def_name: &'package ast::Ident,
+        definition: &'package ast::Ident,
     );
 
     fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
