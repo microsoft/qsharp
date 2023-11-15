@@ -122,7 +122,7 @@ export class QSharpLanguageService implements ILanguageService {
   }
 
   async loadFile(uri: string): Promise<string | null> {
-    return this.code[uri] || await this.readFile(uri)
+    return this.code[uri] || (await this.readFile(uri));
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
@@ -169,7 +169,7 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ICompletionList> {
-    const code = await this.loadFile(documentUri)
+    const code = await this.loadFile(documentUri);
 
     if (code === null) {
       log.error(
@@ -195,7 +195,7 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<IHover | undefined> {
-    const code = await this.loadFile(documentUri)
+    const code = await this.loadFile(documentUri);
 
     if (code === null) {
       log.error(`getHover: expected ${documentUri} to be in the document map`);
@@ -310,7 +310,7 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ISignatureHelp | undefined> {
-    const code = await this.loadFile(documentUri)
+    const code = await this.loadFile(documentUri);
 
     if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
@@ -338,7 +338,7 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number,
     newName: string,
   ): Promise<IWorkspaceEdit | undefined> {
-    const code = await this.loadFile(documentUri)
+    const code = await this.loadFile(documentUri);
 
     if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
@@ -370,7 +370,7 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ITextEdit | undefined> {
-    const code = await this.loadFile(documentUri)
+    const code = await this.loadFile(documentUri);
 
     if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);

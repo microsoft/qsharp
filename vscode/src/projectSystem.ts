@@ -14,7 +14,6 @@ export async function getManifest(uri: string): Promise<{
   excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
-
   const manifestDocument = await findManifestDocument(uri);
 
   if (manifestDocument === null) {
@@ -63,14 +62,12 @@ async function findManifestDocument(
     let listing;
     try {
       listing = await readFile(potentialManifestLocation);
-    } catch (err) {
-    }
+    } catch (err) {}
 
     if (listing) {
-      log.info("found manifest at ", potentialManifestLocation)
+      log.info("found manifest at ", potentialManifestLocation);
       return listing;
     }
-
 
     log.info("f");
     const oldUriToQuery = uriToQuery;
@@ -96,10 +93,12 @@ export async function directoryListingCallback(
 ): Promise<[string, number][]> {
   const uriToQuery = vscode.Uri.parse(directoryQuery);
 
-  log.info('looking for in dir listing ', uriToQuery);
+  log.info("looking for in dir listing ", uriToQuery);
 
   const fileSearchResult = await vscode.workspace.fs.readDirectory(uriToQuery);
-  const mappedFiles: [string, vscode.FileType][] = fileSearchResult.map(([name, type]) => [Utils.joinPath(uriToQuery, name).toString(), type]);
+  const mappedFiles: [string, vscode.FileType][] = fileSearchResult.map(
+    ([name, type]) => [Utils.joinPath(uriToQuery, name).toString(), type],
+  );
 
   return mappedFiles;
 }
