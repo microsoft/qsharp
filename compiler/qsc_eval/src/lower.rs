@@ -500,7 +500,6 @@ impl Lowerer {
             }
             qsc_hir::ty::Ty::Param(_, param_id) => {
                 qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*param_id)))
-                // ToDo: does the FIR also need the item_id?
             }
             qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),
             qsc_hir::ty::Ty::Tuple(tys) => {
