@@ -107,22 +107,6 @@ impl Hash for NodeId {
     }
 }
 
-/// Trait that allows creation of a default value with a span.
-pub trait DefaultWithSpan {
-    /// Creates a default value with the given span by using the `Default` and `WithSpan` traits.
-    #[must_use]
-    fn default_with_span(span: Span) -> Self;
-}
-
-impl<T> DefaultWithSpan for Box<T>
-where
-    T: Default + WithSpan,
-{
-    fn default_with_span(span: Span) -> Self {
-        Box::new(T::default().with_span(span))
-    }
-}
-
 /// The root node of an AST.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
@@ -589,14 +573,6 @@ impl WithSpan for Ty {
     }
 }
 
-impl DefaultWithSpan for Ty {
-    /// Creates a default value with the given span by using the `Default` and `WithSpan` traits.
-    #[must_use]
-    fn default_with_span(span: Span) -> Self {
-        Self::default().with_span(span)
-    }
-}
-
 /// A type kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum TyKind {
@@ -636,7 +612,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param(name) => write!(indent, "Type Param {name}")?,
+            TyKind::Param(name) => write!(indent, "Type Param: {name}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;

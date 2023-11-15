@@ -42,6 +42,29 @@ def test_dump_output() -> None:
     )
     assert called
 
+def test_dump_machine() -> None:
+    e = Interpreter(TargetProfile.Full)
+
+    def callback(output):
+        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+
+    value = e.interpret(
+        """
+    use q1 = Qubit();
+    use q2 = Qubit();
+    X(q1);
+    Microsoft.Quantum.Diagnostics.DumpMachine();
+    """,
+        callback,
+    )
+    state_dump = e.dump_machine()
+    assert state_dump.qubit_count == 2
+    assert len(state_dump) == 1
+    assert state_dump[1][0] == 1.0
+    assert state_dump[1][1] == 0.0
+    state_dict = state_dump.get_dict()
+    assert state_dict[1][0] == 1.0
+    assert state_dict[1][1] == 0.0
 
 def test_error() -> None:
     e = Interpreter(TargetProfile.Full)

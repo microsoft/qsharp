@@ -40,7 +40,7 @@ impl qsc_project::DirEntry for JSFileEntry {
 }
 
 #[async_trait(?Send)]
-impl qsc_project::FileSystem for LanguageService<'_> {
+impl qsc_project::FileSystemAsync for LanguageService<'_> {
     type Entry = JSFileEntry;
     async fn read_file(
         &self,

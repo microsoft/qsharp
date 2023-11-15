@@ -439,6 +439,28 @@ fn std_udt_udt_field() {
 }
 
 #[test]
+fn ty_param_def() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation Foo<◉'↘T◉>(x : 'T) : 'T { x }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn ty_param_ref() {
+    assert_definition(
+        r#"
+        namespace Test {
+            operation Foo<◉'T◉>(x : '↘T) : 'T { x }
+        }
+    "#,
+    );
+}
+
+#[test]
 fn notebook_callable_def_across_cells() {
     assert_definition_notebook(&[
         ("cell1", "operation ◉Callee◉() : Unit {}"),

@@ -29,7 +29,7 @@ use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
-use qsc_project::FileSystem;
+use qsc_project::FileSystemAsync;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{future::Future, mem::take, path::PathBuf, pin::Pin, sync::Arc};
 

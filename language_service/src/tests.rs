@@ -533,9 +533,7 @@ fn notebook_update_remove_cell_clears_errors() {
             [
                 (
                     "cell2",
-                    Some(
-                        1,
-                    ),
+                    None,
                     [],
                 ),
             ]
@@ -629,10 +627,9 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
                 update.errors.iter().map(|e| e.error().clone()).collect(),
             ));
         },
-        // TODO
-        |_| (Arc::from(""), Arc::from("")),
-        |_| Default::default(),
-        |_| None,
+        |_| todo!(),
+        |_| todo!(),
+        |_| todo!(),
     )
 }
 

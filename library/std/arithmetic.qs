@@ -91,6 +91,56 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     /// # Summary
+    /// This applies the in-place majority operation to 3 qubits.
+    ///
+    /// # Description
+    /// Assuming the state of the input qubits are |x⟩, |y⟩ and |z⟩, then
+    /// this operation performs the following transformation:
+    /// |x⟩|y⟩|z⟩ ↦ |x ⊕ z⟩|y ⊕ z⟩MAJ(x, y, z).
+    ///
+    /// # Input
+    /// ## x
+    /// The first input qubit.
+    /// ## y
+    /// The second input qubit.
+    /// ## z
+    /// A qubit onto which the majority function will be applied.
+    operation MAJ (x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl {
+        CNOT(z, y);
+        CNOT(z, x);
+        CCNOT(y, x, z);
+    }
+
+    /// # Summary
+    /// Reflects a quantum register about a given classical integer.
+    ///
+    /// # Description
+    /// Given a quantum register initially in the state ∑ᵢ(αᵢ|i⟩),
+    /// where each |i⟩ is a basis state representing an integer i,
+    /// reflects the state of the register about the basis state |j⟩
+    /// for a given integer j: ∑ᵢ(-1)^(δᵢⱼ)(αᵢ|i⟩) 
+    ///
+    /// # Input
+    /// ## index
+    /// The classical integer j indexing the basis state about which to reflect.
+    /// ## reg
+    /// Little-endian quantum register to reflect.
+    ///
+    /// # Remarks
+    /// This operation is implemented in-place, without explicit allocation of
+    /// additional auxiliary qubits.
+    operation ReflectAboutInteger (index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
+        within {
+            // We want to reduce to the problem of reflecting about the all-ones
+            // state. To do that, we apply our reflection within an application
+            // of X instructions that flip all the zeros in our index.
+            ApplyPauliFromInt(PauliX, false, index, reg);
+        } apply {
+            Controlled Z(Most(reg), Tail(reg));
+        }
+    }
+
+    /// # Summary
     /// Automatically chooses between addition with
     /// carry and without, depending on the register size of `ys`,
     /// which holds the result after operation is complete.
@@ -542,7 +592,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:quant-ph/0008033](https://arxiv.org/abs/quant-ph/0008033)
     ///      "Addition on a Quantum Computer" by Thomas G. Draper
-    operation FourierIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj {
+    operation FourierIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         within {
             ApplyQFT(ys);
         } apply {

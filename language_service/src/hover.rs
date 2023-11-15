@@ -35,6 +35,7 @@ pub(crate) fn get_hover(
 
 enum LocalKind {
     Param,
+    TypeParam,
     LambdaParam,
     Local,
 }
@@ -128,25 +129,6 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
-    fn at_new_type_ref(
-        &mut self,
-        path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Package,
-        _: &'a hir::Ident,
-        udt: &'a hir::ty::Udt,
-    ) {
-        let contents = markdown_fenced_block(
-            self.display
-                .hir_udt(item_id.package.expect("package id should be resolved"), udt),
-        );
-
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(path.span, &self.compilation.user_unit().sources),
-        });
-    }
-
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
@@ -181,14 +163,84 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
+    fn at_type_param_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        def_name: &'a ast::Ident,
+        _: hir::ty::ParamId,
+    ) {
+        let code = markdown_fenced_block(def_name.name.clone());
+        let callable_name = &context
+            .current_callable
+            .expect("type params should only exist in callables")
+            .name
+            .name;
+        let contents = display_local(
+            &LocalKind::TypeParam,
+            &code,
+            &def_name.name,
+            callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(def_name.span, &self.compilation.user_unit().sources),
+        });
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        context: &LocatorContext<'a>,
+        ref_name: &'a ast::Ident,
+        _: hir::ty::ParamId,
+        _: &'a ast::Ident,
+    ) {
+        let code = markdown_fenced_block(ref_name.name.clone());
+        let callable_name = &context
+            .current_callable
+            .expect("type params should only exist in callables")
+            .name
+            .name;
+        let contents = display_local(
+            &LocalKind::TypeParam,
+            &code,
+            &ref_name.name,
+            callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(ref_name.span, &self.compilation.user_unit().sources),
+        });
+    }
+
+    fn at_new_type_ref(
+        &mut self,
+        path: &'a ast::Path,
+        item_id: &'_ hir::ItemId,
+        _: &'a hir::Package,
+        _: &'a hir::Ident,
+        udt: &'a hir::ty::Udt,
+    ) {
+        let contents = markdown_fenced_block(
+            self.display
+                .hir_udt(item_id.package.expect("package id should be resolved"), udt),
+        );
+
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(path.span, &self.compilation.user_unit().sources),
+        });
+    }
+
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'a>,
         path: &'a ast::Path,
         node_id: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
-        let local_name = &ident.name;
+        let local_name = &definition.name;
         let callable_name = &context
             .current_callable
             .expect("locals should only exist in callables")
@@ -262,6 +314,13 @@ fn display_local(
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
+            )
+        }
+        LocalKind::TypeParam => {
+            let param_doc = parse_doc_for_param(callable_doc, local_name);
+            with_doc(
+                &param_doc,
+                format!("type parameter of `{callable_name}`\n{markdown}",),
             )
         }
         LocalKind::LambdaParam => format!("lambda parameter\n{markdown}"),

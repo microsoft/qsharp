@@ -42,7 +42,7 @@ pub trait DirEntry {
 use async_trait::async_trait;
 #[cfg(feature = "async")]
 #[async_trait(?Send)]
-pub trait FileSystem {
+pub trait FileSystemAsync {
     type Entry: DirEntry + Send + Sync;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
@@ -113,7 +113,6 @@ pub trait FileSystem {
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
-#[cfg(not(feature = "async"))]
 pub trait FileSystem {
     type Entry: DirEntry;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).

@@ -25,5 +25,8 @@ qsc_project = { path = ".", features = ["fs"] }
 fs = []
 async = ["async-trait"]
 
+[profile.test]
+default = ["fs"]
+
 [lib]
 doctest = false

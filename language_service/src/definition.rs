@@ -64,6 +64,33 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         ));
     }
 
+    fn at_type_param_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        def_name: &'a ast::Ident,
+        _: hir::ty::ParamId,
+    ) {
+        self.definition = Some(protocol_location(
+            self.compilation,
+            def_name.span,
+            self.compilation.user_package_id,
+        ));
+    }
+
+    fn at_type_param_ref(
+        &mut self,
+        _: &LocatorContext<'a>,
+        _: &'a ast::Ident,
+        _: hir::ty::ParamId,
+        def_name: &'a ast::Ident,
+    ) {
+        self.definition = Some(protocol_location(
+            self.compilation,
+            def_name.span,
+            self.compilation.user_package_id,
+        ));
+    }
+
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
         self.definition = Some(protocol_location(
             self.compilation,
@@ -125,11 +152,11 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &LocatorContext<'a>,
         _: &'a ast::Path,
         _: &'a ast::NodeId,
-        ident: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
         self.definition = Some(protocol_location(
             self.compilation,
-            ident.span,
+            definition.span,
             self.compilation.user_package_id,
         ));
     }

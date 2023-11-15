@@ -692,6 +692,7 @@ dependencies = [
  "indoc",
  "libc",
  "memoffset",
+ "num-bigint",
  "parking_lot",
  "pyo3-build-config",
  "pyo3-ffi",
@@ -946,6 +947,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
+ "rustc-hash",
 ]
 
 [[package]]
