@@ -14,8 +14,13 @@ export async function getManifest(uri: string): Promise<{
   excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
+  log.info("looking for manifest");
+
   const manifestDocument = await findManifestDocument(uri);
+  log.info("1");
+
   if (manifestDocument === null) {
+    log.info("did not find");
     return null;
   }
 
@@ -29,6 +34,7 @@ export async function getManifest(uri: string): Promise<{
     );
     return null;
   }
+  log.info("2");
 
   return {
     excludeFiles: parsedManifest.excludeFiles || [],
@@ -43,8 +49,10 @@ export async function getManifest(uri: string): Promise<{
 async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
+  log.info("in findManifestDocument");
   // /home/foo/bar/document.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
+  log.info("a");
 
   // /home/foo/bar
   let uriToQuery = Utils.dirname(currentDocumentUri);
@@ -52,30 +60,42 @@ async function findManifestDocument(
   let attempts = 100;
 
   while (true) {
+    log.info("b");
     attempts--;
     let pattern = new vscode.RelativePattern(uriToQuery, "qsharp.json");
-    const listing = await vscode.workspace.findFiles(pattern);
+    log.info("bb", pattern, JSON.stringify(pattern, null, 2));
+    let listing: vscode.Uri[] = [];
+    try { listing = await vscode.workspace.findFiles(pattern, undefined, 1); } catch (err) {
+      log.info("got err from findfiles", err);
+    }
 
+    log.info("c");
     if (listing.length > 1) {
       log.error(
         "Found multiple manifest files in the same directory -- this shouldn't be possible.",
       );
+      log.info("d");
     }
 
     if (listing.length > 0) {
+      log.info("e");
       return await readFile(listing[0]);
     }
 
+    log.info("f");
     const oldUriToQuery = uriToQuery;
     uriToQuery = Utils.resolvePath(uriToQuery, "..");
     if (oldUriToQuery === uriToQuery) {
-      log.trace("no qsharp manifest file found");
+      log.info("no qsharp manifest file found");
       return null;
     }
 
+    log.info("g");
     if (attempts === 0) {
+      log.info("returned null");
       return null;
     }
+    log.info("h");
   }
 }
 
@@ -116,9 +136,11 @@ export async function readFileCallback(uri: string): Promise<string | null> {
 async function readFile(
   maybeUri: string | vscode.Uri,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
+  log.info("reading file");
   const uri: vscode.Uri = (maybeUri as any).path
     ? (maybeUri as vscode.Uri)
     : vscode.Uri.parse(maybeUri as string);
+  log.info("reading file 1");
   return await vscode.workspace.fs.readFile(uri).then((res) => {
     return {
       content: new TextDecoder().decode(res),

@@ -37,7 +37,7 @@ pub trait DirEntry {
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
-#[async_trait]
+#[async_trait(?Send)]
 pub trait FileSystem {
     type Entry: DirEntry + Send + Sync;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).

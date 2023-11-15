@@ -28,87 +28,122 @@ impl LanguageService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> Self {
+        log::info!("A");
         let read_file = read_file
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
 
+        log::info!("B");
         let read_file = //: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> =
             move |path_buf: PathBuf| {
+        log::info!("read_file 1");
                 let path_buf_string = &path_buf.to_string_lossy().to_string();
+        log::info!("read_file 2");
                 let path = JsValue::from_str(&path_buf_string);
+        log::info!("read_file 3");
                 let res: js_sys::Promise = read_file
                     .call1(&JsValue::NULL, &path)
                     .expect("callback should succeed")
                     .into();
 
+        log::info!("read_file 4");
                 let res:JsFuture = res.into();
 
+        log::info!("read_file 5");
                 let path_buf_string = path_buf_string.clone();
                 
+        log::info!("read_file 7");
                 let func = move |js_val: JsValue| match js_val.as_string() {
                     Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
                     None => unreachable!("JS callback did not return an expected type"),
                 };
-                let leaked: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
-                return leaked;
+        log::info!("read_file 8");
+                let pinned: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
+                log::info!("read_file 9");
+                return pinned;
             };
+        log::info!("C");
 
         let list_directory = list_directory
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
 
+        log::info!("D");
         let list_directory = move |path_buf: PathBuf| {
+                log::info!("list_directory 1");
             let path_buf_string = &path_buf.to_string_lossy().to_string();
+                log::info!("list_directory 2");
             let path = JsValue::from_str(&path_buf_string);
+                log::info!("list_directory 3");
             let res: js_sys::Promise = list_directory
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed")
             .into();
+                log::info!("list_directory 4");
 
             let res: JsFuture = res.into();
 
+                log::info!("list_directory 5");
                 let func = move |js_val: JsValue| 
-            match js_val.dyn_into::<js_sys::Array>() {
-                Ok(arr) => arr
-                    .into_iter()
-                    .filter_map(|x| x.as_string())
-                    .map(PathBuf::from)
-                    .collect::<Vec<_>>(),
-                Err(e) => todo!("result wasn't an array error: {e:?}"),
-            };
-                let leaked: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
-                return leaked;
+                match js_val.dyn_into::<js_sys::Array>() {
+                    Ok(arr) => arr
+                        .into_iter()
+                        .filter_map(|x| x.as_string())
+                        .map(PathBuf::from)
+                        .collect::<Vec<_>>(),
+                    Err(e) => todo!("result wasn't an array error: {e:?}"),
+                };
+                log::info!("list_directory 6");
+                let pinned: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
+                log::info!("list_directory 7");
+                return pinned;
             
         };
 
+        log::info!("E");
         let get_manifest = get_manifest
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
 
+        log::info!("F");
         let get_manifest = move |uri: String| {
+                log::info!("get_manifest 1");
             let path = JsValue::from_str(&uri);
-            let res = get_manifest
+                log::info!("get_manifest 2");
+            let res: js_sys::Promise = get_manifest
                 .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed");
+                .expect("callback should succeed").into();
 
-            if res.is_null() {
-                return None;
-            }
+                log::info!("get_manifest 3");
+            let res: JsFuture = res.into();
 
-            let manifest_dir =
-                match js_sys::Reflect::get(&res, &JsValue::from_str("manifestDirectory")) {
+                log::info!("get_manifest 4");
+
+            let func = move |js_val: JsValue| 
+            
+            {
+                log::info!("getting manifest {js_val:?}");
+                if js_val.is_null() { 
+                log::info!("get_manifest 5");
+                    
+                    log::info!("'twas none {js_val:?}");
+                    return None; }
+                
+                 let manifest_dir = match js_sys::Reflect::get(&js_val, &JsValue::from_str("manifestDirectory")) {
                     Ok(v) => v
                         .as_string()
-                        .expect("manifest callback did not return string"),
+                        .unwrap_or_else(|| panic!("manifest callback returned {:?}, but we expected a string representing its URI", v)),
                     Err(_) => todo!(),
                 };
+            log::info!("found manifest {manifest_dir:?}");
+
 
             let manifest_dir = PathBuf::from(manifest_dir);
 
-            let exclude_files = match js_sys::Reflect::get(&res, &JsValue::from_str("excludeFiles"))
+            let exclude_files = match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeFiles"))
             {
                 Ok(v) => match v.dyn_into::<js_sys::Array>() {
                     Ok(arr) => arr
@@ -120,7 +155,7 @@ impl LanguageService {
                 Err(_) => todo!(),
             };
             let exclude_regexes =
-                match js_sys::Reflect::get(&res, &JsValue::from_str("excludeRegexes")) {
+                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes")) {
                     Ok(v) => match v.dyn_into::<js_sys::Array>() {
                         Ok(arr) => arr
                             .into_iter()
@@ -139,12 +174,19 @@ impl LanguageService {
                 },
                 manifest_dir,
             })
+                };
+            log::info!("get_manifest 5");
+            let pinned: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
+            log::info!("get_manifest 6");
+            return pinned;
         };
 
+        log::info!("G");
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
+        log::info!("H");
 
         let inner = qsls::LanguageService::new(
             move |update| {
@@ -168,6 +210,7 @@ impl LanguageService {
             get_manifest,
         );
 
+        log::info!("I");
         LanguageService(inner)
     }
 
@@ -188,8 +231,10 @@ impl LanguageService {
             })
     }
 
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        self.0.update_document(uri, version, text);
+    pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        log::info!("in update document");
+        self.0.update_document(uri, version, text).await;
+        log::info!("done with update document");
     }
 
     pub fn close_document(&mut self, uri: &str) {

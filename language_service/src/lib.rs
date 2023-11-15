@@ -22,7 +22,7 @@ mod test_utils;
 mod tests;
 
 use compilation::Compilation;
-use log::{error, trace};
+use log::{error, info, trace};
 use miette::Diagnostic;
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
@@ -66,17 +66,17 @@ pub struct LanguageService<'a> {
     documents_with_errors: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
-    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + Send + Sync + 'a>,
+    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     /// Callback which lets the service read a file from the target filesystem
-    read_file: Box<
-        dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + Send + Sync + 'a,
-    >,
+    read_file: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a>,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory:
-        Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>> + Send + Sync + 'a>,
+    list_directory: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>> + 'a>,
     /// Fetch the manifest file for a specific path
-    get_manifest: Box<dyn Fn(String) -> Option<qsc_project::ManifestDescriptor> + Send + Sync + 'a>,
+    get_manifest: Box<
+        dyn Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
+            + 'a,
+    >,
 }
 
 #[derive(Debug)]
@@ -107,16 +107,11 @@ struct OpenDocument {
 
 impl<'a> LanguageService<'a> {
     pub fn new(
-        diagnostics_receiver: impl Fn(DiagnosticUpdate) + Send + Sync + 'a,
-        read_file: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>>
-            + Send
-            + Sync
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        read_file: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
+        list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>> + 'a,
+        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
             + 'a,
-        list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>>
-            + Send
-            + Sync
-            + 'a,
-        get_manifest: impl Fn(String) -> Option<qsc_project::ManifestDescriptor> + Send + Sync + 'a,
     ) -> Self {
         LanguageService {
             configuration: WorkspaceConfiguration::default(),
@@ -153,10 +148,11 @@ impl<'a> LanguageService<'a> {
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        trace!("update_document: {uri} {version}");
-        let manifest = (self.get_manifest)(uri.to_string());
+        info!("update_document: {uri} {version}");
+        let manifest = (self.get_manifest)(uri.to_string()).await;
+        info!("1");
         let sources = if let Some(ref manifest) = manifest {
-            trace!("manifest found, this is a project"); // if there is a manifest, this is a project
+            info!("manifest found, this is a project"); // if there is a manifest, this is a project
             let project = match self.load_project(manifest).await {
                 Ok(o) => o,
                 Err(e) => {
@@ -166,14 +162,16 @@ impl<'a> LanguageService<'a> {
             };
             project.sources
         } else {
-            trace!("no manifest found");
+            info!("no manifest found");
             vec![(Arc::from(uri), Arc::from(text))]
         };
+        info!("2");
         let compilation = Compilation::new_open_document(
             sources,
             self.configuration.package_type,
             self.configuration.target_profile,
         );
+        info!("3");
         // If we are in single file mode, use the file's path as the compilation identifier.
         // If we are compiling a project, use the path to the project manifest
         let uri: Arc<str> = if let Some(manifest) = manifest {
@@ -181,6 +179,7 @@ impl<'a> LanguageService<'a> {
         } else {
             uri.into()
         };
+        info!("4");
         self.compilations.insert(uri.clone(), compilation);
         self.open_documents.insert(
             uri.clone(),
@@ -352,7 +351,7 @@ impl<'a> LanguageService<'a> {
             .open_documents
             .get(uri)
             .unwrap_or_else(|| {
-                panic!("{op_name} should not be called for a document that has not been opened",)
+                panic!("{op_name} (called on {uri} should not be called for a document that has not been opened",)
             })
             .compilation;
 
