@@ -61,6 +61,63 @@ fn check_measure_integer() {
 }
 
 #[test]
+fn check_maj() {
+    test_expression(
+        {
+            "{
+                open Microsoft.Quantum.Arithmetic;
+                use q = Qubit[3];
+                mutable r = [];
+                for i in 0..7 {
+                    ApplyXorInPlace(i, q);
+                    MAJ(q[0],q[1],q[2]);
+                    set r += [MeasureInteger(q)];
+                    ResetAll(q);
+                }
+                r
+            }"
+        },
+        &Value::Array(
+            vec![
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(7),
+                Value::Int(3),
+                Value::Int(6),
+                Value::Int(5),
+                Value::Int(4),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_reflect_about_integer() {
+    test_expression(
+        {
+            "{
+                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Diagnostics;
+                operation ManuallyReflectAboutFive(register : Qubit[]) : Unit is Adj + Ctl {
+                    within {
+                        X(register[1]);
+                    } apply {
+                        Controlled Z(register[0..1], register[2]);
+                    }
+                }
+                CheckOperationsAreEqual(3,
+                    ReflectAboutInteger(5, _),
+                    ManuallyReflectAboutFive
+                )
+            }"
+        },
+        &Value::Bool(true),
+    );
+}
+
+#[test]
 fn check_add_i_nc() {
     test_expression(
         {
