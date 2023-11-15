@@ -100,7 +100,7 @@ fn ty_param() {
     check(
         ty,
         "'T",
-        &expect![[r#"Type _id_ [0-2]: Type Param Ident _id_ [0-2] "'T""#]],
+        &expect![[r#"Type _id_ [0-2]: Type Param: Ident _id_ [0-2] "'T""#]],
     );
 }
 

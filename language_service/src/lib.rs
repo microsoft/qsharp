@@ -227,7 +227,7 @@ impl<'a> LanguageService<'a> {
                         compilation: compilation_uri.clone(),
                     },
                 );
-                (cell_uri, cell_contents)
+                (Arc::from(cell_uri), Arc::from(cell_contents))
             }));
 
         self.compilations

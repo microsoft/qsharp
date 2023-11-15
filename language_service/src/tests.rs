@@ -533,9 +533,7 @@ fn notebook_update_remove_cell_clears_errors() {
             [
                 (
                     "cell2",
-                    Some(
-                        1,
-                    ),
+                    None,
                     [],
                 ),
             ]
@@ -619,21 +617,15 @@ fn close_notebook_clears_errors() {
 type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
 
 fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'_> {
-    LanguageService::new(
-        |update: DiagnosticUpdate| {
-            let mut v = received.borrow_mut();
+    LanguageService::new(|update: DiagnosticUpdate| {
+        let mut v = received.borrow_mut();
 
-            v.push((
-                update.uri.to_string(),
-                update.version,
-                update.errors.iter().map(|e| e.error().clone()).collect(),
-            ));
-        },
-        // TODO
-        |_| (Arc::from(""), Arc::from("")),
-        |_| Default::default(),
-        |_| None,
-    )
+        v.push((
+            update.uri.to_string(),
+            update.version,
+            update.errors.iter().map(|e| e.error().clone()).collect(),
+        ));
+    })
 }
 
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
