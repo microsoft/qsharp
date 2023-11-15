@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use crate::manifest::ManifestDescriptor;
-use async_trait::async_trait;
 use regex_lite::Regex;
 use std::{
     path::{Path, PathBuf},
@@ -33,11 +32,15 @@ pub trait DirEntry {
     fn entry_name(&self) -> String;
     fn path(&self) -> PathBuf;
 }
+
 /// This trait is used to abstract filesystem logic with regards to Q# projects.
 /// A Q# project requires some multi-file structure, but that may not actually be
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
+#[cfg(feature = "async")]
+use async_trait::async_trait;
+#[cfg(feature = "async")]
 #[async_trait(?Send)]
 pub trait FileSystem {
     type Entry: DirEntry + Send + Sync;
@@ -110,7 +113,8 @@ pub trait FileSystem {
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
-pub trait FileSystemSync {
+#[cfg(not(feature = "async"))]
+pub trait FileSystem {
     type Entry: DirEntry;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
     fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;

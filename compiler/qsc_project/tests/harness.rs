@@ -4,7 +4,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use expect_test::Expect;
-use qsc_project::{FileSystemSync, Manifest, StdFs};
+use qsc_project::{FileSystem, Manifest, StdFs};
 
 pub fn check(project_path: PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

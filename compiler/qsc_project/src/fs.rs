@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 
 //! This module contains a project implementation using [std::fs].
+//! Only a sync API is provided for now, because our binary targets
+//! are only sync at the time of writing this (qsi and qsc).
 
-use crate::{DirEntry, EntryType, FileSystemSync};
+use crate::{DirEntry, EntryType, FileSystem};
 use miette::{Context, IntoDiagnostic};
 use std::convert::Infallible;
 use std::fs::DirEntry as StdEntry;
@@ -83,7 +85,7 @@ impl std::convert::From<std::fs::FileType> for EntryType {
     }
 }
 
-impl FileSystemSync for StdFs {
+impl FileSystem for StdFs {
     type Entry = StdEntry;
 
     fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {
