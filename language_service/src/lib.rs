@@ -69,7 +69,8 @@ pub struct LanguageService<'a> {
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     /// Callback which lets the service read a file from the target filesystem
-    read_file: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a>,
+    read_file_callback:
+        Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a>,
     /// Callback which lets the service list directory contents
     /// on the target file system
     list_directory: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a>,
@@ -120,7 +121,7 @@ impl<'a> LanguageService<'a> {
             open_documents: FxHashMap::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
-            read_file: Box::new(read_file),
+            read_file_callback: Box::new(read_file),
             list_directory: Box::new(list_directory),
             get_manifest: Box::new(get_manifest),
         }

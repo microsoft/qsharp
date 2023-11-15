@@ -17,7 +17,7 @@ export interface ICompiler {
   checkCode(
     code: string,
     readFile: (uri: string) => Promise<string | null>,
-    listDirectory: (uri: string) => Promise<string[]>,
+    listDirectory: (uri: string) => Promise<[string, number][]>,
     getManifest: (uri: string) => Promise<{
       manifestDirectory: string;
       excludeRegexes: string[];
@@ -56,7 +56,7 @@ export class Compiler implements ICompiler {
     code: string,
     readFile: (uri: string) => Promise<string | null> = () =>
       Promise.resolve(null),
-    listDirectory: (uri: string) => Promise<string[]> = () =>
+    listDirectory: (uri: string) => Promise<[string, number][]> = () =>
       Promise.resolve([]),
     getManifest: (uri: string) => Promise<{
       manifestDirectory: string;

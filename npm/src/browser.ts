@@ -164,7 +164,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 
 export async function getLanguageService(
   readFile: (uri: string) => Promise<string | null>,
-  listDir: (uri: string) => Promise<string[]>,
+  listDir: (uri: string) => Promise<[string, number][]>,
   getManifest: (uri: string) => Promise<{
     excludeFiles: string[];
     excludeRegexes: string[];

@@ -99,10 +99,12 @@ export class QSharpLanguageService implements ILanguageService {
   // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
   private code: { [uri: string]: string | undefined } = {};
 
+  private readFile: (uri: string) => Promise<string | null>;
+
   constructor(
     wasm: QscWasm,
     readFile: (uri: string) => Promise<string | null>,
-    listDir: (uri: string) => Promise<string[]>,
+    listDir: (uri: string) => Promise<[string, number][]>,
     getManifest: (uri: string) => Promise<{
       excludeFiles: string[];
       excludeRegexes: string[];
@@ -116,6 +118,11 @@ export class QSharpLanguageService implements ILanguageService {
       listDir,
       getManifest,
     );
+    this.readFile = readFile;
+  }
+
+  async loadFile(uri: string): Promise<string | null> {
+    return this.code[uri] || await this.readFile(uri)
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
@@ -162,8 +169,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ICompletionList> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri)
+
+    if (code === null) {
       log.error(
         `getCompletions: expected ${documentUri} to be in the document map`,
       );
@@ -187,8 +195,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<IHover | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri)
+
+    if (code === null) {
       log.error(`getHover: expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -301,8 +310,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ISignatureHelp | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri)
+
+    if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -328,8 +338,9 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number,
     newName: string,
   ): Promise<IWorkspaceEdit | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri)
+
+    if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -359,8 +370,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ITextEdit | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri)
+
+    if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -393,15 +405,15 @@ export class QSharpLanguageService implements ILanguageService {
     this.eventHandler.removeEventListener(type, listener);
   }
 
-  onDiagnostics(
+  async onDiagnostics(
     uri: string,
     version: number | undefined,
     diagnostics: VSDiagnostic[],
   ) {
     try {
-      const code = this.code[uri];
+      const code = await this.loadFile(uri);
       const empty = diagnostics.length === 0;
-      if (code === undefined && !empty) {
+      if (code === null && !empty) {
         // We need the contents of the document to convert error offsets to utf16.
         // But the contents aren't available after a document is closed.
         // It is possible to get a diagnostics event after a document is closed,

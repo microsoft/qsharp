@@ -98,10 +98,10 @@ export async function directoryListingCallback(
 
   log.info('looking for in dir listing ', uriToQuery);
 
-  log.info("about to look for files");
   const fileSearchResult = await vscode.workspace.fs.readDirectory(uriToQuery);
+  const mappedFiles: [string, vscode.FileType][] = fileSearchResult.map(([name, type]) => [Utils.joinPath(uriToQuery, name).toString(), type]);
 
-  return fileSearchResult;
+  return mappedFiles;
 }
 
 export async function readFileCallback(uri: string): Promise<string | null> {
@@ -112,11 +112,9 @@ export async function readFileCallback(uri: string): Promise<string | null> {
 async function readFile(
   maybeUri: string | vscode.Uri,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
-  log.info("reading file");
   const uri: vscode.Uri = (maybeUri as any).path
     ? (maybeUri as vscode.Uri)
     : vscode.Uri.parse(maybeUri as string);
-  log.info("reading file 1");
   return await vscode.workspace.fs.readFile(uri).then((res) => {
     return {
       content: new TextDecoder().decode(res),
