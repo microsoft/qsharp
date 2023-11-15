@@ -13,7 +13,6 @@ use crate::references::{
 };
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir, resolve, Span};
-use std::sync::Arc;
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,

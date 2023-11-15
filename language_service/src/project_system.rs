@@ -1,12 +1,6 @@
 use crate::LanguageService;
 use async_trait::async_trait;
-use std::{
-    convert::Infallible,
-    future::{self, Future},
-    path::{Path, PathBuf},
-    pin::Pin,
-    sync::Arc,
-};
+use std::{convert::Infallible, path::PathBuf};
 
 #[derive(Debug)]
 pub struct JSFileEntry {
@@ -34,8 +28,7 @@ impl qsc_project::DirEntry for JSFileEntry {
     }
 
     fn path(&self) -> PathBuf {
-        let parsed_as_path = PathBuf::from(&self.name);
-        parsed_as_path
+        PathBuf::from(&self.name)
     }
 }
 

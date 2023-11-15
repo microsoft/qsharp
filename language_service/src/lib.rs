@@ -36,8 +36,7 @@ use std::{future::Future, mem::take, path::PathBuf, pin::Pin, sync::Arc};
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
 
-// unsafe impl Send for LanguageService<'_> {}
-// unsafe impl Sync for LanguageService<'_> {}
+#[allow(clippy::type_complexity)]
 pub struct LanguageService<'a> {
     /// Workspace configuration can include compiler settings
     /// that affect error checking and other language server behavior.

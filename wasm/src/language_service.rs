@@ -41,7 +41,7 @@ impl LanguageService {
         let read_file = //: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> =
             move |path_buf: PathBuf| {
                 let path_buf_string = &path_buf.to_string_lossy().to_string();
-                let path = JsValue::from_str(&path_buf_string);
+                let path = JsValue::from_str(path_buf_string);
                 let res: js_sys::Promise = read_file
                     .call1(&JsValue::NULL, &path)
                     .expect("callback should succeed")
@@ -54,8 +54,7 @@ impl LanguageService {
                     Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
                     None => unreachable!("JS callback did not return an expected type"),
                 };
-                let pinned: Pin<Box<dyn Future<Output = _> + 'static>> = Box::pin(fut_to_string(res, func));
-                return pinned;
+            Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
             };
 
         let list_directory = list_directory
@@ -65,7 +64,7 @@ impl LanguageService {
 
         let list_directory = move |path_buf: PathBuf| {
             let path_buf_string = &path_buf.to_string_lossy().to_string();
-            let path = JsValue::from_str(&path_buf_string);
+            let path = JsValue::from_str(path_buf_string);
             let res: js_sys::Promise = list_directory
                 .call1(&JsValue::NULL, &path)
                 .expect("callback should succeed")
@@ -82,13 +81,13 @@ impl LanguageService {
                     })
                     .filter_map(|js_arr| {
                         let mut arr = js_arr.into_iter().take(2);
-                        return match (
+                        match (
                             arr.next().unwrap().as_string(),
                             arr.next().unwrap().as_f64(),
                         ) {
                             (Some(a), Some(b)) => Some((a, b as i32)),
                             _ => None,
-                        };
+                        }
                     })
                     .map(|(name, ty)| JSFileEntry {
                         name,
@@ -103,10 +102,7 @@ impl LanguageService {
                     .collect::<Vec<_>>(),
                 Err(e) => todo!("result wasn't an array error: {e:?}"),
             };
-            let pinned: Pin<Box<dyn Future<Output = _> + 'static>> =
-                Box::pin(fut_to_string(res, func));
-            log::info!("4");
-            return pinned;
+            Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
 
         let get_manifest = get_manifest
@@ -170,9 +166,7 @@ impl LanguageService {
                     manifest_dir,
                 })
             };
-            let pinned: Pin<Box<dyn Future<Output = _> + 'static>> =
-                Box::pin(fut_to_string(res, func));
-            return pinned;
+            Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
 
         let diagnostics_callback = diagnostics_callback

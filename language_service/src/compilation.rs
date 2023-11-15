@@ -71,7 +71,7 @@ impl Compilation {
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<'a, I>(cells: I) -> Self
+    pub(crate) fn new_notebook<I>(cells: I) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
@@ -88,7 +88,7 @@ impl Compilation {
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
-                .compile_fragments(&*name, &*contents, |cell_errors| {
+                .compile_fragments(&name, &contents, |cell_errors| {
                     errors.extend(cell_errors);
                     Ok(()) // accumulate errors without failing
                 })
