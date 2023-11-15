@@ -14,13 +14,10 @@ export async function getManifest(uri: string): Promise<{
   excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
-  log.info("looking for manifest");
 
   const manifestDocument = await findManifestDocument(uri);
-  log.info("1");
 
   if (manifestDocument === null) {
-    log.info("did not find");
     return null;
   }
 
@@ -34,12 +31,13 @@ export async function getManifest(uri: string): Promise<{
     );
     return null;
   }
-  log.info("2");
+
+  const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
   return {
     excludeFiles: parsedManifest.excludeFiles || [],
     excludeRegexes: parsedManifest.excludeRegexes || [],
-    manifestDirectory: manifestDocument.uri.toString(),
+    manifestDirectory: manifestDirectory.toString(),
   };
 }
 
@@ -52,7 +50,6 @@ async function findManifestDocument(
   log.info("in findManifestDocument");
   // /home/foo/bar/document.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
-  log.info("a");
 
   // /home/foo/bar
   let uriToQuery = Utils.dirname(currentDocumentUri);
@@ -60,10 +57,8 @@ async function findManifestDocument(
   let attempts = 100;
 
   while (true) {
-    log.info("b");
     attempts--;
     const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
-    log.info("looking for ", potentialManifestLocation);
 
     let listing;
     try {
@@ -97,30 +92,16 @@ async function findManifestDocument(
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
 export async function directoryListingCallback(
-  baseUri: vscode.Uri,
   directoryQuery: string,
-): Promise<string[]> {
-  log.debug("querying directory for project system", directoryQuery);
-  const workspaceFolder: vscode.WorkspaceFolder | undefined =
-    vscode.workspace.getWorkspaceFolder(baseUri);
+): Promise<[string, number][]> {
+  const uriToQuery = vscode.Uri.parse(directoryQuery);
 
-  if (!workspaceFolder) {
-    log.trace("no workspace found; no project will be loaded");
-    return [];
-  }
+  log.info('looking for in dir listing ', uriToQuery);
 
-  const absoluteDirectoryQuery = Utils.resolvePath(
-    workspaceFolder.uri,
-    "/" + directoryQuery,
-  );
-  const pattern: vscode.RelativePattern = new vscode.RelativePattern(
-    absoluteDirectoryQuery,
-    "/**/*.qs",
-  );
+  log.info("about to look for files");
+  const fileSearchResult = await vscode.workspace.fs.readDirectory(uriToQuery);
 
-  const fileSearchResult = await vscode.workspace.findFiles(pattern);
-
-  return fileSearchResult.map((x) => x.toString());
+  return fileSearchResult;
 }
 
 export async function readFileCallback(uri: string): Promise<string | null> {

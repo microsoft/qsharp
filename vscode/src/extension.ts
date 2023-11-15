@@ -259,12 +259,10 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   // construct callback
-  const dirListCallback: (uri: string) => Promise<string[]> = (path: string) =>
-    directoryListingCallback(baseUri, path);
 
   const languageService = await getLanguageService(
     readFileCallback,
-    dirListCallback,
+    directoryListingCallback,
     getManifest,
   );
   await updateLanguageServiceProfile(languageService);

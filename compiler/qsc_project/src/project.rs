@@ -17,11 +17,12 @@ pub struct Project {
 }
 
 /// This enum represents a filesystem object type. It is analogous to [std::fs::FileType].
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum EntryType {
     File,
     Folder,
     Symlink,
+    Unknown,
 }
 
 /// This trait represents a filesystem object. It is analogous to [std::fs::DirEntry].
@@ -44,6 +45,7 @@ pub trait FileSystem {
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
     /// Given a path, list its directory contents (if any).
+    /// This function should only return files that end in *.qs and folders.
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
     /// Given an initial path and some regexes to exclude, fetch files that don't match

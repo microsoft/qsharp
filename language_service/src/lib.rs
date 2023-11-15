@@ -24,6 +24,7 @@ mod tests;
 use compilation::Compilation;
 use log::{error, info, trace};
 use miette::Diagnostic;
+pub use project_system::JSFileEntry;
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
 };
@@ -71,7 +72,7 @@ pub struct LanguageService<'a> {
     read_file: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a>,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>> + 'a>,
+    list_directory: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a>,
     /// Fetch the manifest file for a specific path
     get_manifest: Box<
         dyn Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
@@ -109,7 +110,7 @@ impl<'a> LanguageService<'a> {
     pub fn new(
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
         read_file: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
-        list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<PathBuf>>>> + 'a,
+        list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
         get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
             + 'a,
     ) -> Self {

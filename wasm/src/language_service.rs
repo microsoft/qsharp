@@ -6,7 +6,8 @@ use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
 use qsc::{self};
-use qsc_project::{Manifest, ManifestDescriptor};
+use qsc_project::{EntryType, Manifest, ManifestDescriptor};
+use qsls::JSFileEntry;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -20,6 +21,7 @@ where
     F: Fn(JsValue) -> T,
 {
     let res = res.await.expect("js future shouldn't throw an exception");
+    log::trace!("asynchronous callback from wasm returned {res:?}");
     func(res)
 }
 #[wasm_bindgen]
@@ -74,13 +76,36 @@ impl LanguageService {
             let func = move |js_val: JsValue| match js_val.dyn_into::<js_sys::Array>() {
                 Ok(arr) => arr
                     .into_iter()
-                    .filter_map(|x| x.as_string())
-                    .map(PathBuf::from)
+                    .map(|x| {
+                        x.dyn_into::<js_sys::Array>()
+                            .expect("expected directory listing callback to return array of arrays")
+                    })
+                    .filter_map(|js_arr| {
+                        let mut arr = js_arr.into_iter().take(2);
+                        return match (
+                            arr.next().unwrap().as_string(),
+                            arr.next().unwrap().as_f64(),
+                        ) {
+                            (Some(a), Some(b)) => Some((a, b as i32)),
+                            _ => None,
+                        };
+                    })
+                    .map(|(name, ty)| JSFileEntry {
+                        name,
+                        r#type: match ty {
+                            0 => EntryType::Unknown,
+                            1 => EntryType::File,
+                            2 => EntryType::Folder,
+                            64 => EntryType::Symlink,
+                            _ => unreachable!(),
+                        },
+                    })
                     .collect::<Vec<_>>(),
                 Err(e) => todo!("result wasn't an array error: {e:?}"),
             };
             let pinned: Pin<Box<dyn Future<Output = _> + 'static>> =
                 Box::pin(fut_to_string(res, func));
+            log::info!("4");
             return pinned;
         };
 
@@ -552,7 +577,7 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string[]>")]
+    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<[string, number][]>")]
     pub type ListDirectoryCallback;
 }
 
