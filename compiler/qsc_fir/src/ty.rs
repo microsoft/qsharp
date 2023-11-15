@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
     fmt::{self, Debug, Display, Formatter, Write},
-    sync::Arc,
+    rc::Rc,
 };
 
 fn set_indentation<'a, 'b>(
@@ -407,7 +407,7 @@ pub struct Udt {
     /// The span.
     pub span: Span,
     /// The name.
-    pub name: Arc<str>,
+    pub name: Rc<str>,
     // The definition.
     pub definition: UdtDef,
 }
@@ -562,7 +562,7 @@ pub struct UdtField {
     /// The span of the field name.
     pub name_span: Option<Span>,
     /// The field name.
-    pub name: Option<Arc<str>>,
+    pub name: Option<Rc<str>>,
     // The field type.
     pub ty: Ty,
 }

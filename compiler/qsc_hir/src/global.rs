@@ -7,11 +7,11 @@ use crate::{
 };
 use qsc_data_structures::index_map;
 use rustc_hash::FxHashMap;
-use std::sync::Arc;
+use std::rc::Rc;
 
 pub struct Global {
-    pub namespace: Arc<str>,
-    pub name: Arc<str>,
+    pub namespace: Rc<str>,
+    pub name: Rc<str>,
     pub visibility: Visibility,
     pub status: ItemStatus,
     pub kind: Kind,
@@ -34,8 +34,8 @@ pub struct Term {
 
 #[derive(Default)]
 pub struct Table {
-    tys: FxHashMap<Arc<str>, FxHashMap<Arc<str>, Ty>>,
-    terms: FxHashMap<Arc<str>, FxHashMap<Arc<str>, Term>>,
+    tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Ty>>,
+    terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Term>>,
 }
 
 impl Table {
@@ -100,8 +100,8 @@ impl PackageIter<'_> {
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
-                namespace: Arc::clone(&namespace.name),
-                name: Arc::clone(&decl.name.name),
+                namespace: Rc::clone(&namespace.name),
+                name: Rc::clone(&decl.name.name),
                 visibility: item.visibility,
                 status,
                 kind: Kind::Term(Term {
@@ -111,8 +111,8 @@ impl PackageIter<'_> {
             }),
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
-                    namespace: Arc::clone(&namespace.name),
-                    name: Arc::clone(&name.name),
+                    namespace: Rc::clone(&namespace.name),
+                    name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     status,
                     kind: Kind::Term(Term {
@@ -122,8 +122,8 @@ impl PackageIter<'_> {
                 });
 
                 Some(Global {
-                    namespace: Arc::clone(&namespace.name),
-                    name: Arc::clone(&name.name),
+                    namespace: Rc::clone(&namespace.name),
+                    name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     status,
                     kind: Kind::Ty(Ty { id }),
@@ -131,7 +131,7 @@ impl PackageIter<'_> {
             }
             (ItemKind::Namespace(ident, _), None) => Some(Global {
                 namespace: "".into(),
-                name: Arc::clone(&ident.name),
+                name: Rc::clone(&ident.name),
                 visibility: Visibility::Public,
                 status,
                 kind: Kind::Namespace,

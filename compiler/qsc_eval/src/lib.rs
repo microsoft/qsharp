@@ -34,7 +34,7 @@ use std::{
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
-    sync::Arc,
+    rc::Rc,
 };
 use thiserror::Error;
 use val::GlobalId;
@@ -255,7 +255,7 @@ impl AsIndex for i64 {
 
 #[derive(Debug, Clone)]
 struct Variable {
-    name: Arc<str>,
+    name: Rc<str>,
     value: Value,
     mutability: Mutability,
     span: Span,
@@ -264,7 +264,7 @@ struct Variable {
 #[derive(Debug, Clone)]
 pub struct VariableInfo {
     pub value: Value,
-    pub name: Arc<str>,
+    pub name: Rc<str>,
     pub type_name: String,
     pub id: NodeId,
     pub mutability: Mutability,
@@ -427,7 +427,7 @@ enum Action {
     Range(bool, bool, bool),
     Return,
     StringConcat(usize),
-    StringLit(Arc<str>),
+    StringLit(Rc<str>),
     UpdateIndex(Span),
     Tuple(usize),
     UnOp(UnOp),
@@ -761,7 +761,7 @@ impl State {
 
     fn cont_string(&mut self, components: &[StringComponent]) {
         if let [StringComponent::Lit(str)] = components {
-            self.push_val(Value::String(Arc::clone(str)));
+            self.push_val(Value::String(Rc::clone(str)));
             return;
         }
 
@@ -1317,7 +1317,7 @@ impl State {
         spec_pat: Option<PatId>,
         args_val: Value,
         ctl_count: u8,
-        fixed_args: Option<Arc<[Value]>>,
+        fixed_args: Option<Rc<[Value]>>,
     ) {
         match spec_pat {
             Some(spec_pat) => {
@@ -1369,7 +1369,7 @@ impl State {
     }
 }
 
-fn merge_fixed_args(fixed_args: Option<Arc<[Value]>>, arg: Value) -> Value {
+fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
     if let Some(fixed_args) = fixed_args {
         Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
     } else {

@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
@@ -211,7 +211,7 @@ pub(crate) fn find_item_locations(
 
 pub(crate) fn find_field_locations(
     ty_item_id: &hir::ItemId,
-    field_name: Arc<str>,
+    field_name: Rc<str>,
     compilation: &Compilation,
     include_declaration: bool,
 ) -> Vec<Location> {
@@ -337,7 +337,7 @@ impl<'a> FindItemRefs<'a> {
 
 struct FindFieldRefs<'a> {
     ty_item_id: &'a hir::ItemId,
-    field_name: Arc<str>,
+    field_name: Rc<str>,
     compilation: &'a Compilation,
     locations: Vec<Span>,
 }

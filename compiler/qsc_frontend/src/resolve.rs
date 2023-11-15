@@ -17,7 +17,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, str::FromStr, sync::Arc, vec};
+use std::{collections::hash_map::Entry, str::FromStr, rc::Rc, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -103,11 +103,11 @@ pub(super) enum Error {
 
 struct Scope {
     kind: ScopeKind,
-    opens: FxHashMap<Arc<str>, Vec<Open>>,
-    tys: FxHashMap<Arc<str>, ItemId>,
-    terms: FxHashMap<Arc<str>, ItemId>,
-    vars: FxHashMap<Arc<str>, NodeId>,
-    ty_vars: FxHashMap<Arc<str>, ParamId>,
+    opens: FxHashMap<Rc<str>, Vec<Open>>,
+    tys: FxHashMap<Rc<str>, ItemId>,
+    terms: FxHashMap<Rc<str>, ItemId>,
+    vars: FxHashMap<Rc<str>, NodeId>,
+    ty_vars: FxHashMap<Rc<str>, ParamId>,
 }
 
 impl Scope {
@@ -132,9 +132,9 @@ impl Scope {
 }
 
 struct GlobalScope {
-    tys: FxHashMap<Arc<str>, FxHashMap<Arc<str>, Res>>,
-    terms: FxHashMap<Arc<str>, FxHashMap<Arc<str>, Res>>,
-    namespaces: FxHashSet<Arc<str>>,
+    tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
+    terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
+    namespaces: FxHashSet<Rc<str>>,
 }
 
 impl GlobalScope {
@@ -149,7 +149,7 @@ impl GlobalScope {
 
 #[derive(Eq, PartialEq)]
 enum ScopeKind {
-    Namespace(Arc<str>),
+    Namespace(Rc<str>),
     Callable,
     Block,
 }
@@ -161,14 +161,14 @@ enum NameKind {
 }
 
 struct Open {
-    namespace: Arc<str>,
+    namespace: Rc<str>,
     span: Span,
 }
 
 pub(super) struct Resolver {
     names: Names,
     dropped_names: Vec<TrackedName>,
-    curr_params: Option<FxHashSet<Arc<str>>>,
+    curr_params: Option<FxHashSet<Rc<str>>>,
     globals: GlobalScope,
     scopes: Vec<Scope>,
     errors: Vec<Error>,
@@ -294,16 +294,16 @@ impl Resolver {
         self.bind_pat_recursive(pat, &mut bindings);
     }
 
-    fn bind_pat_recursive(&mut self, pat: &ast::Pat, bindings: &mut FxHashSet<Arc<str>>) {
+    fn bind_pat_recursive(&mut self, pat: &ast::Pat, bindings: &mut FxHashSet<Rc<str>>) {
         match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
-                if !bindings.insert(Arc::clone(&name.name)) {
+                if !bindings.insert(Rc::clone(&name.name)) {
                     self.errors
                         .push(Error::DuplicateBinding(name.name.to_string(), name.span));
                 }
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 self.names.insert(name.id, Res::Local(name.id));
-                scope.vars.insert(Arc::clone(&name.name), name.id);
+                scope.vars.insert(Rc::clone(&name.name), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided | ast::PatKind::Err => {}
             ast::PatKind::Paren(pat) => self.bind_pat_recursive(pat, bindings),
@@ -314,11 +314,11 @@ impl Resolver {
     }
 
     fn bind_open(&mut self, name: &ast::Ident, alias: &Option<Box<ast::Ident>>) {
-        let alias = alias.as_ref().map_or("".into(), |a| Arc::clone(&a.name));
+        let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
         let scope = self.scopes.last_mut().expect("open item should have scope");
         if self.globals.namespaces.contains(&name.name) {
             scope.opens.entry(alias).or_default().push(Open {
-                namespace: Arc::clone(&name.name),
+                namespace: Rc::clone(&name.name),
                 span: name.span,
             });
         } else {
@@ -340,7 +340,7 @@ impl Resolver {
                     ),
                 );
                 let scope = self.scopes.last_mut().expect("binding should have scope");
-                scope.terms.insert(Arc::clone(&decl.name.name), id);
+                scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
@@ -352,8 +352,8 @@ impl Resolver {
                     ),
                 );
                 let scope = self.scopes.last_mut().expect("binding should have scope");
-                scope.tys.insert(Arc::clone(&name.name), id);
-                scope.terms.insert(Arc::clone(&name.name), id);
+                scope.tys.insert(Rc::clone(&name.name), id);
+                scope.terms.insert(Rc::clone(&name.name), id);
             }
             ast::ItemKind::Err => {}
         }
@@ -365,7 +365,7 @@ impl Resolver {
                 .scopes
                 .last_mut()
                 .expect("type parameters should have scope");
-            scope.ty_vars.insert(Arc::clone(&ident.name), ix.into());
+            scope.ty_vars.insert(Rc::clone(&ident.name), ix.into());
             self.names.insert(ident.id, Res::Param(ix.into()));
         });
     }
@@ -408,7 +408,7 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let kind = ScopeKind::Namespace(Arc::clone(&namespace.name.name));
+        let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
         self.with_scope(kind, |visitor| {
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
@@ -428,10 +428,10 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        fn collect_param_names(pat: &ast::Pat, names: &mut FxHashSet<Arc<str>>) {
+        fn collect_param_names(pat: &ast::Pat, names: &mut FxHashSet<Rc<str>>) {
             match &*pat.kind {
                 ast::PatKind::Bind(name, _) => {
-                    names.insert(Arc::clone(&name.name));
+                    names.insert(Rc::clone(&name.name));
                 }
                 ast::PatKind::Discard(_) | ast::PatKind::Elided | ast::PatKind::Err => {}
                 ast::PatKind::Paren(pat) => collect_param_names(pat, names),
@@ -540,7 +540,7 @@ pub(super) struct GlobalTable {
 
 impl GlobalTable {
     pub(super) fn new() -> Self {
-        let builtins: [(Arc<str>, Res); 10] = [
+        let builtins: [(Rc<str>, Res); 10] = [
             ("BigInt".into(), Res::PrimTy(Prim::BigInt)),
             ("Bool".into(), Res::PrimTy(Prim::Bool)),
             ("Double".into(), Res::PrimTy(Prim::Double)),
@@ -552,11 +552,11 @@ impl GlobalTable {
             ("String".into(), Res::PrimTy(Prim::String)),
             ("Unit".into(), Res::UnitTy),
         ];
-        let mut core: FxHashMap<Arc<str>, Res> = FxHashMap::default();
+        let mut core: FxHashMap<Rc<str>, Res> = FxHashMap::default();
         for (name, res) in builtins {
             core.insert(name, res);
         }
-        let mut tys: FxHashMap<Arc<str>, FxHashMap<Arc<str>, Res>> = FxHashMap::default();
+        let mut tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>> = FxHashMap::default();
         tys.insert("Microsoft.Quantum.Core".into(), core);
 
         Self {
@@ -632,7 +632,7 @@ fn bind_global_items(
         namespace.name.id,
         Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
     );
-    scope.namespaces.insert(Arc::clone(&namespace.name.name));
+    scope.namespaces.insert(Rc::clone(&namespace.name.name));
 
     for item in &*namespace.items {
         match bind_global_item(
@@ -651,7 +651,7 @@ fn bind_global_items(
 /// Tries to extract a field name from an expression in cases where it is syntactically ambiguous
 /// whether the expression is a field name or a variable name. This applies to the index operand in
 /// a ternary update operator.
-pub(super) fn extract_field_name<'a>(names: &Names, expr: &'a ast::Expr) -> Option<&'a Arc<str>> {
+pub(super) fn extract_field_name<'a>(names: &Names, expr: &'a ast::Expr) -> Option<&'a Rc<str>> {
     // Follow the same reasoning as `is_field_update`.
     match &*expr.kind {
         ast::ExprKind::Path(path)
@@ -689,7 +689,7 @@ fn ast_attrs_as_hir_attrs(attrs: &[Box<ast::Attr>]) -> Vec<hir::Attr> {
 fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
-    namespace: &Arc<str>,
+    namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
     item: &ast::Item,
 ) -> Result<(), Error> {
@@ -701,9 +701,9 @@ fn bind_global_item(
             names.insert(decl.name.id, res);
             match scope
                 .terms
-                .entry(Arc::clone(namespace))
+                .entry(Rc::clone(namespace))
                 .or_default()
-                .entry(Arc::clone(&decl.name.name))
+                .entry(Rc::clone(&decl.name.name))
             {
                 Entry::Occupied(_) => Err(Error::Duplicate(
                     decl.name.name.to_string(),
@@ -724,14 +724,14 @@ fn bind_global_item(
             match (
                 scope
                     .terms
-                    .entry(Arc::clone(namespace))
+                    .entry(Rc::clone(namespace))
                     .or_default()
-                    .entry(Arc::clone(&name.name)),
+                    .entry(Rc::clone(&name.name)),
                 scope
                     .tys
-                    .entry(Arc::clone(namespace))
+                    .entry(Rc::clone(namespace))
                     .or_default()
-                    .entry(Arc::clone(&name.name)),
+                    .entry(Rc::clone(&name.name)),
             ) {
                 (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(Error::Duplicate(
                     name.name.to_string(),

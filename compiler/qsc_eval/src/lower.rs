@@ -9,7 +9,7 @@ use qsc_fir::{
     ty::{Arrow, InferFunctorId, ParamId, Ty},
 };
 use qsc_hir::hir;
-use std::{clone::Clone, sync::Arc};
+use std::{clone::Clone, rc::Rc};
 
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
@@ -145,7 +145,7 @@ impl Lowerer {
             id: lower_local_item_id(item.id),
             span: item.span,
             parent: item.parent.map(lower_local_item_id),
-            doc: Arc::clone(&item.doc),
+            doc: Rc::clone(&item.doc),
             attrs,
             visibility: lower_visibility(item.visibility),
             kind,
@@ -374,7 +374,7 @@ impl Lowerer {
     fn lower_string_component(&mut self, component: &hir::StringComponent) -> fir::StringComponent {
         match component {
             hir::StringComponent::Expr(expr) => fir::StringComponent::Expr(self.lower_expr(expr)),
-            hir::StringComponent::Lit(str) => fir::StringComponent::Lit(Arc::clone(str)),
+            hir::StringComponent::Lit(str) => fir::StringComponent::Lit(Rc::clone(str)),
         }
     }
 

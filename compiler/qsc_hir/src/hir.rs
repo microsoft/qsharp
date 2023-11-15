@@ -15,7 +15,7 @@ use std::{
     hash::{Hash, Hasher},
     result,
     str::FromStr,
-    sync::Arc,
+    rc::Rc,
 };
 
 fn set_indentation<'a, 'b>(
@@ -282,7 +282,7 @@ pub struct Item {
     /// The parent item.
     pub parent: Option<LocalItemId>,
     /// The documentation.
-    pub doc: Arc<str>,
+    pub doc: Rc<str>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -1002,7 +1002,7 @@ pub enum StringComponent {
     /// An expression.
     Expr(Expr),
     /// A string literal.
-    Lit(Arc<str>),
+    Lit(Rc<str>),
 }
 
 /// A pattern.
@@ -1137,7 +1137,7 @@ pub struct Ident {
     /// The span.
     pub span: Span,
     /// The identifier name.
-    pub name: Arc<str>,
+    pub name: Rc<str>,
 }
 
 impl Display for Ident {

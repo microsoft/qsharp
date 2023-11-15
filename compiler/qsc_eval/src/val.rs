@@ -6,17 +6,17 @@ use qsc_fir::fir::{LocalItemId, PackageId, Pauli};
 use std::{
     fmt::{self, Display, Formatter},
     iter,
-    sync::Arc,
+    rc::Rc,
 };
 
 pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    Array(Arc<[Value]>),
+    Array(Rc<[Value]>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(Arc<[Value]>, GlobalId, FunctorApp),
+    Closure(Rc<[Value]>, GlobalId, FunctorApp),
     Double(f64),
     Global(GlobalId, FunctorApp),
     Int(i64),
@@ -24,8 +24,8 @@ pub enum Value {
     Qubit(Qubit),
     Range(Option<i64>, i64, Option<i64>),
     Result(Result),
-    String(Arc<str>),
-    Tuple(Arc<[Value]>),
+    String(Rc<str>),
+    Tuple(Rc<[Value]>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -177,7 +177,7 @@ impl Value {
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Array`].
     #[must_use]
-    pub fn unwrap_array(self) -> Arc<[Self]> {
+    pub fn unwrap_array(self) -> Rc<[Self]> {
         let Value::Array(v) = self else {
             panic!("value should be Array, got {}", self.type_name());
         };
@@ -287,7 +287,7 @@ impl Value {
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::String`].
     #[must_use]
-    pub fn unwrap_string(self) -> Arc<str> {
+    pub fn unwrap_string(self) -> Rc<str> {
         let Value::String(v) = self else {
             panic!("value should be String, got {}", self.type_name());
         };
@@ -298,7 +298,7 @@ impl Value {
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Tuple`].
     #[must_use]
-    pub fn unwrap_tuple(self) -> Arc<[Self]> {
+    pub fn unwrap_tuple(self) -> Rc<[Self]> {
         let Value::Tuple(v) = self else {
             panic!("value should be Tuple, got {}", self.type_name());
         };
