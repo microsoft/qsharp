@@ -50,8 +50,6 @@ impl qsc_project::FileSystem for LanguageService<'_> {
     }
 
     async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        let list_directory = (self.list_directory)(path.into()).await;
-        crate::info!("listed directory, got {:?} results", list_directory);
-        Ok(list_directory)
+        Ok((self.list_directory)(path.into()).await)
     }
 }
