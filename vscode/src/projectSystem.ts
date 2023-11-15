@@ -62,25 +62,20 @@ async function findManifestDocument(
   while (true) {
     log.info("b");
     attempts--;
-    let pattern = new vscode.RelativePattern(uriToQuery, "qsharp.json");
-    log.info("bb", pattern, JSON.stringify(pattern, null, 2));
-    let listing: vscode.Uri[] = [];
-    try { listing = await vscode.workspace.findFiles(pattern, undefined, 1); } catch (err) {
-      log.info("got err from findfiles", err);
+    const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
+    log.info("looking for ", potentialManifestLocation);
+
+    let listing;
+    try {
+      listing = await readFile(potentialManifestLocation);
+    } catch (err) {
     }
 
-    log.info("c");
-    if (listing.length > 1) {
-      log.error(
-        "Found multiple manifest files in the same directory -- this shouldn't be possible.",
-      );
-      log.info("d");
+    if (listing) {
+      log.info("found manifest at ", potentialManifestLocation)
+      return listing;
     }
 
-    if (listing.length > 0) {
-      log.info("e");
-      return await readFile(listing[0]);
-    }
 
     log.info("f");
     const oldUriToQuery = uriToQuery;

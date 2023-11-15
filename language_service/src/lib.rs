@@ -150,7 +150,6 @@ impl<'a> LanguageService<'a> {
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         info!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
-        info!("1");
         let sources = if let Some(ref manifest) = manifest {
             info!("manifest found, this is a project"); // if there is a manifest, this is a project
             let project = match self.load_project(manifest).await {
@@ -160,18 +159,17 @@ impl<'a> LanguageService<'a> {
                     return;
                 }
             };
+            info!("Loaded project with {} sources.", project.sources.len());
             project.sources
         } else {
             info!("no manifest found");
             vec![(Arc::from(uri), Arc::from(text))]
         };
-        info!("2");
         let compilation = Compilation::new_open_document(
             sources,
             self.configuration.package_type,
             self.configuration.target_profile,
         );
-        info!("3");
         // If we are in single file mode, use the file's path as the compilation identifier.
         // If we are compiling a project, use the path to the project manifest
         let uri: Arc<str> = if let Some(manifest) = manifest {
@@ -179,7 +177,6 @@ impl<'a> LanguageService<'a> {
         } else {
             uri.into()
         };
-        info!("4");
         self.compilations.insert(uri.clone(), compilation);
         self.open_documents.insert(
             uri.clone(),
