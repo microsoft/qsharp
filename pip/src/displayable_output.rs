@@ -7,9 +7,10 @@ mod tests;
 use num_bigint::BigUint;
 use num_complex::{Complex64, ComplexFloat};
 use qsc::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase};
+use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
-pub struct DisplayableState(pub Vec<(BigUint, Complex64)>, pub usize);
+pub struct DisplayableState(pub FxHashMap<BigUint, Complex64>, pub usize);
 
 impl DisplayableState {
     pub fn to_plain(&self) -> String {

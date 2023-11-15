@@ -41,15 +41,15 @@ def test_dump_machine() -> None:
     X(q1);
     """
     )
-    (state, qubit_count) = qsharp.dump_machine()
-    assert qubit_count == 2
-    assert len(state) == 1
-    assert state[1] == (1.0, 0.0)
+    state_dump = qsharp.dump_machine()
+    assert state_dump.qubit_count == 2
+    assert len(state_dump) == 1
+    assert state_dump[1] == (1.0, 0.0)
     qsharp.eval("X(q2);")
-    (state, qubit_count) = qsharp.dump_machine()
-    assert qubit_count == 2
-    assert len(state) == 1
-    assert state[3] == (1.0, 0.0)
+    state_dump = qsharp.dump_machine()
+    assert state_dump.qubit_count == 2
+    assert len(state_dump) == 1
+    assert state_dump[3] == (1.0, 0.0)
 
 
 def test_compile_qir_input_data() -> None:

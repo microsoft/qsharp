@@ -1,8 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, TargetProfile
-from typing import Tuple
+from ._native import Interpreter, TargetProfile, StateDump
 
 _interpreter = None
 
@@ -89,13 +88,11 @@ def compile(entry_expr):
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
-def dump_machine() -> Tuple[dict, int]:
+def dump_machine() -> StateDump:
     """
-    Returns the sparse state vector of the simulator as a
-    (amplitudes, qubit_count) tuple, where amplitudes is a dictionary from state integer to
-    pair of real and imaginary amplitudes.
+    Returns the sparse state vector of the simulator as a StateDump object.
 
-    :returns: The state of the simulator as a tuple.
+    :returns: The state of the simulator.
     """
     return get_interpreter().dump_machine()
 

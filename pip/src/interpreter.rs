@@ -22,6 +22,7 @@ use qsc::{
     },
     PackageType, SourceMap,
 };
+use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
 #[pymodule]
@@ -31,6 +32,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
+    m.add_class::<StateDump>()?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
     Ok(())
@@ -104,26 +106,12 @@ impl Interpreter {
     /// Dumps the quantum state of the interpreter.
     /// Returns a tuple of (amplitudes, num_qubits), where amplitudes is a dictionary from integer indices to
     /// pairs of real and imaginary amplitudes.
-    fn dump_machine(&mut self, py: Python) -> (Py<PyDict>, usize) {
-        let (state, num_qubits) = self.interpreter.get_quantum_state();
-        (
-            PyDict::from_sequence(
-                py,
-                PyList::new(
-                    py,
-                    state.into_iter().map(|(k, v)| {
-                        PyTuple::new(
-                            py,
-                            &[k.into_py(py), PyTuple::new(py, [v.re, v.im]).into_py(py)],
-                        )
-                    }),
-                )
-                .into_py(py),
-            )
-            .expect("should be able to create dict")
-            .into_py(py),
-            num_qubits,
-        )
+    fn dump_machine(&mut self) -> StateDump {
+        let (state, qubit_count) = self.interpreter.get_quantum_state();
+        StateDump(DisplayableState(
+            state.into_iter().collect::<FxHashMap<_, _>>(),
+            qubit_count,
+        ))
     }
 
     fn run(
@@ -200,6 +188,62 @@ impl Output {
             DisplayableOutput::State(state) => state.to_html(),
             DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
         }
+    }
+}
+
+#[pyclass(unsendable)]
+/// Captured simlation state dump.
+pub(crate) struct StateDump(pub(crate) DisplayableState);
+
+#[pymethods]
+impl StateDump {
+    fn get_dict(&self, py: Python) -> Py<PyDict> {
+        PyDict::from_sequence(
+            py,
+            PyList::new(
+                py,
+                self.0
+                     .0
+                    .iter()
+                    .map(|(k, v)| {
+                        PyTuple::new(
+                            py,
+                            &[k.clone().into_py(py), PyTuple::new(py, [v.re, v.im]).into()],
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .into_py(py),
+        )
+        .expect("should be able to create dict")
+        .into_py(py)
+    }
+
+    #[getter]
+    fn get_qubit_count(&self) -> usize {
+        self.0 .1
+    }
+
+    // Pass by value is needed for compatiblity with the pyo3 API.
+    #[allow(clippy::needless_pass_by_value)]
+    fn __getitem__(&self, key: BigUint) -> Option<(f64, f64)> {
+        self.0 .0.get(&key).map(|state| (state.re, state.im))
+    }
+
+    fn __len__(&self) -> usize {
+        self.0 .0.len()
+    }
+
+    fn __repr__(&self) -> String {
+        self.0.to_plain()
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn _repr_html_(&self) -> String {
+        self.0.to_html()
     }
 }
 
@@ -306,6 +350,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
         qubit_count: usize,
     ) -> core::result::Result<(), Error> {
         if let Some(callback) = &self.callback {
+            let state = state.into_iter().collect::<FxHashMap<_, _>>();
             let out = DisplayableOutput::State(DisplayableState(state, qubit_count));
             callback
                 .call1(

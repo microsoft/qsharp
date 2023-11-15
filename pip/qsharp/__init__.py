@@ -3,7 +3,7 @@
 
 from ._qsharp import init, eval, eval_file, run, compile, dump_machine
 
-from ._native import Result, Pauli, QSharpError, TargetProfile
+from ._native import Result, Pauli, QSharpError, TargetProfile, StateDump
 
 # IPython notebook specific features
 try:
@@ -27,4 +27,5 @@ __all__ = [
     "Pauli",
     "QSharpError",
     "TargetProfile",
+    "StateDump"
 ]
