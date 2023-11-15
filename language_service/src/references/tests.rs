@@ -2,8 +2,12 @@
 // Licensed under the MIT License.
 
 use super::get_references;
-use crate::test_utils::{
-    compile_with_fake_stdlib, get_source_and_marker_offsets, target_offsets_to_spans,
+use crate::{
+    protocol,
+    test_utils::{
+        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
+        get_source_and_marker_offsets, target_offsets_to_spans,
+    },
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -35,7 +39,10 @@ fn check(source_with_markers: &str, include_declaration: bool) {
     .map(|l| l.span)
     .collect::<Vec<_>>();
     for target in &target_spans {
-        assert!(actual.contains(target));
+        assert!(
+            actual.contains(target),
+            "expected {actual:?} to contain {target:?}"
+        );
     }
     assert!(target_spans.len() == actual.len());
 }
@@ -46,6 +53,25 @@ fn check_include_decl(source_with_markers: &str) {
 
 fn check_exclude_decl(source_with_markers: &str) {
     check(source_with_markers, false);
+}
+
+fn check_notebook_exclude_decl(cells_with_markers: &[(&str, &str)]) {
+    let (compilation, cell_uri, offset, target_spans) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+
+    let actual = get_references(&compilation, &cell_uri, offset, false)
+        .into_iter()
+        .collect::<Vec<_>>();
+    for target in &target_spans {
+        assert!(
+            actual.contains(&protocol::Location {
+                source: target.0.clone(),
+                span: target.1
+            }),
+            "expected {actual:?} to contain {target:?}"
+        );
+    }
+    assert!(target_spans.len() == actual.len());
 }
 
 #[test]
@@ -437,4 +463,21 @@ fn ty_param_ref() {
         }
     "#,
     );
+}
+
+#[test]
+fn notebook_across_cells() {
+    check_notebook_exclude_decl(&[
+        ("cell1", "operation Callee() : Unit {}"),
+        ("cell2", "◉C↘allee◉();"),
+        ("cell3", "◉Callee◉();"),
+    ]);
+}
+
+#[test]
+fn notebook_defined_in_later_cell() {
+    check_notebook_exclude_decl(&[
+        ("cell1", "C↘allee();"),
+        ("cell2", "operation Callee() : Unit {}"),
+    ]);
 }

@@ -4,9 +4,10 @@
 #[cfg(test)]
 mod tests;
 
+use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
-use crate::qsc_utils::{map_offset, protocol_location, Compilation};
+use crate::qsc_utils::protocol_location;
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir};
 
@@ -15,8 +16,8 @@ pub(crate) fn get_definition(
     source_name: &str,
     offset: u32,
 ) -> Option<Location> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut definition_finder = DefinitionFinder {
         compilation,
@@ -24,7 +25,7 @@ pub(crate) fn get_definition(
     };
 
     let mut locator = Locator::new(&mut definition_finder, offset, compilation);
-    locator.visit_package(&compilation.user_unit.ast.package);
+    locator.visit_package(user_ast_package);
 
     definition_finder.definition
 }
@@ -41,7 +42,11 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        self.definition = Some(protocol_location(self.compilation, name.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            name.span,
+            self.compilation.user_package_id,
+        ));
     }
 
     fn at_callable_ref(
@@ -55,7 +60,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             decl.name.span,
-            item_id.package,
+            item_id.package.expect("package id should be resolved"),
         ));
     }
 
@@ -65,7 +70,11 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         def_name: &'a ast::Ident,
         _: hir::ty::ParamId,
     ) {
-        self.definition = Some(protocol_location(self.compilation, def_name.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            def_name.span,
+            self.compilation.user_package_id,
+        ));
     }
 
     fn at_type_param_ref(
@@ -75,11 +84,19 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: hir::ty::ParamId,
         def_name: &'a ast::Ident,
     ) {
-        self.definition = Some(protocol_location(self.compilation, def_name.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            def_name.span,
+            self.compilation.user_package_id,
+        ));
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        self.definition = Some(protocol_location(self.compilation, type_name.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            type_name.span,
+            self.compilation.user_package_id,
+        ));
     }
 
     fn at_new_type_ref(
@@ -93,12 +110,16 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(protocol_location(
             self.compilation,
             type_name.span,
-            item_id.package,
+            item_id.package.expect("package id should be resolved"),
         ));
     }
 
     fn at_field_def(&mut self, _: &LocatorContext<'a>, field_name: &'a ast::Ident, _: &'a ast::Ty) {
-        self.definition = Some(protocol_location(self.compilation, field_name.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            field_name.span,
+            self.compilation.user_package_id,
+        ));
     }
 
     fn at_field_ref(
@@ -111,11 +132,19 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         let span = field_def
             .name_span
             .expect("field found via name should have a name");
-        self.definition = Some(protocol_location(self.compilation, span, item_id.package));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            span,
+            item_id.package.expect("package id should be resolved"),
+        ));
     }
 
     fn at_local_def(&mut self, _: &LocatorContext<'a>, ident: &'a ast::Ident, _: &'a ast::Pat) {
-        self.definition = Some(protocol_location(self.compilation, ident.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            ident.span,
+            self.compilation.user_package_id,
+        ));
     }
 
     fn at_local_ref(
@@ -125,6 +154,10 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &'a ast::NodeId,
         definition: &'a ast::Ident,
     ) {
-        self.definition = Some(protocol_location(self.compilation, definition.span, None));
+        self.definition = Some(protocol_location(
+            self.compilation,
+            definition.span,
+            self.compilation.user_package_id,
+        ));
     }
 }

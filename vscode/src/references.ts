@@ -3,6 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
+import { loadDocument } from "./common";
 
 export function createReferenceProvider(languageService: ILanguageService) {
   return new QSharpReferenceProvider(languageService);
@@ -26,7 +27,7 @@ class QSharpReferenceProvider implements vscode.ReferenceProvider {
     const references = [];
     for (const reference of lsReferences) {
       const uri = vscode.Uri.parse(reference.source);
-      const referenceDoc = await vscode.workspace.openTextDocument(uri);
+      const referenceDoc = await loadDocument(uri);
       const referenceRange = new vscode.Range(
         referenceDoc.positionAt(reference.span.start),
         referenceDoc.positionAt(reference.span.end),

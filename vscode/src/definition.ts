@@ -3,6 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
+import { loadDocument } from "./common";
 
 export function createDefinitionProvider(languageService: ILanguageService) {
   return new QSharpDefinitionProvider(languageService);
@@ -23,8 +24,7 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
     );
     if (!definition) return null;
     const uri = vscode.Uri.parse(definition.source);
-    // We have to do this to map the position :(
-    const definitionDoc = await vscode.workspace.openTextDocument(uri);
+    const definitionDoc = await loadDocument(uri);
     const definitionRange = new vscode.Range(
       definitionDoc.positionAt(definition.span.start),
       definitionDoc.positionAt(definition.span.end),

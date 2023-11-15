@@ -4,10 +4,11 @@
 #[cfg(test)]
 mod tests;
 
+use crate::compilation::Compilation;
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
-use crate::qsc_utils::{map_offset, protocol_span, Compilation};
+use crate::qsc_utils::protocol_span;
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir};
 use std::fmt::Display;
@@ -18,8 +19,8 @@ pub(crate) fn get_hover(
     source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut hover_visitor = HoverGenerator {
         compilation,
@@ -28,7 +29,7 @@ pub(crate) fn get_hover(
     };
 
     let mut locator = Locator::new(&mut hover_visitor, offset, compilation);
-    locator.visit_package(&compilation.user_unit.ast.package);
+    locator.visit_package(user_ast_package);
     hover_visitor.hover
 }
 
@@ -58,7 +59,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(name.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -84,12 +85,15 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = display_callable(
             &item.doc,
             &ns,
-            self.display.hir_callable_decl(item_id.package, decl),
+            self.display.hir_callable_decl(
+                item_id.package.expect("package id should be resolved"),
+                decl,
+            ),
         );
 
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.user_unit.sources),
+            span: protocol_span(path.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -114,7 +118,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(def_name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(def_name.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -140,7 +144,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(ref_name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(ref_name.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -148,7 +152,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(type_name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(type_name.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -160,11 +164,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let contents = markdown_fenced_block(self.display.hir_udt(item_id.package, udt));
+        let contents = markdown_fenced_block(
+            self.display
+                .hir_udt(item_id.package.expect("package id should be resolved"), udt),
+        );
 
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.user_unit.sources),
+            span: protocol_span(path.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -177,7 +184,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(field_name.span, &self.compilation.user_unit.sources),
+            span: protocol_span(field_name.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -191,7 +198,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(field_ref.span, &self.compilation.user_unit.sources),
+            span: protocol_span(field_ref.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -223,7 +230,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(ident.span, &self.compilation.user_unit.sources),
+            span: protocol_span(ident.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -257,7 +264,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.user_unit.sources),
+            span: protocol_span(path.span, &self.compilation.user_unit().sources),
         });
     }
 }

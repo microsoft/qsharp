@@ -3,9 +3,13 @@
 
 use expect_test::{expect, Expect};
 
-use super::{get_definition, Location};
-use crate::test_utils::{
-    compile_with_fake_stdlib, get_source_and_marker_offsets, target_offsets_to_spans,
+use super::get_definition;
+use crate::{
+    protocol::Location,
+    test_utils::{
+        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
+        get_source_and_marker_offsets, target_offsets_to_spans,
+    },
 };
 
 /// Asserts that the definition given at the cursor position matches the expected range.
@@ -28,8 +32,21 @@ fn assert_definition(source_with_markers: &str) {
     assert_eq!(&expected_definition, &actual_definition);
 }
 
-/// Asserts that the definition given at the cursor position matches the expected definition.
-/// The cursor position is indicated by a `↘` marker in the source text.
+fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
+    let (compilation, cell_uri, offset, target_spans) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let actual_definition = get_definition(&compilation, &cell_uri, offset);
+    let expected_definition = if target_spans.is_empty() {
+        None
+    } else {
+        Some(Location {
+            source: target_spans[0].0.clone(),
+            span: target_spans[0].1,
+        })
+    };
+    assert_eq!(&expected_definition, &actual_definition);
+}
+
 fn check(source_with_markers: &str, expect: &Expect) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);
@@ -441,4 +458,20 @@ fn ty_param_ref() {
         }
     "#,
     );
+}
+
+#[test]
+fn notebook_callable_def_across_cells() {
+    assert_definition_notebook(&[
+        ("cell1", "operation ◉Callee◉() : Unit {}"),
+        ("cell2", "C↘allee();"),
+    ]);
+}
+
+#[test]
+fn notebook_callable_defined_in_later_cell() {
+    assert_definition_notebook(&[
+        ("cell1", "C↘allee();"),
+        ("cell2", "operation Callee() : Unit {}"),
+    ]);
 }

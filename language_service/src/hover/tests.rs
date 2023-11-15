@@ -4,7 +4,10 @@
 use super::get_hover;
 use crate::{
     protocol,
-    test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets},
+    test_utils::{
+        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
+        get_source_and_marker_offsets,
+    },
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -32,6 +35,23 @@ fn check_none(source_with_markers: &str) {
     let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual = get_hover(&compilation, "<source>", cursor_offsets[0]);
+    assert!(actual.is_none());
+}
+
+fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
+    let (compilation, cell_uri, offset, target_spans) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+
+    let actual = get_hover(&compilation, &cell_uri, offset).expect("Expected a hover.");
+    assert_eq!(&actual.span, &target_spans[0].1);
+    expect.assert_eq(&actual.contents);
+}
+
+fn check_notebook_none(cells_with_markers: &[(&str, &str)]) {
+    let (compilation, cell_uri, offset, _) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+
+    let actual = get_hover(&compilation, &cell_uri, offset);
     assert!(actual.is_none());
 }
 
@@ -1060,4 +1080,27 @@ fn ty_param_ref() {
             ```
         "#]],
     );
+}
+
+#[test]
+fn notebook_callable_def_across_cells() {
+    check_notebook(
+        &[
+            ("cell1", "operation Callee() : Unit {}"),
+            ("cell2", "◉C↘allee◉();"),
+        ],
+        &expect![[r#"
+            ```qsharp
+            operation Callee() : Unit
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_callable_defined_in_later_cell() {
+    check_notebook_none(&[
+        ("cell1", "C↘allee();"),
+        ("cell2", "operation Callee() : Unit {}"),
+    ]);
 }
