@@ -13,6 +13,8 @@ mod test_canon;
 #[cfg(test)]
 mod test_convert;
 #[cfg(test)]
+mod test_diagnostics;
+#[cfg(test)]
 mod test_math;
 #[cfg(test)]
 mod test_measurement;
