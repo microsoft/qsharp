@@ -1,7 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { DocumentFilter, TextDocument, Uri, languages } from "vscode";
+import {
+  DocumentFilter,
+  TextDocument,
+  Uri,
+  languages,
+  workspace,
+} from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 
@@ -36,4 +42,26 @@ export interface FileAccessor {
 
 export function basename(path: string): string | undefined {
   return path.replace(/\/+$/, "").split("/").pop();
+}
+
+/**
+ * Loads a Q# document or notebook cell.
+ *
+ * This does *not* open a visible document in the editor.
+ */
+export async function loadDocument(uri: Uri) {
+  const uriString = uri.toString();
+  // Search both text documents and notebook cell documents
+  const doc = workspace.textDocuments
+    .concat(
+      workspace.notebookDocuments.flatMap((doc) =>
+        doc
+          .getCells()
+          .filter((cell) => isQsharpDocument(cell.document))
+          .map((cell) => cell.document),
+      ),
+    )
+    .find((doc) => doc.uri.toString() === uriString);
+
+  return doc || (await workspace.openTextDocument(uri));
 }

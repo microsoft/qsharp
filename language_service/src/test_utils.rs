@@ -1,8 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{protocol, qsc_utils::Compilation};
-use qsc::{compile, hir::PackageId, PackageStore, PackageType, SourceMap, TargetProfile};
+use crate::{
+    compilation::{Compilation, CompilationKind},
+    protocol,
+};
+use qsc::{
+    compile, hir::PackageId, incremental::Compiler, PackageStore, PackageType, SourceMap,
+    TargetProfile,
+};
 
 pub(crate) fn get_source_and_marker_offsets(
     source_with_markers: &str,
@@ -83,10 +89,95 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
         PackageType::Exe,
         TargetProfile::Full,
     );
+
+    let package_id = package_store.insert(unit);
+
     Compilation {
         package_store,
-        std_package_id,
-        user_unit: unit,
+        user_package_id: package_id,
+        kind: CompilationKind::OpenDocument,
         errors,
+    }
+}
+
+pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
+    cells_with_markers: &[(&str, &str)],
+) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
+    let (mut cell_uri, mut offset, mut target_spans) = (None, None, Vec::new());
+    let cells = cells_with_markers
+        .iter()
+        .map(|c| {
+            let (source, cursor_offsets, targets) = get_source_and_marker_offsets(c.1);
+            if !cursor_offsets.is_empty() {
+                assert!(
+                    cell_uri.replace(c.0).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+                assert!(
+                    offset.replace(cursor_offsets[0]).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+            }
+            if !targets.is_empty() {
+                for span in target_offsets_to_spans(&targets) {
+                    target_spans.push((c.0.to_string(), span));
+                }
+            }
+            (c.0, source)
+        })
+        .collect::<Vec<_>>();
+
+    let compilation = compile_notebook_with_fake_stdlib(cells.iter().map(|c| (c.0, c.1.as_str())));
+    (
+        compilation,
+        cell_uri
+            .expect("input should have a cursor marker")
+            .to_string(),
+        offset.expect("input string should have a cursor marker"),
+        target_spans,
+    )
+}
+
+fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
+where
+    I: Iterator<Item = (&'a str, &'a str)>,
+{
+    let std_source_map = SourceMap::new(
+        [(
+            "<std>".into(),
+            "namespace FakeStdLib {
+                operation Fake() : Unit {}
+                operation FakeWithParam(x: Int) : Unit {}
+                operation FakeCtlAdj() : Unit is Ctl + Adj {}
+                newtype Complex = (Real: Double, Imag: Double);
+                function TakesComplex(input : Complex) : Unit {}
+            }"
+            .into(),
+        )],
+        None,
+    );
+
+    let mut compiler = Compiler::new(false, std_source_map, PackageType::Lib, TargetProfile::Full)
+        .expect("expected incremental compiler creation to succeed");
+
+    let mut errors = Vec::new();
+    for (name, contents) in cells {
+        let increment = compiler
+            .compile_fragments(name, contents, |cell_errors| {
+                errors.extend(cell_errors);
+                Ok(()) // accumulate errors without failing
+            })
+            .expect("compile_fragments_acc_errors should not fail");
+
+        compiler.update(increment);
+    }
+
+    let (package_store, package_id) = compiler.into_package_store();
+
+    Compilation {
+        package_store,
+        user_package_id: package_id,
+        errors,
+        kind: CompilationKind::Notebook,
     }
 }

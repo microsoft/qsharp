@@ -4,10 +4,8 @@
 use std::mem::replace;
 use std::rc::Rc;
 
-use crate::qsc_utils::{
-    find_ident, resolve_item_relative_to_user_package, resolve_item_res, span_contains,
-    span_touches, Compilation,
-};
+use crate::compilation::{Compilation, Lookup};
+use crate::qsc_utils::{find_ident, span_contains, span_touches};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
 use qsc::{ast, hir, resolve};
 
@@ -150,7 +148,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         decl.generics.iter().for_each(|p| {
                             if span_touches(p.span, self.offset) {
                                 if let Some(resolve::Res::Param(_, param_id)) =
-                                    self.compilation.user_unit.ast.names.get(p.id)
+                                    self.compilation.get_res(p.id)
                                 {
                                     self.inner.at_type_param_def(&self.context, p, *param_id);
                                 }
@@ -178,8 +176,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     // and we want to do nothing.
                 }
                 ast::ItemKind::Ty(ident, def) => {
-                    if let Some(resolve::Res::Item(item_id, _)) =
-                        self.compilation.user_unit.ast.names.get(ident.id)
+                    if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(ident.id)
                     {
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
@@ -235,9 +232,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_ty(&mut self, ty: &'package ast::Ty) {
         if span_touches(ty.span, self.offset) {
             if let ast::TyKind::Param(param) = &*ty.kind {
-                if let Some(resolve::Res::Param(_, param_id)) =
-                    self.compilation.user_unit.ast.names.get(param.id)
-                {
+                if let Some(resolve::Res::Param(_, param_id)) = self.compilation.get_res(param.id) {
                     if let Some(curr) = self.context.current_callable {
                         if let Some(def_name) = curr.generics.get(usize::from(*param_id)) {
                             self.inner
@@ -274,11 +269,10 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 ast::ExprKind::Field(udt, field_ref)
                     if span_touches(field_ref.span, self.offset) =>
                 {
-                    if let Some(hir::ty::Ty::Udt(res)) =
-                        self.compilation.user_unit.ast.tys.terms.get(udt.id)
-                    {
-                        let (item, resolved_item_id) =
-                            resolve_item_res(self.compilation, None, res);
+                    if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.get_ty(udt.id) {
+                        let (item, resolved_item_id) = self
+                            .compilation
+                            .resolve_item_res(self.compilation.user_package_id, res);
                         match &item.kind {
                             hir::ItemKind::Ty(_, udt) => {
                                 if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
@@ -310,12 +304,13 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
         if span_touches(path.span, self.offset) {
-            let res = self.compilation.user_unit.ast.names.get(path.id);
+            let res = self.compilation.get_res(path.id);
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id, _) => {
-                        let (item, package, resolved_item_id) =
-                            resolve_item_relative_to_user_package(self.compilation, item_id);
+                        let (item, package, resolved_item_id) = self
+                            .compilation
+                            .resolve_item_relative_to_user_package(item_id);
                         match &item.kind {
                             hir::ItemKind::Callable(decl) => {
                                 self.inner.at_callable_ref(

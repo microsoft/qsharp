@@ -3,8 +3,10 @@
 
 use super::{get_rename, prepare_rename};
 use crate::test_utils::{
-    compile_with_fake_stdlib, get_source_and_marker_offsets, target_offsets_to_spans,
+    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
+    get_source_and_marker_offsets, target_offsets_to_spans,
 };
+use expect_test::{expect, Expect};
 
 /// Asserts that the rename locations given at the cursor position matches the expected rename locations.
 /// The cursor position is indicated by a `↘` marker in the source text.
@@ -31,6 +33,20 @@ fn assert_no_rename(source_with_markers: &str) {
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual = prepare_rename(&compilation, "<source>", cursor_offsets[0]);
     assert!(actual.is_none());
+}
+
+fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
+    let (compilation, cell_uri, offset, _) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let actual = get_rename(&compilation, &cell_uri, offset);
+    expect.assert_debug_eq(&actual);
+}
+
+fn check_prepare_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
+    let (compilation, cell_uri, offset, _) =
+        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let actual = prepare_rename(&compilation, &cell_uri, offset);
+    expect.assert_debug_eq(&actual);
 }
 
 #[test]
@@ -346,5 +362,46 @@ fn ty_param_ref() {
             operation Foo<'◉T◉>(x : '◉↘T◉) : '◉T◉ { x }
         }
     "#,
+    );
+}
+
+#[test]
+fn notebook_rename_defined_in_later_cell() {
+    check_prepare_notebook(
+        &[
+            ("cell1", "C↘allee();"),
+            ("cell2", "operation Callee() : Unit {}"),
+        ],
+        &expect![[r#"
+            None
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_rename_across_cells() {
+    check_notebook(
+        &[
+            ("cell1", "operation Callee() : Unit {}"),
+            ("cell2", "◉C↘allee◉();"),
+        ],
+        &expect![[r#"
+            [
+                Location {
+                    source: "cell1",
+                    span: Span {
+                        start: 10,
+                        end: 16,
+                    },
+                },
+                Location {
+                    source: "cell2",
+                    span: Span {
+                        start: 0,
+                        end: 6,
+                    },
+                },
+            ]
+        "#]],
     );
 }

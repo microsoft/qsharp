@@ -1,51 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::{
-    ast,
-    compile::{self, Error},
-    hir::{self, Item, ItemId, Package, PackageId},
-    CompileUnit, PackageStore, PackageType, SourceMap, Span, TargetProfile,
-};
-
-use crate::protocol;
+use crate::{compilation::Compilation, protocol};
+use qsc::{ast, hir::PackageId, SourceMap, Span};
 
 pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
-
-/// Represents an immutable compilation state that can be used
-/// to implement language service features.
-pub(crate) struct Compilation {
-    pub package_store: PackageStore,
-    pub std_package_id: PackageId,
-    pub user_unit: CompileUnit,
-    pub errors: Vec<Error>,
-}
-
-pub(crate) fn compile_document(
-    source_name: &str,
-    source_contents: &str,
-    package_type: PackageType,
-    target_profile: TargetProfile,
-) -> Compilation {
-    let mut package_store = PackageStore::new(compile::core());
-    let std_package_id = package_store.insert(compile::std(&package_store, target_profile));
-
-    // Source map only contains the current document.
-    let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (unit, errors) = compile::compile(
-        &package_store,
-        &[std_package_id],
-        source_map,
-        package_type,
-        target_profile,
-    );
-    Compilation {
-        package_store,
-        std_package_id,
-        user_unit: unit,
-        errors,
-    }
-}
 
 pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset < span.hi
@@ -78,27 +37,21 @@ pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Spa
 pub(crate) fn protocol_location(
     compilation: &Compilation,
     location: Span,
-    package_id: Option<PackageId>,
+    package_id: PackageId,
 ) -> protocol::Location {
-    let package = if let Some(library_package_id) = package_id {
-        compilation
-            .package_store
-            .get(library_package_id)
-            .expect("package should exist in store")
-    } else {
-        &compilation.user_unit
-    };
-    let source = package
+    let source = compilation
+        .package_store
+        .get(package_id)
+        .expect("package id must exist in store")
         .sources
         .find_by_offset(location.lo)
-        .expect("source should exist in package");
-
-    // Note: Having a package_id means the position references a foreign package.
-    // Currently the only supported foreign packages are our library packages,
-    // URI's to which need to include our custom library scheme.
-    let source_name = match package_id {
-        Some(_) => format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name),
-        None => source.name.to_string(),
+        .expect("source should exist for offset");
+    let source_name = if package_id == compilation.user_package_id {
+        source.name.to_string()
+    } else {
+        // Currently the only supported external packages are our library packages,
+        // URI's to which need to include our custom library scheme.
+        format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name)
     };
 
     protocol::Location {
@@ -108,80 +61,6 @@ pub(crate) fn protocol_location(
             end: location.hi - source.offset,
         },
     }
-}
-
-pub(crate) fn map_offset(source_map: &SourceMap, source_name: &str, source_offset: u32) -> u32 {
-    source_map
-        .find_by_name(source_name)
-        .expect("source should exist in the source map")
-        .offset
-        + source_offset
-}
-
-/// Returns the hir `Item` node referred to by `item_id`,
-/// along with the `Package` and `PackageId` for the package
-/// that it was found in.
-pub(crate) fn resolve_item_relative_to_user_package<'a>(
-    compilation: &'a Compilation,
-    item_id: &ItemId,
-) -> (&'a Item, &'a Package, ItemId) {
-    resolve_item(compilation, None, item_id)
-}
-
-/// Returns the hir `Item` node referred to by `res`.
-/// `Res`s can resolve to external packages, and the references
-/// are relative, so here we also need the
-/// local `PackageId` that the `res` itself came from.
-pub(crate) fn resolve_item_res<'a>(
-    compilation: &'a Compilation,
-    local_package_id: Option<PackageId>,
-    res: &hir::Res,
-) -> (&'a Item, ItemId) {
-    match res {
-        hir::Res::Item(item_id) => {
-            let (item, _, resolved_item_id) = resolve_item(compilation, local_package_id, item_id);
-            (item, resolved_item_id)
-        }
-        _ => panic!("expected to find item"),
-    }
-}
-
-/// Returns the hir `Item` node referred to by `item_id`.
-/// `ItemId`s can refer to external packages, and the references
-/// are relative, so here we also need the local `PackageId`
-/// that the `ItemId` originates from.
-pub(crate) fn resolve_item<'a>(
-    compilation: &'a Compilation,
-    local_package_id: Option<PackageId>,
-    item_id: &ItemId,
-) -> (&'a Item, &'a Package, ItemId) {
-    // If the `ItemId` contains a package id, use that.
-    // Lack of a package id means the item is in the
-    // same package as the one this `ItemId` reference
-    // came from. So use the local package id passed in.
-    let package_id = item_id.package.or(local_package_id);
-    let package = if let Some(library_package_id) = package_id {
-        // stdlib or core
-        &compilation
-            .package_store
-            .get(library_package_id)
-            .expect("package should exist in store")
-            .package
-    } else {
-        // user code
-        &compilation.user_unit.package
-    };
-    (
-        package
-            .items
-            .get(item_id.item)
-            .expect("item id should exist"),
-        package,
-        ItemId {
-            package: package_id,
-            item: item_id.item,
-        },
-    )
 }
 
 pub(crate) fn find_ident<'a>(

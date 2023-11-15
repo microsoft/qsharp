@@ -6,11 +6,10 @@ mod tests;
 
 use std::rc::Rc;
 
+use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
-use crate::qsc_utils::{
-    map_offset, protocol_location, resolve_item_relative_to_user_package, Compilation,
-};
+use crate::qsc_utils::protocol_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
 use qsc::hir::ty::Ty;
 use qsc::hir::Res;
@@ -22,8 +21,8 @@ pub(crate) fn get_references(
     offset: u32,
     include_declaration: bool,
 ) -> Vec<Location> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut references_finder = ReferencesFinder {
         compilation,
@@ -32,7 +31,7 @@ pub(crate) fn get_references(
     };
 
     let mut locator = Locator::new(&mut references_finder, offset, compilation);
-    locator.visit_package(&compilation.user_unit.ast.package);
+    locator.visit_package(user_ast_package);
 
     references_finder.references
 }
@@ -50,9 +49,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        if let Some(resolve::Res::Item(item_id, _)) =
-            self.compilation.user_unit.ast.names.get(name.id)
-        {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(name.id) {
             self.references =
                 find_item_locations(item_id, self.compilation, self.include_declaration);
         }
@@ -95,9 +92,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        if let Some(resolve::Res::Item(item_id, _)) =
-            self.compilation.user_unit.ast.names.get(type_name.id)
-        {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
             self.references =
                 find_item_locations(item_id, self.compilation, self.include_declaration);
         }
@@ -182,9 +177,8 @@ pub(crate) fn find_item_locations(
 ) -> Vec<Location> {
     let mut locations = vec![];
 
+    let (def, _, resolved_item_id) = compilation.resolve_item_relative_to_user_package(item_id);
     if include_declaration {
-        let (def, _, resolved_item_id) =
-            resolve_item_relative_to_user_package(compilation, item_id);
         let def_span = match &def.kind {
             hir::ItemKind::Callable(decl) => decl.name.span,
             hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
@@ -192,22 +186,24 @@ pub(crate) fn find_item_locations(
         locations.push(protocol_location(
             compilation,
             def_span,
-            resolved_item_id.package,
+            resolved_item_id
+                .package
+                .expect("package id should have been resolved"),
         ));
     }
 
     let mut find_refs = FindItemRefs {
-        item_id,
+        item_id: &resolved_item_id,
         compilation,
         locations: vec![],
     };
 
-    find_refs.visit_package(&compilation.user_unit.ast.package);
+    find_refs.visit_package(&compilation.user_unit().ast.package);
     locations.extend(
         find_refs
             .locations
             .drain(..)
-            .map(|l| protocol_location(compilation, l, None)),
+            .map(|l| protocol_location(compilation, l, compilation.user_package_id)),
     );
 
     locations
@@ -221,9 +217,9 @@ pub(crate) fn find_field_locations(
 ) -> Vec<Location> {
     let mut locations = vec![];
 
+    let (ty_def, _, resolved_ty_item_id) =
+        compilation.resolve_item_relative_to_user_package(ty_item_id);
     if include_declaration {
-        let (ty_def, _, resolved_ty_item_id) =
-            resolve_item_relative_to_user_package(compilation, ty_item_id);
         if let hir::ItemKind::Ty(_, udt) = &ty_def.kind {
             let ty_field = udt
                 .find_field_by_name(&field_name)
@@ -234,7 +230,9 @@ pub(crate) fn find_field_locations(
             locations.push(protocol_location(
                 compilation,
                 def_span,
-                resolved_ty_item_id.package,
+                resolved_ty_item_id
+                    .package
+                    .expect("package id should have been resolved"),
             ));
         } else {
             panic!("item id resolved to non-type: {ty_item_id}");
@@ -242,18 +240,18 @@ pub(crate) fn find_field_locations(
     }
 
     let mut find_refs = FindFieldRefs {
-        ty_item_id,
+        ty_item_id: &resolved_ty_item_id,
         field_name,
         compilation,
         locations: vec![],
     };
 
-    find_refs.visit_package(&compilation.user_unit.ast.package);
+    find_refs.visit_package(&compilation.user_unit().ast.package);
     locations.extend(
         find_refs
             .locations
             .drain(..)
-            .map(|l| protocol_location(compilation, l, None)),
+            .map(|l| protocol_location(compilation, l, compilation.user_package_id)),
     );
 
     locations
@@ -275,7 +273,7 @@ pub(crate) fn find_local_locations(
     find_refs
         .locations
         .into_iter()
-        .map(|l| protocol_location(compilation, l, None))
+        .map(|l| protocol_location(compilation, l, compilation.user_package_id))
         .collect()
 }
 
@@ -295,7 +293,7 @@ pub(crate) fn find_ty_param_locations(
     find_refs
         .locations
         .into_iter()
-        .map(|l| protocol_location(compilation, l, None))
+        .map(|l| protocol_location(compilation, l, compilation.user_package_id))
         .collect()
 }
 
@@ -307,9 +305,9 @@ struct FindItemRefs<'a> {
 
 impl<'a> Visitor<'_> for FindItemRefs<'a> {
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.user_unit.ast.names.get(path.id);
+        let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Item(item_id, _)) = res {
-            if *item_id == *self.item_id {
+            if self.eq(item_id) {
                 self.locations.push(path.name.span);
             }
         }
@@ -317,15 +315,23 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
 
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
-            let res = self.compilation.user_unit.ast.names.get(ty_path.id);
+            let res = self.compilation.get_res(ty_path.id);
             if let Some(resolve::Res::Item(item_id, _)) = res {
-                if *item_id == *self.item_id {
+                if self.eq(item_id) {
                     self.locations.push(ty_path.name.span);
                 }
             }
         } else {
             walk_ty(self, ty);
         }
+    }
+}
+
+impl<'a> FindItemRefs<'a> {
+    fn eq(&mut self, item_id: &hir::ItemId) -> bool {
+        item_id.item == self.item_id.item
+            && item_id.package.unwrap_or(self.compilation.user_package_id)
+                == self.item_id.package.expect("package id should be resolved")
     }
 }
 
@@ -341,10 +347,8 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
         if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
             self.visit_expr(qualifier);
             if field_name.name == self.field_name {
-                if let Some(Ty::Udt(Res::Item(id))) =
-                    self.compilation.user_unit.ast.tys.terms.get(qualifier.id)
-                {
-                    if id == self.ty_item_id {
+                if let Some(Ty::Udt(Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
+                    if self.eq(id) {
                         self.locations.push(field_name.span);
                     }
                 }
@@ -352,6 +356,17 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
         } else {
             walk_expr(self, expr);
         }
+    }
+}
+
+impl<'a> FindFieldRefs<'a> {
+    fn eq(&mut self, item_id: &hir::ItemId) -> bool {
+        item_id.item == self.ty_item_id.item
+            && item_id.package.unwrap_or(self.compilation.user_package_id)
+                == self
+                    .ty_item_id
+                    .package
+                    .expect("package id should be resolved")
     }
 }
 
@@ -377,7 +392,7 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
     }
 
     fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.user_unit.ast.names.get(path.id);
+        let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Local(node_id)) = res {
             if *node_id == self.node_id {
                 self.locations.push(path.name.span);
@@ -397,7 +412,7 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
     fn visit_callable_decl(&mut self, decl: &'_ ast::CallableDecl) {
         if self.include_declaration {
             decl.generics.iter().for_each(|p| {
-                let res = self.compilation.user_unit.ast.names.get(p.id);
+                let res = self.compilation.get_res(p.id);
                 if let Some(resolve::Res::Param(_, param_id)) = res {
                     if *param_id == self.param_id {
                         self.locations.push(p.span);
@@ -410,7 +425,7 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
 
     fn visit_ty(&mut self, ty: &'_ ast::Ty) {
         if let ast::TyKind::Param(param) = &*ty.kind {
-            let res = self.compilation.user_unit.ast.names.get(param.id);
+            let res = self.compilation.get_res(param.id);
             if let Some(resolve::Res::Param(_, param_id)) = res {
                 if *param_id == self.param_id {
                     self.locations.push(param.span);

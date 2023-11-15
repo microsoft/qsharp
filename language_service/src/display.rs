@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::qsc_utils::{resolve_item, resolve_item_res, Compilation};
+use crate::compilation::{Compilation, Lookup};
 use qsc::{
     ast,
     hir::{self, ty::GenericParam},
@@ -19,14 +19,14 @@ pub(crate) struct CodeDisplay<'a> {
 #[derive(Copy, Clone)]
 struct HirLookup<'a> {
     compilation: &'a Compilation,
-    local_package_id: Option<hir::PackageId>,
+    local_package_id: hir::PackageId,
 }
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
     pub(crate) fn hir_callable_decl(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         decl: &'a hir::CallableDecl,
     ) -> impl Display + '_ {
         HirCallableDecl {
@@ -37,7 +37,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
         AstCallableDecl {
-            lookup: self.lookup(None),
+            lookup: self.lookup(self.compilation.user_package_id),
             decl,
         }
     }
@@ -48,7 +48,7 @@ impl<'a> CodeDisplay<'a> {
         ty_id: ast::NodeId,
     ) -> impl Display + '_ {
         IdentTyId {
-            lookup: self.lookup(None),
+            lookup: self.lookup(self.compilation.user_package_id),
             ident,
             ty_id,
         }
@@ -56,7 +56,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> impl Display + '_ {
         PathTyId {
-            lookup: self.lookup(None),
+            lookup: self.lookup(self.compilation.user_package_id),
             path,
             ty_id,
         }
@@ -76,7 +76,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn hir_udt(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         udt: &'a hir::ty::Udt,
     ) -> impl Display + '_ {
         HirUdt {
@@ -87,7 +87,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn hir_ty(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         ty: &'a hir::ty::Ty,
     ) -> impl Display + '_ {
         HirTy {
@@ -98,7 +98,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn hir_pat(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         pat: &'a hir::Pat,
     ) -> impl Display + '_ {
         HirPat {
@@ -109,7 +109,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn get_param_offset(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         decl: &hir::CallableDecl,
     ) -> u32 {
         HirCallableDecl {
@@ -119,7 +119,7 @@ impl<'a> CodeDisplay<'a> {
         .get_param_offset()
     }
 
-    fn lookup(&self, package_id: Option<hir::PackageId>) -> HirLookup<'_> {
+    fn lookup(&self, package_id: hir::PackageId) -> HirLookup<'_> {
         HirLookup {
             compilation: self.compilation,
             local_package_id: package_id,
@@ -156,8 +156,8 @@ impl<'a> Display for IdentTyId<'a> {
             "{} : {}",
             self.ident.name,
             TyId {
+                lookup: self.lookup,
                 ty_id: self.ty_id,
-                lookup: self.lookup
             },
         )
     }
@@ -176,8 +176,8 @@ impl<'a> Display for PathTyId<'a> {
             "{} : {}",
             &Path { path: self.path },
             TyId {
+                lookup: self.lookup,
                 ty_id: self.ty_id,
-                lookup: self.lookup
             },
         )
     }
@@ -225,8 +225,8 @@ impl Display for HirCallableDecl<'_> {
             f,
             " : {}{}",
             HirTy {
+                lookup: self.lookup,
                 ty: &self.decl.output,
-                lookup: self.lookup
             },
             FunctorSetValue {
                 functors: self.decl.functors,
@@ -302,8 +302,8 @@ impl<'a> Display for HirPat<'a> {
                         f,
                         "({}",
                         HirPat {
+                            lookup: self.lookup,
                             pat: elem,
-                            lookup: self.lookup
                         }
                     )?;
                     for elem in elements {
@@ -311,8 +311,8 @@ impl<'a> Display for HirPat<'a> {
                             f,
                             ", {}",
                             HirPat {
+                                lookup: self.lookup,
                                 pat: elem,
-                                lookup: self.lookup
                             }
                         )?;
                     }
@@ -352,8 +352,8 @@ impl<'a> Display for AstPat<'a> {
                     f,
                     "_ : {}",
                     TyId {
+                        lookup: self.lookup,
                         ty_id: self.pat.id,
-                        lookup: self.lookup
                     }
                 ),
             },
@@ -362,8 +362,8 @@ impl<'a> Display for AstPat<'a> {
                 f,
                 "{}",
                 AstPat {
+                    lookup: self.lookup,
                     pat: item,
-                    lookup: self.lookup
                 }
             ),
             ast::PatKind::Tuple(items) => {
@@ -373,8 +373,8 @@ impl<'a> Display for AstPat<'a> {
                         f,
                         "({}",
                         AstPat {
+                            lookup: self.lookup,
                             pat: elem,
-                            lookup: self.lookup
                         }
                     )?;
                     for elem in elements {
@@ -382,8 +382,8 @@ impl<'a> Display for AstPat<'a> {
                             f,
                             ", {}",
                             AstPat {
+                                lookup: self.lookup,
                                 pat: elem,
-                                lookup: self.lookup
                             }
                         )?;
                     }
@@ -465,8 +465,8 @@ impl Display for UdtDef<'_> {
                     f,
                     "{}",
                     HirTy {
+                        lookup: self.lookup,
                         ty,
-                        lookup: self.lookup
                     }
                 )
             }
@@ -545,19 +545,20 @@ impl<'a> Display for HirTy<'a> {
                 ty,
             }),
             hir::ty::Ty::Udt(res) => {
-                let (item, _) =
-                    resolve_item_res(self.lookup.compilation, self.lookup.local_package_id, res);
+                let (item, _) = self
+                    .lookup
+                    .compilation
+                    .resolve_item_res(self.lookup.local_package_id, res);
                 match &item.kind {
                     hir::ItemKind::Ty(ident, _) => write!(f, "{}", ident.name),
                     _ => panic!("UDT has invalid resolution."),
                 }
             }
             hir::ty::Ty::Param(item_id, param_id) => {
-                let (item, _, _) = resolve_item(
-                    self.lookup.compilation,
-                    self.lookup.local_package_id,
-                    item_id,
-                );
+                let (item, _, _) = self
+                    .lookup
+                    .compilation
+                    .resolve_item(self.lookup.local_package_id, item_id);
                 match &item.kind {
                     hir::ItemKind::Callable(decl) => {
                         let param = decl
@@ -585,15 +586,7 @@ struct TyId<'a> {
 
 impl<'a> Display for TyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(ty) = self
-            .lookup
-            .compilation
-            .user_unit
-            .ast
-            .tys
-            .terms
-            .get(self.ty_id)
-        {
+        if let Some(ty) = self.lookup.compilation.get_ty(self.ty_id) {
             write!(
                 f,
                 "{}",

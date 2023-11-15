@@ -46,7 +46,7 @@ export class Compiler implements ICompiler {
   async checkCode(code: string): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number, errors: VSDiagnostic[]) => {
+      (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
     );

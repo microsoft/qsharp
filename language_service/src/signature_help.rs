@@ -4,8 +4,12 @@
 #[cfg(test)]
 mod tests;
 
-use std::iter::zip;
-
+use crate::{
+    compilation::{Compilation, Lookup},
+    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
+    protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
+    qsc_utils::{span_contains, span_touches},
+};
 use qsc::{
     ast::{
         self,
@@ -13,23 +17,15 @@ use qsc::{
     },
     hir, resolve,
 };
-
-use crate::{
-    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
-    protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
-    qsc_utils::{
-        map_offset, resolve_item_relative_to_user_package, span_contains, span_touches, Compilation,
-    },
-};
+use std::iter::zip;
 
 pub(crate) fn get_signature_help(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> Option<SignatureHelp> {
-    // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compilation.user_unit.sources, source_name, offset);
-    let package = &compilation.user_unit.ast.package;
+    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut finder = SignatureHelpFinder {
         compilation,
@@ -38,7 +34,7 @@ pub(crate) fn get_signature_help(
         display: CodeDisplay { compilation },
     };
 
-    finder.visit_package(package);
+    finder.visit_package(user_ast_package);
 
     finder.signature_help
 }
@@ -80,12 +76,16 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
 
 impl SignatureHelpFinder<'_> {
     fn process_indirect_callee(&mut self, callee: &ast::Expr, args: &ast::Expr) {
-        if let Some(ty) = self.compilation.user_unit.ast.tys.terms.get(callee.id) {
+        if let Some(ty) = self.compilation.get_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
-                    label: self.display.hir_ty(None, ty).to_string(),
+                    label: self
+                        .display
+                        .hir_ty(self.compilation.user_package_id, ty)
+                        .to_string(),
                     documentation: None,
-                    parameters: self.get_type_params(None, &arrow.input),
+                    parameters: self
+                        .get_type_params(self.compilation.user_package_id, &arrow.input),
                 };
 
                 // Capture arrow.input structure in a fake HIR Pat.
@@ -102,7 +102,7 @@ impl SignatureHelpFinder<'_> {
 
     fn process_direct_callee(
         &mut self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         callee_decl: &hir::CallableDecl,
         item_doc: &str,
         args: &ast::Expr,
@@ -138,7 +138,7 @@ impl SignatureHelpFinder<'_> {
     /// ```
     fn get_params(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         decl: &hir::CallableDecl,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -159,7 +159,7 @@ impl SignatureHelpFinder<'_> {
     fn make_wrapped_params(
         &self,
         offset: u32,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         pat: &hir::Pat,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -193,7 +193,7 @@ impl SignatureHelpFinder<'_> {
     fn make_param_with_offset(
         &self,
         offset: &mut u32,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         pat: &hir::Pat,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -244,7 +244,7 @@ impl SignatureHelpFinder<'_> {
 
     fn get_type_params(
         &self,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         ty: &hir::ty::Ty,
     ) -> Vec<ParameterInformation> {
         let mut offset = 1; // 1 for the open parenthesis character
@@ -261,7 +261,7 @@ impl SignatureHelpFinder<'_> {
     fn params_for_single_type_parameter(
         &self,
         offset: u32,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         ty: &hir::ty::Ty,
     ) -> Vec<ParameterInformation> {
         let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
@@ -287,7 +287,7 @@ impl SignatureHelpFinder<'_> {
     fn make_type_param_with_offset(
         &self,
         offset: &mut u32,
-        package_id: Option<hir::PackageId>,
+        package_id: hir::PackageId,
         ty: &hir::ty::Ty,
     ) -> Vec<ParameterInformation> {
         if let hir::ty::Ty::Tuple(items) = &ty {
@@ -342,13 +342,19 @@ fn usize_to_u32(x: usize) -> u32 {
 fn try_get_direct_callee<'a>(
     compilation: &'a Compilation,
     callee: &ast::Expr,
-) -> Option<(Option<hir::PackageId>, &'a hir::CallableDecl, &'a str)> {
+) -> Option<(hir::PackageId, &'a hir::CallableDecl, &'a str)> {
     if let ast::ExprKind::Path(path) = &*callee.kind {
-        if let Some(resolve::Res::Item(item_id, _)) = compilation.user_unit.ast.names.get(path.id) {
+        if let Some(resolve::Res::Item(item_id, _)) = compilation.get_res(path.id) {
             let (item, _, resolved_item_id) =
-                resolve_item_relative_to_user_package(compilation, item_id);
+                compilation.resolve_item_relative_to_user_package(item_id);
             if let hir::ItemKind::Callable(callee_decl) = &item.kind {
-                return Some((resolved_item_id.package, callee_decl, &item.doc));
+                return Some((
+                    resolved_item_id
+                        .package
+                        .expect("package id should be resolved"),
+                    callee_decl,
+                    &item.doc,
+                ));
             }
         }
     }

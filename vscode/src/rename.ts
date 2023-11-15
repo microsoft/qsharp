@@ -3,6 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
+import { loadDocument } from "./common";
 
 export function createRenameProvider(languageService: ILanguageService) {
   return new QSharpRenameProvider(languageService);
@@ -27,17 +28,20 @@ class QSharpRenameProvider implements vscode.RenameProvider {
 
     const workspaceEdit = new vscode.WorkspaceEdit();
 
-    for (const [uri, edits] of rename.changes) {
+    for (const [source, edits] of rename.changes) {
+      const uri = vscode.Uri.parse(source, true);
+      const targetDocument = await loadDocument(uri);
+
       const vsEdits = edits.map((edit) => {
         return new vscode.TextEdit(
           new vscode.Range(
-            document.positionAt(edit.range.start),
-            document.positionAt(edit.range.end),
+            targetDocument.positionAt(edit.range.start),
+            targetDocument.positionAt(edit.range.end),
           ),
           edit.newText,
         );
       });
-      workspaceEdit.set(vscode.Uri.parse(uri, true), vsEdits);
+      workspaceEdit.set(uri, vsEdits);
     }
 
     return workspaceEdit;

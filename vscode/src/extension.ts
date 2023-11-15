@@ -23,6 +23,7 @@ import { startCheckingQSharp } from "./diagnostics";
 import { createHoverProvider } from "./hover";
 import {
   registerCreateNotebookCommand,
+  registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
 import {
@@ -33,10 +34,10 @@ import {
 } from "./telemetry.js";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
-import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
 import { createReferenceProvider } from "./references.js";
+import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -137,7 +138,6 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
       if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-        // Notebook cells don't currently support the language service.
         languageService.closeDocument(document.uri.toString());
       }
     }),
@@ -145,7 +145,7 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-      // Notebook cells don't currently support the language service.
+      // Regular (not notebook) Q# document.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
@@ -167,6 +167,11 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 
   // synchronize document contents
   subscriptions.push(...registerDocumentUpdateHandlers(languageService));
+
+  // synchronize notebook cell contents
+  subscriptions.push(
+    ...registerQSharpNotebookCellUpdateHandlers(languageService),
+  );
 
   // synchronize configuration
   subscriptions.push(registerConfigurationChangeHandlers(languageService));

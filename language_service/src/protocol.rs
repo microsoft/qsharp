@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::{PackageType, TargetProfile};
+use qsc::{compile::Error, PackageType, TargetProfile};
 
 /// Workspace configuration
 #[derive(Clone, Debug, Default)]
@@ -15,6 +15,13 @@ pub struct WorkspaceConfigurationUpdate {
 pub struct Span {
     pub start: u32,
     pub end: u32,
+}
+
+#[derive(Debug)]
+pub struct DiagnosticUpdate {
+    pub uri: String,
+    pub version: Option<u32>,
+    pub errors: Vec<Error>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
