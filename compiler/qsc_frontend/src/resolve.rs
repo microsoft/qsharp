@@ -17,7 +17,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, str::FromStr, rc::Rc, vec};
+use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;

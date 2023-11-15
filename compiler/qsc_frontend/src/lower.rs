@@ -19,7 +19,7 @@ use qsc_hir::{
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, Ty},
 };
-use std::{clone::Clone, str::FromStr, rc::Rc, vec};
+use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
