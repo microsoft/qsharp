@@ -12,7 +12,7 @@ use crate::qsc_utils::protocol_span;
 use qsc::ast::visit::Visitor;
 use qsc::{ast, hir};
 use std::fmt::Display;
-use std::sync::Arc;
+use std::rc::Rc;
 
 pub(crate) fn get_hover(
     compilation: &Compilation,
@@ -63,72 +63,6 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
-        let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(type_name.span, &self.compilation.user_unit().sources),
-        });
-    }
-
-    fn at_field_def(
-        &mut self,
-        _: &LocatorContext<'a>,
-        field_name: &'a ast::Ident,
-        ty: &'a ast::Ty,
-    ) {
-        let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(field_name.span, &self.compilation.user_unit().sources),
-        });
-    }
-
-    fn at_local_def(
-        &mut self,
-        context: &LocatorContext<'a>,
-        ident: &'a ast::Ident,
-        pat: &'a ast::Pat,
-    ) {
-        let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
-        let kind = if context.in_params {
-            LocalKind::Param
-        } else if context.in_lambda_params {
-            LocalKind::LambdaParam
-        } else {
-            LocalKind::Local
-        };
-        let mut callable_name = Arc::from("");
-        if let Some(decl) = context.current_callable {
-            callable_name = Arc::from(&*decl.name.name);
-        }
-        let contents = display_local(
-            &kind,
-            &code,
-            &ident.name,
-            &callable_name,
-            &context.current_item_doc,
-        );
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(ident.span, &self.compilation.user_unit().sources),
-        });
-    }
-
-    fn at_field_ref(
-        &mut self,
-        field_ref: &'a ast::Ident,
-        expr_id: &'a ast::NodeId,
-        _: &'_ hir::ItemId,
-        _: &'a hir::ty::UdtField,
-    ) {
-        let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
-        self.hover = Some(Hover {
-            contents,
-            span: protocol_span(field_ref.span, &self.compilation.user_unit().sources),
-        });
-    }
-
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
@@ -141,10 +75,10 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             .parent
             .and_then(|parent_id| package.items.get(parent_id))
             .map_or_else(
-                || Arc::from(""),
+                || Rc::from(""),
                 |parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => Arc::from(&*namespace.name),
-                    _ => Arc::from(""),
+                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
+                    _ => Rc::from(""),
                 },
             );
 
@@ -214,6 +148,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
+    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
+        let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(type_name.span, &self.compilation.user_unit().sources),
+        });
+    }
+
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
@@ -230,6 +172,65 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         self.hover = Some(Hover {
             contents,
             span: protocol_span(path.span, &self.compilation.user_unit().sources),
+        });
+    }
+
+    fn at_field_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        field_name: &'a ast::Ident,
+        ty: &'a ast::Ty,
+    ) {
+        let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(field_name.span, &self.compilation.user_unit().sources),
+        });
+    }
+
+    fn at_field_ref(
+        &mut self,
+        field_ref: &'a ast::Ident,
+        expr_id: &'a ast::NodeId,
+        _: &'_ hir::ItemId,
+        _: &'a hir::ty::UdtField,
+    ) {
+        let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(field_ref.span, &self.compilation.user_unit().sources),
+        });
+    }
+
+    fn at_local_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        ident: &'a ast::Ident,
+        pat: &'a ast::Pat,
+    ) {
+        let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
+        let kind = if context.in_params {
+            LocalKind::Param
+        } else if context.in_lambda_params {
+            LocalKind::LambdaParam
+        } else {
+            LocalKind::Local
+        };
+        let callable_name = &context
+            .current_callable
+            .expect("locals should only exist in callables")
+            .name
+            .name;
+        let contents = display_local(
+            &kind,
+            &code,
+            &ident.name,
+            callable_name,
+            &context.current_item_doc,
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: protocol_span(ident.span, &self.compilation.user_unit().sources),
         });
     }
 
