@@ -152,7 +152,6 @@ impl<'a> LanguageService<'a> {
         info!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
         let sources = if let Some(ref manifest) = manifest {
-            info!("manifest found, this is a project"); // if there is a manifest, this is a project
             let project = match self.load_project(manifest).await {
                 Ok(o) => o,
                 Err(e) => {
@@ -160,10 +159,10 @@ impl<'a> LanguageService<'a> {
                     return;
                 }
             };
-            info!("Loaded project with {} sources.", project.sources.len());
+            trace!("Loaded project with {} sources", project.sources.len());
             project.sources
         } else {
-            info!("no manifest found");
+            trace!("Running in single file mode");
             vec![(Arc::from(uri), Arc::from(text))]
         };
         let compilation = Compilation::new_open_document(

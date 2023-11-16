@@ -46,7 +46,6 @@ export async function getManifest(uri: string): Promise<{
 async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
-  log.info("in findManifestDocument");
   // /home/foo/bar/document.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
@@ -65,24 +64,18 @@ async function findManifestDocument(
     } catch (err) {}
 
     if (listing) {
-      log.info("found manifest at ", potentialManifestLocation);
       return listing;
     }
 
-    log.info("f");
     const oldUriToQuery = uriToQuery;
     uriToQuery = Utils.resolvePath(uriToQuery, "..");
     if (oldUriToQuery === uriToQuery) {
-      log.info("no qsharp manifest file found");
       return null;
     }
 
-    log.info("g");
     if (attempts === 0) {
-      log.info("returned null");
       return null;
     }
-    log.info("h");
   }
 }
 

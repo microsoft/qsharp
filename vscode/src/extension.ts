@@ -151,7 +151,6 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   async function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
-      log.info("calling updatedocument");
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
