@@ -590,7 +590,7 @@ impl Solver {
             (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
-            (Ty::Param(_, name1), Ty::Param(_, name2)) if name1 == name2 => Vec::new(), // ToDo: do we need to test if the item ids are the same?
+            (Ty::Param(_, name1), Ty::Param(_, name2)) if name1 == name2 => Vec::new(),
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {

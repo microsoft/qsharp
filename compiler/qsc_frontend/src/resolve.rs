@@ -360,11 +360,8 @@ impl Resolver {
     }
 
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
-        // ToDo: This seems like the wrong way to get the item_id
-        let item_id = if let Some(Res::Item(item_id, _)) = self.names.get(decl.name.id) {
-            *item_id
-        } else {
-            panic!("Callable decl expected to have item_id in names map.");
+        let Some(Res::Item(item_id, _)) = self.names.get(decl.name.id).copied() else {
+            panic!("Callable decl expected to have ItemId in names map.");
         };
 
         decl.generics.iter().enumerate().for_each(|(ix, ident)| {
