@@ -124,10 +124,14 @@ export class QSharpLanguageService implements ILanguageService {
   async loadFile(uri: string): Promise<string | null> {
     let result = this.code[uri];
     if (result === undefined || result === null) {
-         (await this.readFile(uri))
+      await this.readFile(uri);
     }
     if (result === null || result === undefined) {
-      log.error("File", uri, "wasn't in document map when we expected it to be");   
+      log.error(
+        "File",
+        uri,
+        "wasn't in document map when we expected it to be",
+      );
       return null;
     }
     return result;
