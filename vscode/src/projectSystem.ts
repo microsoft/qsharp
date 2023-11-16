@@ -86,8 +86,6 @@ export async function directoryListingCallback(
 ): Promise<[string, number][]> {
   const uriToQuery = vscode.Uri.parse(directoryQuery);
 
-  log.info("looking for in dir listing ", uriToQuery);
-
   const fileSearchResult = await vscode.workspace.fs.readDirectory(uriToQuery);
   const mappedFiles: [string, vscode.FileType][] = fileSearchResult.map(
     ([name, type]) => [Utils.joinPath(uriToQuery, name).toString(), type],

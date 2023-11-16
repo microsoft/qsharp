@@ -127,7 +127,7 @@ export class QSharpLanguageService implements ILanguageService {
          (await this.readFile(uri))
     }
     if (result === null || result === undefined) {
-      log.error("File", uri, "wasn't in document map");   
+      log.error("File", uri, "wasn't in document map when we expected it to be");   
       return null;
     }
     return result;

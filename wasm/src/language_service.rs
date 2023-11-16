@@ -40,10 +40,8 @@ impl LanguageService {
 
         let read_file = //: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> =
             move |path_buf: PathBuf| {
-                log::info!("input to read_file: {path_buf:?}");
                 let path_buf_string = &path_buf.to_string_lossy().to_string();
                 let path = JsValue::from_str(path_buf_string);
-                log::info!("Attempting to read file {path_buf_string} {path:?}");
                 let res: js_sys::Promise = read_file
                     .call1(&JsValue::NULL, &path)
                     .expect("callback should succeed")
@@ -58,7 +56,7 @@ impl LanguageService {
                     None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
                     None => unreachable!("Expected string from JS callback, received {js_val:?}"),
                 };
-            Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+                Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
             };
 
         let list_directory = list_directory

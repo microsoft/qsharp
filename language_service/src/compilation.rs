@@ -42,7 +42,7 @@ impl Compilation {
         target_profile: TargetProfile,
     ) -> Self {
         if sources.len() == 1 {
-            trace!("compiling document {}", sources[0].0);
+            trace!("compiling single-file document {}", sources[0].0);
         } else {
             trace!("compiling package with {} sources", sources.len());
         }

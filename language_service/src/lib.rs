@@ -149,7 +149,7 @@ impl<'a> LanguageService<'a> {
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        info!("update_document: {uri} {version}");
+        trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
         let sources = if let Some(ref manifest) = manifest {
             let project = match self.load_project(manifest).await {
@@ -159,7 +159,6 @@ impl<'a> LanguageService<'a> {
                     return;
                 }
             };
-            trace!("Loaded project with {} sources", project.sources.len());
             project.sources
         } else {
             trace!("Running in single file mode");
@@ -177,6 +176,7 @@ impl<'a> LanguageService<'a> {
         } else {
             uri.into()
         };
+        trace!("Loaded project uri {uri} with {} sources", sources.len());
         self.compilations.insert(uri.clone(), compilation);
 
         // There may be open buffers with sources in the project.
