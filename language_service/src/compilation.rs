@@ -35,9 +35,9 @@ pub(crate) enum CompilationKind {
 }
 
 impl Compilation {
-    /// Creates a new `Compilation` by compiling source from a single open document.
-    pub(crate) fn new_open_document(
-        sources: Vec<(Arc<str>, Arc<str>)>,
+    /// Creates a new `Compilation` by compiling sources.
+    pub(crate) fn new(
+        sources: &[(Arc<str>, Arc<str>)],
         package_type: PackageType,
         target_profile: TargetProfile,
     ) -> Self {
@@ -46,8 +46,11 @@ impl Compilation {
         } else {
             trace!("compiling package with {} sources", sources.len());
         }
-        // Source map only contains the current document.
-        let source_map = SourceMap::new(sources, None);
+
+        let source_map = SourceMap::new(
+            sources.into_iter().map(|(x, y)| (x.clone(), y.clone())),
+            None,
+        );
 
         let mut package_store = PackageStore::new(compile::core());
         let std_package_id = package_store.insert(compile::std(&package_store, target_profile));
@@ -128,16 +131,14 @@ impl Compilation {
 
     /// Regenerates the compilation with the same sources but the passed in configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: TargetProfile) {
-        let sources = self
+        let sources: Vec<_> = self
             .user_source_contents()
             .into_iter()
             .map(|(a, b)| (Arc::from(a), Arc::from(b)))
             .collect();
 
         let new = match self.kind {
-            CompilationKind::OpenDocument => {
-                Self::new_open_document(sources, package_type, target_profile)
-            }
+            CompilationKind::OpenDocument => Self::new(&sources, package_type, target_profile),
             CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
         };
         self.package_store = new.package_store;

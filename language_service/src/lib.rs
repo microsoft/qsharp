@@ -165,8 +165,8 @@ impl<'a> LanguageService<'a> {
             trace!("Running in single file mode");
             vec![(Arc::from(uri), Arc::from(text))]
         };
-        let compilation = Compilation::new_open_document(
-            sources,
+        let compilation = Compilation::new(
+            &sources,
             self.configuration.package_type,
             self.configuration.target_profile,
         );
@@ -178,13 +178,31 @@ impl<'a> LanguageService<'a> {
             uri.into()
         };
         self.compilations.insert(uri.clone(), compilation);
-        self.open_documents.insert(
-            uri.clone(),
-            OpenDocument {
-                version,
-                compilation: uri,
-            },
-        );
+
+        // There may be open buffers with sources in the project.
+        // These buffers need to have their diagnostics reloaded,
+        // to be in the context of the project.
+        // We remove them from the existing compilations and update
+        // their compilation URI
+        for (path, _contents) in &sources {
+            log::trace!("Updating compilation of {path} to {uri}");
+            self.open_documents
+                .entry(path.clone())
+                .and_modify(|x| {
+                    // remove any old single-file compilations of this document
+                    // if this is a project
+                    if x.compilation != uri {
+                        self.compilations.remove(&x.compilation);
+                    }
+                    x.compilation = uri.clone();
+                    x.version += 1;
+                })
+                .or_insert(OpenDocument {
+                    version: 0,
+                    compilation: uri.clone(),
+                });
+        }
+
         self.publish_diagnostics();
     }
 
