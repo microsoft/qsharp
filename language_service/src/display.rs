@@ -574,6 +574,7 @@ impl<'a> Display for HirTy<'a> {
                     _ => panic!("Type parameter has invalid resolution."),
                 }
             }
+            hir::ty::Ty::Infer(_) => write!(f, "?"),
             _ => write!(f, "{}", self.ty),
         }
     }
