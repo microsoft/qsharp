@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::LanguageService;
 use async_trait::async_trait;
 use std::{convert::Infallible, path::PathBuf};

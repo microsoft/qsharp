@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use std::mem::replace;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use crate::compilation::{Compilation, Lookup};
 use crate::qsc_utils::{find_ident, span_contains, span_touches};
@@ -87,8 +87,8 @@ pub(crate) trait Handler<'package> {
 pub(crate) struct LocatorContext<'package> {
     pub(crate) current_callable: Option<&'package ast::CallableDecl>,
     pub(crate) lambda_params: Vec<&'package ast::Pat>,
-    pub(crate) current_item_doc: Arc<str>,
-    pub(crate) current_namespace: Arc<str>,
+    pub(crate) current_item_doc: Rc<str>,
+    pub(crate) current_namespace: Rc<str>,
     pub(crate) in_params: bool,
     pub(crate) in_lambda_params: bool,
     pub(crate) current_udt_id: Option<&'package hir::ItemId>,
@@ -112,12 +112,12 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
             offset,
             compilation,
             context: LocatorContext {
-                current_namespace: Arc::from(""),
+                current_namespace: Rc::from(""),
                 current_callable: None,
                 in_params: false,
                 lambda_params: vec![],
                 in_lambda_params: false,
-                current_item_doc: Arc::from(""),
+                current_item_doc: Rc::from(""),
                 current_udt_id: None,
             },
         }
@@ -127,7 +127,7 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.context.current_namespace = Arc::from(&*namespace.name.name);
+            self.context.current_namespace = Rc::from(&*namespace.name.name);
             walk_namespace(self, namespace);
         }
     }
@@ -135,7 +135,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     // Handles callable, UDT, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
         if span_contains(item.span, self.offset) {
-            let context = replace(&mut self.context.current_item_doc, Arc::from(&*item.doc));
+            let context = replace(&mut self.context.current_item_doc, Rc::from(&*item.doc));
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_touches(decl.name.span, self.offset) {
