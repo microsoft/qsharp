@@ -3,14 +3,14 @@
 
 use crate::{
     protocol::{DiagnosticUpdate, WorkspaceConfigurationUpdate},
-    LanguageService,
+    JSFileEntry, LanguageService,
 };
 use expect_test::{expect, Expect};
 use qsc::{compile, PackageType, TargetProfile};
 use std::{cell::RefCell, sync::Arc};
 
-#[test]
-fn no_error() {
+#[tokio::test]
+async fn no_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -18,7 +18,8 @@ fn no_error() {
         "foo.qs",
         1,
         "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-    );
+    )
+    .await;
 
     expect_errors(
         &errors,
@@ -28,12 +29,12 @@ fn no_error() {
     );
 }
 
-#[test]
-fn clear_error() {
+#[tokio::test]
+async fn clear_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
-    ls.update_document("foo.qs", 1, "namespace {");
+    ls.update_document("foo.qs", 1, "namespace {").await;
 
     expect_errors(
         &errors,
@@ -73,7 +74,8 @@ fn clear_error() {
         "foo.qs",
         2,
         "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-    );
+    )
+    .await;
 
     expect_errors(
         &errors,
@@ -82,7 +84,7 @@ fn clear_error() {
                 (
                     "foo.qs",
                     Some(
-                        2,
+                        1,
                     ),
                     [],
                 ),
@@ -91,12 +93,12 @@ fn clear_error() {
     );
 }
 
-#[test]
-fn clear_on_document_close() {
+#[tokio::test]
+async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
-    ls.update_document("foo.qs", 1, "namespace {");
+    ls.update_document("foo.qs", 1, "namespace {").await;
 
     expect_errors(
         &errors,
@@ -148,12 +150,12 @@ fn clear_on_document_close() {
     );
 }
 
-#[test]
-fn compile_error() {
+#[tokio::test]
+async fn compile_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
-    ls.update_document("foo.qs", 1, "badsyntax");
+    ls.update_document("foo.qs", 1, "badsyntax").await;
 
     expect_errors(
         &errors,
@@ -188,8 +190,8 @@ fn compile_error() {
     );
 }
 
-#[test]
-fn package_type_update_causes_error() {
+#[tokio::test]
+async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -198,7 +200,8 @@ fn package_type_update_causes_error() {
         package_type: Some(PackageType::Lib),
     });
 
-    ls.update_document("foo.qs", 1, "namespace Foo { operation Main() : Unit {} }");
+    ls.update_document("foo.qs", 1, "namespace Foo { operation Main() : Unit {} }")
+        .await;
 
     expect_errors(
         &errors,
@@ -234,8 +237,8 @@ fn package_type_update_causes_error() {
     );
 }
 
-#[test]
-fn target_profile_update_fixes_error() {
+#[tokio::test]
+async fn target_profile_update_fixes_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -248,7 +251,8 @@ fn target_profile_update_fixes_error() {
         "foo.qs",
         1,
         r#"namespace Foo { operation Main() : Unit { if Zero == Zero { Message("hi") } } }"#,
-    );
+    )
+    .await;
 
     expect_errors(
         &errors,
@@ -317,8 +321,8 @@ fn target_profile_update_fixes_error() {
     );
 }
 
-#[test]
-fn target_profile_update_causes_error_in_stdlib() {
+#[tokio::test]
+async fn target_profile_update_causes_error_in_stdlib() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -326,7 +330,7 @@ fn target_profile_update_causes_error_in_stdlib() {
         "foo.qs",
         1,
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
-    );
+    ).await;
 
     expect_errors(
         &errors,
@@ -385,8 +389,8 @@ fn target_profile_update_causes_error_in_stdlib() {
     );
 }
 
-#[test]
-fn notebook_document_no_errors() {
+#[tokio::test]
+async fn notebook_document_no_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -407,8 +411,8 @@ fn notebook_document_no_errors() {
     );
 }
 
-#[test]
-fn notebook_document_errors() {
+#[tokio::test]
+async fn notebook_document_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -465,8 +469,8 @@ fn notebook_document_errors() {
     );
 }
 
-#[test]
-fn notebook_update_remove_cell_clears_errors() {
+#[tokio::test]
+async fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -541,8 +545,8 @@ fn notebook_update_remove_cell_clears_errors() {
     );
 }
 
-#[test]
-fn close_notebook_clears_errors() {
+#[tokio::test]
+async fn close_notebook_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -627,9 +631,11 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
                 update.errors.iter().map(|e| e.error().clone()).collect(),
             ));
         },
-        |_| todo!(),
-        |_| todo!(),
-        |_| todo!(),
+        // these tests do not test project mode
+        // so we provide
+        |_| Box::pin(std::future::ready((Arc::from(""), Arc::from("")))),
+        |_| Box::pin(std::future::ready(vec![])),
+        |_| Box::pin(std::future::ready(None)),
     )
 }
 

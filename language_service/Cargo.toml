@@ -11,6 +11,7 @@ repository.workspace = true
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
+tokio = { workspace = true }
 
 [dependencies]
 log = { workspace = true }

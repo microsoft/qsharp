@@ -47,10 +47,7 @@ impl Compilation {
             trace!("compiling package with {} sources", sources.len());
         }
 
-        let source_map = SourceMap::new(
-            sources.into_iter().map(|(x, y)| (x.clone(), y.clone())),
-            None,
-        );
+        let source_map = SourceMap::new(sources.iter().map(|(x, y)| (x.clone(), y.clone())), None);
 
         let mut package_store = PackageStore::new(compile::core());
         let std_package_id = package_store.insert(compile::std(&package_store, target_profile));

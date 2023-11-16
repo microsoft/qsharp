@@ -22,7 +22,7 @@ mod test_utils;
 mod tests;
 
 use compilation::Compilation;
-use log::{error, info, trace};
+use log::{error, trace};
 use miette::Diagnostic;
 pub use project_system::JSFileEntry;
 use protocol::{
@@ -195,10 +195,9 @@ impl<'a> LanguageService<'a> {
                         self.compilations.remove(&x.compilation);
                     }
                     x.compilation = uri.clone();
-                    x.version += 1;
                 })
                 .or_insert(OpenDocument {
-                    version: 0,
+                    version,
                     compilation: uri.clone(),
                 });
         }
