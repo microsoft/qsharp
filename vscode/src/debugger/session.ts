@@ -43,6 +43,7 @@ import {
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
 import { getTarget } from "../config";
+import { getProjectMode } from "../projectSystem";
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -107,6 +108,10 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(correlationId: string): Promise<void> {
+    if (getProjectMode()) {
+      vscode.window.showErrorMessage("The debugger does not currently support multi-file Q# projects. Coming soon!");
+      return;
+    }
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { correlationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();

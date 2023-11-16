@@ -5,6 +5,14 @@ import { log } from "qsharp-lang";
 import { Utils, URI } from "vscode-uri";
 import * as vscode from "vscode";
 
+// This flag is a hacky way of disabling the debugger when running in project mode.
+// We will have debugger support for projects _very soon_, and this flag will get
+// removed when that lands. To be clear, this is _not_ the ideal way to transmit
+// data to the debugger, but it is a temporary workaround.
+// It stores files that are a part of projects and disables the debugger on them.
+let PROJECT_MODE = false;
+export const getProjectMode = () => PROJECT_MODE;
+
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
  * was malformed.
@@ -17,6 +25,7 @@ export async function getManifest(uri: string): Promise<{
   const manifestDocument = await findManifestDocument(uri);
 
   if (manifestDocument === null) {
+    PROJECT_MODE = false;
     return null;
   }
 
@@ -28,11 +37,13 @@ export async function getManifest(uri: string): Promise<{
       "Found manifest document, but the Q# manifest was not valid JSON",
       e,
     );
+    PROJECT_MODE = false;
     return null;
   }
 
   const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
+  PROJECT_MODE = true;
   return {
     excludeFiles: parsedManifest.excludeFiles || [],
     excludeRegexes: parsedManifest.excludeRegexes || [],
@@ -61,7 +72,7 @@ async function findManifestDocument(
     let listing;
     try {
       listing = await readFile(potentialManifestLocation);
-    } catch (err) {}
+    } catch (err) { }
 
     if (listing) {
       return listing;
