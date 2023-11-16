@@ -3,7 +3,7 @@
 
 use crate::{
     protocol::{DiagnosticUpdate, WorkspaceConfigurationUpdate},
-    JSFileEntry, LanguageService,
+    LanguageService,
 };
 use expect_test::{expect, Expect};
 use qsc::{compile, PackageType, TargetProfile};
