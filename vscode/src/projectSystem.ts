@@ -65,14 +65,16 @@ async function findManifestDocument(
 
   let attempts = 100;
 
-  while (true) {
+  while (attempts > 0) {
     attempts--;
     const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
 
     let listing;
     try {
       listing = await readFile(potentialManifestLocation);
-    } catch (err) { }
+    } catch (err) {
+      log.error("Error thrown when reading file: ", err);
+    }
 
     if (listing) {
       return listing;
@@ -81,10 +83,6 @@ async function findManifestDocument(
     const oldUriToQuery = uriToQuery;
     uriToQuery = Utils.resolvePath(uriToQuery, "..");
     if (oldUriToQuery === uriToQuery) {
-      return null;
-    }
-
-    if (attempts === 0) {
       return null;
     }
   }

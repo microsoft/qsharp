@@ -122,7 +122,7 @@ export class QSharpLanguageService implements ILanguageService {
   }
 
   async loadFile(uri: string): Promise<string | null> {
-    let result = this.code[uri];
+    const result = this.code[uri];
     if (result === undefined || result === null) {
       await this.readFile(uri);
     }
