@@ -52,7 +52,7 @@ impl LanguageService {
                 let path_buf_string = path_buf_string.clone();
                 let func = move |js_val: JsValue| match js_val.as_string() {
                     Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-                    None => unreachable!("JS callback did not return an expected type"),
+                    None => unreachable!("Expected string from JS callback, received {js_val:?}"),
                 };
             Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
             };
@@ -96,7 +96,7 @@ impl LanguageService {
                             1 => EntryType::File,
                             2 => EntryType::Folder,
                             64 => EntryType::Symlink,
-                            _ => unreachable!(),
+                            _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
                         },
                     })
                     .collect::<Vec<_>>(),
