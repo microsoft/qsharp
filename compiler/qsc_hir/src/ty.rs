@@ -52,7 +52,14 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
-            Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Infer(_) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Param(item_id, param_id) => Ty::Param(
+                ItemId {
+                    package: Some(package),
+                    item: item_id.item,
+                },
+                *param_id,
+            ),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
