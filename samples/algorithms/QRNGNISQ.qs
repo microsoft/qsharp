@@ -12,12 +12,12 @@ namespace Sample {
     operation Main() : Result[] {
         // Generate 5-bit random number.
         let nBits = 5;
-        return GenerateRandomNBits(nBits);
+        return GenerateNRandomBits(nBits);
     }
 
     /// # Summary
     /// Generates N random bits.
-    operation GenerateRandomNBits(nBits : Int) : Result[] {
+    operation GenerateNRandomBits(nBits : Int) : Result[] {
         // Allocate N qubits.
         use register = Qubit[nBits];
 
