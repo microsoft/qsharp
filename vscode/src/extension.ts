@@ -148,14 +148,33 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }),
   );
 
+  let currentlyCompiling = false;
+  let pendingCompile: vscode.TextDocument | null = null;
   async function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-      // Regular (not notebook) Q# document.
-      languageService.updateDocument(
-        document.uri.toString(),
-        document.version,
-        document.getText(),
-      );
+      if (!currentlyCompiling) {
+        currentlyCompiling = true;
+        // Regular (not notebook) Q# document.
+        languageService
+          .updateDocument(
+            document.uri.toString(),
+            document.version,
+            document.getText(),
+          )
+          .then(() => {
+            if (pendingCompile !== null) {
+              languageService.updateDocument(
+                pendingCompile.toString(),
+                pendingCompile.version,
+                pendingCompile.getText(),
+              );
+              pendingCompile = null;
+            }
+          })
+          .then(() => (currentlyCompiling = false));
+      } else {
+        pendingCompile = document;
+      }
     }
   }
 
