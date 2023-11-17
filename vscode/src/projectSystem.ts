@@ -86,6 +86,7 @@ async function findManifestDocument(
       return null;
     }
   }
+  return null;
 }
 
 // this function currently assumes that `directoryQuery` will be a relative path from
