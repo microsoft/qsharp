@@ -16,7 +16,6 @@ const targetsThatSupportQir = [
   "quantinuum.qpu.h2-1",
   "rigetti.sim.qvm",
   "rigetti.qpu.ankaa-2",
-  "rigetti.qpu.aspen-m-3",
   "ionq.qpu-preview",
   "ionq.qpu.aria-1-preview",
   "ionq.qpu.aria-2-preview",
@@ -28,7 +27,10 @@ const targetsThatSupportQir = [
   "ionq.simulator",
 ];
 
-const excludeTargets: string[] = ["rigetti.qpu.aspen-m-2"];
+const excludeTargets: string[] = [
+  "rigetti.qpu.aspen-m-2",
+  "rigetti.qpu.aspen-m-3",
+];
 
 const excludeProviders: string[] = [];
 
