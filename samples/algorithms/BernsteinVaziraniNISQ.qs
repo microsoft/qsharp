@@ -74,8 +74,8 @@ namespace Sample {
         within {
             // Now, a Hadamard transform is applied to each of the qubits. As
             // the last step before the measurement, a Hadamard transform is
-            // applied to all qubits except last one. We could apply the
-            // transform to the last qubit also, but this would not affect the
+            // applied to all qubits except the last one. We could also
+            // transform the last qubit, but this would not affect the
             // final outcome.
             // We use a within-apply block to ensure that the Hadamard transform
             // is correctly inverted.
