@@ -544,7 +544,7 @@ impl<'a> Display for HirTy<'a> {
                 lookup: self.lookup,
                 ty,
             }),
-            hir::ty::Ty::Udt(res) => {
+            hir::ty::Ty::Udt(_, res) => {
                 let (item, _) = self
                     .lookup
                     .compilation
@@ -554,7 +554,7 @@ impl<'a> Display for HirTy<'a> {
                     _ => panic!("UDT has invalid resolution."),
                 }
             }
-            hir::ty::Ty::Param(item_id, param_id) => {
+            hir::ty::Ty::Param(_, item_id, param_id) => {
                 let (item, _, _) = self
                     .lookup
                     .compilation

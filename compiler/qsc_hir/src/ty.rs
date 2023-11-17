@@ -33,13 +33,13 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(ItemId, ParamId),
+    Param(Rc<str>, ItemId, ParamId),
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A user-defined type.
-    Udt(Res),
+    Udt(Rc<str>, Res),
     /// An invalid type.
     #[default]
     Err,
@@ -53,7 +53,8 @@ impl Ty {
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
             Ty::Infer(_) | Ty::Prim(_) | Ty::Err => self.clone(),
-            Ty::Param(item_id, param_id) => Ty::Param(
+            Ty::Param(name, item_id, param_id) => Ty::Param(
+                name.clone(),
                 ItemId {
                     package: Some(package),
                     item: item_id.item,
@@ -68,7 +69,7 @@ impl Ty {
                     .map(|item| item.with_package(package))
                     .collect(),
             ),
-            Ty::Udt(res) => Ty::Udt(res.with_package(package)),
+            Ty::Udt(name, res) => Ty::Udt(name.clone(), res.with_package(package)),
         }
     }
 }
@@ -79,7 +80,9 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "({item})[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(item_id, param_id) => write!(f, "Param<{item_id}, {param_id}>"),
+            Ty::Param(name, item_id, param_id) => {
+                write!(f, "Param<\"{name}\": {item_id}, {param_id}>")
+            }
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -100,7 +103,7 @@ impl Display for Ty {
                     f.write_str(")")
                 }
             }
-            Ty::Udt(res) => write!(f, "UDT<{res}>"),
+            Ty::Udt(name, res) => write!(f, "UDT<\"{name}\": {res}>"),
             Ty::Err => f.write_str("?"),
         }
     }
@@ -173,10 +176,10 @@ fn instantiate_ty<'a>(
     ty: &Ty,
 ) -> Result<Ty, InstantiationError> {
     match ty {
-        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => Ok(ty.clone()),
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_, _) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(_, param) => match arg(param) {
+        Ty::Param(_, _, param) => match arg(param) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
             Some(_) => Err(InstantiationError::Kind(*param)),
             None => Ok(ty.clone()),
@@ -505,7 +508,7 @@ impl Udt {
             ty: Box::new(Arrow {
                 kind: CallableKind::Function,
                 input: Box::new(self.get_pure_ty()),
-                output: Box::new(Ty::Udt(Res::Item(id))),
+                output: Box::new(Ty::Udt(self.name.clone(), Res::Item(id))),
                 functors: FunctorSet::Value(FunctorSetValue::Empty),
             }),
         }

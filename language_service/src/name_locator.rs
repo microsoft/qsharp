@@ -269,7 +269,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 ast::ExprKind::Field(udt, field_ref)
                     if span_touches(field_ref.span, self.offset) =>
                 {
-                    if let Some(hir::ty::Ty::Udt(res)) = &self.compilation.get_ty(udt.id) {
+                    if let Some(hir::ty::Ty::Udt(_, res)) = &self.compilation.get_ty(udt.id) {
                         let (item, resolved_item_id) = self
                             .compilation
                             .resolve_item_res(self.compilation.user_package_id, res);

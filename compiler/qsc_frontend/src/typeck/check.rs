@@ -159,8 +159,8 @@ impl Checker {
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TyMismatch(
-                    Ty::UNIT,
-                    output,
+                    Ty::UNIT.to_string(),
+                    output.to_string(),
                     decl.output.span,
                 ))),
             }
@@ -221,7 +221,8 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("type should have item ID");
                 };
 
-                let (cons, cons_errors) = convert::ast_ty_def_cons(self.names, item, def);
+                let (cons, cons_errors) =
+                    convert::ast_ty_def_cons(self.names, &name.name, item, def);
                 let (udt_def, def_errors) = convert::ast_ty_def(self.names, def);
                 self.checker.errors.extend(
                     cons_errors
