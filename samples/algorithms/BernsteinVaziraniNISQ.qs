@@ -62,7 +62,7 @@ namespace Sample {
     ///   (https://doi.org/10.1137/S0097539796300921)
     operation BernsteinVazirani(Uf : ((Qubit[], Qubit) => Unit), n : Int)
     : Result[] {
-        // We allocate n + 1 clean qubits. Note that the function Uf is defined
+        // We allocate n + 1 clean qubits. Note that the function parameter Uf is defined
         // on inputs of the form (x, y), where x has n bits and y has 1 bit.
         use queryRegister = Qubit[n];
         use target = Qubit();
@@ -75,8 +75,8 @@ namespace Sample {
         within {
             // Now, a Hadamard transform is applied to each of the qubits. As
             // the last step before the measurement, a Hadamard transform is
-            // applied to all qubits except last one. We could apply the
-            // transform to the last qubit also, but this would not affect the
+            // applied to all qubits except the last one. We could also
+            // transform the last qubit, but this would not affect the
             // final outcome.
             // We use a within-apply block to ensure that the Hadamard transform
             // is correctly inverted.
@@ -136,7 +136,7 @@ namespace Sample {
     }
 
     /// # Summary
-    /// Returns black-box operations (Qubit[], Qubit) => () of the form
+    /// This is a higher-order operation which returns an operation (Qubit[], Qubit) => () of the form
     /// U_f |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉.
     /// We define 𝑓 by providing the bit string 𝑟⃗ as an integer.
     operation EncodeBitStringAsParityOperation(bitStringAsBoolArray : Bool[])
