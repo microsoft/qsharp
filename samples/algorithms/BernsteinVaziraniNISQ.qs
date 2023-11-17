@@ -67,8 +67,9 @@ namespace Sample {
         use queryRegister = Qubit[n];
         use target = Qubit();
 
-        // The last qubit needs to be flipped so that the function will actually
-        // be computed into the phase when Uf is applied.
+        // The last qubit needs to be flipped so that a relative phase is
+        // introduced when we apply a Hadamard gate later on and we can use
+        // phase kickback when Uf is applied.
         X(target);
 
         within {
