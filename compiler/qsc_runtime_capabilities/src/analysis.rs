@@ -1,6 +1,8 @@
 use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{ItemId, ItemKind, LocalItemId, PackageId, PackageStore};
+use qsc_fir::fir::{
+    BlockId, ExprId, ItemId, ItemKind, LocalItemId, Package, PackageId, PackageStore, PatId, StmtId,
+};
 
 use indenter::indented;
 use rustc_hash::FxHashSet;
@@ -17,12 +19,13 @@ pub struct StoreRtProps(IndexMap<PackageId, PackageRtProps>);
 #[derive(Debug)]
 pub struct PackageRtProps {
     pub items: IndexMap<LocalItemId, Option<ItemRtProps>>,
-    pub blocks: IndexMap<LocalItemId, Option<InnerElmtRtProps>>,
-    pub stmts: IndexMap<LocalItemId, Option<InnerElmtRtProps>>,
-    pub exprs: IndexMap<LocalItemId, Option<InnerElmtRtProps>>,
-    pub pats: IndexMap<LocalItemId, Option<PatRtProps>>,
+    pub blocks: IndexMap<BlockId, Option<InnerElmtRtProps>>,
+    pub stmts: IndexMap<StmtId, Option<InnerElmtRtProps>>,
+    pub exprs: IndexMap<ExprId, Option<InnerElmtRtProps>>,
+    pub pats: IndexMap<PatId, Option<PatRtProps>>,
 }
 
+// TODO (cesarzc): This is probably not needed.
 impl Default for PackageRtProps {
     fn default() -> Self {
         Self {
@@ -116,8 +119,49 @@ impl Display for PackageRtProps {
 }
 
 impl PackageRtProps {
-    fn new() -> Self {
-        Default::default()
+    fn new(package: &Package) -> Self {
+        // Initialize items.
+        let mut items = IndexMap::<LocalItemId, Option<ItemRtProps>>::new();
+        for (item_id, item) in package.items.iter() {
+            // Initialize items depending on whether they are callables or not.
+            let item_rt_props = match item.kind {
+                ItemKind::Callable(_) => None,
+                ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => Some(ItemRtProps::NonCallable),
+            };
+            items.insert(item_id, item_rt_props);
+        }
+
+        // Initialize blocks.
+        let mut blocks = IndexMap::<BlockId, Option<InnerElmtRtProps>>::new();
+        for (block_id, _) in package.blocks.iter() {
+            blocks.insert(block_id, Option::None);
+        }
+
+        // Initialize statements.
+        let mut stmts = IndexMap::<StmtId, Option<InnerElmtRtProps>>::new();
+        for (stmt_id, _) in package.stmts.iter() {
+            stmts.insert(stmt_id, Option::None);
+        }
+
+        // Initialize expressions.
+        let mut exprs = IndexMap::<ExprId, Option<InnerElmtRtProps>>::new();
+        for (expr_id, _) in package.exprs.iter() {
+            exprs.insert(expr_id, Option::None);
+        }
+
+        // Initialize patterns.
+        let mut pats = IndexMap::<PatId, Option<PatRtProps>>::new();
+        for (pat_id, _) in package.pats.iter() {
+            pats.insert(pat_id, Option::None);
+        }
+
+        Self {
+            items,
+            blocks,
+            stmts,
+            exprs,
+            pats,
+        }
     }
 }
 
@@ -305,8 +349,9 @@ pub struct Analyzer<'a> {
 impl<'a> Analyzer<'a> {
     pub fn new(package_store: &'a PackageStore) -> Self {
         let mut packages_rt_props = IndexMap::new();
-        for (package_id, _) in package_store.0.iter() {
-            packages_rt_props.insert(package_id, PackageRtProps::new())
+        for (package_id, package) in package_store.0.iter() {
+            let package_rt_props = PackageRtProps::new(package);
+            packages_rt_props.insert(package_id, package_rt_props);
         }
         Self {
             package_store,
@@ -316,39 +361,26 @@ impl<'a> Analyzer<'a> {
 
     pub fn run(&mut self) -> &StoreRtProps {
         self.persist_store_rt_props(0);
-        self.initialize_packages_rt_props();
+        self.initialize_quantum_sources();
         self.persist_store_rt_props(1);
         &self.store_rt_props
     }
 
-    fn initialize_packages_rt_props(&mut self) {
-        for (package_id, _) in self.package_store.0.iter() {
-            self.initialize_package_rt_props(package_id);
+    fn initialize_quantum_sources(&mut self) {
+        for (package_id, package) in self.package_store.0.iter() {
+            let package_rt_props = self
+                .store_rt_props
+                .0
+                .get_mut(package_id)
+                .expect("Package runtime properties should exist");
+            Self::initialize_package_quantum_sources(package, package_rt_props);
         }
     }
 
-    fn intialize_package_rt_items(&mut self, package_id: PackageId) {
-        let package = self
-            .package_store
-            .0
-            .get(package_id)
-            .expect("Package should exist");
-        let package_rt_props = self
-            .store_rt_props
-            .0
-            .get_mut(package_id)
-            .expect("Package RT props should exist");
-        for (item_id, item) in package.items.iter() {
-            let item_rt_props = match item.kind {
-                ItemKind::Callable(_) => None,
-                ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => Some(ItemRtProps::NonCallable),
-            };
-            package_rt_props.items.insert(item_id, item_rt_props);
-        }
-    }
-
-    fn initialize_package_rt_props(&mut self, package_id: PackageId) {
-        self.intialize_package_rt_items(package_id);
+    fn initialize_package_quantum_sources(
+        package: &Package,
+        package_rt_props: &mut PackageRtProps,
+    ) {
     }
 
     fn persist_store_rt_props(&self, phase: u8) {
