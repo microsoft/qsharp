@@ -19,6 +19,8 @@ mod test_math;
 #[cfg(test)]
 mod test_measurement;
 #[cfg(test)]
+mod test_table_lookup;
+#[cfg(test)]
 mod tests;
 
 use qsc::{

@@ -445,6 +445,10 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 "random.qs".into(),
                 include_str!("../../../library/std/random.qs").into(),
             ),
+            (
+                "table_lookup.qs".into(),
+                include_str!("../../../library/std/table_lookup.qs").into(),
+            ),
         ],
         None,
     );
