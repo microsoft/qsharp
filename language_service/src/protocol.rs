@@ -97,3 +97,8 @@ pub struct ParameterInformation {
     pub label: Span,
     pub documentation: Option<String>,
 }
+
+#[derive(Default)]
+pub struct NotebookMetadata {
+    pub target_profile: Option<TargetProfile>,
+}

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    protocol::{DiagnosticUpdate, WorkspaceConfigurationUpdate},
+    protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
     LanguageService,
 };
 use expect_test::{expect, Expect};
@@ -392,6 +392,7 @@ fn notebook_document_no_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
@@ -414,6 +415,7 @@ fn notebook_document_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -472,6 +474,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -524,6 +527,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
@@ -548,6 +552,7 @@ fn close_notebook_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),

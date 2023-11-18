@@ -6,7 +6,7 @@ from ._native import Interpreter, TargetProfile, StateDump
 _interpreter = None
 
 
-def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
+def init(target_profile: TargetProfile = TargetProfile.Full):
     """
     Initializes the Q# interpreter.
 
@@ -16,6 +16,9 @@ def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
     """
     global _interpreter
     _interpreter = Interpreter(target_profile)
+    # Return the configuration information to provide a hint to the
+    # language service through the cell output.
+    return Config(target_profile)
 
 
 def get_interpreter() -> Interpreter:
@@ -88,6 +91,7 @@ def compile(entry_expr):
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
+
 def dump_machine() -> StateDump:
     """
     Returns the sparse state vector of the simulator as a StateDump object.
@@ -116,3 +120,24 @@ class QirInputData:
     # by the protocol and must remain unchanged.
     def _repr_qir_(self, **kwargs) -> bytes:
         return self._ll_str.encode("utf-8")
+
+
+class Config:
+    _config: dict
+    """
+    Configuration hints for the language service.
+    """
+
+    def __init__(self, target_profile: TargetProfile):
+        match target_profile:
+            case TargetProfile.Full:
+                target_profile = "full"
+            case TargetProfile.Base:
+                target_profile = "base"
+        self._config = {"targetProfile": target_profile}
+
+    def __repr__(self):
+        return "Q# initialized with configuration: " + str(self._config)
+
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return {"application/x.qsharp-config": self._config}
