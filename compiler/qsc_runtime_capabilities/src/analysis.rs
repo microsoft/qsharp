@@ -1,13 +1,18 @@
 use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{
-    BlockId, ExprId, ItemId, ItemKind, LocalItemId, Package, PackageId, PackageStore, PatId, StmtId,
+use qsc_fir::{
+    fir::{
+        BlockId, CallableDecl, CallableKind, ExprId, ItemId, ItemKind, LocalItemId, Package,
+        PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
+    },
+    ty::Ty,
 };
 
 use indenter::indented;
 use rustc_hash::FxHashSet;
 
 use std::{
+    default,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
@@ -175,9 +180,7 @@ impl Display for ItemRtProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
             ItemRtProps::NonCallable => write!(f, "Non-Callable")?,
-            ItemRtProps::Callable(callable_rt_props) => {
-                write!(f, "Callable Runtime Properties: {callable_rt_props}")?
-            }
+            ItemRtProps::Callable(callable_rt_props) => write!(f, "{callable_rt_props}")?,
         }
         Ok(())
     }
@@ -192,7 +195,7 @@ impl Display for CallableRtProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "Callable Runtime Properties:")?;
         let mut indent = set_indentation(indented(f), 1);
-        write!(indent, "\nApplications Table: {}", self.apps_table)?;
+        write!(indent, "\n{}", self.apps_table)?;
         Ok(())
     }
 }
@@ -200,7 +203,7 @@ impl Display for CallableRtProps {
 #[derive(Debug)]
 pub enum InnerElmtRtProps {
     AppDependent(AppsTable),
-    AppIndependent(ComputeKind),
+    AppIndependent(ComputeProps),
 }
 
 impl Display for InnerElmtRtProps {
@@ -246,83 +249,69 @@ pub struct AppIdx(usize);
 
 #[derive(Debug)]
 pub struct AppsTable {
-    // CONSIDER (cesarzc): whether this has to be wrapped in an option or can be just `RtProps`.
-    apps: Vec<Option<ComputeKind>>,
+    // N.B. (cesarzc): Will probably be only used to assert compatibility when using it.
+    pub input_param_count: usize,
+    // N.B. (cesarzc): Hide the vector to provide a good interface to access applications (possibly
+    // by providing a get that takes a vector of `ComputeKind`).
+    apps: Vec<ComputeProps>,
 }
 
 impl AppsTable {
-    pub fn new(capacity: usize) -> Self {
+    pub fn new(input_param_count: usize) -> Self {
         Self {
-            apps: Vec::with_capacity(capacity),
+            input_param_count,
+            apps: Vec::new(),
         }
     }
 
-    pub fn get(&self, index: AppIdx) -> Option<&ComputeKind> {
-        self.apps[index.0].as_ref()
+    // TODO (cesarzc): Implement a get that takes a vector of `ComputeKind` where each element maps
+    // to the compute kind of the input parameter.
+
+    pub fn get(&self, index: AppIdx) -> Option<&ComputeProps> {
+        self.apps.get(index.0)
     }
 
-    pub fn get_mut(&mut self, index: AppIdx) -> Option<&mut ComputeKind> {
-        self.apps[index.0].as_mut()
+    pub fn get_mut(&mut self, index: AppIdx) -> Option<&mut ComputeProps> {
+        self.apps.get_mut(index.0)
+    }
+
+    pub fn push(&mut self, app: ComputeProps) {
+        self.apps.push(app);
     }
 }
 
 impl Display for AppsTable {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "Applications Table:")?;
+        write!(
+            f,
+            "Applications Table ({} input parameters):",
+            self.input_param_count
+        )?;
         let mut indent = set_indentation(indented(f), 1);
         for (idx, app) in self.apps.iter().enumerate() {
-            let app_str = match app {
-                None => "None".to_string(),
-                Some(compute_kind) => format!("{compute_kind}"),
-            };
-            write!(indent, "\n[{idx:b}] -> {app_str}]")?;
+            write!(indent, "\n[{idx:#010b}] -> {app}")?;
         }
         Ok(())
     }
 }
 
 #[derive(Debug)]
-pub enum ComputeKind {
-    Classical,
-    Hybrid,
-    Quantum(QuantumCompute),
+pub struct ComputeProps {
+    pub rt_caps: FxHashSet<RuntimeCapability>,
+    // N.B. (cesarzc): To get good error messages, maybe quantum source needs expansion and link to compute props.
+    pub quantum_sources: Vec<QuantumSource>,
 }
 
-impl Display for ComputeKind {
+impl Display for ComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        match &self {
-            ComputeKind::Classical => write!(f, "Classical")?,
-            ComputeKind::Hybrid => write!(f, "Hybrid")?,
-            ComputeKind::Quantum(quantum_compute) => write!(f, "{quantum_compute}")?,
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub enum QuantumSource {
-    ItemId,
-    BlockId,
-    StmtId,
-    ExprId,
-    PatId,
-}
-
-#[derive(Debug)]
-pub struct QuantumCompute {
-    pub caps: FxHashSet<RuntimeCapability>,
-    pub source_trace: Vec<QuantumSource>, // N.B. (cesarzc): To get good error messages.
-}
-
-impl Display for QuantumCompute {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "QuantumCompute:")?;
+        let compute_kind = self.compute_kind();
+        write!(f, "Compute Properties ({compute_kind:?}):")?;
         let mut indent = set_indentation(indented(f), 1);
-        if self.caps.is_empty() {
-            write!(indent, "\nCapabilities: <empty>")?;
+        if self.rt_caps.is_empty() {
+            write!(indent, "\nRuntime Capabilities: <empty>")?;
         } else {
-            write!(indent, "\nCapabilities: {{")?;
-            for cap in &self.caps {
+            write!(indent, "\nRuntime Capabilities: {{")?;
+            for cap in &self.rt_caps {
                 indent = set_indentation(indent, 2);
                 write!(indent, "\n{cap:?}")?;
             }
@@ -331,14 +320,44 @@ impl Display for QuantumCompute {
         }
 
         let mut indent = set_indentation(indented(f), 1);
-        write!(indent, "\nSourceTrace:")?;
-        for src in self.source_trace.iter() {
+        write!(indent, "\nQuantum Sources:")?;
+        for src in self.quantum_sources.iter() {
             indent = set_indentation(indent, 2);
             write!(indent, "\n{src:?}")?; // TODO (cesarzc): Implement non-debug display, maybe?.
         }
-        indent = set_indentation(indent, 1);
         Ok(())
     }
+}
+
+impl ComputeProps {
+    pub fn is_quantum_source(&self) -> bool {
+        !self.quantum_sources.is_empty()
+    }
+
+    pub fn compute_kind(&self) -> ComputeKind {
+        if self.rt_caps.is_empty() {
+            ComputeKind::Static
+        } else {
+            ComputeKind::Dynamic
+        }
+    }
+}
+
+// TODO (cesarzc): Need to remove this.
+#[derive(Debug)]
+pub enum ComputeKind {
+    Static,
+    Dynamic,
+}
+
+#[derive(Debug)]
+pub enum QuantumSource {
+    Intrinsic,
+    ItemId,
+    BlockId,
+    StmtId,
+    ExprId,
+    PatId,
 }
 
 pub struct Analyzer<'a> {
@@ -361,26 +380,124 @@ impl<'a> Analyzer<'a> {
 
     pub fn run(&mut self) -> &StoreRtProps {
         self.persist_store_rt_props(0);
-        self.initialize_quantum_sources();
+        self.initialize_intrinsic_callables();
         self.persist_store_rt_props(1);
         &self.store_rt_props
     }
 
-    fn initialize_quantum_sources(&mut self) {
+    fn get_input_params_types(pattern: &Pat) -> Vec<Ty> {
+        match pattern.kind {
+            PatKind::Bind(_) => match pattern.ty {
+                Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
+                    vec![pattern.ty.clone()]
+                }
+                _ => panic!(
+                    "Unexpected pattern type {} for pattern {}",
+                    pattern.ty, pattern.id
+                ),
+            },
+            PatKind::Tuple(_) => match &pattern.ty {
+                Ty::Tuple(vector) => vector.clone(),
+                _ => panic!("Unexpected pattern type"),
+            },
+            _ => panic!("Only callable parameter patterns are expected"),
+        }
+    }
+
+    fn calculate_intrinsic_function_application(
+        input_param_types: &Vec<Ty>,
+        app_idx: usize,
+    ) -> ComputeProps {
+        assert!((app_idx as i32) < 2i32.pow(input_param_types.len() as u32));
+        let rt_caps = FxHashSet::<RuntimeCapability>::default();
+        let quantum_sources = Vec::new();
+        ComputeProps {
+            rt_caps,
+            quantum_sources,
+        }
+    }
+
+    fn calculate_intrinsic_operation_application(
+        input_param_types: &Vec<Ty>,
+        app_idx: usize,
+    ) -> ComputeProps {
+        assert!((app_idx as i32) < 2i32.pow(input_param_types.len() as u32));
+        let rt_caps = FxHashSet::<RuntimeCapability>::default();
+        let quantum_sources = Vec::new();
+        ComputeProps {
+            rt_caps,
+            quantum_sources,
+        }
+    }
+
+    fn initialize_intrinsic_callables(&mut self) {
         for (package_id, package) in self.package_store.0.iter() {
             let package_rt_props = self
                 .store_rt_props
                 .0
                 .get_mut(package_id)
                 .expect("Package runtime properties should exist");
-            Self::initialize_package_quantum_sources(package, package_rt_props);
+            Self::initialize_package_intrinsic_callables(package, package_rt_props);
         }
     }
 
-    fn initialize_package_quantum_sources(
+    fn initialize_package_intrinsic_callables(
         package: &Package,
         package_rt_props: &mut PackageRtProps,
     ) {
+        for (item_id, item) in package.items.iter() {
+            if let ItemKind::Callable(callable) = &item.kind {
+                Self::try_initialize_intrinsic(
+                    item_id,
+                    callable,
+                    package,
+                    &mut package_rt_props.items,
+                );
+            }
+        }
+    }
+
+    fn initialize_intrinsic_function_rt_props(
+        function: &CallableDecl,
+        input_pattern: &Pat,
+    ) -> CallableRtProps {
+        assert!(Self::is_callable_intrinsic(function));
+        let input_param_types = Self::get_input_params_types(input_pattern);
+        let mut apps_table = AppsTable::new(input_param_types.len());
+        let apps_count = 2u32.pow(input_param_types.len() as u32);
+        for app_idx in 0..apps_count {
+            let app = Self::calculate_intrinsic_function_application(
+                &input_param_types,
+                app_idx as usize,
+            );
+            apps_table.push(app);
+        }
+        CallableRtProps { apps_table }
+    }
+
+    fn initialize_intrinsic_operation_rt_props(
+        operation: &CallableDecl,
+        input_pattern: &Pat,
+    ) -> CallableRtProps {
+        assert!(Self::is_callable_intrinsic(operation));
+        let input_param_types = Self::get_input_params_types(input_pattern);
+        let mut apps_table = AppsTable::new(input_param_types.len());
+        let apps_count = 2u32.pow(input_param_types.len() as u32);
+        for app_idx in 0..apps_count {
+            let app = Self::calculate_intrinsic_operation_application(
+                &input_param_types,
+                app_idx as usize,
+            );
+            apps_table.push(app);
+        }
+        CallableRtProps { apps_table }
+    }
+
+    fn is_callable_intrinsic(callable: &CallableDecl) -> bool {
+        match callable.body.body {
+            SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
+            _ => false,
+        }
     }
 
     fn persist_store_rt_props(&self, phase: u8) {
@@ -389,6 +506,31 @@ impl<'a> Analyzer<'a> {
             let mut package_file = File::create(filename).expect("File could be created");
             let package_string = format!("{package}");
             write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+        }
+    }
+
+    fn try_initialize_intrinsic(
+        callable_id: LocalItemId,
+        callable: &CallableDecl,
+        package: &Package,
+        callables_rt_props: &mut IndexMap<LocalItemId, Option<ItemRtProps>>,
+    ) {
+        if Self::is_callable_intrinsic(callable) {
+            // Get the input pattern of the callable since that determines properties of intrinsic callables.
+            let input_pattern = package
+                .pats
+                .get(callable.input)
+                .expect("Input pattern should exist");
+            let callable_rt_props = match callable.kind {
+                CallableKind::Function => {
+                    Self::initialize_intrinsic_function_rt_props(callable, input_pattern)
+                }
+                CallableKind::Operation => {
+                    Self::initialize_intrinsic_operation_rt_props(callable, input_pattern)
+                }
+            };
+
+            callables_rt_props.insert(callable_id, Some(ItemRtProps::Callable(callable_rt_props)));
         }
     }
 }

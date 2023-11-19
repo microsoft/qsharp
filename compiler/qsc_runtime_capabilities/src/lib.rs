@@ -28,7 +28,6 @@ pub enum RuntimeCapability {
     IntegerComputations,
     FloatingPointComputationg,
     BackwardsBranching,
-    UserDefinedFunctionCalls,
     HigherLevelConstructs,
 }
 
@@ -45,26 +44,6 @@ impl Display for Capabilities {
         Ok(())
     }
 }
-
-//#[derive(Debug)]
-//pub struct RuntimePropeties {
-//    pub is_quantum_source: bool,
-//    // TODO (cesarzc): This should be FxHashSet.
-//    pub caps: FxHashSet<RuntimeCapability>,
-//}
-//
-//impl Display for RuntimePropeties {
-//    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-//        let mut indent = set_indentation(indented(f), 0);
-//        write!(indent, "\nis_quantum_source: {}", self.is_quantum_source)?;
-//        write!(indent, "\ncapabilities:")?;
-//        indent = set_indentation(indent, 1);
-//        for capability in self.caps.iter() {
-//            write!(indent, "\n{capability:?}")?;
-//        }
-//        Ok(())
-//    }
-//}
 
 #[derive(Debug)]
 pub struct CallableCapabilities {
