@@ -5,7 +5,7 @@ use qsc_fir::{
         BlockId, CallableDecl, CallableKind, ExprId, ItemId, ItemKind, LocalItemId, Package,
         PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
     },
-    ty::Ty,
+    ty::{Prim, Ty},
 };
 
 use indenter::indented;
@@ -247,6 +247,22 @@ impl Display for PatRtProps {
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct AppIdx(usize);
 
+impl AppIdx {
+    pub fn map_to_compute_kind_vector(&self, input_param_count: usize) -> Vec<ComputeKind> {
+        let mut params_compute_kind = Vec::new();
+        for param_idx in 0..input_param_count {
+            let mask = 1 << param_idx;
+            let compute_kind = if self.0 & mask == 0 {
+                ComputeKind::Static
+            } else {
+                ComputeKind::Dynamic
+            };
+            params_compute_kind.push(compute_kind);
+        }
+        params_compute_kind
+    }
+}
+
 #[derive(Debug)]
 pub struct AppsTable {
     // N.B. (cesarzc): Will probably be only used to assert compatibility when using it.
@@ -406,11 +422,30 @@ impl<'a> Analyzer<'a> {
 
     fn calculate_intrinsic_function_application(
         input_param_types: &Vec<Ty>,
-        app_idx: usize,
+        app_idx: AppIdx,
     ) -> ComputeProps {
-        assert!((app_idx as i32) < 2i32.pow(input_param_types.len() as u32));
-        let rt_caps = FxHashSet::<RuntimeCapability>::default();
-        let quantum_sources = Vec::new();
+        let input_param_count = input_param_types.len();
+        assert!((app_idx.0 as i32) < 2i32.pow(input_param_count as u32));
+
+        //
+        let params_compute_kind = app_idx.map_to_compute_kind_vector(input_param_count);
+        let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
+        let params_info_tuple = input_param_types.iter().zip(params_compute_kind.iter());
+        for (param_type, param_compute_kind) in params_info_tuple {
+            if let ComputeKind::Dynamic = param_compute_kind {
+                let param_caps = RtCaps::infer_caps_from_type(param_type);
+                rt_caps.extend(param_caps);
+            }
+        }
+
+        //
+        let quantum_sources = if app_idx.0 == 0 {
+            Vec::new()
+        } else {
+            vec![QuantumSource::Intrinsic]
+        };
+
+        //
         ComputeProps {
             rt_caps,
             quantum_sources,
@@ -419,9 +454,9 @@ impl<'a> Analyzer<'a> {
 
     fn calculate_intrinsic_operation_application(
         input_param_types: &Vec<Ty>,
-        app_idx: usize,
+        app_idx: AppIdx,
     ) -> ComputeProps {
-        assert!((app_idx as i32) < 2i32.pow(input_param_types.len() as u32));
+        assert!((app_idx.0 as i32) < 2i32.pow(input_param_types.len() as u32));
         let rt_caps = FxHashSet::<RuntimeCapability>::default();
         let quantum_sources = Vec::new();
         ComputeProps {
@@ -468,7 +503,7 @@ impl<'a> Analyzer<'a> {
         for app_idx in 0..apps_count {
             let app = Self::calculate_intrinsic_function_application(
                 &input_param_types,
-                app_idx as usize,
+                AppIdx(app_idx as usize),
             );
             apps_table.push(app);
         }
@@ -486,7 +521,7 @@ impl<'a> Analyzer<'a> {
         for app_idx in 0..apps_count {
             let app = Self::calculate_intrinsic_operation_application(
                 &input_param_types,
-                app_idx as usize,
+                AppIdx(app_idx as usize),
             );
             apps_table.push(app);
         }
@@ -531,6 +566,46 @@ impl<'a> Analyzer<'a> {
             };
 
             callables_rt_props.insert(callable_id, Some(ItemRtProps::Callable(callable_rt_props)));
+        }
+    }
+}
+
+struct RtCaps;
+
+impl RtCaps {
+    pub fn infer_caps_from_type(ty: &Ty) -> FxHashSet<RuntimeCapability> {
+        match ty {
+            Ty::Array(_) => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
+            Ty::Arrow(_) => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
+            Ty::Prim(prim) => Self::infer_caps_from_primitive_type(prim),
+            Ty::Tuple(v) => Self::infer_caps_from_tuple_type(v),
+            Ty::Udt(_) => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
+            _ => panic!("Unexpected type"),
+        }
+    }
+
+    fn infer_caps_from_tuple_type(tuple: &[Ty]) -> FxHashSet<RuntimeCapability> {
+        let mut caps = FxHashSet::<RuntimeCapability>::default();
+        for item_type in tuple.iter() {
+            let item_caps = Self::infer_caps_from_type(item_type);
+            caps.extend(item_caps);
+        }
+        caps
+    }
+
+    fn infer_caps_from_primitive_type(primitive: &Prim) -> FxHashSet<RuntimeCapability> {
+        match primitive {
+            Prim::BigInt => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
+            Prim::Bool => FxHashSet::from_iter([RuntimeCapability::ConditionalForwardBranching]),
+            Prim::Double => FxHashSet::from_iter([RuntimeCapability::FloatingPointComputationg]),
+            Prim::Int => FxHashSet::from_iter([RuntimeCapability::IntegerComputations]),
+            Prim::Pauli => FxHashSet::from_iter([RuntimeCapability::IntegerComputations]),
+            Prim::Qubit => FxHashSet::default(),
+            Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
+                FxHashSet::from_iter([RuntimeCapability::IntegerComputations])
+            }
+            Prim::Result => FxHashSet::from_iter([RuntimeCapability::ConditionalForwardBranching]),
+            Prim::String => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
         }
     }
 }
