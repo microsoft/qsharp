@@ -365,7 +365,6 @@ impl ComputeProps {
     }
 }
 
-// TODO (cesarzc): Need to remove this.
 #[derive(Debug)]
 pub enum ComputeKind {
     Static,
@@ -402,27 +401,45 @@ impl<'a> Analyzer<'a> {
 
     pub fn run(&mut self) -> &StoreRtProps {
         self.persist_store_rt_props(0);
-        self.initialize_intrinsic_callables();
+        self.initialize_foundational_rt_props();
         self.persist_store_rt_props(1);
         &self.store_rt_props
     }
 
-    fn get_input_params_types(pattern: &Pat) -> Vec<Ty> {
-        match pattern.kind {
-            PatKind::Bind(_) => match pattern.ty {
-                Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
-                    vec![pattern.ty.clone()]
-                }
-                _ => panic!(
-                    "Unexpected pattern type {} for pattern {}",
-                    pattern.ty, pattern.id
-                ),
-            },
-            PatKind::Tuple(_) => match &pattern.ty {
-                Ty::Tuple(vector) => vector.clone(),
-                _ => panic!("Unexpected pattern type"),
-            },
-            _ => panic!("Only callable parameter patterns are expected"),
+    fn initialize_foundational_rt_props(&mut self) {
+        for (package_id, package) in self.package_store.0.iter() {
+            let package_rt_props = self
+                .store_rt_props
+                .0
+                .get_mut(package_id)
+                .expect("Package runtime properties should exist");
+            FoundationalRtProps::initialize_package_intrinsics(package, package_rt_props);
+        }
+    }
+
+    fn persist_store_rt_props(&self, phase: u8) {
+        for (package_id, package) in self.store_rt_props.0.iter() {
+            let filename = format!("dbg/phase{phase}.package{package_id}.txt");
+            let mut package_file = File::create(filename).expect("File could be created");
+            let package_string = format!("{package}");
+            write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+        }
+    }
+}
+
+struct FoundationalRtProps;
+
+impl FoundationalRtProps {
+    pub fn initialize_package_intrinsics(package: &Package, package_rt_props: &mut PackageRtProps) {
+        for (item_id, item) in package.items.iter() {
+            if let ItemKind::Callable(callable) = &item.kind {
+                Self::try_initialize_intrinsic(
+                    item_id,
+                    callable,
+                    package,
+                    &mut package_rt_props.items,
+                );
+            }
         }
     }
 
@@ -493,30 +510,22 @@ impl<'a> Analyzer<'a> {
         }
     }
 
-    fn initialize_intrinsic_callables(&mut self) {
-        for (package_id, package) in self.package_store.0.iter() {
-            let package_rt_props = self
-                .store_rt_props
-                .0
-                .get_mut(package_id)
-                .expect("Package runtime properties should exist");
-            Self::initialize_package_intrinsic_callables(package, package_rt_props);
-        }
-    }
-
-    fn initialize_package_intrinsic_callables(
-        package: &Package,
-        package_rt_props: &mut PackageRtProps,
-    ) {
-        for (item_id, item) in package.items.iter() {
-            if let ItemKind::Callable(callable) = &item.kind {
-                Self::try_initialize_intrinsic(
-                    item_id,
-                    callable,
-                    package,
-                    &mut package_rt_props.items,
-                );
-            }
+    fn get_input_params_types(pattern: &Pat) -> Vec<Ty> {
+        match pattern.kind {
+            PatKind::Bind(_) => match pattern.ty {
+                Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
+                    vec![pattern.ty.clone()]
+                }
+                _ => panic!(
+                    "Unexpected pattern type {} for pattern {}",
+                    pattern.ty, pattern.id
+                ),
+            },
+            PatKind::Tuple(_) => match &pattern.ty {
+                Ty::Tuple(vector) => vector.clone(),
+                _ => panic!("Unexpected pattern type"),
+            },
+            _ => panic!("Only callable parameter patterns are expected"),
         }
     }
 
@@ -564,15 +573,6 @@ impl<'a> Analyzer<'a> {
         match callable.body.body {
             SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
             _ => false,
-        }
-    }
-
-    fn persist_store_rt_props(&self, phase: u8) {
-        for (package_id, package) in self.store_rt_props.0.iter() {
-            let filename = format!("dbg/phase{phase}.package{package_id}.txt");
-            let mut package_file = File::create(filename).expect("File could be created");
-            let package_string = format!("{package}");
-            write!(package_file, "{package_string}").expect("Writing to file should succeed.");
         }
     }
 
