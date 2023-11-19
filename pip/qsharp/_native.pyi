@@ -75,6 +75,17 @@ class Interpreter:
         """
         ...
 
+    def estimate(self, entry_expr: str, params: str) -> str:
+        """
+        Estimates resources for Q# source code.
+
+        :param entry_expr: The entry expression.
+        :param params: The parameters to configure estimation.
+
+        :returns resources: The estimated resources.
+        """
+        ...
+
     def dump_machine(self) -> StateDump:
         """
         Returns the sparse state vector of the simulator as a StateDump object.
@@ -136,5 +147,15 @@ class QSharpError(BaseException):
     """
     An error returned from the Q# interpreter.
     """
+    ...
 
+def physical_estimates(logical_resources: str, params: str) -> str:
+    """
+    Estimates physical resources from pre-calculated logical resources.
+
+    :param logical_resources: The logical resources to estimate from.
+    :param params: The parameters to configure physical estimation.
+
+    :returns resources: The estimated resources.
+    """
     ...

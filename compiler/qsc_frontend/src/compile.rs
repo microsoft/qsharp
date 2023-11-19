@@ -449,6 +449,10 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 "unstable_arithmetic_internal.qs".into(),
                 include_str!("../../../library/std/unstable_arithmetic_internal.qs").into(),
             ),
+            (
+                "re.qs".into(),
+                include_str!("../../../library/std/re.qs").into(),
+            ),
         ],
         None,
     );

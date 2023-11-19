@@ -32,17 +32,21 @@ export function ReTable(props: {
   estimatesData: ReData;
 }) {
   const [showDetail, setShowDetail] = useState(false);
+  const toggleDetail = () => {
+    setShowDetail(!showDetail);
+  };
 
   return (
     <div>
-      <h2 style="margin: 24px 8px;">Resource Estimates</h2>
-      <a
-        href="#"
-        style="font-size: 10px"
-        onClick={() => setShowDetail(!showDetail)}
-      >
-        {showDetail ? "Hide details" : "Show details"}
-      </a>
+      <div>
+        <input
+          type="checkbox"
+          id="showDetail"
+          checked={showDetail}
+          onClick={toggleDetail}
+        />
+        <label htmlFor="showDetail"> Show detailed rows</label>
+      </div>
       {props.estimatesData.reportData.groups.map((group) => {
         return (
           <details className="estimate-details">
@@ -53,10 +57,14 @@ export function ReTable(props: {
               {group.entries.map((entry) => {
                 // entry.path is a '/' separated path to the value in the JSON to show
                 const path = entry.path.split("/");
-                const value = path.reduce(
+                let value = path.reduce(
                   (obj, key) => obj[key],
                   props.estimatesData as any,
                 );
+                // Check if value is not a primitive type
+                if (typeof value === "object") {
+                  value = JSON.stringify(value);
+                }
                 const renderedExplanation = {
                   __html: props.mdRenderer(entry.explanation),
                 };

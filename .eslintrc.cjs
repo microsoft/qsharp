@@ -14,6 +14,7 @@ module.exports = {
     "/jupyterlab/qsharp-jupyterlab/labextension",
     "/vscode/out/",
     "/vscode/test/out/",
+    "/widgets/src/qsharp_widgets/static/",
   ],
   env: {
     browser: true,
