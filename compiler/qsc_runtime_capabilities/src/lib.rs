@@ -7,6 +7,7 @@ use std::fmt::{self, Display, Formatter, Write};
 
 pub mod analysis;
 pub mod analysis_legacy;
+pub mod single_pass_analysis;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,

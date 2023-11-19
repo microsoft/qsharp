@@ -2,7 +2,7 @@ use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        BlockId, CallableDecl, CallableKind, ExprId, ItemId, ItemKind, LocalItemId, Package,
+        BlockId, CallableDecl, CallableKind, ExprId, Item, ItemId, ItemKind, LocalItemId, Package,
         PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
     },
     ty::{Prim, Ty},
@@ -12,11 +12,9 @@ use indenter::indented;
 use rustc_hash::FxHashSet;
 
 use std::{
-    default,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
-    ops::Deref,
     vec::Vec,
 };
 
@@ -169,6 +167,15 @@ impl PackageRtProps {
             pats,
         }
     }
+
+    pub fn get_next_item_id_to_compute(&self) -> Option<LocalItemId> {
+        for (item_id, item) in self.items.iter() {
+            if matches!(item, None) {
+                return Some(item_id);
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug)]
@@ -204,7 +211,7 @@ impl Display for CallableRtProps {
 #[derive(Debug)]
 pub enum InnerElmtRtProps {
     AppDependent(AppsTable),
-    AppIndependent(ComputeProps),
+    AppIndependent(CompProps),
 }
 
 impl Display for InnerElmtRtProps {
@@ -246,17 +253,17 @@ impl Display for PatRtProps {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct AppIdx(usize);
+pub struct AppIndex(usize);
 
-impl AppIdx {
-    pub fn map_to_compute_kind_vector(&self, input_param_count: usize) -> Vec<ComputeKind> {
+impl AppIndex {
+    pub fn map_to_compute_kind_vector(&self, input_param_count: usize) -> Vec<CompKind> {
         let mut params_compute_kind = Vec::new();
         for param_idx in 0..input_param_count {
             let mask = 1 << param_idx;
             let compute_kind = if self.0 & mask == 0 {
-                ComputeKind::Static
+                CompKind::Static
             } else {
-                ComputeKind::Dynamic
+                CompKind::Dynamic
             };
             params_compute_kind.push(compute_kind);
         }
@@ -270,7 +277,7 @@ pub struct AppsTable {
     pub input_param_count: usize,
     // N.B. (cesarzc): Hide the vector to provide a good interface to access applications (possibly
     // by providing a get that takes a vector of `ComputeKind`).
-    apps: Vec<ComputeProps>,
+    apps: Vec<CompProps>,
 }
 
 impl AppsTable {
@@ -284,15 +291,15 @@ impl AppsTable {
     // TODO (cesarzc): Implement a get that takes a vector of `ComputeKind` where each element maps
     // to the compute kind of the input parameter.
 
-    pub fn get(&self, index: AppIdx) -> Option<&ComputeProps> {
+    pub fn get(&self, index: AppIndex) -> Option<&CompProps> {
         self.apps.get(index.0)
     }
 
-    pub fn get_mut(&mut self, index: AppIdx) -> Option<&mut ComputeProps> {
+    pub fn get_mut(&mut self, index: AppIndex) -> Option<&mut CompProps> {
         self.apps.get_mut(index.0)
     }
 
-    pub fn push(&mut self, app: ComputeProps) {
+    pub fn push(&mut self, app: CompProps) {
         self.apps.push(app);
     }
 }
@@ -313,13 +320,13 @@ impl Display for AppsTable {
 }
 
 #[derive(Clone, Debug)]
-pub struct ComputeProps {
+pub struct CompProps {
     pub rt_caps: FxHashSet<RuntimeCapability>,
     // N.B. (cesarzc): To get good error messages, maybe quantum source needs expansion and link to compute props.
-    pub quantum_sources: Vec<QuantumSource>,
+    pub quantum_sources: Vec<QtmSource>,
 }
 
-impl Display for ComputeProps {
+impl Display for CompProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         let compute_kind = self.compute_kind();
         write!(f, "Compute Properties ({compute_kind:?}):")?;
@@ -351,28 +358,28 @@ impl Display for ComputeProps {
     }
 }
 
-impl ComputeProps {
+impl CompProps {
     pub fn is_quantum_source(&self) -> bool {
         !self.quantum_sources.is_empty()
     }
 
-    pub fn compute_kind(&self) -> ComputeKind {
+    pub fn compute_kind(&self) -> CompKind {
         if self.rt_caps.is_empty() {
-            ComputeKind::Static
+            CompKind::Static
         } else {
-            ComputeKind::Dynamic
+            CompKind::Dynamic
         }
     }
 }
 
 #[derive(Debug)]
-pub enum ComputeKind {
+pub enum CompKind {
     Static,
     Dynamic,
 }
 
 #[derive(Clone, Debug)]
-pub enum QuantumSource {
+pub enum QtmSource {
     Intrinsic,
     ItemId,
     BlockId,
@@ -443,11 +450,11 @@ impl FoundationalRtProps {
         }
     }
 
-    fn calculate_intrinsic_function_application(
+    fn compute_intrinsic_function_application(
         input_param_types: &Vec<Ty>,
         output_type: &Ty,
-        app_idx: AppIdx,
-    ) -> ComputeProps {
+        app_idx: AppIndex,
+    ) -> CompProps {
         let input_param_count = input_param_types.len();
         assert!((app_idx.0 as i32) < 2i32.pow(input_param_count as u32));
 
@@ -456,7 +463,7 @@ impl FoundationalRtProps {
         let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
         let params_info_tuple = input_param_types.iter().zip(params_compute_kind.iter());
         for (param_type, param_compute_kind) in params_info_tuple {
-            if let ComputeKind::Dynamic = param_compute_kind {
+            if let CompKind::Dynamic = param_compute_kind {
                 let param_caps = RtCaps::infer_caps_from_type(param_type);
                 rt_caps.extend(param_caps);
             }
@@ -468,20 +475,20 @@ impl FoundationalRtProps {
         let quantum_sources = if app_idx.0 == 0 || is_unit {
             Vec::new()
         } else {
-            vec![QuantumSource::Intrinsic]
+            vec![QtmSource::Intrinsic]
         };
 
-        ComputeProps {
+        CompProps {
             rt_caps,
             quantum_sources,
         }
     }
 
-    fn calculate_intrinsic_operation_application(
+    fn compute_intrinsic_operation_application(
         input_param_types: &Vec<Ty>,
         output_type: &Ty,
-        app_idx: AppIdx,
-    ) -> ComputeProps {
+        app_idx: AppIndex,
+    ) -> CompProps {
         let input_param_count = input_param_types.len();
         assert!((app_idx.0 as i32) < 2i32.pow(input_param_count as u32));
 
@@ -490,7 +497,7 @@ impl FoundationalRtProps {
         let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
         let params_info_tuple = input_param_types.iter().zip(params_compute_kind.iter());
         for (param_type, param_compute_kind) in params_info_tuple {
-            if let ComputeKind::Dynamic = param_compute_kind {
+            if let CompKind::Dynamic = param_compute_kind {
                 let param_caps = RtCaps::infer_caps_from_type(param_type);
                 rt_caps.extend(param_caps);
             }
@@ -501,10 +508,10 @@ impl FoundationalRtProps {
         let quantum_sources = if is_unit {
             Vec::new()
         } else {
-            vec![QuantumSource::Intrinsic]
+            vec![QtmSource::Intrinsic]
         };
 
-        ComputeProps {
+        CompProps {
             rt_caps,
             quantum_sources,
         }
@@ -539,10 +546,10 @@ impl FoundationalRtProps {
         let mut apps_table = AppsTable::new(input_param_types.len());
         let apps_count = 2u32.pow(input_param_types.len() as u32);
         for app_idx in 0..apps_count {
-            let app = Self::calculate_intrinsic_function_application(
+            let app = Self::compute_intrinsic_function_application(
                 &input_param_types,
                 output_type,
-                AppIdx(app_idx as usize),
+                AppIndex(app_idx as usize),
             );
             apps_table.push(app);
         }
@@ -559,10 +566,10 @@ impl FoundationalRtProps {
         let mut apps_table = AppsTable::new(input_param_types.len());
         let apps_count = 2u32.pow(input_param_types.len() as u32);
         for app_idx in 0..apps_count {
-            let app = Self::calculate_intrinsic_operation_application(
+            let app = Self::compute_intrinsic_operation_application(
                 &input_param_types,
                 output_type,
-                AppIdx(app_idx as usize),
+                AppIndex(app_idx as usize),
             );
             apps_table.push(app.clone());
         }
