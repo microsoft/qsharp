@@ -616,7 +616,7 @@ fn get_capabilities_for_primitive_type(primitive: &Prim) -> Vec<RuntimeCapabilit
     match primitive {
         Prim::BigInt => vec![RuntimeCapability::HigherLevelConstructs],
         Prim::Bool => vec![RuntimeCapability::ConditionalForwardBranching],
-        Prim::Double => vec![RuntimeCapability::FloatingPointComputationg],
+        Prim::Double => vec![RuntimeCapability::FloatingPointComputation],
         Prim::Int => vec![RuntimeCapability::IntegerComputations],
         Prim::Pauli => vec![RuntimeCapability::IntegerComputations],
         Prim::Qubit => vec![],

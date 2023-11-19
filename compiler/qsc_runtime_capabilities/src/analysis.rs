@@ -16,6 +16,7 @@ use std::{
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
+    ops::Deref,
     vec::Vec,
 };
 
@@ -263,7 +264,7 @@ impl AppIdx {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AppsTable {
     // N.B. (cesarzc): Will probably be only used to assert compatibility when using it.
     pub input_param_count: usize,
@@ -311,7 +312,7 @@ impl Display for AppsTable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ComputeProps {
     pub rt_caps: FxHashSet<RuntimeCapability>,
     // N.B. (cesarzc): To get good error messages, maybe quantum source needs expansion and link to compute props.
@@ -336,11 +337,16 @@ impl Display for ComputeProps {
         }
 
         let mut indent = set_indentation(indented(f), 1);
-        write!(indent, "\nQuantum Sources:")?;
-        for src in self.quantum_sources.iter() {
-            indent = set_indentation(indent, 2);
-            write!(indent, "\n{src:?}")?; // TODO (cesarzc): Implement non-debug display, maybe?.
+        if self.quantum_sources.is_empty() {
+            write!(indent, "\nQuantum Sources: <empty>")?;
+        } else {
+            write!(indent, "\nQuantum Sources:")?;
+            for src in self.quantum_sources.iter() {
+                indent = set_indentation(indent, 2);
+                write!(indent, "\n{src:?}")?; // TODO (cesarzc): Implement non-debug display, maybe?.
+            }
         }
+
         Ok(())
     }
 }
@@ -366,7 +372,7 @@ pub enum ComputeKind {
     Dynamic,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum QuantumSource {
     Intrinsic,
     ItemId,
@@ -422,6 +428,7 @@ impl<'a> Analyzer<'a> {
 
     fn calculate_intrinsic_function_application(
         input_param_types: &Vec<Ty>,
+        output_type: &Ty,
         app_idx: AppIdx,
     ) -> ComputeProps {
         let input_param_count = input_param_types.len();
@@ -438,14 +445,15 @@ impl<'a> Analyzer<'a> {
             }
         }
 
-        //
-        let quantum_sources = if app_idx.0 == 0 {
+        // If this is an all-static application or the function output is `Unit` then this is not a quantum source.
+        // Otherwise this is an intrinsic quantum source.
+        let is_unit = matches!(*output_type, Ty::UNIT);
+        let quantum_sources = if app_idx.0 == 0 || is_unit {
             Vec::new()
         } else {
             vec![QuantumSource::Intrinsic]
         };
 
-        //
         ComputeProps {
             rt_caps,
             quantum_sources,
@@ -454,11 +462,31 @@ impl<'a> Analyzer<'a> {
 
     fn calculate_intrinsic_operation_application(
         input_param_types: &Vec<Ty>,
+        output_type: &Ty,
         app_idx: AppIdx,
     ) -> ComputeProps {
-        assert!((app_idx.0 as i32) < 2i32.pow(input_param_types.len() as u32));
-        let rt_caps = FxHashSet::<RuntimeCapability>::default();
-        let quantum_sources = Vec::new();
+        let input_param_count = input_param_types.len();
+        assert!((app_idx.0 as i32) < 2i32.pow(input_param_count as u32));
+
+        //
+        let params_compute_kind = app_idx.map_to_compute_kind_vector(input_param_count);
+        let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
+        let params_info_tuple = input_param_types.iter().zip(params_compute_kind.iter());
+        for (param_type, param_compute_kind) in params_info_tuple {
+            if let ComputeKind::Dynamic = param_compute_kind {
+                let param_caps = RtCaps::infer_caps_from_type(param_type);
+                rt_caps.extend(param_caps);
+            }
+        }
+
+        // If the operation is unit then it is an instrinsic quantum source.
+        let is_unit = matches!(*output_type, Ty::UNIT);
+        let quantum_sources = if is_unit {
+            Vec::new()
+        } else {
+            vec![QuantumSource::Intrinsic]
+        };
+
         ComputeProps {
             rt_caps,
             quantum_sources,
@@ -495,6 +523,7 @@ impl<'a> Analyzer<'a> {
     fn initialize_intrinsic_function_rt_props(
         function: &CallableDecl,
         input_pattern: &Pat,
+        output_type: &Ty,
     ) -> CallableRtProps {
         assert!(Self::is_callable_intrinsic(function));
         let input_param_types = Self::get_input_params_types(input_pattern);
@@ -503,6 +532,7 @@ impl<'a> Analyzer<'a> {
         for app_idx in 0..apps_count {
             let app = Self::calculate_intrinsic_function_application(
                 &input_param_types,
+                output_type,
                 AppIdx(app_idx as usize),
             );
             apps_table.push(app);
@@ -513,6 +543,7 @@ impl<'a> Analyzer<'a> {
     fn initialize_intrinsic_operation_rt_props(
         operation: &CallableDecl,
         input_pattern: &Pat,
+        output_type: &Ty,
     ) -> CallableRtProps {
         assert!(Self::is_callable_intrinsic(operation));
         let input_param_types = Self::get_input_params_types(input_pattern);
@@ -521,9 +552,10 @@ impl<'a> Analyzer<'a> {
         for app_idx in 0..apps_count {
             let app = Self::calculate_intrinsic_operation_application(
                 &input_param_types,
+                output_type,
                 AppIdx(app_idx as usize),
             );
-            apps_table.push(app);
+            apps_table.push(app.clone());
         }
         CallableRtProps { apps_table }
     }
@@ -557,12 +589,16 @@ impl<'a> Analyzer<'a> {
                 .get(callable.input)
                 .expect("Input pattern should exist");
             let callable_rt_props = match callable.kind {
-                CallableKind::Function => {
-                    Self::initialize_intrinsic_function_rt_props(callable, input_pattern)
-                }
-                CallableKind::Operation => {
-                    Self::initialize_intrinsic_operation_rt_props(callable, input_pattern)
-                }
+                CallableKind::Function => Self::initialize_intrinsic_function_rt_props(
+                    callable,
+                    input_pattern,
+                    &callable.output,
+                ),
+                CallableKind::Operation => Self::initialize_intrinsic_operation_rt_props(
+                    callable,
+                    input_pattern,
+                    &callable.output,
+                ),
             };
 
             callables_rt_props.insert(callable_id, Some(ItemRtProps::Callable(callable_rt_props)));
@@ -597,7 +633,7 @@ impl RtCaps {
         match primitive {
             Prim::BigInt => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
             Prim::Bool => FxHashSet::from_iter([RuntimeCapability::ConditionalForwardBranching]),
-            Prim::Double => FxHashSet::from_iter([RuntimeCapability::FloatingPointComputationg]),
+            Prim::Double => FxHashSet::from_iter([RuntimeCapability::FloatingPointComputation]),
             Prim::Int => FxHashSet::from_iter([RuntimeCapability::IntegerComputations]),
             Prim::Pauli => FxHashSet::from_iter([RuntimeCapability::IntegerComputations]),
             Prim::Qubit => FxHashSet::default(),

@@ -26,7 +26,7 @@ pub enum RuntimeCapability {
     ConditionalForwardBranching,
     // QubitReuse, // CONSIDER (cesarzc): Possibly not needed.
     IntegerComputations,
-    FloatingPointComputationg,
+    FloatingPointComputation,
     BackwardsBranching,
     HigherLevelConstructs,
 }
