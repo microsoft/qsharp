@@ -55,7 +55,7 @@ export function ReTable(props: {
                 const path = entry.path.split("/");
                 const value = path.reduce(
                   (obj, key) => obj[key],
-                  props.estimatesData as any
+                  props.estimatesData as any,
                 );
                 const renderedExplanation = {
                   __html: props.mdRenderer(entry.explanation),

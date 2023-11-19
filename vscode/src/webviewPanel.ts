@@ -26,7 +26,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   const compilerWorkerScriptPath = Uri.joinPath(
     context.extensionUri,
-    "./out/compilerWorker.js"
+    "./out/compilerWorker.js",
   ).toString();
 
   // Stub for now to prototype the UX
@@ -39,7 +39,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         estimatesData: reSampleData,
       };
       sendMessageToPanel("estimate", true, message);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -48,7 +48,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         command: "help",
       };
       sendMessageToPanel("help", true, message);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -119,7 +119,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       } finally {
         worker.terminate();
       }
-    })
+    }),
   );
 }
 
@@ -137,7 +137,7 @@ const panelTypeToPanel: Record<
 function sendMessageToPanel(
   panelType: PanelType,
   reveal: boolean,
-  message: any
+  message: any,
 ) {
   const panelRecord = panelTypeToPanel[panelType];
   if (!panelRecord.panel) {
@@ -148,7 +148,7 @@ function sendMessageToPanel(
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-      }
+      },
     );
 
     panelRecord.panel = new QSharpWebViewPanel(panelType, panel);
@@ -165,7 +165,7 @@ export class QSharpWebViewPanel {
 
   constructor(
     private type: PanelType,
-    private panel: WebviewPanel
+    private panel: WebviewPanel,
   ) {
     this.panel.onDidDispose(() => this.dispose());
 
@@ -223,7 +223,7 @@ export class QSharpWebViewPanel {
       if (message.command === "ready") {
         this._ready = true;
         this._queuedMessages.forEach((message) =>
-          this.panel.webview.postMessage(message)
+          this.panel.webview.postMessage(message),
         );
         this._queuedMessages = [];
       }

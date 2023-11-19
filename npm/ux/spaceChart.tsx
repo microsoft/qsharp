@@ -9,7 +9,7 @@ function getPieSegment(
   radius: number,
   startAngle: number,
   endAngle: number,
-  innerRadius: number
+  innerRadius: number,
 ) {
   const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
   const startX = x + radius * Math.cos((Math.PI * startAngle) / 180);
@@ -40,7 +40,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
 
   const numTFactories = breakdown.numTfactories;
   const numQubitsPerTFactory = Math.round(
-    physicalQubitsTFactory / numTFactories
+    physicalQubitsTFactory / numTFactories,
   );
 
   return (
