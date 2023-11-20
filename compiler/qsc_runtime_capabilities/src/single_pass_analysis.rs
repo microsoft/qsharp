@@ -19,10 +19,32 @@ use std::{
 pub struct StoreComputeProps(IndexMap<PackageId, PackageComputeProps>);
 
 impl StoreComputeProps {
-    pub fn incorporate_partial_store_compute_props(
+    pub fn incorporate_partial_compute_props(
         &mut self,
-        partial_store: &mut PartialStoreComputeProps,
+        store_partial_compute_props: &mut StorePartialComputeProps,
     ) {
+        for (package_id, package_partial_compute_props) in store_partial_compute_props.0.iter_mut()
+        {
+            let package_compute_props: &mut PackageComputeProps = match self.0.get_mut(*package_id)
+            {
+                None => {
+                    self.0.insert(*package_id, PackageComputeProps::default());
+                    self.0
+                        .get_mut(*package_id)
+                        .expect("Package compute properties should exist")
+                }
+                Some(p) => p,
+            };
+
+            package_compute_props.incorporate_partial_compute_props(package_partial_compute_props);
+        }
+    }
+
+    pub fn has_item(&self, package_id: PackageId, item_id: LocalItemId) -> bool {
+        if let Some(package) = self.0.get(package_id) {
+            return package.items.contains_key(item_id);
+        }
+        false
     }
 }
 
@@ -89,6 +111,38 @@ impl Display for PackageComputeProps {
             write!(indent, "\n{pat}")?;
         }
         Ok(())
+    }
+}
+
+impl PackageComputeProps {
+    pub fn incorporate_partial_compute_props(
+        &mut self,
+        partial_compute_props: &mut PackagePartialComputeProps,
+    ) {
+        partial_compute_props
+            .items
+            .drain()
+            .for_each(|(item_id, item)| self.items.insert(item_id, item));
+
+        partial_compute_props
+            .blocks
+            .drain()
+            .for_each(|(block_id, block)| self.blocks.insert(block_id, block));
+
+        partial_compute_props
+            .stmts
+            .drain()
+            .for_each(|(stmt_id, stmt)| self.stmts.insert(stmt_id, stmt));
+
+        partial_compute_props
+            .exprs
+            .drain()
+            .for_each(|(expr_id, expr)| self.exprs.insert(expr_id, expr));
+
+        partial_compute_props
+            .pats
+            .drain()
+            .for_each(|(pat_id, pat)| self.pats.insert(pat_id, pat));
     }
 }
 
@@ -303,7 +357,10 @@ pub enum QuantumSource {
 }
 
 #[derive(Debug)]
-pub struct PartialPackageComputeProps {
+pub struct StorePartialComputeProps(FxHashMap<PackageId, PackagePartialComputeProps>);
+
+#[derive(Debug)]
+pub struct PackagePartialComputeProps {
     pub items: FxHashMap<LocalItemId, ItemComputeProps>,
     pub blocks: FxHashMap<BlockId, InnerElmtComputeProps>,
     pub stmts: FxHashMap<StmtId, InnerElmtComputeProps>,
@@ -311,39 +368,37 @@ pub struct PartialPackageComputeProps {
     pub pats: FxHashMap<PatId, PatComputeProps>,
 }
 
-#[derive(Debug)]
-pub struct PartialStoreComputeProps(FxHashMap<PackageId, PartialPackageComputeProps>);
-
 pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
     pub fn run(package_store: &PackageStore) -> StoreComputeProps {
         let mut store_compute_props = StoreComputeProps(IndexMap::new());
 
-        // Create empty package compute properties for each package.
-        for (package_id, _) in package_store.0.iter() {
-            let package_compute_props = PackageComputeProps::default();
-            store_compute_props
-                .0
-                .insert(package_id, package_compute_props);
-        }
-
         //
         for (package_id, package) in package_store.0.iter() {
-            let mut partial_store_compute_props =
-                Self::analyze_package_compute_props(package_id, package, &store_compute_props);
-            store_compute_props
-                .incorporate_partial_store_compute_props(&mut partial_store_compute_props);
+            for (item_id, item) in package.items.iter() {
+                if !store_compute_props.has_item(package_id, item_id) {
+                    let mut store_partial_compute_props = Self::analyze_item_compute_props(
+                        package_id,
+                        item_id,
+                        item,
+                        &store_compute_props,
+                    );
+                    store_compute_props
+                        .incorporate_partial_compute_props(&mut store_partial_compute_props);
+                }
+            }
         }
         store_compute_props
     }
 
-    fn analyze_package_compute_props(
+    fn analyze_item_compute_props(
         package_id: PackageId,
-        package: &Package,
-        reference_store_compute_props: &StoreComputeProps,
-    ) -> PartialStoreComputeProps {
-        let mut partial_store_compute_props = PartialStoreComputeProps(FxHashMap::default());
-        partial_store_compute_props
+        item_id: LocalItemId,
+        item: &Item,
+        store_compute_props: &StoreComputeProps,
+    ) -> StorePartialComputeProps {
+        let mut store_partial_compute_props = StorePartialComputeProps(FxHashMap::default());
+        store_partial_compute_props
     }
 }
