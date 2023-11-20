@@ -157,6 +157,7 @@ namespace Microsoft.Quantum.TableLookup {
     /// # References
     /// - [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
     ///   "Windowed arithmetic"
+    @Config(Full)
     internal operation Unlookup(
         lookup : (Bool[][], Qubit[], Qubit[]) => Unit,
         data : Bool[][],
