@@ -79,16 +79,16 @@ fn test_qubit_array() {
                         body: SpecDecl 3 [22-97]: Impl:
                             Block 4 [45-97] [Type Unit]:
                                 Stmt 18 [55-72]: Local (Immutable):
-                                    Pat 19 [55-72] [Type (Qubit)[]]: Bind: Ident 7 [55-72] "q"
+                                    Pat 19 [55-72] [Type Qubit[]]: Bind: Ident 7 [55-72] "q"
                                     Expr 16 [55-72] [Type Qubit]: Call:
-                                        Expr 15 [55-72] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0)
+                                        Expr 15 [55-72] [Type (Int => Qubit[])]: Var: Item 6 (Package 0)
                                         Expr 9 [69-70] [Type Int]: Lit: Int(3)
                                 Stmt 10 [81-91]: Local (Immutable):
                                     Pat 11 [85-86] [Type Int]: Bind: Ident 12 [85-86] "x"
                                     Expr 13 [89-90] [Type Int]: Lit: Int(3)
                                 Stmt 21 [0-0]: Semi: Expr 22 [0-0] [Type Unit]: Call:
-                                    Expr 20 [55-72] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
-                                    Expr 23 [55-72] [Type (Qubit)[]]: Var: Local 7
+                                    Expr 20 [55-72] [Type (Qubit[] => Unit)]: Var: Item 7 (Package 0)
+                                    Expr 23 [55-72] [Type Qubit[]]: Var: Local 7
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -175,23 +175,23 @@ fn test_multiple_qubits_tuple() {
                                         Expr 25 [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                         Expr 27 [69-76] [Type Unit]: Unit
                                 Stmt 33 [78-86]: Local (Immutable):
-                                    Pat 34 [78-86] [Type (Qubit)[]]: Bind: Ident 22 [78-86] "@generated_ident_22"
+                                    Pat 34 [78-86] [Type Qubit[]]: Bind: Ident 22 [78-86] "@generated_ident_22"
                                     Expr 31 [78-86] [Type Qubit]: Call:
-                                        Expr 30 [78-86] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0)
+                                        Expr 30 [78-86] [Type (Int => Qubit[])]: Var: Item 6 (Package 0)
                                         Expr 14 [84-85] [Type Int]: Lit: Int(3)
                                 Stmt 35 [55-88]: Local (Immutable):
-                                    Pat 6 [59-65] [Type (Qubit, (Qubit)[])]: Tuple:
+                                    Pat 6 [59-65] [Type (Qubit, Qubit[])]: Tuple:
                                         Pat 7 [60-61] [Type Qubit]: Bind: Ident 8 [60-61] "a"
-                                        Pat 9 [63-64] [Type (Qubit)[]]: Bind: Ident 10 [63-64] "b"
-                                    Expr 24 [68-87] [Type (Qubit, (Qubit)[])]: Tuple:
+                                        Pat 9 [63-64] [Type Qubit[]]: Bind: Ident 10 [63-64] "b"
+                                    Expr 24 [68-87] [Type (Qubit, Qubit[])]: Tuple:
                                         Expr 21 [69-76] [Type Qubit]: Var: Local 20
-                                        Expr 23 [78-86] [Type (Qubit)[]]: Var: Local 22
+                                        Expr 23 [78-86] [Type Qubit[]]: Var: Local 22
                                 Stmt 15 [97-107]: Local (Immutable):
                                     Pat 16 [101-102] [Type Int]: Bind: Ident 17 [101-102] "x"
                                     Expr 18 [105-106] [Type Int]: Lit: Int(3)
                                 Stmt 37 [0-0]: Semi: Expr 38 [0-0] [Type Unit]: Call:
-                                    Expr 36 [78-86] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
-                                    Expr 39 [78-86] [Type (Qubit)[]]: Var: Local 22
+                                    Expr 36 [78-86] [Type (Qubit[] => Unit)]: Var: Item 7 (Package 0)
+                                    Expr 39 [78-86] [Type Qubit[]]: Var: Local 22
                                 Stmt 41 [0-0]: Semi: Expr 42 [0-0] [Type Unit]: Call:
                                     Expr 40 [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr 43 [69-76] [Type Qubit]: Var: Local 20
@@ -692,9 +692,9 @@ fn test_array_expr() {
                         body: SpecDecl 3 [22-150]: Impl:
                             Block 4 [45-150] [Type Unit]:
                                 Stmt 39 [55-125]: Local (Immutable):
-                                    Pat 40 [55-125] [Type (Qubit)[]]: Bind: Ident 7 [55-125] "a"
+                                    Pat 40 [55-125] [Type Qubit[]]: Bind: Ident 7 [55-125] "a"
                                     Expr 37 [55-125] [Type Qubit]: Call:
-                                        Expr 36 [55-125] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0)
+                                        Expr 36 [55-125] [Type (Int => Qubit[])]: Var: Item 6 (Package 0)
                                         Expr 9 [69-123] [Type Int]: Expr Block: Block 10 [69-123] [Type Int]:
                                             Stmt 25 [83-99]: Local (Immutable):
                                                 Pat 26 [83-99] [Type Qubit]: Bind: Ident 13 [83-99] "b"
@@ -712,8 +712,8 @@ fn test_array_expr() {
                                     Pat 18 [138-139] [Type Int]: Bind: Ident 19 [138-139] "x"
                                     Expr 20 [142-143] [Type Int]: Lit: Int(3)
                                 Stmt 42 [0-0]: Semi: Expr 43 [0-0] [Type Unit]: Call:
-                                    Expr 41 [55-125] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
-                                    Expr 44 [55-125] [Type (Qubit)[]]: Var: Local 7
+                                    Expr 41 [55-125] [Type (Qubit[] => Unit)]: Var: Item 7 (Package 0)
+                                    Expr 44 [55-125] [Type Qubit[]]: Var: Local 7
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],

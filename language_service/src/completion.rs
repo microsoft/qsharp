@@ -314,11 +314,8 @@ impl CompletionListBuilder {
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
                                 let name = callable_decl.name.name.as_ref();
-                                let detail = Some(
-                                    display
-                                        .hir_callable_decl(package_id, callable_decl)
-                                        .to_string(),
-                                );
+                                let detail =
+                                    Some(display.hir_callable_decl(callable_decl).to_string());
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
@@ -395,11 +392,7 @@ impl CompletionListBuilder {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
-                let detail = Some(
-                    display
-                        .hir_callable_decl(PackageId::CORE, callable_decl)
-                        .to_string(),
-                );
+                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
                 Some((

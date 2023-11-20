@@ -77,22 +77,32 @@ impl Ty {
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Array(item) => {
+                if f.alternate() {
+                    write!(f, "{item:#}[]")
+                } else {
+                    write!(f, "{item}[]")
+                }
+            }
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
             Ty::Param(name, item_id, param_id) => {
-                write!(f, "Param<\"{name}\": {item_id}, {param_id}>")
+                if f.alternate() {
+                    f.write_str(name)
+                } else {
+                    write!(f, "Param<\"{name}\": {item_id}, {param_id}>")
+                }
             }
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
                     f.write_str("Unit")
                 } else {
-                    f.write_str("(")?;
+                    f.write_char('(')?;
                     if let Some((first, rest)) = items.split_first() {
                         Display::fmt(first, f)?;
                         if rest.is_empty() {
-                            f.write_str(",")?;
+                            f.write_char(',')?;
                         } else {
                             for item in rest {
                                 f.write_str(", ")?;
@@ -103,8 +113,14 @@ impl Display for Ty {
                     f.write_str(")")
                 }
             }
-            Ty::Udt(name, res) => write!(f, "UDT<\"{name}\": {res}>"),
-            Ty::Err => f.write_str("?"),
+            Ty::Udt(name, res) => {
+                if f.alternate() {
+                    f.write_str(name)
+                } else {
+                    write!(f, "UDT<\"{name}\": {res}>")
+                }
+            }
+            Ty::Err => f.write_char('?'),
         }
     }
 }
@@ -333,7 +349,11 @@ impl Display for Arrow {
             CallableKind::Function => "->",
             CallableKind::Operation => "=>",
         };
-        write!(f, "({} {arrow} {}", self.input, self.output)?;
+        if f.alternate() {
+            write!(f, "({:#} {arrow} {:#}", self.input, self.output)?;
+        } else {
+            write!(f, "({} {arrow} {}", self.input, self.output)?;
+        }
         if self.functors != FunctorSet::Value(FunctorSetValue::Empty) {
             f.write_str(" is ")?;
             Display::fmt(&self.functors, f)?;
@@ -686,7 +706,11 @@ impl InferTyId {
 
 impl Display for InferTyId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "?{}", self.0)
+        if f.alternate() {
+            f.write_char('?')
+        } else {
+            write!(f, "?{}", self.0)
+        }
     }
 }
 

@@ -225,9 +225,7 @@ fn op_call_in_non_unit_block_forbidden() {
         &expect![[r#"
             [
                 NonUnitBlock(
-                    Prim(
-                        Int,
-                    ),
+                    "Int",
                     Span {
                         lo: 0,
                         hi: 26,

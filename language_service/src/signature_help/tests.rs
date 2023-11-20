@@ -2527,34 +2527,34 @@ fn indirect_unresolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((?1, ?2, ?3) => Unit)",
+                        label: "((?, ?, ?) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 1,
-                                    end: 13,
+                                    end: 10,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
                                     start: 2,
-                                    end: 4,
+                                    end: 3,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 6,
-                                    end: 8,
+                                    start: 5,
+                                    end: 6,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 10,
-                                    end: 12,
+                                    start: 8,
+                                    end: 9,
                                 },
                                 documentation: None,
                             },
@@ -2584,13 +2584,13 @@ fn indirect_partially_resolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((Int, ?2, ?3) => Unit)",
+                        label: "((Int, ?, ?) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 1,
-                                    end: 14,
+                                    end: 12,
                                 },
                                 documentation: None,
                             },
@@ -2604,14 +2604,14 @@ fn indirect_partially_resolved_lambda_call() {
                             ParameterInformation {
                                 label: Span {
                                     start: 7,
-                                    end: 9,
+                                    end: 8,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 11,
-                                    end: 13,
+                                    start: 10,
+                                    end: 11,
                                 },
                                 documentation: None,
                             },
