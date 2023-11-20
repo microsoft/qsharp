@@ -63,7 +63,7 @@ impl<'a> Visitor<'a> for SepCheck {
             Ty::Tuple(tup) if tup.is_empty() => {}
             ty if self.op_call_allowed => {
                 self.errors
-                    .push(Error::NonUnitBlock(ty.to_string(), block.span));
+                    .push(Error::NonUnitBlock(format!("{ty:#}"), block.span));
                 self.op_call_allowed = false;
             }
             _ => {}

@@ -757,7 +757,7 @@ impl<'a> Context<'a> {
 
         for (id, span) in self.typed_holes {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            errs.push(Error(super::ErrorKind::TyHole(ty.to_string(), span)));
+            errs.push(Error(super::ErrorKind::TyHole(format!("{ty:#}"), span)));
         }
 
         errs

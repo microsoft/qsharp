@@ -356,7 +356,7 @@ fn length_type_error() {
             #23 106-107 "1" : Int
             #24 109-110 "2" : Int
             #25 112-113 "3" : Int
-            Error(Type(Error(TyMismatch("?0[]", "(Int, Int, Int)", Span { lo: 98, hi: 115 }))))
+            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 98, hi: 115 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
         "#]],
     );
@@ -713,7 +713,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Type(Error(TyMismatch("(?0, ?1, ?2)", "(Int, Int)", Span { lo: 18, hi: 24 }))))
+            Error(Type(Error(TyMismatch("(?, ?, ?)", "(Int, Int)", Span { lo: 18, hi: 24 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 13, hi: 14 }))))
         "#]],
     );
@@ -785,7 +785,7 @@ fn qubit_tuple_arity_error() {
             #11 23-24 "3" : Int
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
-            Error(Type(Error(TyMismatch("(Qubit[], Qubit, Qubit)", "(?0, ?1)", Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TyMismatch("(Qubit[], Qubit, Qubit)", "(?, ?)", Span { lo: 6, hi: 13 }))))
         "#]],
     );
 }
@@ -1125,7 +1125,7 @@ fn ternop_update_udt_unknown_field_name() {
             #36 133-134 "p" : UDT<"Pair": Item 1>
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
-            Error(Type(Error(MissingClassHasField("UDT<\"Pair\": Item 1>", "Third", Span { lo: 133, hi: 148 }))))
+            Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 133, hi: 148 }))))
         "#]],
     );
 }
@@ -1162,7 +1162,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #42 163-164 "p" : UDT<"Pair": Item 1>
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
-            Error(Type(Error(MissingClassHasField("UDT<\"Pair\": Item 1>", "Third", Span { lo: 163, hi: 178 }))))
+            Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 163, hi: 178 }))))
         "#]],
     );
 }
@@ -2018,7 +2018,7 @@ fn newtype_does_not_match_base_ty() {
             #19 67-73 "NewInt" : (Int -> UDT<"NewInt": Item 1>)
             #22 73-76 "(5)" : Int
             #23 74-75 "5" : Int
-            Error(Type(Error(TyMismatch("Int", "UDT<\"NewInt\": Item 1>", Span { lo: 67, hi: 76 }))))
+            Error(Type(Error(TyMismatch("Int", "NewInt", Span { lo: 67, hi: 76 }))))
         "#]],
     );
 }
@@ -2041,7 +2041,7 @@ fn newtype_does_not_match_other_newtype() {
             #25 99-106 "NewInt1" : (Int -> UDT<"NewInt1": Item 1>)
             #28 106-109 "(5)" : Int
             #29 107-108 "5" : Int
-            Error(Type(Error(TyMismatch("UDT<\"NewInt2\": Item 2>", "UDT<\"NewInt1\": Item 1>", Span { lo: 99, hi: 109 }))))
+            Error(Type(Error(TyMismatch("NewInt2", "NewInt1", Span { lo: 99, hi: 109 }))))
         "#]],
     );
 }
@@ -2111,7 +2111,7 @@ fn newtype_field_invalid() {
             #22 88-89 "y" : ?1
             #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<"Foo": Item 1>
-            Error(Type(Error(MissingClassHasField("UDT<\"Foo\": Item 1>", "Nope", Span { lo: 92, hi: 99 }))))
+            Error(Type(Error(MissingClassHasField("Foo", "Nope", Span { lo: 92, hi: 99 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 92, hi: 99 }))))
         "#]],
     );
@@ -2326,7 +2326,7 @@ fn infinite() {
             #22 86-89 "[x]" : ?0[]
             #23 87-88 "x" : ?0
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
-            Error(Type(Error(TyMismatch("?0", "?0[]", Span { lo: 86, hi: 89 }))))
+            Error(Type(Error(TyMismatch("?", "?[]", Span { lo: 86, hi: 89 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 52, hi: 53 }))))
         "#]],
     );
@@ -2821,7 +2821,7 @@ fn partial_app_too_many_args() {
             #29 56-57 "1" : Int
             #30 59-60 "_" : ?1
             #31 62-63 "_" : ?2
-            Error(Type(Error(TyMismatch("Int", "(Int, ?1, ?2)", Span { lo: 52, hi: 64 }))))
+            Error(Type(Error(TyMismatch("Int", "(Int, ?, ?)", Span { lo: 52, hi: 64 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 59, hi: 60 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
         "#]],
@@ -2854,7 +2854,7 @@ fn typed_hole_error_ambiguous_type() {
             #4 2-3 "3" : Int
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 1 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 0, hi: 4 }))))
-            Error(Type(Error(TyHole("?0", Span { lo: 0, hi: 1 }))))
+            Error(Type(Error(TyHole("?", Span { lo: 0, hi: 1 }))))
         "#]],
     );
 }
@@ -3513,10 +3513,10 @@ fn inference_infinite_recursion_should_fail() {
             #50 180-187 "A and B" : (((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
             #51 180-181 "A" : (((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
             #54 186-187 "B" : (((?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
-            Error(Type(Error(TyMismatch("Param<\"'U1\": Item 1, 1>[]", "Unit", Span { lo: 68, hi: 75 }))))
-            Error(Type(Error(TyMismatch("Param<\"'T2\": Item 2, 0>", "Unit", Span { lo: 133, hi: 140 }))))
-            Error(Type(Error(TyMismatch("Bool", "(((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 181 }))))
-            Error(Type(Error(TyMismatch("Unit", "(((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 187 }))))
+            Error(Type(Error(TyMismatch("'U1[]", "Unit", Span { lo: 68, hi: 75 }))))
+            Error(Type(Error(TyMismatch("'T2", "Unit", Span { lo: 133, hi: 140 }))))
+            Error(Type(Error(TyMismatch("Bool", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 181 }))))
+            Error(Type(Error(TyMismatch("Unit", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
         "#]],
     );

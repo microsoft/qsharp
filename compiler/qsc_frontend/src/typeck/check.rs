@@ -159,8 +159,8 @@ impl Checker {
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TyMismatch(
-                    Ty::UNIT.to_string(),
-                    output.to_string(),
+                    format!("{:#}", Ty::UNIT),
+                    format!("{output:#}"),
                     decl.output.span,
                 ))),
             }
