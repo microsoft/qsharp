@@ -1,4 +1,4 @@
-use crate::{set_indentation, RuntimeCapability};
+use crate::{analysis::StoreRtProps, set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
     BlockId, CallableDecl, ExprId, Item, ItemId, ItemKind, LocalItemId, Package, PackageId,
@@ -6,7 +6,7 @@ use qsc_fir::fir::{
 };
 
 use indenter::indented;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::{
     fmt::{Display, Formatter, Result, Write},
@@ -15,7 +15,16 @@ use std::{
     vec::Vec,
 };
 
+#[derive(Debug)]
 pub struct StoreComputeProps(IndexMap<PackageId, PackageComputeProps>);
+
+impl StoreComputeProps {
+    pub fn incorporate_partial_store_compute_props(
+        &mut self,
+        partial_store: &mut PartialStoreComputeProps,
+    ) {
+    }
+}
 
 #[derive(Debug)]
 pub struct PackageComputeProps {
@@ -293,89 +302,48 @@ pub enum QuantumSource {
     PatId,
 }
 
-pub struct SinglePassAnalyzer {
-    store_compute_props: StoreComputeProps,
+#[derive(Debug)]
+pub struct PartialPackageComputeProps {
+    pub items: FxHashMap<LocalItemId, ItemComputeProps>,
+    pub blocks: FxHashMap<BlockId, InnerElmtComputeProps>,
+    pub stmts: FxHashMap<StmtId, InnerElmtComputeProps>,
+    pub exprs: FxHashMap<ExprId, InnerElmtComputeProps>,
+    pub pats: FxHashMap<PatId, PatComputeProps>,
 }
 
-impl Default for SinglePassAnalyzer {
-    fn default() -> Self {
-        Self {
-            store_compute_props: StoreComputeProps(IndexMap::new()),
-        }
-    }
-}
+#[derive(Debug)]
+pub struct PartialStoreComputeProps(FxHashMap<PackageId, PartialPackageComputeProps>);
+
+pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
-    pub fn new() -> Self {
-        Self::default()
-    }
+    pub fn run(package_store: &PackageStore) -> StoreComputeProps {
+        let mut store_compute_props = StoreComputeProps(IndexMap::new());
 
-    pub fn run(&mut self, package_store: &PackageStore) -> &StoreComputeProps {
-        // Create package runtime properties for each package.
-        for (package_id, package) in package_store.0.iter() {
+        // Create empty package compute properties for each package.
+        for (package_id, _) in package_store.0.iter() {
             let package_compute_props = PackageComputeProps::default();
-            self.store_compute_props
+            store_compute_props
                 .0
                 .insert(package_id, package_compute_props);
         }
 
-        // Propagate package runtime properties for each package.
+        //
         for (package_id, package) in package_store.0.iter() {
-            self.propagate_package_rt_props(package_id, package);
+            let mut partial_store_compute_props =
+                Self::analyze_package_compute_props(package_id, package, &store_compute_props);
+            store_compute_props
+                .incorporate_partial_store_compute_props(&mut partial_store_compute_props);
         }
-
-        &self.store_compute_props
+        store_compute_props
     }
 
-    fn compute_callable_rt_props(
-        &mut self,
+    fn analyze_package_compute_props(
         package_id: PackageId,
-        item_id: LocalItemId,
-        callable: &CallableDecl,
-    ) {
-        let callabale_compute_props = CallableComputeProps {
-            apps: AppsTbl::new(0),
-        };
-
-        let package_compute_props = self
-            .store_compute_props
-            .0
-            .get_mut(package_id)
-            .expect("Package runtime properties should exist");
-
-        package_compute_props
-            .items
-            .insert(item_id, ItemComputeProps::Callable(callabale_compute_props));
-    }
-
-    fn propagate_package_rt_props(&mut self, package_id: PackageId, package: &Package) {
-        for (item_id, item) in &package.items {
-            self.propagate_item_rt_props(package_id, item_id, item);
-        }
-    }
-
-    fn propagate_item_rt_props(
-        &mut self,
-        package_id: PackageId,
-        item_id: LocalItemId,
-        item: &Item,
-    ) {
-        let package_compute_props = self
-            .store_compute_props
-            .0
-            .get_mut(package_id)
-            .expect("Package runtime properties should exist");
-
-        let item_props = package_compute_props.items.get(item_id);
-        if item_props.is_none() {
-            match &item.kind {
-                ItemKind::Callable(callable) => {
-                    self.compute_callable_rt_props(package_id, item_id, &callable)
-                }
-                _ => package_compute_props
-                    .items
-                    .insert(item_id, ItemComputeProps::NonCallable),
-            };
-        }
+        package: &Package,
+        reference_store_compute_props: &StoreComputeProps,
+    ) -> PartialStoreComputeProps {
+        let mut partial_store_compute_props = PartialStoreComputeProps(FxHashMap::default());
+        partial_store_compute_props
     }
 }
