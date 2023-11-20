@@ -16,11 +16,6 @@ pub(crate) struct CodeDisplay<'a> {
     pub(crate) compilation: &'a Compilation,
 }
 
-#[derive(Copy, Clone)]
-struct HirLookup<'a> {
-    compilation: &'a Compilation,
-}
-
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
     pub(crate) fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> impl Display + '_ {
@@ -29,7 +24,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
         AstCallableDecl {
-            lookup: self.lookup(),
+            lookup: self.compilation,
             decl,
         }
     }
@@ -40,7 +35,7 @@ impl<'a> CodeDisplay<'a> {
         ty_id: ast::NodeId,
     ) -> impl Display + '_ {
         IdentTyId {
-            lookup: self.lookup(),
+            lookup: self.compilation,
             ident,
             ty_id,
         }
@@ -48,7 +43,7 @@ impl<'a> CodeDisplay<'a> {
 
     pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> impl Display + '_ {
         PathTyId {
-            lookup: self.lookup(),
+            lookup: self.compilation,
             path,
             ty_id,
         }
@@ -78,12 +73,6 @@ impl<'a> CodeDisplay<'a> {
         HirCallableDecl { decl }.get_param_offset()
     }
 
-    fn lookup(&self) -> HirLookup<'_> {
-        HirLookup {
-            compilation: self.compilation,
-        }
-    }
-
     // The rest of the display implementations are not made public b/c they're not used,
     // but there's no reason they couldn't be
 }
@@ -102,7 +91,7 @@ impl<'a> Display for IdentTy<'a> {
 }
 
 struct IdentTyId<'a> {
-    lookup: HirLookup<'a>,
+    lookup: &'a Compilation,
     ident: &'a ast::Ident,
     ty_id: ast::NodeId,
 }
@@ -122,7 +111,7 @@ impl<'a> Display for IdentTyId<'a> {
 }
 
 struct PathTyId<'a> {
-    lookup: HirLookup<'a>,
+    lookup: &'a Compilation,
     path: &'a ast::Path,
     ty_id: ast::NodeId,
 }
@@ -132,7 +121,7 @@ impl<'a> Display for PathTyId<'a> {
         write!(
             f,
             "{} : {}",
-            &Path { path: self.path },
+            &AstPath { path: self.path },
             TyId {
                 lookup: self.lookup,
                 ty_id: self.ty_id,
@@ -189,7 +178,7 @@ impl Display for HirCallableDecl<'_> {
 }
 
 struct AstCallableDecl<'a> {
-    lookup: HirLookup<'a>,
+    lookup: &'a Compilation,
     decl: &'a ast::CallableDecl,
 }
 
@@ -261,7 +250,7 @@ impl<'a> Display for HirPat<'a> {
 }
 
 struct AstPat<'a> {
-    lookup: HirLookup<'a>,
+    lookup: &'a Compilation,
     pat: &'a ast::Pat,
 }
 
@@ -427,13 +416,13 @@ impl Display for FunctorSetValue {
 }
 
 struct TyId<'a> {
-    lookup: HirLookup<'a>,
+    lookup: &'a Compilation,
     ty_id: ast::NodeId,
 }
 
 impl<'a> Display for TyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let Some(ty) = self.lookup.compilation.get_ty(self.ty_id) {
+        if let Some(ty) = self.lookup.get_ty(self.ty_id) {
             write!(f, "{ty:#}",)
         } else {
             write!(f, "?")
@@ -465,7 +454,7 @@ impl<'a> Display for AstTy<'a> {
             }
             ast::TyKind::Hole => write!(f, "_"),
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
-            ast::TyKind::Path(path) => write!(f, "{}", Path { path }),
+            ast::TyKind::Path(path) => write!(f, "{}", AstPath { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
@@ -489,11 +478,11 @@ impl<'a> Display for FunctorExpr<'a> {
     }
 }
 
-struct Path<'a> {
+struct AstPath<'a> {
     path: &'a ast::Path,
 }
 
-impl<'a> Display for Path<'a> {
+impl<'a> Display for AstPath<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.path.namespace.as_ref() {
             Some(ns) => write!(f, "{ns}.{}", self.path.name.name),
