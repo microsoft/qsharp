@@ -258,10 +258,10 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r#"
-            #7 39-47 "(x : 'T)" : Param<"'T": Item 1, 0>
-            #8 40-46 "x : 'T" : Param<"'T": Item 1, 0>
-            #14 53-58 "{ x }" : Param<"'T": Item 1, 0>
-            #16 55-56 "x" : Param<"'T": Item 1, 0>
+            #7 39-47 "(x : 'T)" : Param<"'T": 0>
+            #8 40-46 "x : 'T" : Param<"'T": 0>
+            #14 53-58 "{ x }" : Param<"'T": 0>
+            #16 55-56 "x" : Param<"'T": 0>
             #22 75-77 "()" : Unit
             #26 84-99 "{ Identity(4) }" : Int
             #28 86-97 "Identity(4)" : Int
@@ -3355,10 +3355,10 @@ fn ambiguous_generic() {
         }",
         "",
         &expect![[r#"
-            #7 45-52 "(x: 'T)" : Param<"'T": Item 1, 0>
-            #8 46-51 "x: 'T" : Param<"'T": Item 1, 0>
-            #14 58-63 "{ x }" : Param<"'T": Item 1, 0>
-            #16 60-61 "x" : Param<"'T": Item 1, 0>
+            #7 45-52 "(x: 'T)" : Param<"'T": 0>
+            #8 46-51 "x: 'T" : Param<"'T": 0>
+            #14 58-63 "{ x }" : Param<"'T": 0>
+            #16 60-61 "x" : Param<"'T": 0>
             #22 88-90 "()" : Unit
             #24 96-116 "{ let x = Foo([]); }" : Unit
             #26 102-103 "x" : ?2[]
@@ -3449,14 +3449,14 @@ fn inferred_generic_tuple_arguments_for_passed_callable() {
         "},
         "",
         &expect![[r#"
-            #7 39-65 "(f : 'T -> Unit, arg : 'T)" : ((Param<"'T": Item 1, 0> -> Unit), Param<"'T": Item 1, 0>)
-            #8 40-54 "f : 'T -> Unit" : (Param<"'T": Item 1, 0> -> Unit)
-            #16 56-64 "arg : 'T" : Param<"'T": Item 1, 0>
+            #7 39-65 "(f : 'T -> Unit, arg : 'T)" : ((Param<"'T": 0> -> Unit), Param<"'T": 0>)
+            #8 40-54 "f : 'T -> Unit" : (Param<"'T": 0> -> Unit)
+            #16 56-64 "arg : 'T" : Param<"'T": 0>
             #23 73-96 "{\n        f(arg);\n    }" : Unit
             #25 83-89 "f(arg)" : Unit
-            #26 83-84 "f" : (Param<"'T": Item 1, 0> -> Unit)
-            #29 84-89 "(arg)" : Param<"'T": Item 1, 0>
-            #30 85-88 "arg" : Param<"'T": Item 1, 0>
+            #26 83-84 "f" : (Param<"'T": 0> -> Unit)
+            #29 84-89 "(arg)" : Param<"'T": 0>
+            #30 85-88 "arg" : Param<"'T": 0>
             #36 115-133 "(x : Int, y : Int)" : (Int, Int)
             #37 116-123 "x : Int" : Int
             #42 125-132 "y : Int" : Int
@@ -3502,11 +3502,11 @@ fn inference_infinite_recursion_should_fail() {
         "},
         "",
         &expect![[r#"
-            #8 41-59 "(x : ('T1 -> 'U1))" : (Param<"'T1": Item 1, 0> -> Param<"'U1": Item 1, 1>)
-            #9 42-58 "x : ('T1 -> 'U1)" : (Param<"'T1": Item 1, 0> -> Param<"'U1": Item 1, 1>)
+            #8 41-59 "(x : ('T1 -> 'U1))" : (Param<"'T1": 0> -> Param<"'U1": 1>)
+            #9 42-58 "x : ('T1 -> 'U1)" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #20 68-75 "{\n    }" : Unit
-            #26 101-126 "(y : (('T2, 'U2) -> 'T2))" : ((Param<"'T2": Item 2, 0>, Param<"'U2": Item 2, 1>) -> Param<"'T2": Item 2, 0>)
-            #27 102-125 "y : (('T2, 'U2) -> 'T2)" : ((Param<"'T2": Item 2, 0>, Param<"'U2": Item 2, 1>) -> Param<"'T2": Item 2, 0>)
+            #26 101-126 "(y : (('T2, 'U2) -> 'T2))" : ((Param<"'T2": 0>, Param<"'U2": 1>) -> Param<"'T2": 0>)
+            #27 102-125 "y : (('T2, 'U2) -> 'T2)" : ((Param<"'T2": 0>, Param<"'U2": 1>) -> Param<"'T2": 0>)
             #40 133-140 "{\n    }" : Unit
             #44 161-163 "()" : Unit
             #48 170-193 "{\n        A and B\n    }" : (((?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])

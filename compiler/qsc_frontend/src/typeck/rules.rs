@@ -110,15 +110,13 @@ impl<'a> Context<'a> {
                 // as there is a syntactic difference between
                 // paths and parameters.
                 // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_, _)) => unreachable!(
+                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
             TyKind::Param(name) => match self.names.get(name.id) {
-                Some(Res::Param(item_id, param_id)) => {
-                    Ty::Param(name.name.clone(), *item_id, *param_id)
-                }
+                Some(Res::Param(id)) => Ty::Param(name.name.clone(), *id),
                 None => Ty::Err,
                 Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \
@@ -379,7 +377,7 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_, _)) => {
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression resolves to type")
                 }
             },

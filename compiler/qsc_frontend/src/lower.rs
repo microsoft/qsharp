@@ -716,7 +716,7 @@ impl With<'_> {
         match self.names.get(path.id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
-            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_, _))
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }
     }

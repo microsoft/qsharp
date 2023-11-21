@@ -593,7 +593,7 @@ impl Solver {
             (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
-            (Ty::Param(_, _, name1), Ty::Param(_, _, name2)) if name1 == name2 => Vec::new(), // ToDo: do we need to test if the item ids are the same?
+            (Ty::Param(_, name1), Ty::Param(_, name2)) if name1 == name2 => Vec::new(),
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
@@ -675,7 +675,7 @@ fn substitute_ty(solution: &Solution, ty: &mut Ty) {
             return;
         }
         match ty {
-            Ty::Err | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Udt(_, _) => {}
+            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => {}
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
                 substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
@@ -725,7 +725,7 @@ fn unknown_ty(tys: &IndexMap<InferTyId, Ty>, ty: &Ty) -> Option<InferTyId> {
 
 fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
     match ty {
-        Ty::Err | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Udt(_, _) => false,
+        Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
         Ty::Arrow(arrow) => {
             contains_infer_ty(id, &arrow.input) || contains_infer_ty(id, &arrow.output)

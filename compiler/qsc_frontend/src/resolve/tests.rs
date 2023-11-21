@@ -38,7 +38,7 @@ impl<'a> Renamer<'a> {
                 Res::Local(node) => format!("local{node}"),
                 Res::PrimTy(prim) => format!("{prim:?}"),
                 Res::UnitTy => "Unit".to_string(),
-                Res::Param(_, id) => format!("param{id}"),
+                Res::Param(id) => format!("param{id}"),
             };
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
         }
