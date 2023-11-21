@@ -324,6 +324,16 @@ impl Display for PackageStore {
     }
 }
 
+impl PackageStore {
+    /// Gets pattern in less lines of code.
+    #[must_use]
+    pub fn get_pattern(&self, package_id: PackageId, pat_id: PatId) -> Option<&Pat> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.pats.get(pat_id))
+    }
+}
+
 /// The root node of the FIR.
 /// ### Notes
 /// We maintain a dense map of ids within the package.
