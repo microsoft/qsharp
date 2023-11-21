@@ -2,11 +2,12 @@
 // Licensed under the MIT License.
 
 import { log } from "qsharp-lang";
-import { workspace } from "vscode";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "../telemetry";
 import { getRandomGuid } from "../utils";
 
 const publicMgmtEndpoint = "https://management.azure.com";
+
+export const useProxy = true;
 
 export async function azureRequest(
   uri: string,
@@ -65,6 +66,8 @@ export async function azureRequest(
 export async function storageRequest(
   uri: string,
   method: string,
+  token?: string,
+  proxy?: string,
   extraHeaders?: [string, string][],
   body?: string | Uint8Array,
   correlationId?: string,
@@ -73,15 +76,13 @@ export async function storageRequest(
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
   ];
-  const storageProxy: string | undefined = workspace
-    .getConfiguration("Q#")
-    .get("storageProxy"); // e.g. in settings.json: "Q#.storageProxy": "https://qsx-proxy.azurewebsites.net/api/proxy";
+  if (token) headers.push(["Authorization", `Bearer ${token}`]);
 
   if (extraHeaders?.length) headers.push(...extraHeaders);
-  if (storageProxy) {
+  if (proxy) {
     log.debug(`Setting x-proxy-to header to ${uri}`);
     headers.push(["x-proxy-to", uri]);
-    uri = storageProxy;
+    uri = proxy;
   }
   try {
     log.debug(`Fetching ${uri} with method ${method}`);
@@ -164,6 +165,10 @@ export class QuantumUris {
   // Needs to POST an application/json payload such as: {"containerName": "job-073064ed-2a47-11ee-b8e7-010101010000","blobName":"outputData"}
   sasUri() {
     return `${this.endpoint}${this.id}/storage/sasUri?api-version=${this.apiVersion}`;
+  }
+
+  storageProxy() {
+    return `${this.endpoint}${this.id}/storage/proxy?api-version=${this.apiVersion}`;
   }
 }
 
