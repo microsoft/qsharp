@@ -368,6 +368,18 @@ pub struct PackagePartialComputeProps {
     pub pats: FxHashMap<PatId, PatComputeProps>,
 }
 
+impl Default for PackagePartialComputeProps {
+    fn default() -> Self {
+        Self {
+            items: FxHashMap::default(),
+            blocks: FxHashMap::default(),
+            stmts: FxHashMap::default(),
+            exprs: FxHashMap::default(),
+            pats: FxHashMap::default(),
+        }
+    }
+}
+
 pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
@@ -398,7 +410,26 @@ impl SinglePassAnalyzer {
         item: &Item,
         store_compute_props: &StoreComputeProps,
     ) -> StorePartialComputeProps {
+        match item.kind {
+            ItemKind::Namespace(..) | ItemKind::Ty(..) => {
+                Self::create_non_callable_item_partial_compute_props(package_id, item_id)
+            }
+            _ => panic!("Not YET implemented"),
+        }
+    }
+
+    fn create_non_callable_item_partial_compute_props(
+        package_id: PackageId,
+        item_id: LocalItemId,
+    ) -> StorePartialComputeProps {
+        let mut package_partial_compute_props = PackagePartialComputeProps::default();
+        package_partial_compute_props
+            .items
+            .insert(item_id, ItemComputeProps::NonCallable);
         let mut store_partial_compute_props = StorePartialComputeProps(FxHashMap::default());
+        store_partial_compute_props
+            .0
+            .insert(package_id, package_partial_compute_props);
         store_partial_compute_props
     }
 }
