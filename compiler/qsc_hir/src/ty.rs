@@ -64,26 +64,54 @@ impl Ty {
             Ty::Udt(name, res) => Ty::Udt(name.clone(), res.with_package(package)),
         }
     }
+
+    pub fn display(&self) -> String {
+        match self {
+            Ty::Array(item) => {
+                format!("{}[]", item.display())
+            }
+            Ty::Arrow(arrow) => {
+                let arrow_symbol = match arrow.kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                let functors = if arrow.functors == FunctorSet::Value(FunctorSetValue::Empty) {
+                    String::new()
+                } else {
+                    format!(" is {}", arrow.functors)
+                };
+                format!(
+                    "({} {arrow_symbol} {}{functors})",
+                    arrow.input.display(),
+                    arrow.output.display()
+                )
+            }
+            Ty::Infer(_) | Ty::Err => "?".to_string(),
+            Ty::Param(name, _) | Ty::Udt(name, _) => name.to_string(),
+            Ty::Prim(prim) => format!("{prim:?}"),
+            Ty::Tuple(items) => {
+                if items.is_empty() {
+                    "Unit".to_string()
+                } else if items.len() == 1 {
+                    let item = items.get(0).expect("expected single item");
+                    format!("({},)", item.display())
+                } else {
+                    let items = items.iter().map(Ty::display).collect::<Vec<_>>().join(", ");
+                    format!("({items})")
+                }
+            }
+        }
+    }
 }
 
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Ty::Array(item) => {
-                if f.alternate() {
-                    write!(f, "{item:#}[]")
-                } else {
-                    write!(f, "{item}[]")
-                }
-            }
+            Ty::Array(item) => write!(f, "{item}[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
             Ty::Param(name, param_id) => {
-                if f.alternate() {
-                    f.write_str(name)
-                } else {
-                    write!(f, "Param<\"{name}\": {param_id}>")
-                }
+                write!(f, "Param<\"{name}\": {param_id}>")
             }
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
@@ -106,11 +134,7 @@ impl Display for Ty {
                 }
             }
             Ty::Udt(name, res) => {
-                if f.alternate() {
-                    f.write_str(name)
-                } else {
-                    write!(f, "UDT<\"{name}\": {res}>")
-                }
+                write!(f, "UDT<\"{name}\": {res}>")
             }
             Ty::Err => f.write_char('?'),
         }
@@ -341,11 +365,7 @@ impl Display for Arrow {
             CallableKind::Function => "->",
             CallableKind::Operation => "=>",
         };
-        if f.alternate() {
-            write!(f, "({:#} {arrow} {:#}", self.input, self.output)?;
-        } else {
-            write!(f, "({} {arrow} {}", self.input, self.output)?;
-        }
+        write!(f, "({} {arrow} {}", self.input, self.output)?;
         if self.functors != FunctorSet::Value(FunctorSetValue::Empty) {
             f.write_str(" is ")?;
             Display::fmt(&self.functors, f)?;
@@ -698,11 +718,7 @@ impl InferTyId {
 
 impl Display for InferTyId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if f.alternate() {
-            f.write_char('?')
-        } else {
-            write!(f, "?{}", self.0)
-        }
+        write!(f, "?{}", self.0)
     }
 }
 

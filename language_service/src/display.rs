@@ -168,8 +168,8 @@ impl Display for HirCallableDecl<'_> {
         }
         write!(
             f,
-            " : {:#}{}",
-            self.decl.output,
+            " : {}{}",
+            self.decl.output.display(),
             FunctorSetValue {
                 functors: self.decl.functors,
             },
@@ -230,8 +230,8 @@ struct HirPat<'a> {
 impl<'a> Display for HirPat<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.pat.kind {
-            hir::PatKind::Bind(name) => write!(f, "{} : {:#}", name.name, self.pat.ty),
-            hir::PatKind::Discard => write!(f, "_ : {:#}", self.pat.ty),
+            hir::PatKind::Bind(name) => write!(f, "{} : {}", name.name, self.pat.ty.display()),
+            hir::PatKind::Discard => write!(f, "_ : {}", self.pat.ty.display()),
             hir::PatKind::Tuple(items) => {
                 let mut elements = items.iter();
                 if let Some(elem) = elements.next() {
@@ -380,7 +380,7 @@ impl Display for UdtDef<'_> {
 
         match &self.kind {
             UdtDefKind::SingleTy(ty) => {
-                write!(f, "{ty:#}")
+                write!(f, "{}", ty.display())
             }
             UdtDefKind::TupleTy(defs) => fmt_tuple(f, defs, |def| def),
         }
@@ -423,7 +423,7 @@ struct TyId<'a> {
 impl<'a> Display for TyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(ty) = self.lookup.get_ty(self.ty_id) {
-            write!(f, "{ty:#}",)
+            write!(f, "{}", ty.display())
         } else {
             write!(f, "?")
         }

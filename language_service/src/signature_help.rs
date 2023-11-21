@@ -79,7 +79,7 @@ impl SignatureHelpFinder<'_> {
         if let Some(ty) = self.compilation.get_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
-                    label: format!("{ty:#}"),
+                    label: ty.display(),
                     documentation: None,
                     parameters: get_type_params(&arrow.input),
                 };
@@ -239,7 +239,7 @@ fn get_type_params(ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
 /// because we need to insert an additional parameter info to make the list
 /// compatible with the argument processing logic.
 fn params_for_single_type_parameter(offset: u32, ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
-    let len = usize_to_u32(format!("{ty:#}").len());
+    let len = usize_to_u32(ty.display().len());
     let start = offset;
     let end = offset + len;
 
@@ -261,7 +261,7 @@ fn params_for_single_type_parameter(offset: u32, ty: &hir::ty::Ty) -> Vec<Parame
 
 fn make_type_param_with_offset(offset: &mut u32, ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
     if let hir::ty::Ty::Tuple(items) = &ty {
-        let len = usize_to_u32(format!("{ty:#}").len());
+        let len = usize_to_u32(ty.display().len());
         let mut rtrn = vec![ParameterInformation {
             label: Span {
                 start: *offset,
@@ -282,7 +282,7 @@ fn make_type_param_with_offset(offset: &mut u32, ty: &hir::ty::Ty) -> Vec<Parame
         *offset += 1; // for the close parenthesis
         rtrn
     } else {
-        let len = usize_to_u32(format!("{ty:#}").len());
+        let len = usize_to_u32(ty.display().len());
         let start = *offset;
         *offset += len;
         vec![ParameterInformation {

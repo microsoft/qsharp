@@ -143,7 +143,7 @@ impl Class {
             Class::Add(ty) if check_add(&ty) => (Vec::new(), Vec::new()),
             Class::Add(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassAdd(format!("{ty:#}"), span))],
+                vec![Error(ErrorKind::MissingClassAdd(ty.display(), span))],
             ),
             Class::Adj(ty) => check_adj(ty, span),
             Class::Call {
@@ -165,16 +165,13 @@ impl Class {
             Class::Integral(ty) if check_integral(&ty) => (Vec::new(), Vec::new()),
             Class::Integral(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassInteger(
-                    format!("{ty:#}"),
-                    span,
-                ))],
+                vec![Error(ErrorKind::MissingClassInteger(ty.display(), span))],
             ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
             Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
             Class::Num(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassNum(format!("{ty:#}"), span))],
+                vec![Error(ErrorKind::MissingClassNum(ty.display(), span))],
             ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
@@ -250,8 +247,8 @@ impl ArgTy {
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
                     errors.push(Error(ErrorKind::TyMismatch(
-                        format!("{:#}", Ty::Tuple(params.clone())),
-                        format!("{:#}", self.to_ty()),
+                        Ty::Tuple(params.clone()).display(),
+                        self.to_ty().display(),
                         span,
                     )));
                 }
@@ -288,8 +285,8 @@ impl ArgTy {
                 holes: Vec::new(),
                 constraints: Vec::new(),
                 errors: vec![Error(ErrorKind::TyMismatch(
-                    format!("{param:#}"),
-                    format!("{:#}", self.to_ty()),
+                    param.display(),
+                    self.to_ty().display(),
                     span,
                 ))],
             },
@@ -598,8 +595,8 @@ impl Solver {
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
                     self.errors.push(Error(ErrorKind::TyMismatch(
-                        format!("{ty1:#}"),
-                        format!("{ty2:#}"),
+                        ty1.display(),
+                        ty2.display(),
                         span,
                     )));
                 }
@@ -613,8 +610,8 @@ impl Solver {
             (Ty::Udt(_, res1), Ty::Udt(_, res2)) if res1 == res2 => Vec::new(),
             _ => {
                 self.errors.push(Error(ErrorKind::TyMismatch(
-                    format!("{ty1:#}"),
-                    format!("{ty2:#}"),
+                    ty1.display(),
+                    ty2.display(),
                     span,
                 )));
                 Vec::new()
@@ -754,7 +751,7 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassAdj(format!("{ty:#}"), span))],
+            vec![Error(ErrorKind::MissingClassAdj(ty.display(), span))],
         ),
     }
 }
@@ -763,10 +760,7 @@ fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constra
     let Ty::Arrow(arrow) = callee else {
         return (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassCall(
-                format!("{callee:#}"),
-                span,
-            ))],
+            vec![Error(ErrorKind::MissingClassCall(callee.display(), span))],
         );
     };
 
@@ -801,7 +795,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let Ty::Arrow(arrow) = op else {
         return (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassCtl(format!("{op:#}"), span))],
+            vec![Error(ErrorKind::MissingClassCtl(op.display(), span))],
         );
     };
 
@@ -852,7 +846,7 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassEq(format!("{ty:#}"), span))],
+            vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],
         ),
     }
 }
@@ -877,7 +871,7 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassExp(format!("{base:#}"), span))],
+            vec![Error(ErrorKind::MissingClassExp(base.display(), span))],
         ),
     }
 }
@@ -918,7 +912,7 @@ fn check_has_field(
                 None => (
                     Vec::new(),
                     vec![Error(ErrorKind::MissingClassHasField(
-                        format!("{record:#}"),
+                        record.display(),
                         name,
                         span,
                     ))],
@@ -928,7 +922,7 @@ fn check_has_field(
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasField(
-                format!("{record:#}"),
+                record.display(),
                 name,
                 span,
             ))],
@@ -965,8 +959,8 @@ fn check_has_index(
         (container, index) => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasIndex(
-                format!("{container:#}"),
-                format!("{index:#}"),
+                container.display(),
+                index.display(),
                 span,
             ))],
         ),
@@ -998,7 +992,7 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassIterable(
-                format!("{container:#}"),
+                container.display(),
                 span,
             ))],
         ),
@@ -1025,7 +1019,7 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassShow(format!("{ty:#}"), span))],
+            vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
         ),
     }
 }
@@ -1055,7 +1049,7 @@ fn check_unwrap(
     (
         Vec::new(),
         vec![Error(ErrorKind::MissingClassUnwrap(
-            format!("{wrapper:#}"),
+            wrapper.display(),
             span,
         ))],
     )
