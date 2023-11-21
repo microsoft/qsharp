@@ -486,3 +486,29 @@ html {
 .spaceDetailText {
   width: 200px;
 }
+
+.qs-help {
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.qs-help h1 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  line-height: 1.25;
+  font-weight: 600;
+  padding-bottom: 0.3em;
+  font-size: 2em;
+  border-bottom: 1px solid var(--vscode-editorWidget-border);
+}
+
+.qs-help h2 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  line-height: 1.25;
+  padding-bottom: 0.3em;
+  font-size: 1.4em;
+  border-bottom: 1px solid var(--vscode-editorWidget-border);
+}
