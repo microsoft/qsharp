@@ -458,19 +458,18 @@ impl SinglePassAnalyzer {
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
-        _store_compute_props: &StoreComputeProps,
+        store_compute_props: &StoreComputeProps,
         package_store: &PackageStore,
     ) -> StorePartialComputeProps {
         if Self::is_callable_intrinsic(callable) {
             Self::analyze_intrinsic_callable(callable, callable_id, package_id, package_store)
         } else {
-            // TODO (cesarzc): Should eventually use `_store_compute_props`.
-            StorePartialComputeProps::with_callable_compute_props(
-                package_id,
+            Self::analyze_non_intrinsic_callable(
+                callable,
                 callable_id,
-                CallableComputeProps {
-                    apps: AppsTbl::new(0),
-                },
+                package_id,
+                store_compute_props,
+                package_store,
             )
         }
     }
@@ -556,6 +555,24 @@ impl SinglePassAnalyzer {
                 package_store,
             ),
         }
+    }
+
+    fn analyze_non_intrinsic_callable(
+        _callable: &CallableDecl,
+        callable_id: LocalItemId,
+        package_id: PackageId,
+        _store_compute_props: &StoreComputeProps,
+        _package_store: &PackageStore,
+    ) -> StorePartialComputeProps {
+        // TODO (cesarzc): Implement.
+        //  Should eventually use `_callable`, `_store_compute_props` and `_package_store`.
+        StorePartialComputeProps::with_callable_compute_props(
+            package_id,
+            callable_id,
+            CallableComputeProps {
+                apps: AppsTbl::new(0),
+            },
+        )
     }
 
     fn create_intrinsic_function_application(
