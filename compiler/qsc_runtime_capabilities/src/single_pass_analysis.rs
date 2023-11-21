@@ -1,4 +1,4 @@
-use crate::{analysis::StoreRtProps, set_indentation, RuntimeCapability};
+use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
     BlockId, CallableDecl, ExprId, Item, ItemId, ItemKind, LocalItemId, Package, PackageId,
@@ -45,6 +45,15 @@ impl StoreComputeProps {
             return package.items.contains_key(item_id);
         }
         false
+    }
+
+    pub fn persist(&self) {
+        for (package_id, package) in self.0.iter() {
+            let filename = format!("dbg/rca.package{package_id}.txt");
+            let mut package_file = File::create(filename).expect("File could be created");
+            let package_string = format!("{package}");
+            write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+        }
     }
 }
 
@@ -359,25 +368,13 @@ pub enum QuantumSource {
 #[derive(Debug)]
 pub struct StorePartialComputeProps(FxHashMap<PackageId, PackagePartialComputeProps>);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PackagePartialComputeProps {
     pub items: FxHashMap<LocalItemId, ItemComputeProps>,
     pub blocks: FxHashMap<BlockId, InnerElmtComputeProps>,
     pub stmts: FxHashMap<StmtId, InnerElmtComputeProps>,
     pub exprs: FxHashMap<ExprId, InnerElmtComputeProps>,
     pub pats: FxHashMap<PatId, PatComputeProps>,
-}
-
-impl Default for PackagePartialComputeProps {
-    fn default() -> Self {
-        Self {
-            items: FxHashMap::default(),
-            blocks: FxHashMap::default(),
-            stmts: FxHashMap::default(),
-            exprs: FxHashMap::default(),
-            pats: FxHashMap::default(),
-        }
-    }
 }
 
 pub struct SinglePassAnalyzer;
@@ -404,6 +401,26 @@ impl SinglePassAnalyzer {
         store_compute_props
     }
 
+    fn analyze_callable_compute_props(
+        package_id: PackageId,
+        item_id: LocalItemId,
+        item: &Item,
+        store_compute_props: &StoreComputeProps,
+    ) -> StorePartialComputeProps {
+        let callable_compute_props = CallableComputeProps {
+            apps: AppsTbl::new(0),
+        };
+        let mut package_partial_compute_props = PackagePartialComputeProps::default();
+        package_partial_compute_props
+            .items
+            .insert(item_id, ItemComputeProps::Callable(callable_compute_props));
+        let mut store_partial_compute_props = StorePartialComputeProps(FxHashMap::default());
+        store_partial_compute_props
+            .0
+            .insert(package_id, package_partial_compute_props);
+        store_partial_compute_props
+    }
+
     fn analyze_item_compute_props(
         package_id: PackageId,
         item_id: LocalItemId,
@@ -414,7 +431,9 @@ impl SinglePassAnalyzer {
             ItemKind::Namespace(..) | ItemKind::Ty(..) => {
                 Self::create_non_callable_item_partial_compute_props(package_id, item_id)
             }
-            _ => panic!("Not YET implemented"),
+            _ => {
+                Self::analyze_callable_compute_props(package_id, item_id, item, store_compute_props)
+            }
         }
     }
 

@@ -16,7 +16,7 @@ use qsc_frontend::{
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
-use qsc_runtime_capabilities::analysis::Analyzer;
+use qsc_runtime_capabilities::single_pass_analysis::SinglePassAnalyzer;
 use std::{
     concat,
     fs::{self, File},
@@ -109,8 +109,11 @@ fn main() -> miette::Result<ExitCode> {
     //let store_capabilities = analyzer.run();
     //save_store_capabilities_to_files(&store_capabilities); // DBG (cesarzc): For debugging purposes only.
 
-    let mut analyzer = Analyzer::new(&fir_store);
-    let _store_rt_props = analyzer.run();
+    //let mut analyzer = Analyzer::new(&fir_store);
+    //let _store_rt_props = analyzer.run();
+
+    let store_compute_props = SinglePassAnalyzer::run(&fir_store);
+    store_compute_props.persist();
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
