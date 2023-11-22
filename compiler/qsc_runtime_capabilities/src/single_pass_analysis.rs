@@ -13,6 +13,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::{
     collections::HashSet,
+    default,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
@@ -792,8 +793,8 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        // TODO (cesarzc): Implement.
-        //  Should eventually use `_callable`, `_store_compute_props` and `_package_store`.
+        // Analyze each statement and update the callable apps table.
+        let mut callable_apps_tbl = AppsTbl::new(0); // TODO (cesarzc): use.
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
         let implementation_block = package_store
             .get_block(package_id, implementation_block_id)
@@ -807,6 +808,16 @@ impl SinglePassAnalyzer {
                 .get_stmt(&package_id, stmt_id)
                 .expect("Statement was just analyzed");
         }
+
+        // TODO (cesarzc): analyze quantum sources based on the last statement.
+        let callable_compute_props = CallableComputeProps {
+            apps: callable_apps_tbl,
+        };
+        store_scratch.insert_item(
+            package_id,
+            callable_id,
+            ItemComputeProps::Callable(callable_compute_props),
+        );
     }
 
     // TODO (cesarzc): possibly remove.
