@@ -2,7 +2,7 @@ use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableKind, ExprId, Item, ItemId, ItemKind, LocalItemId,
+        BlockId, CallableDecl, CallableKind, ExprId, Item, ItemId, ItemKind, LocalItemId, NodeId,
         PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, Stmt, StmtId,
     },
     ty::{Prim, Ty},
@@ -532,6 +532,8 @@ impl PackageScratch {
     }
 }
 
+struct InputParam(NodeId, Ty);
+
 pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
@@ -664,8 +666,16 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        // The applications table size depends on the number of input parameters.
+        let package_pats = &package_store
+            .0
+            .get(package_id)
+            .expect("`Package` should exist in `PackageStore`")
+            .pats;
+        let input_params = Self::get_callable_input_params(callable, package_pats);
+        let callable_apps_tbl = AppsTbl::new(input_params.len());
+
         // Analyze each statement and update the callable apps table.
-        let mut callable_apps_tbl = AppsTbl::new(0); // TODO (cesarzc): use.
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
         let implementation_block = package_store
             .get_block(package_id, implementation_block_id)
@@ -796,6 +806,7 @@ impl SinglePassAnalyzer {
         }
     }
 
+    // TODO (cesarzc): possibly remove.
     fn get_input_params_types(pattern: &Pat) -> Vec<Ty> {
         match pattern.kind {
             PatKind::Bind(_) => match pattern.ty {
@@ -813,6 +824,35 @@ impl SinglePassAnalyzer {
             },
             _ => panic!("Only callable parameter patterns are expected"),
         }
+    }
+
+    fn get_callable_input_params(
+        callable: &CallableDecl,
+        package_pats: &IndexMap<PatId, Pat>,
+    ) -> Vec<InputParam> {
+        let input_pat = package_pats
+            .get(callable.input)
+            .expect("Callable input patter should exist");
+
+        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<InputParam> {
+            match &pat.kind {
+                PatKind::Bind(ident) => vec![InputParam(ident.id, pat.ty.clone())],
+                PatKind::Tuple(tuple_pats) => {
+                    let mut input_params = Vec::<InputParam>::new();
+                    for tuple_item_pat_id in tuple_pats {
+                        let tuple_item_pat = pats
+                            .get(*tuple_item_pat_id)
+                            .expect("`Pattern` should exist");
+                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
+                        input_params.append(&mut tuple_item_params);
+                    }
+                    input_params
+                }
+                _ => panic!("Only callable parameter patterns are expected"),
+            }
+        }
+
+        from_pat(input_pat, package_pats)
     }
 
     fn is_callable_intrinsic(callable: &CallableDecl) -> bool {
