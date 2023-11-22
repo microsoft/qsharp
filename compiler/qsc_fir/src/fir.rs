@@ -325,12 +325,28 @@ impl Display for PackageStore {
 }
 
 impl PackageStore {
+    /// Gets block in less lines of code.
+    #[must_use]
+    pub fn get_block(&self, package_id: PackageId, block_id: BlockId) -> Option<&Block> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.blocks.get(block_id))
+    }
+
     /// Gets pattern in less lines of code.
     #[must_use]
-    pub fn get_pattern(&self, package_id: PackageId, pat_id: PatId) -> Option<&Pat> {
+    pub fn get_pat(&self, package_id: PackageId, pat_id: PatId) -> Option<&Pat> {
         self.0
             .get(package_id)
             .and_then(|package| package.pats.get(pat_id))
+    }
+
+    /// Gets statement in less lines of code.
+    #[must_use]
+    pub fn get_stmt(&self, package_id: PackageId, stmt_id: StmtId) -> Option<&Stmt> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.stmts.get(stmt_id))
     }
 }
 

@@ -2,8 +2,8 @@ use crate::{set_indentation, RuntimeCapability};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        BlockId, CallableDecl, CallableKind, ExprId, Item, ItemId, ItemKind, LocalItemId,
-        PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, StmtId,
+        Block, BlockId, CallableDecl, CallableKind, ExprId, Item, ItemId, ItemKind, LocalItemId,
+        PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, Stmt, StmtId,
     },
     ty::{Prim, Ty},
 };
@@ -372,6 +372,28 @@ pub enum QuantumSource {
 pub struct StorePartialComputeProps(FxHashMap<PackageId, PackagePartialComputeProps>);
 
 impl StorePartialComputeProps {
+    pub fn incorporate_partial_compute_props(
+        &mut self,
+        store_partial_compute_props: &mut StorePartialComputeProps,
+    ) {
+        for (package_id, package_partial_compute_props) in store_partial_compute_props.0.iter_mut()
+        {
+            let package_compute_props: &mut PackagePartialComputeProps =
+                match self.0.get_mut(package_id) {
+                    None => {
+                        self.0
+                            .insert(*package_id, PackagePartialComputeProps::default());
+                        self.0
+                            .get_mut(package_id)
+                            .expect("Package compute properties should exist")
+                    }
+                    Some(p) => p,
+                };
+
+            package_compute_props.incorporate_partial_compute_props(package_partial_compute_props);
+        }
+    }
+
     pub fn with_callable_compute_props(
         package_id: PackageId,
         callable_id: LocalItemId,
@@ -408,6 +430,46 @@ pub struct PackagePartialComputeProps {
 }
 
 impl PackagePartialComputeProps {
+    pub fn incorporate_partial_compute_props(
+        &mut self,
+        partial_compute_props: &mut PackagePartialComputeProps,
+    ) {
+        partial_compute_props
+            .items
+            .drain()
+            .for_each(|(item_id, item)| {
+                _ = self.items.insert(item_id, item);
+            });
+
+        partial_compute_props
+            .blocks
+            .drain()
+            .for_each(|(block_id, block)| {
+                _ = self.blocks.insert(block_id, block);
+            });
+
+        partial_compute_props
+            .stmts
+            .drain()
+            .for_each(|(stmt_id, stmt)| {
+                _ = self.stmts.insert(stmt_id, stmt);
+            });
+
+        partial_compute_props
+            .exprs
+            .drain()
+            .for_each(|(expr_id, expr)| {
+                _ = self.exprs.insert(expr_id, expr);
+            });
+
+        partial_compute_props
+            .pats
+            .drain()
+            .for_each(|(pat_id, pat)| {
+                _ = self.pats.insert(pat_id, pat);
+            });
+    }
+
     pub fn with_callable_compute_props(
         callable_id: LocalItemId,
         callable_compute_props: CallableComputeProps,
@@ -483,7 +545,7 @@ impl SinglePassAnalyzer {
         assert!(Self::is_callable_intrinsic(callable));
         // Get the input pattern of the callable since that determines properties of intrinsic callables.
         let input_pattern = package_store
-            .get_pattern(package_id, callable.input)
+            .get_pat(package_id, callable.input)
             .expect("Pattern should exist");
         let callable_compute_props = match callable.kind {
             CallableKind::Function => Self::analyze_instrinsic_function(callable, input_pattern),
@@ -558,21 +620,47 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_non_intrinsic_callable(
-        _callable: &CallableDecl,
+        callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
-        _store_compute_props: &StoreComputeProps,
-        _package_store: &PackageStore,
+        store_compute_props: &StoreComputeProps,
+        package_store: &PackageStore,
     ) -> StorePartialComputeProps {
         // TODO (cesarzc): Implement.
         //  Should eventually use `_callable`, `_store_compute_props` and `_package_store`.
-        StorePartialComputeProps::with_callable_compute_props(
-            package_id,
-            callable_id,
-            CallableComputeProps {
-                apps: AppsTbl::new(0),
-            },
-        )
+
+        // TODO (cesarzc): Iterate over each statement in the callable.
+        let implementation_block_id = Self::get_callable_implementation_block_id(callable);
+        let implementation_block = package_store
+            .get_block(package_id, implementation_block_id)
+            .expect("Block should exist");
+        let mut store_partial_compute_props = StorePartialComputeProps::default();
+        for stmt_id in &implementation_block.stmts {
+            let stmt = package_store
+                .get_stmt(package_id, *stmt_id)
+                .expect("Statement should exist");
+            let mut stmt_analysis = Self::analyze_stmt(
+                stmt,
+                *stmt_id,
+                package_id,
+                &store_partial_compute_props,
+                store_compute_props,
+                package_store,
+            );
+            store_partial_compute_props.incorporate_partial_compute_props(&mut stmt_analysis);
+        }
+        store_partial_compute_props
+    }
+
+    fn analyze_stmt(
+        stmt: &Stmt,
+        stmt_id: StmtId,
+        package_id: PackageId,
+        _store_partial_compute_props: &StorePartialComputeProps,
+        _store_compute_props: &StoreComputeProps,
+        package_store: &PackageStore,
+    ) -> StorePartialComputeProps {
+        StorePartialComputeProps::default()
     }
 
     fn create_intrinsic_function_application(
@@ -651,6 +739,18 @@ impl SinglePassAnalyzer {
         ComputeProps {
             rt_caps,
             quantum_sources,
+        }
+    }
+
+    fn get_callable_implementation_block_id(callable: &CallableDecl) -> BlockId {
+        match callable.body.body {
+            SpecBody::Impl(pat_id, block_id) => {
+                if let Some(pid) = pat_id {
+                    println!("{} | {}", callable.name, pid);
+                }
+                block_id
+            }
+            _ => panic!("Is not implementation"),
         }
     }
 
