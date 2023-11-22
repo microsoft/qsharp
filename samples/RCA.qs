@@ -7,7 +7,13 @@ namespace QuantumHelloWorld {
         H(qubit);
         let result = M(qubit);
         Reset(qubit);
-        let a = FFoo(0);
+        let a = FFoo(11111);
+        let fiveTwos = 22222;
+        let b = FFoo(fiveTwos);
+        let c = FBar(33333, 44444);
+        let fiveFives = 55555;
+        let fiveSixes = 66666;
+        let d = FBar(fiveFives, fiveSixes);
         return result;
     }
 
