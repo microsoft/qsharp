@@ -12,9 +12,12 @@ use indenter::indented;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::{
+    collections::HashSet,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
+    ops::Deref,
+    sync::LockResult,
     vec::Vec,
 };
 
@@ -22,12 +25,8 @@ use std::{
 pub struct StoreComputeProps(IndexMap<PackageId, PackageComputeProps>);
 
 impl StoreComputeProps {
-    pub fn incorporate_partial_compute_props(
-        &mut self,
-        store_partial_compute_props: &mut StorePartialComputeProps,
-    ) {
-        for (package_id, package_partial_compute_props) in store_partial_compute_props.0.iter_mut()
-        {
+    pub fn incorporate_scratch(&mut self, store_scratch: &mut StoreScratch) {
+        for (package_id, package_scratch) in store_scratch.0.iter_mut() {
             let package_compute_props: &mut PackageComputeProps = match self.0.get_mut(*package_id)
             {
                 None => {
@@ -39,7 +38,7 @@ impl StoreComputeProps {
                 Some(p) => p,
             };
 
-            package_compute_props.incorporate_partial_compute_props(package_partial_compute_props);
+            package_compute_props.incorporate_scratch(package_scratch);
         }
     }
 
@@ -127,31 +126,28 @@ impl Display for PackageComputeProps {
 }
 
 impl PackageComputeProps {
-    pub fn incorporate_partial_compute_props(
-        &mut self,
-        partial_compute_props: &mut PackagePartialComputeProps,
-    ) {
-        partial_compute_props
+    pub fn incorporate_scratch(&mut self, package_scratch: &mut PackageScratch) {
+        package_scratch
             .items
             .drain()
             .for_each(|(item_id, item)| self.items.insert(item_id, item));
 
-        partial_compute_props
+        package_scratch
             .blocks
             .drain()
             .for_each(|(block_id, block)| self.blocks.insert(block_id, block));
 
-        partial_compute_props
+        package_scratch
             .stmts
             .drain()
             .for_each(|(stmt_id, stmt)| self.stmts.insert(stmt_id, stmt));
 
-        partial_compute_props
+        package_scratch
             .exprs
             .drain()
             .for_each(|(expr_id, expr)| self.exprs.insert(expr_id, expr));
 
-        partial_compute_props
+        package_scratch
             .pats
             .drain()
             .for_each(|(pat_id, pat)| self.pats.insert(pat_id, pat));
@@ -369,29 +365,91 @@ pub enum QuantumSource {
 }
 
 #[derive(Debug, Default)]
-pub struct StorePartialComputeProps(FxHashMap<PackageId, PackagePartialComputeProps>);
+pub struct StoreScratch(FxHashMap<PackageId, PackageScratch>);
 
-impl StorePartialComputeProps {
-    pub fn incorporate_partial_compute_props(
-        &mut self,
-        store_partial_compute_props: &mut StorePartialComputeProps,
-    ) {
-        for (package_id, package_partial_compute_props) in store_partial_compute_props.0.iter_mut()
-        {
-            let package_compute_props: &mut PackagePartialComputeProps =
-                match self.0.get_mut(package_id) {
-                    None => {
-                        self.0
-                            .insert(*package_id, PackagePartialComputeProps::default());
-                        self.0
-                            .get_mut(package_id)
-                            .expect("Package compute properties should exist")
-                    }
-                    Some(p) => p,
-                };
+impl StoreScratch {
+    pub fn get_stmt(
+        &self,
+        package_id: &PackageId,
+        stmt_id: &StmtId,
+    ) -> Option<&InnerElmtComputeProps> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.stmts.get(stmt_id))
+    }
 
-            package_compute_props.incorporate_partial_compute_props(package_partial_compute_props);
+    pub fn has_item(&self, package_id: &PackageId, item_id: &LocalItemId) -> bool {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.items.get(item_id))
+            .is_some()
+    }
+
+    pub fn incorporate_scratch(&mut self, store_scratch: &mut StoreScratch) {
+        for (package_id, package_scratch) in store_scratch.0.iter_mut() {
+            let self_package_scratch: &mut PackageScratch = match self.0.get_mut(package_id) {
+                None => {
+                    self.0.insert(*package_id, PackageScratch::default());
+                    self.0
+                        .get_mut(package_id)
+                        .expect("Package compute properties should exist")
+                }
+                Some(p) => p,
+            };
+
+            self_package_scratch.incorporate_scratch(package_scratch);
         }
+    }
+
+    //pub fn get_or_insert_package_mut(&mut self, package_id: &PackageId) -> &mut PackageScratch {
+    //    let tmp: &mut PackageScratch = match self.0.get_mut(package_id) {
+    //        None => {
+    //            self.0.insert(*package_id, PackageScratch::default());
+    //            self.0
+    //                .get_mut(&package_id)
+    //                .expect("`PackageScratch` was just inserted")
+    //        }
+    //        Some(package) => package,
+    //    };
+    //    tmp
+    //}
+
+    pub fn insert_item(
+        &mut self,
+        package_id: PackageId,
+        item_id: LocalItemId,
+        item: ItemComputeProps,
+    ) {
+        let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
+            None => {
+                self.0.insert(package_id, PackageScratch::default());
+                self.0
+                    .get_mut(&package_id)
+                    .expect("Package compute properties should exist")
+            }
+            Some(p) => p,
+        };
+
+        self_package_scratch.items.insert(item_id, item);
+    }
+
+    pub fn insert_stmt(
+        &mut self,
+        package_id: PackageId,
+        stmt_id: StmtId,
+        stmt: InnerElmtComputeProps,
+    ) {
+        let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
+            None => {
+                self.0.insert(package_id, PackageScratch::default());
+                self.0
+                    .get_mut(&package_id)
+                    .expect("Package compute properties should exist")
+            }
+            Some(p) => p,
+        };
+
+        self_package_scratch.stmts.insert(stmt_id, stmt);
     }
 
     pub fn with_callable_compute_props(
@@ -400,11 +458,9 @@ impl StorePartialComputeProps {
         callable_compute_props: CallableComputeProps,
     ) -> Self {
         let mut instance = Self::default();
-        let partial_package_compute_props = PackagePartialComputeProps::with_callable_compute_props(
-            callable_id,
-            callable_compute_props,
-        );
-        instance.0.insert(package_id, partial_package_compute_props);
+        let package_scratch =
+            PackageScratch::with_callable_compute_props(callable_id, callable_compute_props);
+        instance.0.insert(package_id, package_scratch);
         instance
     }
 
@@ -413,15 +469,14 @@ impl StorePartialComputeProps {
         item_id: LocalItemId,
     ) -> Self {
         let mut instance = Self::default();
-        let partial_package_compute_props =
-            PackagePartialComputeProps::with_non_callable_item_compute_props(item_id);
-        instance.0.insert(package_id, partial_package_compute_props);
+        let package_scratch = PackageScratch::with_non_callable_item_compute_props(item_id);
+        instance.0.insert(package_id, package_scratch);
         instance
     }
 }
 
 #[derive(Debug, Default)]
-pub struct PackagePartialComputeProps {
+pub struct PackageScratch {
     pub items: FxHashMap<LocalItemId, ItemComputeProps>,
     pub blocks: FxHashMap<BlockId, InnerElmtComputeProps>,
     pub stmts: FxHashMap<StmtId, InnerElmtComputeProps>,
@@ -429,45 +484,30 @@ pub struct PackagePartialComputeProps {
     pub pats: FxHashMap<PatId, PatComputeProps>,
 }
 
-impl PackagePartialComputeProps {
-    pub fn incorporate_partial_compute_props(
-        &mut self,
-        partial_compute_props: &mut PackagePartialComputeProps,
-    ) {
-        partial_compute_props
-            .items
-            .drain()
-            .for_each(|(item_id, item)| {
-                _ = self.items.insert(item_id, item);
-            });
+impl PackageScratch {
+    pub fn incorporate_scratch(&mut self, package_scratch: &mut PackageScratch) {
+        package_scratch.items.drain().for_each(|(item_id, item)| {
+            _ = self.items.insert(item_id, item);
+        });
 
-        partial_compute_props
+        package_scratch
             .blocks
             .drain()
             .for_each(|(block_id, block)| {
                 _ = self.blocks.insert(block_id, block);
             });
 
-        partial_compute_props
-            .stmts
-            .drain()
-            .for_each(|(stmt_id, stmt)| {
-                _ = self.stmts.insert(stmt_id, stmt);
-            });
+        package_scratch.stmts.drain().for_each(|(stmt_id, stmt)| {
+            _ = self.stmts.insert(stmt_id, stmt);
+        });
 
-        partial_compute_props
-            .exprs
-            .drain()
-            .for_each(|(expr_id, expr)| {
-                _ = self.exprs.insert(expr_id, expr);
-            });
+        package_scratch.exprs.drain().for_each(|(expr_id, expr)| {
+            _ = self.exprs.insert(expr_id, expr);
+        });
 
-        partial_compute_props
-            .pats
-            .drain()
-            .for_each(|(pat_id, pat)| {
-                _ = self.pats.insert(pat_id, pat);
-            });
+        package_scratch.pats.drain().for_each(|(pat_id, pat)| {
+            _ = self.pats.insert(pat_id, pat);
+        });
     }
 
     pub fn with_callable_compute_props(
@@ -494,6 +534,7 @@ impl PackagePartialComputeProps {
 pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
+    // TODO (cesarzc): possibly remove.
     pub fn run(package_store: &PackageStore) -> StoreComputeProps {
         let mut store_compute_props = StoreComputeProps(IndexMap::new());
 
@@ -501,28 +542,52 @@ impl SinglePassAnalyzer {
         for (package_id, package) in package_store.0.iter() {
             for (item_id, item) in package.items.iter() {
                 if !store_compute_props.has_item(package_id, item_id) {
-                    let mut store_partial_compute_props = Self::analyze_item(
+                    let mut item_props = Self::analyze_item(
                         item,
                         item_id,
                         package_id,
                         &store_compute_props,
                         package_store,
                     );
-                    store_compute_props
-                        .incorporate_partial_compute_props(&mut store_partial_compute_props);
+                    store_compute_props.incorporate_scratch(&mut item_props);
                 }
             }
         }
+        //let mut store_compute_props = StoreComputeProps(IndexMap::new());
+        //store_compute_props.incorporate_scratch(&mut global_props);
         store_compute_props
     }
 
+    pub fn run_alt(package_store: &PackageStore) -> StoreComputeProps {
+        let mut store_scratch = StoreScratch::default();
+
+        //
+        for (package_id, package) in package_store.0.iter() {
+            for (item_id, item) in package.items.iter() {
+                if !store_scratch.has_item(&package_id, &item_id) {
+                    Self::analyze_item_alt(
+                        item,
+                        item_id,
+                        package_id,
+                        package_store,
+                        &mut store_scratch,
+                    );
+                }
+            }
+        }
+        let mut store_compute_props = StoreComputeProps(IndexMap::new());
+        store_compute_props.incorporate_scratch(&mut store_scratch);
+        store_compute_props
+    }
+
+    // TODO (cesarzc): possibly remove.
     fn analyze_callable(
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
         store_compute_props: &StoreComputeProps,
         package_store: &PackageStore,
-    ) -> StorePartialComputeProps {
+    ) -> StoreScratch {
         if Self::is_callable_intrinsic(callable) {
             Self::analyze_intrinsic_callable(callable, callable_id, package_id, package_store)
         } else {
@@ -536,12 +601,43 @@ impl SinglePassAnalyzer {
         }
     }
 
+    fn analyze_callable_alt(
+        callable: &CallableDecl,
+        callable_id: LocalItemId,
+        package_id: PackageId,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        if Self::is_callable_intrinsic(callable) {
+            let instrinsic_compute_props = Self::analyze_intrinsic_callable_alt(
+                callable,
+                callable_id,
+                package_id,
+                package_store,
+            );
+            store_scratch.insert_item(
+                package_id,
+                callable_id,
+                ItemComputeProps::Callable(instrinsic_compute_props),
+            );
+        } else {
+            Self::analyze_non_intrinsic_callable_alt(
+                callable,
+                callable_id,
+                package_id,
+                package_store,
+                store_scratch,
+            );
+        }
+    }
+
+    // TODO (cesarzc): possibly remove.
     fn analyze_intrinsic_callable(
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
         package_store: &PackageStore,
-    ) -> StorePartialComputeProps {
+    ) -> StoreScratch {
         assert!(Self::is_callable_intrinsic(callable));
         // Get the input pattern of the callable since that determines properties of intrinsic callables.
         let input_pattern = package_store
@@ -551,13 +647,27 @@ impl SinglePassAnalyzer {
             CallableKind::Function => Self::analyze_instrinsic_function(callable, input_pattern),
             CallableKind::Operation => Self::analyze_instrinsic_operation(callable, input_pattern),
         };
-        StorePartialComputeProps::with_callable_compute_props(
-            package_id,
-            callable_id,
-            callable_compute_props,
-        )
+        StoreScratch::with_callable_compute_props(package_id, callable_id, callable_compute_props)
     }
 
+    fn analyze_intrinsic_callable_alt(
+        callable: &CallableDecl,
+        callable_id: LocalItemId,
+        package_id: PackageId,
+        package_store: &PackageStore,
+    ) -> CallableComputeProps {
+        assert!(Self::is_callable_intrinsic(callable));
+        // Get the input pattern of the callable since that determines properties of intrinsic callables.
+        let input_pattern = package_store
+            .get_pat(package_id, callable.input)
+            .expect("Pattern should exist");
+        match callable.kind {
+            CallableKind::Function => Self::analyze_instrinsic_function(callable, input_pattern),
+            CallableKind::Operation => Self::analyze_instrinsic_operation(callable, input_pattern),
+        }
+    }
+
+    // TODO (cesarzc): possibly remove.
     fn analyze_instrinsic_function(
         function: &CallableDecl,
         input_pattern: &Pat,
@@ -598,16 +708,17 @@ impl SinglePassAnalyzer {
         CallableComputeProps { apps }
     }
 
+    // TODO (cesarzc): possibly remove.
     fn analyze_item(
         item: &Item,
         item_id: LocalItemId,
         package_id: PackageId,
         store_compute_props: &StoreComputeProps,
         package_store: &PackageStore,
-    ) -> StorePartialComputeProps {
+    ) -> StoreScratch {
         match &item.kind {
             ItemKind::Namespace(..) | ItemKind::Ty(..) => {
-                StorePartialComputeProps::with_non_callable_item_compute_props(package_id, item_id)
+                StoreScratch::with_non_callable_item_compute_props(package_id, item_id)
             }
             ItemKind::Callable(callable) => Self::analyze_callable(
                 callable,
@@ -619,13 +730,35 @@ impl SinglePassAnalyzer {
         }
     }
 
+    fn analyze_item_alt(
+        item: &Item,
+        item_id: LocalItemId,
+        package_id: PackageId,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        match &item.kind {
+            ItemKind::Namespace(..) | ItemKind::Ty(..) => {
+                store_scratch.insert_item(package_id, item_id, ItemComputeProps::NonCallable)
+            }
+            ItemKind::Callable(callable) => Self::analyze_callable_alt(
+                callable,
+                item_id,
+                package_id,
+                package_store,
+                store_scratch,
+            ),
+        };
+    }
+
+    // TODO (cesarzc): possibly remove.
     fn analyze_non_intrinsic_callable(
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
         store_compute_props: &StoreComputeProps,
         package_store: &PackageStore,
-    ) -> StorePartialComputeProps {
+    ) -> StoreScratch {
         // TODO (cesarzc): Implement.
         //  Should eventually use `_callable`, `_store_compute_props` and `_package_store`.
 
@@ -634,7 +767,7 @@ impl SinglePassAnalyzer {
         let implementation_block = package_store
             .get_block(package_id, implementation_block_id)
             .expect("Block should exist");
-        let mut store_partial_compute_props = StorePartialComputeProps::default();
+        let mut store_partial_compute_props = StoreScratch::default();
         for stmt_id in &implementation_block.stmts {
             let stmt = package_store
                 .get_stmt(package_id, *stmt_id)
@@ -647,20 +780,59 @@ impl SinglePassAnalyzer {
                 store_compute_props,
                 package_store,
             );
-            store_partial_compute_props.incorporate_partial_compute_props(&mut stmt_analysis);
+            store_partial_compute_props.incorporate_scratch(&mut stmt_analysis);
         }
         store_partial_compute_props
     }
 
+    fn analyze_non_intrinsic_callable_alt(
+        callable: &CallableDecl,
+        callable_id: LocalItemId,
+        package_id: PackageId,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        // TODO (cesarzc): Implement.
+        //  Should eventually use `_callable`, `_store_compute_props` and `_package_store`.
+        let implementation_block_id = Self::get_callable_implementation_block_id(callable);
+        let implementation_block = package_store
+            .get_block(package_id, implementation_block_id)
+            .expect("Block should exist");
+        for stmt_id in &implementation_block.stmts {
+            let stmt = package_store
+                .get_stmt(package_id, *stmt_id)
+                .expect("Statement should exist");
+            Self::analyze_stmt_alt(stmt, *stmt_id, package_id, package_store, store_scratch);
+            let _stmt_compute_props = store_scratch
+                .get_stmt(&package_id, stmt_id)
+                .expect("Statement was just analyzed");
+        }
+    }
+
+    // TODO (cesarzc): possibly remove.
     fn analyze_stmt(
         stmt: &Stmt,
         stmt_id: StmtId,
         package_id: PackageId,
-        _store_partial_compute_props: &StorePartialComputeProps,
+        _store_partial_compute_props: &StoreScratch,
         _store_compute_props: &StoreComputeProps,
         package_store: &PackageStore,
-    ) -> StorePartialComputeProps {
-        StorePartialComputeProps::default()
+    ) -> StoreScratch {
+        StoreScratch::default()
+    }
+
+    fn analyze_stmt_alt(
+        _stmt: &Stmt,
+        stmt_id: StmtId,
+        package_id: PackageId,
+        _package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        let stmt_compute_props = InnerElmtComputeProps::AppIndependent(ComputeProps {
+            rt_caps: FxHashSet::default(),
+            quantum_sources: Vec::new(),
+        });
+        store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
     }
 
     fn create_intrinsic_function_application(

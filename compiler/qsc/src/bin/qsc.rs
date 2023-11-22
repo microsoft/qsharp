@@ -112,7 +112,7 @@ fn main() -> miette::Result<ExitCode> {
     //let mut analyzer = Analyzer::new(&fir_store);
     //let _store_rt_props = analyzer.run();
 
-    let store_compute_props = SinglePassAnalyzer::run(&fir_store);
+    let store_compute_props = SinglePassAnalyzer::run_alt(&fir_store);
     store_compute_props.persist();
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
