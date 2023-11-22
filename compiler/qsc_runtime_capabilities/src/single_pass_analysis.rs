@@ -535,30 +535,6 @@ impl PackageScratch {
 pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
-    // TODO (cesarzc): possibly remove.
-    pub fn run(package_store: &PackageStore) -> StoreComputeProps {
-        let mut store_compute_props = StoreComputeProps(IndexMap::new());
-
-        //
-        for (package_id, package) in package_store.0.iter() {
-            for (item_id, item) in package.items.iter() {
-                if !store_compute_props.has_item(package_id, item_id) {
-                    let mut item_props = Self::analyze_item(
-                        item,
-                        item_id,
-                        package_id,
-                        &store_compute_props,
-                        package_store,
-                    );
-                    store_compute_props.incorporate_scratch(&mut item_props);
-                }
-            }
-        }
-        //let mut store_compute_props = StoreComputeProps(IndexMap::new());
-        //store_compute_props.incorporate_scratch(&mut global_props);
-        store_compute_props
-    }
-
     pub fn run_alt(package_store: &PackageStore) -> StoreComputeProps {
         let mut store_scratch = StoreScratch::default();
 
@@ -579,27 +555,6 @@ impl SinglePassAnalyzer {
         let mut store_compute_props = StoreComputeProps(IndexMap::new());
         store_compute_props.incorporate_scratch(&mut store_scratch);
         store_compute_props
-    }
-
-    // TODO (cesarzc): possibly remove.
-    fn analyze_callable(
-        callable: &CallableDecl,
-        callable_id: LocalItemId,
-        package_id: PackageId,
-        store_compute_props: &StoreComputeProps,
-        package_store: &PackageStore,
-    ) -> StoreScratch {
-        if Self::is_callable_intrinsic(callable) {
-            Self::analyze_intrinsic_callable(callable, callable_id, package_id, package_store)
-        } else {
-            Self::analyze_non_intrinsic_callable(
-                callable,
-                callable_id,
-                package_id,
-                store_compute_props,
-                package_store,
-            )
-        }
     }
 
     fn analyze_callable_alt(
@@ -632,25 +587,6 @@ impl SinglePassAnalyzer {
         }
     }
 
-    // TODO (cesarzc): possibly remove.
-    fn analyze_intrinsic_callable(
-        callable: &CallableDecl,
-        callable_id: LocalItemId,
-        package_id: PackageId,
-        package_store: &PackageStore,
-    ) -> StoreScratch {
-        assert!(Self::is_callable_intrinsic(callable));
-        // Get the input pattern of the callable since that determines properties of intrinsic callables.
-        let input_pattern = package_store
-            .get_pat(package_id, callable.input)
-            .expect("Pattern should exist");
-        let callable_compute_props = match callable.kind {
-            CallableKind::Function => Self::analyze_instrinsic_function(callable, input_pattern),
-            CallableKind::Operation => Self::analyze_instrinsic_operation(callable, input_pattern),
-        };
-        StoreScratch::with_callable_compute_props(package_id, callable_id, callable_compute_props)
-    }
-
     fn analyze_intrinsic_callable_alt(
         callable: &CallableDecl,
         callable_id: LocalItemId,
@@ -668,7 +604,6 @@ impl SinglePassAnalyzer {
         }
     }
 
-    // TODO (cesarzc): possibly remove.
     fn analyze_instrinsic_function(
         function: &CallableDecl,
         input_pattern: &Pat,
@@ -709,28 +644,6 @@ impl SinglePassAnalyzer {
         CallableComputeProps { apps }
     }
 
-    // TODO (cesarzc): possibly remove.
-    fn analyze_item(
-        item: &Item,
-        item_id: LocalItemId,
-        package_id: PackageId,
-        store_compute_props: &StoreComputeProps,
-        package_store: &PackageStore,
-    ) -> StoreScratch {
-        match &item.kind {
-            ItemKind::Namespace(..) | ItemKind::Ty(..) => {
-                StoreScratch::with_non_callable_item_compute_props(package_id, item_id)
-            }
-            ItemKind::Callable(callable) => Self::analyze_callable(
-                callable,
-                item_id,
-                package_id,
-                store_compute_props,
-                package_store,
-            ),
-        }
-    }
-
     fn analyze_item_alt(
         item: &Item,
         item_id: LocalItemId,
@@ -750,40 +663,6 @@ impl SinglePassAnalyzer {
                 store_scratch,
             ),
         };
-    }
-
-    // TODO (cesarzc): possibly remove.
-    fn analyze_non_intrinsic_callable(
-        callable: &CallableDecl,
-        callable_id: LocalItemId,
-        package_id: PackageId,
-        store_compute_props: &StoreComputeProps,
-        package_store: &PackageStore,
-    ) -> StoreScratch {
-        // TODO (cesarzc): Implement.
-        //  Should eventually use `_callable`, `_store_compute_props` and `_package_store`.
-
-        // TODO (cesarzc): Iterate over each statement in the callable.
-        let implementation_block_id = Self::get_callable_implementation_block_id(callable);
-        let implementation_block = package_store
-            .get_block(package_id, implementation_block_id)
-            .expect("Block should exist");
-        let mut store_partial_compute_props = StoreScratch::default();
-        for stmt_id in &implementation_block.stmts {
-            let stmt = package_store
-                .get_stmt(package_id, *stmt_id)
-                .expect("Statement should exist");
-            let mut stmt_analysis = Self::analyze_stmt(
-                stmt,
-                *stmt_id,
-                package_id,
-                &store_partial_compute_props,
-                store_compute_props,
-                package_store,
-            );
-            store_partial_compute_props.incorporate_scratch(&mut stmt_analysis);
-        }
-        store_partial_compute_props
     }
 
     fn analyze_non_intrinsic_callable_alt(
@@ -818,18 +697,6 @@ impl SinglePassAnalyzer {
             callable_id,
             ItemComputeProps::Callable(callable_compute_props),
         );
-    }
-
-    // TODO (cesarzc): possibly remove.
-    fn analyze_stmt(
-        stmt: &Stmt,
-        stmt_id: StmtId,
-        package_id: PackageId,
-        _store_partial_compute_props: &StoreScratch,
-        _store_compute_props: &StoreComputeProps,
-        package_store: &PackageStore,
-    ) -> StoreScratch {
-        StoreScratch::default()
     }
 
     fn analyze_stmt_alt(
