@@ -233,18 +233,8 @@ impl Display for PatComputeProps {
 pub struct AppIdx(usize);
 
 impl AppIdx {
-    pub fn map_to_compute_kind_vector(&self, input_param_count: usize) -> Vec<ComputeKind> {
-        let mut params_compute_kind = Vec::new();
-        for param_idx in 0..input_param_count {
-            let mask = 1 << param_idx;
-            let compute_kind = if self.0 & mask == 0 {
-                ComputeKind::Static
-            } else {
-                ComputeKind::Dynamic
-            };
-            params_compute_kind.push(compute_kind);
-        }
-        params_compute_kind
+    pub fn represents_all_static_params(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -265,15 +255,16 @@ impl AppsTbl {
         }
     }
 
-    // TODO (cesarzc): Implement a get that takes a vector of `ComputeKind` where each element maps
-    // to the compute kind of the input parameter.
-
     pub fn get(&self, index: AppIdx) -> Option<&ComputeProps> {
         self.apps.get(index.0)
     }
 
     pub fn get_mut(&mut self, index: AppIdx) -> Option<&mut ComputeProps> {
         self.apps.get_mut(index.0)
+    }
+
+    pub fn max(&self) -> usize {
+        2i32.pow(self.input_param_count as u32) as usize
     }
 
     pub fn push(&mut self, app: ComputeProps) {
@@ -349,7 +340,7 @@ impl ComputeProps {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ComputeKind {
     Static,
     Dynamic,
@@ -401,19 +392,6 @@ impl StoreScratch {
             self_package_scratch.incorporate_scratch(package_scratch);
         }
     }
-
-    //pub fn get_or_insert_package_mut(&mut self, package_id: &PackageId) -> &mut PackageScratch {
-    //    let tmp: &mut PackageScratch = match self.0.get_mut(package_id) {
-    //        None => {
-    //            self.0.insert(*package_id, PackageScratch::default());
-    //            self.0
-    //                .get_mut(&package_id)
-    //                .expect("`PackageScratch` was just inserted")
-    //        }
-    //        Some(package) => package,
-    //    };
-    //    tmp
-    //}
 
     pub fn insert_item(
         &mut self,
@@ -532,7 +510,74 @@ impl PackageScratch {
     }
 }
 
-struct InputParam(NodeId, Ty);
+#[derive(Debug)]
+struct InputParamIdx(usize);
+
+impl InputParamIdx {
+    pub fn get_compute_kind_for_app_idx(&self, app_idx: AppIdx) -> ComputeKind {
+        let mask = 1 << self.0;
+        if app_idx.0 & mask == 0 {
+            ComputeKind::Static
+        } else {
+            ComputeKind::Dynamic
+        }
+    }
+}
+
+#[derive(Debug)]
+struct InputParamsVec(Vec<(NodeId, Ty)>);
+
+impl InputParamsVec {
+    fn from_callable(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
+        let input_pat = package_pats
+            .get(callable.input)
+            .expect("Callable input pattern should exist");
+
+        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, Ty)> {
+            match &pat.kind {
+                PatKind::Bind(ident) => vec![(ident.id, pat.ty.clone())],
+                PatKind::Tuple(tuple_pats) => {
+                    let mut tuple_params = Vec::<(NodeId, Ty)>::new();
+                    for tuple_item_pat_id in tuple_pats {
+                        let tuple_item_pat = pats
+                            .get(*tuple_item_pat_id)
+                            .expect("`Pattern` should exist");
+                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
+                        tuple_params.append(&mut tuple_item_params);
+                    }
+                    tuple_params
+                }
+                _ => panic!("Only callable parameter patterns are expected"),
+            }
+        }
+
+        let input_params = from_pat(input_pat, package_pats);
+        InputParamsVec(input_params)
+    }
+}
+
+#[derive(Debug)]
+struct InputParamsApp {
+    pub idx: AppIdx,
+    pub params: FxHashMap<NodeId, (InputParamIdx, Ty, ComputeKind)>,
+}
+
+impl InputParamsApp {
+    pub fn from_app_idx(app_idx: AppIdx, input_params_vec: &InputParamsVec) -> Self {
+        assert!((app_idx.0 as i32) < 2i32.pow(input_params_vec.0.len() as u32));
+        let mut params = FxHashMap::<NodeId, (InputParamIdx, Ty, ComputeKind)>::default();
+        for (idx, (node_id, ty)) in input_params_vec.0.iter().enumerate() {
+            // TODO (cesarzc): Do things.
+            let input_param_idx = InputParamIdx(idx);
+            let compute_kind = input_param_idx.get_compute_kind_for_app_idx(app_idx);
+            params.insert(*node_id, (input_param_idx, ty.clone(), compute_kind));
+        }
+        Self {
+            idx: app_idx,
+            params,
+        }
+    }
+}
 
 pub struct SinglePassAnalyzer;
 
@@ -568,7 +613,7 @@ impl SinglePassAnalyzer {
     ) {
         if Self::is_callable_intrinsic(callable) {
             let instrinsic_compute_props =
-                Self::analyze_intrinsic_callable(callable, callable_id, package_id, package_store);
+                Self::analyze_intrinsic_callable(callable, package_id, package_store);
             store_scratch.insert_item(
                 package_id,
                 callable_id,
@@ -587,36 +632,33 @@ impl SinglePassAnalyzer {
 
     fn analyze_intrinsic_callable(
         callable: &CallableDecl,
-        callable_id: LocalItemId,
         package_id: PackageId,
         package_store: &PackageStore,
     ) -> CallableComputeProps {
         assert!(Self::is_callable_intrinsic(callable));
-        // Get the input pattern of the callable since that determines properties of intrinsic callables.
-        let input_pattern = package_store
-            .get_pat(package_id, callable.input)
-            .expect("Pattern should exist");
+        let package_pats = &package_store
+            .0
+            .get(package_id)
+            .expect("Package should exist")
+            .pats;
         match callable.kind {
-            CallableKind::Function => Self::analyze_instrinsic_function(callable, input_pattern),
-            CallableKind::Operation => Self::analyze_instrinsic_operation(callable, input_pattern),
+            CallableKind::Function => Self::analyze_instrinsic_function(callable, package_pats),
+            CallableKind::Operation => Self::analyze_instrinsic_operation(callable, package_pats),
         }
     }
 
     fn analyze_instrinsic_function(
         function: &CallableDecl,
-        input_pattern: &Pat,
+        package_pats: &IndexMap<PatId, Pat>,
     ) -> CallableComputeProps {
         assert!(Self::is_callable_intrinsic(function));
         // TODO (cesarzc): Set limit on the number of parameters.
-        let input_param_types = Self::get_input_params_types(input_pattern);
-        let mut apps = AppsTbl::new(input_param_types.len());
-        let apps_count = 2u32.pow(input_param_types.len() as u32);
-        for app_idx in 0..apps_count {
-            let app = Self::create_intrinsic_function_application(
-                &input_param_types,
-                &function.output,
-                AppIdx(app_idx as usize),
-            );
+        let input_params_vec = InputParamsVec::from_callable(function, package_pats);
+        let mut apps = AppsTbl::new(input_params_vec.0.len());
+        for app_idx in 0..apps.max() {
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params_vec);
+            let app =
+                Self::create_intrinsic_function_application(&input_params_app, &function.output);
             apps.push(app);
         }
         CallableComputeProps { apps }
@@ -624,19 +666,16 @@ impl SinglePassAnalyzer {
 
     fn analyze_instrinsic_operation(
         operation: &CallableDecl,
-        input_pattern: &Pat,
+        package_pats: &IndexMap<PatId, Pat>,
     ) -> CallableComputeProps {
         assert!(Self::is_callable_intrinsic(operation));
         // TODO (cesarzc): Set limit on the number of parameters.
-        let input_param_types = Self::get_input_params_types(input_pattern);
-        let mut apps = AppsTbl::new(input_param_types.len());
-        let apps_count = 2u32.pow(input_param_types.len() as u32);
-        for app_idx in 0..apps_count {
-            let app = Self::create_intrinsic_operation_application(
-                &input_param_types,
-                &operation.output,
-                AppIdx(app_idx as usize),
-            );
+        let input_params_vec = InputParamsVec::from_callable(operation, package_pats);
+        let mut apps = AppsTbl::new(input_params_vec.0.len());
+        for app_idx in 0..apps.max() {
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params_vec);
+            let app =
+                Self::create_intrinsic_operation_application(&input_params_app, &operation.output);
             apps.push(app);
         }
         CallableComputeProps { apps }
@@ -672,8 +711,8 @@ impl SinglePassAnalyzer {
             .get(package_id)
             .expect("`Package` should exist in `PackageStore`")
             .pats;
-        let input_params = Self::get_callable_input_params(callable, package_pats);
-        let callable_apps_tbl = AppsTbl::new(input_params.len());
+        let input_params_vec = InputParamsVec::from_callable(callable, package_pats);
+        let callable_apps_tbl = AppsTbl::new(input_params_vec.0.len());
 
         // Analyze each statement and update the callable apps table.
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
@@ -716,18 +755,12 @@ impl SinglePassAnalyzer {
     }
 
     fn create_intrinsic_function_application(
-        input_param_types: &Vec<Ty>,
+        input_params_app: &InputParamsApp,
         output_type: &Ty,
-        app_idx: AppIdx,
     ) -> ComputeProps {
-        let input_param_count = input_param_types.len();
-        assert!((app_idx.0 as i32) < 2i32.pow(input_param_count as u32));
-
         // Assume capabilities depending on which parameters are dynamic for the particular application.
-        let params_compute_kind = app_idx.map_to_compute_kind_vector(input_param_count);
         let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
-        let params_info_tuple = input_param_types.iter().zip(params_compute_kind.iter());
-        for (param_type, param_compute_kind) in params_info_tuple {
+        for (_, param_type, param_compute_kind) in input_params_app.params.values() {
             if let ComputeKind::Dynamic = param_compute_kind {
                 let param_caps = Foundational::assume_caps_from_type(param_type);
                 rt_caps.extend(param_caps);
@@ -735,7 +768,7 @@ impl SinglePassAnalyzer {
         }
 
         // If this is not an all-static application then the output type affects the application capabilities.
-        if app_idx.0 != 0 {
+        if input_params_app.idx.represents_all_static_params() {
             let output_caps = Foundational::assume_caps_from_type(output_type);
             rt_caps.extend(output_caps);
         }
@@ -743,7 +776,7 @@ impl SinglePassAnalyzer {
         // If this is an all-static application or the function output is `Unit` then this is not a quantum source.
         // Otherwise this is an intrinsic quantum source.
         let is_unit = matches!(*output_type, Ty::UNIT);
-        let quantum_sources = if app_idx.0 == 0 || is_unit {
+        let quantum_sources = if input_params_app.idx.represents_all_static_params() || is_unit {
             Vec::new()
         } else {
             vec![QuantumSource::Intrinsic]
@@ -756,18 +789,12 @@ impl SinglePassAnalyzer {
     }
 
     fn create_intrinsic_operation_application(
-        input_param_types: &Vec<Ty>,
+        input_params_app: &InputParamsApp,
         output_type: &Ty,
-        app_idx: AppIdx,
     ) -> ComputeProps {
-        let input_param_count = input_param_types.len();
-        assert!((app_idx.0 as i32) < 2i32.pow(input_param_count as u32));
-
         // Assume capabilities depending on which parameters are dynamic for the particular application.
-        let params_compute_kind = app_idx.map_to_compute_kind_vector(input_param_count);
         let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
-        let params_info_tuple = input_param_types.iter().zip(params_compute_kind.iter());
-        for (param_type, param_compute_kind) in params_info_tuple {
+        for (_, param_type, param_compute_kind) in input_params_app.params.values() {
             if let ComputeKind::Dynamic = param_compute_kind {
                 let param_caps = Foundational::assume_caps_from_type(param_type);
                 rt_caps.extend(param_caps);
@@ -775,7 +802,7 @@ impl SinglePassAnalyzer {
         }
 
         // If this is not an all-static application then the output type affects the application capabilities.
-        if app_idx.0 != 0 {
+        if input_params_app.idx.represents_all_static_params() {
             let output_caps = Foundational::assume_caps_from_type(output_type);
             rt_caps.extend(output_caps);
         }
@@ -804,55 +831,6 @@ impl SinglePassAnalyzer {
             }
             _ => panic!("Is not implementation"),
         }
-    }
-
-    // TODO (cesarzc): possibly remove.
-    fn get_input_params_types(pattern: &Pat) -> Vec<Ty> {
-        match pattern.kind {
-            PatKind::Bind(_) => match pattern.ty {
-                Ty::Array(_) | Ty::Arrow(_) | Ty::Prim(_) | Ty::Tuple(_) | Ty::Udt(_) => {
-                    vec![pattern.ty.clone()]
-                }
-                _ => panic!(
-                    "Unexpected pattern type {} for pattern {}",
-                    pattern.ty, pattern.id
-                ),
-            },
-            PatKind::Tuple(_) => match &pattern.ty {
-                Ty::Tuple(vector) => vector.clone(),
-                _ => panic!("Unexpected pattern type"),
-            },
-            _ => panic!("Only callable parameter patterns are expected"),
-        }
-    }
-
-    fn get_callable_input_params(
-        callable: &CallableDecl,
-        package_pats: &IndexMap<PatId, Pat>,
-    ) -> Vec<InputParam> {
-        let input_pat = package_pats
-            .get(callable.input)
-            .expect("Callable input patter should exist");
-
-        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<InputParam> {
-            match &pat.kind {
-                PatKind::Bind(ident) => vec![InputParam(ident.id, pat.ty.clone())],
-                PatKind::Tuple(tuple_pats) => {
-                    let mut input_params = Vec::<InputParam>::new();
-                    for tuple_item_pat_id in tuple_pats {
-                        let tuple_item_pat = pats
-                            .get(*tuple_item_pat_id)
-                            .expect("`Pattern` should exist");
-                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
-                        input_params.append(&mut tuple_item_params);
-                    }
-                    input_params
-                }
-                _ => panic!("Only callable parameter patterns are expected"),
-            }
-        }
-
-        from_pat(input_pat, package_pats)
     }
 
     fn is_callable_intrinsic(callable: &CallableDecl) -> bool {
