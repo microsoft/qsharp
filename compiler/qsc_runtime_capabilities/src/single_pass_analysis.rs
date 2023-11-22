@@ -535,14 +535,14 @@ impl PackageScratch {
 pub struct SinglePassAnalyzer;
 
 impl SinglePassAnalyzer {
-    pub fn run_alt(package_store: &PackageStore) -> StoreComputeProps {
+    pub fn run(package_store: &PackageStore) -> StoreComputeProps {
         let mut store_scratch = StoreScratch::default();
 
         //
         for (package_id, package) in package_store.0.iter() {
             for (item_id, item) in package.items.iter() {
                 if !store_scratch.has_item(&package_id, &item_id) {
-                    Self::analyze_item_alt(
+                    Self::analyze_item(
                         item,
                         item_id,
                         package_id,
@@ -557,7 +557,7 @@ impl SinglePassAnalyzer {
         store_compute_props
     }
 
-    fn analyze_callable_alt(
+    fn analyze_callable(
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
@@ -565,19 +565,15 @@ impl SinglePassAnalyzer {
         store_scratch: &mut StoreScratch,
     ) {
         if Self::is_callable_intrinsic(callable) {
-            let instrinsic_compute_props = Self::analyze_intrinsic_callable_alt(
-                callable,
-                callable_id,
-                package_id,
-                package_store,
-            );
+            let instrinsic_compute_props =
+                Self::analyze_intrinsic_callable(callable, callable_id, package_id, package_store);
             store_scratch.insert_item(
                 package_id,
                 callable_id,
                 ItemComputeProps::Callable(instrinsic_compute_props),
             );
         } else {
-            Self::analyze_non_intrinsic_callable_alt(
+            Self::analyze_non_intrinsic_callable(
                 callable,
                 callable_id,
                 package_id,
@@ -587,7 +583,7 @@ impl SinglePassAnalyzer {
         }
     }
 
-    fn analyze_intrinsic_callable_alt(
+    fn analyze_intrinsic_callable(
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
@@ -644,7 +640,7 @@ impl SinglePassAnalyzer {
         CallableComputeProps { apps }
     }
 
-    fn analyze_item_alt(
+    fn analyze_item(
         item: &Item,
         item_id: LocalItemId,
         package_id: PackageId,
@@ -655,17 +651,13 @@ impl SinglePassAnalyzer {
             ItemKind::Namespace(..) | ItemKind::Ty(..) => {
                 store_scratch.insert_item(package_id, item_id, ItemComputeProps::NonCallable)
             }
-            ItemKind::Callable(callable) => Self::analyze_callable_alt(
-                callable,
-                item_id,
-                package_id,
-                package_store,
-                store_scratch,
-            ),
+            ItemKind::Callable(callable) => {
+                Self::analyze_callable(callable, item_id, package_id, package_store, store_scratch)
+            }
         };
     }
 
-    fn analyze_non_intrinsic_callable_alt(
+    fn analyze_non_intrinsic_callable(
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
@@ -682,7 +674,7 @@ impl SinglePassAnalyzer {
             let stmt = package_store
                 .get_stmt(package_id, *stmt_id)
                 .expect("Statement should exist");
-            Self::analyze_stmt_alt(stmt, *stmt_id, package_id, package_store, store_scratch);
+            Self::analyze_stmt(stmt, *stmt_id, package_id, package_store, store_scratch);
             let _stmt_compute_props = store_scratch
                 .get_stmt(&package_id, stmt_id)
                 .expect("Statement was just analyzed");
@@ -699,7 +691,7 @@ impl SinglePassAnalyzer {
         );
     }
 
-    fn analyze_stmt_alt(
+    fn analyze_stmt(
         _stmt: &Stmt,
         stmt_id: StmtId,
         package_id: PackageId,
