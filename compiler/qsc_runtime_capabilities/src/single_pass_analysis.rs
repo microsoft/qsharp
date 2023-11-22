@@ -712,7 +712,15 @@ impl SinglePassAnalyzer {
             .expect("`Package` should exist in `PackageStore`")
             .pats;
         let input_params_vec = InputParamsVec::from_callable(callable, package_pats);
-        let callable_apps_tbl = AppsTbl::new(input_params_vec.0.len());
+        let mut callable_apps_tbl = AppsTbl::new(input_params_vec.0.len());
+
+        // Initialize the callable applications table.
+        for _ in 0..callable_apps_tbl.max() {
+            callable_apps_tbl.apps.push(ComputeProps {
+                rt_caps: FxHashSet::default(),
+                quantum_sources: Vec::new(),
+            });
+        }
 
         // Analyze each statement and update the callable apps table.
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
@@ -723,6 +731,7 @@ impl SinglePassAnalyzer {
             let stmt = package_store
                 .get_stmt(package_id, *stmt_id)
                 .expect("Statement should exist");
+            // TODO (cesarzc): need to create a nodes hashmap that can be pass to this function to check whether multiple applications are needed.
             Self::analyze_stmt(stmt, *stmt_id, package_id, package_store, store_scratch);
             let _stmt_compute_props = store_scratch
                 .get_stmt(&package_id, stmt_id)
