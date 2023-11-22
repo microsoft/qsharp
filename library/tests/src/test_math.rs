@@ -38,7 +38,10 @@ fn check_log_of_2() {
 #[test]
 fn check_is_nan() {
     test_expression("Microsoft.Quantum.Math.IsNaN(1.0)", &Value::Bool(false));
-    test_expression("Microsoft.Quantum.Math.IsNaN(Microsoft.Quantum.Math.ArcSin(2.0))", &Value::Bool(true));
+    test_expression(
+        "Microsoft.Quantum.Math.IsNaN(Microsoft.Quantum.Math.ArcSin(2.0))",
+        &Value::Bool(true),
+    );
 }
 
 //
