@@ -19,11 +19,44 @@ const PRELUDE: [&str; 3] = [
     "Microsoft.Quantum.Intrinsic",
 ];
 
+struct IndentMaker<'a> {
+    contents: &'a str,
+    offset: u32,
+}
+
+impl<'a> IndentMaker<'a> {
+    fn new(compilation: &'a Compilation, source_name: &'_ str) -> Self {
+        let source = compilation
+            .user_unit()
+            .sources
+            .find_by_name(source_name)
+            .expect("source should exist in the user source map");
+        let contents = &source.contents;
+        let offset = source.offset;
+        Self { contents, offset }
+    }
+
+    fn get_ident(&self, package_offset: u32) -> &'a str {
+        let source_offset = (package_offset - self.offset)
+            .try_into()
+            .expect("offset can't be converted to uszie");
+        let before_offset = &self.contents[..source_offset];
+        match before_offset.rfind(|c| c == '{' || c == '\n') {
+            Some(begin) => {
+                let indent = &before_offset[begin..];
+                indent.strip_prefix('{').unwrap_or(indent)
+            }
+            None => before_offset,
+        }
+    }
+}
+
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
+    let indent_maker = IndentMaker::new(compilation, source_name);
     let offset = compilation.source_offset_to_package_offset(source_name, offset);
     let user_ast_package = &compilation.user_unit().ast.package;
 
@@ -74,6 +107,7 @@ pub(crate) fn get_completions(
                 &context_finder.opens,
                 context_finder.start_of_namespace,
                 &context_finder.current_namespace_name,
+                &indent_maker,
             );
         }
 
@@ -90,6 +124,7 @@ pub(crate) fn get_completions(
                 &context_finder.opens,
                 context_finder.start_of_namespace,
                 &context_finder.current_namespace_name,
+                &indent_maker,
             );
 
             // Item decl keywords last, unlike in a namespace
@@ -113,6 +148,7 @@ pub(crate) fn get_completions(
                     &context_finder.opens,
                     context_finder.start_of_namespace,
                     &context_finder.current_namespace_name,
+                    &indent_maker,
                 );
 
                 // Namespace declarations - least likely to be used, so last
@@ -193,12 +229,13 @@ impl CompletionListBuilder {
         );
     }
 
-    fn push_globals(
+    fn push_globals<'a>(
         &mut self,
-        compilation: &Compilation,
-        opens: &[(Rc<str>, Option<Rc<str>>)],
+        compilation: &'a Compilation,
+        opens: &'a [(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
-        current_namespace_name: &Option<Rc<str>>,
+        current_namespace_name: &'a Option<Rc<str>>,
+        indent_maker: &'a IndentMaker<'a>,
     ) {
         let core = &compilation
             .package_store
@@ -222,6 +259,7 @@ impl CompletionListBuilder {
                 opens,
                 start_of_namespace,
                 current_namespace_name.clone(),
+                indent_maker,
             ));
         }
 
@@ -298,6 +336,7 @@ impl CompletionListBuilder {
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
         current_namespace_name: Option<Rc<str>>,
+        indent_maker: &'a IndentMaker<'a>,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
             .package_store
@@ -343,8 +382,9 @@ impl CompletionListBuilder {
                                                     additional_edits.push((
                                                         protocol::Span { start, end: start },
                                                         format!(
-                                                            "open {};\n    ",
-                                                            namespace.name.clone()
+                                                            "open {};{}",
+                                                            namespace.name.clone(),
+                                                            indent_maker.get_ident(start),
                                                         ),
                                                     ));
                                                     None
