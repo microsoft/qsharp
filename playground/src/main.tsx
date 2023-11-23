@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// Use esbuild to bundle and copy the CSS files to the output directory.
+import "modern-normalize/modern-normalize.css";
+
 import { render } from "preact";
 import {
   CompilerState,
