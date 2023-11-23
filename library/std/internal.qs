@@ -159,28 +159,19 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
-        // [Page 15 of arXiv:1206.0758v3](https://arxiv.org/pdf/1206.0758v3.pdf#page=15)
-        Adjoint T(control1);
-        Adjoint T(control2);
-        CNOT(target, control1);
-        T(control1);
-        CNOT(control2, target);
-        CNOT(control2, control1);
-        T(target);
-        Adjoint T(control1);
-        CNOT(control2, target);
-        CNOT(target, control1);
-        Adjoint T(target);
-        T(control1);
-        CNOT(control2, control1);
+        within {
+            H(target);
+        } apply {
+            CCNOT(control1, control2, target);
+        }
     }
 
     internal operation CCY(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
-            MapPauli(target, PauliZ, PauliY);
+            MapPauli(target, PauliX, PauliY);
         }
         apply {
-            CCZ(control1, control2, target);
+            CCNOT(control1, control2, target);
         }
     }
 
