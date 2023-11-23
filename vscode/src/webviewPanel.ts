@@ -209,10 +209,10 @@ export class QSharpWebViewPanel {
 
   sendMessage(message: any) {
     if (this._ready) {
-      console.log("Sending message to webview", message);
+      log.debug("Sending message to webview", message);
       this.panel.webview.postMessage(message);
     } else {
-      console.log("Queuing message to webview", message);
+      log.debug("Queuing message to webview", message);
       this._queuedMessages.push(message);
     }
   }

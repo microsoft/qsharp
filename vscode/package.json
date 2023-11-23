@@ -251,7 +251,7 @@
       },
       {
         "command": "qsharp-vscode.showHistogram",
-        "title": "Show histogram",
+        "title": "Run file and show histogram",
         "category": "Q#"
       },
       {
