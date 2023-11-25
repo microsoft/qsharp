@@ -35,7 +35,12 @@ impl LanguageService {
     ) -> Self {
         let read_file = read_file
             .dyn_ref::<js_sys::Function>()
-            .expect("expected a valid JS function")
+            .unwrap_or_else(|| {
+                panic!(
+                    "expected a valid JS function (read_file), received {:?}",
+                    read_file.js_typeof()
+                )
+            })
             .clone();
 
         let read_file = //: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> =
@@ -61,7 +66,12 @@ impl LanguageService {
 
         let list_directory = list_directory
             .dyn_ref::<js_sys::Function>()
-            .expect("expected a valid JS function")
+            .unwrap_or_else(|| {
+                panic!(
+                    "expected a valid JS function (list_directory), received {:?}",
+                    list_directory.js_typeof()
+                )
+            })
             .clone();
 
         let list_directory = move |path_buf: PathBuf| {
@@ -109,7 +119,12 @@ impl LanguageService {
 
         let get_manifest = get_manifest
             .dyn_ref::<js_sys::Function>()
-            .expect("expected a valid JS function")
+            .unwrap_or_else(|| {
+                panic!(
+                    "expected a valid JS function (get_manifest), received {:?}",
+                    get_manifest.js_typeof()
+                )
+            })
             .clone();
 
         let get_manifest = move |uri: String| {
@@ -173,7 +188,12 @@ impl LanguageService {
 
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
-            .expect("expected a valid JS function")
+            .unwrap_or_else(|| {
+                panic!(
+                    "expected a valid JS function (diagnostics_callback), received {:?}",
+                    diagnostics_callback.js_typeof()
+                )
+            })
             .clone();
 
         let inner = qsls::LanguageService::new(

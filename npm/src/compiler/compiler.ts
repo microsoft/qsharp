@@ -16,9 +16,10 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 export interface ICompiler {
   checkCode(
     code: string,
-    readFile: (uri: string) => Promise<string | null>,
-    listDirectory: (uri: string) => Promise<[string, number][]>,
-    getManifest: (uri: string) => Promise<{
+    // If these three arguments are omitted, then multi-file/project mode is disabled.
+    readFile?: (uri: string) => Promise<string | null>,
+    listDirectory?: (uri: string) => Promise<[string, number][]>,
+    getManifest?: (uri: string) => Promise<{
       manifestDirectory: string;
       excludeRegexes: string[];
       excludeFiles: string[];
@@ -73,7 +74,7 @@ export class Compiler implements ICompiler {
       listDirectory,
       getManifest,
     );
-    languageService.update_document("code", 1, code);
+    await languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);
   }
 
