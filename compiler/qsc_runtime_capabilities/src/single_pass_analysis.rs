@@ -13,7 +13,6 @@ use indenter::indented;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::{
-    collections::HashSet,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
@@ -210,15 +209,15 @@ pub struct ParamIdx(usize);
 
 #[derive(Debug)]
 pub enum PatComputeProps {
-    Local,
-    CallableParam(ItemId, ParamIdx),
+    Local(InnerElmtComputeProps),
+    CallableInputParam(ItemId, ParamIdx), // TODO (cesarzc): Need to use it. Maybe need a NodeId?
 }
 
 impl Display for PatComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            PatComputeProps::Local => write!(f, "Local")?,
-            PatComputeProps::CallableParam(item_id, param_idx) => {
+            PatComputeProps::Local(compute_props) => write!(f, "Local: {compute_props}")?,
+            PatComputeProps::CallableInputParam(item_id, param_idx) => {
                 write!(f, "Callable Parameter:")?;
                 let mut indent = set_indentation(indented(f), 1);
                 write!(indent, "\nItem ID: {item_id}")?;
@@ -288,20 +287,11 @@ impl Display for AppsTbl {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComputeProps {
     pub rt_caps: FxHashSet<RuntimeCapability>,
     // N.B. (cesarzc): To get good error messages, maybe quantum source needs expansion and link to compute props.
     pub quantum_sources: Vec<QuantumSource>,
-}
-
-impl Default for ComputeProps {
-    fn default() -> Self {
-        Self {
-            rt_caps: FxHashSet::<RuntimeCapability>::default(),
-            quantum_sources: Vec::new(),
-        }
-    }
 }
 
 impl Display for ComputeProps {
@@ -380,6 +370,22 @@ impl StoreScratch {
             .and_then(|package| package.exprs.get(expr_id))
     }
 
+    pub fn get_item(
+        &self,
+        package_id: &PackageId,
+        item_id: &LocalItemId,
+    ) -> Option<&ItemComputeProps> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.items.get(item_id))
+    }
+
+    pub fn get_pat(&self, package_id: &PackageId, pat_id: &PatId) -> Option<&PatComputeProps> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.pats.get(pat_id))
+    }
+
     pub fn get_stmt(
         &self,
         package_id: &PackageId,
@@ -391,17 +397,19 @@ impl StoreScratch {
     }
 
     pub fn has_expr(&self, package_id: &PackageId, expr_id: &ExprId) -> bool {
-        self.0
-            .get(package_id)
-            .and_then(|package| package.exprs.get(expr_id))
-            .is_some()
+        self.get_expr(package_id, expr_id).is_some()
+    }
+
+    pub fn has_pat(&self, package_id: &PackageId, pat_id: &PatId) -> bool {
+        self.get_pat(package_id, pat_id).is_some()
     }
 
     pub fn has_item(&self, package_id: &PackageId, item_id: &LocalItemId) -> bool {
-        self.0
-            .get(package_id)
-            .and_then(|package| package.items.get(item_id))
-            .is_some()
+        self.get_item(package_id, item_id).is_some()
+    }
+
+    pub fn has_stmt(&self, package_id: &PackageId, stmt_id: &StmtId) -> bool {
+        self.get_stmt(package_id, stmt_id).is_some()
     }
 
     pub fn incorporate_scratch(&mut self, store_scratch: &mut StoreScratch) {
@@ -456,6 +464,20 @@ impl StoreScratch {
         };
 
         self_package_scratch.exprs.insert(expr_id, expr);
+    }
+
+    pub fn insert_pat(&mut self, package_id: PackageId, pat_id: PatId, pat: PatComputeProps) {
+        let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
+            None => {
+                self.0.insert(package_id, PackageScratch::default());
+                self.0
+                    .get_mut(&package_id)
+                    .expect("Package compute properties should exist")
+            }
+            Some(p) => p,
+        };
+
+        self_package_scratch.pats.insert(pat_id, pat);
     }
 
     pub fn insert_stmt(
@@ -814,14 +836,10 @@ impl SinglePassAnalyzer {
             .get_block(package_id, implementation_block_id)
             .expect("Block should exist");
         for stmt_id in &implementation_block.stmts {
-            let stmt = package_store
-                .get_stmt(package_id, *stmt_id)
-                .expect("Statement should exist");
             Self::analyze_stmt(
-                stmt,
                 *stmt_id,
-                &input_params_map,
                 package_id,
+                &input_params_map,
                 package_store,
                 store_scratch,
             );
@@ -842,13 +860,15 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_stmt(
-        stmt: &Stmt,
         stmt_id: StmtId,
-        input_params_map: &InputParamsMap,
         package_id: PackageId,
+        input_params_map: &InputParamsMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        let stmt = package_store
+            .get_stmt(package_id, stmt_id)
+            .expect("Statement should exist");
         match stmt.kind {
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
                 Self::analyze_expr(
@@ -863,10 +883,54 @@ impl SinglePassAnalyzer {
                 );
                 store_scratch.insert_stmt(package_id, stmt_id, expr_compute_props.clone())
             }
+            StmtKind::Local(_, pat_id, expr_id) => Self::analyze_stmt_local(
+                stmt_id,
+                package_id,
+                pat_id,
+                expr_id,
+                input_params_map,
+                package_store,
+                store_scratch,
+            ),
             _ => {
                 store_scratch.insert_stmt(package_id, stmt_id, InnerElmtComputeProps::Unsupported);
             }
         };
+    }
+
+    fn analyze_stmt_local(
+        stmt_id: StmtId,
+        package_id: PackageId,
+        pat_id: PatId,
+        expr_id: ExprId,
+        input_params_map: &InputParamsMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        Self::analyze_expr(
+            expr_id,
+            package_id,
+            input_params_map,
+            package_store,
+            store_scratch,
+        );
+        // COSIDER (cesarzc): Maybe a hack?
+        {
+            let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
+                "Expression compute properties should exist since it has just been analyzed",
+            );
+            store_scratch.insert_pat(
+                package_id,
+                pat_id,
+                PatComputeProps::Local(expr_compute_props.clone()),
+            );
+        }
+        {
+            let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
+                "Expression compute properties should exist since it has just been analyzed",
+            );
+            store_scratch.insert_stmt(package_id, stmt_id, expr_compute_props.clone());
+        }
     }
 
     fn create_intrinsic_function_application(
