@@ -113,6 +113,7 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
               overwrite: true,
             });
             await vscode.commands.executeCommand("vscode.open", codeFile);
+            await vscode.commands.executeCommand("qsharp-vscode.showHelp");
           } catch (err) {
             log.warn("Unable to decode the code in the URL. ", err);
           }

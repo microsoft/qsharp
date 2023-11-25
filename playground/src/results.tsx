@@ -4,7 +4,7 @@
 import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp-lang";
 import { useEffect, useState } from "preact/hooks";
 
-import { Histogram } from "./histo.js";
+import { Histogram } from "qsharp-lang/ux";
 import { StateTable } from "./state.js";
 import { ActiveTab } from "./main.js";
 
@@ -215,9 +215,11 @@ export function ResultsTab(props: {
         <>
           {resultState.buckets.size > 1 ? (
             <Histogram
+              shotCount={resultState.shotCount}
               data={resultState.buckets}
               filter={filterValue}
               onFilter={(val: string) => moveToIndex(0, val)}
+              shotsHeader={false}
             ></Histogram>
           ) : null}
           {props.kataMode ? null : (

@@ -23,6 +23,7 @@ import {
   QuantumUris,
   checkCorsConfig,
   compileToBitcode,
+  useProxy,
 } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
@@ -228,7 +229,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         const token = await getTokenForWorkspace(workspace);
         if (!token) return;
         try {
-          await checkCorsConfig(token, quantumUris);
+          if (!useProxy) await checkCorsConfig(token, quantumUris);
         } catch (e: any) {
           log.debug("CORS check failed. ", e);
 

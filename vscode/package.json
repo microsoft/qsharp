@@ -157,6 +157,18 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showHistogram",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.showRe",
+          "when": "resourceLangId == qsharp && config.Q#.experimental-re"
+        },
+        {
+          "command": "qsharp-vscode.showHelp",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         },
@@ -236,6 +248,21 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.showHistogram",
+        "title": "Run file and show histogram",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showRe",
+        "title": "Show RE",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showHelp",
+        "title": "Help",
+        "category": "Q#"
       },
       {
         "command": "qsharp-vscode.workspacesRefresh",

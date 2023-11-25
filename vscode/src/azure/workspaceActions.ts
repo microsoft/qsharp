@@ -9,6 +9,7 @@ import {
   QuantumUris,
   ResponseTypes,
   storageRequest,
+  useProxy,
 } from "./networkRequests";
 import { WorkspaceConnection } from "./treeView";
 import {
@@ -453,7 +454,12 @@ export async function getJobFiles(
   const sasUri = decodeURI(sasResponse.sasUri);
   log.trace(`Got SAS URI: ${sasUri}`);
 
-  const file = await storageRequest(sasUri, "GET");
+  const file = await storageRequest(
+    sasUri,
+    "GET",
+    useProxy ? token : undefined,
+    useProxy ? quantumUris.storageProxy() : undefined,
+  );
 
   if (!file) {
     sendTelemetryEvent(
@@ -545,6 +551,8 @@ export async function submitJob(
   await storageRequest(
     containerPutUri,
     "PUT",
+    useProxy ? token : undefined,
+    useProxy ? quantumUris.storageProxy() : undefined,
     undefined,
     undefined,
     correlationId,
@@ -555,7 +563,12 @@ export async function submitJob(
   await storageRequest(
     inputDataUri,
     "PUT",
-    [["x-ms-blob-type", "BlockBlob"]],
+    useProxy ? token : undefined,
+    useProxy ? quantumUris.storageProxy() : undefined,
+    [
+      ["x-ms-blob-type", "BlockBlob"],
+      ["Content-Type", "text/plain"],
+    ],
     qirFile,
     correlationId,
   );
