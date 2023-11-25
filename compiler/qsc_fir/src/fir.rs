@@ -333,6 +333,14 @@ impl PackageStore {
             .and_then(|package| package.blocks.get(block_id))
     }
 
+    /// Gets expression in less lines of code.
+    #[must_use]
+    pub fn get_expr(&self, package_id: PackageId, expr_id: ExprId) -> Option<&Expr> {
+        self.0
+            .get(package_id)
+            .and_then(|package| package.exprs.get(expr_id))
+    }
+
     /// Gets pattern in less lines of code.
     #[must_use]
     pub fn get_pat(&self, package_id: PackageId, pat_id: PatId) -> Option<&Pat> {
