@@ -19,49 +19,11 @@ const PRELUDE: [&str; 3] = [
     "Microsoft.Quantum.Intrinsic",
 ];
 
-struct IndentMaker<'a> {
-    contents: &'a str,
-    offset: u32,
-}
-
-impl<'a> IndentMaker<'a> {
-    fn new(compilation: &'a Compilation, source_name: &'_ str) -> Self {
-        let source = compilation
-            .user_unit()
-            .sources
-            .find_by_name(source_name)
-            .expect("source should exist in the user source map");
-        let contents = &source.contents;
-        let offset = source.offset;
-        Self { contents, offset }
-    }
-
-    fn get_ident(&self, package_offset: u32) -> String {
-        let source_offset = (package_offset - self.offset)
-            .try_into()
-            .expect("offset can't be converted to uszie");
-        let before_offset = &self.contents[..source_offset];
-        let mut indent = match before_offset.rfind(|c| c == '{' || c == '\n') {
-            Some(begin) => {
-                let indent = &before_offset[begin..];
-                indent.strip_prefix('{').unwrap_or(indent)
-            }
-            None => before_offset,
-        }
-        .to_string();
-        if !indent.starts_with('\n') {
-            indent.insert(0, '\n');
-        }
-        indent
-    }
-}
-
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    let indent_maker = IndentMaker::new(compilation, source_name);
     let offset = compilation.source_offset_to_package_offset(source_name, offset);
     let user_ast_package = &compilation.user_unit().ast.package;
 
@@ -80,6 +42,11 @@ pub(crate) fn get_completions(
         current_namespace_name: None,
     };
     context_finder.visit_package(user_ast_package);
+
+    let indent = match context_finder.start_of_namespace {
+        Some(start) => get_indent(compilation, start),
+        None => String::new(),
+    };
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
@@ -112,7 +79,7 @@ pub(crate) fn get_completions(
                 &context_finder.opens,
                 context_finder.start_of_namespace,
                 &context_finder.current_namespace_name,
-                &indent_maker,
+                &indent,
             );
         }
 
@@ -129,7 +96,7 @@ pub(crate) fn get_completions(
                 &context_finder.opens,
                 context_finder.start_of_namespace,
                 &context_finder.current_namespace_name,
-                &indent_maker,
+                &indent,
             );
 
             // Item decl keywords last, unlike in a namespace
@@ -153,7 +120,7 @@ pub(crate) fn get_completions(
                     &context_finder.opens,
                     context_finder.start_of_namespace,
                     &context_finder.current_namespace_name,
-                    &indent_maker,
+                    &indent,
                 );
 
                 // Namespace declarations - least likely to be used, so last
@@ -165,6 +132,30 @@ pub(crate) fn get_completions(
     CompletionList {
         items: builder.into_items(),
     }
+}
+
+fn get_indent(compilation: &Compilation, package_offset: u32) -> String {
+    let source = compilation
+        .user_unit()
+        .sources
+        .find_by_offset(package_offset)
+        .expect("source should exist in the user source map");
+    let source_offset = (package_offset - source.offset)
+        .try_into()
+        .expect("offset can't be converted to uszie");
+    let before_offset = &source.contents[..source_offset];
+    let mut indent = match before_offset.rfind(|c| c == '{' || c == '\n') {
+        Some(begin) => {
+            let indent = &before_offset[begin..];
+            indent.strip_prefix('{').unwrap_or(indent)
+        }
+        None => before_offset,
+    }
+    .to_string();
+    if !indent.starts_with('\n') {
+        indent.insert(0, '\n');
+    }
+    indent
 }
 
 struct CompletionListBuilder {
@@ -234,13 +225,13 @@ impl CompletionListBuilder {
         );
     }
 
-    fn push_globals<'a>(
+    fn push_globals(
         &mut self,
-        compilation: &'a Compilation,
-        opens: &'a [(Rc<str>, Option<Rc<str>>)],
+        compilation: &Compilation,
+        opens: &[(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
-        current_namespace_name: &'a Option<Rc<str>>,
-        indent_maker: &'a IndentMaker<'a>,
+        current_namespace_name: &Option<Rc<str>>,
+        indent: &String,
     ) {
         let core = &compilation
             .package_store
@@ -264,7 +255,7 @@ impl CompletionListBuilder {
                 opens,
                 start_of_namespace,
                 current_namespace_name.clone(),
-                indent_maker,
+                indent,
             ));
         }
 
@@ -341,7 +332,7 @@ impl CompletionListBuilder {
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
         current_namespace_name: Option<Rc<str>>,
-        indent_maker: &'a IndentMaker<'a>,
+        indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
             .package_store
@@ -389,7 +380,7 @@ impl CompletionListBuilder {
                                                         format!(
                                                             "open {};{}",
                                                             namespace.name.clone(),
-                                                            indent_maker.get_ident(start),
+                                                            indent,
                                                         ),
                                                     ));
                                                     None
