@@ -1048,7 +1048,7 @@ fn lambda_operation_empty_closure() {
                         name: Ident 1 [28-31] "Foo"
                         generics:
                             0: functor (empty set)
-                        input: Pat 2 [32-48] [Type (Qubit => Unit is 0)]: Bind: Ident 3 [32-34] "op"
+                        input: Pat 2 [32-48] [Type (Qubit => Unit is Param<0>)]: Bind: Ident 3 [32-34] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [18-101]: Impl:
@@ -1131,7 +1131,7 @@ fn lambda_operation_closure() {
                         name: Ident 6 [90-93] "Foo"
                         generics:
                             0: functor (empty set)
-                        input: Pat 7 [94-111] [Type (Unit => Result is 0)]: Bind: Ident 8 [94-96] "op"
+                        input: Pat 7 [94-111] [Type (Unit => Result is Param<0>)]: Bind: Ident 8 [94-96] "op"
                         output: Result
                         functors: empty set
                         body: SpecDecl 9 [80-130]: Impl:
@@ -1215,7 +1215,7 @@ fn lambda_adj() {
                         name: Ident 7 [70-73] "Foo"
                         generics:
                             0: functor (Adj)
-                        input: Pat 8 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 9 [74-76] "op"
+                        input: Pat 8 [74-97] [Type (Qubit => Unit is Param<0>)]: Bind: Ident 9 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 10 [60-106]: Impl:
@@ -1982,7 +1982,7 @@ fn nested_params() {
                         generics:
                             0: type
                             1: functor (empty set)
-                        input: Pat 2 [34-45] [Type (0 => Unit is 1)]: Bind: Ident 3 [34-35] "f"
+                        input: Pat 2 [34-45] [Type (Param<0> => Unit is Param<1>)]: Bind: Ident 3 [34-35] "f"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [17-55]: Impl:
@@ -2025,6 +2025,191 @@ fn lambda_with_invalid_free_variable() {
                         body: SpecDecl 14 [58-67]: Impl:
                             Block 15 [58-67] [Type Unit]:
                                 Stmt 16 [58-67]: Expr: Expr 8 [58-67] [Type Unit]: Var: Local 10
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn duplicate_commas_in_tydef() {
+    check_hir(
+        indoc! {r#"
+            namespace test {
+                newtype Foo = (Int,,);
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-45] (Public):
+                    Namespace (Ident 1 [10-14] "test"): Item 1
+                Item 1 [21-43] (Public):
+                    Parent: 0
+                    Type (Ident 0 [29-32] "Foo"): UDT [21-43]:
+                        TyDef [35-42]: Tuple:
+                            TyDef [36-39]: Field:
+                                type: Int
+                            TyDef [40-40]: Field:
+                                type: ?"#]],
+    );
+}
+
+#[test]
+fn duplicate_commas_in_generics() {
+    check_hir(
+        indoc! {r#"
+            namespace test {
+                function Foo<'T,,>(x : 'T) : Unit {}
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-59] (Public):
+                    Namespace (Ident 6 [10-14] "test"): Item 1
+                Item 1 [21-57] (Public):
+                    Parent: 0
+                    Callable 0 [21-57] (function):
+                        name: Ident 1 [30-33] "Foo"
+                        generics:
+                            0: type
+                            1: type
+                        input: Pat 2 [40-46] [Type Param<0>]: Bind: Ident 3 [40-41] "x"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [21-57]: Impl:
+                            Block 5 [55-57]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn duplicate_commas_in_pat() {
+    check_hir(
+        indoc! {r#"
+            namespace test {
+                operation Foo() : Unit {
+                    let (x,,) = (1, 2);
+                }
+            }"#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-81] (Public):
+                    Namespace (Ident 13 [10-14] "test"): Item 1
+                Item 1 [21-79] (Public):
+                    Parent: 0
+                    Callable 0 [21-79] (operation):
+                        name: Ident 1 [31-34] "Foo"
+                        input: Pat 2 [34-36] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [21-79]: Impl:
+                            Block 4 [44-79] [Type Unit]:
+                                Stmt 5 [54-73]: Local (Immutable):
+                                    Pat 6 [58-63] [Type (Int, ?)]: Tuple:
+                                        Pat 7 [59-60] [Type Int]: Bind: Ident 8 [59-60] "x"
+                                        Pat 9 [61-61] [Type ?]: Err
+                                    Expr 10 [66-72] [Type (Int, Int)]: Tuple:
+                                        Expr 11 [67-68] [Type Int]: Lit: Int(1)
+                                        Expr 12 [70-71] [Type Int]: Lit: Int(2)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn duplicate_commas_in_tuple() {
+    check_hir(
+        indoc! {r#"
+            namespace test {
+                operation Foo() : Unit {
+                    let x = (1,,3);
+                }
+            }"#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-77] (Public):
+                    Namespace (Ident 12 [10-14] "test"): Item 1
+                Item 1 [21-75] (Public):
+                    Parent: 0
+                    Callable 0 [21-75] (operation):
+                        name: Ident 1 [31-34] "Foo"
+                        input: Pat 2 [34-36] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [21-75]: Impl:
+                            Block 4 [44-75] [Type Unit]:
+                                Stmt 5 [54-69]: Local (Immutable):
+                                    Pat 6 [58-59] [Type (Int, ?, Int)]: Bind: Ident 7 [58-59] "x"
+                                    Expr 8 [62-68] [Type (Int, ?, Int)]: Tuple:
+                                        Expr 9 [63-64] [Type Int]: Lit: Int(1)
+                                        Expr 10 [65-65] [Type ?]: Err
+                                        Expr 11 [66-67] [Type Int]: Lit: Int(3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn duplicate_commas_in_arg_tuple() {
+    check_hir(
+        indoc! {r#"
+            namespace test {
+                operation Foo(a : Int, b : Int, c : Int) : Int {
+                    Foo(a,,c)
+                }
+            }"#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-95] (Public):
+                    Namespace (Ident 18 [10-14] "test"): Item 1
+                Item 1 [21-93] (Public):
+                    Parent: 0
+                    Callable 0 [21-93] (operation):
+                        name: Ident 1 [31-34] "Foo"
+                        input: Pat 2 [34-61] [Type (Int, Int, Int)]: Tuple:
+                            Pat 3 [35-42] [Type Int]: Bind: Ident 4 [35-36] "a"
+                            Pat 5 [44-51] [Type Int]: Bind: Ident 6 [44-45] "b"
+                            Pat 7 [53-60] [Type Int]: Bind: Ident 8 [53-54] "c"
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 9 [21-93]: Impl:
+                            Block 10 [68-93] [Type Int]:
+                                Stmt 11 [78-87]: Expr: Expr 12 [78-87] [Type Int]: Call:
+                                    Expr 13 [78-81] [Type ((Int, Int, Int) => Int)]: Var: Item 1
+                                    Expr 14 [81-87] [Type (Int, ?, Int)]: Tuple:
+                                        Expr 15 [82-83] [Type Int]: Var: Local 4
+                                        Expr 16 [84-84] [Type ?]: Err
+                                        Expr 17 [85-86] [Type Int]: Var: Local 8
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn ignore_item_in_attribute() {
+    check_hir(
+        "namespace Test {
+            @Attr{function Bar() : Unit { Bar }}
+            function Foo() : Unit {}
+        }",
+        &expect![[r#"
+            Package:
+                Item 0 [0-112] (Public):
+                    Namespace (Ident 5 [10-14] "Test"): Item 1
+                Item 1 [29-102] (Public):
+                    Parent: 0
+                    Callable 0 [78-102] (function):
+                        name: Ident 1 [87-90] "Foo"
+                        input: Pat 2 [90-92] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [78-102]: Impl:
+                            Block 4 [100-102]: <empty>
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],

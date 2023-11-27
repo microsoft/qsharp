@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Tuple, Optional
 
 class TargetProfile:
     """
@@ -75,6 +75,14 @@ class Interpreter:
         """
         ...
 
+    def dump_machine(self) -> StateDump:
+        """
+        Returns the sparse state vector of the simulator as a StateDump object.
+
+        :returns: The state of the simulator.
+        """
+        ...
+
 class Result(Enum):
     """
     A Q# measurement result.
@@ -99,6 +107,27 @@ class Output:
     Outputs can be a state dumps or messages. These are normally printed to the console.
     """
 
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+    def _repr_html_(self) -> str: ...
+
+class StateDump:
+    """
+    A state dump returned from the Q# interpreter.
+    """
+
+    """
+    The number of allocated qubits at the time of the dump.
+    """
+    qubit_count: int
+
+    """
+    Get the amplitudes of the state vector as a dictionary from state integer to
+    pair of real and imaginary amplitudes.
+    """
+    def get_dict(self) -> dict: ...
+    def __getitem__(self, index: int) -> Optional[Tuple[float, float]]: ...
+    def __len__(self) -> int: ...
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...

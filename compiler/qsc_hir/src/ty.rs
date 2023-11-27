@@ -72,7 +72,7 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "({item})[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name) => write!(f, "{name}"),
+            Ty::Param(param_id) => write!(f, "Param<{param_id}>"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -376,7 +376,7 @@ impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::Value(value) => Display::fmt(value, f),
-            Self::Param(param) => Display::fmt(param, f),
+            Self::Param(param) => write!(f, "Param<{param}>"),
             Self::Infer(infer) => Display::fmt(infer, f),
         }
     }

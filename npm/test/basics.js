@@ -83,7 +83,7 @@ test("error with newlines", async () => {
   const compiler = getCompiler();
 
   const diags = await compiler.checkCode(
-    "namespace input { operation Foo(a) : Unit {} }"
+    "namespace input { operation Foo(a) : Unit {} }",
   );
   assert.equal(diags.length, 2);
   assert.equal(diags[0].start_pos, 32);
@@ -92,11 +92,11 @@ test("error with newlines", async () => {
   assert.equal(diags[1].end_pos, 33);
   assert.equal(
     diags[1].message,
-    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation"
+    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation",
   );
   assert.equal(
     diags[0].message,
-    "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations"
+    "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations",
   );
 });
 
@@ -126,7 +126,7 @@ async function runExerciseSolutionCheck(exercise, solution) {
   const success = await compiler.checkExerciseSolution(
     solution,
     sources,
-    evtTarget
+    evtTarget,
   );
 
   const unsuccessful_events = evtTarget
@@ -156,7 +156,9 @@ async function getAllKataExamples(kata) {
   const exerciseExamples = kata.sections
     .filter((section) => section.type === "exercise")
     .map((exercise) =>
-      exercise.explainedSolution.items.filter((item) => item.type === "example")
+      exercise.explainedSolution.items.filter(
+        (item) => item.type === "example",
+      ),
     )
     .flat();
   examples = examples.concat(exerciseExamples);
@@ -174,59 +176,59 @@ async function getAllKataExamples(kata) {
 async function validateExercise(
   exercise,
   validatePlaceholder,
-  validateSolutions
+  validateSolutions,
 ) {
   // Validate the correctness of the placeholder code.
   if (validatePlaceholder) {
     const placeholderResult = await runExerciseSolutionCheck(
       exercise,
-      exercise.placeholderCode
+      exercise.placeholderCode,
     );
 
     // Check that there are no compilation or runtime errors.
     assert(
       placeholderResult.errorCount === 0,
       `Exercise "${exercise.id}" has compilation or runtime errors when using the placeholder as solution. ` +
-        `Compilation and runtime errors:\n${placeholderResult.errorMsg}`
+        `Compilation and runtime errors:\n${placeholderResult.errorMsg}`,
     );
 
     // Check that the placeholder is an incorrect solution.
     assert(
       !placeholderResult.success,
-      `Placeholder for exercise "${exercise.id}" is a correct solution but it is expected to be an incorrect solution`
+      `Placeholder for exercise "${exercise.id}" is a correct solution but it is expected to be an incorrect solution`,
     );
   }
 
   // Validate the correctness of the solutions.
   if (validateSolutions) {
     const solutions = exercise.explainedSolution.items.filter(
-      (item) => item.type === "solution"
+      (item) => item.type === "solution",
     );
 
     // Check that the exercise has at least one solution.
     assert(
       solutions.length > 0,
-      `Exercise "${exercise.id}" does not have solutions`
+      `Exercise "${exercise.id}" does not have solutions`,
     );
 
     // Check that the solutions are correct.
     for (const solution of solutions) {
       const solutionResult = await runExerciseSolutionCheck(
         exercise,
-        solution.code
+        solution.code,
       );
 
       // Check that there are no compilation or runtime errors.
       assert(
         solutionResult.errorCount === 0,
         `Solution "${solution.id}" for exercise "${exercise.id}" has compilation or runtime errors` +
-          `Compilation and runtime errors:\n${solutionResult.errorMsg}`
+          `Compilation and runtime errors:\n${solutionResult.errorMsg}`,
       );
 
       // Check that the solution is correct.
       assert(
         solutionResult.success,
-        `Solution "${solution.id}" for exercise "${exercise.id}" is incorrect`
+        `Solution "${solution.id}" for exercise "${exercise.id}" is incorrect`,
       );
     }
   }
@@ -236,17 +238,17 @@ async function validateKata(
   kata,
   validateExamples,
   validateExercisePlaceholder,
-  validateExerciseSolutions
+  validateExerciseSolutions,
 ) {
   // Validate the correctness of Q# code related to exercises.
   const exercises = kata.sections.filter(
-    (section) => section.type === "exercise"
+    (section) => section.type === "exercise",
   );
   for (const exercise of exercises) {
     await validateExercise(
       exercise,
       validateExercisePlaceholder,
-      validateExerciseSolutions
+      validateExerciseSolutions,
     );
   }
 
@@ -257,12 +259,12 @@ async function validateKata(
         const result = await runSingleShot(example.code, "", false);
         assert(
           result.success,
-          `Example "${example.id}" in "${kata.id}" kata failed to run.`
+          `Example "${example.id}" in "${kata.id}" kata failed to run.`,
         );
       } catch (error) {
         assert(
           false,
-          `Example "${example.id}" in "${kata.id}" kata failed to build:\n${error}`
+          `Example "${example.id}" in "${kata.id}" kata failed to build:\n${error}`,
         );
       }
     }
@@ -276,7 +278,7 @@ test("all katas work", async () => {
   assert.equal(
     katas.length,
     expectedKatasCount,
-    `Expected ${expectedKatasCount} katas, but found ${katas.length} katas`
+    `Expected ${expectedKatasCount} katas, but found ${katas.length} katas`,
   );
 });
 
@@ -455,7 +457,7 @@ test("language service diagnostics", async () => {
     assert.equal(event.detail.diagnostics.length, 1);
     assert.equal(
       event.detail.diagnostics[0].message,
-      "type error: expected (Double, Qubit), found Qubit"
+      "type error: expected (Double, Qubit), found Qubit",
     );
   });
   await languageService.updateDocument(
@@ -468,7 +470,7 @@ test("language service diagnostics", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
   );
   assert(gotDiagnostics);
 });
@@ -510,7 +512,7 @@ test("diagnostics with related spans", async () => {
           message: r.message,
           end_pos: r.end_pos,
         })),
-      }
+      },
     );
   });
 
@@ -525,7 +527,7 @@ test("diagnostics with related spans", async () => {
       operation Main() : Unit {
         DumpMachine();
       }
-    }`
+    }`,
   );
   assert(gotDiagnostics);
 });
@@ -539,7 +541,7 @@ test("language service diagnostics - web worker", async () => {
     assert.equal(event.detail.diagnostics.length, 1);
     assert.equal(
       event.detail.diagnostics[0].message,
-      "type error: expected (Double, Qubit), found Qubit"
+      "type error: expected (Double, Qubit), found Qubit",
     );
   });
   await languageService.updateDocument(
@@ -552,7 +554,7 @@ test("language service diagnostics - web worker", async () => {
         let m1 = M(q1);
         return [m1];
     }
-}`
+}`,
   );
   languageService.terminate();
   assert(gotDiagnostics);
@@ -569,7 +571,7 @@ test("language service configuration update", async () => {
     assert.equal(event.type, "diagnostics");
     assert.equal(event.detail.diagnostics.length, expectedMessages.length);
     event.detail.diagnostics.map((d, i) =>
-      assert.equal(d.message, expectedMessages[i])
+      assert.equal(d.message, expectedMessages[i]),
     );
   });
   await languageService.updateDocument(
@@ -578,7 +580,7 @@ test("language service configuration update", async () => {
     `namespace Sample {
     operation main() : Unit {
     }
-}`
+}`,
   );
   // Above document should have generated a missing entrypoint error
   assert(gotDiagnostics);
@@ -592,6 +594,45 @@ test("language service configuration update", async () => {
   languageService.terminate();
 
   // Updating the config should cause another diagnostics event clearing the errors
+  assert(gotDiagnostics);
+});
+
+test("language service in notebook", async () => {
+  const languageService = getLanguageServiceWorker();
+  let gotDiagnostics = false;
+  let expectedMessages = [
+    "name error: `Foo` not found",
+    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation",
+  ];
+  languageService.addEventListener("diagnostics", (event) => {
+    gotDiagnostics = true;
+    assert.equal(event.type, "diagnostics");
+    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
+    event.detail.diagnostics.map((d, i) =>
+      assert.equal(d.message, expectedMessages[i]),
+    );
+  });
+
+  await languageService.updateNotebookDocument("notebook.ipynb", 1, [
+    { uri: "cell1", version: 1, code: "operation Main() : Unit {}" },
+    { uri: "cell2", version: 1, code: "Foo()" },
+  ]);
+
+  // Above document should have generated a resolve error
+  assert(gotDiagnostics);
+
+  // Reset expectations
+  gotDiagnostics = false;
+  expectedMessages = [];
+
+  await languageService.updateNotebookDocument("notebook.ipynb", 2, [
+    { uri: "cell1", version: 2, code: "operation Main() : Unit {}" },
+    { uri: "cell2", version: 2, code: "Main()" },
+  ]);
+
+  languageService.terminate();
+
+  // Updating the notebook should cause another diagnostics event clearing the errors
   assert(gotDiagnostics);
 });
 
@@ -654,7 +695,8 @@ test("debug service loading source without entry point attr fails - web worker",
         return [m1];
     }
 }`,
-      undefined
+      "base",
+      undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -671,7 +713,8 @@ test("debug service loading source with syntax error fails - web worker", async 
     operation main() : Result[]
     }
 }`,
-      undefined
+      "base",
+      undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -685,7 +728,8 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
     const result = await debugService.loadSource(
       "test.qs",
       `namespace Sample { operation main() : Unit { } }`,
-      "SomeBadExpr()"
+      "base",
+      "SomeBadExpr()",
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -699,9 +743,11 @@ test("debug service loading source with good entry expr succeeds - web worker", 
     const result = await debugService.loadSource(
       "test.qs",
       `namespace Sample { operation Main() : Unit { } }`,
-      "Sample.Main()"
+      "full",
+      "Sample.Main()",
     );
-    assert.ok(typeof result === "string" && result.trim().length == 0);
+    assert.ok(typeof result === "string");
+    assert.equal(result.trim(), "");
   } finally {
     debugService.terminate();
   }
@@ -721,9 +767,11 @@ test("debug service loading source with entry point attr succeeds - web worker",
         return [m1];
     }
 }`,
-      undefined
+      "base",
+      undefined,
     );
-    assert.ok(typeof result === "string" && result.trim().length == 0);
+    assert.ok(typeof result === "string");
+    assert.equal(result.trim(), "");
   } finally {
     debugService.terminate();
   }
@@ -743,7 +791,8 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         return [m1];
     }
 }`,
-      undefined
+      "base",
+      undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");

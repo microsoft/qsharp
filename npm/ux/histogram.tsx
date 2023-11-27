@@ -46,9 +46,11 @@ function resultToKet(result: string): string {
 }
 
 export function Histogram(props: {
+  shotCount: number;
   data: Map<string, number>;
   filter: string;
   onFilter: (filter: string) => void;
+  shotsHeader: boolean;
 }) {
   const [hoverLabel, setHoverLabel] = useState("");
   const [scale, setScale] = useState({ zoom: 1.0, offset: 1.0 });
@@ -78,7 +80,7 @@ export function Histogram(props: {
     sizeBiggestBucket = Math.max(x[1], sizeBiggestBucket);
   });
 
-  let histogramLabel = `${bucketArray.length} results`;
+  let histogramLabel = `${bucketArray.length} unique results`;
   if (maxItemsToShow > 0) {
     // Sort from high to low then take the first n
     bucketArray.sort((a, b) => (a[1] < b[1] ? 1 : -1));
@@ -191,7 +193,7 @@ export function Histogram(props: {
     // consistent while the scroll is occuring (i.e. it is the point the mouse
     // was at when scrolling started).
     const mousePoint = new DOMPoint(e.clientX, e.clientY).matrixTransform(
-      svgElem.getScreenCTM()?.inverse()
+      svgElem.getScreenCTM()?.inverse(),
     );
 
     /*
@@ -235,225 +237,202 @@ export function Histogram(props: {
     const maxScrollRight = 1 - (barAreaWidth * newZoom - barAreaWidth);
     const boundScrollOffset = Math.min(
       Math.max(newScrollOffset, maxScrollRight),
-      1
+      1,
     );
 
     setScale({ zoom: newZoom, offset: boundScrollOffset });
   }
 
   return (
-    <svg class="histogram" viewBox="0 0 165 100" onWheel={onWheel}>
-      <g transform={`translate(${scale.offset},4)`}>
-        {bucketArray.map((entry, idx) => {
-          const label = showKetLabels ? resultToKet(entry[0]) : entry[0];
+    <>
+      {props.shotsHeader ? (
+        <h4 style="margin: 8px 0px">Total shots: {props.shotCount}</h4>
+      ) : null}
+      <svg class="histogram" viewBox="0 0 165 100" onWheel={onWheel}>
+        <g transform={`translate(${scale.offset},4)`}>
+          {bucketArray.map((entry, idx) => {
+            const label = showKetLabels ? resultToKet(entry[0]) : entry[0];
 
-          const height = barAreaHeight * (entry[1] / sizeBiggestBucket);
-          const x = barBoxWidth * idx + barPaddingSize;
-          const labelX = barBoxWidth * idx + barBoxWidth / 2 - fontOffset;
-          const y = barAreaHeight + 15 - height;
-          const barLabel = `${label} at ${(
-            (entry[1] / totalAllBuckets) *
-            100
-          ).toFixed(2)}%`;
-          let barClass = "bar";
+            const height = barAreaHeight * (entry[1] / sizeBiggestBucket);
+            const x = barBoxWidth * idx + barPaddingSize;
+            const labelX = barBoxWidth * idx + barBoxWidth / 2 - fontOffset;
+            const y = barAreaHeight + 15 - height;
+            const barLabel = `${label} at ${(
+              (entry[1] / totalAllBuckets) *
+              100
+            ).toFixed(2)}%`;
+            let barClass = "bar";
 
-          if (entry[0] === props.filter) {
-            barClass += " bar-selected";
-          }
+            if (entry[0] === props.filter) {
+              barClass += " bar-selected";
+            }
 
-          return (
-            <>
-              <rect
-                class={barClass}
-                x={x}
-                y={y}
-                width={barFillWidth}
-                height={height}
-                onMouseOver={onMouseOverRect}
-                onMouseOut={onMouseOutRect}
-                onClick={onClickRect}
-                data-raw-label={entry[0]}
-              >
-                <title>{barLabel}</title>
-              </rect>
-              {
-                <text
-                  class="bar-label"
-                  x={labelX}
-                  y="85"
-                  visibility={showLabels ? "visible" : "hidden"}
-                  transform={`rotate(90, ${labelX}, 85)`}
+            return (
+              <>
+                <rect
+                  class={barClass}
+                  x={x}
+                  y={y}
+                  width={barFillWidth}
+                  height={height}
+                  onMouseOver={onMouseOverRect}
+                  onMouseOut={onMouseOutRect}
+                  onClick={onClickRect}
+                  data-raw-label={entry[0]}
                 >
-                  {label}
-                </text>
-              }
-            </>
-          );
-        })}
-      </g>
-
-      <text class="histo-label" x="2" y="97">
-        {histogramLabel}
-      </text>
-      <text class="hover-text" x="85" y="6">
-        {hoverLabel}
-      </text>
-
-      {/* The settings icon */}
-      <g transform="scale(0.3 0.3)" onClick={toggleMenu}>
-        <rect width="24" height="24" fill="white"></rect>
-        <path
-          d="M3 5 H21 M3 12 H21 M3 19 H21"
-          stroke="black"
-          stroke-width="1.75"
-          stroke-linecap="round"
-        />
-        <rect
-          x="6"
-          y="3"
-          width="4"
-          height="4"
-          rx="1"
-          fill="white"
-          stroke="black"
-          stroke-width="1.5"
-        />
-        <rect
-          x="15"
-          y="10"
-          width="4"
-          height="4"
-          rx="1"
-          fill="white"
-          stroke="black"
-          stroke-width="1.5"
-        />
-        <rect
-          x="9"
-          y="17"
-          width="4"
-          height="4"
-          rx="1"
-          fill="white"
-          stroke="black"
-          stroke-width="1.5"
-        />
-      </g>
-
-      {/* The info icon */}
-      <g transform="translate(158, 0) scale(0.3 0.3)" onClick={toggleInfo}>
-        <rect width="24" height="24" fill="white"></rect>
-        <circle
-          cx="12"
-          cy="13"
-          r="10"
-          stroke="black"
-          stroke-width="1.5"
-          fill="white"
-        />
-        <path
-          stroke="black"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          d="M12 8 V8 M12 12.5 V18"
-        />
-      </g>
-
-      {/* The menu box */}
-      <g
-        id="menu"
-        ref={gMenu}
-        transform="translate(8, 2)"
-        style="display: none;"
-      >
-        <rect
-          x="0"
-          y="0"
-          rx="2"
-          width={menuBoxWidth}
-          height={menuBoxHeight}
-          class="menu-box"
-        ></rect>
-
-        {
-          // Menu items
-          menuItems.map((item, col) => {
-            return item.options.map((option, row) => {
-              let classList = "menu-item";
-              if (menuSelection[item.category] === row)
-                classList += " menu-selected";
-              return (
-                <>
-                  <rect
-                    x={2 + col * menuItemWidth}
-                    y={2 + row * menuItemHeight}
-                    rx="1"
-                    class={classList}
-                    onClick={() => menuClicked(item.category, row)}
-                  ></rect>
+                  <title>{barLabel}</title>
+                </rect>
+                {
                   <text
-                    x={5 + col * menuItemWidth}
-                    y={9 + row * menuItemHeight}
-                    class="menu-text"
+                    class="bar-label"
+                    x={labelX}
+                    y="85"
+                    visibility={showLabels ? "visible" : "hidden"}
+                    transform={`rotate(90, ${labelX}, 85)`}
                   >
-                    {option}
+                    {label}
                   </text>
-                </>
-              );
-            });
-          })
-        }
-        {
-          // Column separators
-          menuItems.map((item, idx) => {
-            return idx >= menuItems.length - 1 ? null : (
-              <line
-                class="menu-separator"
-                x1={37 + idx * menuItemWidth}
-                y1="2"
-                x2={37 + idx * menuItemWidth}
-                y2={maxMenuOptions * menuItemHeight + 1}
-              ></line>
+                }
+              </>
             );
-          })
-        }
-      </g>
+          })}
+        </g>
 
-      {/* The info box */}
-      <g ref={gInfo} style="display: none;">
-        <rect
-          width="155"
-          height="76"
-          rx="5"
-          x="5"
-          y="6"
-          class="help-info"
-          onClick={toggleInfo}
-        />
-        <text y="6" class="help-info-text">
-          <tspan x="10" dy="10">
-            This histogram shows the frequency of unique 'shot' results.
-          </tspan>
-          <tspan x="10" dy="10">
-            Click the top-left 'settings' icon for display options.
-          </tspan>
-          <tspan x="10" dy="10">
-            You can zoom the chart using the mouse scroll wheel.
-          </tspan>
-          <tspan x="10" dy="7">
-            (Or using a trackpad gesture).
-          </tspan>
-          <tspan x="10" dy="10">
-            When zoomed, to pan left &amp; right, press 'Alt' while scrolling.
-          </tspan>
-          <tspan x="10" dy="10">
-            Click on a bar to filter the shot details to that result.
-          </tspan>
-          <tspan x="10" dy="12">
-            Click anywhere in this box to dismiss it.
-          </tspan>
+        <text class="histo-label" x="2" y="97">
+          {histogramLabel}
         </text>
-      </g>
-    </svg>
+        <text class="hover-text" x="85" y="6">
+          {hoverLabel}
+        </text>
+
+        {/* The settings icon */}
+        <g
+          class="menu-icon"
+          transform="translate(2, 2) scale(0.3 0.3)"
+          onClick={toggleMenu}
+        >
+          <rect width="24" height="24" fill="white" stroke-widths="0.5"></rect>
+          <path
+            d="M3 5 H21 M3 12 H21 M3 19 H21"
+            stroke-width="1.75"
+            stroke-linecap="round"
+          />
+          <rect x="6" y="3" width="4" height="4" rx="1" stroke-width="1.5" />
+          <rect x="15" y="10" width="4" height="4" rx="1" stroke-width="1.5" />
+          <rect x="9" y="17" width="4" height="4" rx="1" stroke-width="1.5" />
+        </g>
+
+        {/* The info icon */}
+        <g
+          class="menu-icon"
+          transform="translate(156, 2) scale(0.3 0.3)"
+          onClick={toggleInfo}
+        >
+          <rect width="24" height="24" stroke-width="0"></rect>
+          <circle cx="12" cy="13" r="10" stroke-width="1.5" />
+          <path
+            stroke-width="2.5"
+            stroke-linecap="round"
+            d="M12 8 V8 M12 12.5 V18"
+          />
+        </g>
+
+        {/* The menu box */}
+        <g
+          id="menu"
+          ref={gMenu}
+          transform="translate(8, 2)"
+          style="display: none;"
+        >
+          <rect
+            x="0"
+            y="0"
+            rx="2"
+            width={menuBoxWidth}
+            height={menuBoxHeight}
+            class="menu-box"
+          ></rect>
+
+          {
+            // Menu items
+            menuItems.map((item, col) => {
+              return item.options.map((option, row) => {
+                let classList = "menu-item";
+                if (menuSelection[item.category] === row)
+                  classList += " menu-selected";
+                return (
+                  <>
+                    <rect
+                      x={2 + col * menuItemWidth}
+                      y={2 + row * menuItemHeight}
+                      rx="1"
+                      class={classList}
+                      onClick={() => menuClicked(item.category, row)}
+                    ></rect>
+                    <text
+                      x={5 + col * menuItemWidth}
+                      y={9 + row * menuItemHeight}
+                      class="menu-text"
+                    >
+                      {option}
+                    </text>
+                  </>
+                );
+              });
+            })
+          }
+          {
+            // Column separators
+            menuItems.map((item, idx) => {
+              return idx >= menuItems.length - 1 ? null : (
+                <line
+                  class="menu-separator"
+                  x1={37 + idx * menuItemWidth}
+                  y1="2"
+                  x2={37 + idx * menuItemWidth}
+                  y2={maxMenuOptions * menuItemHeight + 1}
+                ></line>
+              );
+            })
+          }
+        </g>
+
+        {/* The info box */}
+        <g ref={gInfo} style="display: none;">
+          <rect
+            width="155"
+            height="76"
+            rx="5"
+            x="5"
+            y="6"
+            class="help-info"
+            onClick={toggleInfo}
+          />
+          <text y="6" class="help-info-text">
+            <tspan x="10" dy="10">
+              This histogram shows the frequency of unique 'shot' results.
+            </tspan>
+            <tspan x="10" dy="10">
+              Click the top-left 'settings' icon for display options.
+            </tspan>
+            <tspan x="10" dy="10">
+              You can zoom the chart using the mouse scroll wheel.
+            </tspan>
+            <tspan x="10" dy="7">
+              (Or using a trackpad gesture).
+            </tspan>
+            <tspan x="10" dy="10">
+              When zoomed, to pan left &amp; right, press 'Alt' while scrolling.
+            </tspan>
+            <tspan x="10" dy="10">
+              Click on a bar to filter the shot details to that result.
+            </tspan>
+            <tspan x="10" dy="12">
+              Click anywhere in this box to dismiss it.
+            </tspan>
+          </text>
+        </g>
+      </svg>
+    </>
   );
 }

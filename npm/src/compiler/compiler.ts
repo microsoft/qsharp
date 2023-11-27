@@ -14,22 +14,19 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
-  /**
-   * @deprecated use the language service for errors and other editor features.
-   */
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
     code: string,
     expr: string,
     shots: number,
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<void>;
   getQir(code: string): Promise<string>;
   checkExerciseSolution(
     user_code: string,
     exercise_sources: string[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 }
 
@@ -46,15 +43,12 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
-  /**
-   * @deprecated use the language service for errors and other editor features.
-   */
   async checkCode(code: string): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number, errors: VSDiagnostic[]) => {
+      (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
-      }
+      },
     );
     languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);
@@ -72,7 +66,7 @@ export class Compiler implements ICompiler {
     code: string,
     expr: string,
     shots: number,
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<void> {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
@@ -81,19 +75,19 @@ export class Compiler implements ICompiler {
       code,
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
-      shots
+      shots,
     );
   }
 
   async checkExerciseSolution(
     user_code: string,
     exercise_sources: string[],
-    eventHandler: IQscEventTarget
+    eventHandler: IQscEventTarget,
   ): Promise<boolean> {
     const success = this.wasm.check_exercise_solution(
       user_code,
       exercise_sources,
-      (msg: string) => onCompilerEvent(msg, eventHandler)
+      (msg: string) => onCompilerEvent(msg, eventHandler),
     );
 
     return success;

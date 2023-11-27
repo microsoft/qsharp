@@ -77,27 +77,50 @@ impl Compiler {
     /// get information about the newly added items, or do other modifications.
     /// It is then the caller's responsibility to merge
     /// these packages into the current `CompileUnit` using the `update()` method.
-    pub fn compile_fragments(
+    pub fn compile_fragments_fail_fast(
         &mut self,
         source_name: &str,
         source_contents: &str,
     ) -> Result<Increment, Errors> {
+        self.compile_fragments(source_name, source_contents, fail_on_error)
+    }
+
+    /// Compiles Q# fragments. See [`compile_fragments_fail_fast`] for more details.
+    ///
+    /// This method calls an accumulator function with any errors returned
+    /// from each of the stages (parsing, lowering).
+    /// If the accumulator succeeds, compilation continues.
+    /// If the accumulator returns an error, compilation stops and the
+    /// error is returned to the caller.
+    pub fn compile_fragments<F>(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+        mut accumulate_errors: F,
+    ) -> Result<Increment, Errors>
+    where
+        F: FnMut(Errors) -> Result<(), Errors>,
+    {
         let (core, unit) = self.store.get_open_mut();
 
-        let mut increment = self
-            .frontend
-            .compile_fragments(unit, source_name, source_contents)
-            .map_err(into_errors)?;
+        let mut errors = false;
+        let mut increment =
+            self.frontend
+                .compile_fragments(unit, source_name, source_contents, |e| {
+                    errors = errors || !e.is_empty();
+                    accumulate_errors(into_errors(e))
+                })?;
 
-        let pass_errors = self.passes.run_default_passes(
-            &mut increment.hir,
-            &mut unit.assigner,
-            core,
-            PackageType::Lib,
-        );
+        // Even if we don't fail fast, skip passes if there were compilation errors.
+        if !errors {
+            let pass_errors = self.passes.run_default_passes(
+                &mut increment.hir,
+                &mut unit.assigner,
+                core,
+                PackageType::Lib,
+            );
 
-        if !pass_errors.is_empty() {
-            return Err(into_errors_with_source(pass_errors, &unit.sources));
+            accumulate_errors(into_errors_with_source(pass_errors, &unit.sources))?;
         }
 
         Ok(increment)
@@ -188,4 +211,11 @@ where
         .into_iter()
         .map(qsc_frontend::error::WithSource::into_with_source)
         .collect()
+}
+
+fn fail_on_error(errors: Errors) -> Result<(), Errors> {
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    Ok(())
 }

@@ -681,6 +681,7 @@ dependencies = [
  "indoc",
  "libc",
  "memoffset",
+ "num-bigint",
  "parking_lot",
  "pyo3-build-config",
  "pyo3-ffi",
@@ -793,7 +794,6 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
- "quantum-sparse-sim",
 ]
 
 [[package]]
@@ -928,6 +928,7 @@ dependencies = [
  "qsc",
  "qsc_codegen",
  "qsls",
+ "rustc-hash",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -943,6 +944,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
+ "rustc-hash",
 ]
 
 [[package]]

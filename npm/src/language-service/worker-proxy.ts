@@ -14,10 +14,13 @@ import { ILanguageService, LanguageServiceEvent } from "./language-service.js";
 const requests: MethodMap<ILanguageService> = {
   updateConfiguration: "request",
   updateDocument: "request",
+  updateNotebookDocument: "request",
   closeDocument: "request",
+  closeNotebookDocument: "request",
   getCompletions: "request",
   getHover: "request",
   getDefinition: "request",
+  getReferences: "request",
   getSignatureHelp: "request",
   getRename: "request",
   prepareRename: "request",
@@ -30,25 +33,25 @@ const events: LanguageServiceEvent["type"][] = ["diagnostics"];
 
 export function createLanguageServiceDispatcher(
   postMessage: (
-    msg: ResponseMessage<ILanguageService> | EventMessage<LanguageServiceEvent>
+    msg: ResponseMessage<ILanguageService> | EventMessage<LanguageServiceEvent>,
   ) => void,
-  service: ILanguageService
+  service: ILanguageService,
 ) {
   return createDispatcher<ILanguageService, LanguageServiceEvent>(
     postMessage,
     service,
     requests,
-    events
+    events,
   );
 }
 
 export function createLanguageServiceProxy(
   postMessage: (msg: RequestMessage<ILanguageService>) => void,
-  terminator: () => void
+  terminator: () => void,
 ) {
   return createProxy<ILanguageService, LanguageServiceEvent>(
     postMessage,
     terminator,
-    requests
+    requests,
   );
 }

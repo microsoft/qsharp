@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::{PackageType, TargetProfile};
+use qsc::{compile::Error, PackageType, TargetProfile};
 
 /// Workspace configuration
 #[derive(Clone, Debug, Default)]
@@ -11,10 +11,17 @@ pub struct WorkspaceConfigurationUpdate {
 }
 
 /// Represents a span of text used by the Language Server API
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Span {
     pub start: u32,
     pub end: u32,
+}
+
+#[derive(Debug)]
+pub struct DiagnosticUpdate {
+    pub uri: String,
+    pub version: Option<u32>,
+    pub errors: Vec<Error>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -60,9 +67,9 @@ impl CompletionItem {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Definition {
+pub struct Location {
     pub source: String,
-    pub offset: u32,
+    pub span: Span,
 }
 
 #[derive(Debug, PartialEq)]

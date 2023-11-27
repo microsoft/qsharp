@@ -3,12 +3,13 @@
 
 //@ts-check
 
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
+const libsDir = join(thisDir, "..", "node_modules");
 const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
@@ -17,9 +18,11 @@ const buildOptions = {
     join(thisDir, "src", "extension.ts"),
     join(thisDir, "src", "compilerWorker.ts"),
     join(thisDir, "src", "debugger/debug-service-worker.ts"),
+    join(thisDir, "src", "webview/webview.tsx"),
   ],
   outdir: join(thisDir, "out"),
   bundle: true,
+  // minify: true,
   mainFields: ["browser", "module", "main"],
   external: ["vscode"],
   format: "cjs",
@@ -40,11 +43,40 @@ function copyWasm() {
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
 
+function copyKatex() {
+  let katexBase = join(libsDir, `katex/dist`);
+  let katexDest = join(thisDir, `out/katex`);
+
+  console.log("Copying the Katex files over from: " + katexBase);
+  mkdirSync(katexDest, { recursive: true });
+  copyFileSync(
+    join(katexBase, "katex.min.css"),
+    join(katexDest, "katex.min.css"),
+  );
+
+  // Also copy the GitHub markdown CSS
+  copyFileSync(
+    join(libsDir, "github-markdown-css/github-markdown.css"),
+    join(katexDest, "github-markdown.css"),
+  );
+
+  const fontsDir = join(katexBase, "fonts");
+  const fontsOutDir = join(katexDest, "fonts");
+
+  mkdirSync(fontsOutDir, { recursive: true });
+
+  for (const file of readdirSync(fontsDir)) {
+    if (file.endsWith(".woff2")) {
+      copyFileSync(join(fontsDir, file), join(fontsOutDir, file));
+    }
+  }
+}
+
 function buildBundle() {
   console.log("Running esbuild");
 
   build(buildOptions).then(() =>
-    console.log(`Built bundle to ${join(thisDir, "out")}`)
+    console.log(`Built bundle to ${join(thisDir, "out")}`),
   );
 }
 
@@ -73,5 +105,6 @@ if (isWatch) {
   buildWatch();
 } else {
   copyWasm();
+  copyKatex();
   buildBundle();
 }

@@ -32,6 +32,19 @@ fn check_log_of_2() {
 }
 
 //
+// Special numbers in IEEE floating-point representation
+//
+
+#[test]
+fn check_is_nan() {
+    test_expression("Microsoft.Quantum.Math.IsNaN(1.0)", &Value::Bool(false));
+    test_expression(
+        "Microsoft.Quantum.Math.IsNaN(Microsoft.Quantum.Math.ArcSin(2.0))",
+        &Value::Bool(true),
+    );
+}
+
+//
 // Sign, Abs, Min, Max, etc.
 //
 
@@ -67,6 +80,10 @@ fn check_abs_i() {
     test_expression("Microsoft.Quantum.Math.AbsI(0)", &Value::Int(0));
     test_expression("Microsoft.Quantum.Math.AbsI(1000)", &Value::Int(1000));
     test_expression("Microsoft.Quantum.Math.AbsI(-1000)", &Value::Int(1000));
+    test_expression(
+        "Microsoft.Quantum.Math.AbsI(-0x8000_0000_0000_0000)",
+        &Value::Int(-0x8000_0000_0000_0000),
+    );
 }
 
 #[test]
@@ -622,6 +639,48 @@ fn check_bitsize_l() {
     test_expression(
         "Microsoft.Quantum.Math.BitSizeL(0x8FFFFFFFFFFFFFFFL)",
         &Value::Int(64),
+    );
+}
+
+#[test]
+fn check_trailing_zero_count_i() {
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountI(7)",
+        &Value::Int(0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountI(2)",
+        &Value::Int(1),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountI(7616)",
+        &Value::Int(6),
+    );
+}
+
+#[test]
+fn check_trailing_zero_count_l() {
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountL(7L)",
+        &Value::Int(0),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountL(2L)",
+        &Value::Int(1),
+    );
+    test_expression(
+        "Microsoft.Quantum.Math.TrailingZeroCountL(1L<<<163)",
+        &Value::Int(163),
+    );
+}
+
+#[test]
+fn check_hamming_weight() {
+    test_expression("Microsoft.Quantum.Math.HammingWeightI(2)", &Value::Int(1));
+    test_expression("Microsoft.Quantum.Math.HammingWeightI(14)", &Value::Int(3));
+    test_expression(
+        "Microsoft.Quantum.Math.HammingWeightI(1<<<5)",
+        &Value::Int(1),
     );
 }
 

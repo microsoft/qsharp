@@ -3,6 +3,7 @@
 
 import { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
 export { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
+import { log } from "./log.js";
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]
 // index), however VS Code and Monaco handle positions as utf-16 code unit positions
@@ -16,7 +17,7 @@ export { type VSDiagnostic } from "../lib/web/qsc_wasm.js";
  */
 export function mapUtf16UnitsToUtf8Units(
   positions: Array<number>,
-  source: string
+  source: string,
 ): { [index: number]: number } {
   return mapStringIndexes(source, positions, "utf16");
 }
@@ -28,7 +29,7 @@ export function mapUtf16UnitsToUtf8Units(
  */
 export function mapUtf8UnitsToUtf16Units(
   positions: Array<number>,
-  source: string
+  source: string,
 ): { [index: number]: number } {
   return mapStringIndexes(source, positions, "utf8");
 }
@@ -36,7 +37,7 @@ export function mapUtf8UnitsToUtf16Units(
 function mapStringIndexes(
   buffer: string,
   indexes: Array<number>,
-  sourceIndexType: "utf8" | "utf16"
+  sourceIndexType: "utf8" | "utf16",
 ): { [index: number]: number } {
   const result: { [index: number]: number } = {};
   if (indexes.length === 0) return result;
@@ -116,10 +117,10 @@ function mapStringIndexes(
   // TODO: May want to have a more configurable error reporting at some point. Avoid throwing here,
   // and just report and continue.
   if (posArrayIndex < sortedIndexes.length) {
-    console.error(
+    log.error(
       `Failed to map all ${sourceIndexType} indexes. Remaining indexes are: ${sortedIndexes.slice(
-        posArrayIndex
-      )}`
+        posArrayIndex,
+      )}`,
     );
   }
 
@@ -128,7 +129,7 @@ function mapStringIndexes(
 
 export function mapDiagnostics(
   diags: VSDiagnostic[],
-  code: string
+  code: string,
 ): VSDiagnostic[] {
   // Get a map of the Rust source positions to the JavaScript source positions
   const positions: number[] = [];

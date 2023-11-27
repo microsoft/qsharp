@@ -4,6 +4,7 @@
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
+import { getTarget, setTarget } from "./config";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
@@ -12,7 +13,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    200
+    200,
   );
   disposables.push(statusBarItem);
 
@@ -32,7 +33,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
         // Q# document.
         statusBarItem.hide();
       }
-    })
+    }),
   );
 
   disposables.push(
@@ -44,7 +45,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
       ) {
         refreshStatusBarItemValue();
       }
-    })
+    }),
   );
 
   if (
@@ -62,9 +63,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     // VS Code will return the default value defined by the extension
     // if none was set by the user, so targetProfile should always
     // be a valid string.
-    const targetProfile = vscode.workspace
-      .getConfiguration("Q#")
-      .get<string>("targetProfile", "full");
+    const targetProfile = getTarget();
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
     statusBarItem.show();
@@ -79,19 +78,13 @@ function registerTargetProfileCommand() {
     async () => {
       const target = await vscode.window.showQuickPick(
         targetProfiles.map((profile) => profile.uiText),
-        { placeHolder: "Select the QIR target profile" }
+        { placeHolder: "Select the QIR target profile" },
       );
 
       if (target) {
-        vscode.workspace
-          .getConfiguration("Q#")
-          .update(
-            "targetProfile",
-            getTargetProfileSetting(target),
-            vscode.ConfigurationTarget.Global
-          );
+        setTarget(getTargetProfileSetting(target));
       }
-    }
+    },
   );
 }
 

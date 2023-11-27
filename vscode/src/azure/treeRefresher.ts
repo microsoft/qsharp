@@ -25,7 +25,7 @@ function* refreshRangeIterator(
   minMs: number,
   maxMs: number,
   stepFactor: number,
-  limit: number
+  limit: number,
 ) {
   let totalMs = 0;
   do {
@@ -40,7 +40,7 @@ async function iterateUntilTrue(
   iter: Generator<number>,
   id: string,
   predicate: () => Promise<boolean>,
-  onDone?: () => void
+  onDone?: () => void,
 ) {
   const nextDelay = iter.next();
   if (nextDelay.value && !(await predicate())) {
@@ -48,7 +48,7 @@ async function iterateUntilTrue(
     log.debug("Scheduling next workspace refresh in ", nextDelay.value, "ms");
     const timeoutId = setTimeout(
       () => iterateUntilTrue(iter, id, predicate, onDone),
-      nextDelay.value
+      nextDelay.value,
     );
     runningTimeouts.set(id, timeoutId);
   } else {
@@ -67,11 +67,11 @@ export function startRefreshCycle(
   treeProvider: WorkspaceTreeProvider,
   workspace: WorkspaceConnection,
   newJobId?: string,
-  onDone?: () => void
+  onDone?: () => void,
 ) {
   log.debug(
     "Refreshing jobs list until they are all finished for workspace: ",
-    workspace.id
+    workspace.id,
   );
   // Stop any other refreshes for this workspace
   stopTimeout(workspace.id);

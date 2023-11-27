@@ -14,3 +14,6 @@ qsc = { path = "../../compiler/qsc" }
 
 [dev-dependencies]
 indoc = { workspace = true }
+
+[lib]
+doctest = false

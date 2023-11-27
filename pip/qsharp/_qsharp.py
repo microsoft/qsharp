@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, TargetProfile
+from ._native import Interpreter, TargetProfile, StateDump
 
 _interpreter = None
 
@@ -87,6 +87,14 @@ def compile(entry_expr):
     """
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
+
+def dump_machine() -> StateDump:
+    """
+    Returns the sparse state vector of the simulator as a StateDump object.
+
+    :returns: The state of the simulator.
+    """
+    return get_interpreter().dump_machine()
 
 
 # Class that wraps generated QIR, which can be used by

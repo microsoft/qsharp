@@ -272,7 +272,7 @@ impl Interpreter {
 
         let increment = self
             .compiler
-            .compile_fragments(&label, fragments)
+            .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
         let stmts = self.lower(&increment);
@@ -324,6 +324,11 @@ impl Interpreter {
         shots: u32,
     ) -> Result<Vec<InterpretResult>, Vec<Error>> {
         self.run_with_sim(&mut SparseSim::new(), receiver, expr, shots)
+    }
+
+    /// Gets the current quantum state of the simulator.
+    pub fn get_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+        self.sim.capture_quantum_state()
     }
 
     /// Performs QIR codegen using the given entry expression on a new instance of the environment

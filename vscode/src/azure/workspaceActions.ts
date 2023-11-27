@@ -9,12 +9,15 @@ import {
   QuantumUris,
   ResponseTypes,
   storageRequest,
+  useProxy,
 } from "./networkRequests";
 import { WorkspaceConnection } from "./treeView";
 import {
   shouldExcludeProvider,
   shouldExcludeTarget,
 } from "./providerProperties";
+import { getRandomGuid } from "../utils";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
@@ -22,8 +25,10 @@ export const scopes = {
 };
 
 export async function getAuthSession(
-  scopes: string[]
+  scopes: string[],
+  correlationId: string,
 ): Promise<vscode.AuthenticationSession> {
+  sendTelemetryEvent(EventType.AuthSessionStart, { correlationId }, {});
   log.debug("About to getSession for scopes", scopes.join(","));
   try {
     let session = await vscode.authentication.getSession("microsoft", scopes, {
@@ -36,40 +41,28 @@ export async function getAuthSession(
       });
     }
     log.debug("Got session: ", JSON.stringify(session, null, 2));
+    sendTelemetryEvent(
+      EventType.AuthSessionEnd,
+      {
+        correlationId,
+        flowStatus: UserFlowStatus.Succeeded,
+      },
+      {},
+    );
     return session;
   } catch (e) {
+    sendTelemetryEvent(
+      EventType.AuthSessionEnd,
+      {
+        correlationId,
+        reason: "exception in getAuthSession",
+        flowStatus: UserFlowStatus.Failed,
+      },
+      {},
+    );
     log.error("Exception occurred in getAuthSession: ", e);
     throw e;
   }
-}
-
-// Guid format such as "00000000-1111-2222-3333-444444444444"
-export function getRandomGuid(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-
-  // Per https://www.ietf.org/rfc/rfc4122.txt, for UUID v4 (random GUIDs):
-  // - Octet 6 contains the version in top 4 bits (0b0100)
-  // - Octet 8 contains the variant in the top 2 bits (0b10)
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  // Convert the 16 bytes into 32 hex digits
-  const hex = bytes.reduce(
-    (acc, byte) => acc + byte.toString(16).padStart(2, "0"),
-    ""
-  );
-
-  return (
-    hex.substring(0, 8) +
-    "-" +
-    hex.substring(8, 12) +
-    "-" +
-    hex.substring(12, 16) +
-    "-" +
-    hex.substring(16, 20) +
-    "-" +
-    hex.substring(20, 32)
-  );
 }
 
 export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
@@ -82,7 +75,7 @@ export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
 export function getPythonCodeForWorkspace(
   id: string,
   endpointUri: string,
-  name: string
+  name: string,
 ) {
   // id starts with the pattern: "/subscriptions/<sub guid>/resourceGroups/<group>>/providers/Microsoft.Quantum/Workspaces/<name>"
   // endpointUri format: "https:/westus2.quantum.azure.com"
@@ -125,14 +118,25 @@ export async function queryWorkspaces(): Promise<
   WorkspaceConnection | undefined
 > {
   log.debug("Querying for account workspaces");
+  const correlationId = getRandomGuid();
+  sendTelemetryEvent(EventType.QueryWorkspacesStart, { correlationId }, {});
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
 
   // For the MSA case, you need to query the tenants first and get the underlying AzureAD
   // tenant for the 'guest' MSA. See https://stackoverflow.microsoft.com/a/76246/108570
-  const firstAuth = await getAuthSession([scopes.armMgmt]);
+  const firstAuth = await getAuthSession([scopes.armMgmt], correlationId);
 
   if (!firstAuth) {
     log.error("No authentication session returned");
+    sendTelemetryEvent(
+      EventType.QueryWorkspacesEnd,
+      {
+        correlationId,
+        reason: "no auth session returned",
+        flowStatus: UserFlowStatus.Failed,
+      },
+      {},
+    );
     return;
   }
 
@@ -141,13 +145,23 @@ export async function queryWorkspaces(): Promise<
 
   const tenants: ResponseTypes.TenantList = await azureRequest(
     azureUris.tenants(),
-    firstToken
+    firstToken,
+    correlationId,
   );
   log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
   if (!tenants?.value?.length) {
     log.error("No tenants returned");
+    sendTelemetryEvent(
+      EventType.QueryWorkspacesEnd,
+      {
+        correlationId,
+        reason: "no tenants exist for account",
+        flowStatus: UserFlowStatus.Failed,
+      },
+      {},
+    );
     vscode.window.showErrorMessage(
-      "There a no tenants listed for the account. Ensure the account has an Azure subscription."
+      "There a no tenants listed for the account. Ensure the account has an Azure subscription.",
     );
     return;
   }
@@ -162,7 +176,18 @@ export async function queryWorkspaces(): Promise<
     const choice = await vscode.window.showQuickPick(pickItems, {
       title: "Select a tenant",
     });
-    if (!choice) return;
+    if (!choice) {
+      sendTelemetryEvent(
+        EventType.QueryWorkspacesEnd,
+        {
+          correlationId,
+          reason: "aborted tenant choice",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        {},
+      );
+      return;
+    }
     tenantId = choice.detail;
   }
 
@@ -173,11 +198,20 @@ export async function queryWorkspaces(): Promise<
   const matchesTenant = tenantAuth.account.id.startsWith(tenantId);
   const accountType = (tenantAuth as any).account?.type || "";
   if (accountType !== "aad" || !matchesTenant) {
-    tenantAuth = await getAuthSession([
-      scopes.armMgmt,
-      `VSCODE_TENANT:${tenantId}`,
-    ]);
+    tenantAuth = await getAuthSession(
+      [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
+      correlationId,
+    );
     if (!tenantAuth) {
+      sendTelemetryEvent(
+        EventType.QueryWorkspacesEnd,
+        {
+          correlationId,
+          reason: "authentication session did not return",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        {},
+      );
       // The user may have cancelled the login
       log.debug("No AAD authentication session returned during 2nd auth");
       return;
@@ -187,13 +221,14 @@ export async function queryWorkspaces(): Promise<
 
   const subs: ResponseTypes.SubscriptionList = await azureRequest(
     azureUris.subscriptions(),
-    tenantToken
+    tenantToken,
+    correlationId,
   );
   log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
   if (!subs?.value?.length) {
     log.info("No subscriptions returned for the AAD account and tenant");
     vscode.window.showErrorMessage(
-      "No Azure subscriptions found for the account and tenant"
+      "No Azure subscriptions found for the account and tenant",
     );
     return;
   }
@@ -208,22 +243,44 @@ export async function queryWorkspaces(): Promise<
     const choice = await vscode.window.showQuickPick(pickItems, {
       title: "Select a subscription",
     });
-    if (!choice) return; // User probably cancelled
+    if (!choice) {
+      // User probably cancelled
+      sendTelemetryEvent(
+        EventType.QueryWorkspacesEnd,
+        {
+          correlationId,
+          reason: "aborted subscription choice",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        {},
+      );
+      return;
+    }
     subId = choice.detail;
   }
 
   // *** Fetch the Quantum Workspaces in the subscription ***
   const workspaces: ResponseTypes.WorkspaceList = await azureRequest(
     azureUris.workspaces(subId),
-    tenantToken
+    tenantToken,
+    correlationId,
   );
   if (log.getLogLevel() >= 5) {
     log.trace(`Got workspaces: ${JSON.stringify(workspaces, null, 2)}`);
   }
   if (!workspaces.value.length) {
     log.info("No workspaces returned for the subscription");
+    sendTelemetryEvent(
+      EventType.QueryWorkspacesEnd,
+      {
+        correlationId,
+        reason: "no quantum workspaces in azure subscription",
+        flowStatus: UserFlowStatus.Aborted,
+      },
+      {},
+    );
     vscode.window.showErrorMessage(
-      "No Quantum Workspaces found in the Azure subscription"
+      "No Quantum Workspaces found in the Azure subscription",
     );
     return;
   }
@@ -242,7 +299,18 @@ export async function queryWorkspaces(): Promise<
     const choice = await vscode.window.showQuickPick(pickItems, {
       title: "Select a workspace",
     });
-    if (!choice) return;
+    if (!choice) {
+      sendTelemetryEvent(
+        EventType.QueryWorkspacesEnd,
+        {
+          correlationId,
+          reason: "aborted workspace selection",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        {},
+      );
+      return;
+    }
     workspace = choice.selection;
   }
 
@@ -250,7 +318,7 @@ export async function queryWorkspaces(): Promise<
   const fixedEndpoint =
     workspace.properties.endpointUri?.replace(
       `https://${workspace.name}.`,
-      "https://"
+      "https://",
     ) || "";
 
   const result: WorkspaceConnection = {
@@ -276,10 +344,12 @@ export async function queryWorkspaces(): Promise<
 }
 
 export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
-  const workspaceAuth = await getAuthSession([
-    scopes.quantum,
-    `VSCODE_TENANT:${workspace.tenantId}`,
-  ]);
+  const correlationId = getRandomGuid();
+
+  const workspaceAuth = await getAuthSession(
+    [scopes.quantum, `VSCODE_TENANT:${workspace.tenantId}`],
+    correlationId,
+  );
   return workspaceAuth.accessToken;
 }
 
@@ -289,15 +359,19 @@ export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
 export async function queryWorkspace(workspace: WorkspaceConnection) {
   const token = await getTokenForWorkspace(workspace);
 
+  const correlationId = getRandomGuid();
+  sendTelemetryEvent(EventType.QueryWorkspaceStart, { correlationId }, {});
+
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
   const providerStatus: ResponseTypes.ProviderStatusList = await azureRequest(
     quantumUris.providerStatus(),
-    token
+    token,
+    correlationId,
   );
   if (log.getLogLevel() >= 5) {
     log.trace(
-      `Got provider status: ${JSON.stringify(providerStatus, null, 2)}`
+      `Got provider status: ${JSON.stringify(providerStatus, null, 2)}`,
     );
   }
 
@@ -307,19 +381,20 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
       providerId: provider.id,
       currentAvailability: provider.currentAvailability,
       targets: provider.targets.filter(
-        (target) => !shouldExcludeTarget(target.id)
+        (target) => !shouldExcludeTarget(target.id),
       ),
     };
   });
 
   workspace.providers = workspace.providers.filter(
-    (provider) => !shouldExcludeProvider(provider.providerId)
+    (provider) => !shouldExcludeProvider(provider.providerId),
   );
 
   log.debug("Fetching the jobs for the workspace");
   const jobs: ResponseTypes.JobList = await azureRequest(
     quantumUris.jobs(),
-    token
+    token,
+    correlationId,
   );
   log.debug(`Query returned ${jobs.value.length} jobs`);
 
@@ -331,12 +406,29 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     log.error("Jobs returned a nextLink. This is not supported yet.");
   }
 
-  if (jobs.value.length === 0) return;
+  if (jobs.value.length === 0) {
+    sendTelemetryEvent(
+      EventType.QueryWorkspaceEnd,
+      {
+        correlationId,
+        reason: "no jobs returned",
+        flowStatus: UserFlowStatus.Aborted,
+      },
+      {},
+    );
+    return;
+  }
 
   // Sort by creation time from newest to oldest
   workspace.jobs = jobs.value
     .sort((a, b) => (a.creationTime < b.creationTime ? 1 : -1))
     .map((job) => ({ ...job }));
+
+  sendTelemetryEvent(
+    EventType.QueryWorkspaceEnd,
+    { correlationId, flowStatus: UserFlowStatus.Succeeded },
+    {},
+  );
 
   return;
 }
@@ -345,23 +437,49 @@ export async function getJobFiles(
   containerName: string,
   blobName: string,
   token: string,
-  quantumUris: QuantumUris
+  quantumUris: QuantumUris,
 ): Promise<string> {
+  const correlationId = getRandomGuid();
   log.debug(`Fetching job file from ${containerName}/${blobName}`);
+  sendTelemetryEvent(EventType.GetJobFilesStart, { correlationId }, {});
 
   const body = JSON.stringify({ containerName, blobName });
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
+    correlationId,
     "POST",
-    body
+    body,
   );
   const sasUri = decodeURI(sasResponse.sasUri);
   log.trace(`Got SAS URI: ${sasUri}`);
 
-  const file = await storageRequest(sasUri, "GET");
-  if (!file) throw "No file returned";
+  const file = await storageRequest(
+    sasUri,
+    "GET",
+    useProxy ? token : undefined,
+    useProxy ? quantumUris.storageProxy() : undefined,
+  );
+
+  if (!file) {
+    sendTelemetryEvent(
+      EventType.GetJobFilesEnd,
+      {
+        correlationId,
+        reason: "no files returned",
+        flowStatus: UserFlowStatus.Aborted,
+      },
+      {},
+    );
+    throw "No file returned";
+  }
+
   const blob = await file.text();
+  sendTelemetryEvent(
+    EventType.GetJobFilesEnd,
+    { correlationId, flowStatus: UserFlowStatus.Succeeded },
+    {},
+  );
   return blob;
 }
 
@@ -370,8 +488,11 @@ export async function submitJob(
   quantumUris: QuantumUris,
   qirFile: Uint8Array | string,
   providerId: string,
-  target: string
+  target: string,
 ) {
+  const correlationId = getRandomGuid();
+  sendTelemetryEvent(EventType.SubmitToAzureStart, { correlationId }, {});
+
   const containerName = getRandomGuid();
   const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
 
@@ -392,17 +513,28 @@ export async function submitJob(
 
   // abort if the user hits <Esc> during shots entry
   if (numberOfShots === undefined) {
+    sendTelemetryEvent(
+      EventType.SubmitToAzureEnd,
+      {
+        correlationId,
+        reason: "undefined number of shots",
+        flowStatus: UserFlowStatus.Aborted,
+      },
+      {},
+    );
     return;
   }
 
   // Get a sasUri for the container
   const body = JSON.stringify({ containerName });
-  const sasResponse: ResponseTypes.SasUri = await azureRequest(
+  const sasResponse = await azureRequest(
     quantumUris.sasUri(),
     token,
+    correlationId,
     "POST",
-    body
+    body,
   );
+
   const sasUri = decodeURI(sasResponse.sasUri);
 
   // Parse the Uri to get the storage account and sasToken
@@ -411,20 +543,34 @@ export async function submitJob(
 
   // Get the raw value to append to other query strings
   const sasTokenRaw = sasResponse.sasUri.substring(
-    sasResponse.sasUri.indexOf("?") + 1
+    sasResponse.sasUri.indexOf("?") + 1,
   );
 
   // Create the container
   const containerPutUri = `${storageAccount}/${containerName}?restype=container&${sasTokenRaw}`;
-  await storageRequest(containerPutUri, "PUT");
+  await storageRequest(
+    containerPutUri,
+    "PUT",
+    useProxy ? token : undefined,
+    useProxy ? quantumUris.storageProxy() : undefined,
+    undefined,
+    undefined,
+    correlationId,
+  );
 
   // Write the input data
   const inputDataUri = `${storageAccount}/${containerName}/inputData?${sasTokenRaw}`;
   await storageRequest(
     inputDataUri,
     "PUT",
-    [["x-ms-blob-type", "BlockBlob"]],
-    qirFile
+    useProxy ? token : undefined,
+    useProxy ? quantumUris.storageProxy() : undefined,
+    [
+      ["x-ms-blob-type", "BlockBlob"],
+      ["Content-Type", "text/plain"],
+    ],
+    qirFile,
+    correlationId,
   );
 
   // PUT the job data
@@ -447,9 +593,24 @@ export async function submitJob(
       shots: parseInt(numberOfShots),
     },
   };
-  await azureRequest(putJobUri, token, "PUT", JSON.stringify(payload));
+  await azureRequest(
+    putJobUri,
+    token,
+    correlationId,
+    "PUT",
+    JSON.stringify(payload),
+  );
 
   vscode.window.showInformationMessage(`Job ${jobName} submitted`);
+  sendTelemetryEvent(
+    EventType.SubmitToAzureEnd,
+    {
+      correlationId,
+      reason: "job submitted",
+      flowStatus: UserFlowStatus.Succeeded,
+    },
+    {},
+  );
 
   return containerName; // The jobId
 }

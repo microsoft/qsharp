@@ -226,6 +226,7 @@ impl Lowerer {
             hir::PatKind::Tuple(elems) => {
                 fir::PatKind::Tuple(elems.iter().map(|pat| self.lower_pat(pat)).collect())
             }
+            hir::PatKind::Err => unreachable!("error pat should not be present"),
         };
 
         let pat = fir::Pat { id, span, ty, kind };
@@ -402,6 +403,7 @@ impl Lowerer {
             hir::PatKind::Tuple(items) => {
                 fir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
             }
+            hir::PatKind::Err => unreachable!("error pat should not be present"),
         };
 
         let pat = fir::Pat {
@@ -423,6 +425,7 @@ impl Lowerer {
             hir::QubitInitKind::Tuple(items) => {
                 fir::QubitInitKind::Tuple(items.iter().map(|i| self.lower_qubit_init(i)).collect())
             }
+            hir::QubitInitKind::Err => unreachable!("error qubit init should not be present"),
         };
 
         fir::QubitInit {

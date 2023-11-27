@@ -8,7 +8,7 @@ export const scheme = "qsharp-vfs";
 
 const playgroundAuthority = "playground";
 const playgroundRootUri = vscode.Uri.parse(
-  `${scheme}://${playgroundAuthority}/`
+  `${scheme}://${playgroundAuthority}/`,
 );
 
 const playgroundReadme = `
@@ -44,14 +44,14 @@ function populateSamples(vfs: MemFS) {
     vfs.writeFile(
       playgroundRootUri.with({ path: `/samples/${sample.title}.qs` }),
       encoder.encode(sample.code),
-      { create: true, overwrite: true }
+      { create: true, overwrite: true },
     );
   });
 
   vfs.writeFile(
     playgroundRootUri.with({ path: "/README.md" }),
     encoder.encode(playgroundReadme),
-    { create: true, overwrite: true }
+    { create: true, overwrite: true },
   );
 }
 
@@ -63,7 +63,7 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
     vscode.workspace.registerFileSystemProvider(scheme, vfs, {
       isCaseSensitive: true,
       isReadonly: false,
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -72,10 +72,10 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
       async () => {
         await vscode.commands.executeCommand(
           "vscode.openFolder",
-          playgroundRootUri
+          playgroundRootUri,
         );
-      }
-    )
+      },
+    ),
   );
 
   context.subscriptions.push(
@@ -87,7 +87,7 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
         // Nice to have: First check if the readme is already open from a prior visit
         await vscode.commands.executeCommand(
           "markdown.showPreview",
-          playgroundRootUri.with({ path: "/README.md" })
+          playgroundRootUri.with({ path: "/README.md" }),
         );
         return;
       }
@@ -113,12 +113,13 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
               overwrite: true,
             });
             await vscode.commands.executeCommand("vscode.open", codeFile);
+            await vscode.commands.executeCommand("qsharp-vscode.showHelp");
           } catch (err) {
             log.warn("Unable to decode the code in the URL. ", err);
           }
         }
       }
-    })
+    }),
   );
 }
 
@@ -225,7 +226,7 @@ export class MemFS implements vscode.FileSystemProvider {
   writeFile(
     uri: vscode.Uri,
     content: Uint8Array,
-    options: { create: boolean; overwrite: boolean }
+    options: { create: boolean; overwrite: boolean },
   ): void {
     log.debug("writeFile: " + uri.path);
 
@@ -256,7 +257,7 @@ export class MemFS implements vscode.FileSystemProvider {
   rename(
     oldUri: vscode.Uri,
     newUri: vscode.Uri,
-    options: { overwrite: boolean }
+    options: { overwrite: boolean },
   ): void {
     if (!options.overwrite && this._lookup(newUri, true)) {
       throw vscode.FileSystemError.FileExists(newUri);
@@ -274,7 +275,7 @@ export class MemFS implements vscode.FileSystemProvider {
 
     this._fireSoon(
       { type: vscode.FileChangeType.Deleted, uri: oldUri },
-      { type: vscode.FileChangeType.Created, uri: newUri }
+      { type: vscode.FileChangeType.Created, uri: newUri },
     );
   }
 
@@ -290,7 +291,7 @@ export class MemFS implements vscode.FileSystemProvider {
     parent.size -= 1;
     this._fireSoon(
       { type: vscode.FileChangeType.Changed, uri: dirName },
-      { uri, type: vscode.FileChangeType.Deleted }
+      { uri, type: vscode.FileChangeType.Deleted },
     );
   }
 
@@ -305,7 +306,7 @@ export class MemFS implements vscode.FileSystemProvider {
     parent.size += 1;
     this._fireSoon(
       { type: vscode.FileChangeType.Changed, uri: dirName },
-      { type: vscode.FileChangeType.Created, uri }
+      { type: vscode.FileChangeType.Created, uri },
     );
   }
 
@@ -409,7 +410,7 @@ export async function compressedBase64ToCode(base64: string) {
 
   // Read the decompressed stream and turn into a byte string
   const decompressedBuff = await new Response(
-    decompressor.readable
+    decompressor.readable,
   ).arrayBuffer();
 
   // Decode the utf-8 bytes into a JavaScript string

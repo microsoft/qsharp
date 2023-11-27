@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._qsharp import init, eval, eval_file, run, compile
+from ._qsharp import init, eval, eval_file, run, compile, dump_machine
 
-from ._native import Result, Pauli, QSharpError, TargetProfile
+from ._native import Result, Pauli, QSharpError, TargetProfile, StateDump
 
 # IPython notebook specific features
 try:
@@ -21,9 +21,11 @@ __all__ = [
     "eval",
     "eval_file",
     "run",
+    "dump_machine",
     "compile",
     "Result",
     "Pauli",
     "QSharpError",
     "TargetProfile",
+    "StateDump"
 ]

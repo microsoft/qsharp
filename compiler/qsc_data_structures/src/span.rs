@@ -74,3 +74,19 @@ impl From<Span> for SourceSpan {
         Self::from((value.lo as usize)..(value.hi as usize))
     }
 }
+
+#[allow(clippy::module_name_repetitions)]
+pub trait WithSpan {
+    #[must_use]
+    fn with_span(self, span: Span) -> Self;
+}
+
+impl<T> WithSpan for Box<T>
+where
+    T: WithSpan,
+{
+    fn with_span(mut self, span: Span) -> Self {
+        *self = (*self).with_span(span);
+        self
+    }
+}

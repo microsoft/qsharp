@@ -16,9 +16,11 @@ qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
-quantum-sparse-sim = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_passes = { path = "../qsc_passes" }
+
+[lib]
+doctest = false

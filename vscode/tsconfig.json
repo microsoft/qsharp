@@ -13,5 +13,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["test"]
+  "exclude": ["test", "src/webview"]
 }

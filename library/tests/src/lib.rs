@@ -5,9 +5,15 @@
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 #[cfg(test)]
+mod test_arithmetic;
+#[cfg(test)]
 mod test_arrays;
 #[cfg(test)]
+mod test_canon;
+#[cfg(test)]
 mod test_convert;
+#[cfg(test)]
+mod test_diagnostics;
 #[cfg(test)]
 mod test_math;
 #[cfg(test)]
@@ -26,10 +32,14 @@ use qsc::{
 /// NOTE: Floating point numbers in tuples are compared taking precision into
 /// account so that results of calculations can also be compared.
 pub fn test_expression(expr: &str, expected: &Value) {
+    test_expression_with_lib(expr, "", expected);
+}
+
+pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 
-    let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
+    let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
     let mut interpreter =
         stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)

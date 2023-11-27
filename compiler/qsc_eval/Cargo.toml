@@ -25,3 +25,6 @@ thiserror = { workspace = true }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_passes = { path = "../qsc_passes" }
+
+[lib]
+doctest = false

@@ -18,11 +18,7 @@ use qsc_eval::{
 use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir::{self};
-use quantum_sparse_sim::QuantumSim;
 use std::fmt::{Display, Write};
-
-const PREFIX: &str = include_str!("./qir_base/prefix.ll");
-const POSTFIX: &str = include_str!("./qir_base/postfix.ll");
 
 /// # Errors
 ///
@@ -124,8 +120,11 @@ pub(super) fn get_global(
 
 pub struct BaseProfSim {
     next_meas_id: usize,
-    sim: QuantumSim,
+    next_qubit_id: usize,
+    next_qubit_hardware_id: usize,
+    qubit_map: IndexMap<usize, usize>,
     instrs: String,
+    measurements: String,
 }
 
 impl Default for BaseProfSim {
@@ -139,17 +138,29 @@ impl BaseProfSim {
     pub fn new() -> Self {
         let mut sim = BaseProfSim {
             next_meas_id: 0,
-            sim: QuantumSim::new(),
+            next_qubit_id: 0,
+            next_qubit_hardware_id: 0,
+            qubit_map: IndexMap::new(),
             instrs: String::new(),
+            measurements: String::new(),
         };
-        sim.instrs.push_str(PREFIX);
+        sim.instrs.push_str(include_str!("./qir_base/prefix.ll"));
         sim
     }
 
+    #[must_use]
     pub fn finish(mut self, val: &Value) -> String {
+        self.instrs.push_str(&self.measurements);
         self.write_output_recording(val)
             .expect("writing to string should succeed");
-        self.instrs.push_str(POSTFIX);
+
+        write!(
+            self.instrs,
+            include_str!("./qir_base/postfix.ll"),
+            self.next_qubit_hardware_id, self.next_meas_id
+        )
+        .expect("writing to string should succeed");
+
         self.instrs
     }
 
@@ -158,6 +169,17 @@ impl BaseProfSim {
         let id = self.next_meas_id;
         self.next_meas_id += 1;
         id
+    }
+
+    fn map(&mut self, qubit: usize) -> usize {
+        if let Some(mapped) = self.qubit_map.get(qubit) {
+            *mapped
+        } else {
+            let mapped = self.next_qubit_hardware_id;
+            self.next_qubit_hardware_id += 1;
+            self.qubit_map.insert(qubit, mapped);
+            mapped
+        }
     }
 
     fn write_output_recording(&mut self, val: &Value) -> std::fmt::Result {
@@ -210,6 +232,9 @@ impl Backend for BaseProfSim {
     type ResultType = usize;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
+        let ctl0 = self.map(ctl0);
+        let ctl1 = self.map(ctl1);
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__ccx__body({}, {}, {})",
@@ -221,6 +246,8 @@ impl Backend for BaseProfSim {
     }
 
     fn cx(&mut self, ctl: usize, q: usize) {
+        let ctl = self.map(ctl);
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__cx__body({}, {})",
@@ -231,6 +258,8 @@ impl Backend for BaseProfSim {
     }
 
     fn cy(&mut self, ctl: usize, q: usize) {
+        let ctl = self.map(ctl);
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__cy__body({}, {})",
@@ -241,6 +270,8 @@ impl Backend for BaseProfSim {
     }
 
     fn cz(&mut self, ctl: usize, q: usize) {
+        let ctl = self.map(ctl);
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__cz__body({}, {})",
@@ -251,6 +282,7 @@ impl Backend for BaseProfSim {
     }
 
     fn h(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__h__body({})",
@@ -260,39 +292,34 @@ impl Backend for BaseProfSim {
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
+        let q = self.map(q);
         let id = self.get_meas_id();
+        // Measurements are tracked separately from instructions, so that they can be
+        // deferred until the end of the program.
         writeln!(
-            self.instrs,
-            "  call void @__quantum__qis__m__body({}, {}) #1",
+            self.measurements,
+            "  call void @__quantum__qis__mz__body({}, {}) #1",
             Qubit(q),
             Result(id),
         )
         .expect("writing to string should succeed");
+        self.reset(q);
         id
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        let id = self.get_meas_id();
-        writeln!(
-            self.instrs,
-            "  call void @__quantum__qis__mresetz__body({}, {}) #1",
-            Qubit(q),
-            Result(id),
-        )
-        .expect("writing to string should succeed");
-        id
+        self.m(q)
     }
 
     fn reset(&mut self, q: usize) {
-        writeln!(
-            self.instrs,
-            "  call void @__quantum__qis__reset__body({})",
-            Qubit(q),
-        )
-        .expect("writing to string should succeed");
+        // Reset is a no-op in Base Profile, but does force qubit remapping so that future
+        // operations on the given qubit id are performed on a fresh qubit. Clear the entry in the map
+        // so it is known to require remapping on next use.
+        self.qubit_map.remove(q);
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__rx__body({}, {})",
@@ -303,6 +330,8 @@ impl Backend for BaseProfSim {
     }
 
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
+        let q0 = self.map(q0);
+        let q1 = self.map(q1);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__rxx__body({}, {}, {})",
@@ -314,6 +343,7 @@ impl Backend for BaseProfSim {
     }
 
     fn ry(&mut self, theta: f64, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__ry__body({}, {})",
@@ -324,6 +354,8 @@ impl Backend for BaseProfSim {
     }
 
     fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
+        let q0 = self.map(q0);
+        let q1 = self.map(q1);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__ryy__body({}, {}, {})",
@@ -335,6 +367,7 @@ impl Backend for BaseProfSim {
     }
 
     fn rz(&mut self, theta: f64, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__rz__body({}, {})",
@@ -345,6 +378,8 @@ impl Backend for BaseProfSim {
     }
 
     fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
+        let q0 = self.map(q0);
+        let q1 = self.map(q1);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__rzz__body({}, {}, {})",
@@ -356,6 +391,7 @@ impl Backend for BaseProfSim {
     }
 
     fn sadj(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__s__adj({})",
@@ -365,6 +401,7 @@ impl Backend for BaseProfSim {
     }
 
     fn s(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__s__body({})",
@@ -374,6 +411,8 @@ impl Backend for BaseProfSim {
     }
 
     fn swap(&mut self, q0: usize, q1: usize) {
+        let q0 = self.map(q0);
+        let q1 = self.map(q1);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__swap__body({}, {})",
@@ -384,6 +423,7 @@ impl Backend for BaseProfSim {
     }
 
     fn tadj(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__t__adj({})",
@@ -393,6 +433,7 @@ impl Backend for BaseProfSim {
     }
 
     fn t(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__t__body({})",
@@ -402,6 +443,7 @@ impl Backend for BaseProfSim {
     }
 
     fn x(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__x__body({})",
@@ -411,6 +453,7 @@ impl Backend for BaseProfSim {
     }
 
     fn y(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__y__body({})",
@@ -420,6 +463,7 @@ impl Backend for BaseProfSim {
     }
 
     fn z(&mut self, q: usize) {
+        let q = self.map(q);
         writeln!(
             self.instrs,
             "  call void @__quantum__qis__z__body({})",
@@ -429,11 +473,14 @@ impl Backend for BaseProfSim {
     }
 
     fn qubit_allocate(&mut self) -> usize {
-        self.sim.allocate()
+        let id = self.next_qubit_id;
+        self.next_qubit_id += 1;
+        let _ = self.map(id);
+        id
     }
 
-    fn qubit_release(&mut self, q: usize) {
-        self.sim.release(q);
+    fn qubit_release(&mut self, _q: usize) {
+        self.next_qubit_id -= 1;
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
