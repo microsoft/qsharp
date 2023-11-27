@@ -8,6 +8,7 @@ use crate::test_utils::{
     compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
     get_source_and_marker_offsets,
 };
+use indoc::indoc;
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
@@ -50,12 +51,12 @@ fn check_notebook(
 #[test]
 fn in_block_contains_std_functions() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         operation Test() : Unit {
             ↘
         }
-    }"#,
+    }"#},
         &["Fake", "FakeWithParam", "FakeCtlAdj"],
         &expect![[r#"
             [
@@ -73,8 +74,8 @@ fn in_block_contains_std_functions() {
                             [
                                 (
                                     Span {
-                                        start: 30,
-                                        end: 30,
+                                        start: 21,
+                                        end: 21,
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -96,8 +97,8 @@ fn in_block_contains_std_functions() {
                             [
                                 (
                                     Span {
-                                        start: 30,
-                                        end: 30,
+                                        start: 21,
+                                        end: 21,
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -119,8 +120,8 @@ fn in_block_contains_std_functions() {
                             [
                                 (
                                     Span {
-                                        start: 30,
-                                        end: 30,
+                                        start: 21,
+                                        end: 21,
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -136,13 +137,13 @@ fn in_block_contains_std_functions() {
 #[test]
 fn in_block_no_auto_open() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         open FakeStdLib;
         operation Test() : Unit {
             ↘
         }
-    }"#,
+    }"#},
         &["Fake"],
         &expect![[r#"
             [
@@ -167,13 +168,13 @@ fn in_block_no_auto_open() {
 #[test]
 fn in_block_with_alias() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         open FakeStdLib as Alias;
         operation Test() : Unit {
             ↘
         }
-    }"#,
+    }"#},
         &["Alias.Fake"],
         &expect![[r#"
             [
@@ -198,7 +199,7 @@ fn in_block_with_alias() {
 #[test]
 fn in_block_from_other_namespace() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         operation Test() : Unit {
             ↘
@@ -206,7 +207,7 @@ fn in_block_from_other_namespace() {
     }
     namespace Other {
         operation Foo() : Unit {}
-    }"#,
+    }"#},
         &["Foo"],
         &expect![[r#"
             [
@@ -224,8 +225,8 @@ fn in_block_from_other_namespace() {
                             [
                                 (
                                     Span {
-                                        start: 30,
-                                        end: 30,
+                                        start: 21,
+                                        end: 21,
                                     },
                                     "open Other;\n    ",
                                 ),
@@ -242,13 +243,13 @@ fn in_block_from_other_namespace() {
 #[test]
 fn in_block_nested_op() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         operation Test() : Unit {
             operation Foo() : Unit {}
             ↘
         }
-    }"#,
+    }"#},
         &["Foo"],
         &expect![[r#"
             [
@@ -273,7 +274,7 @@ fn in_block_nested_op() {
 #[test]
 fn in_block_hidden_nested_op() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         operation Test() : Unit {
             ↘
@@ -281,7 +282,7 @@ fn in_block_hidden_nested_op() {
         operation Foo() : Unit {
             operation Bar() : Unit {}
         }
-    }"#,
+    }"#},
         &["Bar"],
         &expect![[r#"
             [
@@ -294,12 +295,12 @@ fn in_block_hidden_nested_op() {
 #[test]
 fn in_namespace_contains_open() {
     check(
-        r#"
+        indoc! {r#"
     namespace Test {
         ↘
         operation Test() : Unit {
         }
-    }"#,
+    }"#},
         &["open"],
         &expect![[r#"
             [
@@ -322,10 +323,10 @@ fn in_namespace_contains_open() {
 #[test]
 fn top_level_contains_namespace() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {}
         ↘
-        "#,
+        "#},
         &["namespace"],
         &expect![[r#"
             [
@@ -348,11 +349,11 @@ fn top_level_contains_namespace() {
 #[test]
 fn attributes() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             ↘
         }
-        "#,
+        "#},
         &["@EntryPoint()"],
         &expect![[r#"
             [
@@ -375,12 +376,12 @@ fn attributes() {
 #[test]
 fn stdlib_udt() {
     check(
-        r#"
+        indoc! {r#"
         namespace Test {
             operation Test() : Unit {
                 ↘
             }
-        "#,
+        "#},
         &["TakesUdt"],
         &expect![[r#"
             [
@@ -398,8 +399,8 @@ fn stdlib_udt() {
                             [
                                 (
                                     Span {
-                                        start: 38,
-                                        end: 38,
+                                        start: 21,
+                                        end: 21,
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -417,9 +418,9 @@ fn notebook_top_level() {
     check_notebook(
         &[(
             "cell1",
-            r#"operation Foo() : Unit {}
+            indoc! {r#"operation Foo() : Unit {}
             ↘
-        "#,
+        "#},
         )],
         &["operation", "namespace", "let", "Fake"],
         &expect![[r#"
@@ -474,7 +475,7 @@ fn notebook_top_level() {
                                         start: 0,
                                         end: 0,
                                     },
-                                    "open FakeStdLib;\n    ",
+                                    "open FakeStdLib;",
                                 ),
                             ],
                         ),
@@ -490,9 +491,9 @@ fn notebook_top_level_global() {
     check_notebook(
         &[(
             "cell1",
-            r#"operation Foo() : Unit {}
+            indoc! {r#"operation Foo() : Unit {}
             ↘
-        "#,
+        "#},
         )],
         &["Fake"],
         &expect![[r#"
@@ -514,7 +515,7 @@ fn notebook_top_level_global() {
                                         start: 0,
                                         end: 0,
                                     },
-                                    "open FakeStdLib;\n    ",
+                                    "open FakeStdLib;",
                                 ),
                             ],
                         ),
@@ -530,11 +531,11 @@ fn notebook_top_level_namespace_already_open_for_global() {
     check_notebook(
         &[(
             "cell1",
-            r#"
+            indoc! {r#"
             open FakeStdLib;
             operation Foo() : Unit {}
             ↘
-        "#,
+        "#},
         )],
         &["Fake"],
         &expect![[r#"
@@ -562,10 +563,10 @@ fn notebook_block() {
     check_notebook(
         &[(
             "cell1",
-            r#"operation Foo() : Unit {
+            indoc! {r#"operation Foo() : Unit {
                 ↘
             }
-        "#,
+        "#},
         )],
         &["Fake", "let"],
         &expect![[r#"
@@ -587,7 +588,7 @@ fn notebook_block() {
                                         start: 0,
                                         end: 0,
                                     },
-                                    "open FakeStdLib;\n    ",
+                                    "open FakeStdLib;",
                                 ),
                             ],
                         ),
