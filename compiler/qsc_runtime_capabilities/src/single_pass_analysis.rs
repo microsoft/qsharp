@@ -3,8 +3,8 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
         BlockId, CallableDecl, CallableKind, Expr, ExprId, ExprKind, Item, ItemId, ItemKind,
-        LocalItemId, NodeId, PackageId, PackageStore, Pat, PatId, PatKind, SpecBody, SpecGen, Stmt,
-        StmtId, StmtKind,
+        LocalItemId, NodeId, PackageId, PackageStore, Pat, PatId, PatKind, Res, SpecBody, SpecGen,
+        Stmt, StmtId, StmtKind,
     },
     ty::{Prim, Ty},
 };
@@ -60,9 +60,9 @@ impl StoreComputeProps {
 #[derive(Debug)]
 pub struct PackageComputeProps {
     pub items: IndexMap<LocalItemId, ItemComputeProps>,
-    pub blocks: IndexMap<BlockId, InnerElmtComputeProps>,
-    pub stmts: IndexMap<StmtId, InnerElmtComputeProps>,
-    pub exprs: IndexMap<ExprId, InnerElmtComputeProps>,
+    pub blocks: IndexMap<BlockId, CallableElmtComputeProps>,
+    pub stmts: IndexMap<StmtId, CallableElmtComputeProps>, // TODO (cesarzc): Might need a SrmtComputeProps type.
+    pub exprs: IndexMap<ExprId, ExprComputeProps>,
     pub pats: IndexMap<PatId, PatComputeProps>,
 }
 
@@ -161,8 +161,8 @@ pub enum ItemComputeProps {
 impl Display for ItemComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            ItemComputeProps::NonCallable => write!(f, "Non-Callable")?,
             ItemComputeProps::Callable(callable_rt_props) => write!(f, "{callable_rt_props}")?,
+            ItemComputeProps::NonCallable => write!(f, "Non-Callable")?,
         }
         Ok(())
     }
@@ -183,22 +183,59 @@ impl Display for CallableComputeProps {
 }
 
 #[derive(Clone, Debug)]
-pub enum InnerElmtComputeProps {
+pub enum CallableElmtComputeProps {
     AppDependent(AppsTbl),
     AppIndependent(ComputeProps),
-    Unsupported,
+    Unsupported, // TODO (cesarzc): This should eventually be removed but keep it for now while doing implementation.
 }
 
-impl Display for InnerElmtComputeProps {
+impl Display for CallableElmtComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            InnerElmtComputeProps::AppDependent(apps_table) => {
+            CallableElmtComputeProps::AppDependent(apps_table) => {
                 write!(f, "Application Dependent: {apps_table}")?
             }
-            InnerElmtComputeProps::AppIndependent(compute_kind) => {
+            CallableElmtComputeProps::AppIndependent(compute_kind) => {
                 write!(f, "Application Independent: {compute_kind}")?
             }
-            InnerElmtComputeProps::Unsupported => write!(f, "Unsupported")?,
+            CallableElmtComputeProps::Unsupported => write!(f, "Unsupported")?,
+        }
+        Ok(())
+    }
+}
+
+impl CallableElmtComputeProps {
+    pub fn from_expr_compute_props(expr_compute_props: &ExprComputeProps) -> Self {
+        match expr_compute_props {
+            ExprComputeProps::Element(elmt) => elmt.clone(),
+            ExprComputeProps::Unsupported => CallableElmtComputeProps::Unsupported,
+            _ => panic!("Compute props conversion not supported"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ExprComputeProps {
+    Element(CallableElmtComputeProps),
+    GlobalCallee(PackageId, LocalItemId),
+    // CONSIDER (cesarzc): Minimal capabilities can be inferred from the local callee type.
+    // Might not bee needed and could just use `InputParam`.
+    //LocalCallee(NodeId),
+    InputParam(PackageId, PatId),
+    Unsupported, // TODO (cesarzc): This should eventually be removed but keep it for now while doing implementation.
+}
+
+impl Display for ExprComputeProps {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match &self {
+            ExprComputeProps::Element(elmt) => write!(f, "Element: {elmt}")?,
+            ExprComputeProps::GlobalCallee(package_id, item_id) => {
+                write!(f, "Global Callee {package_id:?} | {item_id:?}")?
+            }
+            ExprComputeProps::InputParam(package_id, pat_id) => {
+                write!(f, "Input Param {package_id:?} | {pat_id:?}")?
+            }
+            ExprComputeProps::Unsupported => write!(f, "Unsupported")?,
         }
         Ok(())
     }
@@ -209,8 +246,8 @@ pub struct ParamIdx(usize);
 
 #[derive(Debug)]
 pub enum PatComputeProps {
-    Local(InnerElmtComputeProps),
-    CallableInputParam(ItemId, ParamIdx), // TODO (cesarzc): Need to use it. Maybe need a NodeId?
+    Local(CallableElmtComputeProps),      // TODO (cesarzc): Add node ID.
+    CallableInputParam(ItemId, ParamIdx), // TODO (cesarzc): Need to use it. Definitely needs NodeId.
 }
 
 impl Display for PatComputeProps {
@@ -360,11 +397,7 @@ pub enum QuantumSource {
 pub struct StoreScratch(FxHashMap<PackageId, PackageScratch>);
 
 impl StoreScratch {
-    pub fn get_expr(
-        &self,
-        package_id: &PackageId,
-        expr_id: &ExprId,
-    ) -> Option<&InnerElmtComputeProps> {
+    pub fn get_expr(&self, package_id: &PackageId, expr_id: &ExprId) -> Option<&ExprComputeProps> {
         self.0
             .get(package_id)
             .and_then(|package| package.exprs.get(expr_id))
@@ -390,7 +423,7 @@ impl StoreScratch {
         &self,
         package_id: &PackageId,
         stmt_id: &StmtId,
-    ) -> Option<&InnerElmtComputeProps> {
+    ) -> Option<&CallableElmtComputeProps> {
         self.0
             .get(package_id)
             .and_then(|package| package.stmts.get(stmt_id))
@@ -447,12 +480,7 @@ impl StoreScratch {
         self_package_scratch.items.insert(item_id, item);
     }
 
-    pub fn insert_expr(
-        &mut self,
-        package_id: PackageId,
-        expr_id: ExprId,
-        expr: InnerElmtComputeProps,
-    ) {
+    pub fn insert_expr(&mut self, package_id: PackageId, expr_id: ExprId, expr: ExprComputeProps) {
         let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
             None => {
                 self.0.insert(package_id, PackageScratch::default());
@@ -484,7 +512,7 @@ impl StoreScratch {
         &mut self,
         package_id: PackageId,
         stmt_id: StmtId,
-        stmt: InnerElmtComputeProps,
+        stmt: CallableElmtComputeProps,
     ) {
         let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
             None => {
@@ -525,9 +553,9 @@ impl StoreScratch {
 #[derive(Debug, Default)]
 pub struct PackageScratch {
     pub items: FxHashMap<LocalItemId, ItemComputeProps>,
-    pub blocks: FxHashMap<BlockId, InnerElmtComputeProps>,
-    pub stmts: FxHashMap<StmtId, InnerElmtComputeProps>,
-    pub exprs: FxHashMap<ExprId, InnerElmtComputeProps>,
+    pub blocks: FxHashMap<BlockId, CallableElmtComputeProps>,
+    pub stmts: FxHashMap<StmtId, CallableElmtComputeProps>,
+    pub exprs: FxHashMap<ExprId, ExprComputeProps>,
     pub pats: FxHashMap<PatId, PatComputeProps>,
 }
 
@@ -592,6 +620,7 @@ impl InputParamIdx {
     }
 }
 
+// TODO (cesarzc): This is not really needed, the map is enough.
 #[derive(Debug)]
 struct InputParamsVec(Vec<(NodeId, Ty)>);
 
@@ -725,11 +754,27 @@ impl SinglePassAnalyzer {
         let expr = package_store
             .get_expr(package_id, expr_id)
             .expect("Expression should exist");
-        let expr_compute_props = match expr.kind {
-            ExprKind::Lit(_) => ExprAnalyzer::analyze_lit(expr_id, package_id),
-            _ => InnerElmtComputeProps::Unsupported,
+        match expr.kind {
+            ExprKind::Lit(_) => Self::analyze_expr_lit(expr_id, package_id, store_scratch),
+            _ => store_scratch.insert_expr(package_id, expr_id, ExprComputeProps::Unsupported),
         };
-        store_scratch.insert_expr(package_id, expr_id, expr_compute_props);
+    }
+
+    fn analyze_expr_lit(expr_id: ExprId, package_id: PackageId, store_scratch: &mut StoreScratch) {
+        let elmt_compute_props = CallableElmtComputeProps::AppIndependent(ComputeProps::default());
+        let compute_props = ExprComputeProps::Element(elmt_compute_props);
+        store_scratch.insert_expr(package_id, expr_id, compute_props);
+    }
+
+    fn analyze_expr_var(
+        expr_id: ExprId,
+        package_id: PackageId,
+        res: &Res,
+        _input_params_map: &InputParamsMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        // TODO (cesarzc): Implement.
     }
 
     fn analyze_intrinsic_callable(
@@ -846,6 +891,8 @@ impl SinglePassAnalyzer {
             let _stmt_compute_props = store_scratch
                 .get_stmt(&package_id, stmt_id)
                 .expect("Statement was just analyzed");
+
+            // TODO (cesarzc): need to expand the apps table based on this.
         }
 
         // TODO (cesarzc): analyze quantum sources based on the last statement.
@@ -870,19 +917,14 @@ impl SinglePassAnalyzer {
             .get_stmt(package_id, stmt_id)
             .expect("Statement should exist");
         match stmt.kind {
-            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
-                Self::analyze_expr(
-                    expr_id,
-                    package_id,
-                    input_params_map,
-                    package_store,
-                    store_scratch,
-                );
-                let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
-                    "Expression compute properties should exist since it has just been analyzed",
-                );
-                store_scratch.insert_stmt(package_id, stmt_id, expr_compute_props.clone())
-            }
+            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => Self::analyze_stmt_expr(
+                stmt_id,
+                package_id,
+                expr_id,
+                input_params_map,
+                package_store,
+                store_scratch,
+            ),
             StmtKind::Local(_, pat_id, expr_id) => Self::analyze_stmt_local(
                 stmt_id,
                 package_id,
@@ -893,9 +935,36 @@ impl SinglePassAnalyzer {
                 store_scratch,
             ),
             _ => {
-                store_scratch.insert_stmt(package_id, stmt_id, InnerElmtComputeProps::Unsupported);
+                store_scratch.insert_stmt(
+                    package_id,
+                    stmt_id,
+                    CallableElmtComputeProps::Unsupported,
+                );
             }
         };
+    }
+
+    fn analyze_stmt_expr(
+        stmt_id: StmtId,
+        package_id: PackageId,
+        expr_id: ExprId,
+        input_params_map: &InputParamsMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        Self::analyze_expr(
+            expr_id,
+            package_id,
+            input_params_map,
+            package_store,
+            store_scratch,
+        );
+        let expr_compute_props = store_scratch
+            .get_expr(&package_id, &expr_id)
+            .expect("Expression compute properties should exist since it has just been analyzed");
+        let stmt_compute_props =
+            CallableElmtComputeProps::from_expr_compute_props(expr_compute_props);
+        store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
     }
 
     fn analyze_stmt_local(
@@ -914,7 +983,7 @@ impl SinglePassAnalyzer {
             package_store,
             store_scratch,
         );
-        // COSIDER (cesarzc): Maybe a hack?
+        // CONSIDER (cesarzc): Maybe a hack?
         {
             let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
                 "Expression compute properties should exist since it has just been analyzed",
@@ -922,14 +991,20 @@ impl SinglePassAnalyzer {
             store_scratch.insert_pat(
                 package_id,
                 pat_id,
-                PatComputeProps::Local(expr_compute_props.clone()),
+                PatComputeProps::Local(CallableElmtComputeProps::from_expr_compute_props(
+                    expr_compute_props,
+                )),
             );
         }
         {
             let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
                 "Expression compute properties should exist since it has just been analyzed",
             );
-            store_scratch.insert_stmt(package_id, stmt_id, expr_compute_props.clone());
+            store_scratch.insert_stmt(
+                package_id,
+                stmt_id,
+                CallableElmtComputeProps::from_expr_compute_props(expr_compute_props),
+            );
         }
     }
 
@@ -1017,14 +1092,6 @@ impl SinglePassAnalyzer {
             SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
             _ => false,
         }
-    }
-}
-
-struct ExprAnalyzer;
-
-impl ExprAnalyzer {
-    pub fn analyze_lit(expr_id: ExprId, package_id: PackageId) -> InnerElmtComputeProps {
-        InnerElmtComputeProps::AppIndependent(ComputeProps::default())
     }
 }
 
