@@ -36,18 +36,23 @@ impl<'a> IndentMaker<'a> {
         Self { contents, offset }
     }
 
-    fn get_ident(&self, package_offset: u32) -> &'a str {
+    fn get_ident(&self, package_offset: u32) -> String {
         let source_offset = (package_offset - self.offset)
             .try_into()
             .expect("offset can't be converted to uszie");
         let before_offset = &self.contents[..source_offset];
-        match before_offset.rfind(|c| c == '{' || c == '\n') {
+        let mut indent = match before_offset.rfind(|c| c == '{' || c == '\n') {
             Some(begin) => {
                 let indent = &before_offset[begin..];
                 indent.strip_prefix('{').unwrap_or(indent)
             }
             None => before_offset,
         }
+        .to_string();
+        if !indent.starts_with('\n') {
+            indent.insert(0, '\n');
+        }
+        indent
     }
 }
 
