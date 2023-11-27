@@ -94,7 +94,6 @@ impl PassContext {
             Vec::new()
         };
 
-        println!("Loop Unification");
         LoopUni { core, assigner }.visit_package(package);
         Validator::default().visit_package(package);
 
