@@ -100,6 +100,7 @@ impl PassContext {
         ReplaceQubitAllocation::new(core, assigner).visit_package(package);
         Validator::default().visit_package(package);
 
+        // TODO (cesarzc): Workaround for testing.
         //let base_prof_errors = if self.target == TargetProfile::Base {
         //    baseprofck::check_base_profile_compliance(package)
         //} else {
