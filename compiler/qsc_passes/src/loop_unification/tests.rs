@@ -44,23 +44,23 @@ fn convert_for_array() {
                     Parent: 0
                     Callable 0 [21-131] (operation):
                         name: Ident 1 [31-35] "Main"
-                        input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
+                        input: Pat 2 [36-47] [Type Int[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [21-131]: Impl:
                             Block 5 [56-131] [Type Unit]:
                                 Stmt 6 [66-125]: Expr: Expr 43 [66-125] [Type Unit]: Expr Block: Block 44 [66-125] [Type Unit]:
                                     Stmt 18 [0-0]: Local (Immutable):
-                                        Pat 19 [75-78] [Type (Int)[]]: Bind: Ident 17 [75-78] "@array_id_17"
-                                        Expr 10 [75-78] [Type (Int)[]]: Var: Local 3
+                                        Pat 19 [75-78] [Type Int[]]: Bind: Ident 17 [75-78] "@array_id_17"
+                                        Expr 10 [75-78] [Type Int[]]: Var: Local 3
                                     Stmt 24 [0-0]: Local (Immutable):
                                         Pat 25 [75-78] [Type Int]: Bind: Ident 21 [75-78] "@len_id_21"
-                                        Expr 22 [75-78] [Type (Int)[]]: Call:
-                                            Expr 20 [75-78] [Type ((Int)[] -> Int)]: Var:
+                                        Expr 22 [75-78] [Type Int[]]: Call:
+                                            Expr 20 [75-78] [Type (Int[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
                                                     Int
-                                            Expr 23 [75-78] [Type (Int)[]]: Var: Local 17
+                                            Expr 23 [75-78] [Type Int[]]: Var: Local 17
                                     Stmt 28 [75-78]: Local (Mutable):
                                         Pat 29 [75-78] [Type Int]: Bind: Ident 26 [75-78] "@index_id_26"
                                         Expr 27 [75-78] [Type Int]: Lit: Int(0)
@@ -72,7 +72,7 @@ fn convert_for_array() {
                                             Stmt 30 [70-71]: Local (Immutable):
                                                 Pat 8 [70-71] [Type Int]: Bind: Ident 9 [70-71] "i"
                                                 Expr 31 [75-78] [Type Int]: Index:
-                                                    Expr 32 [75-78] [Type (Int)[]]: Var: Local 17
+                                                    Expr 32 [75-78] [Type Int[]]: Var: Local 17
                                                     Expr 33 [75-78] [Type Int]: Var: Local 26
                                             Stmt 12 [93-115]: Local (Immutable):
                                                 Pat 13 [97-98] [Type String]: Bind: Ident 14 [97-98] "x"
@@ -107,23 +107,23 @@ fn convert_for_array_deconstruct() {
                     Parent: 0
                     Callable 0 [21-146] (operation):
                         name: Ident 1 [31-35] "Main"
-                        input: Pat 2 [36-57] [Type ((Int, Double))[]]: Bind: Ident 3 [36-39] "arr"
+                        input: Pat 2 [36-57] [Type (Int, Double)[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [21-146]: Impl:
                             Block 5 [66-146] [Type Unit]:
                                 Stmt 6 [76-140]: Expr: Expr 46 [76-140] [Type Unit]: Expr Block: Block 47 [76-140] [Type Unit]:
                                     Stmt 21 [0-0]: Local (Immutable):
-                                        Pat 22 [90-93] [Type ((Int, Double))[]]: Bind: Ident 20 [90-93] "@array_id_20"
-                                        Expr 13 [90-93] [Type ((Int, Double))[]]: Var: Local 3
+                                        Pat 22 [90-93] [Type (Int, Double)[]]: Bind: Ident 20 [90-93] "@array_id_20"
+                                        Expr 13 [90-93] [Type (Int, Double)[]]: Var: Local 3
                                     Stmt 27 [0-0]: Local (Immutable):
                                         Pat 28 [90-93] [Type Int]: Bind: Ident 24 [90-93] "@len_id_24"
-                                        Expr 25 [90-93] [Type ((Int, Double))[]]: Call:
-                                            Expr 23 [90-93] [Type (((Int, Double))[] -> Int)]: Var:
+                                        Expr 25 [90-93] [Type (Int, Double)[]]: Call:
+                                            Expr 23 [90-93] [Type ((Int, Double)[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
                                                     (Int, Double)
-                                            Expr 26 [90-93] [Type ((Int, Double))[]]: Var: Local 20
+                                            Expr 26 [90-93] [Type (Int, Double)[]]: Var: Local 20
                                     Stmt 31 [90-93]: Local (Mutable):
                                         Pat 32 [90-93] [Type Int]: Bind: Ident 29 [90-93] "@index_id_29"
                                         Expr 30 [90-93] [Type Int]: Lit: Int(0)
@@ -137,7 +137,7 @@ fn convert_for_array_deconstruct() {
                                                     Pat 9 [81-82] [Type Int]: Bind: Ident 10 [81-82] "i"
                                                     Pat 11 [84-85] [Type Double]: Bind: Ident 12 [84-85] "d"
                                                 Expr 34 [90-93] [Type (Int, Double)]: Index:
-                                                    Expr 35 [90-93] [Type ((Int, Double))[]]: Var: Local 20
+                                                    Expr 35 [90-93] [Type (Int, Double)[]]: Var: Local 20
                                                     Expr 36 [90-93] [Type Int]: Var: Local 29
                                             Stmt 15 [108-130]: Local (Immutable):
                                                 Pat 16 [112-113] [Type String]: Bind: Ident 17 [112-113] "x"
@@ -172,16 +172,16 @@ fn convert_for_slice() {
                     Parent: 0
                     Callable 0 [21-141] (operation):
                         name: Ident 1 [31-35] "Main"
-                        input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
+                        input: Pat 2 [36-47] [Type Int[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [21-141]: Impl:
                             Block 5 [56-141] [Type Unit]:
                                 Stmt 6 [66-135]: Expr: Expr 49 [66-135] [Type Unit]: Expr Block: Block 50 [66-135] [Type Unit]:
                                     Stmt 24 [0-0]: Local (Immutable):
-                                        Pat 25 [75-88] [Type (Int)[]]: Bind: Ident 23 [75-88] "@array_id_23"
-                                        Expr 10 [75-88] [Type (Int)[]]: Index:
-                                            Expr 11 [75-78] [Type (Int)[]]: Var: Local 3
+                                        Pat 25 [75-88] [Type Int[]]: Bind: Ident 23 [75-88] "@array_id_23"
+                                        Expr 10 [75-88] [Type Int[]]: Index:
+                                            Expr 11 [75-78] [Type Int[]]: Var: Local 3
                                             Expr 12 [79-87] [Type Range]: Range:
                                                 Expr 13 [79-80] [Type Int]: Lit: Int(6)
                                                 Expr 14 [82-84] [Type Int]: UnOp (Neg):
@@ -189,12 +189,12 @@ fn convert_for_slice() {
                                                 Expr 16 [86-87] [Type Int]: Lit: Int(2)
                                     Stmt 30 [0-0]: Local (Immutable):
                                         Pat 31 [75-88] [Type Int]: Bind: Ident 27 [75-88] "@len_id_27"
-                                        Expr 28 [75-88] [Type (Int)[]]: Call:
-                                            Expr 26 [75-88] [Type ((Int)[] -> Int)]: Var:
+                                        Expr 28 [75-88] [Type Int[]]: Call:
+                                            Expr 26 [75-88] [Type (Int[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
                                                     Int
-                                            Expr 29 [75-88] [Type (Int)[]]: Var: Local 23
+                                            Expr 29 [75-88] [Type Int[]]: Var: Local 23
                                     Stmt 34 [75-88]: Local (Mutable):
                                         Pat 35 [75-88] [Type Int]: Bind: Ident 32 [75-88] "@index_id_32"
                                         Expr 33 [75-88] [Type Int]: Lit: Int(0)
@@ -206,7 +206,7 @@ fn convert_for_slice() {
                                             Stmt 36 [70-71]: Local (Immutable):
                                                 Pat 8 [70-71] [Type Int]: Bind: Ident 9 [70-71] "i"
                                                 Expr 37 [75-88] [Type Int]: Index:
-                                                    Expr 38 [75-88] [Type (Int)[]]: Var: Local 23
+                                                    Expr 38 [75-88] [Type Int[]]: Var: Local 23
                                                     Expr 39 [75-88] [Type Int]: Var: Local 32
                                             Stmt 18 [103-125]: Local (Immutable):
                                                 Pat 19 [107-108] [Type String]: Bind: Ident 20 [107-108] "x"

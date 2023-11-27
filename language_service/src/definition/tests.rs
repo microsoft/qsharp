@@ -403,8 +403,8 @@ fn std_udt() {
                 Location {
                     source: "qsharp-library-source:<std>",
                     span: Span {
-                        start: 210,
-                        end: 213,
+                        start: 211,
+                        end: 214,
                     },
                 },
             )
@@ -429,8 +429,8 @@ fn std_udt_udt_field() {
                 Location {
                     source: "qsharp-library-source:<std>",
                     span: Span {
-                        start: 217,
-                        end: 218,
+                        start: 218,
+                        end: 219,
                     },
                 },
             )
