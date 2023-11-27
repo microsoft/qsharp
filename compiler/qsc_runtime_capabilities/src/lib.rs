@@ -1,12 +1,10 @@
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{BlockId, ExprId, LocalItemId, PackageId, PackageStore};
+use qsc_fir::fir::{BlockId, ExprId, LocalItemId, PackageId};
 
 use indenter::{indented, Indented};
 
 use std::fmt::{self, Display, Formatter, Write};
 
-//pub mod analysis;
-//pub mod analysis_legacy;
 pub mod single_pass_analysis;
 
 fn set_indentation<'a, 'b>(
