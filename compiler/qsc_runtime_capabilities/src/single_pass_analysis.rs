@@ -185,9 +185,11 @@ impl Display for CallableComputeProps {
 impl ElmntComputeProps {
     pub fn from_expr_compute_props(expr_compute_props: &ExprComputeProps) -> Self {
         match expr_compute_props {
-            ExprComputeProps::Elmnt(elmt) => elmt.clone(),
+            ExprComputeProps::Elmnt(elmnt) => elmnt.clone(),
+            ExprComputeProps::Global(_, _) | ExprComputeProps::Local(_, _, _) => {
+                ElmntComputeProps::AppIndependent(ComputeProps::default())
+            }
             ExprComputeProps::Unsupported => ElmntComputeProps::Unsupported,
-            _ => panic!("Compute props conversion not supported"),
         }
     }
 }
@@ -224,9 +226,9 @@ pub struct ParamIdx(usize);
 
 #[derive(Debug)]
 pub enum PatComputeProps {
-    LocalGroup,
+    LocalGroup, // TODO (cesarzc): Include PatIds.
     LocalNode(NodeId, ExprComputeProps),
-    InputParamGroup,
+    InputParamGroup, // TODO (cesarzc): Include PatIds.
     InputParamNode(NodeId, PackageId, LocalItemId, ParamIdx, Ty),
     Unsupported, // TODO (cesarzc): This is temporary and should be removed once the implementation is complete.
 }
@@ -403,6 +405,129 @@ pub enum QuantumSource {
     StmtId,
     ExprId,
     PatId,
+}
+
+#[derive(Debug)]
+struct NodeMap(FxHashMap<NodeId, Node>);
+
+impl NodeMap {
+    fn from_callable_input(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
+        let input_pat = package_pats
+            .get(callable.input)
+            .expect("Callable input pattern should exist");
+
+        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, PatId, Ty)> {
+            match &pat.kind {
+                PatKind::Bind(ident) => vec![(ident.id, pat.id, pat.ty.clone())],
+                PatKind::Tuple(tuple_pats) => {
+                    let mut tuple_params = Vec::<(NodeId, PatId, Ty)>::new();
+                    for tuple_item_pat_id in tuple_pats {
+                        let tuple_item_pat = pats
+                            .get(*tuple_item_pat_id)
+                            .expect("`Pattern` should exist");
+                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
+                        tuple_params.append(&mut tuple_item_params);
+                    }
+                    tuple_params
+                }
+                _ => panic!("Only callable parameter patterns are expected"),
+            }
+        }
+
+        let mut node_map = FxHashMap::<NodeId, Node>::default();
+        for (idx, (node_id, pat_id, ty)) in from_pat(input_pat, package_pats).iter().enumerate() {
+            let node = Node {
+                id: *node_id,
+                pat_id: *pat_id,
+                kind: NodeKind::InputParam(InputParamIdx(idx), ty.clone()),
+            };
+            node_map.insert(*node_id, node);
+        }
+
+        Self(node_map)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Node {
+    pub id: NodeId,
+    pub pat_id: PatId,
+    pub kind: NodeKind,
+}
+
+#[derive(Clone, Debug)]
+pub enum NodeKind {
+    InputParam(InputParamIdx, Ty),
+    Local,
+}
+
+#[derive(Clone, Debug)]
+pub struct InputParamIdx(usize);
+
+#[derive(Debug)]
+struct InputParamsMap(FxHashMap<NodeId, (PatId, InputParamIdx, Ty)>);
+
+impl InputParamsMap {
+    fn from_callable(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
+        let input_pat = package_pats
+            .get(callable.input)
+            .expect("Callable input pattern should exist");
+
+        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, PatId, Ty)> {
+            match &pat.kind {
+                PatKind::Bind(ident) => vec![(ident.id, pat.id, pat.ty.clone())],
+                PatKind::Tuple(tuple_pats) => {
+                    let mut tuple_params = Vec::<(NodeId, PatId, Ty)>::new();
+                    for tuple_item_pat_id in tuple_pats {
+                        let tuple_item_pat = pats
+                            .get(*tuple_item_pat_id)
+                            .expect("`Pattern` should exist");
+                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
+                        tuple_params.append(&mut tuple_item_params);
+                    }
+                    tuple_params
+                }
+                _ => panic!("Only callable parameter patterns are expected"),
+            }
+        }
+
+        let mut input_params = FxHashMap::<NodeId, (PatId, InputParamIdx, Ty)>::default();
+        for (idx, (node_id, pat_id, ty)) in from_pat(input_pat, package_pats).iter().enumerate() {
+            input_params.insert(*node_id, (*pat_id, InputParamIdx(idx), ty.clone()));
+        }
+        InputParamsMap(input_params)
+    }
+}
+
+#[derive(Debug)]
+struct InputParamsApp {
+    pub idx: AppIdx,
+    pub params_compute_kind: FxHashMap<NodeId, (Node, ComputeKind)>,
+}
+
+impl InputParamsApp {
+    pub fn from_app_idx(app_idx: AppIdx, input_params: &NodeMap) -> Self {
+        // The application index must be smaller than 2^n where n is the number of input parameters.
+        assert!((app_idx.0 as i32) < 2i32.pow(input_params.0.len() as u32));
+        let mut params_compute_kind = FxHashMap::<NodeId, (Node, ComputeKind)>::default();
+        for (node_id, node) in input_params.0.iter() {
+            if let NodeKind::InputParam(input_param_idx, _) = &node.kind {
+                let mask = 1 << input_param_idx.0;
+                let compute_kind = if app_idx.0 & mask == 0 {
+                    ComputeKind::Static
+                } else {
+                    ComputeKind::Dynamic
+                };
+                params_compute_kind.insert(*node_id, (node.clone(), compute_kind));
+            } else {
+                panic!("Only input parameters are expected");
+            }
+        }
+        Self {
+            idx: app_idx,
+            params_compute_kind,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -609,110 +734,6 @@ impl PackageScratch {
     }
 }
 
-#[derive(Debug)]
-struct InputParamIdx(usize);
-
-impl InputParamIdx {
-    pub fn get_compute_kind_for_app_idx(&self, app_idx: AppIdx) -> ComputeKind {
-        let mask = 1 << self.0;
-        if app_idx.0 & mask == 0 {
-            ComputeKind::Static
-        } else {
-            ComputeKind::Dynamic
-        }
-    }
-}
-
-// TODO (cesarzc): This is not really needed, the map is enough.
-#[derive(Debug)]
-struct InputParamsVec(Vec<(NodeId, Ty)>);
-
-impl InputParamsVec {
-    fn from_callable(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
-        let input_pat = package_pats
-            .get(callable.input)
-            .expect("Callable input pattern should exist");
-
-        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, Ty)> {
-            match &pat.kind {
-                PatKind::Bind(ident) => vec![(ident.id, pat.ty.clone())],
-                PatKind::Tuple(tuple_pats) => {
-                    let mut tuple_params = Vec::<(NodeId, Ty)>::new();
-                    for tuple_item_pat_id in tuple_pats {
-                        let tuple_item_pat = pats
-                            .get(*tuple_item_pat_id)
-                            .expect("`Pattern` should exist");
-                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
-                        tuple_params.append(&mut tuple_item_params);
-                    }
-                    tuple_params
-                }
-                _ => panic!("Only callable parameter patterns are expected"),
-            }
-        }
-
-        let input_params = from_pat(input_pat, package_pats);
-        InputParamsVec(input_params)
-    }
-}
-
-#[derive(Debug)]
-struct InputParamsMap(FxHashMap<NodeId, (PatId, InputParamIdx, Ty)>);
-
-impl InputParamsMap {
-    fn from_callable(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
-        let input_pat = package_pats
-            .get(callable.input)
-            .expect("Callable input pattern should exist");
-
-        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, PatId, Ty)> {
-            match &pat.kind {
-                PatKind::Bind(ident) => vec![(ident.id, pat.id, pat.ty.clone())],
-                PatKind::Tuple(tuple_pats) => {
-                    let mut tuple_params = Vec::<(NodeId, PatId, Ty)>::new();
-                    for tuple_item_pat_id in tuple_pats {
-                        let tuple_item_pat = pats
-                            .get(*tuple_item_pat_id)
-                            .expect("`Pattern` should exist");
-                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
-                        tuple_params.append(&mut tuple_item_params);
-                    }
-                    tuple_params
-                }
-                _ => panic!("Only callable parameter patterns are expected"),
-            }
-        }
-
-        let mut input_params = FxHashMap::<NodeId, (PatId, InputParamIdx, Ty)>::default();
-        for (idx, (node_id, pat_id, ty)) in from_pat(input_pat, package_pats).iter().enumerate() {
-            input_params.insert(*node_id, (*pat_id, InputParamIdx(idx), ty.clone()));
-        }
-        InputParamsMap(input_params)
-    }
-}
-
-#[derive(Debug)]
-struct InputParamsApp {
-    pub idx: AppIdx,
-    pub params: FxHashMap<NodeId, (InputParamIdx, Ty, ComputeKind)>,
-}
-
-impl InputParamsApp {
-    pub fn from_app_idx(app_idx: AppIdx, input_params_vec: &InputParamsVec) -> Self {
-        assert!((app_idx.0 as i32) < 2i32.pow(input_params_vec.0.len() as u32));
-        let mut params = FxHashMap::<NodeId, (InputParamIdx, Ty, ComputeKind)>::default();
-        for (idx, (node_id, ty)) in input_params_vec.0.iter().enumerate() {
-            let input_param_idx = InputParamIdx(idx);
-            let compute_kind = input_param_idx.get_compute_kind_for_app_idx(app_idx);
-            params.insert(*node_id, (input_param_idx, ty.clone(), compute_kind));
-        }
-        Self {
-            idx: app_idx,
-            params,
-        }
-    }
-}
-
 pub struct SinglePassAnalyzer;
 
 // TODO (cesarzc): get things out of here. should use clippy.
@@ -746,6 +767,7 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        // TODO (cesarzc): Set the appropriate values for the callable input parameters.
         if Self::is_callable_intrinsic(callable) {
             let instrinsic_compute_props =
                 Self::analyze_intrinsic_callable(callable, package_id, package_store);
@@ -824,11 +846,11 @@ impl SinglePassAnalyzer {
         package_pats: &IndexMap<PatId, Pat>,
     ) -> CallableComputeProps {
         assert!(Self::is_callable_intrinsic(function));
+        let input_params = NodeMap::from_callable_input(function, package_pats);
         // TODO (cesarzc): Set limit on the number of parameters.
-        let input_params_vec = InputParamsVec::from_callable(function, package_pats);
-        let mut apps = AppsTbl::new(input_params_vec.0.len());
+        let mut apps = AppsTbl::new(input_params.0.len());
         for app_idx in 0..apps.max() {
-            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params_vec);
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
             let app =
                 Self::create_intrinsic_function_application(&input_params_app, &function.output);
             apps.push(app);
@@ -841,11 +863,11 @@ impl SinglePassAnalyzer {
         package_pats: &IndexMap<PatId, Pat>,
     ) -> CallableComputeProps {
         assert!(Self::is_callable_intrinsic(operation));
+        let input_params = NodeMap::from_callable_input(operation, package_pats);
         // TODO (cesarzc): Set limit on the number of parameters.
-        let input_params_vec = InputParamsVec::from_callable(operation, package_pats);
-        let mut apps = AppsTbl::new(input_params_vec.0.len());
+        let mut apps = AppsTbl::new(input_params.0.len());
         for app_idx in 0..apps.max() {
-            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params_vec);
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
             let app =
                 Self::create_intrinsic_operation_application(&input_params_app, &operation.output);
             apps.push(app);
@@ -982,6 +1004,7 @@ impl SinglePassAnalyzer {
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties should exist since it has just been analyzed");
+
         let stmt_compute_props = ElmntComputeProps::from_expr_compute_props(expr_compute_props);
         store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
     }
@@ -1008,7 +1031,7 @@ impl SinglePassAnalyzer {
         Self::link_expr_to_local_pat(expr_id, pat_id, package_id, package_store, store_scratch);
 
         // Propagate to statement.
-        Self::link_expr_to_stmt(expr_id, stmt_id, package_id, package_store, store_scratch);
+        Self::link_expr_to_stmt(expr_id, stmt_id, package_id, store_scratch);
     }
 
     fn create_intrinsic_function_application(
@@ -1017,23 +1040,30 @@ impl SinglePassAnalyzer {
     ) -> ComputeProps {
         // Assume capabilities depending on which parameters are dynamic for the particular application.
         let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
-        for (_, param_type, param_compute_kind) in input_params_app.params.values() {
-            if let ComputeKind::Dynamic = param_compute_kind {
-                let param_caps = Foundational::assume_caps_from_type(param_type);
-                rt_caps.extend(param_caps);
+        for (node, param_compute_kind) in input_params_app.params_compute_kind.values() {
+            if let NodeKind::InputParam(_, param_ty) = &node.kind {
+                if let ComputeKind::Dynamic = param_compute_kind {
+                    let param_caps = Foundational::assume_caps_from_type(param_ty);
+                    rt_caps.extend(param_caps);
+                }
+            } else {
+                panic!("Only input parameters are expected");
             }
         }
 
-        // If this is not an all-static application then the output type affects the application capabilities.
-        if input_params_app.idx.represents_all_static_params() {
+        // A function is purely classical if all its parameters are static.
+        let is_purely_classical = input_params_app.idx.represents_all_static_params();
+
+        // If this is not purely classical application then the output type affects the application capabilities.
+        if !is_purely_classical {
             let output_caps = Foundational::assume_caps_from_type(output_type);
             rt_caps.extend(output_caps);
         }
 
-        // If this is an all-static application or the function output is `Unit` then this is not a quantum source.
+        // If this is a purely classical application or the function output is `Unit` then this is not a quantum source.
         // Otherwise this is an intrinsic quantum source.
         let is_unit = matches!(*output_type, Ty::UNIT);
-        let quantum_sources = if input_params_app.idx.represents_all_static_params() || is_unit {
+        let quantum_sources = if is_purely_classical || is_unit {
             Vec::new()
         } else {
             vec![QuantumSource::Intrinsic]
@@ -1051,10 +1081,14 @@ impl SinglePassAnalyzer {
     ) -> ComputeProps {
         // Assume capabilities depending on which parameters are dynamic for the particular application.
         let mut rt_caps = FxHashSet::<RuntimeCapability>::default();
-        for (_, param_type, param_compute_kind) in input_params_app.params.values() {
-            if let ComputeKind::Dynamic = param_compute_kind {
-                let param_caps = Foundational::assume_caps_from_type(param_type);
-                rt_caps.extend(param_caps);
+        for (node, param_compute_kind) in input_params_app.params_compute_kind.values() {
+            if let NodeKind::InputParam(_, param_ty) = &node.kind {
+                if let ComputeKind::Dynamic = param_compute_kind {
+                    let param_caps = Foundational::assume_caps_from_type(param_ty);
+                    rt_caps.extend(param_caps);
+                }
+            } else {
+                panic!("Only input parameters are expected");
             }
         }
 
@@ -1129,26 +1163,13 @@ impl SinglePassAnalyzer {
         expr_id: ExprId,
         stmt_id: StmtId,
         package_id: PackageId,
-        package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties must have already been analyzed.");
-        match &expr_compute_props {
-            ExprComputeProps::Elmnt(elmnt) => {
-                store_scratch.insert_stmt(package_id, stmt_id, elmnt.clone())
-            }
-            ExprComputeProps::Global(_, _) | ExprComputeProps::Local(_, _, _) => store_scratch
-                .insert_stmt(
-                    package_id,
-                    stmt_id,
-                    ElmntComputeProps::AppIndependent(ComputeProps::default()),
-                ),
-            ExprComputeProps::Unsupported => {
-                store_scratch.insert_stmt(package_id, stmt_id, ElmntComputeProps::Unsupported)
-            }
-        };
+        let stmt_compute_props = ElmntComputeProps::from_expr_compute_props(expr_compute_props);
+        store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
     }
 }
 
