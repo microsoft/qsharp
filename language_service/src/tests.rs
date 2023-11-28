@@ -643,7 +643,12 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
     };
 
     LanguageService::new(
-        move |x| Box::pin(std::future::ready(diagnostic_receiver(x))),
+        move |x| {
+            Box::pin({
+                diagnostic_receiver(x);
+                std::future::ready(())
+            })
+        },
         // these tests do not test project mode
         // so we provide
         |_| Box::pin(std::future::ready((Arc::from(""), Arc::from("")))),

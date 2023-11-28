@@ -67,7 +67,11 @@ export class Compiler implements ICompiler {
   ): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
-      (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
+      async (
+        uri: string,
+        version: number | undefined,
+        errors: VSDiagnostic[],
+      ) => {
         diags = errors;
       },
       readFile,
