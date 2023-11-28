@@ -452,6 +452,8 @@ test("language service diagnostics", async () => {
   const languageService = getLanguageService();
   let gotDiagnostics = false;
   languageService.addEventListener("diagnostics", (event) => {
+    console.log("Diagnostic callback hit");
+    log.info("Diagnostic callback hit");
     gotDiagnostics = true;
     assert.equal(event.type, "diagnostics");
     assert.equal(event.detail.diagnostics.length, 1);

@@ -16,7 +16,7 @@ use wasm_bindgen_futures::JsFuture;
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
-async fn fut_to_string<F, T>(res: JsFuture, func: F) -> T
+async fn map_js_promise<F, T>(res: JsFuture, func: F) -> T
 where
     F: Fn(JsValue) -> T,
 {
@@ -43,26 +43,25 @@ impl LanguageService {
             })
             .clone();
 
-        let read_file = //: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> =
-            move |path_buf: PathBuf| {
-                let path_buf_string = &path_buf.to_string_lossy().to_string();
-                let path = JsValue::from_str(path_buf_string);
-                let res: js_sys::Promise = read_file
-                    .call1(&JsValue::NULL, &path)
-                    .expect("callback should succeed")
-                    .into();
+        let read_file = move |path_buf: PathBuf| {
+            let path_buf_string = &path_buf.to_string_lossy().to_string();
+            let path = JsValue::from_str(path_buf_string);
+            let res: js_sys::Promise = read_file
+                .call1(&JsValue::NULL, &path)
+                .expect("callback should succeed")
+                .into();
 
-                let res:JsFuture = res.into();
+            let res: JsFuture = res.into();
 
-                let path_buf_string = path_buf_string.clone();
-                let func = move |js_val: JsValue| match js_val.as_string() {
-                    Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-                    // this can happen if the document is completely empty
-                    None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
-                    None => unreachable!("Expected string from JS callback, received {js_val:?}"),
-                };
-                Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+            let path_buf_string = path_buf_string.clone();
+            let func = move |js_val: JsValue| match js_val.as_string() {
+                Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
+                // this can happen if the document is completely empty
+                None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
+                None => unreachable!("Expected string from JS callback, received {js_val:?}"),
             };
+            Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+        };
 
         let list_directory = list_directory
             .dyn_ref::<js_sys::Function>()
@@ -114,7 +113,7 @@ impl LanguageService {
                     .collect::<Vec<_>>(),
                 Err(e) => todo!("result wasn't an array error: {e:?}"),
             };
-            Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+            Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
 
         let get_manifest = get_manifest
@@ -183,7 +182,7 @@ impl LanguageService {
                     manifest_dir,
                 })
             };
-            Box::pin(fut_to_string(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+            Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
 
         let diagnostics_callback = diagnostics_callback
@@ -580,7 +579,7 @@ serializable_type! {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
-        typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
+        typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => Promise<void>"
     )]
     pub type DiagnosticsCallback;
 }

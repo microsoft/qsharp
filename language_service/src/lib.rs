@@ -66,7 +66,7 @@ pub struct LanguageService<'a> {
     documents_with_errors: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
-    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) -> Pin<Box<dyn Future<Output = ()>>> + 'a>,
     /// Callback which lets the service read a file from the target filesystem
     read_file_callback:
         Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a>,
@@ -108,7 +108,7 @@ struct OpenDocument {
 
 impl<'a> LanguageService<'a> {
     pub fn new(
-        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) -> Pin<Box<dyn Future<Output = ()>>> + 'a,
         read_file: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
         list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
         get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
@@ -129,14 +129,14 @@ impl<'a> LanguageService<'a> {
     /// Updates the workspace configuration. If any compiler settings are updated,
     /// a recompilation may be triggered, which will result in a new set of diagnostics
     /// being published.
-    pub fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
+    pub async fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
         trace!("update_configuration: {configuration:?}");
 
         let need_recompile = self.apply_configuration(configuration);
 
         // Some configuration options require a recompilation as they impact error checking
         if need_recompile {
-            self.recompile_all();
+            self.recompile_all().await;
         }
     }
 
@@ -202,20 +202,20 @@ impl<'a> LanguageService<'a> {
                 });
         }
 
-        self.publish_diagnostics();
+        self.publish_diagnostics().await;
     }
 
     /// Indicates that the client is no longer interested in the document,
     /// typically occurs when the document is closed in the editor.
     ///
     /// LSP: textDocument/didClose
-    pub fn close_document(&mut self, uri: &str) {
+    pub async fn close_document(&mut self, uri: &str) {
         trace!("close_document: {uri}");
 
         self.compilations.remove(uri);
         self.open_documents.remove(uri);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics().await;
     }
 
     /// The uri refers to the notebook itself, not any of the individual cells.
@@ -228,7 +228,7 @@ impl<'a> LanguageService<'a> {
     /// containing the "%%qsharp" cell magic.
     ///
     /// LSP: notebookDocument/didOpen, notebookDocument/didChange
-    pub fn update_notebook_document<'b, I>(&mut self, notebook_uri: &str, cells: I)
+    pub async fn update_notebook_document<'b, I>(&mut self, notebook_uri: &str, cells: I)
     where
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
     {
@@ -257,7 +257,7 @@ impl<'a> LanguageService<'a> {
         self.compilations
             .insert(compilation_uri.clone(), compilation);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics().await;
     }
 
     /// Indicates that the client is no longer interested in the notebook.
@@ -268,7 +268,7 @@ impl<'a> LanguageService<'a> {
     /// the notebook in the previous `update_notebook_document` call.
     ///
     /// LSP: notebookDocument/didClose
-    pub fn close_notebook_document<'b>(
+    pub async fn close_notebook_document<'b>(
         &mut self,
         notebook_uri: &str,
         cell_uris: impl Iterator<Item = &'b str>,
@@ -293,7 +293,7 @@ impl<'a> LanguageService<'a> {
 
         self.compilations.remove(notebook_uri);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics().await;
     }
 
     /// LSP: textDocument/completion
@@ -382,7 +382,7 @@ impl<'a> LanguageService<'a> {
     // It gets really messy knowing when to clear diagnostics
     // when the document changes ownership between compilations, etc.
     // So let's do it the simplest way possible. Republish all the diagnostics every time.
-    fn publish_diagnostics(&mut self) {
+    async fn publish_diagnostics(&mut self) {
         let last_docs_with_errors = take(&mut self.documents_with_errors);
 
         for (compilation_uri, compilation) in &self.compilations {
@@ -397,24 +397,25 @@ impl<'a> LanguageService<'a> {
                     continue;
                 }
 
-                self.publish_diagnostics_for_doc(&uri, errors);
+                self.publish_diagnostics_for_doc(&uri, errors).await;
             }
         }
 
         // Clear errors from any documents that previously had errors
         for uri in last_docs_with_errors.difference(&self.documents_with_errors) {
-            self.publish_diagnostics_for_doc(uri, vec![]);
+            self.publish_diagnostics_for_doc(uri, vec![]).await;
         }
     }
 
-    fn publish_diagnostics_for_doc(&self, uri: &str, errors: Vec<Error>) {
+    async fn publish_diagnostics_for_doc(&self, uri: &str, errors: Vec<Error>) {
         let version = self.open_documents.get(uri).map(|d| d.version);
         trace!("publishing diagnostics for {uri} {version:?}): {errors:?}");
         (self.diagnostics_receiver)(DiagnosticUpdate {
             uri: uri.into(),
             version,
             errors,
-        });
+        })
+        .await;
     }
 
     fn apply_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) -> bool {
@@ -437,7 +438,7 @@ impl<'a> LanguageService<'a> {
     /// Recompiles the currently known documents with
     /// the current configuration. Publishes updated
     /// diagnostics for all documents.
-    fn recompile_all(&mut self) {
+    async fn recompile_all(&mut self) {
         for compilation in self.compilations.values_mut() {
             compilation.recompile(
                 self.configuration.package_type,
@@ -445,7 +446,7 @@ impl<'a> LanguageService<'a> {
             );
         }
 
-        self.publish_diagnostics();
+        self.publish_diagnostics().await;
     }
 }
 
