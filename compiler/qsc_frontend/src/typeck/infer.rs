@@ -143,7 +143,7 @@ impl Class {
             Class::Add(ty) if check_add(&ty) => (Vec::new(), Vec::new()),
             Class::Add(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassAdd(ty, span))],
+                vec![Error(ErrorKind::MissingClassAdd(ty.display(), span))],
             ),
             Class::Adj(ty) => check_adj(ty, span),
             Class::Call {
@@ -155,7 +155,7 @@ impl Class {
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span),
             Class::HasField { record, name, item } => {
-                check_has_field(udts, record, name, item, span)
+                check_has_field(udts, &record, name, item, span)
             }
             Class::HasIndex {
                 container,
@@ -165,16 +165,16 @@ impl Class {
             Class::Integral(ty) if check_integral(&ty) => (Vec::new(), Vec::new()),
             Class::Integral(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassInteger(ty, span))],
+                vec![Error(ErrorKind::MissingClassInteger(ty.display(), span))],
             ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
             Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
             Class::Num(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassNum(ty, span))],
+                vec![Error(ErrorKind::MissingClassNum(ty.display(), span))],
             ),
             Class::Show(ty) => check_show(ty, span),
-            Class::Unwrap { wrapper, base } => check_unwrap(udts, wrapper, base, span),
+            Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
         }
     }
 }
@@ -247,8 +247,8 @@ impl ArgTy {
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
                     errors.push(Error(ErrorKind::TyMismatch(
-                        Ty::Tuple(params.clone()),
-                        self.to_ty(),
+                        Ty::Tuple(params.clone()).display(),
+                        self.to_ty().display(),
                         span,
                     )));
                 }
@@ -285,8 +285,8 @@ impl ArgTy {
                 holes: Vec::new(),
                 constraints: Vec::new(),
                 errors: vec![Error(ErrorKind::TyMismatch(
-                    param.clone(),
-                    self.to_ty(),
+                    param.display(),
+                    self.to_ty().display(),
                     span,
                 ))],
             },
@@ -381,7 +381,7 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
+                GenericParam::Ty(_) => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -554,8 +554,8 @@ impl Solver {
         match (ty1, ty2) {
             (Ty::Err, _)
             | (_, Ty::Err)
-            | (Ty::Udt(Res::Err), Ty::Udt(_))
-            | (Ty::Udt(_), Ty::Udt(Res::Err)) => Vec::new(),
+            | (Ty::Udt(_, Res::Err), Ty::Udt(_, _))
+            | (Ty::Udt(_, _), Ty::Udt(_, Res::Err)) => Vec::new(),
             (Ty::Array(item1), Ty::Array(item2)) => self.unify(item1, item2, span),
             (Ty::Arrow(arrow1), Ty::Arrow(arrow2)) => {
                 if arrow1.kind != arrow2.kind {
@@ -590,12 +590,15 @@ impl Solver {
             (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
-            (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Vec::new(),
+            (Ty::Param(_, name1), Ty::Param(_, name2)) if name1 == name2 => Vec::new(),
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
-                    self.errors
-                        .push(Error(ErrorKind::TyMismatch(ty1.clone(), ty2.clone(), span)));
+                    self.errors.push(Error(ErrorKind::TyMismatch(
+                        ty1.display(),
+                        ty2.display(),
+                        span,
+                    )));
                 }
 
                 items1
@@ -604,10 +607,13 @@ impl Solver {
                     .flat_map(|(item1, item2)| self.unify(item1, item2, span))
                     .collect()
             }
-            (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Vec::new(),
+            (Ty::Udt(_, res1), Ty::Udt(_, res2)) if res1 == res2 => Vec::new(),
             _ => {
-                self.errors
-                    .push(Error(ErrorKind::TyMismatch(ty1.clone(), ty2.clone(), span)));
+                self.errors.push(Error(ErrorKind::TyMismatch(
+                    ty1.display(),
+                    ty2.display(),
+                    span,
+                )));
                 Vec::new()
             }
         }
@@ -661,12 +667,12 @@ impl Solver {
 fn substitute_ty(solution: &Solution, ty: &mut Ty) {
     fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) {
         if limit == 0 {
-            // We've hit the recusion limit. Give up and leave the inferred types
-            // as is. This should trigger an abmiguous type error later.
+            // We've hit the recursion limit. Give up and leave the inferred types
+            // as is. This should trigger an ambiguous type error later.
             return;
         }
         match ty {
-            Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
+            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => {}
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
                 substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
@@ -716,7 +722,7 @@ fn unknown_ty(tys: &IndexMap<InferTyId, Ty>, ty: &Ty) -> Option<InferTyId> {
 
 fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
     match ty {
-        Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => false,
+        Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
         Ty::Arrow(arrow) => {
             contains_infer_ty(id, &arrow.input) || contains_infer_ty(id, &arrow.output)
@@ -745,7 +751,7 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassAdj(ty, span))],
+            vec![Error(ErrorKind::MissingClassAdj(ty.display(), span))],
         ),
     }
 }
@@ -754,7 +760,7 @@ fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constra
     let Ty::Arrow(arrow) = callee else {
         return (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassCall(callee, span))],
+            vec![Error(ErrorKind::MissingClassCall(callee.display(), span))],
         );
     };
 
@@ -789,7 +795,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let Ty::Arrow(arrow) = op else {
         return (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassCtl(op, span))],
+            vec![Error(ErrorKind::MissingClassCtl(op.display(), span))],
         );
     };
 
@@ -838,7 +844,10 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                 .collect(),
             Vec::new(),
         ),
-        _ => (Vec::new(), vec![Error(ErrorKind::MissingClassEq(ty, span))]),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],
+        ),
     }
 }
 
@@ -862,14 +871,14 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassExp(base, span))],
+            vec![Error(ErrorKind::MissingClassExp(base.display(), span))],
         ),
     }
 }
 
 fn check_has_field(
     udts: &FxHashMap<ItemId, Udt>,
-    record: Ty,
+    record: &Ty,
     name: String,
     item: Ty,
     span: Span,
@@ -888,7 +897,7 @@ fn check_has_field(
             }],
             Vec::new(),
         ),
-        (Err(()), Ty::Udt(Res::Item(id))) => {
+        (Err(()), Ty::Udt(_, Res::Item(id))) => {
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => (
                     vec![Constraint::Eq {
@@ -902,13 +911,21 @@ fn check_has_field(
                 ),
                 None => (
                     Vec::new(),
-                    vec![Error(ErrorKind::MissingClassHasField(record, name, span))],
+                    vec![Error(ErrorKind::MissingClassHasField(
+                        record.display(),
+                        name,
+                        span,
+                    ))],
                 ),
             }
         }
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassHasField(record, name, span))],
+            vec![Error(ErrorKind::MissingClassHasField(
+                record.display(),
+                name,
+                span,
+            ))],
         ),
     }
 }
@@ -942,7 +959,9 @@ fn check_has_index(
         (container, index) => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasIndex(
-                container, index, span,
+                container.display(),
+                index.display(),
+                span,
             ))],
         ),
     }
@@ -972,7 +991,10 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassIterable(container, span))],
+            vec![Error(ErrorKind::MissingClassIterable(
+                container.display(),
+                span,
+            ))],
         ),
     }
 }
@@ -997,19 +1019,19 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassShow(ty, span))],
+            vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
         ),
     }
 }
 
 fn check_unwrap(
     udts: &FxHashMap<ItemId, Udt>,
-    wrapper: Ty,
+    wrapper: &Ty,
     base: Ty,
     span: Span,
 ) -> (Vec<Constraint>, Vec<Error>) {
-    if let Ty::Udt(Res::Item(id)) = wrapper {
-        if let Some(udt) = udts.get(&id) {
+    if let Ty::Udt(_, Res::Item(id)) = wrapper {
+        if let Some(udt) = udts.get(id) {
             return (
                 vec![Constraint::Eq {
                     expected: base,
@@ -1026,6 +1048,9 @@ fn check_unwrap(
 
     (
         Vec::new(),
-        vec![Error(ErrorKind::MissingClassUnwrap(wrapper, span))],
+        vec![Error(ErrorKind::MissingClassUnwrap(
+            wrapper.display(),
+            span,
+        ))],
     )
 }
