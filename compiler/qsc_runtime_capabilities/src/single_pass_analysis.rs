@@ -60,8 +60,8 @@ impl StoreComputeProps {
 #[derive(Debug)]
 pub struct PackageComputeProps {
     pub items: IndexMap<LocalItemId, ItemComputeProps>,
-    pub blocks: IndexMap<BlockId, CallableElmtComputeProps>,
-    pub stmts: IndexMap<StmtId, CallableElmtComputeProps>, // TODO (cesarzc): Might need a SrmtComputeProps type.
+    pub blocks: IndexMap<BlockId, ElmntComputeProps>,
+    pub stmts: IndexMap<StmtId, ElmntComputeProps>,
     pub exprs: IndexMap<ExprId, ExprComputeProps>,
     pub pats: IndexMap<PatId, PatComputeProps>,
 }
@@ -175,65 +175,43 @@ pub struct CallableComputeProps {
 
 impl Display for CallableComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "Callable Runtime Properties:")?;
+        write!(f, "Callable Compute Properties:")?;
         let mut indent = set_indentation(indented(f), 1);
         write!(indent, "\n{}", self.apps)?;
         Ok(())
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum CallableElmtComputeProps {
-    AppDependent(AppsTbl),
-    AppIndependent(ComputeProps),
-    Unsupported, // TODO (cesarzc): This should eventually be removed but keep it for now while doing implementation.
-}
-
-impl Display for CallableElmtComputeProps {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        match &self {
-            CallableElmtComputeProps::AppDependent(apps_table) => {
-                write!(f, "Application Dependent: {apps_table}")?
-            }
-            CallableElmtComputeProps::AppIndependent(compute_kind) => {
-                write!(f, "Application Independent: {compute_kind}")?
-            }
-            CallableElmtComputeProps::Unsupported => write!(f, "Unsupported")?,
-        }
-        Ok(())
-    }
-}
-
-impl CallableElmtComputeProps {
+impl ElmntComputeProps {
     pub fn from_expr_compute_props(expr_compute_props: &ExprComputeProps) -> Self {
         match expr_compute_props {
-            ExprComputeProps::Element(elmt) => elmt.clone(),
-            ExprComputeProps::Unsupported => CallableElmtComputeProps::Unsupported,
+            ExprComputeProps::Elmnt(elmt) => elmt.clone(),
+            ExprComputeProps::Unsupported => ElmntComputeProps::Unsupported,
             _ => panic!("Compute props conversion not supported"),
         }
     }
 }
 
+#[derive(Debug)]
+pub struct StmtComputeProps {}
+
 #[derive(Clone, Debug)]
 pub enum ExprComputeProps {
-    Element(CallableElmtComputeProps),
-    GlobalCallee(PackageId, LocalItemId),
-    // CONSIDER (cesarzc): Minimal capabilities can be inferred from the local callee type.
-    // Might not bee needed and could just use `InputParam`.
-    //LocalCallee(NodeId),
-    InputParam(PackageId, PatId),
+    Elmnt(ElmntComputeProps),
+    Global(PackageId, LocalItemId),
+    Local(NodeId, PackageId, PatId),
     Unsupported, // TODO (cesarzc): This should eventually be removed but keep it for now while doing implementation.
 }
 
 impl Display for ExprComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            ExprComputeProps::Element(elmt) => write!(f, "Element: {elmt}")?,
-            ExprComputeProps::GlobalCallee(package_id, item_id) => {
-                write!(f, "Global Callee {package_id:?} | {item_id:?}")?
+            ExprComputeProps::Elmnt(concrete) => write!(f, "Concrete: {concrete}")?,
+            ExprComputeProps::Global(package_id, item_id) => {
+                write!(f, "Global ({package_id:?} | {item_id:?})")?
             }
-            ExprComputeProps::InputParam(package_id, pat_id) => {
-                write!(f, "Input Param {package_id:?} | {pat_id:?}")?
+            ExprComputeProps::Local(node_id, package_id, pat_id) => {
+                write!(f, "Input Param ({node_id} | {package_id:?} | {pat_id:?})")?
             }
             ExprComputeProps::Unsupported => write!(f, "Unsupported")?,
         }
@@ -246,20 +224,52 @@ pub struct ParamIdx(usize);
 
 #[derive(Debug)]
 pub enum PatComputeProps {
-    Local(CallableElmtComputeProps),      // TODO (cesarzc): Add node ID.
-    CallableInputParam(ItemId, ParamIdx), // TODO (cesarzc): Need to use it. Definitely needs NodeId.
+    LocalGroup,
+    LocalNode(NodeId, ExprComputeProps),
+    InputParamGroup,
+    InputParamNode(NodeId, PackageId, LocalItemId, ParamIdx, Ty),
+    Unsupported, // TODO (cesarzc): This is temporary and should be removed once the implementation is complete.
 }
 
 impl Display for PatComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            PatComputeProps::Local(compute_props) => write!(f, "Local: {compute_props}")?,
-            PatComputeProps::CallableInputParam(item_id, param_idx) => {
-                write!(f, "Callable Parameter:")?;
-                let mut indent = set_indentation(indented(f), 1);
-                write!(indent, "\nItem ID: {item_id}")?;
-                write!(indent, "\nParameter Index: {param_idx:?}")?;
+            PatComputeProps::LocalGroup => write!(f, "Local Group")?,
+            PatComputeProps::LocalNode(node_id, expr_compute_props) => {
+                write!(f, "Local Node ({node_id}): {expr_compute_props}")?
             }
+            PatComputeProps::InputParamGroup => write!(f, "Input Param Group")?,
+            PatComputeProps::InputParamNode(node_id, package_id, local_item_id, param_idx, ty) => {
+                write!(f, "Callable Parameter (Node ID {node_id}):")?;
+                let mut indent = set_indentation(indented(f), 1);
+                write!(indent, "\nPackage ID: {package_id}")?;
+                write!(indent, "\nLocal Item ID: {local_item_id}")?;
+                write!(indent, "\nParameter Index: {param_idx:?}")?;
+                write!(indent, "\nType: {ty}")?;
+            }
+            PatComputeProps::Unsupported => write!(f, "Unsupported")?,
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ElmntComputeProps {
+    AppDependent(AppsTbl),
+    AppIndependent(ComputeProps),
+    Unsupported, // TODO (cesarzc): This should eventually be removed but keep it for now while doing implementation.
+}
+
+impl Display for ElmntComputeProps {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match &self {
+            ElmntComputeProps::AppDependent(apps_table) => {
+                write!(f, "Application Dependent: {apps_table}")?
+            }
+            ElmntComputeProps::AppIndependent(compute_kind) => {
+                write!(f, "Application Independent: {compute_kind}")?
+            }
+            ElmntComputeProps::Unsupported => write!(f, "Unsupported")?,
         }
         Ok(())
     }
@@ -328,6 +338,7 @@ impl Display for AppsTbl {
 pub struct ComputeProps {
     pub rt_caps: FxHashSet<RuntimeCapability>,
     // N.B. (cesarzc): To get good error messages, maybe quantum source needs expansion and link to compute props.
+    // TODO (cesarzc): Should probably just be one quantum source.
     pub quantum_sources: Vec<QuantumSource>,
 }
 
@@ -384,6 +395,7 @@ pub enum ComputeKind {
 }
 
 #[derive(Clone, Debug)]
+// TODO (cesarzc): Should probably include package ID as well.
 pub enum QuantumSource {
     Intrinsic,
     ItemId,
@@ -419,11 +431,7 @@ impl StoreScratch {
             .and_then(|package| package.pats.get(pat_id))
     }
 
-    pub fn get_stmt(
-        &self,
-        package_id: &PackageId,
-        stmt_id: &StmtId,
-    ) -> Option<&CallableElmtComputeProps> {
+    pub fn get_stmt(&self, package_id: &PackageId, stmt_id: &StmtId) -> Option<&ElmntComputeProps> {
         self.0
             .get(package_id)
             .and_then(|package| package.stmts.get(stmt_id))
@@ -508,12 +516,7 @@ impl StoreScratch {
         self_package_scratch.pats.insert(pat_id, pat);
     }
 
-    pub fn insert_stmt(
-        &mut self,
-        package_id: PackageId,
-        stmt_id: StmtId,
-        stmt: CallableElmtComputeProps,
-    ) {
+    pub fn insert_stmt(&mut self, package_id: PackageId, stmt_id: StmtId, stmt: ElmntComputeProps) {
         let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
             None => {
                 self.0.insert(package_id, PackageScratch::default());
@@ -553,8 +556,8 @@ impl StoreScratch {
 #[derive(Debug, Default)]
 pub struct PackageScratch {
     pub items: FxHashMap<LocalItemId, ItemComputeProps>,
-    pub blocks: FxHashMap<BlockId, CallableElmtComputeProps>,
-    pub stmts: FxHashMap<StmtId, CallableElmtComputeProps>,
+    pub blocks: FxHashMap<BlockId, ElmntComputeProps>,
+    pub stmts: FxHashMap<StmtId, ElmntComputeProps>,
     pub exprs: FxHashMap<ExprId, ExprComputeProps>,
     pub pats: FxHashMap<PatId, PatComputeProps>,
 }
@@ -654,15 +657,37 @@ impl InputParamsVec {
 }
 
 #[derive(Debug)]
-struct InputParamsMap(FxHashMap<NodeId, (AppIdx, Ty)>);
+struct InputParamsMap(FxHashMap<NodeId, (PatId, InputParamIdx, Ty)>);
 
 impl InputParamsMap {
-    pub fn from_input_params_vec(input_params_vec: &InputParamsVec) -> Self {
-        let mut input_params_map = FxHashMap::<NodeId, (AppIdx, Ty)>::default();
-        for (idx, (node_id, ty)) in input_params_vec.0.iter().enumerate() {
-            input_params_map.insert(*node_id, (AppIdx(idx), ty.clone()));
+    fn from_callable(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
+        let input_pat = package_pats
+            .get(callable.input)
+            .expect("Callable input pattern should exist");
+
+        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, PatId, Ty)> {
+            match &pat.kind {
+                PatKind::Bind(ident) => vec![(ident.id, pat.id, pat.ty.clone())],
+                PatKind::Tuple(tuple_pats) => {
+                    let mut tuple_params = Vec::<(NodeId, PatId, Ty)>::new();
+                    for tuple_item_pat_id in tuple_pats {
+                        let tuple_item_pat = pats
+                            .get(*tuple_item_pat_id)
+                            .expect("`Pattern` should exist");
+                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
+                        tuple_params.append(&mut tuple_item_params);
+                    }
+                    tuple_params
+                }
+                _ => panic!("Only callable parameter patterns are expected"),
+            }
         }
-        Self(input_params_map)
+
+        let mut input_params = FxHashMap::<NodeId, (PatId, InputParamIdx, Ty)>::default();
+        for (idx, (node_id, pat_id, ty)) in from_pat(input_pat, package_pats).iter().enumerate() {
+            input_params.insert(*node_id, (*pat_id, InputParamIdx(idx), ty.clone()));
+        }
+        InputParamsMap(input_params)
     }
 }
 
@@ -761,8 +786,8 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_expr_lit(expr_id: ExprId, package_id: PackageId, store_scratch: &mut StoreScratch) {
-        let elmt_compute_props = CallableElmtComputeProps::AppIndependent(ComputeProps::default());
-        let compute_props = ExprComputeProps::Element(elmt_compute_props);
+        let elmt_compute_props = ElmntComputeProps::AppIndependent(ComputeProps::default());
+        let compute_props = ExprComputeProps::Elmnt(elmt_compute_props);
         store_scratch.insert_expr(package_id, expr_id, compute_props);
     }
 
@@ -857,16 +882,16 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        // The applications table size depends on the number of input parameters.
+        // Get the input params callable, and properly set the corresponding patterns.
         let package_pats = &package_store
             .0
             .get(package_id)
             .expect("`Package` should exist in `PackageStore`")
             .pats;
-        let input_params_vec = InputParamsVec::from_callable(callable, package_pats);
-        let mut callable_apps_tbl = AppsTbl::new(input_params_vec.0.len());
+        let input_params_map = InputParamsMap::from_callable(callable, package_pats);
 
-        // Initialize the callable applications table.
+        // Initialize the callable applications table whose size depends on the number of input parameters.
+        let mut callable_apps_tbl = AppsTbl::new(input_params_map.0.len());
         for _ in 0..callable_apps_tbl.max() {
             callable_apps_tbl.apps.push(ComputeProps {
                 rt_caps: FxHashSet::default(),
@@ -875,7 +900,6 @@ impl SinglePassAnalyzer {
         }
 
         // Analyze each statement and update the callable apps table.
-        let input_params_map = InputParamsMap::from_input_params_vec(&input_params_vec);
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
         let implementation_block = package_store
             .get_block(package_id, implementation_block_id)
@@ -935,11 +959,7 @@ impl SinglePassAnalyzer {
                 store_scratch,
             ),
             _ => {
-                store_scratch.insert_stmt(
-                    package_id,
-                    stmt_id,
-                    CallableElmtComputeProps::Unsupported,
-                );
+                store_scratch.insert_stmt(package_id, stmt_id, ElmntComputeProps::Unsupported);
             }
         };
     }
@@ -962,8 +982,7 @@ impl SinglePassAnalyzer {
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties should exist since it has just been analyzed");
-        let stmt_compute_props =
-            CallableElmtComputeProps::from_expr_compute_props(expr_compute_props);
+        let stmt_compute_props = ElmntComputeProps::from_expr_compute_props(expr_compute_props);
         store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
     }
 
@@ -976,6 +995,7 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        // Analyze the expression.
         Self::analyze_expr(
             expr_id,
             package_id,
@@ -983,29 +1003,12 @@ impl SinglePassAnalyzer {
             package_store,
             store_scratch,
         );
-        // CONSIDER (cesarzc): Maybe a hack?
-        {
-            let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
-                "Expression compute properties should exist since it has just been analyzed",
-            );
-            store_scratch.insert_pat(
-                package_id,
-                pat_id,
-                PatComputeProps::Local(CallableElmtComputeProps::from_expr_compute_props(
-                    expr_compute_props,
-                )),
-            );
-        }
-        {
-            let expr_compute_props = store_scratch.get_expr(&package_id, &expr_id).expect(
-                "Expression compute properties should exist since it has just been analyzed",
-            );
-            store_scratch.insert_stmt(
-                package_id,
-                stmt_id,
-                CallableElmtComputeProps::from_expr_compute_props(expr_compute_props),
-            );
-        }
+
+        // Propagate to patterns.
+        Self::link_expr_to_local_pat(expr_id, pat_id, package_id, package_store, store_scratch);
+
+        // Propagate to statement.
+        Self::link_expr_to_stmt(expr_id, stmt_id, package_id, package_store, store_scratch);
     }
 
     fn create_intrinsic_function_application(
@@ -1092,6 +1095,60 @@ impl SinglePassAnalyzer {
             SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
             _ => false,
         }
+    }
+
+    fn link_expr_to_local_pat(
+        expr_id: ExprId,
+        pat_id: PatId,
+        package_id: PackageId,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        // N.B. This function assumes the expression has already been analyzed.
+        // TODO (cesarzc): The correct thing to do here would be to match the appropriate sub-expression to its corresponding node.
+        let expr_compute_props = store_scratch
+            .get_expr(&package_id, &expr_id)
+            .expect("Expression compute properties must have already been analyzed.");
+        let pat = package_store
+            .get_pat(package_id, pat_id)
+            .expect("Pattern must exist");
+        match &pat.kind {
+            PatKind::Bind(ident) => {
+                let local_node = PatComputeProps::LocalNode(ident.id, expr_compute_props.clone());
+                store_scratch.insert_pat(package_id, pat_id, local_node);
+            }
+            PatKind::Tuple(_) => {
+                // TODO (cesarzc): Eventually we should be able to map each node to its corresponding sub-expression.
+                store_scratch.insert_pat(package_id, pat_id, PatComputeProps::Unsupported)
+            }
+            PatKind::Discard => panic!("Discard patterns are not expected"),
+        }
+    }
+
+    fn link_expr_to_stmt(
+        expr_id: ExprId,
+        stmt_id: StmtId,
+        package_id: PackageId,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        let expr_compute_props = store_scratch
+            .get_expr(&package_id, &expr_id)
+            .expect("Expression compute properties must have already been analyzed.");
+        match &expr_compute_props {
+            ExprComputeProps::Elmnt(elmnt) => {
+                store_scratch.insert_stmt(package_id, stmt_id, elmnt.clone())
+            }
+            ExprComputeProps::Global(_, _) | ExprComputeProps::Local(_, _, _) => store_scratch
+                .insert_stmt(
+                    package_id,
+                    stmt_id,
+                    ElmntComputeProps::AppIndependent(ComputeProps::default()),
+                ),
+            ExprComputeProps::Unsupported => {
+                store_scratch.insert_stmt(package_id, stmt_id, ElmntComputeProps::Unsupported)
+            }
+        };
     }
 }
 
