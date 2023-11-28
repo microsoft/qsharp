@@ -138,7 +138,7 @@ export class QSharpLanguageService implements ILanguageService {
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
-    this.languageService.update_configuration(config);
+    await this.languageService.update_configuration(config);
   }
 
   async updateDocument(
@@ -147,7 +147,7 @@ export class QSharpLanguageService implements ILanguageService {
     code: string,
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code);
+    await this.languageService.update_document(documentUri, version, code);
   }
 
   async updateNotebookDocument(
@@ -161,12 +161,12 @@ export class QSharpLanguageService implements ILanguageService {
     for (const cell of cells) {
       this.code[cell.uri] = cell.code;
     }
-    this.languageService.update_notebook_document(notebookUri, cells);
+    await this.languageService.update_notebook_document(notebookUri, cells);
   }
 
   async closeDocument(documentUri: string): Promise<void> {
     delete this.code[documentUri];
-    this.languageService.close_document(documentUri);
+    await this.languageService.close_document(documentUri);
   }
 
   async closeNotebookDocument(
@@ -174,7 +174,7 @@ export class QSharpLanguageService implements ILanguageService {
     cellUris: string[],
   ): Promise<void> {
     cellUris.forEach((uri) => delete this.code[uri]);
-    this.languageService.close_notebook_document(documentUri, cellUris);
+    await this.languageService.close_notebook_document(documentUri, cellUris);
   }
 
   async getCompletions(
