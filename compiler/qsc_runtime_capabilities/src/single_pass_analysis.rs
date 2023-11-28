@@ -16,6 +16,7 @@ use std::{
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
+    num::NonZeroUsize,
     vec::Vec,
 };
 
@@ -465,41 +466,6 @@ pub enum NodeKind {
 pub struct InputParamIdx(usize);
 
 #[derive(Debug)]
-struct InputParamsMap(FxHashMap<NodeId, (PatId, InputParamIdx, Ty)>);
-
-impl InputParamsMap {
-    fn from_callable(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
-        let input_pat = package_pats
-            .get(callable.input)
-            .expect("Callable input pattern should exist");
-
-        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, PatId, Ty)> {
-            match &pat.kind {
-                PatKind::Bind(ident) => vec![(ident.id, pat.id, pat.ty.clone())],
-                PatKind::Tuple(tuple_pats) => {
-                    let mut tuple_params = Vec::<(NodeId, PatId, Ty)>::new();
-                    for tuple_item_pat_id in tuple_pats {
-                        let tuple_item_pat = pats
-                            .get(*tuple_item_pat_id)
-                            .expect("`Pattern` should exist");
-                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
-                        tuple_params.append(&mut tuple_item_params);
-                    }
-                    tuple_params
-                }
-                _ => panic!("Only callable parameter patterns are expected"),
-            }
-        }
-
-        let mut input_params = FxHashMap::<NodeId, (PatId, InputParamIdx, Ty)>::default();
-        for (idx, (node_id, pat_id, ty)) in from_pat(input_pat, package_pats).iter().enumerate() {
-            input_params.insert(*node_id, (*pat_id, InputParamIdx(idx), ty.clone()));
-        }
-        InputParamsMap(input_params)
-    }
-}
-
-#[derive(Debug)]
 struct InputParamsApp {
     pub idx: AppIdx,
     pub params_compute_kind: FxHashMap<NodeId, (Node, ComputeKind)>,
@@ -790,7 +756,7 @@ impl SinglePassAnalyzer {
     fn analyze_expr(
         expr_id: ExprId,
         package_id: PackageId,
-        _input_params_map: &InputParamsMap,
+        _nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
@@ -817,7 +783,7 @@ impl SinglePassAnalyzer {
         expr_id: ExprId,
         package_id: PackageId,
         res: &Res,
-        _input_params_map: &InputParamsMap,
+        _nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
@@ -910,10 +876,10 @@ impl SinglePassAnalyzer {
             .get(package_id)
             .expect("`Package` should exist in `PackageStore`")
             .pats;
-        let input_params_map = InputParamsMap::from_callable(callable, package_pats);
+        let input_params = NodeMap::from_callable_input(callable, package_pats);
 
         // Initialize the callable applications table whose size depends on the number of input parameters.
-        let mut callable_apps_tbl = AppsTbl::new(input_params_map.0.len());
+        let mut callable_apps_tbl = AppsTbl::new(input_params.0.len());
         for _ in 0..callable_apps_tbl.max() {
             callable_apps_tbl.apps.push(ComputeProps {
                 rt_caps: FxHashSet::default(),
@@ -930,7 +896,7 @@ impl SinglePassAnalyzer {
             Self::analyze_stmt(
                 *stmt_id,
                 package_id,
-                &input_params_map,
+                &input_params,
                 package_store,
                 store_scratch,
             );
@@ -955,7 +921,7 @@ impl SinglePassAnalyzer {
     fn analyze_stmt(
         stmt_id: StmtId,
         package_id: PackageId,
-        input_params_map: &InputParamsMap,
+        nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
@@ -967,7 +933,7 @@ impl SinglePassAnalyzer {
                 stmt_id,
                 package_id,
                 expr_id,
-                input_params_map,
+                nodes,
                 package_store,
                 store_scratch,
             ),
@@ -976,7 +942,7 @@ impl SinglePassAnalyzer {
                 package_id,
                 pat_id,
                 expr_id,
-                input_params_map,
+                nodes,
                 package_store,
                 store_scratch,
             ),
@@ -990,17 +956,11 @@ impl SinglePassAnalyzer {
         stmt_id: StmtId,
         package_id: PackageId,
         expr_id: ExprId,
-        input_params_map: &InputParamsMap,
+        nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        Self::analyze_expr(
-            expr_id,
-            package_id,
-            input_params_map,
-            package_store,
-            store_scratch,
-        );
+        Self::analyze_expr(expr_id, package_id, nodes, package_store, store_scratch);
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties should exist since it has just been analyzed");
@@ -1014,18 +974,12 @@ impl SinglePassAnalyzer {
         package_id: PackageId,
         pat_id: PatId,
         expr_id: ExprId,
-        input_params_map: &InputParamsMap,
+        nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
         // Analyze the expression.
-        Self::analyze_expr(
-            expr_id,
-            package_id,
-            input_params_map,
-            package_store,
-            store_scratch,
-        );
+        Self::analyze_expr(expr_id, package_id, nodes, package_store, store_scratch);
 
         // Propagate to patterns.
         Self::link_expr_to_local_pat(expr_id, pat_id, package_id, package_store, store_scratch);
