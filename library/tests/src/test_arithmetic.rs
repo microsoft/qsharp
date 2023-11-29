@@ -117,7 +117,6 @@ fn check_reflect_about_integer() {
     );
 }
 
-
 // ============================ Adders  ============================
 
 //
@@ -811,7 +810,7 @@ fn check_ripple_carry_cg_add_le_general() {
                 return i1;
         }"
         },
-        &Value::Int(978+456),
+        &Value::Int(978 + 456),
     );
 }
 
@@ -874,6 +873,6 @@ fn check_lookahead_dkrs_add_le_general() {
                 return i1;
         }"
         },
-        &Value::Int(939+578),
+        &Value::Int(939 + 578),
     );
 }

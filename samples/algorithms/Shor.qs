@@ -474,7 +474,7 @@ namespace Sample {
             within {
                 ApplyXorInPlace(c >>> j, x);
             } apply {
-                AddI(x, y[j...]);
+                IncByLE(x, y[j...]);
             }
         }
     }
