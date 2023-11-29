@@ -710,7 +710,7 @@ impl State {
     }
 
     fn cont_assign_op(&mut self, globals: &impl NodeLookup, op: BinOp, lhs: ExprId, rhs: ExprId) {
-        // If we know the assign op is an array append, we should perform it in-place.
+        // If we know the assign op is an array append, as in `set arr += other;`, we should perform it in-place.
         if op == BinOp::Add && matches!(globals.get_expr(self.package, lhs).ty, Ty::Array(_)) {
             self.push_action(Action::ArrayAppendInPlace(lhs));
             self.push_expr(rhs);
@@ -939,10 +939,10 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value.append_array(rhs);
                 }
-                Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => unreachable!("update of mutable variable should be disallowed by compiler"),
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
-            _ => panic!("unassignable array update pattern should be disallowed by compiler"),
+            _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
         Ok(())
     }
@@ -1352,7 +1352,7 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
                 }
-                Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => unreachable!("update of mutable variable should be disallowed by compiler"),
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
@@ -1360,7 +1360,7 @@ impl State {
                     self.update_binding(env, globals, *expr, val.clone())?;
                 }
             }
-            _ => panic!("unassignable pattern should be disallowed by compiler"),
+            _ => unreachable!("unassignable pattern should be disallowed by compiler"),
         }
         Ok(())
     }
@@ -1379,10 +1379,10 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value.update_array(index, rhs);
                 }
-                Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => unreachable!("update of mutable variable should be disallowed by compiler"),
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
-            _ => panic!("unassignable array update pattern should be disallowed by compiler"),
+            _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
         Ok(())
     }
