@@ -185,7 +185,7 @@ impl Display for CallableComputeProps {
 #[derive(Debug)]
 // TODO (cesarzc): Probably don't need type info here but keeping for debugging purposes.
 pub enum PatComputeProps {
-    LocalDiscard(Ty),
+    LocalDiscard(Ty, ElmntComputeProps),
     LocalNode(NodeId, Ty, ElmntComputeProps),
     LocalTuple(Vec<PatId>, Ty),
     InputParamNode(NodeId, LocalItemId, Ty, InputParamIdx),
@@ -196,9 +196,11 @@ pub enum PatComputeProps {
 impl Display for PatComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            PatComputeProps::LocalDiscard(ty) => write!(f, "Local Discard : {ty:?}")?,
-            PatComputeProps::LocalNode(node_id, ty, expr_compute_props) => {
-                write!(f, "Local Node ({node_id}): {expr_compute_props}")?
+            PatComputeProps::LocalDiscard(ty, elmnt_compute_props) => {
+                write!(f, "Local Discard : {ty:?} | {elmnt_compute_props}")?
+            }
+            PatComputeProps::LocalNode(node_id, ty, elmnt_compute_props) => {
+                write!(f, "Local Node ({node_id}): {ty:?} | {elmnt_compute_props}")?
             }
             PatComputeProps::LocalTuple(pat_ids, ty) => {
                 write!(f, "Local Tuple: {pat_ids:?} | {ty:?}")?
@@ -267,6 +269,25 @@ impl AppsTbl {
         }
     }
 
+    pub fn from_input_param_idx(input_param_idx: InputParamIdx, input_param_count: usize) -> Self {
+        let tbl_size = Self::size_from_input_param_count(input_param_count);
+        let mut apps = Vec::with_capacity(tbl_size);
+        let mask = 1 << input_param_idx.0;
+        for idx in 0..tbl_size {
+            let compute_props = if idx & mask == 0 {
+                ComputeProps::default_static()
+            } else {
+                ComputeProps::default_dynamic()
+            };
+            apps.push(compute_props);
+        }
+
+        Self {
+            input_param_count,
+            apps,
+        }
+    }
+
     pub fn get(&self, index: AppIdx) -> Option<&ComputeProps> {
         self.apps.get(index.0)
     }
@@ -306,9 +327,7 @@ impl Display for AppsTbl {
 #[derive(Clone, Debug, Default)]
 pub struct ComputeProps {
     pub rt_caps: FxHashSet<RuntimeCapability>,
-    // N.B. (cesarzc): To get good error messages, maybe quantum source needs expansion and link to compute props.
-    // TODO (cesarzc): Should probably just be one quantum source.
-    pub quantum_sources: Vec<QuantumSource>,
+    pub quantum_source: Option<QuantumSource>,
 }
 
 impl Display for ComputeProps {
@@ -327,32 +346,31 @@ impl Display for ComputeProps {
             indent = set_indentation(indent, 1);
             write!(indent, "\n}}")?;
         }
-
-        let mut indent = set_indentation(indented(f), 1);
-        if self.quantum_sources.is_empty() {
-            write!(indent, "\nQuantum Sources: <empty>")?;
-        } else {
-            write!(indent, "\nQuantum Sources:")?;
-            for src in self.quantum_sources.iter() {
-                indent = set_indentation(indent, 2);
-                write!(indent, "\n{src:?}")?; // TODO (cesarzc): Implement non-debug display, maybe?.
-            }
-        }
-
+        write!(indent, "\nQuantum Source: {:?}", self.quantum_source)?;
         Ok(())
     }
 }
 
 impl ComputeProps {
-    pub fn is_quantum_source(&self) -> bool {
-        !self.quantum_sources.is_empty()
-    }
-
     pub fn compute_kind(&self) -> ComputeKind {
-        if self.rt_caps.is_empty() {
+        if self.quantum_source.is_none() {
             ComputeKind::Static
         } else {
             ComputeKind::Dynamic
+        }
+    }
+
+    pub fn default_static() -> Self {
+        Self {
+            rt_caps: FxHashSet::default(),
+            quantum_source: None,
+        }
+    }
+
+    pub fn default_dynamic() -> Self {
+        Self {
+            rt_caps: FxHashSet::default(),
+            quantum_source: None,
         }
     }
 }
@@ -367,9 +385,9 @@ pub enum ComputeKind {
 // TODO (cesarzc): Should probably include package ID as well.
 pub enum QuantumSource {
     Intrinsic,
-    ItemId,
-    BlockId,
-    StmtId,
+    Global(PackageId, LocalItemId),
+    //BlockId,
+    //StmtId,
     ExprId,
     PatId,
 }
@@ -378,7 +396,7 @@ pub enum QuantumSource {
 struct NodeMap(FxHashMap<NodeId, Node>);
 
 impl NodeMap {
-    fn from_input_params(input_params: &FlatPat) -> Self {
+    pub fn from_input_params(input_params: &FlatPat) -> Self {
         let mut node_map = FxHashMap::<NodeId, Node>::default();
         let mut param_idx = InputParamIdx(0);
         for (pat_id, flat_pat_kind) in input_params.0.iter() {
@@ -400,6 +418,16 @@ impl NodeMap {
         }
 
         Self(node_map)
+    }
+
+    pub fn input_params_count(&self) -> usize {
+        self.0
+            .iter()
+            .filter(|(_, node)| match node.kind {
+                NodeKind::InputParam(_, _) => true,
+                _ => false,
+            })
+            .count()
     }
 }
 
@@ -788,7 +816,7 @@ impl SinglePassAnalyzer {
     fn analyze_expr(
         expr_id: ExprId,
         package_id: PackageId,
-        _nodes: &NodeMap,
+        nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
@@ -801,6 +829,9 @@ impl SinglePassAnalyzer {
             .expect("Expression should exist");
         match expr.kind {
             ExprKind::Lit(_) => Self::analyze_expr_lit(expr_id, package_id, store_scratch),
+            ExprKind::Var(res, _) => {
+                Self::analyze_expr_var(expr_id, package_id, &res, nodes, store_scratch)
+            }
             _ => store_scratch.insert_expr(package_id, expr_id, ElmntComputeProps::Unsupported),
         };
     }
@@ -817,11 +848,42 @@ impl SinglePassAnalyzer {
         expr_id: ExprId,
         package_id: PackageId,
         res: &Res,
-        _nodes: &NodeMap,
-        package_store: &PackageStore,
+        nodes: &NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
-        // TODO (cesarzc): Implement.
+        let compute_props = match res {
+            Res::Item(_) => {
+                // Compute properties in this case do not have
+                ElmntComputeProps::AppIndependent(ComputeProps::default())
+            }
+            Res::Local(node_id) => {
+                let node = nodes.0.get(node_id).expect("Node should exist");
+                match node.kind {
+                    // If it's an input param, then it's an app table with 50/50 static/dynamic entries.
+                    NodeKind::InputParam(input_param_idx, _) => {
+                        let input_params_count = nodes.input_params_count();
+                        let apps_tbl =
+                            AppsTbl::from_input_param_idx(input_param_idx, input_params_count);
+                        ElmntComputeProps::AppDependent(apps_tbl)
+                    }
+                    // If it's a local, it's the same as the local.
+                    NodeKind::Local => {
+                        let pat_compute_props = store_scratch
+                            .get_pat(&package_id, &node.pat_id)
+                            .expect("Pattern compute props should exist");
+                        match pat_compute_props {
+                            PatComputeProps::LocalNode(_, _, elmnt_compute_props) => {
+                                elmnt_compute_props.clone()
+                            }
+                            _ => panic!("Only local nodes should happen at this point"),
+                        }
+                    }
+                }
+            }
+            _ => panic!("No invalid resolutions should exist at this point"),
+        };
+
+        store_scratch.insert_expr(package_id, expr_id, compute_props);
     }
 
     fn analyze_item(
@@ -849,10 +911,7 @@ impl SinglePassAnalyzer {
         // Initialize the callable applications table whose size depends on the number of input parameters.
         let mut callable_apps_tbl = AppsTbl::new(input_params.0.len());
         for _ in 0..callable_apps_tbl.size() {
-            callable_apps_tbl.apps.push(ComputeProps {
-                rt_caps: FxHashSet::default(),
-                quantum_sources: Vec::new(),
-            });
+            callable_apps_tbl.apps.push(ComputeProps::default());
         }
 
         // Initialize the available nodes from the input parameters.
@@ -1026,15 +1085,15 @@ impl SinglePassAnalyzer {
         // If this is a purely classical application or the function output is `Unit` then this is not a quantum source.
         // Otherwise this is an intrinsic quantum source.
         let is_unit = matches!(*output_type, Ty::UNIT);
-        let quantum_sources = if is_purely_classical || is_unit {
-            Vec::new()
+        let quantum_source = if is_purely_classical || is_unit {
+            None
         } else {
-            vec![QuantumSource::Intrinsic]
+            Some(QuantumSource::Intrinsic)
         };
 
         ComputeProps {
             rt_caps,
-            quantum_sources,
+            quantum_source,
         }
     }
 
@@ -1077,17 +1136,17 @@ impl SinglePassAnalyzer {
             rt_caps.extend(output_caps);
         }
 
-        // If the operation is unit then it is an instrinsic quantum source.
+        // If the operation is not unit then it is an instrinsic quantum source.
         let is_unit = matches!(*output_type, Ty::UNIT);
-        let quantum_sources = if is_unit {
-            Vec::new()
+        let quantum_source = if is_unit {
+            None
         } else {
-            vec![QuantumSource::Intrinsic]
+            Some(QuantumSource::Intrinsic)
         };
 
         ComputeProps {
             rt_caps,
-            quantum_sources,
+            quantum_source,
         }
     }
 
@@ -1130,7 +1189,7 @@ impl SinglePassAnalyzer {
         expr_id: ExprId,
         local_pat: &FlatPat,
         package_id: PackageId,
-        package_store: &PackageStore,
+        _package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
         // N.B. This function assumes the expression has already been analyzed.
@@ -1147,7 +1206,9 @@ impl SinglePassAnalyzer {
                 FlatPatKind::Tuple(pats, ty) => {
                     PatComputeProps::LocalTuple(pats.clone(), ty.clone())
                 }
-                FlatPatKind::Discard(ty) => PatComputeProps::LocalDiscard(ty.clone()),
+                FlatPatKind::Discard(ty) => {
+                    PatComputeProps::LocalDiscard(ty.clone(), expr_compute_props.clone())
+                }
             };
             store_scratch.insert_pat(package_id, *pat_id, pat_compute_props);
         }
