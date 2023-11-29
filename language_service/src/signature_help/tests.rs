@@ -2527,34 +2527,34 @@ fn indirect_unresolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((?1, ?2, ?3) => Unit)",
+                        label: "((?, ?, ?) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 1,
-                                    end: 13,
+                                    end: 10,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
                                     start: 2,
-                                    end: 4,
+                                    end: 3,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 6,
-                                    end: 8,
+                                    start: 5,
+                                    end: 6,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 10,
-                                    end: 12,
+                                    start: 8,
+                                    end: 9,
                                 },
                                 documentation: None,
                             },
@@ -2584,13 +2584,13 @@ fn indirect_partially_resolved_lambda_call() {
             SignatureHelp {
                 signatures: [
                     SignatureInformation {
-                        label: "((Int, ?2, ?3) => Unit)",
+                        label: "((Int, ?, ?) => Unit)",
                         documentation: None,
                         parameters: [
                             ParameterInformation {
                                 label: Span {
                                     start: 1,
-                                    end: 14,
+                                    end: 12,
                                 },
                                 documentation: None,
                             },
@@ -2604,14 +2604,14 @@ fn indirect_partially_resolved_lambda_call() {
                             ParameterInformation {
                                 label: Span {
                                     start: 7,
-                                    end: 9,
+                                    end: 8,
                                 },
                                 documentation: None,
                             },
                             ParameterInformation {
                                 label: Span {
-                                    start: 11,
-                                    end: 13,
+                                    start: 10,
+                                    end: 11,
                                 },
                                 documentation: None,
                             },
@@ -3187,5 +3187,97 @@ fn indirect_callable_with_std_udt_with_params() {
         active_parameter: 1,
     }
 "#]],
+    );
+}
+
+#[test]
+fn call_with_type_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B { b }
+            operation Bar() : Unit {
+                Foo(1,↘)
+                let x = 3;
+            }
+        }
+    "#},
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 21,
+                                    end: 37,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 22,
+                                    end: 28,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 30,
+                                    end: 36,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 2,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn std_callable_with_type_params() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let temp = FakeWithTypeParam(↘);
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "operation FakeWithTypeParam<'A>(a : 'A) : 'A",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: Span {
+                                    start: 31,
+                                    end: 39,
+                                },
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: Span {
+                                    start: 32,
+                                    end: 38,
+                                },
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
     );
 }

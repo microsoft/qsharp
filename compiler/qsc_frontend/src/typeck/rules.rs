@@ -102,7 +102,7 @@ impl<'a> Context<'a> {
             TyKind::Hole => self.inferrer.fresh_ty(TySource::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
-                Some(&Res::Item(item, _)) => Ty::Udt(hir::Res::Item(item)),
+                Some(&Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
                 None => Ty::Err,
@@ -116,7 +116,7 @@ impl<'a> Context<'a> {
                 ),
             },
             TyKind::Param(name) => match self.names.get(name.id) {
-                Some(Res::Param(id)) => Ty::Param(*id),
+                Some(Res::Param(id)) => Ty::Param(name.name.clone(), *id),
                 None => Ty::Err,
                 Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \
@@ -755,7 +755,7 @@ impl<'a> Context<'a> {
 
         for (id, span) in self.typed_holes {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
-            errs.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
+            errs.push(Error(super::ErrorKind::TyHole(ty.display(), span)));
         }
 
         errs

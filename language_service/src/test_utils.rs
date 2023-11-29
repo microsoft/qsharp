@@ -54,10 +54,10 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
             "<std>".into(),
             r#"namespace FakeStdLib {
                 operation Fake() : Unit {}
-                operation FakeWithParam(x: Int) : Unit {}
+                operation FakeWithParam(x : Int) : Unit {}
                 operation FakeCtlAdj() : Unit is Ctl + Adj {}
-                newtype Udt = (x: Int, y: Int);
-                newtype UdtWrapper = (inner: Udt);
+                newtype Udt = (x : Int, y : Int);
+                newtype UdtWrapper = (inner : Udt);
                 newtype UdtFn = (Int -> Int);
                 newtype UdtFnWithUdtParams = (Udt -> Udt);
                 function TakesUdt(input : Udt) : Udt {
@@ -66,6 +66,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
                 operation RefFake() : Unit {
                     Fake();
                 }
+                operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
             }"#
             .into(),
         )],

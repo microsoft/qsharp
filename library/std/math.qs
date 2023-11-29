@@ -46,6 +46,24 @@ namespace Microsoft.Quantum.Math {
     }
 
     //
+    // Special numbers in IEEE floating-point representation
+    //
+
+    /// # Summary
+    /// Returns whether a given floating-point value is not a number (i.e. is
+    /// NaN).
+    ///
+    /// # Input
+    /// ## d
+    /// A floating-point value to be checked.
+    ///
+    /// # Output
+    /// `true` if and only if `d` is not a number.
+    function IsNaN(d : Double) : Bool {
+        return d != d;
+    }
+
+    //
     // Sign, Abs, Min, Max, etc.
     //
 
@@ -1238,7 +1256,7 @@ namespace Microsoft.Quantum.Math {
         // ㏑(a+b𝑖) = ln(|a+b𝑖|) + 𝑖⋅arg(a+b𝑖) = ln(baseNorm) + 𝑖⋅baseArg
         // Therefore
         // base^power = (a+b𝑖)^(c+d𝑖) = 𝑒^( (c+d𝑖)⋅㏑(a+b𝑖) ) =
-        // = 𝑒^( (c+d𝑖)⋅(ln(baseNorm)+𝑖⋅baseArg) ) = 
+        // = 𝑒^( (c+d𝑖)⋅(ln(baseNorm)+𝑖⋅baseArg) ) =
         // = 𝑒^( (c⋅ln(baseNorm) - d⋅baseArg) + 𝑖⋅(c⋅baseArg + d⋅ln(baseNorm)) )
         // magnitude = 𝑒^((c⋅ln(baseNorm) - d⋅baseArg)) = baseNorm^c / 𝑒^(d⋅baseArg)
         // angle = d⋅ln(baseNorm) + c⋅baseArg

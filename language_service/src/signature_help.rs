@@ -61,8 +61,8 @@ impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);
                         match try_get_direct_callee(self.compilation, callee) {
-                            Some((package_id, callee_decl, item_doc)) => {
-                                self.process_direct_callee(package_id, callee_decl, item_doc, args);
+                            Some((_, callee_decl, item_doc)) => {
+                                self.process_direct_callee(callee_decl, item_doc, args);
                             }
                             None => self.process_indirect_callee(callee, args),
                         }
@@ -79,13 +79,9 @@ impl SignatureHelpFinder<'_> {
         if let Some(ty) = self.compilation.get_ty(callee.id) {
             if let hir::ty::Ty::Arrow(arrow) = &ty {
                 let sig_info = SignatureInformation {
-                    label: self
-                        .display
-                        .hir_ty(self.compilation.user_package_id, ty)
-                        .to_string(),
+                    label: ty.display(),
                     documentation: None,
-                    parameters: self
-                        .get_type_params(self.compilation.user_package_id, &arrow.input),
+                    parameters: get_type_params(&arrow.input),
                 };
 
                 // Capture arrow.input structure in a fake HIR Pat.
@@ -102,7 +98,6 @@ impl SignatureHelpFinder<'_> {
 
     fn process_direct_callee(
         &mut self,
-        package_id: hir::PackageId,
         callee_decl: &hir::CallableDecl,
         item_doc: &str,
         args: &ast::Expr,
@@ -111,12 +106,9 @@ impl SignatureHelpFinder<'_> {
         let documentation = (!documentation.is_empty()).then_some(documentation);
 
         let sig_info = SignatureInformation {
-            label: self
-                .display
-                .hir_callable_decl(package_id, callee_decl)
-                .to_string(),
+            label: self.display.hir_callable_decl(callee_decl).to_string(),
             documentation,
-            parameters: self.get_params(package_id, callee_decl, item_doc),
+            parameters: self.get_params(callee_decl, item_doc),
         };
 
         self.signature_help = Some(SignatureHelp {
@@ -136,21 +128,14 @@ impl SignatureHelpFinder<'_> {
     ///              └─────────┬───────────┘
     ///                      param 0
     /// ```
-    fn get_params(
-        &self,
-        package_id: hir::PackageId,
-        decl: &hir::CallableDecl,
-        doc: &str,
-    ) -> Vec<ParameterInformation> {
-        let mut offset = self.display.get_param_offset(package_id, decl);
+    fn get_params(&self, decl: &hir::CallableDecl, doc: &str) -> Vec<ParameterInformation> {
+        let mut offset = self.display.get_param_offset(decl);
 
         match &decl.input.kind {
             hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
-                self.make_wrapped_params(offset, package_id, &decl.input, doc)
+                self.make_wrapped_params(offset, &decl.input, doc)
             }
-            hir::PatKind::Tuple(_) => {
-                self.make_param_with_offset(&mut offset, package_id, &decl.input, doc)
-            }
+            hir::PatKind::Tuple(_) => self.make_param_with_offset(&mut offset, &decl.input, doc),
         }
     }
 
@@ -159,7 +144,6 @@ impl SignatureHelpFinder<'_> {
     fn make_wrapped_params(
         &self,
         offset: u32,
-        package_id: hir::PackageId,
         pat: &hir::Pat,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -170,7 +154,7 @@ impl SignatureHelpFinder<'_> {
             None
         };
 
-        let len = usize_to_u32(self.display.hir_pat(package_id, pat).to_string().len());
+        let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
         let param = ParameterInformation {
             label: Span {
                 start: offset + 1,
@@ -193,7 +177,6 @@ impl SignatureHelpFinder<'_> {
     fn make_param_with_offset(
         &self,
         offset: &mut u32,
-        package_id: hir::PackageId,
         pat: &hir::Pat,
         doc: &str,
     ) -> Vec<ParameterInformation> {
@@ -206,7 +189,7 @@ impl SignatureHelpFinder<'_> {
                     None
                 };
 
-                let len = usize_to_u32(self.display.hir_pat(package_id, pat).to_string().len());
+                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
                 let start = *offset;
                 *offset += len;
                 vec![ParameterInformation {
@@ -218,7 +201,7 @@ impl SignatureHelpFinder<'_> {
                 }]
             }
             hir::PatKind::Tuple(items) => {
-                let len = usize_to_u32(self.display.hir_pat(package_id, pat).to_string().len());
+                let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
                 let mut rtrn = vec![ParameterInformation {
                     label: Span {
                         start: *offset,
@@ -234,95 +217,81 @@ impl SignatureHelpFinder<'_> {
                     } else {
                         *offset += 2; // 2 for the comma and space
                     }
-                    rtrn.extend(self.make_param_with_offset(offset, package_id, item, doc));
+                    rtrn.extend(self.make_param_with_offset(offset, item, doc));
                 }
                 *offset += 1; // for the close parenthesis
                 rtrn
             }
         }
     }
+}
 
-    fn get_type_params(
-        &self,
-        package_id: hir::PackageId,
-        ty: &hir::ty::Ty,
-    ) -> Vec<ParameterInformation> {
-        let mut offset = 1; // 1 for the open parenthesis character
+fn get_type_params(ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
+    let mut offset = 1; // 1 for the open parenthesis character
 
-        match &ty {
-            hir::ty::Ty::Tuple(_) => self.make_type_param_with_offset(&mut offset, package_id, ty),
-            _ => self.params_for_single_type_parameter(offset, package_id, ty),
-        }
+    match &ty {
+        hir::ty::Ty::Tuple(_) => make_type_param_with_offset(&mut offset, ty),
+        _ => params_for_single_type_parameter(offset, ty),
     }
+}
 
-    /// Callables with a single parameter in their parameter list are special-cased
-    /// because we need to insert an additional parameter info to make the list
-    /// compatible with the argument processing logic.
-    fn params_for_single_type_parameter(
-        &self,
-        offset: u32,
-        package_id: hir::PackageId,
-        ty: &hir::ty::Ty,
-    ) -> Vec<ParameterInformation> {
-        let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
-        let start = offset;
-        let end = offset + len;
+/// Callables with a single parameter in their parameter list are special-cased
+/// because we need to insert an additional parameter info to make the list
+/// compatible with the argument processing logic.
+fn params_for_single_type_parameter(offset: u32, ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
+    let len = usize_to_u32(ty.display().len());
+    let start = offset;
+    let end = offset + len;
 
-        let param = ParameterInformation {
-            label: Span { start, end },
+    let param = ParameterInformation {
+        label: Span { start, end },
+        documentation: None,
+    };
+
+    // The wrapper is a duplicate of the parameter. This is to make
+    // the generated list of parameter information objects compatible
+    // with the argument processing logic.
+    let wrapper = ParameterInformation {
+        label: Span { start, end },
+        documentation: None,
+    };
+
+    vec![wrapper, param]
+}
+
+fn make_type_param_with_offset(offset: &mut u32, ty: &hir::ty::Ty) -> Vec<ParameterInformation> {
+    if let hir::ty::Ty::Tuple(items) = &ty {
+        let len = usize_to_u32(ty.display().len());
+        let mut rtrn = vec![ParameterInformation {
+            label: Span {
+                start: *offset,
+                end: *offset + len,
+            },
             documentation: None,
-        };
-
-        // The wrapper is a duplicate of the parameter. This is to make
-        // the generated list of parameter information objects compatible
-        // with the argument processing logic.
-        let wrapper = ParameterInformation {
-            label: Span { start, end },
-            documentation: None,
-        };
-
-        vec![wrapper, param]
-    }
-
-    fn make_type_param_with_offset(
-        &self,
-        offset: &mut u32,
-        package_id: hir::PackageId,
-        ty: &hir::ty::Ty,
-    ) -> Vec<ParameterInformation> {
-        if let hir::ty::Ty::Tuple(items) = &ty {
-            let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
-            let mut rtrn = vec![ParameterInformation {
-                label: Span {
-                    start: *offset,
-                    end: *offset + len,
-                },
-                documentation: None,
-            }];
-            *offset += 1; // for the open parenthesis
-            let mut is_first = true;
-            for item in items {
-                if is_first {
-                    is_first = false;
-                } else {
-                    *offset += 2; // 2 for the comma and space
-                }
-                rtrn.extend(self.make_type_param_with_offset(offset, package_id, item));
+        }];
+        *offset += 1; // for the open parenthesis
+        let mut is_first = true;
+        for item in items {
+            if is_first {
+                is_first = false;
+            } else {
+                *offset += 2; // 2 for the comma and space
             }
-            *offset += 1; // for the close parenthesis
-            rtrn
-        } else {
-            let len = usize_to_u32(self.display.hir_ty(package_id, ty).to_string().len());
-            let start = *offset;
-            *offset += len;
-            vec![ParameterInformation {
-                label: Span {
-                    start,
-                    end: *offset,
-                },
-                documentation: None,
-            }]
+            rtrn.extend(make_type_param_with_offset(offset, item));
         }
+        *offset += 1; // for the close parenthesis
+        rtrn
+    } else {
+        let len = usize_to_u32(ty.display().len());
+        let start = *offset;
+        *offset += len;
+        vec![ParameterInformation {
+            label: Span {
+                start,
+                end: *offset,
+            },
+            documentation: None,
+        }]
     }
 }
 

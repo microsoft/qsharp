@@ -82,11 +82,11 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &LocatorContext<'a>,
         _: &'a ast::Ident,
         _: hir::ty::ParamId,
-        def_name: &'a ast::Ident,
+        definition: &'a ast::Ident,
     ) {
         self.definition = Some(protocol_location(
             self.compilation,
-            def_name.span,
+            definition.span,
             self.compilation.user_package_id,
         ));
     }

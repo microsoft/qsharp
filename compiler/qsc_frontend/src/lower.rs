@@ -625,7 +625,7 @@ impl With<'_> {
     }
 
     fn lower_field(&mut self, record_ty: &Ty, name: &str) -> hir::Field {
-        if let Ty::Udt(hir::Res::Item(id)) = record_ty {
+        if let Ty::Udt(_, hir::Res::Item(id)) = record_ty {
             self.tys
                 .udts
                 .get(id)

@@ -43,6 +43,11 @@ pub(crate) fn get_completions(
     };
     context_finder.visit_package(user_ast_package);
 
+    let indent = match context_finder.start_of_namespace {
+        Some(start) => get_indent(compilation, start),
+        None => String::new(),
+    };
+
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
         .opens
@@ -74,6 +79,7 @@ pub(crate) fn get_completions(
                 &context_finder.opens,
                 context_finder.start_of_namespace,
                 &context_finder.current_namespace_name,
+                &indent,
             );
         }
 
@@ -90,6 +96,7 @@ pub(crate) fn get_completions(
                 &context_finder.opens,
                 context_finder.start_of_namespace,
                 &context_finder.current_namespace_name,
+                &indent,
             );
 
             // Item decl keywords last, unlike in a namespace
@@ -113,6 +120,7 @@ pub(crate) fn get_completions(
                     &context_finder.opens,
                     context_finder.start_of_namespace,
                     &context_finder.current_namespace_name,
+                    &indent,
                 );
 
                 // Namespace declarations - least likely to be used, so last
@@ -124,6 +132,30 @@ pub(crate) fn get_completions(
     CompletionList {
         items: builder.into_items(),
     }
+}
+
+fn get_indent(compilation: &Compilation, package_offset: u32) -> String {
+    let source = compilation
+        .user_unit()
+        .sources
+        .find_by_offset(package_offset)
+        .expect("source should exist in the user source map");
+    let source_offset = (package_offset - source.offset)
+        .try_into()
+        .expect("offset can't be converted to uszie");
+    let before_offset = &source.contents[..source_offset];
+    let mut indent = match before_offset.rfind(|c| c == '{' || c == '\n') {
+        Some(begin) => {
+            let indent = &before_offset[begin..];
+            indent.strip_prefix('{').unwrap_or(indent)
+        }
+        None => before_offset,
+    }
+    .to_string();
+    if !indent.starts_with('\n') {
+        indent.insert(0, '\n');
+    }
+    indent
 }
 
 struct CompletionListBuilder {
@@ -199,6 +231,7 @@ impl CompletionListBuilder {
         opens: &[(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
         current_namespace_name: &Option<Rc<str>>,
+        indent: &String,
     ) {
         let core = &compilation
             .package_store
@@ -222,6 +255,7 @@ impl CompletionListBuilder {
                 opens,
                 start_of_namespace,
                 current_namespace_name.clone(),
+                indent,
             ));
         }
 
@@ -298,6 +332,7 @@ impl CompletionListBuilder {
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
         start_of_namespace: Option<u32>,
         current_namespace_name: Option<Rc<str>>,
+        indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
             .package_store
@@ -314,11 +349,8 @@ impl CompletionListBuilder {
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
                                 let name = callable_decl.name.name.as_ref();
-                                let detail = Some(
-                                    display
-                                        .hir_callable_decl(package_id, callable_decl)
-                                        .to_string(),
-                                );
+                                let detail =
+                                    Some(display.hir_callable_decl(callable_decl).to_string());
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
@@ -343,8 +375,9 @@ impl CompletionListBuilder {
                                                     additional_edits.push((
                                                         protocol::Span { start, end: start },
                                                         format!(
-                                                            "open {};\n    ",
-                                                            namespace.name.clone()
+                                                            "open {};{}",
+                                                            namespace.name.clone(),
+                                                            indent,
                                                         ),
                                                     ));
                                                     None
@@ -395,11 +428,7 @@ impl CompletionListBuilder {
         package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Callable(callable_decl) => {
                 let name = callable_decl.name.name.as_ref();
-                let detail = Some(
-                    display
-                        .hir_callable_decl(PackageId::CORE, callable_decl)
-                        .to_string(),
-                );
+                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
                 // Everything that starts with a __ goes last in the list
                 let sort_group = u32::from(name.starts_with("__"));
                 Some((

@@ -1,0 +1,514 @@
+/* Copyright (c) Microsoft Corporation.
+   Licensed under the MIT License. */
+
+/* Styles for Q# UX components.
+
+Notes:
+ - Variables and class names should be prefixed with "qs-" to minimize conflicts in other contexts.
+ - Colors should be defined in terms of CSS variables, so that they can be overridden by the editor theme.
+ - Values should be defined in terms of the VS Code theme colors, with fall-backs for other environments.
+
+Define variables as using a VS Code variable by default, e.g. "--vscode-foreground", and then a fallback
+value for use in other environments. Use the variable in setting class properties, e.g:
+
+:root {
+  --qs-foreground: var(--vscode-foreground, black);
+}
+
+.qs-button {
+  color: var(--qs-foreground);
+}
+
+It is recommended that the page these components are included in using a CSS reset such as
+modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for more information).
+*/
+
+/* Global variables for styling */
+
+/* TODO: Use the qs- prefixes and apply consistently */
+:root {
+  --heading-background: #262679;
+  --main-background: var(--vscode-editor-background, #ececf0);
+  --main-color: var(--vscode-editor-foreground, #202020);
+  --nav-background: #bed1f4;
+  --nav-hover-background: #b3bede;
+  --nav-current-background: #b5c5f2;
+  --border-color: #768f9c;
+  --menu-box-fill: var(--main-background);
+  --error-background-color: #ffe3e3;
+  --bar-selected-outline: #587ddd;
+}
+
+/* Generic element resets */
+
+/* TODO: Don't apply to entire page */
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+/* TODO: Make the below playground specific classes */
+
+/* Playground body */
+
+.qs-play-body {
+  position: relative;
+  min-height: 100vh;
+  font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial,
+    sans-serif;
+  color: var(--main-color);
+  background-color: var(--main-background);
+  display: grid;
+  grid-template-areas:
+    "header header header"
+    "nav editor results";
+  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(180px, auto) 8fr 8fr;
+  column-gap: 16px;
+}
+
+/* Playground layout */
+
+.page-header {
+  grid-area: header;
+  background: var(--heading-background);
+  color: var(--main-background);
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: center;
+  padding-top: 4px;
+  padding-bottom: 8px;
+}
+
+#popup {
+  position: absolute;
+  display: none;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 2px;
+  padding: 8px 16px;
+  font-size: 16px;
+}
+
+/* Navigation section */
+
+.nav-column {
+  grid-area: nav;
+  background-color: var(--nav-background);
+}
+
+.nav-1 {
+  font-size: 1.2rem;
+  font-weight: 200;
+  color: var(--main-color);
+  border-top: 1px solid var(--border-color);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 8px;
+}
+
+.nav-2 {
+  font-size: 1rem;
+  font-weight: 200;
+  padding: 4px;
+  padding-left: 16px;
+}
+
+.nav-selectable:hover {
+  background-color: var(--nav-hover-background);
+  cursor: pointer;
+}
+
+.nav-current {
+  font-weight: 700;
+  background-color: var(--nav-current-background);
+}
+
+/* Editor section */
+
+.editor-column {
+  grid-area: editor;
+  margin: 16px;
+  margin-top: 32px;
+}
+
+.file-name {
+  border: 1px solid var(--border-color);
+  border-bottom: 0px;
+  width: 100px;
+  text-align: center;
+  height: 32px;
+  line-height: 32px;
+  background-color: white;
+}
+
+.icon-row > * {
+  margin-left: 4px;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.code-editor {
+  height: 40vh;
+  min-height: 400px;
+  border: 1px solid var(--border-color);
+}
+
+.button-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.button-row > * {
+  margin-left: 10px;
+  font-size: 1rem;
+}
+
+.main-button {
+  background-color: var(--nav-background);
+  font-size: 1rem;
+  color: var(--main-color);
+  width: 72px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.main-button:disabled {
+  background-color: gray;
+  cursor: default;
+}
+
+.error-list {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  min-height: 48px;
+}
+
+.error-row {
+  border: 1px solid var(--border-color);
+  background-color: var(--error-background-color);
+  padding: 4px;
+  border-bottom: 0.5px solid gray;
+  font-size: 0.9rem;
+  margin-bottom: -1px;
+}
+
+.error-row > span {
+  font-weight: 200;
+}
+
+.error-help {
+  font-weight: 200;
+  font-style: italic;
+}
+
+/* Katas */
+
+.kata-override {
+  background-color: var(--main-background);
+}
+
+/* TODO: Update all components with specific prefixes */
+
+/* Results panels */
+
+.results-column {
+  grid-area: results;
+  margin-left: 0px;
+  margin-top: 32px;
+  margin-right: 120px;
+}
+
+.active-tab {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.results-labels {
+  display: flex;
+  height: 32px;
+}
+
+.results-labels > div {
+  margin-right: 40px;
+  text-align: left;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.hir-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
+/* Results output */
+
+.output-header {
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.prev-next {
+  font-weight: 200;
+  cursor: pointer;
+}
+
+.result-label {
+  margin-bottom: 24px;
+  font-style: italic;
+  font-weight: 300;
+}
+
+.message-output {
+  font-weight: 300;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+
+/* State table */
+
+.state-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  width: 100%;
+  min-width: 400px;
+  margin-bottom: 16px;
+}
+
+.state-table thead tr {
+  background: var(--nav-background);
+}
+
+.state-table tbody tr {
+  border-top: 1px solid gray;
+}
+
+.state-table td,
+.state-table th {
+  text-align: center;
+  padding: 6px;
+  white-space: nowrap;
+}
+
+.state-table progress {
+  margin-right: 2px;
+}
+
+/* Histogram */
+
+.histogram {
+  max-height: calc(100vh - 40px);
+  border: 1px solid var(--border-color);
+  background-color: var(--vscode-sideBar-background, white);
+}
+
+.bar {
+  fill: var(--vscode-button-background, var(--nav-background));
+}
+
+.bar:hover {
+  fill: var(--vscode-button-hoverBackground, var(--nav-hover-background));
+}
+
+.bar-selected {
+  stroke: var(--bar-selected-outline);
+  fill: var(--nav-current-background);
+}
+
+.bar-label {
+  font-size: 3pt;
+  fill: var(--vscode-button-foreground, var(--main-color));
+  text-anchor: end;
+  pointer-events: none;
+}
+
+.histo-label {
+  font-size: 3.5pt;
+  fill: var(--vscode-foreground, #3b3b3b);
+}
+
+.hover-text {
+  font-size: 3.5pt;
+  fill: gray;
+  text-anchor: middle;
+}
+
+.menu-icon * {
+  stroke: black;
+  fill: var(--vscode-sideBar-background, white);
+  stroke: var(--vscode-icon-foreground, #3b3b3b);
+}
+
+.menu-box {
+  fill: var(--menu-box-fill);
+  stroke: black;
+  stroke-width: 0.1;
+}
+
+.menu-item {
+  width: 32px;
+  height: 10px;
+  fill: var(--vscode-list-inactiveSelectionBackground, var(--nav-background));
+  stroke: gray;
+  stroke-width: 0.2;
+}
+
+/* --vscode-list-inactiveSelectionBackground */
+
+.menu-item:hover {
+  stroke-width: 0.6;
+  fill: var(--vscode-list-hoverBackground, var(--nav-hover-background));
+}
+
+.menu-selected {
+  /* stroke: #0800ff; */
+  fill: var(
+    --vscode-list-activeSelectionBackground,
+    var(--nav-current-background)
+  );
+}
+
+.menu-text {
+  font-size: 4.5px;
+  pointer-events: none;
+  fill: var(--main-color);
+}
+
+.menu-separator {
+  stroke: gray;
+  stroke-width: 0.25;
+}
+
+.help-info {
+  fill: var(--menu-box-fill);
+  stroke: gray;
+  stroke-width: 0.5;
+}
+
+.help-info-text {
+  font-size: 4.5px;
+  pointer-events: none;
+  fill: var(--main-color);
+}
+
+/* RE details */
+
+.estimate-details {
+  padding: 1em;
+}
+
+.estimate-details > summary {
+  font-size: 1.1em;
+}
+
+.estimate-table {
+  margin-top: 1em;
+  font-size: 0.9em;
+}
+
+.estimate-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+  background-color: var(--vscode-list-hoverBackground, #f2f2f2);
+}
+
+.estimate-cell {
+  vertical-align: top;
+  padding-right: 8px;
+}
+
+.title-cell {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.value-cell {
+  text-align: center;
+  width: 100px;
+  white-space: nowrap;
+}
+
+.estimate-explanation {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  max-width: 500px;
+}
+
+.estimate-assumption {
+  margin: 1em;
+}
+
+/* Space chart */
+
+#pieChart {
+  fill: var(--main-color);
+}
+
+.spaceReport {
+  display: flex;
+  flex-direction: column;
+}
+
+.spaceReportHeader {
+  font-size: 14px;
+  background-color: #eee;
+  background-color: var(--vscode-list-hoverBackground, #f2f2f2);
+  border-top: 0.5px gray solid;
+  border-bottom: 0.5px gray solid;
+  padding: 12px;
+}
+
+.spaceReportRow {
+  display: flex;
+  font-size: 12px;
+  padding: 12px 24px;
+}
+
+.spaceDetailText {
+  width: 200px;
+}
+
+.qs-help {
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.qs-help h1 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  line-height: 1.25;
+  font-weight: 600;
+  padding-bottom: 0.3em;
+  font-size: 2em;
+  border-bottom: 1px solid var(--vscode-editorWidget-border);
+}
+
+.qs-help h2 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  line-height: 1.25;
+  padding-bottom: 0.3em;
+  font-size: 1.4em;
+  border-bottom: 1px solid var(--vscode-editorWidget-border);
+}
