@@ -226,6 +226,7 @@ impl Display for ExprComputeProps {
 #[derive(Debug)]
 // TODO (cesarzc): Probably don't need type info here but keeping for debugging purposes.
 pub enum PatComputeProps {
+    LocalDiscard(Ty),
     LocalNode(NodeId, Ty, ExprComputeProps),
     LocalTuple(Vec<PatId>, Ty),
     InputParamNode(NodeId, LocalItemId, Ty, InputParamIdx),
@@ -236,6 +237,7 @@ pub enum PatComputeProps {
 impl Display for PatComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
+            PatComputeProps::LocalDiscard(ty) => write!(f, "Local Discard : {ty:?}")?,
             PatComputeProps::LocalNode(node_id, ty, expr_compute_props) => {
                 write!(f, "Local Node ({node_id}): {expr_compute_props}")?
             }
@@ -429,6 +431,9 @@ impl NodeMap {
                     param_idx.0 += 1;
                 }
                 FlatPatKind::Tuple(_, _) => {}
+                FlatPatKind::Discard(_) => {
+                    panic!("Input parameters should not have discarded elements");
+                }
             };
         }
 
@@ -503,7 +508,7 @@ impl FlatPat {
                     }
                     tuple_params
                 }
-                _ => panic!("Only callable parameter patterns are expected"),
+                PatKind::Discard => vec![(pat.id, FlatPatKind::Discard(pat.ty.clone()))],
             }
         }
 
@@ -514,6 +519,7 @@ impl FlatPat {
 
 #[derive(Debug)]
 enum FlatPatKind {
+    Discard(Ty),
     Node(NodeId, Ty),
     Tuple(Vec<PatId>, Ty),
 }
@@ -810,6 +816,9 @@ impl SinglePassAnalyzer {
                         PatComputeProps::InputParamTuple(pats.clone(), ty.clone());
                     store_scratch.insert_pat(package_id, *pat_id, pat_compute_props);
                 }
+                FlatPatKind::Discard(_) => {
+                    panic!("Input patterns should not have discarded elements")
+                }
             }
         }
     }
@@ -890,6 +899,9 @@ impl SinglePassAnalyzer {
             });
         }
 
+        // Initialize the available nodes from the input parameters.
+        let mut nodes = input_params.clone();
+
         // Analyze each statement and update the callable apps table.
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
         let implementation_block = package_store
@@ -899,8 +911,8 @@ impl SinglePassAnalyzer {
             Self::analyze_stmt(
                 *stmt_id,
                 package_id,
-                &input_params,
                 package_store,
+                &mut nodes,
                 store_scratch,
             );
             let _stmt_compute_props = store_scratch
@@ -924,8 +936,8 @@ impl SinglePassAnalyzer {
     fn analyze_stmt(
         stmt_id: StmtId,
         package_id: PackageId,
-        nodes: &NodeMap,
         package_store: &PackageStore,
+        nodes: &mut NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
         let stmt = package_store
@@ -936,8 +948,8 @@ impl SinglePassAnalyzer {
                 stmt_id,
                 package_id,
                 expr_id,
-                nodes,
                 package_store,
+                nodes,
                 store_scratch,
             ),
             StmtKind::Local(_, pat_id, expr_id) => Self::analyze_stmt_local(
@@ -945,8 +957,8 @@ impl SinglePassAnalyzer {
                 package_id,
                 pat_id,
                 expr_id,
-                nodes,
                 package_store,
+                nodes,
                 store_scratch,
             ),
             _ => {
@@ -959,8 +971,8 @@ impl SinglePassAnalyzer {
         stmt_id: StmtId,
         package_id: PackageId,
         expr_id: ExprId,
-        nodes: &NodeMap,
         package_store: &PackageStore,
+        nodes: &NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
         Self::analyze_expr(expr_id, package_id, nodes, package_store, store_scratch);
@@ -977,15 +989,39 @@ impl SinglePassAnalyzer {
         package_id: PackageId,
         pat_id: PatId,
         expr_id: ExprId,
-        nodes: &NodeMap,
         package_store: &PackageStore,
+        nodes: &mut NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
         // Analyze the expression.
         Self::analyze_expr(expr_id, package_id, nodes, package_store, store_scratch);
 
-        // Propagate to patterns.
-        Self::link_expr_to_local_pat(expr_id, pat_id, package_id, package_store, store_scratch);
+        // Update the nodes.
+        let package_pats = &package_store
+            .0
+            .get(package_id)
+            .expect("Package should exist")
+            .pats;
+        let local_pat = FlatPat::from_pat(pat_id, package_pats);
+        for (pat_id, flat_pat_kind) in local_pat.0.iter() {
+            if let FlatPatKind::Node(node_id, _) = flat_pat_kind {
+                let node = Node {
+                    id: *node_id,
+                    pat_id: *pat_id,
+                    kind: NodeKind::Local,
+                };
+                nodes.0.insert(*node_id, node);
+            }
+        }
+
+        // Propagate to patterns compute props.
+        Self::link_expr_to_local_pat(
+            expr_id,
+            &local_pat,
+            package_id,
+            package_store,
+            store_scratch,
+        );
 
         // Propagate to statement.
         Self::link_expr_to_stmt(expr_id, stmt_id, package_id, store_scratch);
@@ -1137,7 +1173,7 @@ impl SinglePassAnalyzer {
 
     fn link_expr_to_local_pat(
         expr_id: ExprId,
-        pat_id: PatId,
+        local_pat: &FlatPat,
         package_id: PackageId,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
@@ -1146,24 +1182,19 @@ impl SinglePassAnalyzer {
         // TODO (cesarzc): The correct thing to do here would be to match the appropriate sub-expression to its corresponding node.
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
-            .expect("Expression compute properties must have already been analyzed.");
-        let pat = package_store
-            .get_pat(package_id, pat_id)
-            .expect("Pattern must exist");
-        match &pat.kind {
-            PatKind::Bind(ident) => {
-                let local_node = PatComputeProps::LocalNode(
-                    ident.id,
-                    pat.ty.clone(),
-                    expr_compute_props.clone(),
-                );
-                store_scratch.insert_pat(package_id, pat_id, local_node);
-            }
-            PatKind::Tuple(_) => {
-                // TODO (cesarzc): Eventually we should be able to map each node to its corresponding sub-expression.
-                store_scratch.insert_pat(package_id, pat_id, PatComputeProps::Unsupported)
-            }
-            PatKind::Discard => panic!("Discard patterns are not expected"),
+            .expect("Expression compute properties must have already been analyzed.")
+            .clone(); // TODO (cesarzc): Double-cloning here to unblock but should avoid.
+        for (pat_id, flat_pat_kind) in local_pat.0.iter() {
+            let pat_compute_props = match flat_pat_kind {
+                FlatPatKind::Node(node_id, ty) => {
+                    PatComputeProps::LocalNode(*node_id, ty.clone(), expr_compute_props.clone())
+                }
+                FlatPatKind::Tuple(pats, ty) => {
+                    PatComputeProps::LocalTuple(pats.clone(), ty.clone())
+                }
+                FlatPatKind::Discard(ty) => PatComputeProps::LocalDiscard(ty.clone()),
+            };
+            store_scratch.insert_pat(package_id, *pat_id, pat_compute_props);
         }
     }
 
