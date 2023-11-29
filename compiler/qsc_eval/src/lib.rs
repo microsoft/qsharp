@@ -939,7 +939,9 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value.append_array(rhs);
                 }
-                Some(_) => unreachable!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
@@ -1352,7 +1354,9 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
                 }
-                Some(_) => unreachable!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
@@ -1379,7 +1383,9 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value.update_array(index, rhs);
                 }
-                Some(_) => unreachable!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
