@@ -182,8 +182,20 @@ impl Display for CallableComputeProps {
     }
 }
 
+// TODO (cesarzc): To reduce the amount of memory used (at the expense of lookups),
+// there should be both StmtComputeProps and ExprComputeProps data structures with the following implementations:
+enum StmtComputeProps {
+    Expr(ExprId),
+    Elmnt(ElmntComputeProps),
+}
+enum ExprComputeProps {
+    Node(PatId),
+    Elmnt(ElmntComputeProps),
+}
+
 #[derive(Debug)]
 // TODO (cesarzc): Probably don't need type info here but keeping for debugging purposes.
+// TODO (cesarzc): Should probably just be two types: Elmnt & Tuple.
 pub enum PatComputeProps {
     LocalDiscard(Ty, ElmntComputeProps),
     LocalNode(NodeId, Ty, ElmntComputeProps),
@@ -243,6 +255,38 @@ impl Display for ElmntComputeProps {
     }
 }
 
+impl ElmntComputeProps {
+    pub fn aggregate(&mut self, elmt_compute_props: &ElmntComputeProps) {
+        match self {
+            ElmntComputeProps::AppDependent(self_apps_tbl) => {
+                match elmt_compute_props {
+                    ElmntComputeProps::AppDependent(other_apps_tbl) => {
+                        for (idx, app) in self_apps_tbl.apps.iter_mut().enumerate() {
+                            app.aggregate(&other_apps_tbl.apps[idx]);
+                        }
+                    }
+                    ElmntComputeProps::AppIndependent(other_compute_props) => {
+                        for app in self_apps_tbl.apps.iter_mut() {
+                            app.aggregate(other_compute_props);
+                        }
+                    }
+                    ElmntComputeProps::Unsupported => {} // Do nothing.
+                }
+            }
+            ElmntComputeProps::AppIndependent(self_compute_props) => {
+                match elmt_compute_props {
+                    ElmntComputeProps::AppDependent(other_apps_tbl) => panic!("Cannot aggregate application dependent compute properties into application independent compute properties"),
+                    ElmntComputeProps::AppIndependent(other_compute_props) => {
+                        self_compute_props.aggregate(other_compute_props);
+                    }
+                    ElmntComputeProps::Unsupported => {} // Do nothing.
+                }
+            }
+            ElmntComputeProps::Unsupported => {} // Do nothing.
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct AppIdx(usize);
 
@@ -262,6 +306,7 @@ pub struct AppsTbl {
 }
 
 impl AppsTbl {
+    // TODO (cesarzc): Might be able to remove this.
     pub fn new(input_param_count: usize) -> Self {
         Self {
             input_param_count,
@@ -269,7 +314,25 @@ impl AppsTbl {
         }
     }
 
-    pub fn from_input_param_idx(input_param_idx: InputParamIdx, input_param_count: usize) -> Self {
+    pub fn default(input_param_count: usize) -> Self {
+        let size = Self::size_from_input_param_count(input_param_count);
+        let mut apps = Vec::with_capacity(size);
+        for _ in 0..size {
+            apps.push(ComputeProps::default_static());
+        }
+
+        Self {
+            input_param_count,
+            apps,
+        }
+    }
+
+    pub fn from_input_param_idx(
+        input_param_idx: InputParamIdx,
+        input_param_count: usize,
+        pat_id: PatId,
+    ) -> Self {
+        assert!(input_param_idx.0 < input_param_count);
         let tbl_size = Self::size_from_input_param_count(input_param_count);
         let mut apps = Vec::with_capacity(tbl_size);
         let mask = 1 << input_param_idx.0;
@@ -277,7 +340,7 @@ impl AppsTbl {
             let compute_props = if idx & mask == 0 {
                 ComputeProps::default_static()
             } else {
-                ComputeProps::default_dynamic()
+                ComputeProps::default_dynamic(vec![QuantumSource::InputParam(pat_id)])
             };
             apps.push(compute_props);
         }
@@ -296,16 +359,16 @@ impl AppsTbl {
         self.apps.get_mut(index.0)
     }
 
+    pub fn push(&mut self, app: ComputeProps) {
+        self.apps.push(app);
+    }
+
     pub fn size(&self) -> usize {
         Self::size_from_input_param_count(self.input_param_count)
     }
 
     fn size_from_input_param_count(input_param_count: usize) -> usize {
         2i32.pow(input_param_count as u32) as usize
-    }
-
-    pub fn push(&mut self, app: ComputeProps) {
-        self.apps.push(app);
     }
 }
 
@@ -327,7 +390,7 @@ impl Display for AppsTbl {
 #[derive(Clone, Debug, Default)]
 pub struct ComputeProps {
     pub rt_caps: FxHashSet<RuntimeCapability>,
-    pub quantum_source: Option<QuantumSource>,
+    pub quantum_sources: Vec<QuantumSource>,
 }
 
 impl Display for ComputeProps {
@@ -346,14 +409,31 @@ impl Display for ComputeProps {
             indent = set_indentation(indent, 1);
             write!(indent, "\n}}")?;
         }
-        write!(indent, "\nQuantum Source: {:?}", self.quantum_source)?;
+        if self.quantum_sources.is_empty() {
+            write!(indent, "\nQuantum Sources: <empty>")?;
+        } else {
+            write!(indent, "\nQuantum Sources:")?;
+            for src in self.quantum_sources.iter() {
+                indent = set_indentation(indent, 2);
+                write!(indent, "\n{src:?}")?; // TODO (cesarzc): Implement non-debug display, maybe?.
+            }
+        }
         Ok(())
     }
 }
 
 impl ComputeProps {
+    pub fn aggregate(&mut self, compute_props: &ComputeProps) {
+        for cap in compute_props.rt_caps.iter() {
+            self.rt_caps.insert(cap.clone());
+        }
+        let mut quantum_sources_to_aggregate = compute_props.quantum_sources.clone();
+        self.quantum_sources
+            .append(&mut quantum_sources_to_aggregate);
+    }
+
     pub fn compute_kind(&self) -> ComputeKind {
-        if self.quantum_source.is_none() {
+        if self.quantum_sources.is_empty() {
             ComputeKind::Static
         } else {
             ComputeKind::Dynamic
@@ -363,14 +443,14 @@ impl ComputeProps {
     pub fn default_static() -> Self {
         Self {
             rt_caps: FxHashSet::default(),
-            quantum_source: None,
+            quantum_sources: Vec::new(),
         }
     }
 
-    pub fn default_dynamic() -> Self {
+    pub fn default_dynamic(quantum_sources: Vec<QuantumSource>) -> Self {
         Self {
             rt_caps: FxHashSet::default(),
-            quantum_source: None,
+            quantum_sources,
         }
     }
 }
@@ -385,11 +465,11 @@ pub enum ComputeKind {
 // TODO (cesarzc): Should probably include package ID as well.
 pub enum QuantumSource {
     Intrinsic,
-    Global(PackageId, LocalItemId),
+    InputParam(PatId),
+    //Global(PackageId, LocalItemId),
     //BlockId,
     //StmtId,
     ExprId,
-    PatId,
 }
 
 #[derive(Clone, Debug)]
@@ -423,10 +503,7 @@ impl NodeMap {
     pub fn input_params_count(&self) -> usize {
         self.0
             .iter()
-            .filter(|(_, node)| match node.kind {
-                NodeKind::InputParam(_, _) => true,
-                _ => false,
-            })
+            .filter(|(_, node)| matches!(node.kind, NodeKind::InputParam(_, _)))
             .count()
     }
 }
@@ -725,18 +802,10 @@ impl SinglePassAnalyzer {
     pub fn run(package_store: &PackageStore) -> StoreComputeProps {
         let mut store_scratch = StoreScratch::default();
 
-        //
+        // Analyze all items in each package.
         for (package_id, package) in package_store.0.iter() {
-            for (item_id, item) in package.items.iter() {
-                if !store_scratch.has_item(&package_id, &item_id) {
-                    Self::analyze_item(
-                        item,
-                        item_id,
-                        package_id,
-                        package_store,
-                        &mut store_scratch,
-                    );
-                }
+            for (item_id, _) in package.items.iter() {
+                Self::analyze_item(package_id, item_id, package_store, &mut store_scratch);
             }
         }
         let mut store_compute_props = StoreComputeProps(IndexMap::new());
@@ -745,20 +814,32 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_callable(
-        callable: &CallableDecl,
-        callable_id: LocalItemId,
         package_id: PackageId,
+        callable_id: LocalItemId,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        // If it has already been analyzed, nothing else is needed.
+        if store_scratch.has_item(&package_id, &callable_id) {
+            return;
+        }
+
         // Set the appropriate values for pattern(s) which represent the input parameters.
+        let callable = match &package_store
+            .get_item(package_id, callable_id)
+            .expect("Item should exist in package store.")
+            .kind
+        {
+            ItemKind::Callable(c) => c,
+            _ => panic!("Item should be callable."),
+        };
         let package_pats = &package_store
             .0
             .get(package_id)
             .expect("Package should exist")
             .pats;
         let input_params = FlatPat::from_pat(callable.input, package_pats);
-        Self::analyze_callable_input_pat(&input_params, callable_id, package_id, store_scratch);
+        Self::analyze_callable_input_params(package_id, callable_id, &input_params, store_scratch);
 
         // Initialize the node map with the input parameters.
         let input_params = NodeMap::from_input_params(&input_params);
@@ -772,9 +853,8 @@ impl SinglePassAnalyzer {
             );
         } else {
             Self::analyze_non_intrinsic_callable(
-                callable,
-                callable_id,
                 package_id,
+                callable_id,
                 &input_params,
                 package_store,
                 store_scratch,
@@ -782,15 +862,15 @@ impl SinglePassAnalyzer {
         }
     }
 
-    fn analyze_callable_input_pat(
-        input_pat: &FlatPat,
-        callable_id: LocalItemId,
+    fn analyze_callable_input_params(
         package_id: PackageId,
+        callable_id: LocalItemId,
+        input_params: &FlatPat,
         store_scratch: &mut StoreScratch,
     ) {
         let mut param_idx = InputParamIdx(0);
-        for (pat_id, flat_pat_kind) in input_pat.0.iter() {
-            match flat_pat_kind {
+        for (pat_id, param_pat_kind) in input_params.0.iter() {
+            match param_pat_kind {
                 FlatPatKind::Node(node_id, param_ty) => {
                     let pat_compute_props = PatComputeProps::InputParamNode(
                         *node_id,
@@ -814,8 +894,8 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_expr(
-        expr_id: ExprId,
         package_id: PackageId,
+        expr_id: ExprId,
         nodes: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
@@ -827,16 +907,74 @@ impl SinglePassAnalyzer {
         let expr = package_store
             .get_expr(package_id, expr_id)
             .expect("Expression should exist");
-        match expr.kind {
-            ExprKind::Lit(_) => Self::analyze_expr_lit(expr_id, package_id, store_scratch),
+        match &expr.kind {
+            ExprKind::Lit(_) => Self::analyze_expr_lit(package_id, expr_id, store_scratch),
+            ExprKind::Tuple(tuple) => Self::analyze_expr_tuple(
+                package_id,
+                expr_id,
+                tuple,
+                nodes,
+                package_store,
+                store_scratch,
+            ),
             ExprKind::Var(res, _) => {
-                Self::analyze_expr_var(expr_id, package_id, &res, nodes, store_scratch)
+                Self::analyze_expr_var(package_id, expr_id, res, nodes, store_scratch)
             }
             _ => store_scratch.insert_expr(package_id, expr_id, ElmntComputeProps::Unsupported),
         };
     }
 
-    fn analyze_expr_lit(expr_id: ExprId, package_id: PackageId, store_scratch: &mut StoreScratch) {
+    fn analyze_expr_call(
+        package_id: PackageId,
+        expr_id: ExprId,
+        callee_expr_id: ExprId,
+        input_expr_id: ExprId,
+        nodes: &NodeMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        Self::analyze_expr(
+            package_id,
+            callee_expr_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
+        Self::analyze_expr(
+            package_id,
+            input_expr_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
+
+        let callee = package_store
+            .get_expr(package_id, callee_expr_id)
+            .expect("Callee should exist");
+        // TODO (cesarzc): continue implementation.
+        //if let ExprKind::Var(res, _) = callee.kind {
+        //    if let Res::Item(item_id) = res {
+        //        let package_id = item_id.package.expect("Should have a package");
+        //        let callable_id = item_id.item;
+        //
+        //        Self::analyze_callable(
+        //            callable,
+        //            callable_id,
+        //            package_id,
+        //            package_store,
+        //            store_scratch,
+        //        )
+        //    } else {
+        //        let compute_props = ElmntComputeProps::Unsupported;
+        //    }
+        //} else {
+        //    let compute_props = ElmntComputeProps::Unsupported;
+        //}
+
+        // TODO (cesarzc): insert compute props.
+    }
+
+    fn analyze_expr_lit(package_id: PackageId, expr_id: ExprId, store_scratch: &mut StoreScratch) {
         store_scratch.insert_expr(
             package_id,
             expr_id,
@@ -844,9 +982,58 @@ impl SinglePassAnalyzer {
         );
     }
 
-    fn analyze_expr_var(
-        expr_id: ExprId,
+    fn analyze_expr_tuple(
         package_id: PackageId,
+        expr_id: ExprId,
+        tuple: &Vec<ExprId>,
+        nodes: &NodeMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        // Analyze each expression.
+        for sub_expr_id in tuple {
+            Self::analyze_expr(
+                package_id,
+                *sub_expr_id,
+                nodes,
+                package_store,
+                store_scratch,
+            );
+        }
+
+        // Aggregate the compute properties of all sub-expressions.
+        let mut apps_input_param_count = -1i32;
+        for sub_expr_id in tuple {
+            let expr_compute_props = store_scratch
+                .get_expr(&package_id, sub_expr_id)
+                .expect("Expression compute properties should exist");
+            if let ElmntComputeProps::AppDependent(apps_tbl) = expr_compute_props {
+                apps_input_param_count = apps_tbl.input_param_count as i32;
+                break;
+            }
+        }
+
+        let mut aggregated_compute_props = if apps_input_param_count >= 0 {
+            // If at least one sub-expression is application dependent, the tuple expression is application dependent.
+            ElmntComputeProps::AppDependent(AppsTbl::default(apps_input_param_count as usize))
+        } else {
+            // If all sub-expression is application dependent, the tuple expression is application independent.
+            ElmntComputeProps::AppIndependent(ComputeProps::default_static())
+        };
+
+        for sub_expr_id in tuple {
+            let expr_compute_props = store_scratch
+                .get_expr(&package_id, sub_expr_id)
+                .expect("Expression compute properties should exist");
+            aggregated_compute_props.aggregate(expr_compute_props);
+        }
+
+        store_scratch.insert_expr(package_id, expr_id, aggregated_compute_props);
+    }
+
+    fn analyze_expr_var(
+        package_id: PackageId,
+        expr_id: ExprId,
         res: &Res,
         nodes: &NodeMap,
         store_scratch: &mut StoreScratch,
@@ -862,8 +1049,11 @@ impl SinglePassAnalyzer {
                     // If it's an input param, then it's an app table with 50/50 static/dynamic entries.
                     NodeKind::InputParam(input_param_idx, _) => {
                         let input_params_count = nodes.input_params_count();
-                        let apps_tbl =
-                            AppsTbl::from_input_param_idx(input_param_idx, input_params_count);
+                        let apps_tbl = AppsTbl::from_input_param_idx(
+                            input_param_idx,
+                            input_params_count,
+                            node.pat_id,
+                        );
                         ElmntComputeProps::AppDependent(apps_tbl)
                     }
                     // If it's a local, it's the same as the local.
@@ -887,27 +1077,35 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_item(
-        item: &Item,
-        item_id: LocalItemId,
         package_id: PackageId,
+        item_id: LocalItemId,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        if let ItemKind::Callable(callable) = &item.kind {
-            Self::analyze_callable(callable, item_id, package_id, package_store, store_scratch);
+        // If the item has already been analyzed, there's nothing else left to do.
+        if store_scratch.has_item(&package_id, &item_id) {
+            return;
+        }
+
+        let item = package_store
+            .get_item(package_id, item_id)
+            .expect("Item should exist in package store");
+        if matches!(item.kind, ItemKind::Callable(_)) {
+            Self::analyze_callable(package_id, item_id, package_store, store_scratch);
         } else {
             store_scratch.insert_item(package_id, item_id, ItemComputeProps::NonCallable);
         }
     }
 
     fn analyze_non_intrinsic_callable(
-        callable: &CallableDecl,
-        callable_id: LocalItemId,
         package_id: PackageId,
+        callable_id: LocalItemId,
         input_params: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        assert!(!store_scratch.has_item(&package_id, &callable_id));
+
         // Initialize the callable applications table whose size depends on the number of input parameters.
         let mut callable_apps_tbl = AppsTbl::new(input_params.0.len());
         for _ in 0..callable_apps_tbl.size() {
@@ -918,14 +1116,22 @@ impl SinglePassAnalyzer {
         let mut nodes = input_params.clone();
 
         // Analyze each statement and update the callable apps table.
+        let callable = match &package_store
+            .get_item(package_id, callable_id)
+            .expect("Item should exist in package store.")
+            .kind
+        {
+            ItemKind::Callable(c) => c,
+            _ => panic!("Item should be callable."),
+        };
         let implementation_block_id = Self::get_callable_implementation_block_id(callable);
         let implementation_block = package_store
             .get_block(package_id, implementation_block_id)
             .expect("Block should exist");
         for stmt_id in &implementation_block.stmts {
             Self::analyze_stmt(
-                *stmt_id,
                 package_id,
+                *stmt_id,
                 package_store,
                 &mut nodes,
                 store_scratch,
@@ -949,8 +1155,8 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_stmt(
-        stmt_id: StmtId,
         package_id: PackageId,
+        stmt_id: StmtId,
         package_store: &PackageStore,
         nodes: &mut NodeMap,
         store_scratch: &mut StoreScratch,
@@ -960,16 +1166,16 @@ impl SinglePassAnalyzer {
             .expect("Statement should exist");
         match stmt.kind {
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => Self::analyze_stmt_expr(
-                stmt_id,
                 package_id,
+                stmt_id,
                 expr_id,
                 package_store,
                 nodes,
                 store_scratch,
             ),
             StmtKind::Local(_, pat_id, expr_id) => Self::analyze_stmt_local(
-                stmt_id,
                 package_id,
+                stmt_id,
                 pat_id,
                 expr_id,
                 package_store,
@@ -983,14 +1189,15 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_stmt_expr(
-        stmt_id: StmtId,
         package_id: PackageId,
+        stmt_id: StmtId,
         expr_id: ExprId,
         package_store: &PackageStore,
         nodes: &NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
-        Self::analyze_expr(expr_id, package_id, nodes, package_store, store_scratch);
+        assert!(!store_scratch.has_stmt(&package_id, &stmt_id));
+        Self::analyze_expr(package_id, expr_id, nodes, package_store, store_scratch);
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties should exist since it has just been analyzed");
@@ -999,16 +1206,18 @@ impl SinglePassAnalyzer {
     }
 
     fn analyze_stmt_local(
-        stmt_id: StmtId,
         package_id: PackageId,
+        stmt_id: StmtId,
         pat_id: PatId,
         expr_id: ExprId,
         package_store: &PackageStore,
         nodes: &mut NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
+        assert!(!store_scratch.has_stmt(&package_id, &stmt_id));
+
         // Analyze the expression.
-        Self::analyze_expr(expr_id, package_id, nodes, package_store, store_scratch);
+        Self::analyze_expr(package_id, expr_id, nodes, package_store, store_scratch);
 
         // Update the nodes.
         let package_pats = &package_store
@@ -1030,15 +1239,15 @@ impl SinglePassAnalyzer {
 
         // Propagate to patterns compute props.
         Self::link_expr_to_local_pat(
+            package_id,
             expr_id,
             &local_pat,
-            package_id,
             package_store,
             store_scratch,
         );
 
         // Propagate to statement.
-        Self::link_expr_to_stmt(expr_id, stmt_id, package_id, store_scratch);
+        Self::link_expr_to_stmt(package_id, expr_id, stmt_id, store_scratch);
     }
 
     fn build_intrinsic_callable_compute_props(
@@ -1085,15 +1294,15 @@ impl SinglePassAnalyzer {
         // If this is a purely classical application or the function output is `Unit` then this is not a quantum source.
         // Otherwise this is an intrinsic quantum source.
         let is_unit = matches!(*output_type, Ty::UNIT);
-        let quantum_source = if is_purely_classical || is_unit {
-            None
+        let quantum_sources = if is_purely_classical || is_unit {
+            Vec::new()
         } else {
-            Some(QuantumSource::Intrinsic)
+            vec![QuantumSource::Intrinsic]
         };
 
         ComputeProps {
             rt_caps,
-            quantum_source,
+            quantum_sources,
         }
     }
 
@@ -1105,7 +1314,7 @@ impl SinglePassAnalyzer {
         // TODO (cesarzc): Set limit on the number of parameters.
         let mut apps = AppsTbl::new(input_params.0.len());
         for app_idx in 0..apps.size() {
-            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), input_params);
             let app =
                 Self::build_intrinsic_function_application(&input_params_app, &function.output);
             apps.push(app);
@@ -1138,15 +1347,15 @@ impl SinglePassAnalyzer {
 
         // If the operation is not unit then it is an instrinsic quantum source.
         let is_unit = matches!(*output_type, Ty::UNIT);
-        let quantum_source = if is_unit {
-            None
+        let quantum_sources = if is_unit {
+            Vec::new()
         } else {
-            Some(QuantumSource::Intrinsic)
+            vec![QuantumSource::Intrinsic]
         };
 
         ComputeProps {
             rt_caps,
-            quantum_source,
+            quantum_sources,
         }
     }
 
@@ -1158,7 +1367,7 @@ impl SinglePassAnalyzer {
         // TODO (cesarzc): Set limit on the number of parameters.
         let mut apps = AppsTbl::new(input_params.0.len());
         for app_idx in 0..apps.size() {
-            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), input_params);
             let app =
                 Self::build_intrinsic_operation_application(&input_params_app, &operation.output);
             apps.push(app);
@@ -1186,9 +1395,9 @@ impl SinglePassAnalyzer {
     }
 
     fn link_expr_to_local_pat(
+        package_id: PackageId,
         expr_id: ExprId,
         local_pat: &FlatPat,
-        package_id: PackageId,
         _package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
@@ -1215,9 +1424,9 @@ impl SinglePassAnalyzer {
     }
 
     fn link_expr_to_stmt(
+        package_id: PackageId,
         expr_id: ExprId,
         stmt_id: StmtId,
-        package_id: PackageId,
         store_scratch: &mut StoreScratch,
     ) {
         let expr_compute_props = store_scratch

@@ -14,6 +14,7 @@ namespace QuantumHelloWorld {
         let fiveFives = 55555;
         let fiveSixes = 66666;
         let d = FBar(fiveFives, fiveSixes);
+        let eTuple = (77777, One, Zero);
         return result;
     }
 
