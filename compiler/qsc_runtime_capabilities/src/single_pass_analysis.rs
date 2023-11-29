@@ -16,7 +16,6 @@ use std::{
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
-    num::NonZeroUsize,
     vec::Vec,
 };
 
@@ -209,7 +208,9 @@ pub enum ExprComputeProps {
 impl Display for ExprComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            ExprComputeProps::Elmnt(concrete) => write!(f, "Concrete: {concrete}")?,
+            ExprComputeProps::Elmnt(elmnt_compute_props) => {
+                write!(f, "Element: {elmnt_compute_props}")?
+            }
             ExprComputeProps::Global(package_id, item_id) => {
                 write!(f, "Global ({package_id:?} | {item_id:?})")?
             }
@@ -222,33 +223,34 @@ impl Display for ExprComputeProps {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ParamIdx(usize);
-
 #[derive(Debug)]
+// TODO (cesarzc): Probably don't need type info here but keeping for debugging purposes.
 pub enum PatComputeProps {
-    LocalGroup, // TODO (cesarzc): Include PatIds.
-    LocalNode(NodeId, ExprComputeProps),
-    InputParamGroup, // TODO (cesarzc): Include PatIds.
-    InputParamNode(NodeId, PackageId, LocalItemId, ParamIdx, Ty),
+    LocalNode(NodeId, Ty, ExprComputeProps),
+    LocalTuple(Vec<PatId>, Ty),
+    InputParamNode(NodeId, LocalItemId, Ty, InputParamIdx),
+    InputParamTuple(Vec<PatId>, Ty),
     Unsupported, // TODO (cesarzc): This is temporary and should be removed once the implementation is complete.
 }
 
 impl Display for PatComputeProps {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match &self {
-            PatComputeProps::LocalGroup => write!(f, "Local Group")?,
-            PatComputeProps::LocalNode(node_id, expr_compute_props) => {
+            PatComputeProps::LocalNode(node_id, ty, expr_compute_props) => {
                 write!(f, "Local Node ({node_id}): {expr_compute_props}")?
             }
-            PatComputeProps::InputParamGroup => write!(f, "Input Param Group")?,
-            PatComputeProps::InputParamNode(node_id, package_id, local_item_id, param_idx, ty) => {
-                write!(f, "Callable Parameter (Node ID {node_id}):")?;
+            PatComputeProps::LocalTuple(pat_ids, ty) => {
+                write!(f, "Local Tuple: {pat_ids:?} | {ty:?}")?
+            }
+            PatComputeProps::InputParamNode(node_id, callable_id, param_ty, param_idx) => {
+                write!(f, "Input Param ({node_id}):")?;
                 let mut indent = set_indentation(indented(f), 1);
-                write!(indent, "\nPackage ID: {package_id}")?;
-                write!(indent, "\nLocal Item ID: {local_item_id}")?;
+                write!(indent, "\nCallable ID: {callable_id}")?;
+                write!(indent, "\nParameter Type: {param_ty}")?;
                 write!(indent, "\nParameter Index: {param_idx:?}")?;
-                write!(indent, "\nType: {ty}")?;
+            }
+            PatComputeProps::InputParamTuple(pat_ids, ty) => {
+                write!(f, "Input Param Tuple: {pat_ids:?} | {ty:?}")?
             }
             PatComputeProps::Unsupported => write!(f, "Unsupported")?,
         }
@@ -458,11 +460,11 @@ pub struct Node {
 
 #[derive(Clone, Debug)]
 pub enum NodeKind {
-    InputParam(InputParamIdx, Ty),
     Local,
+    InputParam(InputParamIdx, Ty),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct InputParamIdx(usize);
 
 #[derive(Debug)]
@@ -494,6 +496,41 @@ impl InputParamsApp {
             params_compute_kind,
         }
     }
+}
+
+#[derive(Debug)]
+struct FlatPat(Vec<(PatId, FlatPatKind)>);
+
+impl FlatPat {
+    pub fn from_pat(pat_id: PatId, pats: &IndexMap<PatId, Pat>) -> Self {
+        fn as_vector(pat_id: PatId, pats: &IndexMap<PatId, Pat>) -> Vec<(PatId, FlatPatKind)> {
+            let pat = pats.get(pat_id).expect("`Pattern` should exist");
+            match &pat.kind {
+                PatKind::Bind(ident) => vec![(pat.id, FlatPatKind::Node(ident.id, pat.ty.clone()))],
+                PatKind::Tuple(tuple_pats) => {
+                    let mut tuple_params = vec![(
+                        pat.id,
+                        FlatPatKind::Tuple(tuple_pats.clone(), pat.ty.clone()),
+                    )];
+                    for tuple_item_pat_id in tuple_pats {
+                        let mut tuple_item_params = as_vector(*tuple_item_pat_id, pats);
+                        tuple_params.append(&mut tuple_item_params);
+                    }
+                    tuple_params
+                }
+                _ => panic!("Only callable parameter patterns are expected"),
+            }
+        }
+
+        let flat_pat = as_vector(pat_id, pats);
+        Self(flat_pat)
+    }
+}
+
+#[derive(Debug)]
+enum FlatPatKind {
+    Node(NodeId, Ty),
+    Tuple(Vec<PatId>, Ty),
 }
 
 #[derive(Debug, Default)]
@@ -734,6 +771,13 @@ impl SinglePassAnalyzer {
         store_scratch: &mut StoreScratch,
     ) {
         // TODO (cesarzc): Set the appropriate values for the callable input parameters.
+        let package_pats = &package_store
+            .0
+            .get(package_id)
+            .expect("Package should exist")
+            .pats;
+        let input_pat = FlatPat::from_pat(callable.input, package_pats);
+        Self::analyze_callable_input_pat(&input_pat, callable_id, package_id, store_scratch);
         if Self::is_callable_intrinsic(callable) {
             let instrinsic_compute_props =
                 Self::analyze_intrinsic_callable(callable, package_id, package_store);
@@ -750,6 +794,34 @@ impl SinglePassAnalyzer {
                 package_store,
                 store_scratch,
             );
+        }
+    }
+
+    fn analyze_callable_input_pat(
+        input_pat: &FlatPat,
+        callable_id: LocalItemId,
+        package_id: PackageId,
+        store_scratch: &mut StoreScratch,
+    ) {
+        let mut param_idx = InputParamIdx(0);
+        for (pat_id, flat_pat_kind) in input_pat.0.iter() {
+            match flat_pat_kind {
+                FlatPatKind::Node(node_id, param_ty) => {
+                    let pat_compute_props = PatComputeProps::InputParamNode(
+                        *node_id,
+                        callable_id,
+                        param_ty.clone(),
+                        param_idx,
+                    );
+                    store_scratch.insert_pat(package_id, *pat_id, pat_compute_props);
+                    param_idx.0 += 1;
+                }
+                FlatPatKind::Tuple(pats, ty) => {
+                    let pat_compute_props =
+                        PatComputeProps::InputParamTuple(pats.clone(), ty.clone());
+                    store_scratch.insert_pat(package_id, *pat_id, pat_compute_props);
+                }
+            }
         }
     }
 
@@ -1102,7 +1174,11 @@ impl SinglePassAnalyzer {
             .expect("Pattern must exist");
         match &pat.kind {
             PatKind::Bind(ident) => {
-                let local_node = PatComputeProps::LocalNode(ident.id, expr_compute_props.clone());
+                let local_node = PatComputeProps::LocalNode(
+                    ident.id,
+                    pat.ty.clone(),
+                    expr_compute_props.clone(),
+                );
                 store_scratch.insert_pat(package_id, pat_id, local_node);
             }
             PatKind::Tuple(_) => {
