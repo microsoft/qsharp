@@ -62,7 +62,7 @@ pub struct PackageComputeProps {
     pub items: IndexMap<LocalItemId, ItemComputeProps>,
     pub blocks: IndexMap<BlockId, ElmntComputeProps>,
     pub stmts: IndexMap<StmtId, ElmntComputeProps>,
-    pub exprs: IndexMap<ExprId, ExprComputeProps>,
+    pub exprs: IndexMap<ExprId, ElmntComputeProps>,
     pub pats: IndexMap<PatId, PatComputeProps>,
 }
 
@@ -182,52 +182,11 @@ impl Display for CallableComputeProps {
     }
 }
 
-impl ElmntComputeProps {
-    pub fn from_expr_compute_props(expr_compute_props: &ExprComputeProps) -> Self {
-        match expr_compute_props {
-            ExprComputeProps::Elmnt(elmnt) => elmnt.clone(),
-            ExprComputeProps::Global(_, _) | ExprComputeProps::Local(_, _, _) => {
-                ElmntComputeProps::AppIndependent(ComputeProps::default())
-            }
-            ExprComputeProps::Unsupported => ElmntComputeProps::Unsupported,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct StmtComputeProps {}
-
-#[derive(Clone, Debug)]
-pub enum ExprComputeProps {
-    Elmnt(ElmntComputeProps),
-    Global(PackageId, LocalItemId),
-    Local(NodeId, PackageId, PatId),
-    Unsupported, // TODO (cesarzc): This should eventually be removed but keep it for now while doing implementation.
-}
-
-impl Display for ExprComputeProps {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        match &self {
-            ExprComputeProps::Elmnt(elmnt_compute_props) => {
-                write!(f, "Element: {elmnt_compute_props}")?
-            }
-            ExprComputeProps::Global(package_id, item_id) => {
-                write!(f, "Global ({package_id:?} | {item_id:?})")?
-            }
-            ExprComputeProps::Local(node_id, package_id, pat_id) => {
-                write!(f, "Input Param ({node_id} | {package_id:?} | {pat_id:?})")?
-            }
-            ExprComputeProps::Unsupported => write!(f, "Unsupported")?,
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug)]
 // TODO (cesarzc): Probably don't need type info here but keeping for debugging purposes.
 pub enum PatComputeProps {
     LocalDiscard(Ty),
-    LocalNode(NodeId, Ty, ExprComputeProps),
+    LocalNode(NodeId, Ty, ElmntComputeProps),
     LocalTuple(Vec<PatId>, Ty),
     InputParamNode(NodeId, LocalItemId, Ty, InputParamIdx),
     InputParamTuple(Vec<PatId>, Ty),
@@ -531,7 +490,7 @@ enum FlatPatKind {
 pub struct StoreScratch(FxHashMap<PackageId, PackageScratch>);
 
 impl StoreScratch {
-    pub fn get_expr(&self, package_id: &PackageId, expr_id: &ExprId) -> Option<&ExprComputeProps> {
+    pub fn get_expr(&self, package_id: &PackageId, expr_id: &ExprId) -> Option<&ElmntComputeProps> {
         self.0
             .get(package_id)
             .and_then(|package| package.exprs.get(expr_id))
@@ -610,7 +569,7 @@ impl StoreScratch {
         self_package_scratch.items.insert(item_id, item);
     }
 
-    pub fn insert_expr(&mut self, package_id: PackageId, expr_id: ExprId, expr: ExprComputeProps) {
+    pub fn insert_expr(&mut self, package_id: PackageId, expr_id: ExprId, expr: ElmntComputeProps) {
         let self_package_scratch: &mut PackageScratch = match self.0.get_mut(&package_id) {
             None => {
                 self.0.insert(package_id, PackageScratch::default());
@@ -680,7 +639,7 @@ pub struct PackageScratch {
     pub items: FxHashMap<LocalItemId, ItemComputeProps>,
     pub blocks: FxHashMap<BlockId, ElmntComputeProps>,
     pub stmts: FxHashMap<StmtId, ElmntComputeProps>,
-    pub exprs: FxHashMap<ExprId, ExprComputeProps>,
+    pub exprs: FxHashMap<ExprId, ElmntComputeProps>,
     pub pats: FxHashMap<PatId, PatComputeProps>,
 }
 
@@ -842,14 +801,16 @@ impl SinglePassAnalyzer {
             .expect("Expression should exist");
         match expr.kind {
             ExprKind::Lit(_) => Self::analyze_expr_lit(expr_id, package_id, store_scratch),
-            _ => store_scratch.insert_expr(package_id, expr_id, ExprComputeProps::Unsupported),
+            _ => store_scratch.insert_expr(package_id, expr_id, ElmntComputeProps::Unsupported),
         };
     }
 
     fn analyze_expr_lit(expr_id: ExprId, package_id: PackageId, store_scratch: &mut StoreScratch) {
-        let elmt_compute_props = ElmntComputeProps::AppIndependent(ComputeProps::default());
-        let compute_props = ExprComputeProps::Elmnt(elmt_compute_props);
-        store_scratch.insert_expr(package_id, expr_id, compute_props);
+        store_scratch.insert_expr(
+            package_id,
+            expr_id,
+            ElmntComputeProps::AppIndependent(ComputeProps::default()),
+        );
     }
 
     fn analyze_expr_var(
@@ -975,8 +936,7 @@ impl SinglePassAnalyzer {
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties should exist since it has just been analyzed");
 
-        let stmt_compute_props = ElmntComputeProps::from_expr_compute_props(expr_compute_props);
-        store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
+        store_scratch.insert_stmt(package_id, stmt_id, expr_compute_props.clone());
     }
 
     fn analyze_stmt_local(
@@ -1202,8 +1162,7 @@ impl SinglePassAnalyzer {
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties must have already been analyzed.");
-        let stmt_compute_props = ElmntComputeProps::from_expr_compute_props(expr_compute_props);
-        store_scratch.insert_stmt(package_id, stmt_id, stmt_compute_props);
+        store_scratch.insert_stmt(package_id, stmt_id, expr_compute_props.clone());
     }
 }
 
