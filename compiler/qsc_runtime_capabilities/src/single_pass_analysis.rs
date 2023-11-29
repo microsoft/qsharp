@@ -410,41 +410,26 @@ pub enum QuantumSource {
     PatId,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct NodeMap(FxHashMap<NodeId, Node>);
 
 impl NodeMap {
-    fn from_callable_input(callable: &CallableDecl, package_pats: &IndexMap<PatId, Pat>) -> Self {
-        let input_pat = package_pats
-            .get(callable.input)
-            .expect("Callable input pattern should exist");
-
-        fn from_pat(pat: &Pat, pats: &IndexMap<PatId, Pat>) -> Vec<(NodeId, PatId, Ty)> {
-            match &pat.kind {
-                PatKind::Bind(ident) => vec![(ident.id, pat.id, pat.ty.clone())],
-                PatKind::Tuple(tuple_pats) => {
-                    let mut tuple_params = Vec::<(NodeId, PatId, Ty)>::new();
-                    for tuple_item_pat_id in tuple_pats {
-                        let tuple_item_pat = pats
-                            .get(*tuple_item_pat_id)
-                            .expect("`Pattern` should exist");
-                        let mut tuple_item_params = from_pat(tuple_item_pat, pats);
-                        tuple_params.append(&mut tuple_item_params);
-                    }
-                    tuple_params
-                }
-                _ => panic!("Only callable parameter patterns are expected"),
-            }
-        }
-
+    fn from_input_params(input_params: &FlatPat) -> Self {
         let mut node_map = FxHashMap::<NodeId, Node>::default();
-        for (idx, (node_id, pat_id, ty)) in from_pat(input_pat, package_pats).iter().enumerate() {
-            let node = Node {
-                id: *node_id,
-                pat_id: *pat_id,
-                kind: NodeKind::InputParam(InputParamIdx(idx), ty.clone()),
+        let mut param_idx = InputParamIdx(0);
+        for (pat_id, flat_pat_kind) in input_params.0.iter() {
+            match flat_pat_kind {
+                FlatPatKind::Node(node_id, param_type) => {
+                    let node = Node {
+                        id: *node_id,
+                        pat_id: *pat_id,
+                        kind: NodeKind::InputParam(param_idx, param_type.clone()),
+                    };
+                    node_map.insert(*node_id, node);
+                    param_idx.0 += 1;
+                }
+                FlatPatKind::Tuple(_, _) => {}
             };
-            node_map.insert(*node_id, node);
         }
 
         Self(node_map)
@@ -770,17 +755,20 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        // TODO (cesarzc): Set the appropriate values for the callable input parameters.
+        // Set the appropriate values for pattern(s) which represent the input parameters.
         let package_pats = &package_store
             .0
             .get(package_id)
             .expect("Package should exist")
             .pats;
-        let input_pat = FlatPat::from_pat(callable.input, package_pats);
-        Self::analyze_callable_input_pat(&input_pat, callable_id, package_id, store_scratch);
+        let input_params = FlatPat::from_pat(callable.input, package_pats);
+        Self::analyze_callable_input_pat(&input_params, callable_id, package_id, store_scratch);
+
+        // Initialize the node map with the input parameters.
+        let input_params = NodeMap::from_input_params(&input_params);
         if Self::is_callable_intrinsic(callable) {
             let instrinsic_compute_props =
-                Self::analyze_intrinsic_callable(callable, package_id, package_store);
+                Self::build_intrinsic_callable_compute_props(callable, &input_params);
             store_scratch.insert_item(
                 package_id,
                 callable_id,
@@ -791,6 +779,7 @@ impl SinglePassAnalyzer {
                 callable,
                 callable_id,
                 package_id,
+                &input_params,
                 package_store,
                 store_scratch,
             );
@@ -862,57 +851,6 @@ impl SinglePassAnalyzer {
         // TODO (cesarzc): Implement.
     }
 
-    fn analyze_intrinsic_callable(
-        callable: &CallableDecl,
-        package_id: PackageId,
-        package_store: &PackageStore,
-    ) -> CallableComputeProps {
-        assert!(Self::is_callable_intrinsic(callable));
-        let package_pats = &package_store
-            .0
-            .get(package_id)
-            .expect("Package should exist")
-            .pats;
-        match callable.kind {
-            CallableKind::Function => Self::analyze_instrinsic_function(callable, package_pats),
-            CallableKind::Operation => Self::analyze_instrinsic_operation(callable, package_pats),
-        }
-    }
-
-    fn analyze_instrinsic_function(
-        function: &CallableDecl,
-        package_pats: &IndexMap<PatId, Pat>,
-    ) -> CallableComputeProps {
-        assert!(Self::is_callable_intrinsic(function));
-        let input_params = NodeMap::from_callable_input(function, package_pats);
-        // TODO (cesarzc): Set limit on the number of parameters.
-        let mut apps = AppsTbl::new(input_params.0.len());
-        for app_idx in 0..apps.max() {
-            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
-            let app =
-                Self::create_intrinsic_function_application(&input_params_app, &function.output);
-            apps.push(app);
-        }
-        CallableComputeProps { apps }
-    }
-
-    fn analyze_instrinsic_operation(
-        operation: &CallableDecl,
-        package_pats: &IndexMap<PatId, Pat>,
-    ) -> CallableComputeProps {
-        assert!(Self::is_callable_intrinsic(operation));
-        let input_params = NodeMap::from_callable_input(operation, package_pats);
-        // TODO (cesarzc): Set limit on the number of parameters.
-        let mut apps = AppsTbl::new(input_params.0.len());
-        for app_idx in 0..apps.max() {
-            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
-            let app =
-                Self::create_intrinsic_operation_application(&input_params_app, &operation.output);
-            apps.push(app);
-        }
-        CallableComputeProps { apps }
-    }
-
     fn analyze_item(
         item: &Item,
         item_id: LocalItemId,
@@ -939,17 +877,10 @@ impl SinglePassAnalyzer {
         callable: &CallableDecl,
         callable_id: LocalItemId,
         package_id: PackageId,
+        input_params: &NodeMap,
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        // Get the input params callable, and properly set the corresponding patterns.
-        let package_pats = &package_store
-            .0
-            .get(package_id)
-            .expect("`Package` should exist in `PackageStore`")
-            .pats;
-        let input_params = NodeMap::from_callable_input(callable, package_pats);
-
         // Initialize the callable applications table whose size depends on the number of input parameters.
         let mut callable_apps_tbl = AppsTbl::new(input_params.0.len());
         for _ in 0..callable_apps_tbl.max() {
@@ -1060,7 +991,22 @@ impl SinglePassAnalyzer {
         Self::link_expr_to_stmt(expr_id, stmt_id, package_id, store_scratch);
     }
 
-    fn create_intrinsic_function_application(
+    fn build_intrinsic_callable_compute_props(
+        callable: &CallableDecl,
+        input_params: &NodeMap,
+    ) -> CallableComputeProps {
+        assert!(Self::is_callable_intrinsic(callable));
+        match callable.kind {
+            CallableKind::Function => {
+                Self::build_instrinsic_function_compute_props(callable, input_params)
+            }
+            CallableKind::Operation => {
+                Self::build_instrinsic_operation_compute_props(callable, input_params)
+            }
+        }
+    }
+
+    fn build_intrinsic_function_application(
         input_params_app: &InputParamsApp,
         output_type: &Ty,
     ) -> ComputeProps {
@@ -1101,7 +1047,23 @@ impl SinglePassAnalyzer {
         }
     }
 
-    fn create_intrinsic_operation_application(
+    fn build_instrinsic_function_compute_props(
+        function: &CallableDecl,
+        input_params: &NodeMap,
+    ) -> CallableComputeProps {
+        assert!(Self::is_callable_intrinsic(function));
+        // TODO (cesarzc): Set limit on the number of parameters.
+        let mut apps = AppsTbl::new(input_params.0.len());
+        for app_idx in 0..apps.max() {
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
+            let app =
+                Self::build_intrinsic_function_application(&input_params_app, &function.output);
+            apps.push(app);
+        }
+        CallableComputeProps { apps }
+    }
+
+    fn build_intrinsic_operation_application(
         input_params_app: &InputParamsApp,
         output_type: &Ty,
     ) -> ComputeProps {
@@ -1136,6 +1098,22 @@ impl SinglePassAnalyzer {
             rt_caps,
             quantum_sources,
         }
+    }
+
+    fn build_instrinsic_operation_compute_props(
+        operation: &CallableDecl,
+        input_params: &NodeMap,
+    ) -> CallableComputeProps {
+        assert!(Self::is_callable_intrinsic(operation));
+        // TODO (cesarzc): Set limit on the number of parameters.
+        let mut apps = AppsTbl::new(input_params.0.len());
+        for app_idx in 0..apps.max() {
+            let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
+            let app =
+                Self::build_intrinsic_operation_application(&input_params_app, &operation.output);
+            apps.push(app);
+        }
+        CallableComputeProps { apps }
     }
 
     fn get_callable_implementation_block_id(callable: &CallableDecl) -> BlockId {
