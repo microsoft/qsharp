@@ -164,13 +164,17 @@ impl Display for Value {
     }
 }
 
+thread_local! {
+    static UNIT: Rc<[Value; 0]> = Rc::new([]);
+}
+
 impl Value {
     pub const RESULT_ZERO: Self = Self::Result(Result::Val(false));
     pub const RESULT_ONE: Self = Self::Result(Result::Val(true));
 
     #[must_use]
     pub fn unit() -> Self {
-        Self::Tuple([].as_slice().into())
+        UNIT.with(|unit| Self::Tuple(unit.clone()))
     }
 
     /// Convert the [Value] into an array of [Value]
