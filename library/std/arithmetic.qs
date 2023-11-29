@@ -140,249 +140,41 @@ namespace Microsoft.Quantum.Arithmetic {
         }
     }
 
-    /// # Summary
-    /// Automatically chooses between addition with
-    /// carry and without, depending on the register size of `ys`,
-    /// which holds the result after operation is complete.
-    operation AddI (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
-        if Length(xs) == Length(ys) {
-            RippleCarryAdderNoCarryTTK(xs, ys);
-        }
-        elif Length(ys) > Length(xs) {
-            use qs = Qubit[Length(ys) - Length(xs) - 1];
-            RippleCarryAdderTTK(xs + qs, Most(ys), Tail(ys));
-        }
-        else {
-            fail "`xs` must not contain more qubits than `ys`.";
-        }
-    }
+    //
+    // Add, Increment      |   Operation    | Description
+    // ____________________|________________|_______________________________________________________________
+    // y += 5              | IncByI, IncByL | Increment LE register in-place by integer
+    // y += x              | IncByLE        | Increment LE register in-place by LE register
+    // z = x + 5 (z was 0) |                | Add integer to LE register creating result out-of-place
+    // z = x + y (z was 0) | AddLE          | Add two LE register creating result out-of-place
+    // z += x + 5          |                | Increment LE register by the sum of integer and LE register
+    // z += x + y          |                | Increment LE register by the sum of two LE registers
+    //
+    // IncByLE implementations:
+    //     RippleCarryTTKIncByLE (default)
+    //     RippleCarryCGIncByLE
+    //     FourierTDIncByLE
+    //     via IncByLEUsingAddLE and any out-of-place addition
+    // IncByI implementations:
+    //     via IncByIUsingIncByLE and any in-place LE adder
+    // IncByL implementations:
+    //     via IncByLUsingIncByLE and any in-place LE adder
+    // AddLE implementations:
+    //     RippleCarryCGAddLE (default)
+    //     LookAheadDKRSAddLE
+    //
 
     /// # Summary
-    /// Reversible, in-place ripple-carry addition of two integers without carry out.
+    /// Increments a little-endian register ys by an integer number c
     ///
     /// # Description
-    /// Given two n-bit integers encoded in LittleEndian registers `xs` and `ys`,
-    /// the operation computes the sum of the two integers modulo 2^n,
-    /// where n is the length of the inputs arrays `xs` and `ys`,
-    /// which must be positive. It does not compute the carry out bit.
-    ///
-    /// # Input
-    /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand.
-    /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand, is
-    /// modified to hold the n least significant bits of the sum.
-    ///
-    /// # References
-    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
-    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
-    ///   Computation, Vol. 10, 2010.
-    ///   https://arxiv.org/abs/0910.2530
-    ///
-    /// # Remarks
-    /// This operation has the same functionality as RippleCarryAdderTTK but does
-    /// not return the carry bit.
-    operation RippleCarryAdderNoCarryTTK(xs : Qubit[], ys : Qubit[])
-    : Unit is Adj + Ctl {
-        Fact(Length(xs) == Length(ys),
-            "Input registers must have the same number of qubits." );
-        Fact(Length(xs) > 0, "Array should not be empty.");
-
-        if (Length(xs) > 1) {
-            within {
-                ApplyOuterTTKAdder(xs, ys);
-            } apply {
-                ApplyInnerTTKAdderWithoutCarry(xs, ys);
-            }
-        }
-        CNOT (xs[0], ys[0]);
+    /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register,
+    /// Length(ys) = n > 0, c is a Int number, 0 ≤ c < 2ⁿ.
+    /// NOTE: Use IncByIUsingIncByLE directly if the choice of implementation
+    /// is important.
+    operation IncByI (c : Int, ys : Qubit[]) : Unit is Adj + Ctl {
+        IncByIUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
-
-    /// # Summary
-    /// Reversible, in-place ripple-carry addition of two integers.
-    ///
-    /// # Description
-    /// Given two n-bit integers encoded in LittleEndian registers `xs` and `ys`,
-    /// and a qubit carry, the operation computes the sum of the two integers
-    /// where the n least significant bits of the result are held in `ys` and
-    /// the carry out bit is xored to the qubit `carry`.
-    ///
-    /// # Input
-    /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand.
-    /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand, is
-    /// modified to hold the n least significant bits of the sum.
-    /// ## carry
-    /// Carry qubit, is xored with the carry out bit of the addition.
-    ///
-    /// # References
-    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
-    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
-    ///   Computation, Vol. 10, 2010.
-    ///   https://arxiv.org/abs/0910.2530
-    ///
-    /// # Remarks
-    /// This operation has the same functionality as RippleCarryAdderD and,
-    /// RippleCarryAdderCDKM but does not use any ancilla qubits.
-    operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit)
-    : Unit is Adj + Ctl {
-        Fact(Length(xs) == Length(ys),
-            "Input registers must have the same number of qubits." );
-        Fact(Length(xs) > 0, "Array should not be empty.");
-
-
-        if (Length(xs) > 1) {
-            CNOT(xs[Length(xs)-1], carry);
-            within {
-                ApplyOuterTTKAdder(xs, ys);
-            } apply {
-                ApplyInnerTTKAdder(xs, ys, carry);
-            }
-        }
-        else {
-            CCNOT(xs[0], ys[0], carry);
-        }
-        CNOT(xs[0], ys[0]);
-    }
-
-    /// # Summary
-    /// Implements the outer operation for RippleCarryAdderTTK to conjugate
-    /// the inner operation to construct the full adder. Input registers
-    /// must be of the same size.
-    ///
-    /// # Input
-    /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand
-    /// input to RippleCarryAdderTTK.
-    /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand
-    /// input to RippleCarryAdderTTK.
-    ///
-    /// # References
-    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
-    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
-    ///   Computation, Vol. 10, 2010.
-    ///   https://arxiv.org/abs/0910.2530
-    internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
-    : Unit is Adj + Ctl {
-        Fact(Length(xs) == Length(ys),
-            "Input registers must have the same number of qubits." );
-        for i in 1..Length(xs)-1 {
-            CNOT(xs[i], ys[i]);
-        }
-        for i in Length(xs)-2..-1..1 {
-            CNOT(xs[i], xs[i+1]);
-        }
-    }
-
-    /// # Summary
-    /// Implements the inner addition function for the operation
-    /// RippleCarryAdderNoCarryTTK. This is the inner operation that is conjugated
-    /// with the outer operation to construct the full adder.
-    ///
-    /// # Input
-    /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand
-    /// input to RippleCarryAdderNoCarryTTK.
-    /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand
-    /// input to RippleCarryAdderNoCarryTTK.
-    ///
-    /// # References
-    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
-    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
-    ///   Computation, Vol. 10, 2010.
-    ///   https://arxiv.org/abs/0910.2530
-    ///
-    /// # Remarks
-    /// The specified controlled operation makes use of symmetry and mutual
-    /// cancellation of operations to improve on the default implementation
-    /// that adds a control to every operation.
-    internal operation ApplyInnerTTKAdderWithoutCarry(xs : Qubit[], ys : Qubit[])
-    : Unit is Adj + Ctl {
-        body (...) {
-            (Controlled ApplyInnerTTKAdderWithoutCarry) ([], (xs, ys));
-        }
-        controlled ( controls, ... ) {
-            Fact(Length(xs) == Length(ys),
-                "Input registers must have the same number of qubits." );
-
-            for idx in 0..Length(xs) - 2 {
-                CCNOT (xs[idx], ys[idx], xs[idx + 1]);
-            }
-            for idx in Length(xs)-1..-1..1 {
-                Controlled CNOT(controls, (xs[idx], ys[idx]));
-                CCNOT(xs[idx - 1], ys[idx - 1], xs[idx]);
-            }
-        }
-    }
-
-    /// # Summary
-    /// Implements the inner addition function for the operation
-    /// RippleCarryAdderTTK. This is the inner operation that is conjugated
-    /// with the outer operation to construct the full adder.
-    ///
-    /// # Input
-    /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand
-    /// input to RippleCarryAdderTTK.
-    /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand
-    /// input to RippleCarryAdderTTK.
-    /// ## carry
-    /// Carry qubit, is xored with the most significant bit of the sum.
-    ///
-    /// # References
-    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
-    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
-    ///   Computation, Vol. 10, 2010.
-    ///   https://arxiv.org/abs/0910.2530
-    ///
-    /// # Remarks
-    /// The specified controlled operation makes use of symmetry and mutual
-    /// cancellation of operations to improve on the default implementation
-    /// that adds a control to every operation.
-    internal operation ApplyInnerTTKAdder(xs : Qubit[], ys : Qubit[], carry : Qubit)
-    : Unit is Adj + Ctl {
-        body (...) {
-            (Controlled ApplyInnerTTKAdder)([], (xs, ys, carry));
-        }
-        controlled ( controls, ... ) {
-            Fact(Length(xs) == Length(ys),
-                "Input registers must have the same number of qubits." );
-            Fact(Length(xs) > 0, "Array should not be empty.");
-
-
-            let nQubits = Length(xs);
-            for idx in 0..nQubits - 2 {
-                CCNOT(xs[idx], ys[idx], xs[idx+1]);
-            }
-            (Controlled CCNOT)(controls, (xs[nQubits-1], ys[nQubits-1], carry));
-            for idx in nQubits - 1..-1..1 {
-                Controlled CNOT(controls, (xs[idx], ys[idx]));
-                CCNOT(xs[idx-1], ys[idx-1], xs[idx]);
-            }
-        }
-    }
-
-    //
-    //
-    //      New arithmetic operations starts here.
-    // Once it is done, previous implementation will be removed.
-    //
-    //
-
-    //
-    // Operation: Add      | General |    Ripple-carry    | Carry look-ahead |    Fourier
-    // ____________________|_________|____________________|__________________|________________
-    // y += 5              |  IncByL |  RippleCarryIncByL |                  |
-    // y += x              | IncByLE | RippleCarryIncByLE | LookAheadIncByLE | FourierIncByLE
-    // z = x + 5 (z was 0) |         |                    |                  |
-    // z = x + y (z was 0) |   AddLE |   RippleCarryAddLE |   LookAheadAddLE |
-    // z += x + 5          |         |                    |                  |
-    // z += x + y          |         |                    |                  |
-    //
 
     /// # Summary
     /// Increments a little-endian register ys by a BigInt number c
@@ -390,10 +182,10 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Description
     /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register,
     /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
-    /// NOTE: Use RippleCarryIncByL directly if the choice of implementation
+    /// NOTE: Use IncByLUsingIncByLE directly if the choice of implementation
     /// is important.
     operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
-        RippleCarryIncByL(c, ys);
+        IncByLUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
 
     /// # Summary
@@ -402,10 +194,10 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Description
     /// Computes ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
     /// and Length(xs) ≤ Length(ys) = n.
-    /// NOTE: Use RippleCarryIncByLE or LookAheadIncByLE directly if
+    /// NOTE: Use operations like RippleCarryCGIncByLE directly if
     /// the choice of implementation is important.
     operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
-        RippleCarryIncByLE(xs, ys);
+        RippleCarryTTKIncByLE(xs, ys);
     }
 
     /// # Summary
@@ -415,42 +207,63 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Description
     /// Computes zs := xs + ys modulo 2ⁿ, where xs, ys, and zs are little-endian registers,
     /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized.
-    /// NOTE: Use RippleCarryAddLE or LookAheadAddLE directly if
+    /// NOTE: Use operations like RippleCarryCGAddLE directly if
     /// the choice of implementation is important.
     operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
-        RippleCarryAddLE(xs, ys, zs);
+        RippleCarryCGAddLE(xs, ys, zs);
     }
 
     /// # Summary
-    /// Increments a little-endian register ys by a BigInt number c
-    /// using the ripple-carry algorithm.
+    /// Reversible, in-place ripple-carry addition of two integers.
     ///
     /// # Description
-    /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register
-    /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
+    /// Computes ys += xs modulo 2ⁿ, where xs and ys are little-endian registers,
+    /// and Length(xs) ≤ Length(ys) = n.
     /// This operation uses the ripple-carry algorithm.
+    /// Note that if Length(ys) >= Length(xs)+2, xs is padded with 0-initialized
+    /// qubits to match ys's length. The operation doesn't use any auxilliary
+    /// qubits otherwise.
     ///
-    /// # Reference
-    ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
-    ///       "Halving the cost of quantum addition" by Craig Gidney.
-    operation RippleCarryIncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
+    /// # References
+    ///     - [arXiv:0910.2530](https://arxiv.org/abs/0910.2530)
+    ///       "Quantum Addition Circuits and Unbounded Fan-Out"
+    ///       by Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro
+    ///   
+    operation RippleCarryTTKIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+        let xsLen = Length(xs);
         let ysLen = Length(ys);
-        Fact(ysLen > 0, "Length of `ys` must be at least 1.");
-        Fact(c >= 0L, "Constant `c` must be non-negative.");
-        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
 
-        if c != 0L {
-            // If c has j trailing zeroes than the j least significant
-            // bits of y won't be affected by the addition and can
-            // therefore be ignored by applying the addition only to
-            // the other qubits and shifting c accordingly.
-            let j = TrailingZeroCountL(c);
-            use x = Qubit[ysLen - j];
-            within {
-                ApplyXorInPlaceL(c >>> j, x);
-            } apply {
-                RippleCarryIncByLE(x, ys[j...]);
+        Fact(ysLen >= xsLen, "Register `ys` must be longer than register `xs`.");
+        Fact(xsLen >= 1, "Registers `xs` and `ys` must contain at least one qubit.");
+
+        if xsLen == ysLen {
+            if xsLen > 1 {
+                within {
+                    ApplyOuterTTKAdder(xs, ys);
+                } apply {
+                    ApplyInnerTTKAdderNoCarry(xs, ys);
+                }
             }
+            CNOT (xs[0], ys[0]);
+        }
+        elif xsLen + 1 == ysLen {
+            if xsLen > 1 {
+                CNOT(xs[xsLen-1], ys[ysLen-1]);
+                within {
+                    ApplyOuterTTKAdder(xs, ys);
+                } apply {
+                    ApplyInnerTTKAdderWithCarry(xs, ys);
+                }
+            }
+            else {
+                CCNOT(xs[0], ys[0], ys[1]);
+            }
+            CNOT(xs[0], ys[0]);
+        }
+        elif xsLen + 2 <= ysLen {
+            // Pad xs so that its length is one qubit shorter than ys.
+            use padding = Qubit[ysLen - xsLen - 1];
+            RippleCarryTTKIncByLE(xs + padding, ys);
         }
     }
 
@@ -468,7 +281,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    operation RippleCarryIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation RippleCarryCGIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
 
@@ -476,8 +289,9 @@ namespace Microsoft.Quantum.Arithmetic {
         Fact(xsLen >= 1, "Registers `xs` and `ys` must contain at least one qubit.");
 
         if ysLen - xsLen >= 2 {
+            // Pad xs so that its length is one qubit shorter than ys.
             use padding = Qubit[ysLen - xsLen - 1];
-            RippleCarryIncByLE(xs + padding, ys);
+            RippleCarryCGIncByLE(xs + padding, ys);
         } elif xsLen == 1 {
             if ysLen == 1 {
                 CNOT(xs[0], ys[0]);
@@ -485,16 +299,27 @@ namespace Microsoft.Quantum.Arithmetic {
                 HalfAdderForInc(xs[0], ys[0], ys[1]);
             }
         } else {
-            let (x0, xrest) = (Head(xs), Rest(xs));
-            let (y0, yrest) = (Head(ys), Rest(ys));
-
-            use carryOut = Qubit();
+            use carries = Qubit[xsLen];
             within {
-                ApplyAndAssuming0Target(x0, y0, carryOut);
+                ApplyAndAssuming0Target(xs[0], ys[0], carries[0]);
             } apply {
-                IncWithCarryIn(carryOut, xrest, yrest);
+                for i in 1..xsLen-2 {
+                    CarryForInc(carries[i-1], xs[i], ys[i], carries[i]);
+                }
+                if xsLen == ysLen {
+                    within {
+                        CNOT(carries[xsLen-2], xs[xsLen-1]);
+                    } apply {
+                        CNOT(xs[xsLen-1], ys[xsLen-1]);
+                    }
+                } else {
+                    FullAdderForInc(carries[xsLen-2], xs[xsLen-1], ys[xsLen-1], ys[xsLen]);
+                }
+                for i in xsLen-2..-1..1 {
+                    UncarryForInc(carries[i-1], xs[i], ys[i], carries[i]);
+                }
             }
-            CNOT(x0, y0);
+            CNOT(xs[0], ys[0]);
         }
     }
 
@@ -513,7 +338,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    operation RippleCarryAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+    operation RippleCarryCGAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
         Fact(Length(ys) == xsLen, "Registers `xs` and `ys` must be of same length.");
@@ -548,7 +373,7 @@ namespace Microsoft.Quantum.Arithmetic {
     ///     - [arXiv:quant-ph/0406142](https://arxiv.org/abs/quant-ph/0406142)
     ///      "A logarithmic-depth quantum carry-lookahead adder" by
     ///      Thomas G. Draper, Samuel A. Kutin, Eric M. Rains, Krysta M. Svore
-    operation LookAheadAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+    operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
         Fact(Length(ys) == xsLen, "Registers `xs` and `ys` must be of same length.");
@@ -574,7 +399,7 @@ namespace Microsoft.Quantum.Arithmetic {
                 }
             }
         } else { // xsLen == zsLen, so without carry-out
-            LookAheadAddLE(Most(xs), Most(ys), zs);
+            LookAheadDKRSAddLE(Most(xs), Most(ys), zs);
             CNOT(Tail(xs), Tail(zs));
             CNOT(Tail(ys), Tail(zs));
         }
@@ -592,13 +417,170 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Reference
     ///     - [arXiv:quant-ph/0008033](https://arxiv.org/abs/quant-ph/0008033)
     ///      "Addition on a Quantum Computer" by Thomas G. Draper
-    operation FourierIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation FourierTDIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         within {
             ApplyQFT(ys);
         } apply {
             for (i, q) in Enumerated(xs) {
                 Controlled PhaseGradient([q], ys[i...]);
             }
+        }
+    }
+
+    /// # Summary
+    /// Increments a little-endian register ys by a BigInt number c
+    /// using provided adder.
+    ///
+    /// # Description
+    /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register
+    /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
+    operation IncByLUsingIncByLE (
+        adder : (Qubit[], Qubit[]) => Unit is Adj + Ctl,
+        c : BigInt,
+        ys : Qubit[]) : Unit is Adj + Ctl {
+
+        let ysLen = Length(ys);
+        Fact(ysLen > 0, "Length of `ys` must be at least 1.");
+        Fact(c >= 0L, "Constant `c` must be non-negative.");
+        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
+
+        if c != 0L {
+            // If c has j trailing zeroes than the j least significant
+            // bits of y won't be affected by the addition and can
+            // therefore be ignored by applying the addition only to
+            // the other qubits and shifting c accordingly.
+            let j = TrailingZeroCountL(c);
+            use x = Qubit[ysLen - j];
+            within {
+                ApplyXorInPlaceL(c >>> j, x);
+            } apply {
+                adder(x, ys[j...]);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Increments a little-endian register ys by an Int number c
+    /// using provided adder.
+    ///
+    /// # Description
+    /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register
+    /// Length(ys) = n > 0, c is an Int number, 0 ≤ c < 2ⁿ.
+    operation IncByIUsingIncByLE (
+        adder : (Qubit[], Qubit[]) => Unit is Adj + Ctl,
+        c : Int,
+        ys : Qubit[]) : Unit is Adj + Ctl {
+
+        let ysLen = Length(ys);
+        Fact(ysLen > 0, "Length of `ys` must be at least 1.");
+        Fact(c >= 0, "Constant `c` must be non-negative.");
+        Fact(c < 2^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
+
+        if c != 0 {
+            // If c has j trailing zeroes than the j least significant
+            // bits of y won't be affected by the addition and can
+            // therefore be ignored by applying the addition only to
+            // the other qubits and shifting c accordingly.
+            let j = TrailingZeroCountI(c);
+            use x = Qubit[ysLen - j];
+            within {
+                ApplyXorInPlace(c >>> j, x);
+            } apply {
+                adder(x, ys[j...]);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Generic operation to turn two out-place adders into one in-place adder
+    ///
+    /// # Description
+    /// This implementation allows to specify two distinct adders for forward
+    /// and backward direction.  The forward adder is always applied in its
+    /// body variant, whereas the backward adder is always applied in its adjoint
+    /// variant.  Therefore, it's possible to, for example, use the ripple-carry
+    /// out-of-place adder in backwards direction to require no T gates.
+    ///
+    /// The controlled variant is also optimized in a way that everything but
+    /// the adders is controlled, 
+    ///
+    /// # Reference
+    ///     - [arXiv:2012.01624](https://arxiv.org/abs/2012.01624)
+    ///       "Quantum block lookahead adders and the wait for magic states"
+    ///       by by Craig Gidney.
+    operation IncByLEUsingAddLE(
+        forwardAdder : (Qubit[], Qubit[], Qubit[]) => Unit is Adj,
+        backwardAdder : (Qubit[], Qubit[], Qubit[]) => Unit is Adj,
+        xs : Qubit[],
+        ys : Qubit[]) : Unit is Adj + Ctl {
+
+        body (...) {
+            let n = Length(xs);
+
+            Fact(Length(ys) == n, "Registers xs and ys must be of same length");
+
+            use qs = Qubit[n];
+
+            forwardAdder(xs, ys, qs);
+            ApplyToEachA(SWAP, Zipped(ys, qs));
+            ApplyToEachA(X, qs);
+            within {
+                ApplyToEachA(X, ys);
+            } apply {
+                Adjoint backwardAdder(xs, ys, qs);
+            }
+        }
+        adjoint (...) {
+            let n = Length(xs);
+
+            Fact(Length(ys) == n, "Registers xs and ys must be of same length");
+
+            use qs = Qubit[n];
+
+            within {
+                ApplyToEachA(X, ys);
+            } apply {
+                forwardAdder(xs, ys, qs);
+            }
+            ApplyToEachA(X, qs);
+            ApplyToEachA(SWAP, Zipped(ys, qs));
+            Adjoint backwardAdder(xs, ys, qs);
+        }
+        controlled (ctls, ...) {
+            // When we control everything except the adders, the adders will
+            // cancel themselves.
+            let n = Length(xs);
+
+            Fact(Length(ys) == n, "Registers xs and ys must be of same length");
+
+            use qs = Qubit[n];
+
+            forwardAdder(xs, ys, qs);
+            ApplyToEachA(tgt => Controlled SWAP(ctls, tgt), Zipped(ys, qs));
+            ApplyToEachA(tgt => Controlled X(ctls, tgt), qs);
+            within {
+                ApplyToEachA(tgt => Controlled X(ctls, tgt), ys);
+            } apply {
+                Adjoint backwardAdder(xs, ys, qs);
+            }
+        }
+        controlled adjoint (ctls, ...) {
+            // When we control everything except the adders, the adders will
+            // cancel themselves.
+            let n = Length(xs);
+
+            Fact(Length(ys) == n, "Registers xs and ys must be of same length");
+
+            use qs = Qubit[n];
+
+            within {
+                ApplyToEachA(tgt => Controlled X(ctls, tgt), ys);
+            } apply {
+                forwardAdder(xs, ys, qs);
+            }
+            ApplyToEachA(tgt => Controlled X(ctls, tgt), qs);
+            ApplyToEachA(tgt => Controlled SWAP(ctls, tgt), Zipped(ys, qs));
+            Adjoint backwardAdder(xs, ys, qs);
         }
     }
 

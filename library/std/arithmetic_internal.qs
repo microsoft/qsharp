@@ -7,30 +7,123 @@ namespace Microsoft.Quantum.Arithmetic {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-
-    // Computes ys += xs + carryIn using a ripple carry architecture
-    internal operation IncWithCarryIn(carryIn : Qubit, xs : Qubit[], ys : Qubit[])
+    /// # Summary
+    /// Implements the outer operation for RippleCarryAdderTTK to conjugate
+    /// the inner operation to construct the full adder. Only Length(xs)
+    /// qubits are processed.
+    ///
+    /// # Input
+    /// ## xs
+    /// LittleEndian qubit register encoding the first integer summand
+    /// input to RippleCarryAdderTTK.
+    /// ## ys
+    /// LittleEndian qubit register encoding the second integer summand
+    /// input to RippleCarryAdderTTK.
+    ///
+    /// # References
+    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
+    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
+    ///   Computation, Vol. 10, 2010.
+    ///   https://arxiv.org/abs/0910.2530
+    internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
-        // We assume that it has already been checked that xs and ys are of
-        // equal size and non-empty in RippleCarryIncByLE
-        if Length(xs) == 1 {
-            if Length(ys) == 1 {
-                within {
-                    CNOT(carryIn, xs[0]);
-                } apply {
-                    CNOT(xs[0], ys[0]);
-                }
-            } elif Length(ys) == 2 {
-                FullAdderForInc(carryIn, xs[0], ys[0], ys[1]);
-            }
-        } else {
-            let (x0, xrest) = HeadAndRest(xs);
-            let (y0, yrest) = HeadAndRest(ys);
+        Fact(Length(xs) <= Length(ys),
+            "Input register ys must be at lease as long as xs." );
+        for i in 1..Length(xs)-1 {
+            CNOT(xs[i], ys[i]);
+        }
+        for i in Length(xs)-2..-1..1 {
+            CNOT(xs[i], xs[i+1]);
+        }
+    }
 
-            use carryOut = Qubit();
-            CarryForInc(carryIn, x0, y0, carryOut);
-            IncWithCarryIn(carryOut, xrest, yrest);
-            UncarryForInc(carryIn, x0, y0, carryOut);
+    /// # Summary
+    /// Implements the inner addition function for the operation
+    /// RippleCarryAdderNoCarryTTK. This is the inner operation that is conjugated
+    /// with the outer operation to construct the full adder.
+    ///
+    /// # Input
+    /// ## xs
+    /// LittleEndian qubit register encoding the first integer summand
+    /// input to RippleCarryAdderNoCarryTTK.
+    /// ## ys
+    /// LittleEndian qubit register encoding the second integer summand
+    /// input to RippleCarryAdderNoCarryTTK.
+    ///
+    /// # References
+    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
+    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
+    ///   Computation, Vol. 10, 2010.
+    ///   https://arxiv.org/abs/0910.2530
+    ///
+    /// # Remarks
+    /// The specified controlled operation makes use of symmetry and mutual
+    /// cancellation of operations to improve on the default implementation
+    /// that adds a control to every operation.
+    internal operation ApplyInnerTTKAdderNoCarry(xs : Qubit[], ys : Qubit[])
+    : Unit is Adj + Ctl {
+        body (...) {
+            (Controlled ApplyInnerTTKAdderNoCarry) ([], (xs, ys));
+        }
+        controlled ( controls, ... ) {
+            Fact(Length(xs) == Length(ys),
+                "Input registers must have the same number of qubits." );
+
+            for idx in 0..Length(xs) - 2 {
+                CCNOT (xs[idx], ys[idx], xs[idx + 1]);
+            }
+            for idx in Length(xs)-1..-1..1 {
+                Controlled CNOT(controls, (xs[idx], ys[idx]));
+                CCNOT(xs[idx - 1], ys[idx - 1], xs[idx]);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Implements the inner addition function for the operation
+    /// RippleCarryAdderTTK. This is the inner operation that is conjugated
+    /// with the outer operation to construct the full adder.
+    ///
+    /// # Input
+    /// ## xs
+    /// LittleEndian qubit register encoding the first integer summand
+    /// input to RippleCarryAdderTTK.
+    /// ## ys
+    /// LittleEndian qubit register encoding the second integer summand
+    /// input to RippleCarryAdderTTK.
+    /// ## carry
+    /// Carry qubit, is xored with the most significant bit of the sum.
+    ///
+    /// # References
+    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
+    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
+    ///   Computation, Vol. 10, 2010.
+    ///   https://arxiv.org/abs/0910.2530
+    ///
+    /// # Remarks
+    /// The specified controlled operation makes use of symmetry and mutual
+    /// cancellation of operations to improve on the default implementation
+    /// that adds a control to every operation.
+    internal operation ApplyInnerTTKAdderWithCarry(xs : Qubit[], ys : Qubit[])
+    : Unit is Adj + Ctl {
+        body (...) {
+            (Controlled ApplyInnerTTKAdderWithCarry)([], (xs, ys));
+        }
+        controlled ( controls, ... ) {
+            Fact(Length(xs)+1 == Length(ys),
+                "ys must be one qubit longer then xs." );
+            Fact(Length(xs) > 0, "Array should not be empty.");
+
+
+            let nQubits = Length(xs);
+            for idx in 0..nQubits - 2 {
+                CCNOT(xs[idx], ys[idx], xs[idx+1]);
+            }
+            (Controlled CCNOT)(controls, (xs[nQubits-1], ys[nQubits-1], ys[nQubits]));
+            for idx in nQubits - 1..-1..1 {
+                Controlled CNOT(controls, (xs[idx], ys[idx]));
+                CCNOT(xs[idx-1], ys[idx-1], xs[idx]);
+            }
         }
     }
 
@@ -170,21 +263,7 @@ namespace Microsoft.Quantum.Arithmetic {
             if not CheckZero(target) {
                 fail "ApplyAndAssuming0Target expects `target` to be in |0> state.";
             }
-            H(target);
-            T(target);
-            CNOT(control1, target);
-            CNOT(control2, target);
-            within {
-                CNOT(target, control1);
-                CNOT(target, control2);
-            }
-            apply {
-                Adjoint T(control1);
-                Adjoint T(control2);
-                T(target);
-            }
-            H(target);
-            S(target);            
+            CCNOT(control1, control2, target);
         }
         adjoint (...) {
             H(target);
