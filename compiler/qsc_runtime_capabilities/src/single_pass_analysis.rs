@@ -304,8 +304,7 @@ impl AppsTbl {
     pub fn new(input_param_count: usize) -> Self {
         Self {
             input_param_count,
-            // use with_capacity().
-            apps: Vec::new(),
+            apps: Vec::with_capacity(Self::size_from_input_param_count(input_param_count)),
         }
     }
 
@@ -317,8 +316,12 @@ impl AppsTbl {
         self.apps.get_mut(index.0)
     }
 
-    pub fn max(&self) -> usize {
-        2i32.pow(self.input_param_count as u32) as usize
+    pub fn size(&self) -> usize {
+        Self::size_from_input_param_count(self.input_param_count)
+    }
+
+    fn size_from_input_param_count(input_param_count: usize) -> usize {
+        2i32.pow(input_param_count as u32) as usize
     }
 
     pub fn push(&mut self, app: ComputeProps) {
@@ -867,19 +870,11 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        // TODO (cesarzc): use if let.
-        //if let ItemKind::Callable(c) = item {
-        //}
-
-        //store_scratch.insert_item(package_id, item_id, ItemComputeProps::NonCallable);
-        match &item.kind {
-            ItemKind::Namespace(..) | ItemKind::Ty(..) => {
-                store_scratch.insert_item(package_id, item_id, ItemComputeProps::NonCallable)
-            }
-            ItemKind::Callable(callable) => {
-                Self::analyze_callable(callable, item_id, package_id, package_store, store_scratch)
-            }
-        };
+        if let ItemKind::Callable(callable) = &item.kind {
+            Self::analyze_callable(callable, item_id, package_id, package_store, store_scratch);
+        } else {
+            store_scratch.insert_item(package_id, item_id, ItemComputeProps::NonCallable);
+        }
     }
 
     fn analyze_non_intrinsic_callable(
@@ -892,7 +887,7 @@ impl SinglePassAnalyzer {
     ) {
         // Initialize the callable applications table whose size depends on the number of input parameters.
         let mut callable_apps_tbl = AppsTbl::new(input_params.0.len());
-        for _ in 0..callable_apps_tbl.max() {
+        for _ in 0..callable_apps_tbl.size() {
             callable_apps_tbl.apps.push(ComputeProps {
                 rt_caps: FxHashSet::default(),
                 quantum_sources: Vec::new(),
@@ -1090,7 +1085,7 @@ impl SinglePassAnalyzer {
         assert!(Self::is_callable_intrinsic(function));
         // TODO (cesarzc): Set limit on the number of parameters.
         let mut apps = AppsTbl::new(input_params.0.len());
-        for app_idx in 0..apps.max() {
+        for app_idx in 0..apps.size() {
             let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
             let app =
                 Self::build_intrinsic_function_application(&input_params_app, &function.output);
@@ -1143,7 +1138,7 @@ impl SinglePassAnalyzer {
         assert!(Self::is_callable_intrinsic(operation));
         // TODO (cesarzc): Set limit on the number of parameters.
         let mut apps = AppsTbl::new(input_params.0.len());
-        for app_idx in 0..apps.max() {
+        for app_idx in 0..apps.size() {
             let input_params_app = InputParamsApp::from_app_idx(AppIdx(app_idx), &input_params);
             let app =
                 Self::build_intrinsic_operation_application(&input_params_app, &operation.output);
