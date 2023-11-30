@@ -368,7 +368,7 @@ impl<'a> LanguageService<'a> {
             .open_documents
             .get(uri)
             .unwrap_or_else(|| {
-                panic!("{op_name} (called on {uri} should not be called for a document that has not been opened",)
+                panic!("{op_name} (called on {uri}) should not be called for a document that has not been opened",)
             })
             .compilation;
 
