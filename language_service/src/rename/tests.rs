@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::{get_rename, prepare_rename};
 use crate::test_utils::{
     compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,

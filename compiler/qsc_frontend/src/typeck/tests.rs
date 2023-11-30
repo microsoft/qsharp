@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::{
     compile::{self, Offsetter},
     resolve::{self, Resolver},

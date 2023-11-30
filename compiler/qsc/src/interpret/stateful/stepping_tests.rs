@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::interpret::stateful::Interpreter;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;

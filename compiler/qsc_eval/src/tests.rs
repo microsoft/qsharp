@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::{
     backend::{Backend, SparseSim},
     debug::{map_hir_package_to_fir, Frame},
