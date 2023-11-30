@@ -8,17 +8,17 @@ namespace Microsoft.Quantum.Arithmetic {
     open Microsoft.Quantum.Convert;
 
     /// # Summary
-    /// Implements the outer operation for RippleCarryAdderTTK to conjugate
+    /// Implements the outer operation for RippleCarryTTKIncByLE to conjugate
     /// the inner operation to construct the full adder. Only Length(xs)
     /// qubits are processed.
     ///
     /// # Input
     /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand
-    /// input to RippleCarryAdderTTK.
+    /// Qubit register in a little-endian format containing the first summand
+    /// input to RippleCarryTTKIncByLE.
     /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand
-    /// input to RippleCarryAdderTTK.
+    /// Qubit register in a little-endian format containing the second summand
+    /// input to RippleCarryTTKIncByLE.
     ///
     /// # References
     /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
@@ -39,16 +39,16 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements the inner addition function for the operation
-    /// RippleCarryAdderNoCarryTTK. This is the inner operation that is conjugated
+    /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
     /// with the outer operation to construct the full adder.
     ///
     /// # Input
     /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand
-    /// input to RippleCarryAdderNoCarryTTK.
+    /// Qubit register in a little-endian format containing the first summand
+    /// input to RippleCarryTTKIncByLE.
     /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand
-    /// input to RippleCarryAdderNoCarryTTK.
+    /// Qubit register in a little-endian format containing the second summand
+    /// input to RippleCarryTTKIncByLE.
     ///
     /// # References
     /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
@@ -81,18 +81,16 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements the inner addition function for the operation
-    /// RippleCarryAdderTTK. This is the inner operation that is conjugated
+    /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
     /// with the outer operation to construct the full adder.
     ///
     /// # Input
     /// ## xs
-    /// LittleEndian qubit register encoding the first integer summand
-    /// input to RippleCarryAdderTTK.
+    /// Qubit register in a little-endian format containing the first summand
+    /// input to RippleCarryTTKIncByLE.
     /// ## ys
-    /// LittleEndian qubit register encoding the second integer summand
-    /// input to RippleCarryAdderTTK.
-    /// ## carry
-    /// Carry qubit, is xored with the most significant bit of the sum.
+    /// Qubit register in a little-endian format containing the second summand
+    /// input to RippleCarryTTKIncByLE.
     ///
     /// # References
     /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
