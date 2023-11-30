@@ -14,17 +14,7 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
-  checkCode(
-    code: string,
-    // If these three arguments are omitted, then multi-file/project mode is disabled.
-    readFile?: (uri: string) => Promise<string | null>,
-    listDirectory?: (uri: string) => Promise<[string, number][]>,
-    getManifest?: (uri: string) => Promise<{
-      manifestDirectory: string;
-      excludeRegexes: string[];
-      excludeFiles: string[];
-    } | null>,
-  ): Promise<VSDiagnostic[]>;
+  checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
     code: string,
@@ -53,18 +43,9 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
-  async checkCode(
-    code: string,
-    readFile: (uri: string) => Promise<string | null> = () =>
-      Promise.resolve(null),
-    listDirectory: (uri: string) => Promise<[string, number][]> = () =>
-      Promise.resolve([]),
-    getManifest: (uri: string) => Promise<{
-      manifestDirectory: string;
-      excludeRegexes: string[];
-      excludeFiles: string[];
-    } | null> = () => Promise.resolve(null),
-  ): Promise<VSDiagnostic[]> {
+  // Note: This function does not support project mode.
+  // see https://github.com/microsoft/qsharp/pull/849#discussion_r1409821143
+  async checkCode(code: string): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
     const languageService = new this.wasm.LanguageService(
       async (
@@ -74,9 +55,10 @@ export class Compiler implements ICompiler {
       ) => {
         diags = errors;
       },
-      readFile,
-      listDirectory,
-      getManifest,
+      () => Promise.resolve(null),
+      () => Promise.resolve([]),
+
+      () => Promise.resolve(null),
     );
     await languageService.update_document("code", 1, code);
     return mapDiagnostics(diags, code);

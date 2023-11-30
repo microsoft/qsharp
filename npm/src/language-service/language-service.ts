@@ -103,8 +103,10 @@ export class QSharpLanguageService implements ILanguageService {
 
   constructor(
     wasm: QscWasm,
-    readFile: (uri: string) => Promise<string | null> = () => Promise.resolve(null),
-    listDir: (uri: string) => Promise<[string, number][]> = () => Promise.resolve([]),
+    readFile: (uri: string) => Promise<string | null> = () =>
+      Promise.resolve(null),
+    listDir: (uri: string) => Promise<[string, number][]> = () =>
+      Promise.resolve([]),
     getManifest: (uri: string) => Promise<{
       excludeFiles: string[];
       excludeRegexes: string[];
@@ -240,7 +242,7 @@ export class QSharpLanguageService implements ILanguageService {
       convertedOffset,
     );
     if (result) {
-      let targetCode = await this.loadFile(result.source) || null;
+      let targetCode = (await this.loadFile(result.source)) || null;
       if (targetCode === null) {
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
         // If the scheme is our library scheme, we need to call the wasm to

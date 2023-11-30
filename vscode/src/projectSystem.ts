@@ -67,6 +67,20 @@ async function findManifestDocument(
 
   while (attempts > 0) {
     attempts--;
+    // we abort this check if we are going above the current VS Code
+    // workspace. If the user is working in a multi-root workspace [1],
+    // then we do not perform this check. This is because a multi-
+    // root workspace could contain different roots at different
+    // levels in each others' path ancestry.
+    // [1]: https://code.visualstudio.com/docs/editor/workspaces#_multiroot-workspaces
+    if (
+      vscode.workspace.workspaceFolders?.length === 1 &&
+      Utils.resolvePath(vscode.workspace.workspaceFolders[0].uri, "..") ===
+        uriToQuery
+    ) {
+      log.debug("Aborting search for manifest file outside of workspace");
+      return null;
+    }
     const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
 
     let listing;

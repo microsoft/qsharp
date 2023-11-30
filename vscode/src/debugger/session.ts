@@ -110,7 +110,7 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(correlationId: string): Promise<void> {
     if (getProjectMode()) {
       vscode.window.showErrorMessage(
-        "The debugger does not currently support multi-file Q# projects. Coming soon!",
+        "The debugger does not currently support multi-file Q# projects. Coming soon! See https://github.com/microsoft/qsharp/issues/797 for details.",
       );
       return;
     }
