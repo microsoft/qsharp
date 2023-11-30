@@ -36,7 +36,14 @@ use std::{future::Future, mem::take, path::PathBuf, pin::Pin, sync::Arc};
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
 
-#[allow(clippy::type_complexity)]
+/// the desugared return type of an "async fn"
+type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
+
+/// represents a unary async fn where `Arg` is the input
+/// parameter and `Return` is the return type. The lifetime
+/// `'a` represents the lifetime of the contained `dyn Fn`.
+type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
+
 pub struct LanguageService<'a> {
     /// Workspace configuration can include compiler settings
     /// that affect error checking and other language server behavior.
@@ -66,18 +73,14 @@ pub struct LanguageService<'a> {
     documents_with_errors: FxHashSet<DocumentUri>,
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
-    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) -> Pin<Box<dyn Future<Output = ()>>> + 'a>,
+    diagnostics_receiver: AsyncFunction<'a, DiagnosticUpdate, ()>,
     /// Callback which lets the service read a file from the target filesystem
-    read_file_callback:
-        Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a>,
+    read_file_callback: AsyncFunction<'a, PathBuf, (Arc<str>, Arc<str>)>,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory: Box<dyn Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a>,
+    list_directory: AsyncFunction<'a, PathBuf, Vec<JSFileEntry>>,
     /// Fetch the manifest file for a specific path
-    get_manifest: Box<
-        dyn Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
-    >,
+    get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
 }
 
 #[derive(Debug)]

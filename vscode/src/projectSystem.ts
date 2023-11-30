@@ -85,7 +85,7 @@ async function findManifestDocument(
 
     let listing;
     try {
-      listing = await readFile(potentialManifestLocation);
+      listing = await readFileUri(potentialManifestLocation);
     } catch (err) {
       log.error("Error thrown when reading file: ", err);
     }
@@ -105,7 +105,7 @@ async function findManifestDocument(
 
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
-export async function directoryListingCallback(
+export async function listDir(
   directoryQuery: string,
 ): Promise<[string, number][]> {
   const uriToQuery = vscode.Uri.parse(directoryQuery);
@@ -118,12 +118,12 @@ export async function directoryListingCallback(
   return mappedFiles;
 }
 
-export async function readFileCallback(uri: string): Promise<string | null> {
-  const file = await readFile(uri);
+export async function readFile(uri: string): Promise<string | null> {
+  const file = await readFileUri(uri);
   return file?.content || null;
 }
 
-async function readFile(
+async function readFileUri(
   maybeUri: string | vscode.Uri,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
   const uri: vscode.Uri = (maybeUri as any).path

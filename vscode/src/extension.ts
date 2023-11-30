@@ -42,8 +42,8 @@ import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
 import {
   getManifest,
-  readFileCallback,
-  directoryListingCallback,
+  readFile,
+  listDir,
 } from "./projectSystem.js";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -279,8 +279,8 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   const languageService = await getLanguageService(
-    readFileCallback,
-    directoryListingCallback,
+    readFile,
+    listDir,
     getManifest,
   );
   await updateLanguageServiceProfile(languageService);
