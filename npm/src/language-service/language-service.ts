@@ -225,8 +225,8 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ILocation | undefined> {
-    const sourceCode = this.code[documentUri];
-    if (sourceCode === undefined) {
+    const sourceCode = await this.loadFile(documentUri);
+    if (sourceCode === undefined || sourceCode === null) {
       log.error(
         `getDefinition: expected ${documentUri} to be in the document map`,
       );
@@ -240,14 +240,14 @@ export class QSharpLanguageService implements ILanguageService {
       convertedOffset,
     );
     if (result) {
-      let targetCode = this.code[result.source];
-      if (targetCode === undefined) {
+      let targetCode = await this.loadFile(result.source) || null;
+      if (targetCode === null) {
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
         // If the scheme is our library scheme, we need to call the wasm to
         // provide the library file's contents to do the utf8->utf16 mapping.
         const url = new URL(result.source);
         if (url.protocol === qsharpLibraryUriScheme + ":") {
-          targetCode = wasm.get_library_source_content(url.pathname);
+          targetCode = wasm.get_library_source_content(url.pathname) || null;
           if (targetCode === undefined) {
             log.error(`getDefinition: expected ${url} to be in the library`);
             return undefined;
@@ -271,8 +271,8 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number,
     includeDeclaration: boolean,
   ): Promise<ILocation[]> {
-    const sourceCode = this.code[documentUri];
-    if (sourceCode === undefined) {
+    const sourceCode = await this.loadFile(documentUri);
+    if (sourceCode === undefined || sourceCode === null) {
       log.error(
         `getReferences: expected ${documentUri} to be in the document map`,
       );
@@ -289,14 +289,14 @@ export class QSharpLanguageService implements ILanguageService {
     if (results && results.length > 0) {
       const references: ILocation[] = [];
       for (const result of results) {
-        let resultCode = this.code[result.source];
+        let resultCode = await this.loadFile(result.source);
 
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
         // If the scheme is our library scheme, we need to call the wasm to
         // provide the library file's contents to do the utf8->utf16 mapping.
         const url = new URL(result.source);
         if (url.protocol === qsharpLibraryUriScheme + ":") {
-          resultCode = wasm.get_library_source_content(url.pathname);
+          resultCode = wasm.get_library_source_content(url.pathname) || null;
           if (resultCode === undefined) {
             log.error(`getReferences: expected ${url} to be in the library`);
           }
@@ -365,7 +365,7 @@ export class QSharpLanguageService implements ILanguageService {
 
     const mappedChanges: [string, ITextEdit[]][] = [];
     for (const [uri, edits] of result.changes) {
-      const code = this.code[uri];
+      const code = await this.loadFile(uri);
       if (code) {
         const mappedEdits = edits.map((edit) => {
           updateSpanFromUtf8ToUtf16(edit.range, code);
