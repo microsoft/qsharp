@@ -40,11 +40,7 @@ import { registerWebViewCommands } from "./webviewPanel.js";
 import { createReferenceProvider } from "./references.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
-import {
-  getManifest,
-  readFile,
-  listDir,
-} from "./projectSystem.js";
+import { getManifest, readFile, listDir } from "./projectSystem.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
