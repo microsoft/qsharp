@@ -103,13 +103,13 @@ export class QSharpLanguageService implements ILanguageService {
 
   constructor(
     wasm: QscWasm,
-    readFile: (uri: string) => Promise<string | null>,
-    listDir: (uri: string) => Promise<[string, number][]>,
+    readFile: (uri: string) => Promise<string | null> = () => Promise.resolve(null),
+    listDir: (uri: string) => Promise<[string, number][]> = () => Promise.resolve([]),
     getManifest: (uri: string) => Promise<{
       excludeFiles: string[];
       excludeRegexes: string[];
       manifestDirectory: string;
-    } | null>,
+    } | null> = () => Promise.resolve(null),
   ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService(
@@ -124,7 +124,7 @@ export class QSharpLanguageService implements ILanguageService {
   async loadFile(uri: string): Promise<string | null> {
     const result = this.code[uri];
     if (result === undefined || result === null) {
-      await this.readFile(uri);
+      return await this.readFile(uri);
     }
     if (result === null || result === undefined) {
       log.error(
