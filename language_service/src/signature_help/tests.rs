@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::get_signature_help;
 use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 use expect_test::{expect, Expect};

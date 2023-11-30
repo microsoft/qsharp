@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::{Error, Names, Res};
 use crate::{compile, resolve::Resolver};
 use expect_test::{expect, Expect};

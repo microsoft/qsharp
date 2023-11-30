@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::entry_point::generate_entry_expr;
 use expect_test::{expect, Expect};
 use indoc::indoc;
