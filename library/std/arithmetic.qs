@@ -387,7 +387,9 @@ namespace Microsoft.Quantum.Arithmetic {
 
             within {
                 // compute initial propagate values
-                ApplyToEachA(CNOT, Zipped(xs, ys));
+                for i in IndexRange(xs) {
+                    CNOT(xs[i], ys[i]);
+                }
             } apply {
                 if xsLen > 1 {
                     ComputeCarries(Rest(ys), zs[1..xsLen]);
@@ -421,8 +423,8 @@ namespace Microsoft.Quantum.Arithmetic {
         within {
             ApplyQFT(ys);
         } apply {
-            for (i, q) in Enumerated(xs) {
-                Controlled PhaseGradient([q], ys[i...]);
+            for i in IndexRange(xs) {
+                Controlled PhaseGradient([xs[i]], ys[i...]);
             }
         }
     }
@@ -522,7 +524,9 @@ namespace Microsoft.Quantum.Arithmetic {
             use qs = Qubit[n];
 
             forwardAdder(xs, ys, qs);
-            ApplyToEachA(SWAP, Zipped(ys, qs));
+            for i in IndexRange(ys) {
+                SWAP(ys[i], qs[i]);
+            }
             ApplyToEachA(X, qs);
             within {
                 ApplyToEachA(X, ys);
@@ -543,7 +547,9 @@ namespace Microsoft.Quantum.Arithmetic {
                 forwardAdder(xs, ys, qs);
             }
             ApplyToEachA(X, qs);
-            ApplyToEachA(SWAP, Zipped(ys, qs));
+            for i in IndexRange(ys) {
+                SWAP(ys[i], qs[i]);
+            }
             Adjoint backwardAdder(xs, ys, qs);
         }
         controlled (ctls, ...) {
@@ -556,7 +562,9 @@ namespace Microsoft.Quantum.Arithmetic {
             use qs = Qubit[n];
 
             forwardAdder(xs, ys, qs);
-            ApplyToEachA(tgt => Controlled SWAP(ctls, tgt), Zipped(ys, qs));
+            for i in IndexRange(ys) {
+                Controlled SWAP(ctls, (ys[i], qs[i]))
+            }
             ApplyToEachA(tgt => Controlled X(ctls, tgt), qs);
             within {
                 ApplyToEachA(tgt => Controlled X(ctls, tgt), ys);
@@ -579,9 +587,12 @@ namespace Microsoft.Quantum.Arithmetic {
                 forwardAdder(xs, ys, qs);
             }
             ApplyToEachA(tgt => Controlled X(ctls, tgt), qs);
-            ApplyToEachA(tgt => Controlled SWAP(ctls, tgt), Zipped(ys, qs));
+            for i in IndexRange(ys) {
+                Controlled SWAP(ctls, (ys[i], qs[i]))
+            }
             Adjoint backwardAdder(xs, ys, qs);
         }
     }
+
 
 }

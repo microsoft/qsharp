@@ -356,8 +356,8 @@ namespace Microsoft.Quantum.Arithmetic {
             // accessed in round t.
             let (current, next) = (Rest(ws[0]), ws[1]);
 
-            for (m, target) in Enumerated(next) {
-                ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], target);
+            for m in IndexRange(next) {
+                ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], next[m]);
             }
         }
     }
@@ -401,8 +401,8 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     internal operation PhaseGradient (qs : Qubit[]) : Unit is Adj + Ctl {
-        for (i, q) in Enumerated(qs) {
-            R1Frac(1, i, q);
+        for i in IndexRange(qs) {
+            R1Frac(1, i, qs[i]);
         }
     }
 
