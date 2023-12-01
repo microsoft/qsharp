@@ -23,7 +23,7 @@ mod tests;
 
 use async_recursion::async_recursion;
 use compilation::Compilation;
-use log::{error, trace};
+use log::{error, info, trace};
 use miette::Diagnostic;
 pub use project_system::JSFileEntry;
 use protocol::{
@@ -168,6 +168,7 @@ impl<'a> LanguageService<'a> {
     #[async_recursion(?Send)]
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         if self.currently_updating {
+            info!("    enqueueing update; skipping this one");
             self.pending_update = Some(PendingUpdate {
                 uri: uri.into(),
                 version,
@@ -175,6 +176,8 @@ impl<'a> LanguageService<'a> {
             });
             return;
         }
+        info!("setting currently_updating to true");
+        self.currently_updating = true;
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
         let sources = if let Some(ref manifest) = manifest {
@@ -230,9 +233,13 @@ impl<'a> LanguageService<'a> {
 
         self.publish_diagnostics().await;
         if let Some(update) = self.pending_update.take() {
+            info!("    executing enqueued update");
             self.update_document(&update.uri, update.version, &update.text)
                 .await;
+        } else {
+            info!("    no pending update");
         }
+        info!("setting currently_updating to false");
         self.currently_updating = false;
     }
 
