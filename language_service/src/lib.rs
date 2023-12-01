@@ -21,6 +21,7 @@ mod test_utils;
 #[cfg(test)]
 mod tests;
 
+use async_recursion::async_recursion;
 use compilation::Compilation;
 use log::{error, trace};
 use miette::Diagnostic;
@@ -81,6 +82,17 @@ pub struct LanguageService<'a> {
     list_directory: AsyncFunction<'a, PathBuf, Vec<JSFileEntry>>,
     /// Fetch the manifest file for a specific path
     get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
+    /// Whether or not a compile is currently running.
+    currently_updating: bool,
+    /// The next compile to run, if any
+    pending_update: Option<PendingUpdate>,
+}
+
+#[derive(Clone)]
+pub struct PendingUpdate {
+    uri: String,
+    version: u32,
+    text: String,
 }
 
 #[derive(Debug)]
@@ -126,6 +138,8 @@ impl<'a> LanguageService<'a> {
             read_file_callback: Box::new(read_file),
             list_directory: Box::new(list_directory),
             get_manifest: Box::new(get_manifest),
+            currently_updating: false,
+            pending_update: None,
         }
     }
 
@@ -151,7 +165,16 @@ impl<'a> LanguageService<'a> {
     /// This is the "entry point" for the language service's logic, after its constructor.
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
+    #[async_recursion(?Send)]
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        if self.currently_updating {
+            self.pending_update = Some(PendingUpdate {
+                uri: uri.into(),
+                version,
+                text: text.into(),
+            });
+            return;
+        }
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
         let sources = if let Some(ref manifest) = manifest {
@@ -206,6 +229,11 @@ impl<'a> LanguageService<'a> {
         }
 
         self.publish_diagnostics().await;
+        if let Some(update) = self.pending_update.take() {
+            self.update_document(&update.uri, update.version, &update.text)
+                .await;
+        }
+        self.currently_updating = false;
     }
 
     /// Indicates that the client is no longer interested in the document,
