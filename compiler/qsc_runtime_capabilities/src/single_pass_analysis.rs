@@ -13,7 +13,6 @@ use indenter::indented;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::{
-    f32::consts::E,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
@@ -263,12 +262,12 @@ impl ElmntComputeProps {
                 match elmt_compute_props {
                     ElmntComputeProps::AppDependent(other_apps_tbl) => {
                         for (idx, app) in self_apps_tbl.apps.iter_mut().enumerate() {
-                            app.aggregate(&other_apps_tbl.apps[idx]);
+                            app.aggregate_all(&other_apps_tbl.apps[idx]);
                         }
                     }
                     ElmntComputeProps::AppIndependent(other_compute_props) => {
                         for app in self_apps_tbl.apps.iter_mut() {
-                            app.aggregate(other_compute_props);
+                            app.aggregate_all(other_compute_props);
                         }
                     }
                     ElmntComputeProps::Unsupported => {} // Do nothing.
@@ -278,7 +277,7 @@ impl ElmntComputeProps {
                 match elmt_compute_props {
                     ElmntComputeProps::AppDependent(other_apps_tbl) => panic!("Cannot aggregate application dependent compute properties into application independent compute properties"),
                     ElmntComputeProps::AppIndependent(other_compute_props) => {
-                        self_compute_props.aggregate(other_compute_props);
+                        self_compute_props.aggregate_all(other_compute_props);
                     }
                     ElmntComputeProps::Unsupported => {} // Do nothing.
                 }
@@ -324,6 +323,31 @@ impl AppsTbl {
         Self {
             input_param_count,
             apps: Vec::with_capacity(Self::size_from_input_param_count(input_param_count)),
+        }
+    }
+
+    pub fn aggregate_elmnt_rt_caps(&mut self, elmnt_compute_props: &ElmntComputeProps) {
+        match elmnt_compute_props {
+            ElmntComputeProps::AppDependent(apps_tbl) => self.aggregate_apps_tbl_rt_caps(apps_tbl),
+            ElmntComputeProps::AppIndependent(compute_props) => {
+                self.aggregate_rt_caps(compute_props)
+            }
+            ElmntComputeProps::Unsupported => {}
+        };
+    }
+
+    pub fn aggregate_apps_tbl_rt_caps(&mut self, apps_tbl: &AppsTbl) {
+        assert!(self.size() == apps_tbl.size());
+        for (self_compute_props, other_compute_props) in
+            self.apps.iter_mut().zip(apps_tbl.apps.iter())
+        {
+            self_compute_props.aggregate_rt_caps(other_compute_props);
+        }
+    }
+
+    pub fn aggregate_rt_caps(&mut self, compute_props: &ComputeProps) {
+        for app_compute_props in self.apps.iter_mut() {
+            app_compute_props.aggregate_rt_caps(compute_props);
         }
     }
 
@@ -438,13 +462,21 @@ impl Display for ComputeProps {
 }
 
 impl ComputeProps {
-    pub fn aggregate(&mut self, compute_props: &ComputeProps) {
-        for cap in compute_props.rt_caps.iter() {
-            self.rt_caps.insert(cap.clone());
-        }
+    pub fn aggregate_all(&mut self, compute_props: &ComputeProps) {
+        self.aggregate_rt_caps(compute_props);
+        self.aggregate_quantum_sources(compute_props);
+    }
+
+    pub fn aggregate_quantum_sources(&mut self, compute_props: &ComputeProps) {
         let mut quantum_sources_to_aggregate = compute_props.quantum_sources.clone();
         self.quantum_sources
             .append(&mut quantum_sources_to_aggregate);
+    }
+
+    pub fn aggregate_rt_caps(&mut self, compute_props: &ComputeProps) {
+        for cap in compute_props.rt_caps.iter() {
+            self.rt_caps.insert(cap.clone());
+        }
     }
 
     pub fn compute_kind(&self) -> ComputeKind {
@@ -483,7 +515,7 @@ pub enum QuantumSource {
     InputParam(PatId),
     //Global(PackageId, LocalItemId),
     //BlockId,
-    //StmtId,
+    Stmt(StmtId),
     ExprId,
 }
 
@@ -1025,7 +1057,6 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        println!("{package_id} | {expr_id}");
         Self::analyze_expr(
             package_id,
             callee_expr_id,
@@ -1045,12 +1076,10 @@ impl SinglePassAnalyzer {
             .expect("Callee expression should exist");
 
         // TODO (cesarzc): Do a thorough check of cases but start with the minimal.
-        println!("Callee expression kind: {:?}", callee_expression.kind);
         let compute_props = if let ExprKind::Var(Res::Item(item_id), _) = callee_expression.kind {
             // The callee is a global one so we have to use the applications table to know the value of the call expression.
             let callee_package_id = item_id.package.unwrap_or(package_id);
             let callee_id = item_id.item;
-            println!("Global Callable: {callee_package_id} | {callee_id}");
             Self::analyze_callable(callee_package_id, callee_id, package_store, store_scratch);
             Self::build_expr_call_to_global_item_compute_props(
                 callee_package_id,
@@ -1229,14 +1258,54 @@ impl SinglePassAnalyzer {
                 &mut nodes,
                 store_scratch,
             );
-            let _stmt_compute_props = store_scratch
+            let stmt_compute_props = store_scratch
                 .get_stmt(&package_id, stmt_id)
                 .expect("Statement was just analyzed");
-
-            // TODO (cesarzc): need to expand the apps table based on this.
+            callable_apps_tbl.aggregate_elmnt_rt_caps(stmt_compute_props);
         }
 
         // TODO (cesarzc): analyze quantum sources based on the last statement.
+        // Work on this.
+        let is_unit = matches!(callable.output, Ty::UNIT);
+        if !is_unit {
+            if let Some(last_stmt_id) = implementation_block.stmts.last() {
+                let last_stmt_compute_props = store_scratch
+                    .get_stmt(&package_id, last_stmt_id)
+                    .expect("Last statement compute properties should exist");
+                match last_stmt_compute_props {
+                    ElmntComputeProps::AppDependent(stmt_apps_tbl) => {
+                        assert!(callable_apps_tbl.size() == stmt_apps_tbl.size());
+                        for idx in 0..stmt_apps_tbl.size() {
+                            let app_idx = AppIdx(idx);
+                            let stmt_app_compute_props = stmt_apps_tbl
+                                .get(app_idx)
+                                .expect("Statement application compute properties should exist");
+                            if let ComputeKind::Dynamic = stmt_app_compute_props.compute_kind() {
+                                let app_compute_props = callable_apps_tbl
+                                    .get_mut(app_idx)
+                                    .expect("Application compute properties should exist");
+                                app_compute_props
+                                    .quantum_sources
+                                    .push(QuantumSource::Stmt(*last_stmt_id));
+                            }
+                        }
+                    }
+                    ElmntComputeProps::AppIndependent(compute_props) => {
+                        if let ComputeKind::Dynamic = compute_props.compute_kind() {
+                            for idx in 0..callable_apps_tbl.size() {
+                                let app_compute_props = callable_apps_tbl
+                                    .get_mut(AppIdx(idx))
+                                    .expect("Application compute properties should exist");
+                                app_compute_props
+                                    .quantum_sources
+                                    .push(QuantumSource::Stmt(*last_stmt_id));
+                            }
+                        }
+                    }
+                    ElmntComputeProps::Unsupported => {}
+                }
+            }
+        }
         let callable_compute_props = CallableComputeProps {
             apps: callable_apps_tbl,
         };
@@ -1254,10 +1323,6 @@ impl SinglePassAnalyzer {
         nodes: &mut NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
-        if store_scratch.has_stmt(&package_id, &stmt_id) {
-            println!("Statement already analyzed: {package_id} | {stmt_id}");
-            return;
-        }
         let stmt = package_store
             .get_stmt(package_id, stmt_id)
             .expect("Statement should exist");
@@ -1537,12 +1602,7 @@ impl SinglePassAnalyzer {
 
     fn get_callable_implementation_block_id(callable: &CallableDecl) -> BlockId {
         match callable.body.body {
-            SpecBody::Impl(pat_id, block_id) => {
-                if let Some(pid) = pat_id {
-                    println!("{} | {}", callable.name, pid);
-                }
-                block_id
-            }
+            SpecBody::Impl(pat_id, block_id) => block_id,
             _ => panic!("Is not implementation"),
         }
     }
