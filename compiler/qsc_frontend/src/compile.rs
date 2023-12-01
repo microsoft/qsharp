@@ -9,7 +9,7 @@ pub mod preprocess;
 use crate::{
     error::WithSource,
     lower::{self, Lowerer},
-    resolve::{self, Names, Resolver},
+    resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
 use miette::{Diagnostic, Report};
@@ -84,6 +84,7 @@ pub struct AstPackage {
     pub package: ast::Package,
     pub tys: Table,
     pub names: Names,
+    pub locals: Locals,
 }
 
 #[derive(Debug, Default)]
@@ -314,7 +315,7 @@ pub fn compile(
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, name_errors) = resolve_all(
+    let (names, locals, name_errors) = resolve_all(
         store,
         dependencies,
         &mut hir_assigner,
@@ -344,6 +345,7 @@ pub fn compile(
             package: ast_package,
             tys,
             names,
+            locals,
         },
         assigner: hir_assigner,
         sources,
@@ -493,7 +495,7 @@ fn resolve_all(
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
-) -> (Names, Vec<resolve::Error>) {
+) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -511,9 +513,9 @@ fn resolve_all(
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
-    let (names, mut resolver_errors) = resolver.into_names();
+    let (names, locals, mut resolver_errors) = resolver.into_result();
     errors.append(&mut resolver_errors);
-    (names, errors)
+    (names, locals, errors)
 }
 
 fn typeck_all(

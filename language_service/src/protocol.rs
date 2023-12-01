@@ -35,6 +35,8 @@ pub enum CompletionItemKind {
     Keyword,
     Module,
     Property,
+    Variable,
+    TypeParameter,
 }
 
 #[derive(Debug)]

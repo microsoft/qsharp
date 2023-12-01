@@ -14,7 +14,7 @@ pub use qsc_frontend::compile::{
 };
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::Res;
+    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res};
 }
 
 pub mod fir {

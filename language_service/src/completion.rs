@@ -4,14 +4,14 @@
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
-
-use crate::compilation::{Compilation, CompilationKind};
+use crate::compilation::{Compilation, CompilationKind, Lookup};
 use crate::display::CodeDisplay;
 use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
 use crate::qsc_utils::span_contains;
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
+use qsc::resolve::{Local, LocalKind};
+use std::rc::Rc;
 
 const PRELUDE: [&str; 3] = [
     "Microsoft.Quantum.Canon",
@@ -53,15 +53,8 @@ pub(crate) fn get_completions(
         .opens
         .extend(PRELUDE.into_iter().map(|ns| (Rc::from(ns), None)));
 
-    // We don't attempt to be comprehensive or accurate when determining completions,
-    // since that's not really possible without more sophisticated error recovery
-    // in the parser or the ability for the resolver to gather all
-    // appropriate names for a scope. These are not done at the moment.
-
-    // So the following is an attempt to get "good enough" completions, tuned
-    // based on the user experience of typing out a few samples in the editor.
-
     let mut builder = CompletionListBuilder::new();
+
     match context_finder.context {
         Context::Namespace => {
             // Include "open", "operation", etc
@@ -85,9 +78,11 @@ pub(crate) fn get_completions(
 
         Context::CallableSignature => {
             builder.push_types();
+            builder.push_locals(compilation, offset, false, true);
         }
         Context::Block => {
             // Pretty much anything goes in a block
+            builder.push_locals(compilation, offset, true, true);
             builder.push_stmt_keywords();
             builder.push_expr_keywords();
             builder.push_types();
@@ -103,10 +98,14 @@ pub(crate) fn get_completions(
             builder.push_item_decl_keywords();
         }
         Context::NoCompilation | Context::TopLevel => match compilation.kind {
-            CompilationKind::OpenDocument => builder.push_namespace_keyword(),
+            CompilationKind::OpenDocument => {
+                builder.push_namespace_keyword();
+            }
             CompilationKind::Notebook => {
                 // For notebooks, the top-level allows for
                 // more syntax.
+
+                builder.push_locals(compilation, offset, true, true);
 
                 // Item declarations
                 builder.push_item_decl_keywords();
@@ -127,7 +126,7 @@ pub(crate) fn get_completions(
                 builder.push_namespace_keyword();
             }
         },
-    }
+    };
 
     CompletionList {
         items: builder.into_items(),
@@ -266,6 +265,27 @@ impl CompletionListBuilder {
         }
 
         self.push_completions(Self::get_namespaces(core));
+    }
+
+    fn push_locals(
+        &mut self,
+        compilation: &Compilation,
+        offset: u32,
+        include_terms: bool,
+        include_tys: bool,
+    ) {
+        self.push_sorted_completions(
+            compilation
+                .user_unit()
+                .ast
+                .locals
+                .get_all_at_offset(offset)
+                .iter()
+                .filter_map(|candidate| {
+                    local_completion(candidate, compilation, include_terms, include_tys)
+                })
+                .map(|item| (item, 0)),
+        );
     }
 
     fn push_stmt_keywords(&mut self) {
@@ -455,6 +475,65 @@ impl CompletionListBuilder {
             _ => None,
         })
     }
+}
+
+fn local_completion(
+    candidate: &Local,
+    compilation: &Compilation,
+    include_terms: bool,
+    include_tys: bool,
+) -> Option<CompletionItem> {
+    let display = CodeDisplay { compilation };
+    let (kind, detail) = match &candidate.kind {
+        LocalKind::Item(item_id) => {
+            let item = compilation.resolve_item_relative_to_user_package(item_id);
+            let (detail, kind) = match &item.0.kind {
+                ItemKind::Callable(decl) => {
+                    if !include_terms {
+                        return None;
+                    }
+                    (
+                        Some(display.hir_callable_decl(decl).to_string()),
+                        CompletionItemKind::Function,
+                    )
+                }
+                ItemKind::Namespace(_, _) => {
+                    panic!("did not expect local namespace item")
+                }
+                ItemKind::Ty(_, udt) => {
+                    if !include_terms && !include_tys {
+                        return None;
+                    }
+                    (
+                        Some(display.hir_udt(udt).to_string()),
+                        CompletionItemKind::Interface,
+                    )
+                }
+            };
+            (kind, detail)
+        }
+        LocalKind::Var(node_id) => {
+            if !include_terms {
+                return None;
+            }
+            let detail = Some(display.name_ty_id(&candidate.name, *node_id).to_string());
+            (CompletionItemKind::Variable, detail)
+        }
+        LocalKind::TyParam(_) => {
+            if !include_tys {
+                return None;
+            }
+            (CompletionItemKind::TypeParameter, None)
+        }
+    };
+
+    Some(CompletionItem {
+        label: candidate.name.to_string(),
+        kind,
+        sort_text: None,
+        detail,
+        additional_text_edits: None,
+    })
 }
 
 struct ContextFinder {
