@@ -13,6 +13,7 @@ use indenter::indented;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::{
+    f32::consts::E,
     fmt::{Display, Formatter, Result, Write},
     fs::File,
     io::Write as IoWrite,
@@ -291,6 +292,18 @@ impl ElmntComputeProps {
 pub struct AppIdx(usize);
 
 impl AppIdx {
+    pub fn from_compute_kinds(compute_kinds: &[ComputeKind]) -> Self {
+        let mut app_idx = 0;
+        for (idx, compute_kind) in compute_kinds.iter().enumerate() {
+            if let ComputeKind::Dynamic = compute_kind {
+                let mask = 1 << idx;
+                app_idx |= mask;
+            }
+        }
+
+        Self(app_idx)
+    }
+
     pub fn represents_all_static_params(&self) -> bool {
         self.0 == 0
     }
@@ -326,6 +339,8 @@ impl AppsTbl {
             apps,
         }
     }
+
+    // TODO (cesarzc): Should implement an enumerate that gets a (AppIdx, ComputeProps) tuple.
 
     pub fn from_input_param_idx(
         input_param_idx: InputParamIdx,
@@ -591,6 +606,62 @@ enum FlatPatKind {
     Tuple(Vec<PatId>, Ty),
 }
 
+struct FlatCallableInput(Vec<ExprId>);
+
+impl FlatCallableInput {
+    pub fn from_input_expr(input_expr: &Expr) -> Self {
+        let exprs = match &input_expr.kind {
+            ExprKind::Tuple(exprs) => exprs.clone(),
+            _ => vec![input_expr.id],
+        };
+        Self(exprs)
+    }
+
+    pub fn compute_kinds_for_app_independent_exprs(
+        &self,
+        // TODO (cesarzc): Should probably be a vector of references to not have to do look ups every time this function is called.
+        exprs_compute_props: &FxHashMap<ExprId, ElmntComputeProps>,
+    ) -> Vec<ComputeKind> {
+        let mut compute_kinds = Vec::with_capacity(self.0.len());
+        for expr_id in self.0.iter() {
+            let compute_props = exprs_compute_props
+                .get(expr_id)
+                .expect("Compute props should exist");
+            let compute_kind = match compute_props {
+                ElmntComputeProps::AppDependent(apps_tbl) => panic!("Should not be dependent"),
+                ElmntComputeProps::AppIndependent(compute_props) => compute_props.compute_kind(),
+                ElmntComputeProps::Unsupported => ComputeKind::Static, // This is not a pesimistic thing.
+            };
+            compute_kinds.push(compute_kind);
+        }
+        compute_kinds
+    }
+
+    pub fn compute_kinds_for_app_idx(
+        &self,
+        app_idx: AppIdx,
+        // TODO (cesarzc): Should probably be a vector of references to not have to do look ups every time this function is called.
+        exprs_compute_props: &FxHashMap<ExprId, ElmntComputeProps>,
+    ) -> Vec<ComputeKind> {
+        let mut compute_kinds = Vec::with_capacity(self.0.len());
+        for expr_id in self.0.iter() {
+            let compute_props = exprs_compute_props
+                .get(expr_id)
+                .expect("Compute props should exist");
+            let compute_kind = match compute_props {
+                ElmntComputeProps::AppDependent(apps_tbl) => apps_tbl
+                    .get(app_idx)
+                    .expect("Application should exist")
+                    .compute_kind(),
+                ElmntComputeProps::AppIndependent(compute_props) => compute_props.compute_kind(),
+                ElmntComputeProps::Unsupported => ComputeKind::Static, // This is not a pesimistic thing.
+            };
+            compute_kinds.push(compute_kind);
+        }
+        compute_kinds
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct StoreScratch(FxHashMap<PackageId, PackageScratch>);
 
@@ -824,6 +895,18 @@ impl SinglePassAnalyzer {
             return;
         }
 
+        if package_id == PackageId::from(1) && callable_id == LocalItemId::from(67) {
+            let callable_compute_props = CallableComputeProps {
+                apps: AppsTbl::default(2),
+            };
+            store_scratch.insert_item(
+                package_id,
+                callable_id,
+                ItemComputeProps::Callable(callable_compute_props),
+            );
+            return;
+        }
+
         // Set the appropriate values for pattern(s) which represent the input parameters.
         let callable = match &package_store
             .get_item(package_id, callable_id)
@@ -908,6 +991,15 @@ impl SinglePassAnalyzer {
             .get_expr(package_id, expr_id)
             .expect("Expression should exist");
         match &expr.kind {
+            ExprKind::Call(callee_expr_id, input_expr_id) => Self::analyze_expr_call(
+                package_id,
+                expr_id,
+                *callee_expr_id,
+                *input_expr_id,
+                nodes,
+                package_store,
+                store_scratch,
+            ),
             ExprKind::Lit(_) => Self::analyze_expr_lit(package_id, expr_id, store_scratch),
             ExprKind::Tuple(tuple) => Self::analyze_expr_tuple(
                 package_id,
@@ -933,6 +1025,7 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
+        println!("{package_id} | {expr_id}");
         Self::analyze_expr(
             package_id,
             callee_expr_id,
@@ -948,23 +1041,30 @@ impl SinglePassAnalyzer {
             store_scratch,
         );
         let callee_expression = package_store
-            .get_expr(package_id, expr_id)
+            .get_expr(package_id, callee_expr_id)
             .expect("Callee expression should exist");
 
         // TODO (cesarzc): Do a thorough check of cases but start with the minimal.
-        if let ExprKind::Var(Res::Item(item_id), _) = callee_expression.kind {
+        println!("Callee expression kind: {:?}", callee_expression.kind);
+        let compute_props = if let ExprKind::Var(Res::Item(item_id), _) = callee_expression.kind {
             // The callee is a global one so we have to use the applications table to know the value of the call expression.
-            let package_id = item_id.package.expect("Should have a package");
-            let callable_id = item_id.item;
-            Self::analyze_callable(package_id, callable_id, package_store, store_scratch);
-
-            // TODO (cesarzc): Keep implementing.
+            let callee_package_id = item_id.package.unwrap_or(package_id);
+            let callee_id = item_id.item;
+            println!("Global Callable: {callee_package_id} | {callee_id}");
+            Self::analyze_callable(callee_package_id, callee_id, package_store, store_scratch);
+            Self::build_expr_call_to_global_item_compute_props(
+                callee_package_id,
+                callee_id,
+                package_id,
+                input_expr_id,
+                package_store,
+                store_scratch,
+            )
         } else {
-            // TODO (cesarzc): Do the right thing if it's not a global resolution.
-            let _compute_props = ElmntComputeProps::Unsupported;
-        }
+            ElmntComputeProps::Unsupported
+        };
 
-        // TODO (cesarzc): insert compute props.
+        store_scratch.insert_expr(package_id, expr_id, compute_props);
     }
 
     fn analyze_expr_lit(package_id: PackageId, expr_id: ExprId, store_scratch: &mut StoreScratch) {
@@ -1154,6 +1254,10 @@ impl SinglePassAnalyzer {
         nodes: &mut NodeMap,
         store_scratch: &mut StoreScratch,
     ) {
+        if store_scratch.has_stmt(&package_id, &stmt_id) {
+            println!("Statement already analyzed: {package_id} | {stmt_id}");
+            return;
+        }
         let stmt = package_store
             .get_stmt(package_id, stmt_id)
             .expect("Statement should exist");
@@ -1243,9 +1347,9 @@ impl SinglePassAnalyzer {
         Self::link_expr_to_stmt(package_id, expr_id, stmt_id, store_scratch);
     }
 
-    fn build_call_to_global_compute_props(
+    fn build_expr_call_to_global_item_compute_props(
         callee_package_id: PackageId,
-        callee_id: &CallableDecl,
+        callee_id: LocalItemId,
         input_expr_package_id: PackageId,
         input_expr_id: ExprId,
         package_store: &PackageStore,
@@ -1255,16 +1359,54 @@ impl SinglePassAnalyzer {
         let input_expr_compute_props = store_scratch
             .get_expr(&input_expr_package_id, &input_expr_id)
             .expect("Input expression compute props should exist");
-        match input_expr_compute_props {
-            ElmntComputeProps::AppDependent(apps_tbl) => {
-                // TODO (cesarzc): Implement correctly.
-                ElmntComputeProps::AppDependent(AppsTbl::default(0))
+        let input_expr = package_store
+            .get_expr(input_expr_package_id, input_expr_id)
+            .expect("Input expression should exist");
+        let flat_input_exprs = FlatCallableInput::from_input_expr(input_expr);
+        let callee_item_compute_props = &store_scratch
+            .get_item(&callee_package_id, &callee_id)
+            .expect("Callee compute props should exist");
+        if let ItemComputeProps::Callable(callee_compute_props) = callee_item_compute_props {
+            assert!(flat_input_exprs.0.len() == callee_compute_props.apps.input_param_count);
+            let exprs_compute_props = &store_scratch
+                .0
+                .get(&input_expr_package_id)
+                .expect("Package should exits")
+                .exprs;
+            match input_expr_compute_props {
+                ElmntComputeProps::AppDependent(apps_tbl) => {
+                    let mut call_expr_apps_tbl = AppsTbl::default(apps_tbl.input_param_count);
+                    for idx in 0..call_expr_apps_tbl.size() {
+                        let app_idx = AppIdx(idx);
+                        let compute_kinds = flat_input_exprs
+                            .compute_kinds_for_app_idx(app_idx, exprs_compute_props);
+                        let callee_idx = AppIdx::from_compute_kinds(&compute_kinds);
+                        let app_compute_props = callee_compute_props
+                            .apps
+                            .get(callee_idx)
+                            .expect("Should exist");
+                        let call_app_compute_props =
+                            call_expr_apps_tbl.get_mut(app_idx).expect("Should exist");
+                        *call_app_compute_props = app_compute_props.clone();
+                    }
+
+                    ElmntComputeProps::AppDependent(call_expr_apps_tbl)
+                }
+                ElmntComputeProps::AppIndependent(_) => {
+                    let compute_kinds = flat_input_exprs
+                        .compute_kinds_for_app_independent_exprs(exprs_compute_props);
+                    let callee_idx = AppIdx::from_compute_kinds(&compute_kinds);
+                    let app_compute_props = callee_compute_props
+                        .apps
+                        .get(callee_idx)
+                        .expect("Should exist");
+                    ElmntComputeProps::AppIndependent(app_compute_props.clone())
+                }
+                ElmntComputeProps::Unsupported => ElmntComputeProps::Unsupported,
             }
-            ElmntComputeProps::AppIndependent(compute_props) => {
-                // TODO (cesarzc): Implement correctly.
-                ElmntComputeProps::AppIndependent(ComputeProps::default_static())
-            }
-            ElmntComputeProps::Unsupported => ElmntComputeProps::Unsupported,
+        } else {
+            // TODO (cesarzc): This is the case for instantiating UDTs.
+            ElmntComputeProps::Unsupported
         }
     }
 

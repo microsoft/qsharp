@@ -3,10 +3,10 @@ namespace QuantumHelloWorld {
     @EntryPoint()
     operation RCA() : Result {
         Message("Hello world!");
-        use qubit = Qubit();
-        H(qubit);
-        let result = M(qubit);
-        Reset(qubit);
+        use myQubit = Qubit();
+        H(myQubit);
+        let result = M(myQubit);
+        Reset(myQubit);
         let a = FFoo(11111);
         let fiveTwos = 22222;
         let b = FFoo(fiveTwos);
