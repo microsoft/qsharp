@@ -947,29 +947,22 @@ impl SinglePassAnalyzer {
             package_store,
             store_scratch,
         );
+        let callee_expression = package_store
+            .get_expr(package_id, expr_id)
+            .expect("Callee expression should exist");
 
-        let callee = package_store
-            .get_expr(package_id, callee_expr_id)
-            .expect("Callee should exist");
-        // TODO (cesarzc): continue implementation.
-        //if let ExprKind::Var(res, _) = callee.kind {
-        //    if let Res::Item(item_id) = res {
-        //        let package_id = item_id.package.expect("Should have a package");
-        //        let callable_id = item_id.item;
-        //
-        //        Self::analyze_callable(
-        //            callable,
-        //            callable_id,
-        //            package_id,
-        //            package_store,
-        //            store_scratch,
-        //        )
-        //    } else {
-        //        let compute_props = ElmntComputeProps::Unsupported;
-        //    }
-        //} else {
-        //    let compute_props = ElmntComputeProps::Unsupported;
-        //}
+        // TODO (cesarzc): Do a thorough check of cases but start with the minimal.
+        if let ExprKind::Var(Res::Item(item_id), _) = callee_expression.kind {
+            // The callee is a global one so we have to use the applications table to know the value of the call expression.
+            let package_id = item_id.package.expect("Should have a package");
+            let callable_id = item_id.item;
+            Self::analyze_callable(package_id, callable_id, package_store, store_scratch);
+
+            // TODO (cesarzc): Keep implementing.
+        } else {
+            // TODO (cesarzc): Do the right thing if it's not a global resolution.
+            let _compute_props = ElmntComputeProps::Unsupported;
+        }
 
         // TODO (cesarzc): insert compute props.
     }
@@ -1040,7 +1033,7 @@ impl SinglePassAnalyzer {
     ) {
         let compute_props = match res {
             Res::Item(_) => {
-                // Compute properties in this case do not have
+                // Compute properties in this case are just static.
                 ElmntComputeProps::AppIndependent(ComputeProps::default())
             }
             Res::Local(node_id) => {
@@ -1248,6 +1241,31 @@ impl SinglePassAnalyzer {
 
         // Propagate to statement.
         Self::link_expr_to_stmt(package_id, expr_id, stmt_id, store_scratch);
+    }
+
+    fn build_call_to_global_compute_props(
+        callee_package_id: PackageId,
+        callee_id: &CallableDecl,
+        input_expr_package_id: PackageId,
+        input_expr_id: ExprId,
+        package_store: &PackageStore,
+        store_scratch: &StoreScratch,
+    ) -> ElmntComputeProps {
+        // First we have to decide whether this is application dependent or independent.
+        let input_expr_compute_props = store_scratch
+            .get_expr(&input_expr_package_id, &input_expr_id)
+            .expect("Input expression compute props should exist");
+        match input_expr_compute_props {
+            ElmntComputeProps::AppDependent(apps_tbl) => {
+                // TODO (cesarzc): Implement correctly.
+                ElmntComputeProps::AppDependent(AppsTbl::default(0))
+            }
+            ElmntComputeProps::AppIndependent(compute_props) => {
+                // TODO (cesarzc): Implement correctly.
+                ElmntComputeProps::AppIndependent(ComputeProps::default_static())
+            }
+            ElmntComputeProps::Unsupported => ElmntComputeProps::Unsupported,
+        }
     }
 
     fn build_intrinsic_callable_compute_props(
