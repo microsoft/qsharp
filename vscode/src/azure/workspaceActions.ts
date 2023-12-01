@@ -26,9 +26,9 @@ export const scopes = {
 
 export async function getAuthSession(
   scopes: string[],
-  correlationId: string,
+  associationId: string,
 ): Promise<vscode.AuthenticationSession> {
-  sendTelemetryEvent(EventType.AuthSessionStart, { correlationId }, {});
+  sendTelemetryEvent(EventType.AuthSessionStart, { associationId }, {});
   log.debug("About to getSession for scopes", scopes.join(","));
   try {
     let session = await vscode.authentication.getSession("microsoft", scopes, {
@@ -44,7 +44,7 @@ export async function getAuthSession(
     sendTelemetryEvent(
       EventType.AuthSessionEnd,
       {
-        correlationId,
+        associationId,
         flowStatus: UserFlowStatus.Succeeded,
       },
       {},
@@ -54,7 +54,7 @@ export async function getAuthSession(
     sendTelemetryEvent(
       EventType.AuthSessionEnd,
       {
-        correlationId,
+        associationId,
         reason: "exception in getAuthSession",
         flowStatus: UserFlowStatus.Failed,
       },
@@ -118,20 +118,20 @@ export async function queryWorkspaces(): Promise<
   WorkspaceConnection | undefined
 > {
   log.debug("Querying for account workspaces");
-  const correlationId = getRandomGuid();
-  sendTelemetryEvent(EventType.QueryWorkspacesStart, { correlationId }, {});
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.QueryWorkspacesStart, { associationId }, {});
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
 
   // For the MSA case, you need to query the tenants first and get the underlying AzureAD
   // tenant for the 'guest' MSA. See https://stackoverflow.microsoft.com/a/76246/108570
-  const firstAuth = await getAuthSession([scopes.armMgmt], correlationId);
+  const firstAuth = await getAuthSession([scopes.armMgmt], associationId);
 
   if (!firstAuth) {
     log.error("No authentication session returned");
     sendTelemetryEvent(
       EventType.QueryWorkspacesEnd,
       {
-        correlationId,
+        associationId,
         reason: "no auth session returned",
         flowStatus: UserFlowStatus.Failed,
       },
@@ -146,7 +146,7 @@ export async function queryWorkspaces(): Promise<
   const tenants: ResponseTypes.TenantList = await azureRequest(
     azureUris.tenants(),
     firstToken,
-    correlationId,
+    associationId,
   );
   log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
   if (!tenants?.value?.length) {
@@ -154,7 +154,7 @@ export async function queryWorkspaces(): Promise<
     sendTelemetryEvent(
       EventType.QueryWorkspacesEnd,
       {
-        correlationId,
+        associationId,
         reason: "no tenants exist for account",
         flowStatus: UserFlowStatus.Failed,
       },
@@ -180,7 +180,7 @@ export async function queryWorkspaces(): Promise<
       sendTelemetryEvent(
         EventType.QueryWorkspacesEnd,
         {
-          correlationId,
+          associationId,
           reason: "aborted tenant choice",
           flowStatus: UserFlowStatus.Aborted,
         },
@@ -200,13 +200,13 @@ export async function queryWorkspaces(): Promise<
   if (accountType !== "aad" || !matchesTenant) {
     tenantAuth = await getAuthSession(
       [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
-      correlationId,
+      associationId,
     );
     if (!tenantAuth) {
       sendTelemetryEvent(
         EventType.QueryWorkspacesEnd,
         {
-          correlationId,
+          associationId,
           reason: "authentication session did not return",
           flowStatus: UserFlowStatus.Aborted,
         },
@@ -222,7 +222,7 @@ export async function queryWorkspaces(): Promise<
   const subs: ResponseTypes.SubscriptionList = await azureRequest(
     azureUris.subscriptions(),
     tenantToken,
-    correlationId,
+    associationId,
   );
   log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
   if (!subs?.value?.length) {
@@ -248,7 +248,7 @@ export async function queryWorkspaces(): Promise<
       sendTelemetryEvent(
         EventType.QueryWorkspacesEnd,
         {
-          correlationId,
+          associationId,
           reason: "aborted subscription choice",
           flowStatus: UserFlowStatus.Aborted,
         },
@@ -263,7 +263,7 @@ export async function queryWorkspaces(): Promise<
   const workspaces: ResponseTypes.WorkspaceList = await azureRequest(
     azureUris.workspaces(subId),
     tenantToken,
-    correlationId,
+    associationId,
   );
   if (log.getLogLevel() >= 5) {
     log.trace(`Got workspaces: ${JSON.stringify(workspaces, null, 2)}`);
@@ -273,7 +273,7 @@ export async function queryWorkspaces(): Promise<
     sendTelemetryEvent(
       EventType.QueryWorkspacesEnd,
       {
-        correlationId,
+        associationId,
         reason: "no quantum workspaces in azure subscription",
         flowStatus: UserFlowStatus.Aborted,
       },
@@ -303,7 +303,7 @@ export async function queryWorkspaces(): Promise<
       sendTelemetryEvent(
         EventType.QueryWorkspacesEnd,
         {
-          correlationId,
+          associationId,
           reason: "aborted workspace selection",
           flowStatus: UserFlowStatus.Aborted,
         },
@@ -344,11 +344,11 @@ export async function queryWorkspaces(): Promise<
 }
 
 export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
-  const correlationId = getRandomGuid();
+  const associationId = getRandomGuid();
 
   const workspaceAuth = await getAuthSession(
     [scopes.quantum, `VSCODE_TENANT:${workspace.tenantId}`],
-    correlationId,
+    associationId,
   );
   return workspaceAuth.accessToken;
 }
@@ -359,15 +359,15 @@ export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
 export async function queryWorkspace(workspace: WorkspaceConnection) {
   const token = await getTokenForWorkspace(workspace);
 
-  const correlationId = getRandomGuid();
-  sendTelemetryEvent(EventType.QueryWorkspaceStart, { correlationId }, {});
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.QueryWorkspaceStart, { associationId }, {});
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
   const providerStatus: ResponseTypes.ProviderStatusList = await azureRequest(
     quantumUris.providerStatus(),
     token,
-    correlationId,
+    associationId,
   );
   if (log.getLogLevel() >= 5) {
     log.trace(
@@ -394,7 +394,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   const jobs: ResponseTypes.JobList = await azureRequest(
     quantumUris.jobs(),
     token,
-    correlationId,
+    associationId,
   );
   log.debug(`Query returned ${jobs.value.length} jobs`);
 
@@ -410,7 +410,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     sendTelemetryEvent(
       EventType.QueryWorkspaceEnd,
       {
-        correlationId,
+        associationId,
         reason: "no jobs returned",
         flowStatus: UserFlowStatus.Aborted,
       },
@@ -426,7 +426,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
 
   sendTelemetryEvent(
     EventType.QueryWorkspaceEnd,
-    { correlationId, flowStatus: UserFlowStatus.Succeeded },
+    { associationId, flowStatus: UserFlowStatus.Succeeded },
     {},
   );
 
@@ -439,15 +439,15 @@ export async function getJobFiles(
   token: string,
   quantumUris: QuantumUris,
 ): Promise<string> {
-  const correlationId = getRandomGuid();
+  const associationId = getRandomGuid();
   log.debug(`Fetching job file from ${containerName}/${blobName}`);
-  sendTelemetryEvent(EventType.GetJobFilesStart, { correlationId }, {});
+  sendTelemetryEvent(EventType.GetJobFilesStart, { associationId }, {});
 
   const body = JSON.stringify({ containerName, blobName });
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
-    correlationId,
+    associationId,
     "POST",
     body,
   );
@@ -465,7 +465,7 @@ export async function getJobFiles(
     sendTelemetryEvent(
       EventType.GetJobFilesEnd,
       {
-        correlationId,
+        associationId,
         reason: "no files returned",
         flowStatus: UserFlowStatus.Aborted,
       },
@@ -477,7 +477,7 @@ export async function getJobFiles(
   const blob = await file.text();
   sendTelemetryEvent(
     EventType.GetJobFilesEnd,
-    { correlationId, flowStatus: UserFlowStatus.Succeeded },
+    { associationId, flowStatus: UserFlowStatus.Succeeded },
     {},
   );
   return blob;
@@ -490,8 +490,8 @@ export async function submitJob(
   providerId: string,
   target: string,
 ) {
-  const correlationId = getRandomGuid();
-  sendTelemetryEvent(EventType.SubmitToAzureStart, { correlationId }, {});
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
 
   const containerName = getRandomGuid();
   const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
@@ -516,7 +516,7 @@ export async function submitJob(
     sendTelemetryEvent(
       EventType.SubmitToAzureEnd,
       {
-        correlationId,
+        associationId,
         reason: "undefined number of shots",
         flowStatus: UserFlowStatus.Aborted,
       },
@@ -530,7 +530,7 @@ export async function submitJob(
   const sasResponse = await azureRequest(
     quantumUris.sasUri(),
     token,
-    correlationId,
+    associationId,
     "POST",
     body,
   );
@@ -555,7 +555,7 @@ export async function submitJob(
     useProxy ? quantumUris.storageProxy() : undefined,
     undefined,
     undefined,
-    correlationId,
+    associationId,
   );
 
   // Write the input data
@@ -570,7 +570,7 @@ export async function submitJob(
       ["Content-Type", "text/plain"],
     ],
     qirFile,
-    correlationId,
+    associationId,
   );
 
   // PUT the job data
@@ -596,7 +596,7 @@ export async function submitJob(
   await azureRequest(
     putJobUri,
     token,
-    correlationId,
+    associationId,
     "PUT",
     JSON.stringify(payload),
   );
@@ -605,7 +605,7 @@ export async function submitJob(
   sendTelemetryEvent(
     EventType.SubmitToAzureEnd,
     {
-      correlationId,
+      associationId,
       reason: "job submitted",
       flowStatus: UserFlowStatus.Succeeded,
     },
