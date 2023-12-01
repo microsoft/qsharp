@@ -7,7 +7,7 @@ use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
 use qsc::{self};
 use qsc_project::{EntryType, Manifest, ManifestDescriptor};
-use qsls::{protocol::DiagnosticUpdate, JSFileEntry};
+use qsls::JSFileEntry;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -187,36 +187,25 @@ impl LanguageService {
 
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
-            .unwrap_or_else(|| {
-                panic!(
-                    "expected a valid JS function (diagnostics_callback), received {:?}",
-                    diagnostics_callback.js_typeof()
-                )
-            })
+            .expect("expected a valid JS function")
             .clone();
-
-        let diagnostics_receiver = move |update: DiagnosticUpdate| {
-            let diags = update
-                .errors
-                .iter()
-                .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
-                .collect::<Vec<_>>();
-            let res: js_sys::Promise = diagnostics_callback
-                .call3(
-                    &JsValue::NULL,
-                    &update.uri.into(),
-                    &update.version.into(),
-                    &serde_wasm_bindgen::to_value(&diags)
-                        .expect("conversion to VSDiagnostic should succeed"),
-                )
-                .expect("callback should succeed")
-                .into();
-            let res: JsFuture = res.into();
-            Box::pin(map_js_promise(res, |_| ())) as Pin<Box<dyn Future<Output = _> + 'static>>
-        };
-
         let inner = qsls::LanguageService::new(
-            diagnostics_receiver,
+            move |update| {
+                let diags = update
+                    .errors
+                    .iter()
+                    .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
+                    .collect::<Vec<_>>();
+                let _ = diagnostics_callback
+                    .call3(
+                        &JsValue::NULL,
+                        &update.uri.into(),
+                        &update.version.into(),
+                        &serde_wasm_bindgen::to_value(&diags)
+                            .expect("conversion to VSDiagnostic should succeed"),
+                    )
+                    .expect("callback should succeed");
+            },
             read_file,
             list_directory,
             get_manifest,
@@ -225,7 +214,7 @@ impl LanguageService {
         LanguageService(inner)
     }
 
-    pub async fn update_configuration(&mut self, config: IWorkspaceConfiguration) {
+    pub fn update_configuration(&mut self, config: IWorkspaceConfiguration) {
         let config: WorkspaceConfiguration = config.into();
         self.0
             .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
@@ -240,37 +229,33 @@ impl LanguageService {
                     _ => panic!("invalid package type"),
                 }),
             })
-            .await
     }
 
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         self.0.update_document(uri, version, text).await;
     }
 
-    pub async fn close_document(&mut self, uri: &str) {
-        self.0.close_document(uri).await;
+    pub fn close_document(&mut self, uri: &str) {
+        self.0.close_document(uri);
     }
 
-    pub async fn update_notebook_document(&mut self, notebook_uri: &str, cells: Vec<ICell>) {
+    pub fn update_notebook_document(&mut self, notebook_uri: &str, cells: Vec<ICell>) {
         let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
-        self.0
-            .update_notebook_document(
-                notebook_uri,
-                cells
-                    .iter()
-                    .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref())),
-            )
-            .await;
+        self.0.update_notebook_document(
+            notebook_uri,
+            cells
+                .iter()
+                .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref())),
+        );
     }
 
-    pub async fn close_notebook_document(&mut self, notebook_uri: &str, cell_uris: Vec<JsString>) {
+    pub fn close_notebook_document(&mut self, notebook_uri: &str, cell_uris: Vec<JsString>) {
         let cell_uris = cell_uris
             .iter()
             .map(|s| s.as_string().expect("expected string"))
             .collect::<Vec<_>>();
         self.0
-            .close_notebook_document(notebook_uri, cell_uris.iter().map(|s| s.as_str()))
-            .await;
+            .close_notebook_document(notebook_uri, cell_uris.iter().map(|s| s.as_str()));
     }
 
     pub fn get_completions(&self, uri: &str, offset: u32) -> ICompletionList {
