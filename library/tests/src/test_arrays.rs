@@ -573,6 +573,30 @@ fn check_padded() {
 }
 
 #[test]
+fn check_rotated() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Rotated(0, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(10), Value::Int(11), Value::Int(12)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Rotated(1, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(12), Value::Int(10), Value::Int(11)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Rotated(-1, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(11), Value::Int(12), Value::Int(10)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Rotated(500, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(11), Value::Int(12), Value::Int(10)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Rotated(-500, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(12), Value::Int(10), Value::Int(11)].into()),
+    );
+}
+
+#[test]
 fn check_partitioned() {
     test_expression(
         "Microsoft.Quantum.Arrays.Partitioned([2, 1], [2, 3, 5, 7])",
