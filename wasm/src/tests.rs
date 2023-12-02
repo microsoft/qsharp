@@ -27,7 +27,7 @@ fn test_missing_type() {
 }
 
 #[test]
-fn test_compile() {
+fn test_codegen() {
     let code = "namespace test { @EntryPoint() operation Foo(): Result {
     use q = Qubit();
     H(q);
@@ -35,6 +35,19 @@ fn test_compile() {
     }}";
     let result = get_qir(code);
     assert!(result.is_ok());
+}
+
+#[test]
+fn test_codegen_runtime_error() {
+    let code = "namespace test { @EntryPoint() operation Foo(): Result {
+    use q = Qubit();
+    H(q);
+    let _ = 1 / 0;
+    M(q)
+    }}";
+    let result = get_qir(code);
+    assert!(result.is_err());
+    expect!["division by zero"].assert_eq(&result.expect_err("codegen should fail"))
 }
 
 #[test]

@@ -8,10 +8,112 @@ use std::sync::Arc;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::index_map::IndexMap;
+use qsc_eval::{
+    debug::{map_hir_package_to_fir, Frame},
+    eval_expr,
+    output::GenericReceiver,
+    val::GlobalId,
+    Env, Error, Global, NodeLookup, State,
+};
+use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use qsc_hir::hir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
-use crate::qir_base::generate_qir;
+use super::BaseProfSim;
+
+struct Lookup<'a> {
+    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
+}
+
+impl<'a> Lookup<'a> {
+    fn get_package(&self, package: PackageId) -> &qsc_fir::fir::Package {
+        self.fir_store
+            .get(package)
+            .expect("Package should be in FIR store")
+    }
+}
+
+impl<'a> NodeLookup for Lookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
+        get_global(self.fir_store, id)
+    }
+    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
+        self.get_package(package)
+            .blocks
+            .get(id)
+            .expect("BlockId should have been lowered")
+    }
+    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr {
+        self.get_package(package)
+            .exprs
+            .get(id)
+            .expect("ExprId should have been lowered")
+    }
+    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat {
+        self.get_package(package)
+            .pats
+            .get(id)
+            .expect("PatId should have been lowered")
+    }
+    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt {
+        self.get_package(package)
+            .stmts
+            .get(id)
+            .expect("StmtId should have been lowered")
+    }
+}
+
+pub(super) fn get_global(
+    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
+    id: GlobalId,
+) -> Option<Global> {
+    fir_store
+        .get(id.package)
+        .and_then(|package| match &package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
+}
+
+fn generate_qir(
+    store: &PackageStore,
+    package: hir::PackageId,
+) -> std::result::Result<String, (Error, Vec<Frame>)> {
+    let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
+    let mut fir_store = IndexMap::new();
+    let package = map_hir_package_to_fir(package);
+    let mut sim = BaseProfSim::default();
+
+    for (id, unit) in store.iter() {
+        fir_store.insert(
+            map_hir_package_to_fir(id),
+            fir_lowerer.lower_package(&unit.package),
+        );
+    }
+
+    let unit = fir_store.get(package).expect("store should have package");
+    let entry_expr = unit.entry.expect("package should have entry");
+
+    let mut stdout = std::io::sink();
+    let mut out = GenericReceiver::new(&mut stdout);
+    let result = eval_expr(
+        &mut State::new(package),
+        entry_expr,
+        &Lookup {
+            fir_store: &fir_store,
+        },
+        &mut Env::with_empty_scope(),
+        &mut sim,
+        &mut out,
+    );
+    match result {
+        Ok(val) => Ok(sim.finish(&val)),
+        Err((err, stack)) => Err((err, stack)),
+    }
+}
 
 fn check(program: &str, expr: Option<&str>, expect: &Expect) {
     let mut core = compile::core();

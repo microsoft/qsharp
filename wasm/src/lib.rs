@@ -14,7 +14,6 @@ use qsc::{
     },
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
-use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -44,30 +43,22 @@ pub fn git_hash() -> String {
 
 #[wasm_bindgen]
 pub fn get_qir(code: &str) -> Result<String, String> {
-    let core = compile::core();
-    let mut store = PackageStore::new(core);
-    let std = compile::std(&store, TargetProfile::Base);
-    let std = store.insert(std);
     let sources = SourceMap::new([("test".into(), code.into())], None);
 
-    let (unit, errors) = qsc::compile::compile(
-        &store,
-        &[std],
-        sources,
-        PackageType::Exe,
-        TargetProfile::Base,
-    );
-
-    // Ensure it compiles before trying to add it to the store.
-    if !errors.is_empty() {
+    let Ok(mut interpreter) =
+        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Base)
+    else {
         // This should never happen, as the program should be checked for errors before trying to
         // generate code for it. But just in case, simply report the failure.
         return Err("Failed to generate QIR".to_string());
-    }
+    };
 
-    let package = store.insert(unit);
-
-    generate_qir(&store, package).map_err(|e| e.0.to_string())
+    interpreter.qirgen_entry().map_err(|errors| {
+        let stateful::Error::Eval(e) = &errors[0] else {
+            unreachable!("QIR generation should only fail with an Eval error");
+        };
+        e.to_string()
+    })
 }
 
 #[wasm_bindgen]

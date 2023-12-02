@@ -320,7 +320,7 @@ impl Interpreter {
     pub fn run(
         &mut self,
         receiver: &mut impl Receiver,
-        expr: &str,
+        expr: Option<&str>,
         shots: u32,
     ) -> Result<Vec<InterpretResult>, Vec<Error>> {
         self.run_with_sim(&mut SparseSim::new(), receiver, expr, shots)
@@ -343,7 +343,25 @@ impl Interpreter {
         let mut out = GenericReceiver::new(&mut stdout);
 
         let val = self
-            .run_with_sim(&mut sim, &mut out, expr, 1)?
+            .run_with_sim(&mut sim, &mut out, Some(expr), 1)?
+            .into_iter()
+            .last()
+            .expect("execution should have at least one result")?;
+
+        Ok(sim.finish(&val))
+    }
+
+    pub fn qirgen_entry(&mut self) -> Result<String, Vec<Error>> {
+        if self.target != TargetProfile::Base {
+            return Err(vec![Error::TargetMismatch]);
+        }
+
+        let mut sim = BaseProfSim::new();
+        let mut stdout = std::io::sink();
+        let mut out = GenericReceiver::new(&mut stdout);
+
+        let val = self
+            .run_with_sim(&mut sim, &mut out, None, 1)?
             .into_iter()
             .last()
             .expect("execution should have at least one result")?;
@@ -357,10 +375,12 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-        expr: &str,
+        expr: Option<&str>,
         shots: u32,
     ) -> Result<Vec<InterpretResult>, Vec<Error>> {
-        let stmt_id = self.compile_expr_to_stmt(expr)?;
+        let stmt_id = expr
+            .map(|expr| self.compile_expr_to_stmt(expr))
+            .transpose()?;
 
         Ok(self.run_internal(sim, receiver, stmt_id, shots))
     }
@@ -369,33 +389,51 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-        stmt_id: StmtId,
+        stmt_id: Option<StmtId>,
         shots: u32,
     ) -> Vec<InterpretResult> {
         let globals = Lookup {
             fir_store: &self.fir_store,
         };
 
+        let entry_expr = if stmt_id.is_none() {
+            match self.get_entry_expr() {
+                Ok(expr) => Some(expr),
+                Err(e) => return vec![Err(e)],
+            }
+        } else {
+            None
+        };
+
         let mut results: Vec<InterpretResult> = Vec::new();
         for i in 0..shots {
-            results.push(
-                match eval_stmt(
+            let res = match stmt_id {
+                Some(stmt_id) => eval_stmt(
                     stmt_id,
                     &globals,
                     &mut Env::with_empty_scope(),
                     sim,
                     self.package,
                     receiver,
-                ) {
-                    Ok(value) => Ok(value),
-                    Err((error, call_stack)) => Err(eval_error(
-                        self.compiler.package_store(),
-                        &self.fir_store,
-                        call_stack,
-                        error,
-                    )),
-                },
-            );
+                ),
+                None => eval_expr(
+                    &mut State::new(self.source_package),
+                    entry_expr.expect("entry expression should be verified above"),
+                    &globals,
+                    &mut Env::with_empty_scope(),
+                    sim,
+                    receiver,
+                ),
+            };
+            results.push(match res {
+                Ok(value) => Ok(value),
+                Err((error, call_stack)) => Err(eval_error(
+                    self.compiler.package_store(),
+                    &self.fir_store,
+                    call_stack,
+                    error,
+                )),
+            });
 
             if i != 0 {
                 // If running more than one shot, re-initialize the simulator to start the next shot

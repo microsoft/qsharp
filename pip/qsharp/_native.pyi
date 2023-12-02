@@ -27,14 +27,32 @@ class TargetProfile:
     This option maps to the Base Profile as defined by the QIR specification.
     """
 
+class PackageType:
+    """
+    A Q# package type.
+    """
+
+    Exe: ClassVar[Any]
+    """
+    The package contains a Q# executable program with a single defined entry point.
+    """
+
+    Lib: ClassVar[Any]
+    """
+    The package contains a Q# library.
+    """
+
 class Interpreter:
     """A Q# interpreter."""
 
-    def __init__(self, target_profile: TargetProfile) -> None:
+    def __init__(self, target_profile: TargetProfile, package_type: PackageType, nostdlib: bool, sources: [Tuple[str, str]]) -> None:
         """
         Initializes the Q# interpreter.
 
         :param target_profile: The target profile to use for the interpreter.
+        :param package_type: The type of package to interpret.
+        :param nostdlib: If true, the standard library will not be included.
+        :param sources: A list of tuples of source file names and source code.
         """
         ...
     def interpret(self, input: str, output_fn: Callable[[Output], None]) -> Any:
@@ -50,15 +68,15 @@ class Interpreter:
         """
         ...
     def run(
-        self, entry_expr: str, shots: int, output_fn: Callable[[Output], None]
+        self, shots: int, output_fn: Callable[[Output], None], entry_expr: str | None
     ) -> Any:
         """
         Runs the given Q# expressin for the given number of shots.
         Each shot uses an independent instance of the simulator.
 
-        :param entry_expr: The entry expression.
         :param shots: The number of shots to run.
         :param output_fn: A callback function that will be called with each output.
+        :param entry_expr: The entry expression. If none is specified, the entry point will be used.
 
         :returns values: A list of results or runtime errors.
 

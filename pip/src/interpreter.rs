@@ -7,7 +7,6 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
     create_exception,
-    exceptions::PyException,
     prelude::*,
     pyclass::CompareOp,
     types::PyList,
@@ -20,7 +19,7 @@ use qsc::{
         stateful::{self},
         Value,
     },
-    PackageType, SourceMap,
+    SourceMap,
 };
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
@@ -28,6 +27,7 @@ use std::fmt::Write;
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<TargetProfile>()?;
+    m.add_class::<PackageType>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
@@ -55,6 +55,18 @@ pub(crate) enum TargetProfile {
     Base,
 }
 
+#[derive(Clone, Copy)]
+#[pyclass(unsendable)]
+/// A Q# package type.
+///
+/// A package type that determines how the provided source code will be compiled.
+pub(crate) enum PackageType {
+    /// The package is an executable that can be run directly via a single defined entry point.
+    Exe,
+    /// The package is a library that can be loaded and called from other Q# code.
+    Lib,
+}
+
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
     pub(crate) interpreter: stateful::Interpreter,
@@ -63,22 +75,38 @@ pub(crate) struct Interpreter {
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    // Pass by value is needed for compatiblity with the pyo3 API.
+    #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
-    pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
+    pub(crate) fn new(
+        _py: Python,
+        target: TargetProfile,
+        package_type: PackageType,
+        nostdlib: bool,
+        sources: Vec<(&str, &str)>,
+    ) -> PyResult<Self> {
         let target = match target {
             TargetProfile::Full => qsc::TargetProfile::Full,
             TargetProfile::Base => qsc::TargetProfile::Base,
         };
-        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
+        let package_type = match package_type {
+            PackageType::Exe => qsc::PackageType::Exe,
+            PackageType::Lib => qsc::PackageType::Lib,
+        };
+        match stateful::Interpreter::new(
+            !nostdlib,
+            SourceMap::new(
+                sources
+                    .iter()
+                    .map(|(name, contents)| (name.to_owned().into(), contents.to_owned().into())),
+                None,
+            ),
+            package_type,
+            target,
+        ) {
             Ok(interpreter) => Ok(Self { interpreter }),
-            Err(errors) => {
-                let mut message = String::new();
-                for error in errors {
-                    writeln!(message, "{error}").expect("string should be writable");
-                }
-                Err(PyException::new_err(message))
-            }
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
 
@@ -117,9 +145,9 @@ impl Interpreter {
     fn run(
         &mut self,
         py: Python,
-        entry_expr: &str,
         shots: u32,
         callback: Option<PyObject>,
+        entry_expr: Option<&str>,
     ) -> PyResult<Py<PyList>> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.run(&mut receiver, entry_expr, shots) {

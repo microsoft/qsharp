@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, TargetProfile, StateDump
+from ._native import Interpreter, TargetProfile, PackageType, StateDump
 
 _interpreter = None
 
@@ -15,7 +15,7 @@ def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
         with a specific target. See :py:class: `qsharp.TargetProfile`.
     """
     global _interpreter
-    _interpreter = Interpreter(target_profile)
+    _interpreter = Interpreter(target_profile, PackageType.Lib, False, [])
 
 
 def get_interpreter() -> Interpreter:
@@ -75,7 +75,7 @@ def run(entry_expr, shots):
     def callback(output):
         print(output)
 
-    return get_interpreter().run(entry_expr, shots, callback)
+    return get_interpreter().run(shots, callback, entry_expr)
 
 
 def compile(entry_expr):

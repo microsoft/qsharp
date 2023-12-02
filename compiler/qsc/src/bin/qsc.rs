@@ -8,12 +8,8 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
-use qsc_codegen::qir_base;
-use qsc_frontend::{
-    compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile},
-    error::WithSource,
-};
-use qsc_hir::hir::{Package, PackageId};
+use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile};
+use qsc_hir::hir::Package;
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
@@ -56,7 +52,6 @@ struct Cli {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
     Hir,
-    Qir,
 }
 
 fn main() -> miette::Result<ExitCode> {
@@ -65,11 +60,7 @@ fn main() -> miette::Result<ExitCode> {
     let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
 
-    let (package_type, target) = if cli.emit.contains(&Emit::Qir) {
-        (PackageType::Exe, TargetProfile::Base)
-    } else {
-        (PackageType::Lib, TargetProfile::Full)
-    };
+    let (package_type, target) = (PackageType::Lib, TargetProfile::Full);
 
     if !cli.nostdlib {
         dependencies.push(store.insert(qsc::compile::std(&store, target)));
@@ -102,11 +93,6 @@ fn main() -> miette::Result<ExitCode> {
     for emit in &cli.emit {
         match emit {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
-            Emit::Qir => {
-                if errors.is_empty() {
-                    emit_qir(out_dir, &store, package_id)?;
-                }
-            }
         }
     }
 
@@ -149,25 +135,4 @@ fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     fs::write(path, package.to_string())
         .into_diagnostic()
         .context("could not emit HIR")
-}
-
-fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Result<(), Report> {
-    let path = out_dir.join("qir.ll");
-    let result = qir_base::generate_qir(store, package_id);
-    match result {
-        Ok(qir) => {
-            info!(
-                "Writing qir output file to: {}",
-                path.to_str().unwrap_or_default()
-            );
-            fs::write(path, qir)
-                .into_diagnostic()
-                .context("could not emit QIR")?;
-            Ok(())
-        }
-        Err((error, _)) => {
-            let unit = store.get(package_id).expect("package should be in store");
-            Err(Report::new(WithSource::from_map(&unit.sources, error)))
-        }
-    }
 }

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qsharp._native import Interpreter, Result, Pauli, QSharpError, TargetProfile
+from qsharp._native import Interpreter, Result, Pauli, QSharpError, TargetProfile, PackageType
 import pytest
 
 
@@ -9,7 +9,7 @@ import pytest
 
 
 def test_output() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     def callback(output):
         nonlocal called
@@ -22,7 +22,7 @@ def test_output() -> None:
 
 
 def test_dump_output() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     def callback(output):
         nonlocal called
@@ -43,7 +43,7 @@ def test_dump_output() -> None:
     assert called
 
 def test_dump_machine() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     def callback(output):
         assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
@@ -67,7 +67,7 @@ def test_dump_machine() -> None:
     assert state_dict[1][1] == 0.0
 
 def test_error() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     with pytest.raises(QSharpError) as excinfo:
         e.interpret("a864")
@@ -75,7 +75,7 @@ def test_error() -> None:
 
 
 def test_multiple_errors() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     with pytest.raises(QSharpError) as excinfo:
         e.interpret("operation Foo() : Unit { Bar(); Baz(); }")
@@ -84,74 +84,74 @@ def test_multiple_errors() -> None:
 
 
 def test_multiple_statements() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("1; Zero")
     assert value == Result.Zero
 
 
 def test_value_int() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("5")
     assert value == 5
 
 
 def test_value_double() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("3.1")
     assert value == 3.1
 
 
 def test_value_bool() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("true")
     assert value == True
 
 
 def test_value_string() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret('"hello"')
     assert value == "hello"
 
 
 def test_value_result() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("One")
     assert value == Result.One
 
 
 def test_value_pauli() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("PauliX")
     assert value == Pauli.X
 
 
 def test_value_tuple() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret('(1, "hello", One)')
     assert value == (1, "hello", Result.One)
 
 
 def test_value_unit() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("()")
     assert value is None
 
 
 def test_value_array() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
     value = e.interpret("[1, 2, 3]")
     assert value == [1, 2, 3]
 
 
 def test_target_error() -> None:
-    e = Interpreter(TargetProfile.Base)
+    e = Interpreter(TargetProfile.Base, PackageType.Lib, False, [])
     with pytest.raises(QSharpError) as excinfo:
         e.interpret("operation Program() : Result { return Zero }")
     assert str(excinfo.value).startswith("Qsc.BaseProfCk.ResultLiteral") != -1
 
 
 def test_qirgen_compile_error() -> None:
-    e = Interpreter(TargetProfile.Base)
+    e = Interpreter(TargetProfile.Base, PackageType.Lib, False, [])
     e.interpret("operation Program() : Int { return 0 }")
     with pytest.raises(QSharpError) as excinfo:
         e.qir("Foo()")
@@ -159,7 +159,7 @@ def test_qirgen_compile_error() -> None:
 
 
 def test_error_spans_from_multiple_lines() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     # Qsc.Resolve.Ambiguous is chosen as a test case
     # because it contains multiple spans which can be from different lines
@@ -172,14 +172,14 @@ def test_error_spans_from_multiple_lines() -> None:
 
 
 def test_qirgen() -> None:
-    e = Interpreter(TargetProfile.Base)
+    e = Interpreter(TargetProfile.Base, PackageType.Lib, False, [])
     e.interpret("operation Program() : Result { use q = Qubit(); return M(q) }")
     qir = e.qir("Program()")
     assert isinstance(qir, str)
 
 
 def test_run_with_shots() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Full, PackageType.Lib, False, [])
 
     def callback(output):
         nonlocal called
@@ -190,7 +190,26 @@ def test_run_with_shots() -> None:
     e.interpret('operation Foo() : Unit { Message("Hello, world!"); }', callback)
     assert called == 0
 
-    value = e.run("Foo()", 5, callback)
+    value = e.run(5, callback, "Foo()")
     assert called == 5
 
     assert value == [None, None, None, None, None]
+
+def test_run_with_shots_entry_point() -> None:
+    e = Interpreter(TargetProfile.Full, PackageType.Exe, False, [("Foo.qs", 'namespace Test{ @EntryPoint() operation Foo() : Unit { Message("Hello, world!"); } }')])
+
+    def callback(output):
+        nonlocal called
+        called += 1
+        assert output.__repr__() == "Hello, world!"
+
+    called = 0
+    value = e.run(5, callback)
+    assert called == 5
+
+    assert value == [None, None, None, None, None]
+
+def test_compile_error_in_sources() -> None:
+    with pytest.raises(QSharpError) as excinfo:
+        Interpreter(TargetProfile.Full, PackageType.Exe, False, [("Foo.qs", 'namespace Test{ operation Foo() : Unit { Message("Hello, world!"); } }')])
+    assert str(excinfo.value).startswith("Qsc.EntryPoint.NotFound") != -1
