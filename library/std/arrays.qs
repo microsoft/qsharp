@@ -986,6 +986,54 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Rotates an array left or right by a specific step size.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of the array elements.
+    ///
+    /// # Input
+    /// ## stepCount
+    /// The amount of positions by which the array elements will be shifted.
+    /// If this is positive, `array` is rotated to the right.
+    /// If this is negative, `array` is rotated to the left.
+    /// ## array
+    /// Array to be padded.
+    ///
+    /// # Output
+    /// An array `output` that is the `array` rotated to the right or left
+    /// by the specified step size.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let array = [10, 11, 12];
+    /// // The following line returns [11, 12, 10].
+    /// let output = Rotated(2, array);
+    /// // The following line returns [12, 10, 11].
+    /// let output = Rotated(-2, array);
+    /// ```
+    function Rotated<'T> (stepCount : Int, array : 'T[]) : 'T[] {
+        let arrayLength = Length(array);
+        if arrayLength <= 1 {
+            return array;
+        }
+
+        // normalize rotation count to be within the bounds of the array length
+        let normalizedRotation = stepCount % arrayLength;
+        let effectiveRotation = normalizedRotation >= 0 ? arrayLength - normalizedRotation | -normalizedRotation;
+
+        // no rotation needed
+        if effectiveRotation == 0 {
+            return array;
+        }
+
+        let leftPart = array[...effectiveRotation - 1];
+        let rightPart = array[effectiveRotation..arrayLength - 1];
+
+        rightPart + leftPart
+    }
+
+    /// # Summary
     /// Get an array of integers in a given interval.
     ///
     /// # Input
