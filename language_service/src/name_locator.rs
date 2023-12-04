@@ -127,7 +127,7 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.context.current_namespace = Rc::from(&*namespace.name.name);
+            self.context.current_namespace = namespace.name.name.clone();
             walk_namespace(self, namespace);
         }
     }
@@ -135,7 +135,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     // Handles callable, UDT, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
         if span_contains(item.span, self.offset) {
-            let context = replace(&mut self.context.current_item_doc, Rc::from(&*item.doc));
+            let context = replace(&mut self.context.current_item_doc, item.doc.clone());
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if span_touches(decl.name.span, self.offset) {
