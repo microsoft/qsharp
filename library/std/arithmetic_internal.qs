@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Arithmetic {
+namespace Microsoft.Quantum.Unstable.Arithmetic {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Math;
