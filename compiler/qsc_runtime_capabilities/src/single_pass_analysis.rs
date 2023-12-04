@@ -515,7 +515,7 @@ impl ComputeProps {
         compute_props: &ComputeProps,
         source_of_compute_props: &QuantumSource,
     ) {
-        if compute_props.quantum_sources.is_empty() {
+        if !compute_props.quantum_sources.is_empty() {
             self.quantum_sources.push(source_of_compute_props.clone());
         }
     }
@@ -1852,7 +1852,7 @@ impl SinglePassAnalyzer {
 
     fn get_callable_implementation_block_id(callable: &CallableDecl) -> BlockId {
         match callable.body.body {
-            SpecBody::Impl(pat_id, block_id) => block_id,
+            SpecBody::Impl(_, block_id) => block_id,
             _ => panic!("Is not implementation"),
         }
     }
