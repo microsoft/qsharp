@@ -114,7 +114,7 @@ export class QscDebugSession extends LoggingDebugSession {
       );
       return;
     }
-    sendTelemetryEvent(EventType.InitializeRuntimeStart, { correlationId }, {});
+    sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
     const targetProfile = getTarget();
