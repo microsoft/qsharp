@@ -55,17 +55,6 @@ impl DirEntry for StdEntry {
         Ok(self.file_type()?.into())
     }
 
-    fn entry_extension(&self) -> String {
-        self.path()
-            .extension()
-            .map(|x| x.to_string_lossy().to_string())
-            .unwrap_or_default()
-    }
-
-    fn entry_name(&self) -> String {
-        self.file_name().to_string_lossy().to_string()
-    }
-
     fn path(&self) -> PathBuf {
         self.path()
     }

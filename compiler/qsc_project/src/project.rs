@@ -28,9 +28,20 @@ pub enum EntryType {
 pub trait DirEntry {
     type Error: Send + Sync;
     fn entry_type(&self) -> Result<EntryType, Self::Error>;
-    fn entry_extension(&self) -> String;
-    fn entry_name(&self) -> String;
     fn path(&self) -> PathBuf;
+    fn entry_extension(&self) -> String {
+        self.path()
+            .extension()
+            .map(|x| x.to_string_lossy().to_string())
+            .unwrap_or_default()
+    }
+    fn entry_name(&self) -> String {
+        self.path()
+            .file_name()
+            .expect("canonicalized symlink cannot end in relative path")
+            .to_string_lossy()
+            .to_string()
+    }
 }
 
 /// This trait is used to abstract filesystem logic with regards to Q# projects.
