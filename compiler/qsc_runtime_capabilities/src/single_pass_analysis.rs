@@ -260,18 +260,18 @@ impl Display for ElmntComputeProps {
 }
 
 impl ElmntComputeProps {
-    pub fn aggregate(&mut self, elmt_compute_props: &ElmntComputeProps) {
+    pub fn aggregate_rt_caps(&mut self, elmt_compute_props: &ElmntComputeProps) {
         match self {
             ElmntComputeProps::AppDependent(self_apps_tbl) => {
                 match elmt_compute_props {
                     ElmntComputeProps::AppDependent(other_apps_tbl) => {
                         for (idx, app) in self_apps_tbl.apps.iter_mut().enumerate() {
-                            app.aggregate_all(&other_apps_tbl.apps[idx]);
+                            app.aggregate_rt_caps(&other_apps_tbl.apps[idx]);
                         }
                     }
                     ElmntComputeProps::AppIndependent(other_compute_props) => {
                         for app in self_apps_tbl.apps.iter_mut() {
-                            app.aggregate_all(other_compute_props);
+                            app.aggregate_rt_caps(other_compute_props);
                         }
                     }
                     ElmntComputeProps::Unsupported => {} // Do nothing.
@@ -279,9 +279,49 @@ impl ElmntComputeProps {
             }
             ElmntComputeProps::AppIndependent(self_compute_props) => {
                 match elmt_compute_props {
-                    ElmntComputeProps::AppDependent(other_apps_tbl) => panic!("Cannot aggregate application dependent compute properties into application independent compute properties"),
+                    ElmntComputeProps::AppDependent(_) => panic!("Cannot aggregate application dependent compute properties into application independent compute properties"),
                     ElmntComputeProps::AppIndependent(other_compute_props) => {
-                        self_compute_props.aggregate_all(other_compute_props);
+                        self_compute_props.aggregate_rt_caps(other_compute_props);
+                    }
+                    ElmntComputeProps::Unsupported => {} // Do nothing.
+                }
+            }
+            ElmntComputeProps::Unsupported => {} // Do nothing.
+        }
+    }
+
+    pub fn aggregate_quantum_sources(
+        &mut self,
+        elmt_compute_props: &ElmntComputeProps,
+        source_of_elmnt_compute_props: &QuantumSource,
+    ) {
+        match self {
+            ElmntComputeProps::AppDependent(self_apps_tbl) => {
+                match elmt_compute_props {
+                    ElmntComputeProps::AppDependent(other_apps_tbl) => {
+                        for (idx, app) in self_apps_tbl.apps.iter_mut().enumerate() {
+                            app.aggregate_quantum_source(
+                                &other_apps_tbl.apps[idx],
+                                source_of_elmnt_compute_props,
+                            );
+                        }
+                    }
+                    ElmntComputeProps::AppIndependent(other_compute_props) => {
+                        for app in self_apps_tbl.apps.iter_mut() {
+                            app.aggregate_quantum_source(
+                                other_compute_props,
+                                source_of_elmnt_compute_props,
+                            );
+                        }
+                    }
+                    ElmntComputeProps::Unsupported => {} // Do nothing.
+                }
+            }
+            ElmntComputeProps::AppIndependent(self_compute_props) => {
+                match elmt_compute_props {
+                    ElmntComputeProps::AppDependent(_) => panic!("Cannot aggregate application dependent compute properties into application independent compute properties"),
+                    ElmntComputeProps::AppIndependent(other_compute_props) => {
+                        self_compute_props.aggregate_quantum_source(other_compute_props, source_of_elmnt_compute_props);
                     }
                     ElmntComputeProps::Unsupported => {} // Do nothing.
                 }
@@ -470,15 +510,14 @@ impl Display for ComputeProps {
 }
 
 impl ComputeProps {
-    pub fn aggregate_all(&mut self, compute_props: &ComputeProps) {
-        self.aggregate_rt_caps(compute_props);
-        self.aggregate_quantum_sources(compute_props);
-    }
-
-    pub fn aggregate_quantum_sources(&mut self, compute_props: &ComputeProps) {
-        let mut quantum_sources_to_aggregate = compute_props.quantum_sources.clone();
-        self.quantum_sources
-            .append(&mut quantum_sources_to_aggregate);
+    pub fn aggregate_quantum_source(
+        &mut self,
+        compute_props: &ComputeProps,
+        source_of_compute_props: &QuantumSource,
+    ) {
+        if compute_props.quantum_sources.is_empty() {
+            self.quantum_sources.push(source_of_compute_props.clone());
+        }
     }
 
     pub fn aggregate_rt_caps(&mut self, compute_props: &ComputeProps) {
@@ -511,6 +550,7 @@ impl ComputeProps {
 }
 
 #[derive(Clone, Debug)]
+// TODO (cesarzc): This could be just a boolean that maps Static to false and Dynamic to true.
 pub enum ComputeKind {
     Static,
     Dynamic,
@@ -524,7 +564,7 @@ pub enum QuantumSource {
     //Global(PackageId, LocalItemId),
     //BlockId,
     Stmt(StmtId),
-    ExprId,
+    Expr(ExprId),
 }
 
 #[derive(Clone, Debug)]
@@ -1031,6 +1071,15 @@ impl SinglePassAnalyzer {
             .get_expr(package_id, expr_id)
             .expect("Expression should exist");
         match &expr.kind {
+            ExprKind::BinOp(_, expr_a_id, expr_b_id) => Self::analyze_expr_bin_op(
+                package_id,
+                expr_id,
+                *expr_a_id,
+                *expr_b_id,
+                nodes,
+                package_store,
+                store_scratch,
+            ),
             ExprKind::Call(callee_expr_id, input_expr_id) => Self::analyze_expr_call(
                 package_id,
                 expr_id,
@@ -1054,6 +1103,41 @@ impl SinglePassAnalyzer {
             }
             _ => store_scratch.insert_expr(package_id, expr_id, ElmntComputeProps::Unsupported),
         };
+    }
+
+    fn analyze_expr_bin_op(
+        package_id: PackageId,
+        expr_id: ExprId,
+        expr_a_id: ExprId,
+        expr_b_id: ExprId,
+        nodes: &NodeMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        Self::analyze_expr(package_id, expr_a_id, nodes, package_store, store_scratch);
+        Self::analyze_expr(package_id, expr_b_id, nodes, package_store, store_scratch);
+        let expr_a_compute_props = store_scratch
+            .get_expr(&package_id, &expr_a_id)
+            .expect("Expression A compute properties should exist");
+        let expr_b_compute_props = store_scratch
+            .get_expr(&package_id, &expr_b_id)
+            .expect("Expression B compute properties should exist");
+        let mut compute_props: ElmntComputeProps =
+            if let ElmntComputeProps::AppDependent(apps_tbl) = expr_a_compute_props {
+                ElmntComputeProps::AppDependent(AppsTbl::default(apps_tbl.input_param_count))
+            } else if let ElmntComputeProps::AppDependent(apps_tbl) = expr_b_compute_props {
+                ElmntComputeProps::AppDependent(AppsTbl::default(apps_tbl.input_param_count))
+            } else {
+                ElmntComputeProps::AppIndependent(ComputeProps::default_static())
+            };
+
+        compute_props.aggregate_rt_caps(expr_a_compute_props);
+        let expr_a_as_quantum_source = QuantumSource::Expr(expr_a_id);
+        compute_props.aggregate_quantum_sources(expr_a_compute_props, &expr_a_as_quantum_source);
+        compute_props.aggregate_rt_caps(expr_b_compute_props);
+        let expr_b_as_quantum_source = QuantumSource::Expr(expr_b_id);
+        compute_props.aggregate_quantum_sources(expr_b_compute_props, &expr_b_as_quantum_source);
+        store_scratch.insert_expr(package_id, expr_id, compute_props);
     }
 
     fn analyze_expr_call(
@@ -1155,7 +1239,7 @@ impl SinglePassAnalyzer {
             let expr_compute_props = store_scratch
                 .get_expr(&package_id, sub_expr_id)
                 .expect("Expression compute properties should exist");
-            aggregated_compute_props.aggregate(expr_compute_props);
+            aggregated_compute_props.aggregate_rt_caps(expr_compute_props);
         }
 
         store_scratch.insert_expr(package_id, expr_id, aggregated_compute_props);
