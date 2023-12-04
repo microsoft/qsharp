@@ -24,6 +24,18 @@ where
     log::trace!("asynchronous callback from wasm returned {res:?}");
     func(res)
 }
+
+fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
+    val.dyn_ref::<js_sys::Function>()
+        .unwrap_or_else(|| {
+            panic!(
+                "expected a valid JS function ({help_text_panic}), received {:?}",
+                val.js_typeof()
+            )
+        })
+        .clone()
+}
+
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
@@ -33,15 +45,11 @@ impl LanguageService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> Self {
-        let read_file = read_file
-            .dyn_ref::<js_sys::Function>()
-            .unwrap_or_else(|| {
-                panic!(
-                    "expected a valid JS function (read_file), received {:?}",
-                    read_file.js_typeof()
-                )
-            })
-            .clone();
+        // first, map functions to js functions
+        let read_file = to_js_function(read_file.obj, "read_file");
+        let list_directory = to_js_function(list_directory.obj, "list_directory");
+        let get_manifest = to_js_function(get_manifest.obj, "get_manifest");
+        let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
         let read_file = move |path_buf: PathBuf| {
             let path_buf_string = &path_buf.to_string_lossy().to_string();
@@ -62,16 +70,6 @@ impl LanguageService {
             };
             Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
-
-        let list_directory = list_directory
-            .dyn_ref::<js_sys::Function>()
-            .unwrap_or_else(|| {
-                panic!(
-                    "expected a valid JS function (list_directory), received {:?}",
-                    list_directory.js_typeof()
-                )
-            })
-            .clone();
 
         let list_directory = move |path_buf: PathBuf| {
             let path_buf_string = &path_buf.to_string_lossy().to_string();
@@ -115,16 +113,6 @@ impl LanguageService {
             };
             Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
-
-        let get_manifest = get_manifest
-            .dyn_ref::<js_sys::Function>()
-            .unwrap_or_else(|| {
-                panic!(
-                    "expected a valid JS function (get_manifest), received {:?}",
-                    get_manifest.js_typeof()
-                )
-            })
-            .clone();
 
         let get_manifest = move |uri: String| {
             let path = JsValue::from_str(&uri);
