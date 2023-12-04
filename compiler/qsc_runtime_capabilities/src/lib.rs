@@ -21,7 +21,7 @@ fn set_indentation<'a, 'b>(
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum RuntimeCapability {
     ConditionalForwardBranching,
     // QubitReuse, // CONSIDER (cesarzc): Possibly not needed.

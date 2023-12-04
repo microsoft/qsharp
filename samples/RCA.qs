@@ -6,6 +6,7 @@ namespace QuantumHelloWorld {
         use myQubit = Qubit();
         H(myQubit);
         let result = M(myQubit);
+        let dynInt = result == Zero ? 0 | 1;
         Reset(myQubit);
         let a = FFoo(11111);
         let fiveTwos = 22222;

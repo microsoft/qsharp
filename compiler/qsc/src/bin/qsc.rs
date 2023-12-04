@@ -19,7 +19,9 @@ use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use qsc_runtime_capabilities::{
     rtcapsck::check_target_capabilities_compatibility, single_pass_analysis::SinglePassAnalyzer,
+    RuntimeCapability,
 };
+use rustc_hash::FxHashSet;
 use std::{
     concat,
     fs::{self, File},
@@ -110,11 +112,15 @@ fn main() -> miette::Result<ExitCode> {
         let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
         let fir_store = fir_lowerer.lower_store(&store);
         save_fir_store_to_files(&fir_store); // DBG (cesarzc): For debugging purposes only.
-                                             //let store_compute_props = SinglePassAnalyzer::run(&fir_store);
-                                             //store_compute_props.persist();
         let fir_package_id = map_hir_package_to_fir(package_id);
-        let target_caps_errors =
-            check_target_capabilities_compatibility(&fir_store, fir_package_id);
+        let mut target_capabilities = FxHashSet::<RuntimeCapability>::default();
+        target_capabilities.insert(RuntimeCapability::ConditionalForwardBranching);
+        target_capabilities.insert(RuntimeCapability::IntegerComputations);
+        let target_caps_errors = check_target_capabilities_compatibility(
+            &fir_store,
+            fir_package_id,
+            &target_capabilities,
+        );
 
         for error in target_caps_errors {
             let mapped_error = qsc_passes::Error::RtCapsCk(error);

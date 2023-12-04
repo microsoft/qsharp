@@ -40,6 +40,10 @@ impl StoreComputeProps {
         }
     }
 
+    pub fn get_package(&self, package_id: PackageId) -> Option<&PackageComputeProps> {
+        self.0.get(package_id)
+    }
+
     pub fn has_item(&self, package_id: PackageId, item_id: LocalItemId) -> bool {
         if let Some(package) = self.0.get(package_id) {
             return package.items.contains_key(item_id);
@@ -301,6 +305,10 @@ impl AppIdx {
         }
 
         Self(app_idx)
+    }
+
+    pub fn all_static_params_idx() -> Self {
+        Self(0)
     }
 
     pub fn represents_all_static_params(&self) -> bool {
@@ -1690,7 +1698,7 @@ impl Foundational {
             Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
                 FxHashSet::from_iter([RuntimeCapability::IntegerComputations])
             }
-            Prim::Result => FxHashSet::from_iter([RuntimeCapability::ConditionalForwardBranching]),
+            Prim::Result => FxHashSet::from_iter([]),
             Prim::String => FxHashSet::from_iter([RuntimeCapability::HigherLevelConstructs]),
         }
     }
