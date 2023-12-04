@@ -200,7 +200,7 @@ impl<'a> LanguageService<'a> {
         let uri: Arc<str> = if let Some(manifest) = manifest {
             Arc::from(format!(
                 "{}/qsharp.json",
-                manifest.manifest_dir.to_string_lossy().to_string()
+                manifest.manifest_dir.to_string_lossy()
             ))
         } else {
             uri.into()
@@ -235,7 +235,6 @@ impl<'a> LanguageService<'a> {
         if let Some(update) = self.pending_update.take() {
             self.update_document(&update.uri, update.version, &update.text)
                 .await;
-        } else {
         }
         self.currently_updating = false;
     }
@@ -400,7 +399,7 @@ impl<'a> LanguageService<'a> {
             .open_documents
             .get(uri)
             .as_ref()
-            .map(|ref x| x.compilation.clone())
+            .map(|x| x.compilation.clone())
         else {
             panic!("{op_name} (called on {uri}) should not be called for a document that has not been opened",)
         };
