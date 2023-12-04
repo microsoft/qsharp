@@ -6,6 +6,7 @@ use indenter::{indented, Indented};
 use std::fmt::{self, Display, Formatter, Write};
 
 pub mod single_pass_analysis;
+pub mod target_caps_check;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,

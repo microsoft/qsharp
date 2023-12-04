@@ -11,6 +11,8 @@ version.workspace = true
 
 [dependencies]
 indenter = { workspace = true }
+miette = { workspace = true }
 qsc_data_structures = {path = "../qsc_data_structures" }
 qsc_fir = { path = "../qsc_fir" }
 rustc-hash = { workspace = true }
+thiserror = { workspace = true }

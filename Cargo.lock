@@ -847,6 +847,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_hir",
  "qsc_parse",
+ "qsc_runtime_capabilities",
  "rustc-hash",
  "thiserror",
 ]
@@ -907,9 +908,11 @@ name = "qsc_runtime_capabilities"
 version = "0.0.0"
 dependencies = [
  "indenter",
+ "miette",
  "qsc_data_structures",
  "qsc_fir",
  "rustc-hash",
+ "thiserror",
 ]
 
 [[package]]
