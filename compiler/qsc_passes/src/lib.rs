@@ -43,6 +43,7 @@ pub enum Error {
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
+    RtCapsCk(qsc_runtime_capabilities::rtcapsck::Error),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

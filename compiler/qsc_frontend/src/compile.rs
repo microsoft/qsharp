@@ -176,8 +176,6 @@ pub(super) enum ErrorKind {
     Type(#[from] typeck::Error),
     #[error(transparent)]
     Lower(#[from] lower::Error),
-    #[error(transparent)]
-    RuntimeCapabilities(#[from] qsc_runtime_capabilities::target_caps_check::Error),
 }
 
 pub struct PackageStore {

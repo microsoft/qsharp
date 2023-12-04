@@ -847,7 +847,6 @@ dependencies = [
  "qsc_data_structures",
  "qsc_hir",
  "qsc_parse",
- "qsc_runtime_capabilities",
  "rustc-hash",
  "thiserror",
 ]
@@ -886,6 +885,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_runtime_capabilities",
  "rustc-hash",
  "thiserror",
 ]

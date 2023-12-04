@@ -7,8 +7,9 @@
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
-use qsc::compile::compile;
+use qsc::compile::{compile, ErrorKind};
 use qsc_codegen::qir_base;
+use qsc_eval::debug::map_hir_package_to_fir;
 use qsc_frontend::{
     compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile},
     error::WithSource,
@@ -16,7 +17,9 @@ use qsc_frontend::{
 use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
-use qsc_runtime_capabilities::single_pass_analysis::SinglePassAnalyzer;
+use qsc_runtime_capabilities::{
+    rtcapsck::check_target_capabilities_compatibility, single_pass_analysis::SinglePassAnalyzer,
+};
 use std::{
     concat,
     fs::{self, File},
@@ -96,33 +99,45 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
+    let (unit, mut compile_errors) = compile(&store, &dependencies, sources, package_type, target);
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");
+    let mut aggregated_errors: Vec<WithSource<ErrorKind>> = Vec::new();
+    aggregated_errors.append(&mut compile_errors);
 
-    // Perform runtime capabilities analysis.
-    let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
-    let fir_store = fir_lowerer.lower_store(&store);
-    save_fir_store_to_files(&fir_store); // DBG (cesarzc): For debugging purposes only.
-    let store_compute_props = SinglePassAnalyzer::run(&fir_store);
-    store_compute_props.persist();
+    if aggregated_errors.is_empty() {
+        // Perform runtime capabilities analysis.
+        let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
+        let fir_store = fir_lowerer.lower_store(&store);
+        save_fir_store_to_files(&fir_store); // DBG (cesarzc): For debugging purposes only.
+                                             //let store_compute_props = SinglePassAnalyzer::run(&fir_store);
+                                             //store_compute_props.persist();
+        let fir_package_id = map_hir_package_to_fir(package_id);
+        let target_caps_errors =
+            check_target_capabilities_compatibility(&fir_store, fir_package_id);
+
+        for error in target_caps_errors {
+            let mapped_error = qsc_passes::Error::RtCapsCk(error);
+            aggregated_errors.push(WithSource::from_map(&unit.sources, mapped_error.into()));
+        }
+    }
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
             Emit::Hir => emit_hir(&unit.package, out_dir)?,
             Emit::Qir => {
-                if errors.is_empty() {
+                if aggregated_errors.is_empty() {
                     emit_qir(out_dir, &store, package_id)?;
                 }
             }
         }
     }
 
-    if errors.is_empty() {
+    if aggregated_errors.is_empty() {
         Ok(ExitCode::SUCCESS)
     } else {
-        for error in errors {
+        for error in aggregated_errors {
             eprintln!("{:?}", Report::new(error));
         }
 
