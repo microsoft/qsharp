@@ -76,7 +76,7 @@ async function findManifestDocument(
     if (
       vscode.workspace.workspaceFolders?.length === 1 &&
       Utils.resolvePath(vscode.workspace.workspaceFolders[0].uri, "..") ===
-      uriToQuery
+        uriToQuery
     ) {
       log.debug("Aborting search for manifest file outside of workspace");
       return null;
@@ -137,7 +137,7 @@ async function readFileUri(
       };
     });
   } catch (_err) {
-    // `readFile` returns `err` if the file didn't exist. 
+    // `readFile` returns `err` if the file didn't exist.
     return null;
   }
 }

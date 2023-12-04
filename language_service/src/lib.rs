@@ -201,7 +201,10 @@ impl<'a> LanguageService<'a> {
         // If we are in single file mode, use the file's path as the compilation identifier.
         // If we are compiling a project, use the path to the project manifest
         let uri: Arc<str> = if let Some(manifest) = manifest {
-            Arc::from(manifest.manifest_dir.to_string_lossy().to_string())
+            Arc::from(format!(
+                "{}/qsharp.json",
+                manifest.manifest_dir.to_string_lossy().to_string()
+            ))
         } else {
             uri.into()
         };
@@ -399,13 +402,14 @@ impl<'a> LanguageService<'a> {
         T: std::fmt::Debug,
     {
         trace!("{op_name}: uri: {uri}, offset: {offset}");
-        let compilation_uri = &self
+        let Some(compilation_uri) = &self
             .open_documents
             .get(uri)
-            .unwrap_or_else(|| {
-                panic!("{op_name} (called on {uri}) should not be called for a document that has not been opened",)
-            })
-            .compilation;
+            .as_ref()
+            .map(|ref x| x.compilation.clone())
+        else {
+            panic!("{op_name} (called on {uri}) should not be called for a document that has not been opened",)
+        };
 
         trace!("{op_name}: compilation_uri: {compilation_uri}");
         let compilation = self.compilations.get(compilation_uri).unwrap_or_else(|| {
