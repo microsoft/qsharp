@@ -6,8 +6,21 @@ namespace QuantumHelloWorld {
         use myQubit = Qubit();
         H(myQubit);
         let result = M(myQubit);
-        let condition = result == Zero;
-        let dynInt = condition ? 0 | 1;
+        let dynIntA = result == One ? 0 | 1;
+        let conditionB = result == Zero;
+        mutable dynIntB = 0;
+        if conditionB {
+            set dynIntB = 1;
+        }
+
+        mutable dynDoubleA = -1.0;
+        if dynIntB == 0 {
+            set dynDoubleA = 0.0;
+        } elif dynIntB == 1 {
+            set dynDoubleA = 1.0;
+        } else {
+            set dynDoubleA = 2.0;
+        }
         Reset(myQubit);
         let a = FFoo(11111);
         let fiveTwos = 22222;

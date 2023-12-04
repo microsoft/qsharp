@@ -1058,6 +1058,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_expr(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         expr_id: ExprId,
         nodes: &NodeMap,
         package_store: &PackageStore,
@@ -1073,6 +1074,7 @@ impl SinglePassAnalyzer {
         match &expr.kind {
             ExprKind::BinOp(_, expr_a_id, expr_b_id) => Self::analyze_expr_bin_op(
                 package_id,
+                contingent_on_expr_id,
                 expr_id,
                 *expr_a_id,
                 *expr_b_id,
@@ -1082,6 +1084,7 @@ impl SinglePassAnalyzer {
             ),
             ExprKind::Call(callee_expr_id, input_expr_id) => Self::analyze_expr_call(
                 package_id,
+                contingent_on_expr_id,
                 expr_id,
                 *callee_expr_id,
                 *input_expr_id,
@@ -1089,9 +1092,21 @@ impl SinglePassAnalyzer {
                 package_store,
                 store_scratch,
             ),
+            ExprKind::If(condition_expr_id, true_expr_id, false_expr_id) => Self::analyze_expr_if(
+                package_id,
+                contingent_on_expr_id,
+                expr_id,
+                *condition_expr_id,
+                *true_expr_id,
+                *false_expr_id,
+                nodes,
+                package_store,
+                store_scratch,
+            ),
             ExprKind::Lit(_) => Self::analyze_expr_lit(package_id, expr_id, store_scratch),
             ExprKind::Tuple(tuple) => Self::analyze_expr_tuple(
                 package_id,
+                contingent_on_expr_id,
                 expr_id,
                 tuple,
                 nodes,
@@ -1107,6 +1122,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_expr_bin_op(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         expr_id: ExprId,
         expr_a_id: ExprId,
         expr_b_id: ExprId,
@@ -1114,8 +1130,22 @@ impl SinglePassAnalyzer {
         package_store: &PackageStore,
         store_scratch: &mut StoreScratch,
     ) {
-        Self::analyze_expr(package_id, expr_a_id, nodes, package_store, store_scratch);
-        Self::analyze_expr(package_id, expr_b_id, nodes, package_store, store_scratch);
+        Self::analyze_expr(
+            package_id,
+            contingent_on_expr_id,
+            expr_a_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
+        Self::analyze_expr(
+            package_id,
+            contingent_on_expr_id,
+            expr_b_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
         let expr_a_compute_props = store_scratch
             .get_expr(&package_id, &expr_a_id)
             .expect("Expression A compute properties should exist");
@@ -1142,6 +1172,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_expr_call(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         expr_id: ExprId,
         callee_expr_id: ExprId,
         input_expr_id: ExprId,
@@ -1151,6 +1182,7 @@ impl SinglePassAnalyzer {
     ) {
         Self::analyze_expr(
             package_id,
+            contingent_on_expr_id,
             callee_expr_id,
             nodes,
             package_store,
@@ -1158,6 +1190,7 @@ impl SinglePassAnalyzer {
         );
         Self::analyze_expr(
             package_id,
+            contingent_on_expr_id,
             input_expr_id,
             nodes,
             package_store,
@@ -1188,6 +1221,109 @@ impl SinglePassAnalyzer {
         store_scratch.insert_expr(package_id, expr_id, compute_props);
     }
 
+    fn analyze_expr_if(
+        package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
+        expr_id: ExprId,
+        condition_expr_id: ExprId,
+        true_expr_id: ExprId,
+        false_expr_id: Option<ExprId>,
+        nodes: &NodeMap,
+        package_store: &PackageStore,
+        store_scratch: &mut StoreScratch,
+    ) {
+        Self::analyze_expr(
+            package_id,
+            contingent_on_expr_id,
+            condition_expr_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
+
+        Self::analyze_expr(
+            package_id,
+            Some(condition_expr_id),
+            true_expr_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
+
+        if let Some(false_expr_id) = false_expr_id {
+            Self::analyze_expr(
+                package_id,
+                Some(condition_expr_id),
+                false_expr_id,
+                nodes,
+                package_store,
+                store_scratch,
+            );
+        }
+
+        let condition_expr_compute_props = store_scratch
+            .get_expr(&package_id, &condition_expr_id)
+            .expect("Condition expression compute properties should exist");
+
+        let true_expr_compute_props = store_scratch
+            .get_expr(&package_id, &true_expr_id)
+            .expect("True expression compute properties should exist");
+
+        let false_expr_compute_props: Option<&ElmntComputeProps> =
+            if let Some(false_expr_id) = false_expr_id {
+                Some(
+                    store_scratch
+                        .get_expr(&package_id, &false_expr_id)
+                        .expect("False expression compute properties should exist"),
+                )
+            } else {
+                None
+            };
+
+        let mut compute_props = if let ElmntComputeProps::AppDependent(apps_tbl) =
+            condition_expr_compute_props
+        {
+            ElmntComputeProps::AppDependent(AppsTbl::default(apps_tbl.input_param_count))
+        } else if let ElmntComputeProps::AppDependent(apps_tbl) = true_expr_compute_props {
+            ElmntComputeProps::AppDependent(AppsTbl::default(apps_tbl.input_param_count))
+        } else if let Some(ElmntComputeProps::AppDependent(apps_tbl)) = false_expr_compute_props {
+            ElmntComputeProps::AppDependent(AppsTbl::default(apps_tbl.input_param_count))
+        } else {
+            ElmntComputeProps::AppIndependent(ComputeProps::default_static())
+        };
+
+        compute_props.aggregate_rt_caps(condition_expr_compute_props);
+        compute_props.aggregate_rt_caps(true_expr_compute_props);
+        if let Some(false_expr_compute_props) = false_expr_compute_props {
+            compute_props.aggregate_rt_caps(false_expr_compute_props);
+        }
+
+        let condition_expr = package_store
+            .get_expr(package_id, condition_expr_id)
+            .expect("Condition expression should exist");
+        // If the value is not unit, propagate quantum sources.
+        if !matches!(condition_expr.ty, Ty::UNIT) {
+            compute_props.aggregate_quantum_sources(
+                condition_expr_compute_props,
+                &QuantumSource::Expr(condition_expr_id),
+            );
+            compute_props.aggregate_quantum_sources(
+                true_expr_compute_props,
+                &QuantumSource::Expr(true_expr_id),
+            );
+            if let Some(false_expr_compute_props) = false_expr_compute_props {
+                compute_props.aggregate_quantum_sources(
+                    false_expr_compute_props,
+                    &QuantumSource::Expr(
+                        false_expr_id.expect("False expression ID should be some"),
+                    ),
+                );
+            }
+        }
+
+        store_scratch.insert_expr(package_id, expr_id, compute_props);
+    }
+
     fn analyze_expr_lit(package_id: PackageId, expr_id: ExprId, store_scratch: &mut StoreScratch) {
         store_scratch.insert_expr(
             package_id,
@@ -1198,6 +1334,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_expr_tuple(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         expr_id: ExprId,
         tuple: &Vec<ExprId>,
         nodes: &NodeMap,
@@ -1208,6 +1345,7 @@ impl SinglePassAnalyzer {
         for sub_expr_id in tuple {
             Self::analyze_expr(
                 package_id,
+                contingent_on_expr_id,
                 *sub_expr_id,
                 nodes,
                 package_store,
@@ -1345,6 +1483,7 @@ impl SinglePassAnalyzer {
         for stmt_id in &implementation_block.stmts {
             Self::analyze_stmt(
                 package_id,
+                None,
                 *stmt_id,
                 package_store,
                 &mut nodes,
@@ -1410,6 +1549,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_stmt(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         stmt_id: StmtId,
         package_store: &PackageStore,
         nodes: &mut NodeMap,
@@ -1421,6 +1561,7 @@ impl SinglePassAnalyzer {
         match stmt.kind {
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => Self::analyze_stmt_expr(
                 package_id,
+                contingent_on_expr_id,
                 stmt_id,
                 expr_id,
                 package_store,
@@ -1429,6 +1570,7 @@ impl SinglePassAnalyzer {
             ),
             StmtKind::Local(_, pat_id, expr_id) => Self::analyze_stmt_local(
                 package_id,
+                contingent_on_expr_id,
                 stmt_id,
                 pat_id,
                 expr_id,
@@ -1444,6 +1586,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_stmt_expr(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         stmt_id: StmtId,
         expr_id: ExprId,
         package_store: &PackageStore,
@@ -1451,7 +1594,14 @@ impl SinglePassAnalyzer {
         store_scratch: &mut StoreScratch,
     ) {
         assert!(!store_scratch.has_stmt(&package_id, &stmt_id));
-        Self::analyze_expr(package_id, expr_id, nodes, package_store, store_scratch);
+        Self::analyze_expr(
+            package_id,
+            contingent_on_expr_id,
+            expr_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
         let expr_compute_props = store_scratch
             .get_expr(&package_id, &expr_id)
             .expect("Expression compute properties should exist since it has just been analyzed");
@@ -1461,6 +1611,7 @@ impl SinglePassAnalyzer {
 
     fn analyze_stmt_local(
         package_id: PackageId,
+        contingent_on_expr_id: Option<ExprId>,
         stmt_id: StmtId,
         pat_id: PatId,
         expr_id: ExprId,
@@ -1471,7 +1622,14 @@ impl SinglePassAnalyzer {
         assert!(!store_scratch.has_stmt(&package_id, &stmt_id));
 
         // Analyze the expression.
-        Self::analyze_expr(package_id, expr_id, nodes, package_store, store_scratch);
+        Self::analyze_expr(
+            package_id,
+            contingent_on_expr_id,
+            expr_id,
+            nodes,
+            package_store,
+            store_scratch,
+        );
 
         // Update the nodes.
         let package_pats = &package_store
