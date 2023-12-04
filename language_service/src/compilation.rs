@@ -24,10 +24,10 @@ pub(crate) struct Compilation {
 }
 
 pub(crate) enum CompilationKind {
-    /// An open Q# document without a project manifest.
-    /// In an `OpenDocument` compilation, the user package always
-    /// contains a single `Source`.
-    OpenDocument,
+    /// An open Q# project.
+    /// In an `OpenProject` compilation, the user package contains
+    /// one or more sources, and a target profile.
+    OpenProject,
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
@@ -66,7 +66,7 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             errors,
-            kind: CompilationKind::OpenDocument,
+            kind: CompilationKind::OpenProject,
         }
     }
 
@@ -135,7 +135,7 @@ impl Compilation {
             .collect();
 
         let new = match self.kind {
-            CompilationKind::OpenDocument => Self::new(&sources, package_type, target_profile),
+            CompilationKind::OpenProject => Self::new(&sources, package_type, target_profile),
             CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
         };
         self.package_store = new.package_store;

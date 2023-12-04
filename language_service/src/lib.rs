@@ -23,7 +23,7 @@ mod tests;
 
 use async_recursion::async_recursion;
 use compilation::Compilation;
-use log::{error, info, trace};
+use log::{error, trace};
 use miette::Diagnostic;
 pub use project_system::JSFileEntry;
 use protocol::{
