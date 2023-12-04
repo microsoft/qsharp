@@ -1167,6 +1167,7 @@ impl SinglePassAnalyzer {
         compute_props.aggregate_rt_caps(expr_b_compute_props);
         let expr_b_as_quantum_source = QuantumSource::Expr(expr_b_id);
         compute_props.aggregate_quantum_sources(expr_b_compute_props, &expr_b_as_quantum_source);
+
         store_scratch.insert_expr(package_id, expr_id, compute_props);
     }
 

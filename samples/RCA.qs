@@ -46,18 +46,4 @@ namespace QuantumHelloWorld {
     function Baz(a : Int, b : Int) : Double {
         IntAsDouble(a / 1)
     }
-
-    operation InstrinsicallyAdaptiveInt() : Unit {
-        mutable b = false;
-        use qubit = Qubit();
-        H(qubit);
-        let dynInt = M(qubit) == Zero ? 41 | 42;
-    }
-
-    operation InstrinsicallyAdaptiveDouble() : Unit {
-        use qubit = Qubit();
-        H(qubit);
-        let dynDouble = M(qubit) == Zero ? 41.0 | 42.0;
-        Reset(qubit);
-    }
 }
