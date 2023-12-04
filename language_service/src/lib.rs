@@ -168,7 +168,6 @@ impl<'a> LanguageService<'a> {
     #[async_recursion(?Send)]
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         if self.currently_updating {
-            info!("    enqueueing update; skipping this one");
             self.pending_update = Some(PendingUpdate {
                 uri: uri.into(),
                 version,
@@ -176,19 +175,17 @@ impl<'a> LanguageService<'a> {
             });
             return;
         }
-        info!("setting currently_updating to true");
         self.currently_updating = true;
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
         let sources = if let Some(ref manifest) = manifest {
-            let project = match self.load_project(manifest).await {
-                Ok(o) => o,
+            match self.load_project(manifest).await {
+                Ok(o) => o.sources,
                 Err(e) => {
-                    error!("failed to load manifest: {e:?}");
-                    return;
+                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
+                    vec![(Arc::from(uri), Arc::from(text))]
                 }
-            };
-            project.sources
+            }
         } else {
             trace!("Running in single file mode");
             vec![(Arc::from(uri), Arc::from(text))]
@@ -236,13 +233,10 @@ impl<'a> LanguageService<'a> {
 
         self.publish_diagnostics();
         if let Some(update) = self.pending_update.take() {
-            info!("    executing enqueued update");
             self.update_document(&update.uri, update.version, &update.text)
                 .await;
         } else {
-            info!("    no pending update");
         }
-        info!("setting currently_updating to false");
         self.currently_updating = false;
     }
 
