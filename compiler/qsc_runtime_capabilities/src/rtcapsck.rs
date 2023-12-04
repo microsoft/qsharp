@@ -29,7 +29,7 @@ pub fn check_target_capabilities_compatibility(
     target_capabilities: &FxHashSet<RuntimeCapability>,
 ) -> Vec<Error> {
     let store_compute_props = SinglePassAnalyzer::run(package_store);
-    store_compute_props.persist();
+    //store_compute_props.persist();
     let main_package_compute_props = store_compute_props
         .get_package(main_package_id)
         .expect("Main package compute properties should exist");
