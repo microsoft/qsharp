@@ -15,6 +15,7 @@ use crate::{
 use js_sys::JsString;
 use qsc::{self};
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
+use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -49,23 +50,25 @@ impl LanguageService {
             .expect("expected a valid JS function")
             .clone();
 
+        let diagnostics_callback = move |update: DiagnosticUpdate| {
+            let diags = update
+                .errors
+                .iter()
+                .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
+                .collect::<Vec<_>>();
+            let _ = diagnostics_callback
+                .call3(
+                    &JsValue::NULL,
+                    &update.uri.into(),
+                    &update.version.into(),
+                    &serde_wasm_bindgen::to_value(&diags)
+                        .expect("conversion to VSDiagnostic should succeed"),
+                )
+                .expect("callback should succeed");
+        };
+
         let inner = qsls::LanguageService::new(
-            move |update| {
-                let diags = update
-                    .errors
-                    .iter()
-                    .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
-                    .collect::<Vec<_>>();
-                let _ = diagnostics_callback
-                    .call3(
-                        &JsValue::NULL,
-                        &update.uri.into(),
-                        &update.version.into(),
-                        &serde_wasm_bindgen::to_value(&diags)
-                            .expect("conversion to VSDiagnostic should succeed"),
-                    )
-                    .expect("callback should succeed");
-            },
+            diagnostics_callback,
             read_file,
             list_directory,
             get_manifest,
