@@ -442,16 +442,16 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 include_str!("../../../library/std/random.qs").into(),
             ),
             (
-                "table_lookup.qs".into(),
-                include_str!("../../../library/std/table_lookup.qs").into(),
-            ),
-            (
                 "unstable_arithmetic.qs".into(),
                 include_str!("../../../library/std/unstable_arithmetic.qs").into(),
             ),
             (
                 "unstable_arithmetic_internal.qs".into(),
                 include_str!("../../../library/std/unstable_arithmetic_internal.qs").into(),
+            ),
+            (
+                "unstable_table_lookup.qs".into(),
+                include_str!("../../../library/std/unstable_table_lookup.qs").into(),
             ),
         ],
         None,

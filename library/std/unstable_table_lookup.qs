@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Unstable.Arithmetic;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
