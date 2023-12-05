@@ -398,14 +398,6 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 include_str!("../../../library/std/arithmetic.qs").into(),
             ),
             (
-                "arithmetic_internal.qs".into(),
-                include_str!("../../../library/std/arithmetic_internal.qs").into(),
-            ),
-            (
-                "arithmetic_unstable.qs".into(),
-                include_str!("../../../library/std/arithmetic_unstable.qs").into(),
-            ),
-            (
                 "arrays.qs".into(),
                 include_str!("../../../library/std/arrays.qs").into(),
             ),
@@ -448,6 +440,14 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
             (
                 "random.qs".into(),
                 include_str!("../../../library/std/random.qs").into(),
+            ),
+            (
+                "unstable_arithmetic.qs".into(),
+                include_str!("../../../library/std/unstable_arithmetic.qs").into(),
+            ),
+            (
+                "unstable_arithmetic_internal.qs".into(),
+                include_str!("../../../library/std/unstable_arithmetic_internal.qs").into(),
             ),
         ],
         None,
