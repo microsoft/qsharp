@@ -7,8 +7,8 @@ use expect_test::{expect, Expect};
 
 use super::{get_completions, CompletionItem};
 use crate::test_utils::{
-    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
-    get_source_and_marker_offsets,
+    compile_notebook_with_fake_stdlib_and_markers, compile_project_with_fake_stdlib_and_markers,
+    compile_with_fake_stdlib, get_source_and_marker_offsets,
 };
 use indoc::indoc;
 
@@ -16,6 +16,27 @@ fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expec
     let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual_completions = get_completions(&compilation, "<source>", cursor_offset[0]);
+    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
+        .iter()
+        .map(|comp| {
+            actual_completions
+                .items
+                .iter()
+                .find(|item| item.label == **comp)
+        })
+        .collect();
+
+    expect.assert_debug_eq(&checked_completions);
+}
+
+fn check_project(
+    sources_with_markers: &[(&str, &str)],
+    completions_to_check: &[&str],
+    expect: &Expect,
+) {
+    let (compilation, cursor_uri, cursor_offset, _) =
+        compile_project_with_fake_stdlib_and_markers(sources_with_markers);
+    let actual_completions = get_completions(&compilation, &cursor_uri, cursor_offset);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
         .iter()
         .map(|comp| {
@@ -231,6 +252,52 @@ fn in_block_from_other_namespace() {
                                         end: 21,
                                     },
                                     "open Other;\n    ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn auto_open_multiple_files() {
+    check_project(
+        &[
+            (
+                "foo.qs",
+                indoc! {r#"namespace Foo { operation FooOperation() : Unit {} }
+                "#},
+            ),
+            (
+                "bar.qs",
+                indoc! {r#"namespace Bar { operation BarOperation() : Unit { ↘ } }
+                "#},
+            ),
+        ],
+        &["FooOperation"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "FooOperation",
+                        kind: Function,
+                        sort_text: Some(
+                            "0500FooOperation",
+                        ),
+                        detail: Some(
+                            "operation FooOperation() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 16,
+                                        end: 16,
+                                    },
+                                    "open Foo;\n ",
                                 ),
                             ],
                         ),

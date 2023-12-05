@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::sync::Arc;
+
 use crate::{
     compilation::{Compilation, CompilationKind},
     protocol,
@@ -48,39 +50,7 @@ pub(crate) fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<protocol
 }
 
 pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str) -> Compilation {
-    let mut package_store = PackageStore::new(compile::core());
-    let std_source_map = SourceMap::new(
-        [(
-            "<std>".into(),
-            r#"namespace FakeStdLib {
-                operation Fake() : Unit {}
-                operation FakeWithParam(x : Int) : Unit {}
-                operation FakeCtlAdj() : Unit is Ctl + Adj {}
-                newtype Udt = (x : Int, y : Int);
-                newtype UdtWrapper = (inner : Udt);
-                newtype UdtFn = (Int -> Int);
-                newtype UdtFnWithUdtParams = (Udt -> Udt);
-                function TakesUdt(input : Udt) : Udt {
-                    fail "not implemented"
-                }
-                operation RefFake() : Unit {
-                    Fake();
-                }
-                operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
-            }"#
-            .into(),
-        )],
-        None,
-    );
-    let (std_compile_unit, std_errors) = compile::compile(
-        &package_store,
-        &[PackageId::CORE],
-        std_source_map,
-        PackageType::Lib,
-        TargetProfile::Full,
-    );
-    assert!(std_errors.is_empty());
-    let std_package_id = package_store.insert(std_compile_unit);
+    let (mut package_store, std_package_id) = compile_fake_stdlib();
     let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
     let (unit, errors) = compile::compile(
         &package_store,
@@ -100,42 +70,45 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     }
 }
 
+pub(crate) fn compile_project_with_fake_stdlib_and_markers(
+    sources_with_markers: &[(&str, &str)],
+) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
+    let (sources, cursor_uri, cursor_offset, target_spans) =
+        get_sources_and_markers(sources_with_markers);
+
+    let source_map = SourceMap::new(sources, None);
+    let (mut package_store, std_package_id) = compile_fake_stdlib();
+    let (unit, errors) = compile::compile(
+        &package_store,
+        &[std_package_id],
+        source_map,
+        PackageType::Exe,
+        TargetProfile::Full,
+    );
+
+    let package_id = package_store.insert(unit);
+
+    (
+        Compilation {
+            package_store,
+            user_package_id: package_id,
+            kind: CompilationKind::OpenDocument,
+            errors,
+        },
+        cursor_uri,
+        cursor_offset,
+        target_spans,
+    )
+}
+
 pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
     cells_with_markers: &[(&str, &str)],
 ) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
-    let (mut cell_uri, mut offset, mut target_spans) = (None, None, Vec::new());
-    let cells = cells_with_markers
-        .iter()
-        .map(|c| {
-            let (source, cursor_offsets, targets) = get_source_and_marker_offsets(c.1);
-            if !cursor_offsets.is_empty() {
-                assert!(
-                    cell_uri.replace(c.0).is_none(),
-                    "only one cell can have a cursor marker"
-                );
-                assert!(
-                    offset.replace(cursor_offsets[0]).is_none(),
-                    "only one cell can have a cursor marker"
-                );
-            }
-            if !targets.is_empty() {
-                for span in target_offsets_to_spans(&targets) {
-                    target_spans.push((c.0.to_string(), span));
-                }
-            }
-            (c.0, source)
-        })
-        .collect::<Vec<_>>();
+    let (cells, cell_uri, offset, target_spans) = get_sources_and_markers(cells_with_markers);
 
-    let compilation = compile_notebook_with_fake_stdlib(cells.iter().map(|c| (c.0, c.1.as_str())));
-    (
-        compilation,
-        cell_uri
-            .expect("input should have a cursor marker")
-            .to_string(),
-        offset.expect("input string should have a cursor marker"),
-        target_spans,
-    )
+    let compilation =
+        compile_notebook_with_fake_stdlib(cells.iter().map(|c| (c.0.as_ref(), c.1.as_ref())));
+    (compilation, cell_uri, offset, target_spans)
 }
 
 fn compile_notebook_with_fake_stdlib<'a, I>(cells: I) -> Compilation
@@ -180,4 +153,80 @@ where
         errors,
         kind: CompilationKind::Notebook,
     }
+}
+
+fn compile_fake_stdlib() -> (PackageStore, PackageId) {
+    let mut package_store = PackageStore::new(compile::core());
+    let std_source_map = SourceMap::new(
+        [(
+            "<std>".into(),
+            r#"namespace FakeStdLib {
+                operation Fake() : Unit {}
+                operation FakeWithParam(x : Int) : Unit {}
+                operation FakeCtlAdj() : Unit is Ctl + Adj {}
+                newtype Udt = (x : Int, y : Int);
+                newtype UdtWrapper = (inner : Udt);
+                newtype UdtFn = (Int -> Int);
+                newtype UdtFnWithUdtParams = (Udt -> Udt);
+                function TakesUdt(input : Udt) : Udt {
+                    fail "not implemented"
+                }
+                operation RefFake() : Unit {
+                    Fake();
+                }
+                operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
+            }"#
+            .into(),
+        )],
+        None,
+    );
+    let (std_compile_unit, std_errors) = compile::compile(
+        &package_store,
+        &[PackageId::CORE],
+        std_source_map,
+        PackageType::Lib,
+        TargetProfile::Full,
+    );
+    assert!(std_errors.is_empty());
+    let std_package_id = package_store.insert(std_compile_unit);
+    (package_store, std_package_id)
+}
+
+#[allow(clippy::type_complexity)]
+fn get_sources_and_markers(
+    sources: &[(&str, &str)],
+) -> (
+    Vec<(Arc<str>, Arc<str>)>,
+    String,
+    u32,
+    Vec<(String, protocol::Span)>,
+) {
+    let (mut cursor_uri, mut cursor_offset, mut target_spans) = (None, None, Vec::new());
+    let sources = sources
+        .iter()
+        .map(|s| {
+            let (source, cursor_offsets, targets) = get_source_and_marker_offsets(s.1);
+            if !cursor_offsets.is_empty() {
+                assert!(
+                    cursor_uri.replace(s.0).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+                assert!(
+                    cursor_offset.replace(cursor_offsets[0]).is_none(),
+                    "only one cell can have a cursor marker"
+                );
+            }
+            if !targets.is_empty() {
+                for span in target_offsets_to_spans(&targets) {
+                    target_spans.push((s.0.to_string(), span));
+                }
+            }
+            (Arc::from(s.0), Arc::from(source.as_ref()))
+        })
+        .collect();
+    let cursor_uri = cursor_uri
+        .expect("input should have a cursor marker")
+        .to_string();
+    let cursor_offset = cursor_offset.expect("input string should have a cursor marker");
+    (sources, cursor_uri, cursor_offset, target_spans)
 }
