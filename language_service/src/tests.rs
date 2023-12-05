@@ -671,8 +671,7 @@ async fn completions_requested_after_document_load() {
 
     // this test is a contrast to `completions_requested_before_document_load`
     // we want to ensure that completions load when the update_document call has been awaited
-    #[allow(clippy::let_underscore_future)]
-    let _ = ls.update_document(
+    ls.update_document(
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
