@@ -153,6 +153,11 @@ impl<'a> LanguageService<'a> {
 
         // Some configuration options require a recompilation as they impact error checking
         if need_recompile {
+            if self.currently_updating {
+                self.pending_update = true;
+                trace!("Skipping recompile_all since compilation is in progress");
+                return;
+            }
             self.recompile_all();
         }
     }
@@ -392,9 +397,13 @@ impl<'a> LanguageService<'a> {
     fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
     where
         F: Fn(&Compilation, &str, u32) -> T,
-        T: std::fmt::Debug,
+        T: std::fmt::Debug + Default,
     {
         trace!("{op_name}: uri: {uri}, offset: {offset}");
+        if self.currently_updating {
+            trace!("Skipping {op_name} since compilation is in progress");
+            return T::default();
+        }
         let Some(compilation_uri) = &self
             .open_documents
             .get(uri)
