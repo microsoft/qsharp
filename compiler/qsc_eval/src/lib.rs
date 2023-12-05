@@ -28,6 +28,7 @@ use qsc_fir::fir::{
     PackageId, PatKind, PrimField, Res, SpecBody, SpecGen, StmtKind, StringComponent, UnOp,
 };
 use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
+use qsc_fir::ty::Ty;
 use rustc_hash::FxHashMap;
 use std::{
     collections::hash_map::Entry,
@@ -415,6 +416,7 @@ enum Cont {
 enum Action {
     Array(usize),
     ArrayRepeat(Span),
+    ArrayAppendInPlace(ExprId),
     Assign(ExprId),
     Bind(PatId, Mutability),
     BinOp(BinOp, Span, Option<ExprId>),
@@ -429,6 +431,7 @@ enum Action {
     StringConcat(usize),
     StringLit(Rc<str>),
     UpdateIndex(Span),
+    UpdateIndexInPlace(ExprId, Span),
     Tuple(usize),
     UnOp(UnOp),
     UpdateField(Field),
@@ -707,6 +710,14 @@ impl State {
     }
 
     fn cont_assign_op(&mut self, globals: &impl NodeLookup, op: BinOp, lhs: ExprId, rhs: ExprId) {
+        // If we know the assign op is an array append, as in `set arr += other;`, we should perform it in-place.
+        if op == BinOp::Add && matches!(globals.get_expr(self.package, lhs).ty, Ty::Array(_)) {
+            self.push_action(Action::ArrayAppendInPlace(lhs));
+            self.push_expr(rhs);
+            self.push_val(Value::unit());
+            return;
+        }
+
         self.push_action(Action::Assign(lhs));
         self.cont_binop(globals, op, rhs, lhs);
         self.push_val(Value::unit());
@@ -725,8 +736,10 @@ impl State {
         mid: ExprId,
         rhs: ExprId,
     ) {
-        self.push_action(Action::Assign(lhs));
-        self.update_index(globals, lhs, mid, rhs);
+        let span = globals.get_expr(self.package, mid).span;
+        self.push_action(Action::UpdateIndexInPlace(lhs, span));
+        self.push_expr(rhs);
+        self.push_expr(mid);
         self.push_val(Value::unit());
     }
 
@@ -868,6 +881,9 @@ impl State {
     ) -> Result<(), Error> {
         match action {
             Action::Array(len) => self.eval_arr(len),
+            Action::ArrayAppendInPlace(lhs) => {
+                self.eval_array_append_in_place(env, globals, lhs)?;
+            }
             Action::ArrayRepeat(span) => self.eval_arr_repeat(span)?,
             Action::Assign(lhs) => self.eval_assign(env, globals, lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
@@ -894,6 +910,9 @@ impl State {
             Action::StringConcat(len) => self.eval_string_concat(len),
             Action::StringLit(str) => self.push_val(Value::String(str)),
             Action::UpdateIndex(span) => self.eval_update_index(span)?,
+            Action::UpdateIndexInPlace(lhs, span) => {
+                self.eval_update_index_in_place(env, globals, lhs, span)?;
+            }
             Action::Tuple(len) => self.eval_tup(len),
             Action::UnOp(op) => self.eval_unop(op),
             Action::UpdateField(field) => self.eval_update_field(field),
@@ -905,6 +924,29 @@ impl State {
     fn eval_arr(&mut self, len: usize) {
         let arr = self.pop_vals(len);
         self.push_val(Value::Array(arr.into()));
+    }
+
+    fn eval_array_append_in_place(
+        &mut self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+    ) -> Result<(), Error> {
+        let lhs = globals.get_expr(self.package, lhs);
+        let rhs = self.pop_val();
+        match (&lhs.kind, rhs) {
+            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+                Some(var) if var.is_mutable() => {
+                    var.value.append_array(rhs);
+                }
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
+                None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
+            },
+            _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
+        }
+        Ok(())
     }
 
     fn eval_arr_repeat(&mut self, span: Span) -> Result<(), Error> {
@@ -1171,6 +1213,23 @@ impl State {
         Ok(())
     }
 
+    fn eval_update_index_in_place(
+        &mut self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+        span: Span,
+    ) -> Result<(), Error> {
+        let update = self.pop_val();
+        let index = self.pop_val().unwrap_int();
+        let span = self.to_global_span(span);
+        if index < 0 {
+            return Err(Error::InvalidNegativeInt(index, span));
+        }
+        let i = index.as_index(span)?;
+        self.update_array_index(env, globals, lhs, i, update)
+    }
+
     fn eval_tup(&mut self, len: usize) {
         let tup = self.pop_vals(len);
         self.push_val(Value::Tuple(tup.into()));
@@ -1295,7 +1354,9 @@ impl State {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
                 }
-                Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
@@ -1303,7 +1364,31 @@ impl State {
                     self.update_binding(env, globals, *expr, val.clone())?;
                 }
             }
-            _ => panic!("unassignable pattern should be disallowed by compiler"),
+            _ => unreachable!("unassignable pattern should be disallowed by compiler"),
+        }
+        Ok(())
+    }
+
+    fn update_array_index(
+        &self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+        index: usize,
+        rhs: Value,
+    ) -> Result<(), Error> {
+        let lhs = globals.get_expr(self.package, lhs);
+        match (&lhs.kind, rhs) {
+            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+                Some(var) if var.is_mutable() => {
+                    var.value.update_array(index, rhs);
+                }
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
+                None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
+            },
+            _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
         Ok(())
     }

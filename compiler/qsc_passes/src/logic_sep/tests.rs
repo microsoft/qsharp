@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #![allow(clippy::too_many_lines)]
+#![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::{expect, Expect};
 use qsc_data_structures::span::Span;
@@ -225,9 +226,7 @@ fn op_call_in_non_unit_block_forbidden() {
         &expect![[r#"
             [
                 NonUnitBlock(
-                    Prim(
-                        Int,
-                    ),
+                    "Int",
                     Span {
                         lo: 0,
                         hi: 26,

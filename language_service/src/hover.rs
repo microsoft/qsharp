@@ -66,7 +66,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
+        _: &'_ hir::ItemId,
         item: &'a hir::Item,
         package: &'a hir::Package,
         decl: &'a hir::CallableDecl,
@@ -82,14 +82,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
                 },
             );
 
-        let contents = display_callable(
-            &item.doc,
-            &ns,
-            self.display.hir_callable_decl(
-                item_id.package.expect("package id should be resolved"),
-                decl,
-            ),
-        );
+        let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
 
         self.hover = Some(Hover {
             contents,
@@ -125,11 +118,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_type_param_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        ref_name: &'a ast::Ident,
+        reference: &'a ast::Ident,
         _: hir::ty::ParamId,
         _: &'a ast::Ident,
     ) {
-        let code = markdown_fenced_block(ref_name.name.clone());
+        let code = markdown_fenced_block(reference.name.clone());
         let callable_name = &context
             .current_callable
             .expect("type params should only exist in callables")
@@ -138,13 +131,13 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = display_local(
             &LocalKind::TypeParam,
             &code,
-            &ref_name.name,
+            &reference.name,
             callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(ref_name.span, &self.compilation.user_unit().sources),
+            span: protocol_span(reference.span, &self.compilation.user_unit().sources),
         });
     }
 
@@ -159,15 +152,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
+        _: &'_ hir::ItemId,
         _: &'a hir::Package,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let contents = markdown_fenced_block(
-            self.display
-                .hir_udt(item_id.package.expect("package id should be resolved"), udt),
-        );
+        let contents = markdown_fenced_block(self.display.hir_udt(udt));
 
         self.hover = Some(Hover {
             contents,

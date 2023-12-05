@@ -66,12 +66,12 @@ export async function getQirForActiveWindow(): Promise<string> {
     worker.terminate();
   }, generateQirTimeoutMs);
   try {
-    const correlationId = getRandomGuid();
-    sendTelemetryEvent(EventType.GenerateQirStart, { correlationId }, {});
+    const associationId = getRandomGuid();
+    sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
     result = await worker.getQir(code);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
-      { correlationId },
+      { associationId },
       { qirLength: result.length },
     );
     clearTimeout(compilerTimeout);

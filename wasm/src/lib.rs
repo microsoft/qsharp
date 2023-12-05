@@ -155,7 +155,12 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateful::Error>
+fn run_internal<F>(
+    code: &str,
+    expr: &str,
+    event_cb: F,
+    shots: u32,
+) -> Result<(), Box<stateful::Error>>
 where
     F: FnMut(&str),
 {
@@ -172,7 +177,7 @@ where
         let msg = json!(
             {"type": "Result", "success": false, "result": diag});
         (out.event_cb)(&msg.to_string());
-        return Err(e);
+        return Err(Box::new(e));
     }
     let mut interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {

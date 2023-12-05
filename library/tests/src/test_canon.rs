@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::{test_expression, test_expression_with_lib};
 use indoc::indoc;
 use qsc::interpret::Value;

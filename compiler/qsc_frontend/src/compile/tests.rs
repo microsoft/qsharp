@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::compile::TargetProfile;
 
 use super::{compile, Error, PackageStore, SourceMap};
@@ -627,9 +629,9 @@ fn package_dependency_udt() {
                     body: SpecDecl 3 [25-91]: Impl:
                         Block 4 [46-91] [Type Int]:
                             Stmt 5 [56-85]: Expr: Expr 6 [56-85] [Type Int]: Call:
-                                Expr 7 [56-68] [Type (UDT<Item 1 (Package 1)> -> Int)]: Var: Item 2 (Package 1)
-                                Expr 8 [69-84] [Type UDT<Item 1 (Package 1)>]: Call:
-                                    Expr 9 [69-81] [Type (Int -> UDT<Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                Expr 7 [56-68] [Type (UDT<"Bar": Item 1 (Package 1)> -> Int)]: Var: Item 2 (Package 1)
+                                Expr 8 [69-84] [Type UDT<"Bar": Item 1 (Package 1)>]: Call:
+                                    Expr 9 [69-81] [Type (Int -> UDT<"Bar": Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
                                     Expr 10 [82-83] [Type Int]: Lit: Int(1)
                     adj: <none>
                     ctl: <none>
@@ -695,35 +697,35 @@ fn package_dependency_nested_udt() {
                     body: SpecDecl 3 [25-272]: Impl:
                         Block 4 [47-272] [Type Int]:
                             Stmt 5 [57-83]: Local (Immutable):
-                                Pat 6 [61-64] [Type UDT<Item 1 (Package 1)>]: Bind: Ident 7 [61-64] "bar"
-                                Expr 8 [67-82] [Type UDT<Item 1 (Package 1)>]: Call:
-                                    Expr 9 [67-79] [Type (Int -> UDT<Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                Pat 6 [61-64] [Type UDT<"Bar": Item 1 (Package 1)>]: Bind: Ident 7 [61-64] "bar"
+                                Expr 8 [67-82] [Type UDT<"Bar": Item 1 (Package 1)>]: Call:
+                                    Expr 9 [67-79] [Type (Int -> UDT<"Bar": Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
                                     Expr 10 [80-81] [Type Int]: Lit: Int(1)
                             Stmt 11 [92-118]: Local (Immutable):
-                                Pat 12 [96-99] [Type UDT<Item 2 (Package 1)>]: Bind: Ident 13 [96-99] "baz"
-                                Expr 14 [102-117] [Type UDT<Item 2 (Package 1)>]: Call:
-                                    Expr 15 [102-114] [Type (Int -> UDT<Item 2 (Package 1)>)]: Var: Item 2 (Package 1)
+                                Pat 12 [96-99] [Type UDT<"Baz": Item 2 (Package 1)>]: Bind: Ident 13 [96-99] "baz"
+                                Expr 14 [102-117] [Type UDT<"Baz": Item 2 (Package 1)>]: Call:
+                                    Expr 15 [102-114] [Type (Int -> UDT<"Baz": Item 2 (Package 1)>)]: Var: Item 2 (Package 1)
                                     Expr 16 [115-116] [Type Int]: Lit: Int(2)
                             Stmt 17 [127-160]: Local (Immutable):
-                                Pat 18 [131-134] [Type UDT<Item 3 (Package 1)>]: Bind: Ident 19 [131-134] "foo"
-                                Expr 20 [137-159] [Type UDT<Item 3 (Package 1)>]: Call:
-                                    Expr 21 [137-149] [Type ((UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>) -> UDT<Item 3 (Package 1)>)]: Var: Item 3 (Package 1)
-                                    Expr 22 [149-159] [Type (UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>)]: Tuple:
-                                        Expr 23 [150-153] [Type UDT<Item 1 (Package 1)>]: Var: Local 7
-                                        Expr 24 [155-158] [Type UDT<Item 2 (Package 1)>]: Var: Local 13
+                                Pat 18 [131-134] [Type UDT<"Foo": Item 3 (Package 1)>]: Bind: Ident 19 [131-134] "foo"
+                                Expr 20 [137-159] [Type UDT<"Foo": Item 3 (Package 1)>]: Call:
+                                    Expr 21 [137-149] [Type ((UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>) -> UDT<"Foo": Item 3 (Package 1)>)]: Var: Item 3 (Package 1)
+                                    Expr 22 [149-159] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: Tuple:
+                                        Expr 23 [150-153] [Type UDT<"Bar": Item 1 (Package 1)>]: Var: Local 7
+                                        Expr 24 [155-158] [Type UDT<"Baz": Item 2 (Package 1)>]: Var: Local 13
                             Stmt 25 [169-205]: Local (Immutable):
-                                Pat 26 [173-193] [Type UDT<Item 1 (Package 1)>]: Bind: Ident 27 [173-178] "inner"
-                                Expr 28 [196-204] [Type UDT<Item 1 (Package 1)>]: Field:
-                                    Expr 29 [196-199] [Type UDT<Item 3 (Package 1)>]: Var: Local 19
+                                Pat 26 [173-193] [Type UDT<"Bar": Item 1 (Package 1)>]: Bind: Ident 27 [173-178] "inner"
+                                Expr 28 [196-204] [Type UDT<"Bar": Item 1 (Package 1)>]: Field:
+                                    Expr 29 [196-199] [Type UDT<"Foo": Item 3 (Package 1)>]: Var: Local 19
                                     Path(FieldPath { indices: [0] })
                             Stmt 30 [214-251]: Local (Immutable):
-                                Pat 31 [218-243] [Type (UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>)]: Tuple:
-                                    Pat 32 [219-220] [Type UDT<Item 1 (Package 1)>]: Discard
-                                    Pat 33 [222-242] [Type UDT<Item 2 (Package 1)>]: Bind: Ident 34 [222-227] "other"
-                                Expr 35 [246-250] [Type (UDT<Item 1 (Package 1)>, UDT<Item 2 (Package 1)>)]: UnOp (Unwrap):
-                                    Expr 36 [246-249] [Type UDT<Item 3 (Package 1)>]: Var: Local 19
+                                Pat 31 [218-243] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: Tuple:
+                                    Pat 32 [219-220] [Type UDT<"Bar": Item 1 (Package 1)>]: Discard
+                                    Pat 33 [222-242] [Type UDT<"Baz": Item 2 (Package 1)>]: Bind: Ident 34 [222-227] "other"
+                                Expr 35 [246-250] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: UnOp (Unwrap):
+                                    Expr 36 [246-249] [Type UDT<"Foo": Item 3 (Package 1)>]: Var: Local 19
                             Stmt 37 [260-266]: Expr: Expr 38 [260-266] [Type Int]: UnOp (Unwrap):
-                                Expr 39 [260-265] [Type UDT<Item 1 (Package 1)>]: Var: Local 27
+                                Expr 39 [260-265] [Type UDT<"Bar": Item 1 (Package 1)>]: Var: Local 27
                     adj: <none>
                     ctl: <none>
                     ctl-adj: <none>"#]]

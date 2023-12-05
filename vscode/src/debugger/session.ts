@@ -106,8 +106,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-  public async init(correlationId: string): Promise<void> {
-    sendTelemetryEvent(EventType.InitializeRuntimeStart, { correlationId }, {});
+  public async init(associationId: string): Promise<void> {
+    sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
     const targetProfile = getTarget();
@@ -157,7 +157,7 @@ export class QscDebugSession extends LoggingDebugSession {
       sendTelemetryEvent(
         EventType.InitializeRuntimeEnd,
         {
-          correlationId,
+          associationId,
           reason: "compilation failed",
           flowStatus: UserFlowStatus.Aborted,
         },
@@ -167,7 +167,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
-      { correlationId, flowStatus: UserFlowStatus.Succeeded },
+      { associationId, flowStatus: UserFlowStatus.Succeeded },
       {},
     );
   }
@@ -266,8 +266,8 @@ export class QscDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: ILaunchRequestArguments,
   ): Promise<void> {
-    const correlationId = getRandomGuid();
-    sendTelemetryEvent(EventType.Launch, { correlationId }, {});
+    const associationId = getRandomGuid();
+    sendTelemetryEvent(EventType.Launch, { associationId }, {});
     if (this.failureMessage != "") {
       log.info(
         "compilation failed. sending error response and stopping execution.",
@@ -302,20 +302,20 @@ export class QscDebugSession extends LoggingDebugSession {
 
     if (args.noDebug) {
       log.trace(`Running without debugging`);
-      await this.runWithoutDebugging(args, correlationId);
+      await this.runWithoutDebugging(args, associationId);
     } else {
       log.trace(`Running with debugging`);
       if (this.config.stopOnEntry) {
         sendTelemetryEvent(
           EventType.DebugSessionEvent,
-          { correlationId, event: DebugEvent.StepIn },
+          { associationId, event: DebugEvent.StepIn },
           {},
         );
         await this.stepIn();
       } else {
         sendTelemetryEvent(
           EventType.DebugSessionEvent,
-          { correlationId, event: DebugEvent.Continue },
+          { associationId, event: DebugEvent.Continue },
           {},
         );
         await this.continue();
@@ -385,7 +385,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private async runWithoutDebugging(
     args: ILaunchRequestArguments,
-    correlationId: string,
+    associationId: string,
   ): Promise<void> {
     const bps: number[] = [];
     // This will be replaced when the interpreter
@@ -403,7 +403,7 @@ export class QscDebugSession extends LoggingDebugSession {
       // Reset the interpreter for the next shot.
       // The interactive interpreter doesn't do this automatically,
       // and doesn't know how to deal with shots like the stateless version.
-      await this.init(correlationId);
+      await this.init(associationId);
       if (this.failureMessage != "") {
         log.info(
           "compilation failed. sending error response and stopping execution.",
@@ -877,10 +877,10 @@ export class QscDebugSession extends LoggingDebugSession {
         variables: variables,
       };
     } else if (handle === "quantum") {
-      const correlationId = getRandomGuid();
+      const associationId = getRandomGuid();
       sendTelemetryEvent(
         EventType.RenderQuantumStateStart,
-        { correlationId },
+        { associationId },
         {},
       );
       const state = await this.debugService.captureQuantumState();
@@ -895,7 +895,7 @@ export class QscDebugSession extends LoggingDebugSession {
       });
       sendTelemetryEvent(
         EventType.RenderQuantumStateEnd,
-        { correlationId },
+        { associationId },
         {},
       );
       response.body = {

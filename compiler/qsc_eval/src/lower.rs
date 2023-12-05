@@ -498,14 +498,14 @@ impl Lowerer {
             qsc_hir::ty::Ty::Infer(id) => {
                 qsc_fir::ty::Ty::Infer(qsc_fir::ty::InferTyId::from(usize::from(*id)))
             }
-            qsc_hir::ty::Ty::Param(id) => {
+            qsc_hir::ty::Ty::Param(_, id) => {
                 qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*id)))
             }
             qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),
             qsc_hir::ty::Ty::Tuple(tys) => {
                 qsc_fir::ty::Ty::Tuple(tys.iter().map(|ty| self.lower_ty(ty)).collect())
             }
-            qsc_hir::ty::Ty::Udt(res) => qsc_fir::ty::Ty::Udt(self.lower_res(res)),
+            qsc_hir::ty::Ty::Udt(_, res) => qsc_fir::ty::Ty::Udt(self.lower_res(res)),
             qsc_hir::ty::Ty::Err => qsc_fir::ty::Ty::Err,
         }
     }
@@ -533,7 +533,7 @@ fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::Functo
 
 fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
     match g {
-        qsc_hir::ty::GenericParam::Ty => qsc_fir::ty::GenericParam::Ty,
+        qsc_hir::ty::GenericParam::Ty(_) => qsc_fir::ty::GenericParam::Ty,
         qsc_hir::ty::GenericParam::Functor(value) => {
             qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
         }
