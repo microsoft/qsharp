@@ -5,7 +5,7 @@ use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
-use qsc_project::ProjectSystemCallbacks;
+use qsc_project::{FileSystemAsync, ProjectSystemCallbacks};
 
 use crate::project_system::{GetManifestCallback, ListDirectoryCallback, ReadFileCallback};
 use crate::{serializable_type, CallbackReceiver};
@@ -16,6 +16,40 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct DebugService {
     interpreter: Interpreter,
+}
+mod project_system {
+    // Copyright (c) Microsoft Corporation.
+    // Licensed under the MIT License.
+    use crate::project_system::*;
+    use async_trait::async_trait;
+    use qsc_project::JSFileEntry;
+    use wasm_bindgen::prelude::wasm_bindgen;
+
+    /// There are some differences in the implementation here versus the one in the language service.
+    /// Because the debugger itself is bound with `wasm_bindgen`, we can't directly store
+    /// non-serializeable types on the struct.
+    #[wasm_bindgen]
+    pub struct DebugServiceProjectLoader {
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+        get_manifest: GetManifestCallback,
+    }
+
+    #[async_trait(?Send)]
+    impl qsc_project::FileSystemAsync for DebugServiceProjectLoader {
+        type Entry = JSFileEntry;
+        async fn read_file(
+            &self,
+            path: &std::path::Path,
+        ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
+            let read_file = (call_async_js_fn!(read_file, read_file_transformer))(path).await;
+            Ok((self.read_file_callback)(path.to_string_lossy().to_string()).await)
+        }
+
+        async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
+            Ok((self.list_directory)(path.to_string_lossy().to_string()).await)
+        }
+    }
 }
 
 #[wasm_bindgen]

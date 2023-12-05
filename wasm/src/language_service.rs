@@ -6,7 +6,10 @@ use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 use crate::{
     call_async_js_fn,
     diagnostic::VSDiagnostic,
-    project_system::{GetManifestCallback, ListDirectoryCallback, ReadFileCallback},
+    project_system::{
+        get_manifest_transformer, list_directory_transformer, read_file_transformer,
+        GetManifestCallback, ListDirectoryCallback, ReadFileCallback,
+    },
     serializable_type,
 };
 use js_sys::JsString;
@@ -29,98 +32,14 @@ impl LanguageService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> Self {
-        let transformer = move |js_val: JsValue, path_buf_string: String| match js_val.as_string() {
-            Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-            // this can happen if the document is completely empty
-            None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
-            None => unreachable!("Expected string from JS callback, received {js_val:?}"),
-        };
         let read_file = read_file.into();
-        let read_file = call_async_js_fn!(read_file, transformer);
+        let read_file = call_async_js_fn!(read_file, read_file_transformer);
 
-        let transformer = move |js_val: JsValue, _: String| match js_val.dyn_into::<js_sys::Array>()
-        {
-            Ok(arr) => arr
-                .into_iter()
-                .map(|x| {
-                    x.dyn_into::<js_sys::Array>()
-                        .expect("expected directory listing callback to return array of arrays")
-                })
-                .filter_map(|js_arr| {
-                    let mut arr = js_arr.into_iter().take(2);
-                    match (
-                        arr.next().unwrap().as_string(),
-                        arr.next().unwrap().as_f64(),
-                    ) {
-                        (Some(a), Some(b)) => Some((a, b as i32)),
-                        _ => None,
-                    }
-                })
-                .map(|(name, ty)| JSFileEntry {
-                    name,
-                    r#type: match ty {
-                        0 => EntryType::Unknown,
-                        1 => EntryType::File,
-                        2 => EntryType::Folder,
-                        64 => EntryType::Symlink,
-                        _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
-                    },
-                })
-                .collect::<Vec<_>>(),
-            Err(e) => todo!("result wasn't an array error: {e:?}"),
-        };
         let list_directory = list_directory.into();
-        let list_directory = call_async_js_fn!(list_directory, transformer);
+        let list_directory = call_async_js_fn!(list_directory, list_directory_transformer);
 
-        let transformer = move |js_val: JsValue, _| {
-            if js_val.is_null() {
-                return None;
-            }
-
-            let manifest_dir = match js_sys::Reflect::get(&js_val, &JsValue::from_str("manifestDirectory")) {
-                    Ok(v) => v
-                        .as_string()
-                        .unwrap_or_else(|| panic!("manifest callback returned {:?}, but we expected a string representing its URI", v)),
-                    Err(_) => todo!(),
-                };
-            log::trace!("found manifest at {manifest_dir:?}");
-
-            let manifest_dir = PathBuf::from(manifest_dir);
-
-            let exclude_files =
-                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeFiles")) {
-                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
-                        Ok(arr) => arr
-                            .into_iter()
-                            .filter_map(|x| x.as_string())
-                            .collect::<Vec<_>>(),
-                        Err(e) => todo!("result wasn't an array error: {e:?}"),
-                    },
-                    Err(_) => todo!(),
-                };
-            let exclude_regexes =
-                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes")) {
-                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
-                        Ok(arr) => arr
-                            .into_iter()
-                            .filter_map(|x| x.as_string())
-                            .collect::<Vec<_>>(),
-                        Err(e) => todo!("result wasn't an array error: {e:?}"),
-                    },
-                    Err(_) => todo!(),
-                };
-
-            Some(ManifestDescriptor {
-                manifest: Manifest {
-                    exclude_regexes,
-                    exclude_files,
-                    ..Default::default()
-                },
-                manifest_dir,
-            })
-        };
         let get_manifest: JsValue = get_manifest.into();
-        let get_manifest = call_async_js_fn!(get_manifest, transformer);
+        let get_manifest = call_async_js_fn!(get_manifest, get_manifest_transformer);
 
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
