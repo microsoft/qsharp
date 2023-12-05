@@ -32,7 +32,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
+    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
     error::WithSource,
 };
 use qsc_passes::PackageType;
@@ -114,8 +114,8 @@ impl<'a> NodeLookup for Lookup<'a> {
 pub struct Interpreter {
     /// The incremental Q# compiler.
     compiler: Compiler,
-    /// The `TargetProfile` used for compilation.
-    target: TargetProfile,
+    /// The runtime capabilities used for compilation.
+    capabilities: RuntimeCapabilityFlags,
     /// The number of lines that have so far been compiled.
     /// This field is used to generate a unique label
     /// for each line evaluated with `eval_fragments`.
@@ -149,12 +149,13 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        target: TargetProfile,
+        capabilities: RuntimeCapabilityFlags,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = IndexMap::new();
 
-        let compiler = Compiler::new(std, sources, package_type, target).map_err(into_errors)?;
+        let compiler =
+            Compiler::new(std, sources, package_type, capabilities).map_err(into_errors)?;
 
         for (id, unit) in compiler.package_store().iter() {
             fir_store.insert(
@@ -169,7 +170,7 @@ impl Interpreter {
         Ok(Self {
             compiler,
             lines: 0,
-            target,
+            capabilities,
             fir_store,
             lowerer,
             env: Env::with_empty_scope(),
@@ -366,7 +367,7 @@ impl Interpreter {
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<Error>> {
-        if self.target != TargetProfile::Base {
+        if self.capabilities != RuntimeCapabilityFlags::empty() {
             return Err(vec![Error::TargetMismatch]);
         }
 

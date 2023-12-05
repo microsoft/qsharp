@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::{Error, Names, Res};
-use crate::{compile, resolve::Resolver};
+use crate::{compile, compile::RuntimeCapabilityFlags, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -97,7 +97,7 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
 
     AstAssigner::new().visit_package(&mut package);
 
-    let mut cond_compile = compile::preprocess::Conditional::new(compile::TargetProfile::Full);
+    let mut cond_compile = compile::preprocess::Conditional::new(RuntimeCapabilityFlags::all());
     cond_compile.visit_package(&mut package);
     let dropped_names = cond_compile.into_names();
 

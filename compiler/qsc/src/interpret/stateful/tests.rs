@@ -8,7 +8,7 @@ mod given_interpreter {
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{SourceMap, TargetProfile};
+    use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -45,11 +45,12 @@ mod given_interpreter {
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
+        use qsc_frontend::compile::RuntimeCapabilityFlags;
 
         use super::*;
 
         mod without_stdlib {
-            use qsc_frontend::compile::{SourceMap, TargetProfile};
+            use qsc_frontend::compile::SourceMap;
             use qsc_passes::PackageType;
 
             use super::*;
@@ -60,7 +61,7 @@ mod given_interpreter {
                     false,
                     SourceMap::default(),
                     PackageType::Lib,
-                    TargetProfile::Full,
+                    RuntimeCapabilityFlags::all(),
                 )
                 .expect("interpreter should be created");
 
@@ -553,7 +554,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -619,7 +620,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -685,7 +686,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -766,7 +767,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -792,7 +793,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -878,7 +879,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let res = interpreter
@@ -941,7 +942,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Base,
+                RuntimeCapabilityFlags::empty(),
             )
             .expect("interpreter should be created");
             let res = interpreter
@@ -1049,7 +1050,7 @@ mod given_interpreter {
         use super::*;
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::{SourceMap, TargetProfile};
+        use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
         use qsc_passes::PackageType;
 
         #[test]
@@ -1063,9 +1064,13 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                RuntimeCapabilityFlags::all(),
+            )
+            .expect("interpreter should be created");
 
             let (result, output) = entry(&mut interpreter);
             is_unit_with_output_eval_entry(&result, &output, "hello there...");
@@ -1081,9 +1086,13 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                RuntimeCapabilityFlags::all(),
+            )
+            .expect("interpreter should be created");
 
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(&result, &output, "hello there...");
@@ -1103,9 +1112,13 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                RuntimeCapabilityFlags::all(),
+            )
+            .expect("interpreter should be created");
 
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
@@ -1129,9 +1142,13 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                RuntimeCapabilityFlags::all(),
+            )
+            .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
@@ -1155,9 +1172,13 @@ mod given_interpreter {
                 Some("Foo.Bar()".into()),
             );
 
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Lib, TargetProfile::Full)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                RuntimeCapabilityFlags::all(),
+            )
+            .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_error(
                 &result,
@@ -1175,7 +1196,7 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            TargetProfile::Full,
+            RuntimeCapabilityFlags::all(),
         )
         .expect("interpreter should be created")
     }

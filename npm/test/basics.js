@@ -743,7 +743,7 @@ test("debug service loading source with good entry expr succeeds - web worker", 
     const result = await debugService.loadSource(
       "test.qs",
       `namespace Sample { operation Main() : Unit { } }`,
-      "full",
+      "unrestricted",
       "Sample.Main()",
     );
     assert.ok(typeof result === "string");

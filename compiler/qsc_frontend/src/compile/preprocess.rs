@@ -9,7 +9,7 @@ use qsc_ast::{
 use qsc_hir::hir;
 use std::rc::Rc;
 
-use super::TargetProfile;
+use super::{ConfigAttr, RuntimeCapabilityFlags};
 
 #[derive(PartialEq, Hash, Clone, Debug)]
 pub struct TrackedName {
@@ -18,15 +18,15 @@ pub struct TrackedName {
 }
 
 pub(crate) struct Conditional {
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
     dropped_names: Vec<TrackedName>,
     included_names: Vec<TrackedName>,
 }
 
 impl Conditional {
-    pub(crate) fn new(target: TargetProfile) -> Self {
+    pub(crate) fn new(capabilities: RuntimeCapabilityFlags) -> Self {
         Self {
-            target,
+            capabilities,
             dropped_names: Vec::new(),
             included_names: Vec::new(),
         }
@@ -46,7 +46,7 @@ impl MutVisitor for Conditional {
             .items
             .iter()
             .filter_map(|item| {
-                if matches_target(&item.attrs, self.target) {
+                if matches_config(&item.attrs, self.capabilities) {
                     match item.kind.as_ref() {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
@@ -84,7 +84,7 @@ impl MutVisitor for Conditional {
 
     fn visit_stmt(&mut self, stmt: &mut Stmt) {
         if let StmtKind::Item(item) = stmt.kind.as_mut() {
-            if matches_target(&item.attrs, self.target) {
+            if matches_config(&item.attrs, self.capabilities) {
                 match item.kind.as_ref() {
                     ItemKind::Callable(callable) => {
                         self.included_names.push(TrackedName {
@@ -118,23 +118,27 @@ impl MutVisitor for Conditional {
     }
 }
 
-fn matches_target(attrs: &[Box<Attr>], target: TargetProfile) -> bool {
+fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> bool {
     attrs.iter().all(|attr| {
         if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
             if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
                 match inner.kind.as_ref() {
-                    ExprKind::Path(path) => {
-                        match TargetProfile::from_str(path.name.name.as_ref()) {
-                            Ok(t) => t == target,
-                            Err(()) => true,
-                        }
-                    }
-                    _ => true,
+                    // If there is no config attribute, then we assume that the item matches
+                    // the target. We can't do membership tests on the capabilities because
+                    // Base is not a subset of any capabilities, it is a lack of capabilities.
+                    ExprKind::Path(path) => match ConfigAttr::from_str(path.name.name.as_ref()) {
+                        Ok(ConfigAttr::Full) => capabilities.is_all(),
+                        Ok(ConfigAttr::Base) => capabilities.is_empty(),
+                        _ => true,
+                    },
+                    _ => true, // Unknown config attribute, so we assume it matches
                 }
             } else {
+                // Something other than a parenthesized expression, so we assume it matches
                 true
             }
         } else {
+            // Unknown attribute, so we assume it matches
             true
         }
     })

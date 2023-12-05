@@ -30,7 +30,7 @@ use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
-use qsc::{compile::Error, PackageType, TargetProfile};
+use qsc::{compile::Error, target::Profile, PackageType};
 use qsc_project::FileSystemAsync;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{future::Future, mem::take, pin::Pin, sync::Arc};
@@ -106,14 +106,14 @@ pub enum PendingUpdate {
 
 #[derive(Debug)]
 struct Configuration {
-    pub target_profile: TargetProfile,
+    pub target_profile: Profile,
     pub package_type: PackageType,
 }
 
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            target_profile: TargetProfile::Full,
+            target_profile: Profile::Unrestricted,
             package_type: PackageType::Exe,
         }
     }
@@ -121,7 +121,7 @@ impl Default for Configuration {
 
 #[derive(Default)]
 struct PartialConfiguration {
-    pub target_profile: Option<TargetProfile>,
+    pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
 }
 

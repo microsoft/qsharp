@@ -6,7 +6,7 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    compile::TargetProfile,
+    compile::ConfigAttr,
     resolve::{self, Names},
     typeck::{self, convert},
 };
@@ -229,7 +229,7 @@ impl With<'_> {
             Ok(hir::Attr::Config) => {
                 if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
                     if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                        if TargetProfile::from_str(path.name.name.as_ref()).is_ok()))
+                        if ConfigAttr::from_str(path.name.name.as_ref()).is_ok()))
                 {
                     self.lowerer
                         .errors

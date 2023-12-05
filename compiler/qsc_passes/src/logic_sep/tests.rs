@@ -6,7 +6,7 @@
 
 use expect_test::{expect, Expect};
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
     visit::{walk_stmt, Visitor},
@@ -28,12 +28,12 @@ impl<'a> Visitor<'a> for StmtSpans {
 
 fn check(block_str: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store, TargetProfile::Full));
+    let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
     let unit = compile(
         &store,
         &[std],
         SourceMap::new([], Some(block_str.into())),
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
