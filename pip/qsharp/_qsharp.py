@@ -139,5 +139,12 @@ class Config:
     def __repr__(self):
         return "Q# initialized with configuration: " + str(self._config)
 
+    # See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+    # See https://ipython.org/ipython-doc/3/notebook/nbformat.html#display-data
+    # This returns a custom MIME-type representation of the Q# configuration.
+    # This data will be available in the cell output, but will not be displayed
+    # to the user, as frontends would not know how to render the custom MIME type.
+    # Editor services that interact with the notebook frontend
+    # (i.e. the language service) can read and interpret the data.
     def _repr_mimebundle_(self, include=None, exclude=None):
         return {"application/x.qsharp-config": self._config}
