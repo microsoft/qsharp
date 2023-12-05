@@ -653,6 +653,7 @@ async fn completions_requested_before_document_load() {
 
     // we intentionally don't await this to test how LSP features function when
     // a document hasn't fully loaded
+    #[allow(clippy::let_underscore_future)]
     let _ = ls.update_document(
         "foo.qs",
         1,
@@ -660,7 +661,7 @@ async fn completions_requested_before_document_load() {
     );
 
     // this should be empty, because the doc hasn't loaded
-    assert!(ls.get_completions("foo.qs", 76).items.is_empty())
+    assert!(ls.get_completions("foo.qs", 76).items.is_empty());
 }
 
 #[tokio::test]
@@ -670,6 +671,7 @@ async fn completions_requested_after_document_load() {
 
     // this test is a contrast to `completions_requested_before_document_load`
     // we want to ensure that completions load when the update_document call has been awaited
+    #[allow(clippy::let_underscore_future)]
     let _ = ls.update_document(
         "foo.qs",
         1,
@@ -677,7 +679,7 @@ async fn completions_requested_after_document_load() {
     ).await;
 
     // this should be empty, because the doc hasn't loaded
-    assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13)
+    assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13);
 }
 
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
