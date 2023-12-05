@@ -243,12 +243,12 @@ impl<'a> LanguageService<'a> {
         if let Some(update) = self.pending_update.take() {
             match update {
                 PendingUpdate::Document { uri, version, text } => {
-                    self.update_document(&uri, version, &text).await
+                    self.update_document(&uri, version, &text).await;
                 }
                 PendingUpdate::RecompileAll => {
                     // just recompile the same URI and text if we need to recompile all
                     // ideally, we reload sources from disk here
-                    self.update_document(&uri, version, text).await
+                    self.update_document(&uri, version, text).await;
                 }
             }
         }
