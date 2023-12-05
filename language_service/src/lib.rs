@@ -89,10 +89,13 @@ pub struct LanguageService<'a> {
 }
 
 #[derive(Clone)]
-pub struct PendingUpdate {
-    uri: String,
-    version: u32,
-    text: String,
+pub enum PendingUpdate {
+    Document {
+        uri: String,
+        version: u32,
+        text: String,
+    },
+    RecompileAll,
 }
 
 #[derive(Debug)]
@@ -154,7 +157,7 @@ impl<'a> LanguageService<'a> {
         // Some configuration options require a recompilation as they impact error checking
         if need_recompile {
             if self.currently_updating {
-                self.pending_update = true;
+                self.pending_update = Some(PendingUpdate::RecompileAll);
                 trace!("Skipping recompile_all since compilation is in progress");
                 return;
             }
@@ -173,7 +176,7 @@ impl<'a> LanguageService<'a> {
     #[async_recursion(?Send)]
     pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         if self.currently_updating {
-            self.pending_update = Some(PendingUpdate {
+            self.pending_update = Some(PendingUpdate::Document {
                 uri: uri.into(),
                 version,
                 text: text.into(),
@@ -238,8 +241,16 @@ impl<'a> LanguageService<'a> {
 
         self.publish_diagnostics();
         if let Some(update) = self.pending_update.take() {
-            self.update_document(&update.uri, update.version, &update.text)
-                .await;
+            match update {
+                PendingUpdate::Document { uri, version, text } => {
+                    self.update_document(&uri, version, &text).await
+                }
+                PendingUpdate::RecompileAll => {
+                    // just recompile the same URI and text if we need to recompile all
+                    // ideally, we reload sources from disk here
+                    self.update_document(&uri, version, text).await
+                }
+            }
         }
         self.currently_updating = false;
     }
