@@ -7,6 +7,7 @@ use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
 use qsc_project::{FileSystemAsync, ProjectSystemCallbacks};
 
+use crate::debug_service::project_system::DebugServiceProjectLoader;
 use crate::project_system::{GetManifestCallback, ListDirectoryCallback, ReadFileCallback};
 use crate::{serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
@@ -28,11 +29,10 @@ mod project_system {
     /// There are some differences in the implementation here versus the one in the language service.
     /// Because the debugger itself is bound with `wasm_bindgen`, we can't directly store
     /// non-serializeable types on the struct.
-    #[wasm_bindgen]
     pub struct DebugServiceProjectLoader {
-        read_file: ReadFileCallback,
-        list_directory: ListDirectoryCallback,
-        get_manifest: GetManifestCallback,
+        pub read_file: ReadFileCallback,
+        pub list_directory: ListDirectoryCallback,
+        pub get_manifest: GetManifestCallback,
     }
 
     #[async_trait(?Send)]
@@ -42,12 +42,21 @@ mod project_system {
             &self,
             path: &std::path::Path,
         ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-            let read_file = (call_async_js_fn!(read_file, read_file_transformer))(path).await;
-            Ok((self.read_file_callback)(path.to_string_lossy().to_string()).await)
+            let read_file = self.read_file.clone().into();
+            let result = (call_async_js_fn!(read_file, read_file_transformer))(
+                path.to_string_lossy().to_string(),
+            )
+            .await;
+            Ok(result)
         }
 
         async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-            Ok((self.list_directory)(path.to_string_lossy().to_string()).await)
+            let list_directory = self.list_directory.clone().into();
+            let result = (call_async_js_fn!(list_directory, list_directory_transformer))(
+                path.to_string_lossy().to_string(),
+            )
+            .await;
+            Ok(result)
         }
     }
 }
@@ -77,6 +86,11 @@ impl DebugService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> String {
+        let loader = DebugServiceProjectLoader {
+            read_file,
+            list_directory,
+            get_manifest,
+        };
         let source_map = SourceMap::new(
             [(path.into(), source.into())],
             entry.as_deref().map(|value| value.into()),

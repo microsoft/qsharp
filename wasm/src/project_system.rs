@@ -27,6 +27,10 @@ extern "C" {
 macro_rules! call_async_js_fn {
     ($js_async_fn: ident, $transformer: expr) => {{
         use crate::project_system::{map_js_promise, to_js_function};
+        use std::future::Future;
+        use std::pin::Pin;
+        use wasm_bindgen::JsValue;
+        use wasm_bindgen_futures::JsFuture;
         let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
 
         let $js_async_fn = move |input: String| {
