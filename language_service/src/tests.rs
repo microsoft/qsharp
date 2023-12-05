@@ -636,11 +636,49 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
     LanguageService::new(
         diagnostic_receiver,
         // these tests do not test project mode
-        // so we provide
+        // so we provide these stubbed-out functions
         |_| Box::pin(std::future::ready((Arc::from(""), Arc::from("")))),
         |_| Box::pin(std::future::ready(vec![])),
         |_| Box::pin(std::future::ready(None)),
     )
+}
+
+// the below tests test the asynchronous behavior of the language service.
+// we use `get_completions` as a rough analog for all document operations, as
+// they all go through the same `document_op` infrastructure.
+#[tokio::test]
+async fn completions_requested_before_document_load() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    // we intentionally don't await this to test how LSP features function when
+    // a document hasn't fully loaded
+    #[allow(clippy::let_underscore_future)]
+    let _ = ls.update_document(
+        "foo.qs",
+        1,
+        "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+    );
+
+    // this should be empty, because the doc hasn't loaded
+    assert!(ls.get_completions("foo.qs", 76).items.is_empty());
+}
+
+#[tokio::test]
+async fn completions_requested_after_document_load() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    // this test is a contrast to `completions_requested_before_document_load`
+    // we want to ensure that completions load when the update_document call has been awaited
+    ls.update_document(
+        "foo.qs",
+        1,
+        "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+    ).await;
+
+    // this should be empty, because the doc hasn't loaded
+    assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13);
 }
 
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {

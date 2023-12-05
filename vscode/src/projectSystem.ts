@@ -57,10 +57,14 @@ export async function getManifest(uri: string): Promise<{
 async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
-  // /home/foo/bar/document.qs
+  // file://home/foo/bar/document.qs
+  // or, e.g. in vscode on a virtual file system,
+  // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
-  // /home/foo/bar
+  // just the parent
+  // e.g.
+  // file://home/foo/bar
   let uriToQuery = Utils.dirname(currentDocumentUri);
 
   let attempts = 100;

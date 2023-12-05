@@ -22,15 +22,18 @@ extern "C" {
     pub type GetManifestCallback;
 }
 
-/// This macro calls an async JS function, awaits it, and then applies a transformer function to it. Ultimately, it returns a function that accepts a String
-/// and returns a JS promise that is represented by a Rust future. (I know. Ouch. My head.)
-macro_rules! call_async_js_fn {
-    ($js_async_fn: ident, $transformer: expr) => {{
+/// This macro produces a function that calls an async JS function, awaits it, and then applies a function to the resulting value.
+/// Ultimately, it returns a function that accepts a String and returns a Rust future that represents a JS Promise. Awaiting that
+/// Rust future will await the resolution of the promise.
+/// The name of this macro should be read like "convert a JS promise into an async rust function with this mapping function"
+macro_rules! into_async_rust_fn_with {
+    ($js_async_fn: ident, $map_result: expr) => {{
         use crate::project_system::{map_js_promise, to_js_function};
         use std::future::Future;
         use std::pin::Pin;
         use wasm_bindgen::JsValue;
         use wasm_bindgen_futures::JsFuture;
+
         let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
 
         let $js_async_fn = move |input: String| {
@@ -42,8 +45,7 @@ macro_rules! call_async_js_fn {
 
             let res: JsFuture = res.into();
 
-            let input = input.clone();
-            Box::pin(map_js_promise(res, move |x| $transformer(x, input.clone())))
+            Box::pin(map_js_promise(res, move |x| $map_result(x, input.clone())))
                 as Pin<Box<dyn Future<Output = _> + 'static>>
         };
         $js_async_fn
@@ -69,7 +71,7 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
         })
         .clone()
 }
-pub(crate) use call_async_js_fn;
+pub(crate) use into_async_rust_fn_with;
 use wasm_bindgen_futures::JsFuture;
 pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFileEntry> {
     match js_val.dyn_into::<js_sys::Array>() {

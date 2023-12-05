@@ -23,7 +23,7 @@ mod tests;
 
 use async_recursion::async_recursion;
 use compilation::Compilation;
-use log::{error, trace};
+use log::{error, trace, warn};
 use miette::Diagnostic;
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
@@ -404,7 +404,7 @@ impl<'a> LanguageService<'a> {
     }
 
     /// Executes an operation that takes a document uri and offset, using the current compilation for that document
-    fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
+    fn document_op<F, T: Default>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
     where
         F: Fn(&Compilation, &str, u32) -> T,
         T: std::fmt::Debug + Default,
@@ -420,7 +420,8 @@ impl<'a> LanguageService<'a> {
             .as_ref()
             .map(|x| x.compilation.clone())
         else {
-            panic!("{op_name} (called on {uri}) should not be called for a document that has not been opened",)
+            warn!("{op_name} (called on {uri}) should not be called for a document that has not been opened",);
+            return T::default();
         };
 
         trace!("{op_name}: compilation_uri: {compilation_uri}");

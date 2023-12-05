@@ -4,8 +4,8 @@
 use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use crate::{
-    call_async_js_fn,
     diagnostic::VSDiagnostic,
+    into_async_rust_fn_with,
     project_system::{
         get_manifest_transformer, list_directory_transformer, read_file_transformer,
         GetManifestCallback, ListDirectoryCallback, ReadFileCallback,
@@ -33,13 +33,13 @@ impl LanguageService {
         get_manifest: GetManifestCallback,
     ) -> Self {
         let read_file = read_file.into();
-        let read_file = call_async_js_fn!(read_file, read_file_transformer);
+        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
 
         let list_directory = list_directory.into();
-        let list_directory = call_async_js_fn!(list_directory, list_directory_transformer);
+        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
 
         let get_manifest: JsValue = get_manifest.into();
-        let get_manifest = call_async_js_fn!(get_manifest, get_manifest_transformer);
+        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
 
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");

@@ -43,7 +43,7 @@ mod project_system {
             path: &std::path::Path,
         ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
             let read_file = self.read_file.clone().into();
-            let result = (call_async_js_fn!(read_file, read_file_transformer))(
+            let result = (into_async_rust_fn_with!(read_file, read_file_transformer))(
                 path.to_string_lossy().to_string(),
             )
             .await;
@@ -52,7 +52,7 @@ mod project_system {
 
         async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
             let list_directory = self.list_directory.clone().into();
-            let result = (call_async_js_fn!(list_directory, list_directory_transformer))(
+            let result = (into_async_rust_fn_with!(list_directory, list_directory_transformer))(
                 path.to_string_lossy().to_string(),
             )
             .await;
