@@ -32,7 +32,7 @@ use protocol::{
 use qsc::{compile::Error, PackageType, TargetProfile};
 use qsc_project::FileSystemAsync;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{future::Future, mem::take, path::PathBuf, pin::Pin, sync::Arc};
+use std::{future::Future, mem::take, pin::Pin, sync::Arc};
 
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
@@ -76,10 +76,10 @@ pub struct LanguageService<'a> {
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     /// Callback which lets the service read a file from the target filesystem
-    read_file_callback: AsyncFunction<'a, PathBuf, (Arc<str>, Arc<str>)>,
+    read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory: AsyncFunction<'a, PathBuf, Vec<JSFileEntry>>,
+    list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
     /// Fetch the manifest file for a specific path
     get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
     /// Whether or not a compile is currently running.
@@ -124,8 +124,8 @@ struct OpenDocument {
 impl<'a> LanguageService<'a> {
     pub fn new(
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        read_file: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
-        list_directory: impl Fn(PathBuf) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
+        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
+        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
         get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
             + 'a,
     ) -> Self {

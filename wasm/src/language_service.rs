@@ -16,6 +16,31 @@ use wasm_bindgen_futures::JsFuture;
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
+/// This macro calls an async JS function, awaits it, and then applies a transformer function to it. Ultimately, it returns a function that accepts a String
+/// and returns a JS promise that is represented by a Rust future. (I know. Ouch. My head.)
+// Note that at the call sites of this macro, we have to use
+// `#[allow(clippy::redundant_closure_call)]` -- this is because we are passing a transform
+macro_rules! call_async_js_fn {
+    ($js_async_fn: ident, $transformer: expr) => {{
+        let $js_async_fn = to_js_function($js_async_fn.obj, stringify!($js_async_fn));
+
+        let $js_async_fn = move |input: String| {
+            let path = JsValue::from_str(&input);
+            let res: js_sys::Promise = $js_async_fn
+                .call1(&JsValue::NULL, &path)
+                .expect("callback should succeed")
+                .into();
+
+            let res: JsFuture = res.into();
+
+            let input = input.clone();
+            Box::pin(map_js_promise(res, move |x| $transformer(x, input.clone())))
+                as Pin<Box<dyn Future<Output = _> + 'static>>
+        };
+        $js_async_fn
+    }};
+}
+
 async fn map_js_promise<F, T>(res: JsFuture, func: F) -> T
 where
     F: Fn(JsValue) -> T,
@@ -45,138 +70,103 @@ impl LanguageService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> Self {
-        // first, map functions to js functions
-        let read_file = to_js_function(read_file.obj, "read_file");
-        let list_directory = to_js_function(list_directory.obj, "list_directory");
-        let get_manifest = to_js_function(get_manifest.obj, "get_manifest");
-        let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
-
-        let read_file = move |path_buf: PathBuf| {
-            let path_buf_string = &path_buf.to_string_lossy().to_string();
-            let path = JsValue::from_str(path_buf_string);
-            let res: js_sys::Promise = read_file
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed")
-                .into();
-
-            let res: JsFuture = res.into();
-
-            let path_buf_string = path_buf_string.clone();
-            let func = move |js_val: JsValue| match js_val.as_string() {
-                Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-                // this can happen if the document is completely empty
-                None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
-                None => unreachable!("Expected string from JS callback, received {js_val:?}"),
-            };
-            Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+        let transformer = move |js_val: JsValue, path_buf_string: String| match js_val.as_string() {
+            Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
+            // this can happen if the document is completely empty
+            None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
+            None => unreachable!("Expected string from JS callback, received {js_val:?}"),
         };
+        let read_file = call_async_js_fn!(read_file, transformer);
 
-        let list_directory = move |path_buf: PathBuf| {
-            let path_buf_string = &path_buf.to_string_lossy().to_string();
-            let path = JsValue::from_str(path_buf_string);
-            let res: js_sys::Promise = list_directory
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed")
-                .into();
-
-            let res: JsFuture = res.into();
-
-            let func = move |js_val: JsValue| match js_val.dyn_into::<js_sys::Array>() {
-                Ok(arr) => arr
-                    .into_iter()
-                    .map(|x| {
-                        x.dyn_into::<js_sys::Array>()
-                            .expect("expected directory listing callback to return array of arrays")
-                    })
-                    .filter_map(|js_arr| {
-                        let mut arr = js_arr.into_iter().take(2);
-                        match (
-                            arr.next().unwrap().as_string(),
-                            arr.next().unwrap().as_f64(),
-                        ) {
-                            (Some(a), Some(b)) => Some((a, b as i32)),
-                            _ => None,
-                        }
-                    })
-                    .map(|(name, ty)| JSFileEntry {
-                        name,
-                        r#type: match ty {
-                            0 => EntryType::Unknown,
-                            1 => EntryType::File,
-                            2 => EntryType::Folder,
-                            64 => EntryType::Symlink,
-                            _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
-                        },
-                    })
-                    .collect::<Vec<_>>(),
-                Err(e) => todo!("result wasn't an array error: {e:?}"),
-            };
-            Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+        let transformer = move |js_val: JsValue, _: String| match js_val.dyn_into::<js_sys::Array>()
+        {
+            Ok(arr) => arr
+                .into_iter()
+                .map(|x| {
+                    x.dyn_into::<js_sys::Array>()
+                        .expect("expected directory listing callback to return array of arrays")
+                })
+                .filter_map(|js_arr| {
+                    let mut arr = js_arr.into_iter().take(2);
+                    match (
+                        arr.next().unwrap().as_string(),
+                        arr.next().unwrap().as_f64(),
+                    ) {
+                        (Some(a), Some(b)) => Some((a, b as i32)),
+                        _ => None,
+                    }
+                })
+                .map(|(name, ty)| JSFileEntry {
+                    name,
+                    r#type: match ty {
+                        0 => EntryType::Unknown,
+                        1 => EntryType::File,
+                        2 => EntryType::Folder,
+                        64 => EntryType::Symlink,
+                        _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
+                    },
+                })
+                .collect::<Vec<_>>(),
+            Err(e) => todo!("result wasn't an array error: {e:?}"),
         };
+        let list_directory = call_async_js_fn!(list_directory, transformer);
 
-        let get_manifest = move |uri: String| {
-            let path = JsValue::from_str(&uri);
-            let res: js_sys::Promise = get_manifest
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed")
-                .into();
+        let transformer = move |js_val: JsValue, _| {
+            if js_val.is_null() {
+                return None;
+            }
 
-            let res: JsFuture = res.into();
-
-            let func = move |js_val: JsValue| {
-                if js_val.is_null() {
-                    return None;
-                }
-
-                let manifest_dir = match js_sys::Reflect::get(&js_val, &JsValue::from_str("manifestDirectory")) {
+            let manifest_dir = match js_sys::Reflect::get(&js_val, &JsValue::from_str("manifestDirectory")) {
                     Ok(v) => v
                         .as_string()
                         .unwrap_or_else(|| panic!("manifest callback returned {:?}, but we expected a string representing its URI", v)),
                     Err(_) => todo!(),
                 };
-                log::trace!("found manifest at {manifest_dir:?}");
+            log::trace!("found manifest at {manifest_dir:?}");
 
-                let manifest_dir = PathBuf::from(manifest_dir);
+            let manifest_dir = PathBuf::from(manifest_dir);
 
-                let exclude_files =
-                    match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeFiles")) {
-                        Ok(v) => match v.dyn_into::<js_sys::Array>() {
-                            Ok(arr) => arr
-                                .into_iter()
-                                .filter_map(|x| x.as_string())
-                                .collect::<Vec<_>>(),
-                            Err(e) => todo!("result wasn't an array error: {e:?}"),
-                        },
-                        Err(_) => todo!(),
-                    };
-                let exclude_regexes =
-                    match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes")) {
-                        Ok(v) => match v.dyn_into::<js_sys::Array>() {
-                            Ok(arr) => arr
-                                .into_iter()
-                                .filter_map(|x| x.as_string())
-                                .collect::<Vec<_>>(),
-                            Err(e) => todo!("result wasn't an array error: {e:?}"),
-                        },
-                        Err(_) => todo!(),
-                    };
-
-                Some(ManifestDescriptor {
-                    manifest: Manifest {
-                        exclude_regexes,
-                        exclude_files,
-                        ..Default::default()
+            let exclude_files =
+                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeFiles")) {
+                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
+                        Ok(arr) => arr
+                            .into_iter()
+                            .filter_map(|x| x.as_string())
+                            .collect::<Vec<_>>(),
+                        Err(e) => todo!("result wasn't an array error: {e:?}"),
                     },
-                    manifest_dir,
-                })
-            };
-            Box::pin(map_js_promise(res, func)) as Pin<Box<dyn Future<Output = _> + 'static>>
+                    Err(_) => todo!(),
+                };
+            let exclude_regexes =
+                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes")) {
+                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
+                        Ok(arr) => arr
+                            .into_iter()
+                            .filter_map(|x| x.as_string())
+                            .collect::<Vec<_>>(),
+                        Err(e) => todo!("result wasn't an array error: {e:?}"),
+                    },
+                    Err(_) => todo!(),
+                };
+
+            Some(ManifestDescriptor {
+                manifest: Manifest {
+                    exclude_regexes,
+                    exclude_files,
+                    ..Default::default()
+                },
+                manifest_dir,
+            })
         };
+        let get_manifest = call_async_js_fn!(get_manifest, transformer);
+
+        let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
+
         let inner = qsls::LanguageService::new(
             move |update| {
                 let diags = update
