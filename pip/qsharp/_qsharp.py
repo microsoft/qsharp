@@ -84,9 +84,12 @@ def compile(entry_expr):
 
     :param entry_expr: The Q# expression that will be used as the entrypoint
         for the program.
+
+    :returns QirInputData: The compiled program.
     """
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
+
 
 def dump_machine() -> StateDump:
     """
@@ -115,4 +118,17 @@ class QirInputData:
     # The name of this method is defined
     # by the protocol and must remain unchanged.
     def _repr_qir_(self, **kwargs) -> bytes:
-        return self._ll_str.encode("utf-8")
+        return self.get_qir_str().encode("utf-8")
+
+    def get_qir_str(self) -> str:
+        """
+        Returns the QIR LLVM string representation of this program as a bytes object.
+
+        Example:
+
+        .. code-block:: python
+            program = qsharp.compile("...")
+            with open('myfile.ll', 'w') as file:
+                file.write(program.get_qir_str())
+        """
+        return self._ll_str
