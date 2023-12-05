@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.TableLookup {
+namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
@@ -196,7 +196,11 @@ namespace Microsoft.Quantum.TableLookup {
     // Returns true if the number of indices for which both result and data are
     // `true` is odd.
     internal function MustBeFixed(result : Bool[], data : Bool[]) : Bool {
-        Fold((state, (r, d)) -> state != (r and d), false, Zipped(result, data))
+        mutable state = false;
+        for i in IndexRange(result) {
+            set state = state != (result[i] and data[i]);
+        }
+        state
     }
 
     // Computes unary encoding of value in `input` into `target`
@@ -216,23 +220,20 @@ namespace Microsoft.Quantum.TableLookup {
 
         X(Head(target));
 
-        for (i, c) in Enumerated(input) {
+        for i in IndexRange(input) {
             if i == 0 {
-                CNOT(c, target[1]);
+                CNOT(input[i], target[1]);
                 CNOT(target[1], target[0]);
             } else {
-                // targets are the first and second 2^i qubits of the target
-                // register
+                // targets are the first and second 2^i qubits of the target register
                 let split = Partitioned([2^i, 2^i], target);
-                ApplyToEachA(
-                    (t1, t2) => {
-                        ApplyAndAssuming0Target(c, t1, t2);
-                        CNOT(t2, t1)
-                    },
-                    Zipped(split[0], split[1])
-                );
+                for j in IndexRange(split[0]) {
+                    ApplyAndAssuming0Target(input[i], split[0][j], split[1][j]);
+                    CNOT(split[1][j], split[0][j]);
+                }
             }
         }
+
     }
 
     internal newtype AndChain = (
@@ -261,8 +262,8 @@ namespace Microsoft.Quantum.TableLookup {
             let ctls2 = ctls[1...];
             let tgts = helper + [target];
 
-            for (idx, tgt) in Enumerated(tgts) {
-                ApplyAndAssuming0Target(ctls1[idx], ctls2[idx], tgt);
+            for idx in IndexRange(tgts) {
+                ApplyAndAssuming0Target(ctls1[idx], ctls2[idx], tgts[idx]);
             }
         }
     }

@@ -5,7 +5,7 @@ namespace Test {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.TableLookup;
+    open Microsoft.Quantum.Unstable.TableLookup;
 
     internal operation TestSelect(addressBits : Int, dataBits : Int) : Unit {
         use addressRegister = Qubit[addressBits];

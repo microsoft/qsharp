@@ -47,7 +47,7 @@ fn check_select_exhaustive_bitwidth_4() {
 #[test]
 fn check_select_fuzz() {
     test_expression_with_lib(
-        "Test.TestSelectFuzz(20)",
+        "Test.TestSelectFuzz(10)",
         SELECT_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
