@@ -18,8 +18,6 @@ pub struct LanguageService(qsls::LanguageService<'static>);
 
 /// This macro calls an async JS function, awaits it, and then applies a transformer function to it. Ultimately, it returns a function that accepts a String
 /// and returns a JS promise that is represented by a Rust future. (I know. Ouch. My head.)
-// Note that at the call sites of this macro, we have to use
-// `#[allow(clippy::redundant_closure_call)]` -- this is because we are passing a transform
 macro_rules! call_async_js_fn {
     ($js_async_fn: ident, $transformer: expr) => {{
         let $js_async_fn = to_js_function($js_async_fn.obj, stringify!($js_async_fn));
