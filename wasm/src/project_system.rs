@@ -100,7 +100,7 @@ pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFi
                 },
             })
             .collect::<Vec<_>>(),
-        Err(e) => todo!("result wasn't an array error: {e:?}"),
+            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
     }
 }
 pub(crate) fn read_file_transformer(
@@ -128,7 +128,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
                 v
             )
         }),
-        Err(_) => todo!(),
+                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
     };
     log::trace!("found manifest at {manifest_dir:?}");
 
@@ -140,9 +140,9 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
                 .into_iter()
                 .filter_map(|x| x.as_string())
                 .collect::<Vec<_>>(),
-            Err(e) => todo!("result wasn't an array error: {e:?}"),
+            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
         },
-        Err(_) => todo!(),
+                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a excludeFiles property is returned here"),
     };
     let exclude_regexes = match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes"))
     {
@@ -151,9 +151,9 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
                 .into_iter()
                 .filter_map(|x| x.as_string())
                 .collect::<Vec<_>>(),
-            Err(e) => todo!("result wasn't an array error: {e:?}"),
+            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
         },
-        Err(_) => todo!(),
+        Err(_) => unreachable!("our typescript bindings should guarantee that an object with a excludeRegexes property is returned here"),
     };
 
     Some(ManifestDescriptor {
