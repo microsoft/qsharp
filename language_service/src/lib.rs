@@ -25,12 +25,11 @@ use async_recursion::async_recursion;
 use compilation::Compilation;
 use log::{error, trace};
 use miette::Diagnostic;
-pub use project_system::JSFileEntry;
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
-use qsc_project::FileSystemAsync;
+use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{future::Future, mem::take, pin::Pin, sync::Arc};
 

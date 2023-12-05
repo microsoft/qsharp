@@ -5,6 +5,7 @@ use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use project_system::*;
 use qsc::{
     compile::{self},
     hir::PackageId,
@@ -270,4 +271,28 @@ pub fn check_exercise_solution(
     check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     })
+}
+
+mod project_system {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
+        pub type ReadFileCallback;
+    }
+
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(typescript_type = "(uri: string) => Promise<[string, number][]>")]
+        pub type ListDirectoryCallback;
+    }
+
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(
+            typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
+        )]
+        pub type GetManifestCallback;
+    }
 }

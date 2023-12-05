@@ -5,7 +5,9 @@ use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
+use qsc_project::ProjectSystemCallbacks;
 
+use crate::project_system::{GetManifestCallback, ListDirectoryCallback, ReadFileCallback};
 use crate::{serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;

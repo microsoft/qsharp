@@ -3,11 +3,14 @@
 
 use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
-use crate::{diagnostic::VSDiagnostic, serializable_type};
+use crate::{
+    diagnostic::VSDiagnostic,
+    project_system::{GetManifestCallback, ListDirectoryCallback, ReadFileCallback},
+    serializable_type,
+};
 use js_sys::JsString;
 use qsc::{self};
-use qsc_project::{EntryType, Manifest, ManifestDescriptor};
-use qsls::JSFileEntry;
+use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -20,7 +23,7 @@ pub struct LanguageService(qsls::LanguageService<'static>);
 /// and returns a JS promise that is represented by a Rust future. (I know. Ouch. My head.)
 macro_rules! call_async_js_fn {
     ($js_async_fn: ident, $transformer: expr) => {{
-        let $js_async_fn = to_js_function($js_async_fn.obj, stringify!($js_async_fn));
+        let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
 
         let $js_async_fn = move |input: String| {
             let path = JsValue::from_str(&input);
@@ -74,6 +77,7 @@ impl LanguageService {
             None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
             None => unreachable!("Expected string from JS callback, received {js_val:?}"),
         };
+        let read_file = read_file.into();
         let read_file = call_async_js_fn!(read_file, transformer);
 
         let transformer = move |js_val: JsValue, _: String| match js_val.dyn_into::<js_sys::Array>()
@@ -107,6 +111,7 @@ impl LanguageService {
                 .collect::<Vec<_>>(),
             Err(e) => todo!("result wasn't an array error: {e:?}"),
         };
+        let list_directory = list_directory.into();
         let list_directory = call_async_js_fn!(list_directory, transformer);
 
         let transformer = move |js_val: JsValue, _| {
@@ -156,6 +161,7 @@ impl LanguageService {
                 manifest_dir,
             })
         };
+        let get_manifest: JsValue = get_manifest.into();
         let get_manifest = call_async_js_fn!(get_manifest, transformer);
 
         let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
@@ -552,24 +558,4 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => Promise<void>"
     )]
     pub type DiagnosticsCallback;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
-    pub type ReadFileCallback;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<[string, number][]>")]
-    pub type ListDirectoryCallback;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(
-        typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
-    )]
-    pub type GetManifestCallback;
 }
