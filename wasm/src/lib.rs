@@ -24,6 +24,7 @@ mod debug_service;
 mod diagnostic;
 mod language_service;
 mod logging;
+mod project_system;
 mod serializable_type;
 
 #[cfg(test)]
@@ -271,28 +272,4 @@ pub fn check_exercise_solution(
     check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     })
-}
-
-mod project_system {
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
-        pub type ReadFileCallback;
-    }
-
-    #[wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen(typescript_type = "(uri: string) => Promise<[string, number][]>")]
-        pub type ListDirectoryCallback;
-    }
-
-    #[wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen(
-            typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
-        )]
-        pub type GetManifestCallback;
-    }
 }

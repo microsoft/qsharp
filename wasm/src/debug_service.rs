@@ -39,6 +39,9 @@ impl DebugService {
         source: String,
         target_profile: String,
         entry: Option<String>,
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+        get_manifest: GetManifestCallback,
     ) -> String {
         let source_map = SourceMap::new(
             [(path.into(), source.into())],

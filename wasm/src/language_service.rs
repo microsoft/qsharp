@@ -4,6 +4,7 @@
 use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use crate::{
+    call_async_js_fn,
     diagnostic::VSDiagnostic,
     project_system::{GetManifestCallback, ListDirectoryCallback, ReadFileCallback},
     serializable_type,
@@ -18,49 +19,6 @@ use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
-
-/// This macro calls an async JS function, awaits it, and then applies a transformer function to it. Ultimately, it returns a function that accepts a String
-/// and returns a JS promise that is represented by a Rust future. (I know. Ouch. My head.)
-macro_rules! call_async_js_fn {
-    ($js_async_fn: ident, $transformer: expr) => {{
-        let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
-
-        let $js_async_fn = move |input: String| {
-            let path = JsValue::from_str(&input);
-            let res: js_sys::Promise = $js_async_fn
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed")
-                .into();
-
-            let res: JsFuture = res.into();
-
-            let input = input.clone();
-            Box::pin(map_js_promise(res, move |x| $transformer(x, input.clone())))
-                as Pin<Box<dyn Future<Output = _> + 'static>>
-        };
-        $js_async_fn
-    }};
-}
-
-async fn map_js_promise<F, T>(res: JsFuture, func: F) -> T
-where
-    F: Fn(JsValue) -> T,
-{
-    let res = res.await.expect("js future shouldn't throw an exception");
-    log::trace!("asynchronous callback from wasm returned {res:?}");
-    func(res)
-}
-
-fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
-    val.dyn_ref::<js_sys::Function>()
-        .unwrap_or_else(|| {
-            panic!(
-                "expected a valid JS function ({help_text_panic}), received {:?}",
-                val.js_typeof()
-            )
-        })
-        .clone()
-}
 
 #[wasm_bindgen]
 impl LanguageService {
@@ -164,7 +122,8 @@ impl LanguageService {
         let get_manifest: JsValue = get_manifest.into();
         let get_manifest = call_async_js_fn!(get_manifest, transformer);
 
-        let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
+        let diagnostics_callback =
+            crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
