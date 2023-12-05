@@ -76,7 +76,8 @@ impl LanguageService {
         };
         let read_file = call_async_js_fn!(read_file, transformer);
 
-        let transformer = move |js_val: JsValue, _: String| match js_val.dyn_into::<js_sys::Array>()
+        let transformer = move |js_val: JsValue, _: String| {
+            match js_val.dyn_into::<js_sys::Array>()
         {
             Ok(arr) => arr
                 .into_iter()
@@ -105,7 +106,8 @@ impl LanguageService {
                     },
                 })
                 .collect::<Vec<_>>(),
-            Err(e) => todo!("result wasn't an array error: {e:?}"),
+            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
+        }
         };
         let list_directory = call_async_js_fn!(list_directory, transformer);
 
@@ -118,7 +120,7 @@ impl LanguageService {
                     Ok(v) => v
                         .as_string()
                         .unwrap_or_else(|| panic!("manifest callback returned {:?}, but we expected a string representing its URI", v)),
-                    Err(_) => todo!(),
+                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
                 };
             log::trace!("found manifest at {manifest_dir:?}");
 
@@ -131,9 +133,9 @@ impl LanguageService {
                             .into_iter()
                             .filter_map(|x| x.as_string())
                             .collect::<Vec<_>>(),
-                        Err(e) => todo!("result wasn't an array error: {e:?}"),
+                        Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
                     },
-                    Err(_) => todo!(),
+                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with an excludeFiles property is returned here"),
                 };
             let exclude_regexes =
                 match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes")) {
@@ -142,9 +144,9 @@ impl LanguageService {
                             .into_iter()
                             .filter_map(|x| x.as_string())
                             .collect::<Vec<_>>(),
-                        Err(e) => todo!("result wasn't an array error: {e:?}"),
+                        Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
                     },
-                    Err(_) => todo!(),
+                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with an excludeRegexes property is returned here"),
                 };
 
             Some(ManifestDescriptor {
