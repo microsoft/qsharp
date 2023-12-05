@@ -122,7 +122,7 @@ class QirInputData:
 
     def get_qir_str(self) -> str:
         """
-        Returns the QIR LLVM string representation of this program as a bytes object.
+        Returns the QIR LLVM string representation of this program.
 
         Example:
 
