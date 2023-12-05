@@ -86,6 +86,15 @@ def compile(entry_expr):
         for the program.
 
     :returns QirInputData: The compiled program.
+
+    To get the QIR string from the compiled program, use `str()`.
+
+    Example:
+
+    .. code-block:: python
+        program = qsharp.compile("...")
+        with open('myfile.ll', 'w') as file:
+            file.write(str(program))
     """
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
@@ -118,17 +127,7 @@ class QirInputData:
     # The name of this method is defined
     # by the protocol and must remain unchanged.
     def _repr_qir_(self, **kwargs) -> bytes:
-        return self.get_qir_str().encode("utf-8")
+        return self._ll_str.encode("utf-8")
 
-    def get_qir_str(self) -> str:
-        """
-        Returns the QIR LLVM string representation of this program.
-
-        Example:
-
-        .. code-block:: python
-            program = qsharp.compile("...")
-            with open('myfile.ll', 'w') as file:
-                file.write(program.get_qir_str())
-        """
+    def __str__(self) -> str:
         return self._ll_str
