@@ -16,10 +16,12 @@ use wasm_bindgen_futures::JsFuture;
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
-/// This macro calls an async JS function, awaits it, and then applies a transformer function to it. Ultimately, it returns a function that accepts a String
-/// and returns a JS promise that is represented by a Rust future. (I know. Ouch. My head.)
-macro_rules! call_async_js_fn {
-    ($js_async_fn: ident, $transformer: expr) => {{
+/// This macro produces a function that calls an async JS function, awaits it, and then applies a function to the resulting value.
+/// Ultimately, it returns a function that accepts a String and returns a Rust future that represents a JS Promise. Awaiting that
+/// Rust future will await the resolution of the promise.
+/// The name of this macro should be read like "convert a JS promise into an async rust function with this mapping function"
+macro_rules! into_async_rust_fn_with {
+    ($js_async_fn: ident, $map_result: expr) => {{
         let $js_async_fn = to_js_function($js_async_fn.obj, stringify!($js_async_fn));
 
         let $js_async_fn = move |input: String| {
@@ -31,8 +33,7 @@ macro_rules! call_async_js_fn {
 
             let res: JsFuture = res.into();
 
-            let input = input.clone();
-            Box::pin(map_js_promise(res, move |x| $transformer(x, input.clone())))
+            Box::pin(map_js_promise(res, move |x| $map_result(x, input.clone())))
                 as Pin<Box<dyn Future<Output = _> + 'static>>
         };
         $js_async_fn
@@ -74,7 +75,7 @@ impl LanguageService {
             None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
             None => unreachable!("Expected string from JS callback, received {js_val:?}"),
         };
-        let read_file = call_async_js_fn!(read_file, transformer);
+        let read_file = into_async_rust_fn_with!(read_file, transformer);
 
         let transformer = move |js_val: JsValue, _: String| {
             match js_val.dyn_into::<js_sys::Array>()
@@ -109,7 +110,7 @@ impl LanguageService {
             Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
         }
         };
-        let list_directory = call_async_js_fn!(list_directory, transformer);
+        let list_directory = into_async_rust_fn_with!(list_directory, transformer);
 
         let transformer = move |js_val: JsValue, _| {
             if js_val.is_null() {
@@ -158,7 +159,7 @@ impl LanguageService {
                 manifest_dir,
             })
         };
-        let get_manifest = call_async_js_fn!(get_manifest, transformer);
+        let get_manifest = into_async_rust_fn_with!(get_manifest, transformer);
 
         let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
