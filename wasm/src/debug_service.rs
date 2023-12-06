@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use log::{error, trace};
 use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
@@ -19,44 +20,73 @@ pub struct DebugService {
     interpreter: Interpreter,
 }
 mod project_system {
+    use std::{future::Future, pin::Pin, sync::Arc};
+
     // Copyright (c) Microsoft Corporation.
     // Licensed under the MIT License.
     use crate::project_system::*;
     use async_trait::async_trait;
-    use qsc_project::JSFileEntry;
-    use wasm_bindgen::prelude::wasm_bindgen;
+    use qsc_project::{JSFileEntry, ManifestDescriptor};
+    use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+
+    /// the desugared return type of an "async fn"
+    type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
+
+    /// represents a unary async fn where `Arg` is the input
+    /// parameter and `Return` is the return type. The lifetime
+    /// `'a` represents the lifetime of the contained `dyn Fn`.
+    type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
 
     /// There are some differences in the implementation here versus the one in the language service.
     /// Because the debugger itself is bound with `wasm_bindgen`, we can't directly store
     /// non-serializeable types on the struct.
-    pub struct DebugServiceProjectLoader {
-        pub read_file: ReadFileCallback,
-        pub list_directory: ListDirectoryCallback,
-        pub get_manifest: GetManifestCallback,
+    pub struct DebugServiceProjectLoader<'a> {
+        /// Callback which lets the service read a file from the target filesystem
+        read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
+        /// Callback which lets the service list directory contents
+        /// on the target file system
+        list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
+        /// Fetch the manifest file for a specific path
+        get_manifest_cb: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
     }
 
     #[async_trait(?Send)]
-    impl qsc_project::FileSystemAsync for DebugServiceProjectLoader {
+    impl qsc_project::FileSystemAsync for DebugServiceProjectLoader<'_> {
         type Entry = JSFileEntry;
         async fn read_file(
             &self,
             path: &std::path::Path,
         ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-            let read_file = self.read_file.clone().into();
-            let result = (into_async_rust_fn_with!(read_file, read_file_transformer))(
-                path.to_string_lossy().to_string(),
-            )
-            .await;
-            Ok(result)
+            Ok((self.read_file_callback)(path.to_string_lossy().to_string()).await)
         }
 
         async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-            let list_directory = self.list_directory.clone().into();
-            let result = (into_async_rust_fn_with!(list_directory, list_directory_transformer))(
-                path.to_string_lossy().to_string(),
-            )
-            .await;
-            Ok(result)
+            Ok((self.list_directory)(path.to_string_lossy().to_string()).await)
+        }
+    }
+
+    impl DebugServiceProjectLoader<'_> {
+        pub fn new(
+            read_file: ReadFileCallback,
+            list_directory: ListDirectoryCallback,
+            get_manifest: GetManifestCallback,
+        ) -> Self {
+            let read_file = read_file.into();
+            let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
+            let list_directory = list_directory.into();
+            let list_directory =
+                into_async_rust_fn_with!(list_directory, list_directory_transformer);
+            let get_manifest = get_manifest.into();
+            let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
+
+            Self {
+                read_file_callback: Box::new(read_file),
+                list_directory: Box::new(list_directory),
+                get_manifest_cb: Box::new(get_manifest),
+            }
+        }
+        pub async fn get_manifest(&self, uri: &str) -> Option<ManifestDescriptor> {
+            (self.get_manifest_cb)(uri.to_string()).await
         }
     }
 }
@@ -76,7 +106,7 @@ impl DebugService {
         }
     }
 
-    pub fn load_source(
+    pub async fn load_source(
         &mut self,
         path: String,
         source: String,
@@ -86,15 +116,22 @@ impl DebugService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> String {
-        let loader = DebugServiceProjectLoader {
-            read_file,
-            list_directory,
-            get_manifest,
+        let loader = DebugServiceProjectLoader::new(read_file, list_directory, get_manifest);
+        let manifest = loader.get_manifest(&path).await;
+        let sources = if let Some(ref manifest) = manifest {
+            match loader.load_project(manifest).await {
+                Ok(o) => o.sources,
+                Err(e) => {
+                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
+                    vec![(path.into(), source.into())]
+                }
+            }
+        } else {
+            trace!("Running in single file mode");
+            vec![(path.into(), source.into())]
         };
-        let source_map = SourceMap::new(
-            [(path.into(), source.into())],
-            entry.as_deref().map(|value| value.into()),
-        );
+
+        let source_map = SourceMap::new(sources, entry.as_deref().map(|value| value.into()));
         let target = match target_profile.as_str() {
             "base" => TargetProfile::Base,
             "full" => TargetProfile::Full,

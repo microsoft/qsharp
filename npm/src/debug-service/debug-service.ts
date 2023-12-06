@@ -24,6 +24,13 @@ export interface IDebugService {
     source: string,
     target: "base" | "full",
     entry: string | undefined,
+    readFile: (uri: string) => Promise<string | null>,
+    listDir: (uri: string) => Promise<[string, number][]> ,
+    getManifest: (uri: string) => Promise<{
+      excludeFiles: string[];
+      excludeRegexes: string[];
+      manifestDirectory: string;
+    } | null> 
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
@@ -68,9 +75,18 @@ export class QSharpDebugService implements IDebugService {
     source: string,
     target: "base" | "full",
     entry: string | undefined,
+    readFile: (uri: string) => Promise<string | null> = () =>
+      Promise.resolve(null),
+    listDir: (uri: string) => Promise<[string, number][]> = () =>
+      Promise.resolve([]),
+    getManifest: (uri: string) => Promise<{
+      excludeFiles: string[];
+      excludeRegexes: string[];
+      manifestDirectory: string;
+    } | null> = () => Promise.resolve(null),
   ): Promise<string> {
     this.code[path] = source;
-    return this.debugService.load_source(path, source, target, entry);
+    return this.debugService.load_source(path, source, target, entry, readFile, listDir, getManifest);
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {

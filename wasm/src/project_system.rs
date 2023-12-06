@@ -62,14 +62,13 @@ where
 }
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
-    val.dyn_ref::<js_sys::Function>()
-        .unwrap_or_else(|| {
-            panic!(
-                "expected a valid JS function ({help_text_panic}), received {:?}",
-                val.js_typeof()
-            )
-        })
-        .clone()
+    let js_ty = val.js_typeof();
+    TryInto::<js_sys::Function>::try_into(val).unwrap_or_else(|_| {
+        panic!(
+            "expected a valid JS function ({help_text_panic}), received {:?}",
+            js_ty
+        )
+    })
 }
 pub(crate) use into_async_rust_fn_with;
 use wasm_bindgen_futures::JsFuture;
