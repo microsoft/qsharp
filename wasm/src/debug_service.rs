@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::sync::Arc;
+
 use log::{error, trace};
 use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
@@ -108,29 +110,23 @@ impl DebugService {
 
     pub async fn load_source(
         &mut self,
-        path: String,
-        source: String,
+        // can't wasm_bindgen [string; 2] or (string, string)
+        // so we have to manually assert length of the interior
+        // array and the content type in the function body
+        // `sources` should be Vec<[String; 2]> though
+        sources: Vec<js_sys::Array>,
         target_profile: String,
         entry: Option<String>,
-        read_file: ReadFileCallback,
-        list_directory: ListDirectoryCallback,
-        get_manifest: GetManifestCallback,
     ) -> String {
-        let loader = DebugServiceProjectLoader::new(read_file, list_directory, get_manifest);
-        let manifest = loader.get_manifest(&path).await;
-        let sources = if let Some(ref manifest) = manifest {
-            match loader.load_project(manifest).await {
-                Ok(o) => o.sources,
-                Err(e) => {
-                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
-                    vec![(path.into(), source.into())]
-                }
-            }
-        } else {
-            trace!("Running in single file mode");
-            vec![(path.into(), source.into())]
-        };
-
+        let sources = sources.into_iter().map(|js_arr| {
+            // map the inner arr elements into (String, String)
+            let elem_0 = js_arr.get(0).as_string();
+            let elem_1 = js_arr.get(0).as_string();
+            (
+                Arc::from(elem_0.unwrap_or_default()),
+                Arc::from(elem_1.unwrap_or_default()),
+            )
+        });
         let source_map = SourceMap::new(sources, entry.as_deref().map(|value| value.into()));
         let target = match target_profile.as_str() {
             "base" => TargetProfile::Base,

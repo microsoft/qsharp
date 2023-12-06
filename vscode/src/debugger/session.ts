@@ -112,12 +112,14 @@ export class QscDebugSession extends LoggingDebugSession {
     const file = await this.fileAccessor.openUri(this.program);
     const programText = file.getText();
     const targetProfile = getTarget();
+    const projectLoader = new this.wasm.ProjectLoader(readFile, listDir, getManifest);
+
+    const sources = await projectLoader.loadProject();
+    
     const failureMessage = await this.debugService.loadSource(
-      this.program.toString(),
-      programText,
+      sources,
       targetProfile,
-      this.config.entry,
-      readFile, listDir, getManifest
+      this.config.entry
       
     );
     if (failureMessage == "") {
