@@ -9,6 +9,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.ResourceEstimation;
 
     /// # Summary
     /// Performs table lookup using a SELECT network
@@ -97,6 +98,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         }
     }
 
+    @Config(Full)
     internal operation SinglyControlledSelect(
         ctl : Qubit,
         data : Bool[][],
@@ -105,27 +107,31 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     ) : Unit {
         let (N, n) = DimensionsForSelect(data, address);
 
-        if N == 1 { // base case
-            Controlled WriteMemoryContents([ctl], (Head(data), target));
-        } else {
-            use helper = Qubit();
+        if BeginEstimateCaching("Microsoft.Quantum.Unstable.TableLookup.SinglyControlledSelect", N) {
+            if N == 1 { // base case
+                Controlled WriteMemoryContents([ctl], (Head(data), target));
+            } else {
+                use helper = Qubit();
 
-            let (most, tail) = MostAndTail(address[...n - 1]);
-            let parts = Partitioned([2^(n - 1)], data);
+                let (most, tail) = MostAndTail(address[...n - 1]);
+                let parts = Partitioned([2^(n - 1)], data);
 
-            within {
-                X(tail);
-            } apply {
-                ApplyAndAssuming0Target(ctl, tail, helper);
+                within {
+                    X(tail);
+                } apply {
+                    ApplyAndAssuming0Target(ctl, tail, helper);
+                }
+
+                SinglyControlledSelect(helper, parts[0], most, target);
+
+                CNOT(ctl, helper);
+
+                SinglyControlledSelect(helper, parts[1], most, target);
+
+                Adjoint ApplyAndAssuming0Target(ctl, tail, helper);
             }
 
-            SinglyControlledSelect(helper, parts[0], most, target);
-
-            CNOT(ctl, helper);
-
-            SinglyControlledSelect(helper, parts[1], most, target);
-
-            Adjoint ApplyAndAssuming0Target(ctl, tail, helper);
+            EndEstimateCaching();
         }
     }
 
