@@ -7,7 +7,7 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpLanguageId } from "./common.js";
+import { loadDocument, qsharpLanguageId } from "./common.js";
 
 export function startCheckingQSharp(
   languageService: ILanguageService,
@@ -15,7 +15,7 @@ export function startCheckingQSharp(
   const diagCollection =
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
 
-  function onDiagnostics(evt: {
+  async function onDiagnostics(evt: {
     detail: {
       uri: string;
       version: number;
@@ -30,15 +30,16 @@ export function startCheckingQSharp(
       return;
     }
 
-    const getPosition = (offset: number) => {
+    let document: vscode.TextDocument | undefined = undefined;
+    if (diagnostics.diagnostics.length > 0) {
       // We need the document here to be able to map offsets to line/column positions.
       // The document may not be available if this event is to clear diagnostics
       // for an already-closed document from the problems list.
-      // Note: This mapping will break down if we ever send diagnostics for closed files.
-      const document = vscode.workspace.textDocuments.filter(
-        (doc) => doc.uri.toString() === diagnostics.uri,
-      )[0];
-      return document.positionAt(offset);
+      document = await loadDocument(vscode.Uri.parse(diagnostics.uri));
+    }
+
+    const getPosition = (offset: number) => {
+      return document!.positionAt(offset);
     };
 
     diagCollection.set(
