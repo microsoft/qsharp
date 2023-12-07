@@ -272,6 +272,16 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
+    internal operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        within {
+            X(control1);
+            X(control2);
+        } apply {
+            ApplyAndAssuming0Target(control1, control2, target);
+            X(target);
+        }
+    }
+
     /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state.
@@ -402,6 +412,152 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         for i in IndexRange(qs) {
             R1Frac(1, i, qs[i]);
         }
+    }
+
+    //
+    // Internal operations for comparisons
+    //
+
+    internal operation CompareGreaterThanOrEqualConstant<'T>(
+        invertControl: Bool,
+        action: 'T => Unit is Adj + Ctl,
+        c: BigInt,
+        x: Qubit[],
+        target: 'T) : Unit is Adj + Ctl {
+
+        let bitWidth = Length(x);
+        if c == 0L {
+            action(target);
+        } elif c >= (2L^bitWidth) {
+            // do nothing
+        } else {
+            // normalize constant
+            let l = TrailingZeroCountL(c);
+
+            let cNormalized = c >>> l;
+            let xNormalized = x[l...];
+            let bitWidthNormalized = Length(xNormalized);
+
+            // If c == 2L^(bitwidth - 1), then bitWidthNormalized will be 1,
+            // and qs will be empty.  In that case, we do not need to compute
+            // any temporary values, and some optimizations are apply, which
+            // are considered in the remainder.
+            use qs = Qubit[bitWidthNormalized - 1];
+            let cs1 = IsEmpty(qs) ? [] | [Head(xNormalized)] + Most(qs);
+
+            Fact(Length(cs1) == Length(qs),
+                "Arrays should be of the same length.");
+
+            within {
+                for i in 0..Length(cs1)-1 {
+                    let op =
+                        cNormalized &&& (1L <<< (i+1)) != 0L ?
+                        ApplyAndAssuming0Target | ApplyOrAssuming0Target;
+                    op(cs1[i], xNormalized[i+1], qs[i]);
+                }
+            } apply {
+                let control = IsEmpty(qs) ? Tail(x) | Tail(qs);
+                within {
+                    if invertControl {
+                        X(control);
+                    }
+                } apply {
+                    Controlled action([control], target);
+                }
+            }
+        }
+    }
+
+    internal operation CompareRecursively (
+        x : Qubit[],
+        y : Qubit[],
+        carryIn : Qubit[]) : Unit is Adj + Ctl {
+
+        let n = Length(x);
+        Fact(Length(y) == n + 1, "bitwidth of y must be 1 more than x");
+
+        if n != 0 {
+            use carry = Qubit();
+            within {
+                if IsEmpty(carryIn) {
+                    CarryConstant(true, Head(x), Head(y), carry);
+                } else {
+                    CarryForInc(Head(carryIn), Head(x), Head(y), carry);
+                }
+            } apply {
+                if n == 1 {
+                    let carryOut = Tail(y);
+                    CNOT(carry, carryOut);
+                } else {
+                    CompareRecursively(Rest(x), Rest(y), [carry]);
+                }
+            }
+        }
+    }
+
+    internal operation CompareRecursivelyWithAction<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        invertControl : Bool,
+        target : 'T,
+        carryIn : Qubit[]) : Unit is Adj + Ctl {
+
+        let n = Length(x);
+        Fact(Length(y) == n, "bitwidth of y must equal bitwidth of x");
+
+        if n != 0 {
+            use carry = Qubit();
+            within {
+                if IsEmpty(carryIn) {
+                    CarryConstant(true, Head(x), Head(y), carry);
+                } else {
+                    CarryForInc(Head(carryIn), Head(x), Head(y), carry);
+                }
+            } apply {
+                if n == 1 {
+                    within {
+                        if invertControl {
+                            X(carry);
+                        }
+                    } apply {
+                        Controlled action([carry], target);
+                    }
+                } else {
+                    CompareRecursivelyWithAction(action, Rest(x), Rest(y), invertControl, target, [carry]);
+                }
+            }
+        }
+    }
+
+    /// # Summary
+    /// Computes carry with classical carryIn (Boolean)
+    internal operation CarryConstant(
+        carryIn : Bool,
+        x : Qubit,
+        y : Qubit,
+        carryOut : Qubit) : Unit is Adj + Ctl {
+
+        body (...) {
+            Controlled CarryConstant([], (carryIn, x, y, carryOut));
+        }
+
+        adjoint auto;
+
+        controlled (ctls, ...) {
+            Fact(Length(ctls) <= 1, "Number of control lines must be at most 1");
+
+            if carryIn {
+                X(x);
+                X(y);
+            }
+            ApplyAndAssuming0Target(x, y, carryOut);
+            if carryIn {
+                X(carryOut);
+            }
+        }
+
+        controlled adjoint auto;
     }
 
 }
