@@ -5,6 +5,8 @@
 
 import * as vscode from "vscode";
 
+import * as wasm from "../../../npm/lib/web/qsc_wasm.js";
+
 import {
   ExitedEvent,
   InitializedEvent,
@@ -119,9 +121,8 @@ export class QscDebugSession extends LoggingDebugSession {
 
     // we are in project mode here
 
-     const projectLoader = new ProjectLoader (readFile, listDir, getManifest);
-    const sources = await projectLoader.loadProject(manifest);
-    return [];
+    const projectLoader = new wasm.ProjectLoader(readFile, listDir, getManifest);
+    return await projectLoader.load_project(manifest)
   }
 
   public async init(associationId: string): Promise<void> {

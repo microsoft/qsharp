@@ -27,7 +27,9 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<ManifestDescriptorObject | null>")]
+    #[wasm_bindgen(
+        typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string }| null>"
+    )]
     pub type GetManifestCallback;
 }
 
