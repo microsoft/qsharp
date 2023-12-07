@@ -24,7 +24,8 @@
     "onDebug",
     "onDebugResolve:qsharp",
     "onDebugDynamicConfigurations:qsharp",
-    "onFileSystem:qsharp-vfs"
+    "onFileSystem:qsharp-vfs",
+    "onWebviewPanel:qsharp-webview"
   ],
   "contributes": {
     "walkthroughs": [
@@ -256,7 +257,7 @@
       },
       {
         "command": "qsharp-vscode.showRe",
-        "title": "Show RE",
+        "title": "Calculate Resource Estimates",
         "category": "Q#"
       },
       {
