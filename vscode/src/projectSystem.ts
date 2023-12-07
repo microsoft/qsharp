@@ -33,10 +33,10 @@ export async function getManifest(uri: string): Promise<{
   try {
     parsedManifest = JSON.parse(manifestDocument.content);
   } catch (e) {
-    log.error(
-      "Found manifest document, but the Q# manifest was not valid JSON",
-      e,
-    );
+    const message =
+      "Found manifest document, but the Q# manifest was not valid JSON";
+    vscode.window.showErrorMessage(message);
+    log.error(message, e);
     PROJECT_MODE = false;
     return null;
   }
