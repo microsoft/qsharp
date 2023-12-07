@@ -67,11 +67,10 @@ export class QSharpDebugService implements IDebugService {
     target: "base" | "full",
     entry: string | undefined,
   ): Promise<string> {
-
     for (const [path, source] of sources) {
       this.code[path] = source;
     }
-    return this.debugService.load_source(sources,  target, entry);
+    return this.debugService.load_source(sources, target, entry);
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {

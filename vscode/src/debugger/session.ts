@@ -116,13 +116,17 @@ export class QscDebugSession extends LoggingDebugSession {
     if (manifest === null) {
       // return just the one file if we are in single file mode
       const file = await this.fileAccessor.openUri(this.program);
-      return [[this.program.toString(), file.getText()]]
+      return [[this.program.toString(), file.getText()]];
     }
 
     // we are in project mode here
 
-    const projectLoader = new wasm.ProjectLoader(readFile, listDir, getManifest);
-    return await projectLoader.load_project(manifest)
+    const projectLoader = new wasm.ProjectLoader(
+      readFile,
+      listDir,
+      getManifest,
+    );
+    return await projectLoader.load_project(manifest);
   }
 
   public async init(associationId: string): Promise<void> {
@@ -133,8 +137,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const failureMessage = await this.debugService.loadSource(
       sources,
       targetProfile,
-      this.config.entry
-
+      this.config.entry,
     );
     // TODO: verify that the breakpoint span abstraction can handle breakpoints in multiple files
     // use this dummy file in meanwhile
@@ -581,7 +584,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-            bp.fileLocation.startOffset <= endOffset,
+              bp.fileLocation.startOffset <= endOffset,
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);

@@ -189,7 +189,8 @@ export const workspaceFileAccessor: FileAccessor = {
 };
 
 class InlineDebugAdapterFactory
-  implements vscode.DebugAdapterDescriptorFactory {
+  implements vscode.DebugAdapterDescriptorFactory
+{
   createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
@@ -200,7 +201,7 @@ class InlineDebugAdapterFactory
       worker,
       session.configuration,
     );
-    return qscSession.init(getRandomGuid() ).then(() => {
+    return qscSession.init(getRandomGuid()).then(() => {
       return new vscode.DebugAdapterInlineImplementation(qscSession);
     });
   }

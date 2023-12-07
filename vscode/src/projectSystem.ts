@@ -5,7 +5,6 @@ import { log } from "qsharp-lang";
 import { Utils, URI } from "vscode-uri";
 import * as vscode from "vscode";
 
-
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
  * was malformed.
