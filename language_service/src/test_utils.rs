@@ -5,74 +5,28 @@ use std::sync::Arc;
 
 use crate::{
     compilation::{Compilation, CompilationKind},
-    protocol,
+    protocol::Span,
 };
 use qsc::{
     compile, hir::PackageId, incremental::Compiler, PackageStore, PackageType, SourceMap,
     TargetProfile,
 };
 
-pub(crate) fn get_source_and_marker_offsets(
+pub(crate) fn compile_with_fake_stdlib_and_markers(
     source_with_markers: &str,
-) -> (String, Vec<u32>, Vec<u32>) {
-    let mut cursor_offsets: Vec<u32> = Vec::new();
-    let mut target_offsets: Vec<u32> = Vec::new();
-    let mut source = source_with_markers.to_string();
-    let markers = &['↘', '◉'];
-
-    loop {
-        let next_offset = source.find(markers);
-        match next_offset {
-            #[allow(clippy::cast_possible_truncation)]
-            Some(offset) => match source.chars().nth(offset) {
-                Some('↘') => cursor_offsets.push(offset as u32),
-                Some('◉') => target_offsets.push(offset as u32),
-                _ => panic!("Expected to find marker"),
-            },
-            None => break,
-        };
-        source = source.replacen(markers, "", 1);
-    }
-    (source, cursor_offsets, target_offsets)
-}
-
-pub(crate) fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<protocol::Span> {
-    assert!(target_offsets.len() % 2 == 0);
-    let limit = target_offsets.len() / 2;
-    let mut spans = vec![];
-    for i in 0..limit {
-        spans.push(protocol::Span {
-            start: target_offsets[i * 2],
-            end: target_offsets[i * 2 + 1],
-        });
-    }
-    spans
-}
-
-pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str) -> Compilation {
-    let (mut package_store, std_package_id) = compile_fake_stdlib();
-    let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
-    let (unit, errors) = compile::compile(
-        &package_store,
-        &[std_package_id],
-        source_map,
-        PackageType::Exe,
-        TargetProfile::Full,
-    );
-
-    let package_id = package_store.insert(unit);
-
-    Compilation {
-        package_store,
-        user_package_id: package_id,
-        kind: CompilationKind::OpenDocument,
-        errors,
-    }
+) -> (Compilation, u32, Vec<Span>) {
+    let (compilation, _, cursor_offset, target_spans) =
+        compile_project_with_fake_stdlib_and_markers(&[("<source>", source_with_markers)]);
+    (
+        compilation,
+        cursor_offset,
+        target_spans.iter().map(|(_, s)| *s).collect(),
+    )
 }
 
 pub(crate) fn compile_project_with_fake_stdlib_and_markers(
     sources_with_markers: &[(&str, &str)],
-) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
+) -> (Compilation, String, u32, Vec<(String, Span)>) {
     let (sources, cursor_uri, cursor_offset, target_spans) =
         get_sources_and_markers(sources_with_markers);
 
@@ -103,7 +57,7 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
 
 pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
     cells_with_markers: &[(&str, &str)],
-) -> (Compilation, String, u32, Vec<(String, protocol::Span)>) {
+) -> (Compilation, String, u32, Vec<(String, Span)>) {
     let (cells, cell_uri, offset, target_spans) = get_sources_and_markers(cells_with_markers);
 
     let compilation =
@@ -195,12 +149,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
 #[allow(clippy::type_complexity)]
 fn get_sources_and_markers(
     sources: &[(&str, &str)],
-) -> (
-    Vec<(Arc<str>, Arc<str>)>,
-    String,
-    u32,
-    Vec<(String, protocol::Span)>,
-) {
+) -> (Vec<(Arc<str>, Arc<str>)>, String, u32, Vec<(String, Span)>) {
     let (mut cursor_uri, mut cursor_offset, mut target_spans) = (None, None, Vec::new());
     let sources = sources
         .iter()
@@ -229,4 +178,39 @@ fn get_sources_and_markers(
         .to_string();
     let cursor_offset = cursor_offset.expect("input string should have a cursor marker");
     (sources, cursor_uri, cursor_offset, target_spans)
+}
+
+fn get_source_and_marker_offsets(source_with_markers: &str) -> (String, Vec<u32>, Vec<u32>) {
+    let mut cursor_offsets: Vec<u32> = Vec::new();
+    let mut target_offsets: Vec<u32> = Vec::new();
+    let mut source = source_with_markers.to_string();
+    let markers = &['↘', '◉'];
+
+    loop {
+        let next_offset = source.find(markers);
+        match next_offset {
+            #[allow(clippy::cast_possible_truncation)]
+            Some(offset) => match source.chars().nth(offset) {
+                Some('↘') => cursor_offsets.push(offset as u32),
+                Some('◉') => target_offsets.push(offset as u32),
+                _ => panic!("Expected to find marker"),
+            },
+            None => break,
+        };
+        source = source.replacen(markers, "", 1);
+    }
+    (source, cursor_offsets, target_offsets)
+}
+
+fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<Span> {
+    assert!(target_offsets.len() % 2 == 0);
+    let limit = target_offsets.len() / 2;
+    let mut spans = vec![];
+    for i in 0..limit {
+        spans.push(Span {
+            start: target_offsets[i * 2],
+            end: target_offsets[i * 2 + 1],
+        });
+    }
+    spans
 }

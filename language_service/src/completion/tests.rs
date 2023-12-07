@@ -8,14 +8,13 @@ use expect_test::{expect, Expect};
 use super::{get_completions, CompletionItem};
 use crate::test_utils::{
     compile_notebook_with_fake_stdlib_and_markers, compile_project_with_fake_stdlib_and_markers,
-    compile_with_fake_stdlib, get_source_and_marker_offsets,
+    compile_with_fake_stdlib_and_markers,
 };
 use indoc::indoc;
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
-    let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual_completions = get_completions(&compilation, "<source>", cursor_offset[0]);
+    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_cursor);
+    let actual_completions = get_completions(&compilation, "<source>", cursor_offset);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
         .iter()
         .map(|comp| {
