@@ -194,7 +194,7 @@ impl Locals {
         F: FnMut(&Scope),
     {
         // reverse to go from innermost -> outermost
-        self.scopes.iter().rev().for_each(move |scope| {
+        self.scopes.iter().rev().for_each(|scope| {
             if scope.span.lo <= offset && scope.span.hi >= offset {
                 f(scope);
             }
