@@ -8,6 +8,7 @@ import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
+import { getManifest, readFile, listDir } from "../projectSystem.js";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -187,6 +188,19 @@ export const workspaceFileAccessor: FileAccessor = {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
+  private readFile: (path: string) => Promise<string | null>;
+  private getManifest: (path: string) => Promise<{
+  excludeFiles: string[];
+  excludeRegexes: string[];
+  manifestDirectory: string;
+} | null> ;
+  private listDir: (path: string) => Promise<[string, number][]>;
+
+  constructor() {
+    this.readFile = readFile;
+    this.getManifest = getManifest;
+    this.listDir = listDir;
+  }
   createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,

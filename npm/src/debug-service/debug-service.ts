@@ -20,8 +20,7 @@ type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the debugger in the same thread the result will be synchronous (a resolved promise).
 export interface IDebugService {
   loadSource(
-    path: string,
-    source: string,
+    sources: [string, string][],
     target: "base" | "full",
     entry: string | undefined,
   ): Promise<string>;

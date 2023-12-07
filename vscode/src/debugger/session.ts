@@ -107,14 +107,10 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-  public async init(associationId: string): Promise<void> {
+  public async init(associationId: string, sources: [string, string][]): Promise<void> {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const file = await this.fileAccessor.openUri(this.program);
-    const programText = file.getText();
     const targetProfile = getTarget();
-    const projectLoader = new this.wasm.ProjectLoader(readFile, listDir, getManifest);
-
-    const sources = await projectLoader.loadProject();
     
     const failureMessage = await this.debugService.loadSource(
       sources,
