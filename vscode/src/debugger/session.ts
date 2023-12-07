@@ -5,8 +5,6 @@
 
 import * as vscode from "vscode";
 
-import * as wasm from "../../../npm/lib/web/qsc_wasm.js";
-
 import {
   ExitedEvent,
   InitializedEvent,
@@ -34,6 +32,7 @@ import {
   IStructStepResult,
   QscEventTarget,
   qsharpLibraryUriScheme,
+  getProjectLoader,
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
@@ -120,7 +119,7 @@ export class QscDebugSession extends LoggingDebugSession {
       return [[this.program.toString(), file.getText()]];
     }
 
-    const projectLoader = new wasm.ProjectLoader(
+    const projectLoader = await getProjectLoader(
       readFile,
       listDir,
       getManifest,

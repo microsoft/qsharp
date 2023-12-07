@@ -97,6 +97,19 @@ export async function getDebugService(): Promise<IDebugService> {
   return new QSharpDebugService(wasm);
 }
 
+export async function getProjectLoader(
+  readFile: (path: string) => Promise<string | null>,
+  loadDirectory: (path: string) => Promise<[string, number][]>,
+  getManifest: (path: string) => Promise<{
+    excludeFiles: string[];
+    excludeRegexes: string[];
+    manifestDirectory: string;
+  } | null>,
+): Promise<wasm.ProjectLoader> {
+  await instantiateWasm();
+  return new wasm.ProjectLoader(readFile, loadDirectory, getManifest);
+}
+
 // Create the debugger inside a WebWorker and proxy requests.
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.

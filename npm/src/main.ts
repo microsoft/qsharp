@@ -25,6 +25,7 @@ import {
   QSharpDebugService,
 } from "./debug-service/debug-service.js";
 import { createDebugServiceProxy } from "./debug-service/worker-proxy.js";
+import { ProjectLoader } from "../lib/node/qsc_wasm.cjs";
 
 export { qsharpLibraryUriScheme };
 
@@ -51,6 +52,24 @@ export function getCompiler(): ICompiler {
     log.onLevelChanged = (level) => wasm?.setLogLevel(level);
   }
   return new Compiler(wasm);
+}
+
+export function getProjectLoader(
+  readFile: (path: string) => Promise<string | null>,
+  loadDirectory: (path: string) => Promise<[string, number][]>,
+  getManifest: (path: string) => Promise<{
+    excludeFiles: string[];
+    excludeRegexes: string[];
+    manifestDirectory: string;
+  } | null>,
+): ProjectLoader {
+  if (!wasm) {
+    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+    // Set up logging and telemetry as soon as possible after instantiating
+    wasm.initLogging(log.logWithLevel, log.getLogLevel());
+    log.onLevelChanged = (level) => wasm?.setLogLevel(level);
+  }
+  return new wasm.ProjectLoader(readFile, loadDirectory, getManifest);
 }
 
 export function getCompilerWorker(): ICompilerWorker {
