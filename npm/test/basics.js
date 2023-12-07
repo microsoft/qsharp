@@ -686,8 +686,10 @@ test("debug service loading source without entry point attr fails - web worker",
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     operation main() : Result[] {
         use q1 = Qubit();
         Y(q1);
@@ -695,6 +697,8 @@ test("debug service loading source without entry point attr fails - web worker",
         return [m1];
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
@@ -708,11 +712,15 @@ test("debug service loading source with syntax error fails - web worker", async 
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     operation main() : Result[]
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
@@ -726,8 +734,7 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample { operation main() : Unit { } }`,
+      [["test.qs", `namespace Sample { operation main() : Unit { } }`]],
       "base",
       "SomeBadExpr()",
     );
@@ -741,8 +748,7 @@ test("debug service loading source with good entry expr succeeds - web worker", 
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample { operation Main() : Unit { } }`,
+      [["test.qs", `namespace Sample { operation Main() : Unit { } }`]],
       "full",
       "Sample.Main()",
     );
@@ -757,8 +763,10 @@ test("debug service loading source with entry point attr succeeds - web worker",
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     @EntryPoint()
     operation main() : Result[] {
         use q1 = Qubit();
@@ -767,6 +775,8 @@ test("debug service loading source with entry point attr succeeds - web worker",
         return [m1];
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
@@ -781,8 +791,10 @@ test("debug service getting breakpoints after loaded source succeeds when file n
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     @EntryPoint()
     operation main() : Result[] {
         use q1 = Qubit();
@@ -791,6 +803,8 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         return [m1];
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
