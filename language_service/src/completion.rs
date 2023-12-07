@@ -8,8 +8,8 @@ use std::rc::Rc;
 
 use crate::compilation::{Compilation, CompilationKind};
 use crate::display::CodeDisplay;
-use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
-use crate::qsc_utils::span_contains;
+use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
+use crate::qsc_utils::{protocol_span, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 
@@ -373,7 +373,13 @@ impl CompletionListBuilder {
                                             None => match start_of_namespace {
                                                 Some(start) => {
                                                     additional_edits.push((
-                                                        protocol::Span { start, end: start },
+                                                        protocol_span(
+                                                            qsc::Span {
+                                                                lo: start,
+                                                                hi: start,
+                                                            },
+                                                            &compilation.user_unit().sources,
+                                                        ),
                                                         format!(
                                                             "open {};{}",
                                                             namespace.name.clone(),

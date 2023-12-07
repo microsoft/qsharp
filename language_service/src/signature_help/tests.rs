@@ -4,16 +4,15 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::get_signature_help;
-use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
+use crate::test_utils::compile_with_fake_stdlib_and_markers;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
 /// Asserts that the signature help given at the cursor position matches the expected signature help.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
-    let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_signature_help(&compilation, "<source>", cursor_offsets[0])
+    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_signature_help(&compilation, "<source>", cursor_offset)
         .expect("Expected a signature help.");
     expect.assert_debug_eq(&actual);
 }
