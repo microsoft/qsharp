@@ -4,6 +4,7 @@ use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectS
 use std::iter::FromIterator;
 use std::{path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 extern "C" {
@@ -94,7 +95,11 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
     })
 }
 pub(crate) use into_async_rust_fn_with;
-use wasm_bindgen_futures::JsFuture;
+
+/// Given a [JsValue] representing the result of a call to a list_directory function,
+/// and an unused `String` parameter for API compatibility, assert that `js_val`
+/// matches our expected return type of `[string, number][]` and transform that
+/// JS data into a [Vec<JSFileEntry>]
 pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFileEntry> {
     match js_val.dyn_into::<js_sys::Array>() {
         Ok(arr) => arr
@@ -127,6 +132,11 @@ pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFi
             Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
     }
 }
+
+/// Given a [JsValue] representing the result of a call to a read file function,
+/// and a `String` representing the path that was originally passed in as an
+/// argument to that function, assert that `js_val` matches our expected return type of
+/// `string` and transform it into a tuple representing the path and the file contents.
 pub(crate) fn read_file_transformer(
     js_val: JsValue,
     path_buf_string: String,
@@ -138,7 +148,10 @@ pub(crate) fn read_file_transformer(
         None => unreachable!("Expected string from JS callback, received {js_val:?}"),
     }
 }
-
+/// Given a [JsValue] representing the result of a call to a get_manifest function,
+/// and an unused `String` parameter for API compatibility, assert that `js_val`
+/// matches our expected return object shape  and transform it into a [ManifestDescriptor],
+/// or `None`
 pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<ManifestDescriptor> {
     if js_val.is_null() {
         return None;
