@@ -86,9 +86,21 @@ def compile(entry_expr):
 
     :param entry_expr: The Q# expression that will be used as the entrypoint
         for the program.
+
+    :returns QirInputData: The compiled program.
+
+    To get the QIR string from the compiled program, use `str()`.
+
+    Example:
+
+    .. code-block:: python
+        program = qsharp.compile("...")
+        with open('myfile.ll', 'w') as file:
+            file.write(str(program))
     """
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
+
 
 def estimate(entry_expr, params: Union[dict, List, EstimatorParams] = None) -> EstimatorResult:
     """
@@ -112,6 +124,7 @@ def estimate(entry_expr, params: Union[dict, List, EstimatorParams] = None) -> E
         json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
     )
 
+  
 def dump_machine() -> StateDump:
     """
     Returns the sparse state vector of the simulator as a StateDump object.
@@ -140,3 +153,6 @@ class QirInputData:
     # by the protocol and must remain unchanged.
     def _repr_qir_(self, **kwargs) -> bytes:
         return self._ll_str.encode("utf-8")
+
+    def __str__(self) -> str:
+        return self._ll_str
