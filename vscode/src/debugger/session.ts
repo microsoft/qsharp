@@ -138,10 +138,7 @@ export class QscDebugSession extends LoggingDebugSession {
       targetProfile,
       this.config.entry,
     );
-    // TODO: verify that the breakpoint span abstraction can handle breakpoints in multiple files
-    // use this dummy file in meanwhile
     for (const [path, _contents] of sources) {
-      // TODO: test on windows and sort out path vs uri
       if (failureMessage == "") {
         const locations = await this.debugService.getBreakpoints(path);
         const file = await this.fileAccessor.openPath(path);
