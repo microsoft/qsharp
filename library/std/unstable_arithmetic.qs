@@ -525,14 +525,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Summary
     /// Computes `target ^= (c < x)`, that is, inverts `target`
     /// if a BigInt value `c` is less than the little-endian qubit register `x`
-    operation InvertIfLessL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj {
+    operation InvertIfLessL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
         CompareGreaterThanOrEqualConstant(false, X, c + 1L, x, target);
     }
 
     /// # Summary
     /// Computes `target ^= (c <= x)`, that is, inverts `target`
     /// if a BigInt value `c` is less or equal to the little-endian qubit register `x`
-    operation InvertIfLessOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj {
+    operation InvertIfLessOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
         CompareGreaterThanOrEqualConstant(false, X, c, x, target);
     }
 
@@ -551,7 +551,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Summary
     /// Computes `target ^= (c >= x)`, that is, inverts `target`
     /// if a BigInt value `c` is greater or equal to the little-endian qubit register `x`
-    operation InvertIfGreaterOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj {
+    operation InvertIfGreaterOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
         CompareGreaterThanOrEqualConstant(false, X, c + 1L, x, target);
         X(target);
     }
@@ -559,7 +559,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Summary
     /// Computes `target ^= (c > x)`, that is, inverts `target`
     /// if a BigInt value `c` is greater than the little-endian qubit register `x`
-    operation InvertIfGreaterL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj {
+    operation InvertIfGreaterL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
         CompareGreaterThanOrEqualConstant(false, X, c, x, target);
         X(target);
     }
@@ -600,7 +600,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Computes `target ^= (x == y)`, that is, inverts `target`
     /// if register `x` is equal to the register `y`.
     /// Both qubit registers should be in a little-endian format.
-    operation InvertIfEqualLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj {
+    operation InvertIfEqualLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj + Ctl {
         Fact(Length(x) == Length(y), "x and y must be of same length");
 
         within {
@@ -654,7 +654,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         action : 'T => Unit is Adj + Ctl,
         x : Qubit[],
         y : Qubit[],
-        target : 'T) : Unit is Adj+Ctl {
+        target : 'T) : Unit is Adj + Ctl {
 
         ApplyIfGreaterLE(action, y, x, target);
     }
@@ -686,7 +686,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         action : 'T => Unit is Adj + Ctl,
         x : Qubit[],
         y : Qubit[],
-        target : 'T) : Unit is Adj {
+        target : 'T) : Unit is Adj + Ctl {
 
         Fact(Length(x) == Length(y), "x and y must be of same length");
         within {
