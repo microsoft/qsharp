@@ -199,11 +199,7 @@ impl LanguageService {
         let config: WorkspaceConfiguration = config.into();
         self.0
             .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
-                target_profile: config.targetProfile.map(|s| match s.as_str() {
-                    "base" => qsc::TargetProfile::Base,
-                    "full" => qsc::TargetProfile::Full,
-                    _ => panic!("invalid target profile"),
-                }),
+                target_profile: config.targetProfile.map(into_target_profile),
                 package_type: config.packageType.map(|s| match s.as_str() {
                     "lib" => qsc::PackageType::Lib,
                     "exe" => qsc::PackageType::Exe,
@@ -220,10 +216,19 @@ impl LanguageService {
         self.0.close_document(uri);
     }
 
-    pub fn update_notebook_document(&mut self, notebook_uri: &str, cells: Vec<ICell>) {
+    pub fn update_notebook_document(
+        &mut self,
+        notebook_uri: &str,
+        notebook_metadata: INotebookMetadata,
+        cells: Vec<ICell>,
+    ) {
         let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
+        let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
+            &qsls::protocol::NotebookMetadata {
+                target_profile: notebook_metadata.targetProfile.map(into_target_profile),
+            },
             cells
                 .iter()
                 .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref())),
@@ -551,6 +556,17 @@ serializable_type! {
     ICell
 }
 
+serializable_type! {
+    NotebookMetadata,
+    {
+        pub targetProfile: Option<String>,
+    },
+    r#"export interface INotebookMetadata {
+        targetProfile?: "full" | "base";
+    }"#,
+    INotebookMetadata
+}
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
@@ -577,4 +593,12 @@ extern "C" {
         typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
     )]
     pub type GetManifestCallback;
+}
+
+fn into_target_profile(value: String) -> qsc::TargetProfile {
+    match value.as_str() {
+        "base" => qsc::TargetProfile::Base,
+        "full" => qsc::TargetProfile::Full,
+        _ => panic!("invalid target profile"),
+    }
 }

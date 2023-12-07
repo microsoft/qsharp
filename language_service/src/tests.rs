@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use crate::{
-    protocol::{DiagnosticUpdate, WorkspaceConfigurationUpdate},
+    protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
     LanguageService,
 };
 use expect_test::{expect, Expect};
@@ -398,6 +398,7 @@ async fn notebook_document_no_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
@@ -420,6 +421,7 @@ async fn notebook_document_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -478,6 +480,7 @@ async fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -530,6 +533,7 @@ async fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
@@ -554,6 +558,7 @@ async fn close_notebook_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),

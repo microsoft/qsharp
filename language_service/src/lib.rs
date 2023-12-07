@@ -27,7 +27,8 @@ use log::{error, trace, warn};
 use miette::Diagnostic;
 pub use project_system::JSFileEntry;
 use protocol::{
-    CompletionList, DiagnosticUpdate, Hover, Location, SignatureHelp, WorkspaceConfigurationUpdate,
+    CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
+    WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
 use qsc_project::FileSystemAsync;
@@ -46,11 +47,12 @@ type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
 
 pub struct LanguageService<'a> {
-    /// Workspace configuration can include compiler settings
-    /// that affect error checking and other language server behavior.
-    /// Currently these settings apply to all documents in the
-    /// workspace. Per-document configurations are not supported.
-    configuration: WorkspaceConfiguration,
+    /// Workspace-wide configuration settings. These can include compiler settings that
+    /// affect error checking and other language server behavior.
+    ///
+    /// Some settings can be set both at the compilation scope and at the workspace scope.
+    /// Compilation-scoped settings take precedence over workspace-scoped settings.
+    configuration: Configuration,
     /// A `CompilationUri` is an identifier for a unique compilation.
     /// It is NOT required to be a uri that represents an actual document.
     ///
@@ -62,7 +64,11 @@ pub struct LanguageService<'a> {
     /// The `CompilatinUri` is used when compilation-level errors get reported
     /// to the client. Compilation-level errors are defined as errors without
     /// an associated source document.
-    compilations: FxHashMap<CompilationUri, Compilation>,
+    ///
+    /// `PartialConfiguration` contains configuration overrides for this
+    /// compilation, explicitly specified through a project manifest (not currently implemented)
+    /// or notebook metadata.
+    compilations: FxHashMap<CompilationUri, (Compilation, PartialConfiguration)>,
     /// All the documents that we were told about by the client.
     ///
     /// This map doesn't necessarily contain ALL the documents that
@@ -99,18 +105,24 @@ pub enum PendingUpdate {
 }
 
 #[derive(Debug)]
-struct WorkspaceConfiguration {
+struct Configuration {
     pub target_profile: TargetProfile,
     pub package_type: PackageType,
 }
 
-impl Default for WorkspaceConfiguration {
+impl Default for Configuration {
     fn default() -> Self {
         Self {
             target_profile: TargetProfile::Full,
             package_type: PackageType::Exe,
         }
     }
+}
+
+#[derive(Default)]
+struct PartialConfiguration {
+    pub target_profile: Option<TargetProfile>,
+    pub package_type: Option<PackageType>,
 }
 
 #[derive(Debug)]
@@ -133,7 +145,7 @@ impl<'a> LanguageService<'a> {
             + 'a,
     ) -> Self {
         LanguageService {
-            configuration: WorkspaceConfiguration::default(),
+            configuration: Configuration::default(),
             compilations: FxHashMap::default(),
             open_documents: FxHashMap::default(),
             documents_with_errors: FxHashSet::default(),
@@ -149,6 +161,8 @@ impl<'a> LanguageService<'a> {
     /// Updates the workspace configuration. If any compiler settings are updated,
     /// a recompilation may be triggered, which will result in a new set of diagnostics
     /// being published.
+    ///
+    /// LSP: workspace/didChangeConfiguration
     pub fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
         trace!("update_configuration: {configuration:?}");
 
@@ -214,7 +228,8 @@ impl<'a> LanguageService<'a> {
             uri.into()
         };
         trace!("Loaded project uri {uri} with {} sources", sources.len());
-        self.compilations.insert(uri.clone(), compilation);
+        self.compilations
+            .insert(uri.clone(), (compilation, PartialConfiguration::default()));
 
         // There may be open buffers with sources in the project.
         // These buffers need to have their diagnostics reloaded,
@@ -278,8 +293,12 @@ impl<'a> LanguageService<'a> {
     /// containing the "%%qsharp" cell magic.
     ///
     /// LSP: notebookDocument/didOpen, notebookDocument/didChange
-    pub fn update_notebook_document<'b, I>(&mut self, notebook_uri: &str, cells: I)
-    where
+    pub fn update_notebook_document<'b, I>(
+        &mut self,
+        notebook_uri: &str,
+        notebook_metadata: &NotebookMetadata,
+        cells: I,
+    ) where
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
     {
         trace!("update_notebook_document: {notebook_uri}");
@@ -290,9 +309,15 @@ impl<'a> LanguageService<'a> {
         self.open_documents
             .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
 
+        let notebook_configuration = PartialConfiguration {
+            target_profile: notebook_metadata.target_profile,
+            package_type: None,
+        };
+        let configuration = merge_configurations(&notebook_configuration, &self.configuration);
+
         // Compile the notebook and add each cell into the document map
-        let compilation =
-            Compilation::new_notebook(cells.map(|(cell_uri, version, cell_contents)| {
+        let compilation = Compilation::new_notebook(
+            cells.map(|(cell_uri, version, cell_contents)| {
                 trace!("update_notebook_document: cell: {cell_uri} {version}");
                 self.open_documents.insert(
                     (*cell_uri).into(),
@@ -302,10 +327,14 @@ impl<'a> LanguageService<'a> {
                     },
                 );
                 (Arc::from(cell_uri), Arc::from(cell_contents))
-            }));
+            }),
+            configuration.target_profile,
+        );
 
-        self.compilations
-            .insert(compilation_uri.clone(), compilation);
+        self.compilations.insert(
+            compilation_uri.clone(),
+            (compilation, notebook_configuration),
+        );
 
         self.publish_diagnostics();
     }
@@ -430,7 +459,7 @@ impl<'a> LanguageService<'a> {
             panic!("{op_name} should not be called before compilation has been initialized",)
         });
 
-        let res = op(compilation, uri, offset);
+        let res = op(&compilation.0, uri, offset);
         trace!("{op_name} result: {res:?}");
         res
     }
@@ -443,7 +472,7 @@ impl<'a> LanguageService<'a> {
 
         for (compilation_uri, compilation) in &self.compilations {
             trace!("publishing diagnostics for {compilation_uri}");
-            for (uri, errors) in map_errors_to_docs(compilation_uri, &compilation.errors) {
+            for (uri, errors) in map_errors_to_docs(compilation_uri, &compilation.0.errors) {
                 if !self.documents_with_errors.insert(uri.clone()) {
                     // We already published diagnostics for this document for
                     // a different compilation.
@@ -486,6 +515,9 @@ impl<'a> LanguageService<'a> {
             self.configuration.target_profile = target_profile;
         }
 
+        // Possible optimization: some projects will have overrides for these configurations,
+        // so workspace updates won't impact them. We could exclude those projects
+        // from recompilation, but we don't right now.
         trace!("need_recompile after configuration update: {need_recompile}");
         need_recompile
     }
@@ -495,13 +527,28 @@ impl<'a> LanguageService<'a> {
     /// diagnostics for all documents.
     fn recompile_all(&mut self) {
         for compilation in self.compilations.values_mut() {
-            compilation.recompile(
-                self.configuration.package_type,
-                self.configuration.target_profile,
-            );
+            let configuration = merge_configurations(&compilation.1, &self.configuration);
+            compilation
+                .0
+                .recompile(configuration.package_type, configuration.target_profile);
         }
 
         self.publish_diagnostics();
+    }
+}
+
+/// Merges workspace configuration with any compilation-specific overrides.
+fn merge_configurations(
+    compilation_scope: &PartialConfiguration,
+    workspace_scope: &Configuration,
+) -> Configuration {
+    Configuration {
+        target_profile: compilation_scope
+            .target_profile
+            .unwrap_or(workspace_scope.target_profile),
+        package_type: compilation_scope
+            .package_type
+            .unwrap_or(workspace_scope.package_type),
     }
 }
 
