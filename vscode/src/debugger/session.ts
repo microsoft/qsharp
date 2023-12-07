@@ -140,54 +140,55 @@ export class QscDebugSession extends LoggingDebugSession {
     );
     // TODO: verify that the breakpoint span abstraction can handle breakpoints in multiple files
     // use this dummy file in meanwhile
-    const file = await this.fileAccessor.openUri(this.program);
-    if (failureMessage == "") {
-      const locations = await this.debugService.getBreakpoints(
-        this.program.toString(),
-      );
-      log.trace(`init breakpointLocations: %O`, locations);
-      const mapped = locations.map((location) => {
-        const startPos = file.positionAt(location.lo);
-        const endPos = file.positionAt(location.hi);
-        const bpLocation: DebugProtocol.BreakpointLocation = {
-          line: startPos.line,
-          column: startPos.character,
-          endLine: endPos.line,
-          endColumn: endPos.character,
-        };
-        const fileLocation = {
-          startOffset: file.offsetAt(startPos),
-          endOffset: file.offsetAt(endPos),
-          startPos: startPos,
-          endPos: endPos,
-          bpLocation: bpLocation,
-        };
-        const uiLocation: DebugProtocol.BreakpointLocation = {
-          line: this.convertDebuggerLineToClient(startPos.line),
-          column: this.convertDebuggerColumnToClient(startPos.character),
-          endLine: this.convertDebuggerLineToClient(endPos.line),
-          endColumn: this.convertDebuggerColumnToClient(endPos.character),
-        };
-        return {
-          debuggerLocation: location,
-          fileLocation: fileLocation,
-          uiLocation: uiLocation,
-          breakpoint: this.createBreakpoint(location.id, uiLocation),
-        } as IBreakpointLocationData;
-      });
-      this.breakpointLocations.set(this.program.toString(), mapped);
-    } else {
-      log.warn(`compilation failed. ${failureMessage}`);
-      sendTelemetryEvent(
-        EventType.InitializeRuntimeEnd,
-        {
-          associationId,
-          reason: "compilation failed",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        {},
-      );
-      this.failureMessage = failureMessage;
+    for (const [path, _contents] of sources) {
+      // TODO: test on windows and sort out path vs uri
+      if (failureMessage == "") {
+        const locations = await this.debugService.getBreakpoints(path);
+        const file = await this.fileAccessor.openPath(path);
+        log.trace(`init breakpointLocations: %O`, locations);
+        const mapped = locations.map((location) => {
+          const startPos = file.positionAt(location.lo);
+          const endPos = file.positionAt(location.hi);
+          const bpLocation: DebugProtocol.BreakpointLocation = {
+            line: startPos.line,
+            column: startPos.character,
+            endLine: endPos.line,
+            endColumn: endPos.character,
+          };
+          const fileLocation = {
+            startOffset: file.offsetAt(startPos),
+            endOffset: file.offsetAt(endPos),
+            startPos: startPos,
+            endPos: endPos,
+            bpLocation: bpLocation,
+          };
+          const uiLocation: DebugProtocol.BreakpointLocation = {
+            line: this.convertDebuggerLineToClient(startPos.line),
+            column: this.convertDebuggerColumnToClient(startPos.character),
+            endLine: this.convertDebuggerLineToClient(endPos.line),
+            endColumn: this.convertDebuggerColumnToClient(endPos.character),
+          };
+          return {
+            debuggerLocation: location,
+            fileLocation: fileLocation,
+            uiLocation: uiLocation,
+            breakpoint: this.createBreakpoint(location.id, uiLocation),
+          } as IBreakpointLocationData;
+        });
+        this.breakpointLocations.set(path, mapped);
+      } else {
+        log.warn(`compilation failed. ${failureMessage}`);
+        sendTelemetryEvent(
+          EventType.InitializeRuntimeEnd,
+          {
+            associationId,
+            reason: "compilation failed",
+            flowStatus: UserFlowStatus.Aborted,
+          },
+          {},
+        );
+        this.failureMessage = failureMessage;
+      }
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
