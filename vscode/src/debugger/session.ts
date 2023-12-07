@@ -117,12 +117,6 @@ export class QscDebugSession extends LoggingDebugSession {
       // return just the one file if we are in single file mode
       const file = await this.fileAccessor.openUri(this.program);
 
-      // remove-me: debug print section
-      log.info("in single file mode, returning: ");
-      const result = [[this.program.toString(), file.getText()]];
-      log.info(JSON.stringify(result, null, 2));
-      // end remove-me
-
       return [[this.program.toString(), file.getText()]];
     }
 
@@ -131,7 +125,7 @@ export class QscDebugSession extends LoggingDebugSession {
       listDir,
       getManifest,
     );
-    log.info("using project loader")
+    log.info("using project loader");
     return await projectLoader.load_project(manifest);
   }
 
@@ -139,16 +133,11 @@ export class QscDebugSession extends LoggingDebugSession {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const sources = await this.loadProject();
     const targetProfile = getTarget();
-    // remove-me: debug print
-    log.info("sources: ", JSON.stringify(sources, null, 2));
-
     const failureMessage = await this.debugService.loadSource(
       sources,
       targetProfile,
       this.config.entry,
     );
-    // remove-me: debug print
-    log.info("loaded source. failure msg is ");
     // TODO: verify that the breakpoint span abstraction can handle breakpoints in multiple files
     // use this dummy file in meanwhile
     const file = await this.fileAccessor.openUri(this.program);
@@ -594,7 +583,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-            bp.fileLocation.startOffset <= endOffset,
+              bp.fileLocation.startOffset <= endOffset,
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
