@@ -450,6 +450,10 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 include_str!("../../../library/std/unstable_arithmetic_internal.qs").into(),
             ),
             (
+                "unstable_table_lookup.qs".into(),
+                include_str!("../../../library/std/unstable_table_lookup.qs").into(),
+            ),
+            (
                 "re.qs".into(),
                 include_str!("../../../library/std/re.qs").into(),
             ),
