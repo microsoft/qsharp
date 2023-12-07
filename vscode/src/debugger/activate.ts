@@ -7,11 +7,8 @@ import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
-import { getManifest, readFile, listDir } from "../projectSystem.js";
 
 import * as vscode from "vscode";
-import * as wasm from "../../../npm/lib/web/qsc_wasm.js";
-type QscWasm = typeof import("../../../npm/lib/node/qsc_wasm.cjs");
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
