@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::get_hover;
 use crate::{
     protocol,
@@ -98,6 +100,26 @@ fn callable_with_callable_types() {
 }
 
 #[test]
+fn callable_with_type_params() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            /// Doc comment!
+            operation ◉F↘oo◉<'A, 'B>(a : 'A, b : 'B) : 'B { b }
+        }
+    "#},
+        &expect![[r#"
+            ```qsharp
+            Test
+            operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B
+            ```
+            ---
+            Doc comment!
+        "#]],
+    );
+}
+
+#[test]
 fn callable_ref() {
     check(
         indoc! {r#"
@@ -111,6 +133,27 @@ fn callable_ref() {
             ```qsharp
             Test
             operation Bar() : Unit
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_with_type_params_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo() : Unit {
+                let temp = ◉B↘ar◉(1, 2.0);
+            }
+
+            operation Bar<'A, 'B>(a : 'A, b : 'B) : 'B { b }
+        }
+    "#},
+        &expect![[r#"
+            ```qsharp
+            Test
+            operation Bar<'A, 'B>(a : 'A, b : 'B) : 'B
             ```
         "#]],
     );
@@ -180,7 +223,7 @@ fn callable_param() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(◉↘x◉: Int) : Unit { let y = x; }
+            operation Foo(◉↘x◉ : Int) : Unit { let y = x; }
         }
     "#},
         &expect![[r#"
@@ -193,17 +236,51 @@ fn callable_param() {
 }
 
 #[test]
+fn callable_param_with_type_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'A>(◉↘x◉ : 'A) : Unit { let y = x; }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x : 'A
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn callable_param_ref() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Foo(x: Int) : Unit { let y = ◉↘x◉; }
+            operation Foo(x : Int) : Unit { let y = ◉↘x◉; }
         }
     "#},
         &expect![[r#"
             parameter of `Foo`
             ```qsharp
             x : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn callable_param_with_type_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'A>(x : 'A) : Unit { let y = ◉↘x◉; }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            x : 'A
             ```
         "#]],
     );
@@ -269,6 +346,25 @@ fn identifier() {
 }
 
 #[test]
+fn identifier_with_type_param() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'A>(a : 'A) : Unit {
+                let ◉↘x◉ = a;
+            }
+        }
+    "#},
+        &expect![[r#"
+            local
+            ```qsharp
+            x : 'A
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn identifier_ref() {
     check(
         indoc! {r#"
@@ -283,6 +379,26 @@ fn identifier_ref() {
             local
             ```qsharp
             x : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn identifier_with_type_param_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            operation Foo<'A>(a : 'A) : Unit {
+                let x = a;
+                let y = ◉↘x◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            local
+            ```qsharp
+            x : 'A
             ```
         "#]],
     );
@@ -1023,6 +1139,26 @@ fn std_callable_with_udt() {
             ```qsharp
             FakeStdLib
             function TakesUdt(input : Udt) : Udt
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn std_callable_with_type_param() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let temp = ◉FakeWi↘thTypeParam◉(3);
+        }
+    }
+    "#,
+        &expect![[r#"
+            ```qsharp
+            FakeStdLib
+            operation FakeWithTypeParam<'A>(a : 'A) : 'A
             ```
         "#]],
     );

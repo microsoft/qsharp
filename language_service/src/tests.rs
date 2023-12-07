@@ -1,16 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use crate::{
     protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
     LanguageService,
 };
 use expect_test::{expect, Expect};
 use qsc::{compile, PackageType, TargetProfile};
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 
-#[test]
-fn no_error() {
+#[tokio::test]
+async fn no_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -18,7 +20,8 @@ fn no_error() {
         "foo.qs",
         1,
         "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-    );
+    )
+    .await;
 
     expect_errors(
         &errors,
@@ -28,12 +31,12 @@ fn no_error() {
     );
 }
 
-#[test]
-fn clear_error() {
+#[tokio::test]
+async fn clear_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
-    ls.update_document("foo.qs", 1, "namespace {");
+    ls.update_document("foo.qs", 1, "namespace {").await;
 
     expect_errors(
         &errors,
@@ -73,7 +76,8 @@ fn clear_error() {
         "foo.qs",
         2,
         "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-    );
+    )
+    .await;
 
     expect_errors(
         &errors,
@@ -82,7 +86,7 @@ fn clear_error() {
                 (
                     "foo.qs",
                     Some(
-                        2,
+                        1,
                     ),
                     [],
                 ),
@@ -91,12 +95,12 @@ fn clear_error() {
     );
 }
 
-#[test]
-fn clear_on_document_close() {
+#[tokio::test]
+async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
-    ls.update_document("foo.qs", 1, "namespace {");
+    ls.update_document("foo.qs", 1, "namespace {").await;
 
     expect_errors(
         &errors,
@@ -148,12 +152,12 @@ fn clear_on_document_close() {
     );
 }
 
-#[test]
-fn compile_error() {
+#[tokio::test]
+async fn compile_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
-    ls.update_document("foo.qs", 1, "badsyntax");
+    ls.update_document("foo.qs", 1, "badsyntax").await;
 
     expect_errors(
         &errors,
@@ -188,8 +192,8 @@ fn compile_error() {
     );
 }
 
-#[test]
-fn package_type_update_causes_error() {
+#[tokio::test]
+async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -198,7 +202,8 @@ fn package_type_update_causes_error() {
         package_type: Some(PackageType::Lib),
     });
 
-    ls.update_document("foo.qs", 1, "namespace Foo { operation Main() : Unit {} }");
+    ls.update_document("foo.qs", 1, "namespace Foo { operation Main() : Unit {} }")
+        .await;
 
     expect_errors(
         &errors,
@@ -234,8 +239,8 @@ fn package_type_update_causes_error() {
     );
 }
 
-#[test]
-fn target_profile_update_fixes_error() {
+#[tokio::test]
+async fn target_profile_update_fixes_error() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -248,7 +253,8 @@ fn target_profile_update_fixes_error() {
         "foo.qs",
         1,
         r#"namespace Foo { operation Main() : Unit { if Zero == Zero { Message("hi") } } }"#,
-    );
+    )
+    .await;
 
     expect_errors(
         &errors,
@@ -317,8 +323,8 @@ fn target_profile_update_fixes_error() {
     );
 }
 
-#[test]
-fn target_profile_update_causes_error_in_stdlib() {
+#[tokio::test]
+async fn target_profile_update_causes_error_in_stdlib() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -326,7 +332,7 @@ fn target_profile_update_causes_error_in_stdlib() {
         "foo.qs",
         1,
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
-    );
+    ).await;
 
     expect_errors(
         &errors,
@@ -385,8 +391,8 @@ fn target_profile_update_causes_error_in_stdlib() {
     );
 }
 
-#[test]
-fn notebook_document_no_errors() {
+#[tokio::test]
+async fn notebook_document_no_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -408,8 +414,8 @@ fn notebook_document_no_errors() {
     );
 }
 
-#[test]
-fn notebook_document_errors() {
+#[tokio::test]
+async fn notebook_document_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -467,8 +473,8 @@ fn notebook_document_errors() {
     );
 }
 
-#[test]
-fn notebook_update_remove_cell_clears_errors() {
+#[tokio::test]
+async fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -545,8 +551,8 @@ fn notebook_update_remove_cell_clears_errors() {
     );
 }
 
-#[test]
-fn close_notebook_clears_errors() {
+#[tokio::test]
+async fn close_notebook_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut ls = new_language_service(&errors);
 
@@ -622,7 +628,7 @@ fn close_notebook_clears_errors() {
 type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
 
 fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'_> {
-    LanguageService::new(|update: DiagnosticUpdate| {
+    let diagnostic_receiver = move |update: DiagnosticUpdate| {
         let mut v = received.borrow_mut();
 
         v.push((
@@ -630,7 +636,54 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
             update.version,
             update.errors.iter().map(|e| e.error().clone()).collect(),
         ));
-    })
+    };
+
+    LanguageService::new(
+        diagnostic_receiver,
+        // these tests do not test project mode
+        // so we provide these stubbed-out functions
+        |_| Box::pin(std::future::ready((Arc::from(""), Arc::from("")))),
+        |_| Box::pin(std::future::ready(vec![])),
+        |_| Box::pin(std::future::ready(None)),
+    )
+}
+
+// the below tests test the asynchronous behavior of the language service.
+// we use `get_completions` as a rough analog for all document operations, as
+// they all go through the same `document_op` infrastructure.
+#[tokio::test]
+async fn completions_requested_before_document_load() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    // we intentionally don't await this to test how LSP features function when
+    // a document hasn't fully loaded
+    #[allow(clippy::let_underscore_future)]
+    let _ = ls.update_document(
+        "foo.qs",
+        1,
+        "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+    );
+
+    // this should be empty, because the doc hasn't loaded
+    assert!(ls.get_completions("foo.qs", 76).items.is_empty());
+}
+
+#[tokio::test]
+async fn completions_requested_after_document_load() {
+    let errors = RefCell::new(Vec::new());
+    let mut ls = new_language_service(&errors);
+
+    // this test is a contrast to `completions_requested_before_document_load`
+    // we want to ensure that completions load when the update_document call has been awaited
+    ls.update_document(
+        "foo.qs",
+        1,
+        "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+    ).await;
+
+    // this should be empty, because the doc hasn't loaded
+    assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13);
 }
 
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {

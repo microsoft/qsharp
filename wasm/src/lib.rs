@@ -10,7 +10,7 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateful,
+        stateful::{self, re::estimate_entry},
     },
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
 };
@@ -68,6 +68,19 @@ pub fn get_qir(code: &str) -> Result<String, String> {
     let package = store.insert(unit);
 
     generate_qir(&store, package).map_err(|e| e.0.to_string())
+}
+
+#[wasm_bindgen]
+pub fn get_estimates(code: &str, params: &str) -> Result<String, String> {
+    let mut interpreter = stateful::Interpreter::new(
+        true,
+        SourceMap::new([("code".into(), code.into())], None),
+        PackageType::Exe,
+        TargetProfile::Full,
+    )
+    .map_err(|e| e[0].to_string())?;
+
+    estimate_entry(&mut interpreter, params).map_err(|e| e[0].to_string())
 }
 
 #[wasm_bindgen]
@@ -155,7 +168,12 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateful::Error>
+fn run_internal<F>(
+    code: &str,
+    expr: &str,
+    event_cb: F,
+    shots: u32,
+) -> Result<(), Box<stateful::Error>>
 where
     F: FnMut(&str),
 {
@@ -172,7 +190,7 @@ where
         let msg = json!(
             {"type": "Result", "success": false, "result": diag});
         (out.event_cb)(&msg.to_string());
-        return Err(e);
+        return Err(Box::new(e));
     }
     let mut interpreter = interpreter.expect("context should be valid");
     for _ in 0..shots {

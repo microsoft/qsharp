@@ -347,7 +347,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
         if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
             self.visit_expr(qualifier);
             if field_name.name == self.field_name {
-                if let Some(Ty::Udt(Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
+                if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
                     if self.eq(id) {
                         self.locations.push(field_name.span);
                     }

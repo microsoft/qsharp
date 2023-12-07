@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use criterion::{criterion_group, criterion_main, Criterion};
+use indoc::indoc;
 use qsc::{interpret::stateful, PackageType, TargetProfile};
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;
@@ -52,5 +53,64 @@ pub fn large_file(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, teleport, deutsch_jozsa, large_file);
+pub fn array_append(c: &mut Criterion) {
+    c.bench_function("Array append evaluation", |b| {
+        let sources = SourceMap::new(
+            [("none".into(), "".into())],
+            Some(
+                indoc! {"{
+            mutable arr = [];
+            for i in 0..999 {
+                set arr += [i];
+            }
+            arr
+        }"}
+                .into(),
+            ),
+        );
+        let mut evaluator =
+            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+                .expect("code should compile");
+        b.iter(move || {
+            let mut out = Vec::new();
+            let mut rec = GenericReceiver::new(&mut out);
+            assert!(evaluator.eval_entry(&mut rec).is_ok());
+        })
+    });
+}
+
+pub fn array_update(c: &mut Criterion) {
+    c.bench_function("Array update evaluation", |b| {
+        let sources = SourceMap::new(
+            [("none".into(), "".into())],
+            Some(
+                indoc! {"{
+            mutable arr = [0, size = 10000];
+            for i in 0..999 {
+                set arr w/= i <- i;
+            }
+            arr
+        }"}
+                .into(),
+            ),
+        );
+        let mut evaluator =
+            stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
+                .expect("code should compile");
+        b.iter(move || {
+            let mut out = Vec::new();
+            let mut rec = GenericReceiver::new(&mut out);
+            assert!(evaluator.eval_entry(&mut rec).is_ok());
+        })
+    });
+}
+
+criterion_group!(
+    benches,
+    teleport,
+    deutsch_jozsa,
+    large_file,
+    array_append,
+    array_update
+);
 criterion_main!(benches);

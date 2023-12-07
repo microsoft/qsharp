@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 mod given_interpreter {
     use crate::interpret::stateful::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;

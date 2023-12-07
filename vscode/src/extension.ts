@@ -36,9 +36,11 @@ import { initAzureWorkspaces } from "./azure/commands.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createSignatureHelpProvider } from "./signature.js";
 import { createRenameProvider } from "./rename.js";
+import { registerWebViewCommands } from "./webviewPanel.js";
 import { createReferenceProvider } from "./references.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
+import { getManifest, readFile, listDir } from "./projectSystem.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -66,6 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
   initCodegen(context);
   activateDebugger(context);
   registerCreateNotebookCommand(context);
+  registerWebViewCommands(context);
   initFileSystem(context);
 
   log.info("Q# extension activated.");
@@ -143,10 +146,10 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }),
   );
 
-  function updateIfQsharpDocument(document: vscode.TextDocument) {
+  async function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
-      languageService.updateDocument(
+      await languageService.updateDocument(
         document.uri.toString(),
         document.version,
         document.getText(),
@@ -252,7 +255,11 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService();
+  const languageService = await getLanguageService(
+    readFile,
+    listDir,
+    getManifest,
+  );
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(

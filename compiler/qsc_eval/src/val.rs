@@ -13,7 +13,7 @@ pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    Array(Rc<[Value]>),
+    Array(Rc<Vec<Value>>),
     BigInt(BigInt),
     Bool(bool),
     Closure(Rc<[Value]>, GlobalId, FunctorApp),
@@ -164,24 +164,51 @@ impl Display for Value {
     }
 }
 
+thread_local! {
+    static UNIT: Rc<[Value; 0]> = Rc::new([]);
+}
+
 impl Value {
     pub const RESULT_ZERO: Self = Self::Result(Result::Val(false));
     pub const RESULT_ONE: Self = Self::Result(Result::Val(true));
 
     #[must_use]
     pub fn unit() -> Self {
-        Self::Tuple([].as_slice().into())
+        UNIT.with(|unit| Self::Tuple(unit.clone()))
     }
 
     /// Convert the [Value] into an array of [Value]
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Array`].
     #[must_use]
-    pub fn unwrap_array(self) -> Rc<[Self]> {
+    pub fn unwrap_array(self) -> Rc<Vec<Self>> {
         let Value::Array(v) = self else {
             panic!("value should be Array, got {}", self.type_name());
         };
         v
+    }
+
+    /// Updates a value in an array in-place.
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Array`].
+    pub fn update_array(&mut self, index: usize, value: Self) {
+        let Value::Array(arr) = self else {
+            panic!("value should be Array, got {}", self.type_name());
+        };
+        let arr = Rc::get_mut(arr).expect("array should be uniquely referenced");
+        arr[index] = value;
+    }
+
+    /// Appends a value to an array in-place.
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Array`].
+    pub fn append_array(&mut self, value: Self) {
+        let Value::Array(arr) = self else {
+            panic!("value should be Array, got {}", self.type_name());
+        };
+        let arr = Rc::get_mut(arr).expect("array should be uniquely referenced");
+        let append_arr = value.unwrap_array();
+        arr.extend_from_slice(&append_arr);
     }
 
     /// Convert the [Value] into a `BigInt`

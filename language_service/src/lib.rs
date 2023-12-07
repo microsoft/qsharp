@@ -10,6 +10,7 @@ pub mod definition;
 mod display;
 pub mod hover;
 mod name_locator;
+mod project_system;
 pub mod protocol;
 mod qsc_utils;
 pub mod references;
@@ -20,19 +21,30 @@ mod test_utils;
 #[cfg(test)]
 mod tests;
 
+use async_recursion::async_recursion;
 use compilation::Compilation;
-use log::trace;
+use log::{error, trace, warn};
 use miette::Diagnostic;
+pub use project_system::JSFileEntry;
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
 use qsc::{compile::Error, PackageType, TargetProfile};
+use qsc_project::FileSystemAsync;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{mem::take, sync::Arc};
+use std::{future::Future, mem::take, pin::Pin, sync::Arc};
 
 type CompilationUri = Arc<str>;
 type DocumentUri = Arc<str>;
+
+/// the desugared return type of an "async fn"
+type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
+
+/// represents a unary async fn where `Arg` is the input
+/// parameter and `Return` is the return type. The lifetime
+/// `'a` represents the lifetime of the contained `dyn Fn`.
+type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
 
 pub struct LanguageService<'a> {
     /// Workspace-wide configuration settings. These can include compiler settings that
@@ -69,6 +81,27 @@ pub struct LanguageService<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    /// Callback which lets the service read a file from the target filesystem
+    read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
+    /// Callback which lets the service list directory contents
+    /// on the target file system
+    list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
+    /// Fetch the manifest file for a specific path
+    get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
+    /// Whether or not a compile is currently running.
+    currently_updating: bool,
+    /// The next compile to run, if any
+    pending_update: Option<PendingUpdate>,
+}
+
+#[derive(Clone)]
+pub enum PendingUpdate {
+    Document {
+        uri: String,
+        version: u32,
+        text: String,
+    },
+    RecompileAll,
 }
 
 #[derive(Debug)]
@@ -104,13 +137,24 @@ struct OpenDocument {
 }
 
 impl<'a> LanguageService<'a> {
-    pub fn new(diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a) -> Self {
+    pub fn new(
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
+        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
+        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
+            + 'a,
+    ) -> Self {
         LanguageService {
             configuration: Configuration::default(),
             compilations: FxHashMap::default(),
             open_documents: FxHashMap::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
+            read_file_callback: Box::new(read_file),
+            list_directory: Box::new(list_directory),
+            get_manifest: Box::new(get_manifest),
+            currently_updating: false,
+            pending_update: None,
         }
     }
 
@@ -126,6 +170,11 @@ impl<'a> LanguageService<'a> {
 
         // Some configuration options require a recompilation as they impact error checking
         if need_recompile {
+            if self.currently_updating {
+                self.pending_update = Some(PendingUpdate::RecompileAll);
+                trace!("Skipping recompile_all since compilation is in progress");
+                return;
+            }
             self.recompile_all();
         }
     }
@@ -135,28 +184,90 @@ impl<'a> LanguageService<'a> {
     /// for the document, typically when the document is first opened in the editor.
     /// It should also be called whenever the source code is updated.
     ///
+    /// This is the "entry point" for the language service's logic, after its constructor.
+    ///
     /// LSP: textDocument/didOpen, textDocument/didChange
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    #[async_recursion(?Send)]
+    pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        if self.currently_updating {
+            self.pending_update = Some(PendingUpdate::Document {
+                uri: uri.into(),
+                version,
+                text: text.into(),
+            });
+            return;
+        }
+        self.currently_updating = true;
         trace!("update_document: {uri} {version}");
-        let compilation = Compilation::new_open_document(
-            uri,
-            text,
+        let manifest = (self.get_manifest)(uri.to_string()).await;
+        let sources = if let Some(ref manifest) = manifest {
+            match self.load_project(manifest).await {
+                Ok(o) => o.sources,
+                Err(e) => {
+                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
+                    vec![(Arc::from(uri), Arc::from(text))]
+                }
+            }
+        } else {
+            trace!("Running in single file mode");
+            vec![(Arc::from(uri), Arc::from(text))]
+        };
+        let compilation = Compilation::new(
+            &sources,
             self.configuration.package_type,
             self.configuration.target_profile,
         );
-
-        // Associate each known document with a separate compilation.
-        let uri: Arc<str> = uri.into();
+        // If we are in single file mode, use the file's path as the compilation identifier.
+        // If we are compiling a project, use the path to the project manifest
+        let uri: Arc<str> = if let Some(manifest) = manifest {
+            Arc::from(format!(
+                "{}/qsharp.json",
+                manifest.manifest_dir.to_string_lossy()
+            ))
+        } else {
+            uri.into()
+        };
+        trace!("Loaded project uri {uri} with {} sources", sources.len());
         self.compilations
             .insert(uri.clone(), (compilation, PartialConfiguration::default()));
-        self.open_documents.insert(
-            uri.clone(),
-            OpenDocument {
-                version,
-                compilation: uri,
-            },
-        );
+
+        // There may be open buffers with sources in the project.
+        // These buffers need to have their diagnostics reloaded,
+        // to be in the context of the project.
+        // We remove them from the existing compilations and update
+        // their compilation URI
+        for (path, _contents) in &sources {
+            log::trace!("Updating compilation of {path} to {uri}");
+            self.open_documents
+                .entry(path.clone())
+                .and_modify(|x| {
+                    // remove any old single-file compilations of this document
+                    // if this is a project
+                    if x.compilation != uri {
+                        self.compilations.remove(&x.compilation);
+                    }
+                    x.compilation = uri.clone();
+                })
+                .or_insert(OpenDocument {
+                    version,
+                    compilation: uri.clone(),
+                });
+        }
+
         self.publish_diagnostics();
+        if let Some(update) = self.pending_update.take() {
+            match update {
+                PendingUpdate::Document { uri, version, text } => {
+                    self.update_document(&uri, version, &text).await;
+                }
+                PendingUpdate::RecompileAll => {
+                    // just recompile the same URI and text if we need to recompile all
+                    // ideally, we reload sources from disk here
+                    self.update_document(&uri, version, text).await;
+                }
+            }
+        }
+        self.currently_updating = false;
     }
 
     /// Indicates that the client is no longer interested in the document,
@@ -215,7 +326,7 @@ impl<'a> LanguageService<'a> {
                         compilation: compilation_uri.clone(),
                     },
                 );
-                (cell_uri, cell_contents)
+                (Arc::from(cell_uri), Arc::from(cell_contents))
             }),
             configuration.target_profile,
         );
@@ -323,19 +434,25 @@ impl<'a> LanguageService<'a> {
     }
 
     /// Executes an operation that takes a document uri and offset, using the current compilation for that document
-    fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
+    fn document_op<F, T: Default>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
     where
         F: Fn(&Compilation, &str, u32) -> T,
-        T: std::fmt::Debug,
+        T: std::fmt::Debug + Default,
     {
         trace!("{op_name}: uri: {uri}, offset: {offset}");
-        let compilation_uri = &self
+        if self.currently_updating {
+            trace!("Skipping {op_name} since compilation is in progress");
+            return T::default();
+        }
+        let Some(compilation_uri) = &self
             .open_documents
             .get(uri)
-            .unwrap_or_else(|| {
-                panic!("{op_name} should not be called for a document that has not been opened",)
-            })
-            .compilation;
+            .as_ref()
+            .map(|x| x.compilation.clone())
+        else {
+            warn!("{op_name} (called on {uri}) should not be called for a document that has not been opened",);
+            return T::default();
+        };
 
         trace!("{op_name}: compilation_uri: {compilation_uri}");
         let compilation = self.compilations.get(compilation_uri).unwrap_or_else(|| {

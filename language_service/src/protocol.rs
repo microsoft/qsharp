@@ -37,7 +37,7 @@ pub enum CompletionItemKind {
     Property,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[allow(clippy::module_name_repetitions)]
 pub struct CompletionList {
     pub items: Vec<CompletionItem>,

@@ -17,7 +17,10 @@ use qsc::{
     fir,
     interpret::{
         output::{Error, Receiver},
-        stateful::{self},
+        stateful::{
+            self,
+            re::{self, estimate_expr},
+        },
         Value,
     },
     PackageType, SourceMap,
@@ -33,6 +36,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
     m.add_class::<StateDump>()?;
+    m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
     Ok(())
@@ -140,6 +144,41 @@ impl Interpreter {
             Ok(qir) => Ok(qir),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
+    }
+
+    fn estimate(&mut self, _py: Python, entry_expr: &str, job_params: &str) -> PyResult<String> {
+        match estimate_expr(&mut self.interpreter, entry_expr, job_params) {
+            Ok(estimate) => Ok(estimate),
+            Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
+                Err(QSharpError::new_err(format_errors(
+                    errors
+                        .into_iter()
+                        .map(|e| match e {
+                            re::Error::Interpreter(e) => e,
+                            re::Error::Estimation(_) => unreachable!(),
+                        })
+                        .collect::<Vec<_>>(),
+                )))
+            }
+            Err(errors) => Err(QSharpError::new_err(
+                errors
+                    .into_iter()
+                    .map(|e| match e {
+                        re::Error::Estimation(e) => e.to_string(),
+                        re::Error::Interpreter(_) => unreachable!(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )),
+        }
+    }
+}
+
+#[pyfunction]
+pub fn physical_estimates(logical_resources: &str, job_params: &str) -> PyResult<String> {
+    match re::estimate_physical_resources_from_json(logical_resources, job_params) {
+        Ok(estimates) => Ok(estimates),
+        Err(error) => Err(QSharpError::new_err(error.to_string())),
     }
 }
 

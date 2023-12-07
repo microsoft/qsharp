@@ -33,13 +33,13 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(ParamId),
+    Param(Rc<str>, ParamId),
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A user-defined type.
-    Udt(Res),
+    Udt(Rc<str>, Res),
     /// An invalid type.
     #[default]
     Err,
@@ -52,7 +52,7 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
-            Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
@@ -61,7 +61,45 @@ impl Ty {
                     .map(|item| item.with_package(package))
                     .collect(),
             ),
-            Ty::Udt(res) => Ty::Udt(res.with_package(package)),
+            Ty::Udt(name, res) => Ty::Udt(name.clone(), res.with_package(package)),
+        }
+    }
+
+    pub fn display(&self) -> String {
+        match self {
+            Ty::Array(item) => {
+                format!("{}[]", item.display())
+            }
+            Ty::Arrow(arrow) => {
+                let arrow_symbol = match arrow.kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                let functors = if arrow.functors == FunctorSet::Value(FunctorSetValue::Empty) {
+                    String::new()
+                } else {
+                    format!(" is {}", arrow.functors)
+                };
+                format!(
+                    "({} {arrow_symbol} {}{functors})",
+                    arrow.input.display(),
+                    arrow.output.display()
+                )
+            }
+            Ty::Infer(_) | Ty::Err => "?".to_string(),
+            Ty::Param(name, _) | Ty::Udt(name, _) => name.to_string(),
+            Ty::Prim(prim) => format!("{prim:?}"),
+            Ty::Tuple(items) => {
+                if items.is_empty() {
+                    "Unit".to_string()
+                } else if items.len() == 1 {
+                    let item = items.get(0).expect("expected single item");
+                    format!("({},)", item.display())
+                } else {
+                    let items = items.iter().map(Ty::display).collect::<Vec<_>>().join(", ");
+                    format!("({items})")
+                }
+            }
         }
     }
 }
@@ -69,20 +107,22 @@ impl Ty {
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Array(item) => write!(f, "{item}[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(param_id) => write!(f, "Param<{param_id}>"),
+            Ty::Param(name, param_id) => {
+                write!(f, "Param<\"{name}\": {param_id}>")
+            }
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 if items.is_empty() {
                     f.write_str("Unit")
                 } else {
-                    f.write_str("(")?;
+                    f.write_char('(')?;
                     if let Some((first, rest)) = items.split_first() {
                         Display::fmt(first, f)?;
                         if rest.is_empty() {
-                            f.write_str(",")?;
+                            f.write_char(',')?;
                         } else {
                             for item in rest {
                                 f.write_str(", ")?;
@@ -93,8 +133,10 @@ impl Display for Ty {
                     f.write_str(")")
                 }
             }
-            Ty::Udt(res) => write!(f, "UDT<{res}>"),
-            Ty::Err => f.write_str("?"),
+            Ty::Udt(name, res) => {
+                write!(f, "UDT<\"{name}\": {res}>")
+            }
+            Ty::Err => f.write_char('?'),
         }
     }
 }
@@ -166,10 +208,10 @@ fn instantiate_ty<'a>(
     ty: &Ty,
 ) -> Result<Ty, InstantiationError> {
     match ty {
-        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => Ok(ty.clone()),
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_, _) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(param) => match arg(param) {
+        Ty::Param(_, param) => match arg(param) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
             Some(_) => Err(InstantiationError::Kind(*param)),
             None => Ok(ty.clone()),
@@ -210,7 +252,7 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty => write!(f, "type"),
+            GenericParam::Ty(name) => write!(f, "type {name}"),
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
         }
     }
@@ -220,9 +262,24 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty,
+    Ty(TypeParamName),
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
+}
+
+/// The name of a generic type parameter.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TypeParamName {
+    /// The span.
+    pub span: Span,
+    /// The name.
+    pub name: Rc<str>,
+}
+
+impl Display for TypeParamName {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{} \"{}\"", self.span, self.name)
+    }
 }
 
 /// A generic parameter ID.
@@ -483,7 +540,7 @@ impl Udt {
             ty: Box::new(Arrow {
                 kind: CallableKind::Function,
                 input: Box::new(self.get_pure_ty()),
-                output: Box::new(Ty::Udt(Res::Item(id))),
+                output: Box::new(Ty::Udt(self.name.clone(), Res::Item(id))),
                 functors: FunctorSet::Value(FunctorSetValue::Empty),
             }),
         }
