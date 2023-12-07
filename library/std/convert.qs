@@ -73,12 +73,12 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Input
     /// ## number
-    /// A non-negative integer to be converted to an array of boolean values.
+    /// A non-negative integer to be converted to an array of Boolean values.
     /// ## bits
     /// The number of bits in the binary representation of `number`.
     ///
     /// # Output
-    /// An array of boolean values representing `number`.
+    /// An array of Boolean values representing `number`.
     ///
     /// # Remarks
     /// The input `bits` must be non-negative.
@@ -103,12 +103,12 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Input
     /// ## number
-    /// A non-negative BigInt to be converted to an array of boolean values.
+    /// A non-negative BigInt to be converted to an array of Boolean values.
     /// ## bits
     /// The number of bits in the binary representation of `number`.
     ///
     /// # Output
-    /// An array of boolean values representing `number`.
+    /// An array of Boolean values representing `number`.
     ///
     /// # Remarks
     /// The input `bits` must be non-negative.
