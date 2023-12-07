@@ -162,9 +162,17 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
   return proxy;
 }
 
-export async function getLanguageService(): Promise<ILanguageService> {
+export async function getLanguageService(
+  readFile?: (uri: string) => Promise<string | null>,
+  listDir?: (uri: string) => Promise<[string, number][]>,
+  getManifest?: (uri: string) => Promise<{
+    excludeFiles: string[];
+    excludeRegexes: string[];
+    manifestDirectory: string;
+  } | null>,
+): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm);
+  return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.
