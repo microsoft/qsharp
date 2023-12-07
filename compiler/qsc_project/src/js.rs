@@ -30,7 +30,7 @@ use std::{future::Future, pin::Pin};
 
 pub struct ProjectSystemCallbacks<'a> {
     /// Callback which lets the service read a file from the target filesystem
-    pub read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
+    pub read_file: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
     /// Callback which lets the service list directory contents
     /// on the target file system
     pub list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,

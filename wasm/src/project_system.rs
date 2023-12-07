@@ -1,5 +1,6 @@
-use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
-use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
+use async_trait::async_trait;
+use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
+use std::{path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -165,4 +166,48 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
         },
         manifest_dir,
     })
+}
+
+/// a minimal implementation for interacting with async JS filesystem callbacks to
+/// load project files
+#[wasm_bindgen]
+pub struct ProjectLoader(ProjectSystemCallbacks<'static>);
+
+#[wasm_bindgen]
+impl ProjectLoader {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+        get_manifest: GetManifestCallback,
+    ) -> Self {
+        let read_file = read_file.into();
+        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
+
+        let list_directory = list_directory.into();
+        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
+
+        let get_manifest: JsValue = get_manifest.into();
+        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
+        ProjectLoader(ProjectSystemCallbacks {
+            read_file: Box::new(read_file),
+            list_directory: Box::new(list_directory),
+            get_manifest: Box::new(get_manifest),
+        })
+    }
+}
+
+#[async_trait(?Send)]
+impl qsc_project::FileSystemAsync for ProjectLoader {
+    type Entry = JSFileEntry;
+    async fn read_file(
+        &self,
+        path: &std::path::Path,
+    ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
+        Ok((self.0.read_file)(path.to_string_lossy().to_string()).await)
+    }
+
+    async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
+        Ok((self.0.list_directory)(path.to_string_lossy().to_string()).await)
+    }
 }

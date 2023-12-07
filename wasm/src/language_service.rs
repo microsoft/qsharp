@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
-
 use crate::{
     diagnostic::VSDiagnostic,
     into_async_rust_fn_with,
@@ -14,12 +12,10 @@ use crate::{
 };
 use js_sys::JsString;
 use qsc::{self};
-use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);

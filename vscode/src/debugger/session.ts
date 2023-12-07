@@ -119,7 +119,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
     // we are in project mode here
 
-    // const projectLoader = 
+     const projectLoader = new wasm.ProjectSystemCallbacks();
     return [];
   }
 
