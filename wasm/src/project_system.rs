@@ -1,5 +1,7 @@
 use async_trait::async_trait;
+use js_sys::JsString;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
+use std::iter::FromIterator;
 use std::{path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
 
@@ -18,9 +20,27 @@ extern "C" {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
-        typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
+        typescript_type = "{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string }"
     )]
+    pub type ManifestDescriptorObject;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<ManifestDescriptorObject | null>")]
     pub type GetManifestCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "[string, string][]")]
+    pub type ProjectSources;
+}
+
+impl From<ManifestDescriptorObject> for Option<ManifestDescriptor> {
+    fn from(value: ManifestDescriptorObject) -> Self {
+        get_manifest_transformer(value.obj, Default::default())
+    }
 }
 
 /// This macro produces a function that calls an async JS function, awaits it, and then applies a function to the resulting value.
@@ -194,6 +214,32 @@ impl ProjectLoader {
             list_directory: Box::new(list_directory),
             get_manifest: Box::new(get_manifest),
         })
+    }
+
+    pub async fn load_project(&self, manifest: ManifestDescriptorObject) -> ProjectSources {
+        let manifest: Option<ManifestDescriptor> = manifest.into();
+        match manifest {
+            Some(manifest) => {
+                let res = qsc_project::FileSystemAsync::load_project(self, &(manifest.into()))
+                    .await
+                    .map(|proj| {
+                        proj.sources
+                            .into_iter()
+                            .map(|(path, contents)| {
+                                js_sys::Array::from_iter::<std::slice::Iter<'_, JsString>>(
+                                    vec![path.to_string().into(), contents.to_string().into()]
+                                        .iter(),
+                                )
+                            })
+                            .collect::<js_sys::Array>()
+                    })
+                    .unwrap_or_else(|_| js_sys::Array::new());
+                ProjectSources { obj: res.into() }
+            }
+            None => ProjectSources {
+                obj: js_sys::Array::new().into(),
+            },
+        }
     }
 }
 
