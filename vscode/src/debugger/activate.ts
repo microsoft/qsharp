@@ -3,12 +3,15 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import * as vscode from "vscode";
 import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
 import { getManifest, readFile, listDir } from "../projectSystem.js";
+
+import * as vscode from "vscode";
+import * as wasm from "../../../npm/lib/web/qsc_wasm.js";
+type QscWasm = typeof import("../../../npm/lib/node/qsc_wasm.cjs");
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -186,21 +189,7 @@ export const workspaceFileAccessor: FileAccessor = {
 };
 
 class InlineDebugAdapterFactory
-  implements vscode.DebugAdapterDescriptorFactory
-{
-  private readFile: (path: string) => Promise<string | null>;
-  private getManifest: (path: string) => Promise<{
-  excludeFiles: string[];
-  excludeRegexes: string[];
-  manifestDirectory: string;
-} | null> ;
-  private listDir: (path: string) => Promise<[string, number][]>;
-
-  constructor() {
-    this.readFile = readFile;
-    this.getManifest = getManifest;
-    this.listDir = listDir;
-  }
+  implements vscode.DebugAdapterDescriptorFactory {
   createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
@@ -211,7 +200,7 @@ class InlineDebugAdapterFactory
       worker,
       session.configuration,
     );
-    return qscSession.init(getRandomGuid()).then(() => {
+    return qscSession.init(getRandomGuid() ).then(() => {
       return new vscode.DebugAdapterInlineImplementation(qscSession);
     });
   }

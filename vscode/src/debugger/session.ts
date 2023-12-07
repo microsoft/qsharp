@@ -44,6 +44,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { getTarget } from "../config";
 import { getManifest, listDir, readFile } from "../projectSystem";
+
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -107,17 +108,35 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-  public async init(associationId: string, sources: [string, string][]): Promise<void> {
+  public async loadProject(): Promise<[string, string][]> {
+    // get the project using this.program
+    const manifest = await getManifest(this.program.toString());
+    if (manifest === null) {
+      // return just the one file if we are in single file mode
+      const file = await this.fileAccessor.openUri(this.program);
+      return [[this.program.toString(), file.getText()]]
+    }
+
+    // we are in project mode here
+
+    // const projectLoader = 
+    return [];
+  }
+
+  public async init(associationId: string): Promise<void> {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const file = await this.fileAccessor.openUri(this.program);
+    const sources = await this.loadProject();
     const targetProfile = getTarget();
-    
+
     const failureMessage = await this.debugService.loadSource(
       sources,
       targetProfile,
       this.config.entry
-      
+
     );
+    // TODO: verify that the breakpoint span abstraction can handle breakpoints in multiple files
+    // use this dummy file in meanwhile
+    const file = await this.fileAccessor.openUri(this.program);
     if (failureMessage == "") {
       const locations = await this.debugService.getBreakpoints(
         this.program.toString(),
@@ -560,7 +579,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-              bp.fileLocation.startOffset <= endOffset,
+            bp.fileLocation.startOffset <= endOffset,
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
