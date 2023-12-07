@@ -67,7 +67,11 @@ export class QSharpDebugService implements IDebugService {
     target: "base" | "full",
     entry: string | undefined,
   ): Promise<string> {
+    // remove-me: debug print
+    log.info("in loadSource, loading", sources.length, "sources");
     for (const [path, source] of sources) {
+      // remove-me: debug print
+      log.info("updating ", path);
       this.code[path] = source;
     }
     return this.debugService.load_source(sources, target, entry);

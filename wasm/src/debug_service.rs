@@ -46,7 +46,7 @@ impl DebugService {
         let sources = sources.into_iter().map(|js_arr| {
             // map the inner arr elements into (String, String)
             let elem_0 = js_arr.get(0).as_string();
-            let elem_1 = js_arr.get(0).as_string();
+            let elem_1 = js_arr.get(1).as_string();
             (
                 Arc::from(elem_0.unwrap_or_default()),
                 Arc::from(elem_1.unwrap_or_default()),
