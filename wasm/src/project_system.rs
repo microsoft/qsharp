@@ -222,15 +222,14 @@ impl ProjectLoader {
         let manifest: Option<ManifestDescriptor> = manifest.into();
         match manifest {
             Some(manifest) => {
-                let res = qsc_project::FileSystemAsync::load_project(self, &(manifest.into()))
+                let res = qsc_project::FileSystemAsync::load_project(self, &manifest)
                     .await
                     .map(|proj| {
                         proj.sources
                             .into_iter()
                             .map(|(path, contents)| {
                                 js_sys::Array::from_iter::<std::slice::Iter<'_, JsString>>(
-                                    vec![path.to_string().into(), contents.to_string().into()]
-                                        .iter(),
+                                    [path.to_string().into(), contents.to_string().into()].iter(),
                                 )
                             })
                             .collect::<js_sys::Array>()
