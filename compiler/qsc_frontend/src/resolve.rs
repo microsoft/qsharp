@@ -135,7 +135,7 @@ impl Scope {
     }
 }
 
-pub(super) type ScopeId = usize;
+type ScopeId = usize;
 
 #[derive(Debug, Clone, Default)]
 pub struct Locals {
@@ -144,10 +144,7 @@ pub struct Locals {
 }
 
 impl Locals {
-    pub(super) fn get_scopes<'a>(
-        &'a self,
-        scope_chain: &'a [ScopeId],
-    ) -> impl Iterator<Item = &Scope> + 'a {
+    fn get_scopes<'a>(&'a self, scope_chain: &'a [ScopeId]) -> impl Iterator<Item = &Scope> + 'a {
         // reverse to go from innermost -> outermost
         scope_chain.iter().rev().map(|id| {
             self.scopes
@@ -156,13 +153,13 @@ impl Locals {
         })
     }
 
-    pub(super) fn push_scope(&mut self, s: Scope) -> ScopeId {
+    fn push_scope(&mut self, s: Scope) -> ScopeId {
         let id = self.scopes.len();
         self.scopes.insert(id, s);
         id
     }
 
-    pub(super) fn get_scope_mut(&mut self, id: ScopeId) -> &mut Scope {
+    fn get_scope_mut(&mut self, id: ScopeId) -> &mut Scope {
         self.scopes
             .get_mut(id)
             .unwrap_or_else(|| panic!("scope with id {id:?} should exist"))
