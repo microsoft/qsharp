@@ -911,7 +911,7 @@ fn check_invert_if_less_l_exhaustive() {
         "Test.CompareWithBigInt(\"Check InvertIfLessL\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfLessL,
             (a, b) -> {a < b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -922,7 +922,7 @@ fn check_invert_if_less_or_equal_l_exhaustive() {
         "Test.CompareWithBigInt(\"Check InvertIfLessOrEqualL\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfLessOrEqualL,
             (a, b) -> {a <= b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -933,7 +933,7 @@ fn check_invert_if_equal_l_exhaustive() {
         "Test.CompareWithBigInt(\"Check InvertIfEqualL\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfEqualL,
             (a, b) -> {a == b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -944,7 +944,7 @@ fn check_invert_if_greater_or_equal_l_exhaustive() {
         "Test.CompareWithBigInt(\"Check InvertIfGreaterOrEqualL\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfGreaterOrEqualL,
             (a, b) -> {a >= b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -955,7 +955,7 @@ fn check_invert_if_greater_l_exhaustive() {
         "Test.CompareWithBigInt(\"Check InvertIfGreaterL\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfGreaterL,
             (a, b) -> {a > b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -966,7 +966,7 @@ fn check_invert_if_less_le_exhaustive() {
         "Test.CompareWithLE(\"Check InvertIfLessLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfLessLE,
             (a, b) -> {a < b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -977,7 +977,7 @@ fn check_invert_if_less_or_equal_le_exhaustive() {
         "Test.CompareWithLE(\"Check InvertIfLessOrEqualLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfLessOrEqualLE,
             (a, b) -> {a <= b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -988,7 +988,7 @@ fn check_invert_if_equal_le_exhaustive() {
         "Test.CompareWithLE(\"Check InvertIfEqualLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfEqualLE,
             (a, b) -> {a == b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -999,7 +999,7 @@ fn check_invert_if_greater_or_equal_le_exhaustive() {
         "Test.CompareWithLE(\"Check InvertIfGreaterOrEqualLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfGreaterOrEqualLE,
             (a, b) -> {a >= b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -1010,7 +1010,7 @@ fn check_invert_if_greater_le_exhaustive() {
         "Test.CompareWithLE(\"Check InvertIfGreaterLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.InvertIfGreaterLE,
             (a, b) -> {a > b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -1021,7 +1021,7 @@ fn check_apply_if_less_le_exhaustive() {
         "Test.CompareWithLE(\"Check ApplyIfLessLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessLE(X,_,_,_),
             (a, b) -> {a < b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -1032,7 +1032,7 @@ fn check_apply_if_less_or_equal_le_exhaustive() {
         "Test.CompareWithLE(\"Check ApplyIfLessOrEqualLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualLE(X,_,_,_),
             (a, b) -> {a <= b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -1043,7 +1043,7 @@ fn check_apply_if_equal_le_exhaustive() {
         "Test.CompareWithLE(\"Check ApplyIfEqualLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualLE(X,_,_,_),
             (a, b) -> {a == b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -1054,7 +1054,7 @@ fn check_apply_if_greater_or_equal_le_exhaustive() {
         "Test.CompareWithLE(\"Check ApplyIfGreaterOrEqualLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualLE(X,_,_,_),
             (a, b) -> {a >= b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
@@ -1065,8 +1065,7 @@ fn check_apply_if_greater_le_exhaustive() {
         "Test.CompareWithLE(\"Check ApplyIfGreaterLE\", 3,
             Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterLE(X,_,_,_),
             (a, b) -> {a > b} )",
-            COMPARE_TEST_LIB,
+        COMPARE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
 }
-
