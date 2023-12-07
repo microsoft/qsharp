@@ -1,10 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from typing import Union, List
 from ._native import Interpreter, TargetProfile, StateDump
+from .estimator._estimator import EstimatorResult, EstimatorParams
+import json
 
 _interpreter = None
-
 
 def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
     """
@@ -87,6 +89,28 @@ def compile(entry_expr):
     """
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
+
+def estimate(entry_expr, params: Union[dict, List, EstimatorParams] = None) -> EstimatorResult:
+    """
+    Estimates resources for Q# source code.
+
+    :param entry_expr: The entry expression.
+    :param params: The parameters to configure physical estimation.
+
+    :returns resources: The estimated resources.
+    """
+    if params is None:
+        params = [{}]
+    elif isinstance(params, EstimatorParams):
+        if params.has_items:
+            params = params.as_dict()["items"]
+        else:
+            params = [params.as_dict()]
+    elif isinstance(params, dict):
+        params = [params]
+    return EstimatorResult(
+        json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
+    )
 
 def dump_machine() -> StateDump:
     """
