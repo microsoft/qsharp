@@ -1,7 +1,33 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { useEffect, useRef } from "preact/hooks";
+
+declare const resourcesUri: string; // Set by the HTML in the window
+
+let svgPromise: Promise<Response>;
+
 export function HelpPage() {
+  // Need to load the SVG resource async and put it into the div.
+  // You can't use an img tag for the SVG, as parent styles don't apply.
+  const svgRef = useRef<HTMLDivElement>(null);
+
+  // Ensure that the fetch is kicked off once for the module
+  if (!svgPromise) {
+    svgPromise = fetch(`${resourcesUri}/DebugDropDown.svg`);
+  }
+
+  useEffect(() => {
+    // Once render is complete, load the SVG (when ready) into the div
+    svgPromise
+      .then((response) => response.text())
+      .then((text) => {
+        if (svgRef.current) {
+          svgRef.current.innerHTML = text;
+        }
+      });
+  });
+
   return (
     <div class="qs-help">
       <h1>Azure Quantum Development Kit</h1>
@@ -18,6 +44,7 @@ export function HelpPage() {
         find all references, renaming of functions and variables, and more.
       </p>
       <h2>Quantum simulation</h2>
+      <div style="float: right; width: 200px; margin: 6px" ref={svgRef}></div>
       <p>
         The built-in quantum simulator enables you to run your Q# code directly
         in VS Code. Use the 'Play' icon at the top right of the editor, (or the

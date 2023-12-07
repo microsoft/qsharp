@@ -15,7 +15,7 @@ pub fn check(project_path: PathBuf, expect: &Expect) {
         .unwrap()
         .unwrap();
     let fs = StdFs;
-    let mut project = fs.load_project(manifest).unwrap();
+    let mut project = fs.load_project(&manifest).unwrap();
 
     // remove the prefix absolute path
     for (path, _contents) in project.sources.iter_mut() {

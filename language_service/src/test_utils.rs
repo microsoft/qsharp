@@ -95,7 +95,7 @@ pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str)
     Compilation {
         package_store,
         user_package_id: package_id,
-        kind: CompilationKind::OpenDocument,
+        kind: CompilationKind::OpenProject,
         errors,
     }
 }
