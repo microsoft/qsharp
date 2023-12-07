@@ -71,18 +71,14 @@ impl Compilation {
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<I>(cells: I) -> Self
+    pub(crate) fn new_notebook<I>(cells: I, target_profile: TargetProfile) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
         trace!("compiling notebook");
-        let mut compiler = Compiler::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            TargetProfile::Full,
-        )
-        .expect("expected incremental compiler creation to succeed");
+        let mut compiler =
+            Compiler::new(true, SourceMap::default(), PackageType::Lib, target_profile)
+                .expect("expected incremental compiler creation to succeed");
 
         let mut errors = Vec::new();
         for (name, contents) in cells {
@@ -126,7 +122,7 @@ impl Compilation {
             + offset
     }
 
-    /// Regenerates the compilation with the same sources but the passed in configuration options.
+    /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: TargetProfile) {
         let sources: Vec<_> = self
             .user_source_contents()
@@ -136,7 +132,7 @@ impl Compilation {
 
         let new = match self.kind {
             CompilationKind::OpenProject => Self::new(&sources, package_type, target_profile),
-            CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
+            CompilationKind::Notebook => Self::new_notebook(sources.into_iter(), target_profile),
         };
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;

@@ -613,7 +613,7 @@ test("language service in notebook", async () => {
     );
   });
 
-  await languageService.updateNotebookDocument("notebook.ipynb", 1, [
+  await languageService.updateNotebookDocument("notebook.ipynb", 1, {}, [
     { uri: "cell1", version: 1, code: "operation Main() : Unit {}" },
     { uri: "cell2", version: 1, code: "Foo()" },
   ]);
@@ -625,7 +625,7 @@ test("language service in notebook", async () => {
   gotDiagnostics = false;
   expectedMessages = [];
 
-  await languageService.updateNotebookDocument("notebook.ipynb", 2, [
+  await languageService.updateNotebookDocument("notebook.ipynb", 2, {}, [
     { uri: "cell1", version: 2, code: "operation Main() : Unit {}" },
     { uri: "cell2", version: 2, code: "Main()" },
   ]);
