@@ -443,9 +443,11 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private getBreakpointIds(): number[] {
     const bps: number[] = [];
-    for (const bp of this.breakpoints.get(this.program.toString()) ?? []) {
-      if (bp && bp.id) {
-        bps.push(bp.id);
+    for (const file_bps of this.breakpoints.values()) {
+      for (const bp of file_bps) {
+        if (bp && bp.id) {
+          bps.push(bp.id);
+        }
       }
     }
 
