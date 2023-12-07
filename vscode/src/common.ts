@@ -48,6 +48,12 @@ export function basename(path: string): string | undefined {
  * Loads a Q# document or notebook cell.
  *
  * This does *not* open a visible document in the editor.
+ *
+ * Will throw if the document cannot be opened.
+ * This utility is indented to be used to map offsets to line/column
+ * positions. If/when the compiler returns line/column positions
+ * directly, we can skip this async and fallible step of loading
+ * the document just to map offsets. See: https://github.com/microsoft/qsharp/issues/851
  */
 export async function loadDocument(uri: Uri) {
   const uriString = uri.toString();

@@ -5,8 +5,7 @@
 
 use super::{get_rename, prepare_rename};
 use crate::test_utils::{
-    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
-    get_source_and_marker_offsets, target_offsets_to_spans,
+    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
 };
 use expect_test::{expect, Expect};
 
@@ -14,11 +13,9 @@ use expect_test::{expect, Expect};
 /// The cursor position is indicated by a `↘` marker in the source text.
 /// The expected rename location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str) {
-    let (source, cursor_offsets, target_offsets) =
-        get_source_and_marker_offsets(source_with_markers);
-    let target_spans = target_offsets_to_spans(&target_offsets);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_rename(&compilation, "<source>", cursor_offsets[0])
+    let (compilation, cursor_offset, target_spans) =
+        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_rename(&compilation, "<source>", cursor_offset)
         .into_iter()
         .map(|l| l.span)
         .collect::<Vec<_>>();
@@ -31,9 +28,8 @@ fn check(source_with_markers: &str) {
 /// Asserts that the prepare rename given at the cursor position returns None.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn assert_no_rename(source_with_markers: &str) {
-    let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = prepare_rename(&compilation, "<source>", cursor_offsets[0]);
+    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = prepare_rename(&compilation, "<source>", cursor_offset);
     assert!(actual.is_none());
 }
 

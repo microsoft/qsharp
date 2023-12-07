@@ -6,8 +6,9 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
-import { Histogram, ReTable, SpaceChart } from "qsharp-lang/ux";
+import { Histogram, type ReData } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
+import { RePage } from "./rePage";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
@@ -24,77 +25,139 @@ function markdownRenderer(input: string) {
 window.addEventListener("message", onMessage);
 window.addEventListener("load", main);
 
-let histogramData: Map<string, number> = new Map();
-let shotCount = 0;
-let showEstimates = false;
-let estimatesData: any = undefined;
-let showHelp = false;
+type HistogramState = {
+  viewType: "histogram";
+  buckets: Array<[string, number]>;
+  shotCount: number;
+};
+
+type EstimatesState = {
+  viewType: "estimates";
+  estimatesData: {
+    calculating: boolean;
+    estimates: ReData[];
+  };
+};
+
+type State =
+  | { viewType: "loading" }
+  | { viewType: "help" }
+  | HistogramState
+  | EstimatesState;
+const loadingState: State = { viewType: "loading" };
+const helpState: State = { viewType: "help" };
+let state: State = loadingState;
 
 function main() {
+  state = (vscodeApi.getState() as any) || loadingState;
+  render(<App state={state} />, document.body);
   vscodeApi.postMessage({ command: "ready" });
 }
 
 function onMessage(event: any) {
-  console.info("WebView got message: ", event.data);
   const message = event.data;
   if (!message?.command) {
     console.error("Unknown message: ", message);
     return;
   }
   switch (message.command) {
-    case "update": {
+    case "histogram": {
       if (!message.buckets || typeof message.shotCount !== "number") {
         console.error("No buckets in message: ", message);
         return;
       }
-      const buckets = message.buckets as Array<[string, number]>;
-      histogramData = new Map(buckets);
-      shotCount = message.shotCount;
+      state = {
+        viewType: "histogram",
+        buckets: message.buckets as Array<[string, number]>,
+        shotCount: message.shotCount,
+      };
       break;
     }
-    case "estimate":
+    case "estimates":
       {
-        showEstimates = true;
-        estimatesData = message.estimatesData;
+        const newState: EstimatesState = {
+          viewType: "estimates",
+          estimatesData: {
+            calculating: !!message.calculating,
+            estimates: [],
+          },
+        };
+        // Copy over any existing estimates
+        if ((state as EstimatesState).estimatesData?.estimates) {
+          newState.estimatesData.estimates.push(
+            ...(state as EstimatesState).estimatesData.estimates,
+          );
+        }
+        // Append any new estimates
+        if (message.estimates) {
+          if (Array.isArray(message.estimates)) {
+            newState.estimatesData.estimates.push(...message.estimates);
+          } else {
+            newState.estimatesData.estimates.push(message.estimates);
+          }
+        }
+        state = newState;
       }
       break;
     case "help":
-      {
-        showHelp = true;
-      }
+      state = helpState;
       break;
     default:
       console.error("Unknown command: ", message.command);
       return;
   }
-  render(<App />, document.body);
+
+  vscodeApi.setState(state);
+  render(<App state={state} />, document.body);
 }
 
-function App() {
+function onRowDeleted(rowId: string) {
+  // Clone all the state to a new object
+  const newState: State = JSON.parse(JSON.stringify(state));
+
+  // Splice out the estimate that was deleted
+  const estimates = (newState as EstimatesState).estimatesData.estimates;
+  const index = estimates.findIndex(
+    (estimate) => estimate.jobParams.runName === rowId,
+  );
+  if (index >= 0) {
+    estimates.splice(index, 1);
+  }
+  state = newState;
+
+  vscodeApi.setState(state);
+  render(<App state={state} />, document.body);
+}
+
+function App({ state }: { state: State }) {
   const onFilter = () => undefined;
 
-  return (
-    <>
-      {shotCount ? (
+  switch (state.viewType) {
+    case "loading":
+      return <div>Loading...</div>;
+    case "histogram":
+      return (
         <Histogram
-          data={histogramData}
-          shotCount={shotCount}
+          data={new Map(state.buckets)}
+          shotCount={state.shotCount}
           filter=""
           onFilter={onFilter}
           shotsHeader={true}
         ></Histogram>
-      ) : null}
-      {showEstimates ? (
-        <>
-          <ReTable
-            mdRenderer={markdownRenderer}
-            estimatesData={estimatesData}
-          />
-          <h2 style="margin: 24px 8px;">Space diagram</h2>
-          <SpaceChart estimatesData={estimatesData} />
-        </>
-      ) : null}
-      {showHelp ? <HelpPage /> : null}
-    </>
-  );
+      );
+    case "estimates":
+      return (
+        <RePage
+          calculating={state.estimatesData.calculating}
+          estimatesData={state.estimatesData.estimates}
+          renderer={markdownRenderer}
+          onRowDeleted={onRowDeleted}
+        />
+      );
+    case "help":
+      return <HelpPage />;
+    default:
+      console.error("Unknown view type in state", state);
+      return <div>Loading error</div>;
+  }
 }

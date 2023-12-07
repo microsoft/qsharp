@@ -32,6 +32,7 @@ def test_stdout_multiple_lines() -> None:
 
     assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
 
+
 def test_dump_machine() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Full)
     qsharp.eval(
@@ -58,3 +59,11 @@ def test_compile_qir_input_data() -> None:
     operation = qsharp.compile("Program()")
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
+
+
+def test_compile_qir_str() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
+    operation = qsharp.compile("Program()")
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir

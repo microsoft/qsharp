@@ -20,6 +20,7 @@ classifiers = [
 
 [project.optional-dependencies]
 jupyterlab = ["qsharp-jupyterlab"]
+widgets = ["qsharp-widgets"]
 
 [build-system]
 requires = ["maturin ~= 1.2.0"]

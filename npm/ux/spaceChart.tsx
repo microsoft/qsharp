@@ -33,10 +33,16 @@ export function SpaceChart(props: { estimatesData: ReData }) {
   const physicalQubitsAlgorithm = breakdown.physicalQubitsForAlgorithm;
   const physicalQubitsTFactory = breakdown.physicalQubitsForTfactories;
 
+  // TO CHECK: Divide by 0 concern here? Is there any (valid) algorithm that could
+  // be 0 physical qubits?
   const percentQubitsAlgorithm =
     physicalQubitsAlgorithm /
     (physicalQubitsAlgorithm + physicalQubitsTFactory);
-  const breakAngle = 360 * percentQubitsAlgorithm;
+  const breakAngleRaw = 360 * percentQubitsAlgorithm;
+
+  // The pie chart doesn't render correctly if the angle is 0 or 360
+  const breakAngle =
+    breakAngleRaw >= 360 ? 359.9 : breakAngleRaw <= 0 ? 0.1 : breakAngleRaw;
 
   const numTFactories = breakdown.numTfactories;
   const numQubitsPerTFactory = Math.round(
@@ -44,30 +50,36 @@ export function SpaceChart(props: { estimatesData: ReData }) {
   );
 
   return (
-    <div style="display: flex; flex-wrap: wrap;">
-      <svg width="500" height="500" id="pieChart">
+    <div style="display: flex; flex-wrap: wrap; margin-top: 8px;">
+      <svg
+        class="qs-widget-spaceChart"
+        width="400"
+        height="400"
+        viewBox="50 0 450 450"
+        id="pieChart"
+      >
         <path
           d={getPieSegment(250, 185, 180, 0, breakAngle, 120)}
-          fill="orange"
+          fill="var(--vscode-charts-yellow, yellow)"
           stroke="white"
         ></path>
         <path
           d={getPieSegment(250, 185, 180, breakAngle, 360, 120)}
-          fill="blue"
+          fill="var(--vscode-charts-blue, blue)"
           stroke="white"
         ></path>
         <text x="250" y="180" text-anchor="middle" font-size="16">
           Total physical qubits
         </text>
         <text x="250" y="220" text-anchor="middle" font-size="32">
-          {props.estimatesData.physicalCountsFormatted.totalPhysicalQubits}
+          {props.estimatesData.physicalCountsFormatted.physicalQubits}
         </text>
         <rect
           x="125"
           y="400"
           width="25"
           height="25"
-          fill="orange"
+          fill="var(--vscode-charts-yellow, yellow)"
           stroke="white"
           stroke-width="1"
         />
@@ -82,7 +94,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
           y="400"
           width="25"
           height="25"
-          fill="blue"
+          fill="var(--vscode-charts-blue, blue)"
           stroke="white"
           stroke-width="1"
         />

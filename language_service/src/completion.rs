@@ -6,8 +6,8 @@ mod tests;
 
 use crate::compilation::{Compilation, CompilationKind, Lookup};
 use crate::display::CodeDisplay;
-use crate::protocol::{self, CompletionItem, CompletionItemKind, CompletionList};
-use crate::qsc_utils::span_contains;
+use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
+use crate::qsc_utils::{protocol_span, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 use qsc::resolve::{Local, LocalKind};
@@ -98,9 +98,7 @@ pub(crate) fn get_completions(
             builder.push_item_decl_keywords();
         }
         Context::NoCompilation | Context::TopLevel => match compilation.kind {
-            CompilationKind::OpenDocument => {
-                builder.push_namespace_keyword();
-            }
+            CompilationKind::OpenProject => builder.push_namespace_keyword(),
             CompilationKind::Notebook => {
                 // For notebooks, the top-level allows for
                 // more syntax.
@@ -393,7 +391,13 @@ impl CompletionListBuilder {
                                             None => match start_of_namespace {
                                                 Some(start) => {
                                                     additional_edits.push((
-                                                        protocol::Span { start, end: start },
+                                                        protocol_span(
+                                                            qsc::Span {
+                                                                lo: start,
+                                                                hi: start,
+                                                            },
+                                                            &compilation.user_unit().sources,
+                                                        ),
                                                         format!(
                                                             "open {};{}",
                                                             namespace.name.clone(),
