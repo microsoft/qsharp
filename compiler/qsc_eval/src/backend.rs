@@ -197,4 +197,12 @@ impl Backend for SparseSim {
     fn reinit(&mut self) {
         *self = Self::new();
     }
+
+    fn custom_intrinsic(&mut self, name: &str, _arg: Value) -> Option<Result<Value, String>> {
+        match name {
+            "BeginEstimateCaching" => Some(Ok(Value::Bool(true))),
+            "EndEstimateCaching" | "AccountForEstimatesInternal" => Some(Ok(Value::unit())),
+            _ => None,
+        }
+    }
 }

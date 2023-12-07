@@ -11,6 +11,7 @@ namespace Sample {
     open Microsoft.Quantum.Random;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Unstable.Arithmetic;
     open Microsoft.Quantum.Arrays;
 
     @EntryPoint()
@@ -474,7 +475,7 @@ namespace Sample {
             within {
                 ApplyXorInPlace(c >>> j, x);
             } apply {
-                AddI(x, y[j...]);
+                IncByLE(x, y[j...]);
             }
         }
     }

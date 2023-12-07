@@ -7,6 +7,8 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
+pub mod re;
+
 use super::debug::format_call_stack;
 use crate::{
     error::{self, WithStack},
@@ -236,6 +238,36 @@ impl Interpreter {
             &globals,
             &mut Env::with_empty_scope(),
             &mut self.sim,
+            receiver,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
+    }
+
+    /// Executes the entry expression until the end of execution, using the given simulator backend
+    /// and a new instance of the environment.
+    pub fn eval_entry_with_sim(
+        &mut self,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        receiver: &mut impl Receiver,
+    ) -> Result<Value, Vec<Error>> {
+        let expr = self.get_entry_expr()?;
+        let globals = Lookup {
+            fir_store: &self.fir_store,
+        };
+
+        eval_expr(
+            &mut self.state,
+            expr,
+            &globals,
+            &mut Env::with_empty_scope(),
+            sim,
             receiver,
         )
         .map_err(|(error, call_stack)| {

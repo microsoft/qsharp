@@ -50,8 +50,7 @@ export class QscEventTarget implements IQscEventTarget {
   private eventTarget = new EventTarget();
   private results: ShotResult[] = [];
   private shotActive = false;
-  private animationFrameId = 0;
-  private supportsUiRefresh = false;
+  private animationFrameId: any = 0;
 
   // Overrides for the base EventTarget methods to limit to expected event types
   addEventListener<T extends QscUiEvents["type"]>(
@@ -77,9 +76,6 @@ export class QscEventTarget implements IQscEventTarget {
    * @param captureEvents Set to true if this instance should record events internally
    */
   constructor(captureEvents: boolean) {
-    this.supportsUiRefresh =
-      typeof globalThis.requestAnimationFrame === "function";
-
     if (captureEvents) {
       this.addEventListener("Message", (ev) => this.onMessage(ev.detail));
       this.addEventListener("DumpMachine", (ev) =>
@@ -127,10 +123,10 @@ export class QscEventTarget implements IQscEventTarget {
   }
 
   private queueUiRefresh() {
-    if (this.supportsUiRefresh && !this.animationFrameId) {
-      this.animationFrameId = requestAnimationFrame(() => {
+    if (!this.animationFrameId) {
+      this.animationFrameId = setTimeout(() => {
         this.onUiRefresh();
-      });
+      }, 50); // 20 fps is plenty for the rendering we do
     }
   }
 

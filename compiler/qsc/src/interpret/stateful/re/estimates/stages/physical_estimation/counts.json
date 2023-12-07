@@ -1,0 +1,9 @@
+{
+  "numQubits": 28,
+  "tCount": 22074,
+  "rotationCount": 84,
+  "rotationDepth": 31,
+  "cczCount": 0,
+  "ccixCount": 0,
+  "measurementCount": 0
+}
