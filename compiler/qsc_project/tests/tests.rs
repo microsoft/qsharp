@@ -121,7 +121,10 @@ fn empty_manifest() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    exclude_regexes: [],
+                    exclude_regexes: [
+                        ".*node_modules.*",
+                        ".*\\.git.*",
+                    ],
                     exclude_files: [],
                 },
             }"#]],
@@ -171,7 +174,10 @@ fn exclude_files() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    exclude_regexes: [],
+                    exclude_regexes: [
+                        ".*node_modules.*",
+                        ".*\\.git.*",
+                    ],
                     exclude_files: [
                         "Main.exclude.qs",
                     ],
@@ -259,7 +265,10 @@ fn folder_structure() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    exclude_regexes: [],
+                    exclude_regexes: [
+                        ".*node_modules.*",
+                        ".*\\.git.*",
+                    ],
                     exclude_files: [],
                 },
             }"#]],

@@ -29,7 +29,14 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
 :root {
   --heading-background: #262679;
   --main-background: var(--vscode-editor-background, #ececf0);
-  --main-color: var(--vscode-editor-foreground, #202020);
+  --main-color: var(
+    --vscode-editor-foreground,
+    var(--jp-widgets-color, #202020)
+  );
+  --qs-tr-nth-color: var(
+    --vscode-list-hoverBackground,
+    var(--jp-layout-color1, #f2f2f2)
+  );
   --nav-background: #bed1f4;
   --nav-hover-background: #b3bede;
   --nav-current-background: #b5c5f2;
@@ -427,8 +434,7 @@ html {
 }
 
 .estimate-table tr:nth-child(even) {
-  background-color: #f2f2f2;
-  background-color: var(--vscode-list-hoverBackground, #f2f2f2);
+  background-color: var(--qs-tr-nth-color);
 }
 
 .estimate-cell {
@@ -459,6 +465,11 @@ html {
 
 /* Space chart */
 
+/* Needed until https://github.com/microsoft/vscode-jupyter/issues/7161 is resolved */
+.cell-output-ipywidget-background {
+  background-color: transparent !important;
+}
+
 #pieChart {
   fill: var(--main-color);
 }
@@ -469,18 +480,17 @@ html {
 }
 
 .spaceReportHeader {
-  font-size: 14px;
-  background-color: #eee;
-  background-color: var(--vscode-list-hoverBackground, #f2f2f2);
+  font-size: 13px;
+  background-color: var(--qs-tr-nth-color);
   border-top: 0.5px gray solid;
   border-bottom: 0.5px gray solid;
-  padding: 12px;
+  padding: 10px;
 }
 
 .spaceReportRow {
   display: flex;
   font-size: 12px;
-  padding: 12px 24px;
+  padding: 10px 24px;
 }
 
 .spaceDetailText {
@@ -511,4 +521,96 @@ html {
   padding-bottom: 0.3em;
   font-size: 1.4em;
   border-bottom: 1px solid var(--vscode-editorWidget-border);
+}
+
+/* Results Table */
+
+.qs-resultsTable-sortedTable {
+  border-collapse: collapse;
+  margin: 12px 0px;
+}
+
+.qs-resultsTable-sortedTable th,
+.qs-resultsTable-sortedTable td {
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.qs-resultsTable-dragEnter {
+  background-color: #8888;
+  border-left: 1.5px solid blue;
+  border-right: 1.5px solid blue;
+}
+
+.qs-resultsTable-sortedTable tr:nth-child(even) {
+  background: var(--qs-tr-nth-color);
+}
+
+.qs-resultsTable-sortedTable tbody tr:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.qs-resultsTable-sortedTableSelectedRow td {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-weight: 600;
+}
+
+.qs-resultsTable-columnMenu {
+  display: none;
+  width: 160px;
+}
+
+.qs-resultsTable-showColumnMenu {
+  display: block;
+  position: absolute;
+  background-color: var(--vscode-menu-background);
+  border: 1px solid #8888;
+  padding: 4px;
+  z-index: 100;
+  text-align: left;
+}
+
+.qs-resultsTable-menuItem {
+  cursor: pointer;
+  background-color: var(--vscode-list-hoverBackground);
+  padding: 4px;
+  margin: 2px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.qs-resultsTable-menuItem:hover {
+  background-color: var(--vscode-menu-border);
+}
+
+.qs-resultsTable-columnSelected {
+  cursor: pointer;
+  padding: 4px;
+  font-weight: 400;
+  font-size: 14px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  margin: 2px;
+  border-radius: 3px;
+}
+
+.qs-resultsTable-headerCell {
+  padding-right: 20px;
+}
+
+.qs-resultsTable-sortHeaderCell {
+  padding-right: 4px;
+}
+
+@keyframes codicon-spin {
+  100% {
+    transform: rotate(360deg);
+    transform-origin: center;
+  }
+}
+
+.codicon-modifier-spin {
+  fill: var(--vscode-icon-foreground, gray);
+  animation: codicon-spin 1.5s steps(45) infinite;
 }

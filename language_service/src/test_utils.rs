@@ -46,7 +46,7 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
         Compilation {
             package_store,
             user_package_id: package_id,
-            kind: CompilationKind::OpenDocument,
+            kind: CompilationKind::OpenProject,
             errors,
         },
         cursor_uri,
