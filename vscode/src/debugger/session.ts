@@ -44,10 +44,6 @@ import {
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
 import { getTarget } from "../config";
-<<<<<<< Updated upstream
-import { getManifest, listDir, readFile } from "../projectSystem";
-=======
->>>>>>> Stashed changes
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -96,6 +92,7 @@ export class QscDebugSession extends LoggingDebugSession {
     private fileAccessor: FileAccessor,
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
+    private sources: [string, string][],
   ) {
     super();
 
@@ -110,41 +107,16 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-<<<<<<< Updated upstream
-  public async loadProject(): Promise<[string, string][]> {
-    // get the project using this.program
-    const manifest = await getManifest(this.program.toString());
-    if (manifest === null) {
-      // return just the one file if we are in single file mode
-      const file = await this.fileAccessor.openUri(this.program);
-
-      return [[this.program.toString(), file.getText()]];
-    }
-
-    const projectLoader = await getProjectLoader(
-      readFile,
-      listDir,
-      getManifest,
-    );
-    log.info("using project loader");
-    return await projectLoader.load_project(manifest);
-  }
 
   public async init(associationId: string): Promise<void> {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const sources = await this.loadProject();
-=======
-
-  public async init(associationId: string, sources: [string, string][]): Promise<void> {
-    sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
->>>>>>> Stashed changes
     const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
-      sources,
+      this.sources,
       targetProfile,
       this.config.entry,
     );
-    for (const [path, _contents] of sources) {
+    for (const [path, _contents] of this.sources) {
       if (failureMessage == "") {
         const locations = await this.debugService.getBreakpoints(path);
         const file = await this.fileAccessor.openPath(path);
