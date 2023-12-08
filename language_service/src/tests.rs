@@ -86,7 +86,7 @@ async fn clear_error() {
                 (
                     "foo.qs",
                     Some(
-                        1,
+                        2,
                     ),
                     [],
                 ),
