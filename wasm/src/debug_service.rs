@@ -33,7 +33,7 @@ impl DebugService {
         }
     }
 
-    pub async fn load_source(
+    pub fn load_source(
         &mut self,
         // can't wasm_bindgen [string; 2] or (string, string)
         // so we have to manually assert length of the interior
