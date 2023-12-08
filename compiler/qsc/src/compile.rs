@@ -3,7 +3,7 @@
 
 use miette::{Diagnostic, Report};
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, SourceMap, TargetProfile},
+    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
 };
 use qsc_hir::hir::PackageId;
@@ -26,16 +26,16 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     package_type: PackageType,
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, target);
+    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, capabilities);
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(WithSource::from_map(&unit.sources, error.into()));
     }
 
     if errors.is_empty() {
-        for error in run_default_passes(store.core(), &mut unit, package_type, target) {
+        for error in run_default_passes(store.core(), &mut unit, package_type, capabilities) {
             errors.push(WithSource::from_map(&unit.sources, error.into()));
         }
     }
@@ -70,9 +70,9 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
-    let mut unit = qsc_frontend::compile::std(store, target);
-    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, target);
+pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
+    let mut unit = qsc_frontend::compile::std(store, capabilities);
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, capabilities);
     if pass_errors.is_empty() {
         unit
     } else {

@@ -8,7 +8,8 @@ import json
 
 _interpreter = None
 
-def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
+
+def init(target_profile: TargetProfile = TargetProfile.Unrestricted) -> None:
     """
     Initializes the Q# interpreter.
 
@@ -18,6 +19,9 @@ def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
     """
     global _interpreter
     _interpreter = Interpreter(target_profile)
+    # Return the configuration information to provide a hint to the
+    # language service through the cell output.
+    return Config(target_profile)
 
 
 def get_interpreter() -> Interpreter:
@@ -102,7 +106,9 @@ def compile(entry_expr):
     return QirInputData("main", ll_str)
 
 
-def estimate(entry_expr, params: Union[dict, List, EstimatorParams] = None) -> EstimatorResult:
+def estimate(
+    entry_expr, params: Union[dict, List, EstimatorParams] = None
+) -> EstimatorResult:
     """
     Estimates resources for Q# source code.
 
@@ -124,7 +130,7 @@ def estimate(entry_expr, params: Union[dict, List, EstimatorParams] = None) -> E
         json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
     )
 
-  
+
 def dump_machine() -> StateDump:
     """
     Returns the sparse state vector of the simulator as a StateDump object.
@@ -156,3 +162,31 @@ class QirInputData:
 
     def __str__(self) -> str:
         return self._ll_str
+
+
+class Config:
+    _config: dict
+    """
+    Configuration hints for the language service.
+    """
+
+    def __init__(self, target_profile: TargetProfile):
+        match target_profile:
+            case TargetProfile.Unrestricted:
+                target_profile = "unrestricted"
+            case TargetProfile.Base:
+                target_profile = "base"
+        self._config = {"targetProfile": target_profile}
+
+    def __repr__(self):
+        return "Q# initialized with configuration: " + str(self._config)
+
+    # See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+    # See https://ipython.org/ipython-doc/3/notebook/nbformat.html#display-data
+    # This returns a custom MIME-type representation of the Q# configuration.
+    # This data will be available in the cell output, but will not be displayed
+    # to the user, as frontends would not know how to render the custom MIME type.
+    # Editor services that interact with the notebook frontend
+    # (i.e. the language service) can read and interpret the data.
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return {"application/x.qsharp-config": self._config}

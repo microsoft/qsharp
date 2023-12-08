@@ -25,7 +25,8 @@ mod tests;
 
 use qsc::{
     interpret::{stateful, GenericReceiver, Value},
-    PackageType, SourceMap, TargetProfile,
+    target::Profile,
+    PackageType, SourceMap,
 };
 
 /// # Panics
@@ -43,9 +44,13 @@ pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) {
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let mut interpreter =
-        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)
-            .expect("test should compile");
+    let mut interpreter = stateful::Interpreter::new(
+        true,
+        sources,
+        PackageType::Exe,
+        Profile::Unrestricted.into(),
+    )
+    .expect("test should compile");
     let result = interpreter
         .eval_entry(&mut out)
         .expect("test should run successfully");

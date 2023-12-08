@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use crate::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
@@ -13,7 +13,7 @@ fn check_hir(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     expect.assert_eq(&unit.package.to_string());
 }
@@ -24,7 +24,7 @@ fn check_errors(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
 
     let lower_errors: Vec<_> = unit

@@ -8,9 +8,10 @@ pub mod compile;
 pub mod error;
 pub mod incremental;
 pub mod interpret;
+pub mod target;
 
 pub use qsc_frontend::compile::{
-    CompileUnit, PackageStore, SourceContents, SourceMap, SourceName, TargetProfile,
+    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };
 
 pub mod resolve {

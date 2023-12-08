@@ -6,6 +6,7 @@
 use super::{Error, Locals, Names, Res};
 use crate::{
     compile,
+    compile::RuntimeCapabilityFlags,
     resolve::{LocalKind, Resolver},
 };
 use expect_test::{expect, Expect};
@@ -100,7 +101,7 @@ fn compile(input: &str) -> (Package, Names, Locals, Vec<Error>) {
 
     AstAssigner::new().visit_package(&mut package);
 
-    let mut cond_compile = compile::preprocess::Conditional::new(compile::TargetProfile::Full);
+    let mut cond_compile = compile::preprocess::Conditional::new(RuntimeCapabilityFlags::all());
     cond_compile.visit_package(&mut package);
     let dropped_names = cond_compile.into_names();
 

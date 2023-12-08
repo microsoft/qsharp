@@ -6,7 +6,7 @@
 use crate::interpret::stateful::Interpreter;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;
-use qsc_frontend::compile::{SourceMap, TargetProfile};
+use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 use std::io::Cursor;
 
@@ -41,8 +41,12 @@ mod given_interpreter_with_sources {
         #[test]
         fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                RuntimeCapabilityFlags::all(),
+            )?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];
@@ -61,8 +65,12 @@ mod given_interpreter_with_sources {
         #[test]
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                RuntimeCapabilityFlags::all(),
+            )?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];
@@ -77,8 +85,12 @@ mod given_interpreter_with_sources {
         #[test]
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                RuntimeCapabilityFlags::all(),
+            )?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];
@@ -100,8 +112,12 @@ mod given_interpreter_with_sources {
         #[test]
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter =
-                Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full)?;
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                RuntimeCapabilityFlags::all(),
+            )?;
             interpreter.set_entry()?;
             let ids = get_breakpoint_ids(&interpreter, "test");
             let expected_id = ids[0];

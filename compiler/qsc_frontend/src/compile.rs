@@ -12,6 +12,7 @@ use crate::{
     resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
+use bitflags::bitflags;
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -35,13 +36,24 @@ use qsc_hir::{
 use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
 
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct RuntimeCapabilityFlags: u32 {
+        const ConditionalForwardBranching = 0b0000_0001;
+        const IntegerComputations = 0b0000_0010;
+        const FloatingPointComputation = 0b0000_0100;
+        const BackwardsBranching = 0b0000_1000;
+        const HigherLevelConstructs = 0b0001_0000;
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TargetProfile {
+pub enum ConfigAttr {
     Full,
     Base,
 }
 
-impl TargetProfile {
+impl ConfigAttr {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
         match self {
@@ -56,14 +68,23 @@ impl TargetProfile {
     }
 }
 
-impl FromStr for TargetProfile {
+impl FromStr for ConfigAttr {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Full" => Ok(TargetProfile::Full),
-            "Base" => Ok(Self::Base),
+            "Full" => Ok(ConfigAttr::Full),
+            "Base" => Ok(ConfigAttr::Base),
             _ => Err(()),
+        }
+    }
+}
+
+impl From<ConfigAttr> for RuntimeCapabilityFlags {
+    fn from(value: ConfigAttr) -> Self {
+        match value {
+            ConfigAttr::Full => Self::all(),
+            ConfigAttr::Base => Self::empty(),
         }
     }
 }
@@ -303,11 +324,11 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
 
-    let mut cond_compile = preprocess::Conditional::new(target);
+    let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();
 
@@ -381,7 +402,7 @@ pub fn core() -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(&store, &[], sources, TargetProfile::Base);
+    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::empty());
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -392,7 +413,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
@@ -463,7 +484,7 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(store, &[PackageId::CORE], sources, target);
+    let mut unit = compile(store, &[PackageId::CORE], sources, capabilities);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }

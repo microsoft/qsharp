@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
+use std::{future::Future, path::PathBuf, pin::Pin, str::FromStr, sync::Arc};
 
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
-use qsc::{self};
+use qsc::{self, target::Profile, PackageType};
 use qsc_project::{EntryType, Manifest, ManifestDescriptor};
 use qsls::{protocol::DiagnosticUpdate, JSFileEntry};
 use rustc_hash::FxHashMap;
@@ -199,14 +199,12 @@ impl LanguageService {
         let config: WorkspaceConfiguration = config.into();
         self.0
             .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
-                target_profile: config.targetProfile.map(|s| match s.as_str() {
-                    "base" => qsc::TargetProfile::Base,
-                    "full" => qsc::TargetProfile::Full,
-                    _ => panic!("invalid target profile"),
-                }),
+                target_profile: config
+                    .targetProfile
+                    .map(|s| Profile::from_str(&s).expect("invalid target profile")),
                 package_type: config.packageType.map(|s| match s.as_str() {
-                    "lib" => qsc::PackageType::Lib,
-                    "exe" => qsc::PackageType::Exe,
+                    "lib" => PackageType::Lib,
+                    "exe" => PackageType::Exe,
                     _ => panic!("invalid package type"),
                 }),
             })
@@ -220,10 +218,21 @@ impl LanguageService {
         self.0.close_document(uri);
     }
 
-    pub fn update_notebook_document(&mut self, notebook_uri: &str, cells: Vec<ICell>) {
+    pub fn update_notebook_document(
+        &mut self,
+        notebook_uri: &str,
+        notebook_metadata: INotebookMetadata,
+        cells: Vec<ICell>,
+    ) {
         let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
+        let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
+            &qsls::protocol::NotebookMetadata {
+                target_profile: notebook_metadata
+                    .targetProfile
+                    .map(|s| Profile::from_str(&s).expect("invalid target profile")),
+            },
             cells
                 .iter()
                 .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref())),
@@ -400,7 +409,7 @@ serializable_type! {
         pub packageType: Option<String>,
     },
     r#"export interface IWorkspaceConfiguration {
-        targetProfile?: "full" | "base";
+        targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
     }"#,
     IWorkspaceConfiguration
@@ -551,6 +560,17 @@ serializable_type! {
         code: string;
     }"#,
     ICell
+}
+
+serializable_type! {
+    NotebookMetadata,
+    {
+        pub targetProfile: Option<String>,
+    },
+    r#"export interface INotebookMetadata {
+        targetProfile?: "unrestricted" | "base";
+    }"#,
+    INotebookMetadata
 }
 
 #[wasm_bindgen]

@@ -238,7 +238,7 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
 
   switch (targetProfile) {
     case "base":
-    case "full":
+    case "unrestricted":
       break;
     default:
       log.warn(`Invalid value for target profile: ${targetProfile}`);
@@ -246,7 +246,7 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
   log.debug("Target profile set to: " + targetProfile);
 
   languageService.updateConfiguration({
-    targetProfile: targetProfile as "base" | "full",
+    targetProfile: targetProfile,
   });
 }
 

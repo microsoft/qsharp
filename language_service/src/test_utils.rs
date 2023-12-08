@@ -8,8 +8,8 @@ use crate::{
     protocol::Span,
 };
 use qsc::{
-    compile, hir::PackageId, incremental::Compiler, PackageStore, PackageType, SourceMap,
-    TargetProfile,
+    compile, hir::PackageId, incremental::Compiler, target::Profile, PackageStore, PackageType,
+    SourceMap,
 };
 
 pub(crate) fn compile_with_fake_stdlib_and_markers(
@@ -37,7 +37,7 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
         &[std_package_id],
         source_map,
         PackageType::Exe,
-        TargetProfile::Full,
+        Profile::Unrestricted.into(),
     );
 
     let package_id = package_store.insert(unit);
@@ -84,8 +84,13 @@ where
         None,
     );
 
-    let mut compiler = Compiler::new(false, std_source_map, PackageType::Lib, TargetProfile::Full)
-        .expect("expected incremental compiler creation to succeed");
+    let mut compiler = Compiler::new(
+        false,
+        std_source_map,
+        PackageType::Lib,
+        Profile::Unrestricted.into(),
+    )
+    .expect("expected incremental compiler creation to succeed");
 
     let mut errors = Vec::new();
     for (name, contents) in cells {
@@ -139,7 +144,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
         &[PackageId::CORE],
         std_source_map,
         PackageType::Lib,
-        TargetProfile::Full,
+        Profile::Unrestricted.into(),
     );
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);

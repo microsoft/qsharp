@@ -12,7 +12,8 @@ use qsc::{
         output::{self, Receiver},
         stateful::{self, re::estimate_entry},
     },
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
+    target::Profile,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName,
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
@@ -31,7 +32,7 @@ mod tests;
 thread_local! {
     static STORE_CORE_STD: (PackageStore, PackageId) = {
         let mut store = PackageStore::new(compile::core());
-        let std = store.insert(compile::std(&store, TargetProfile::Full));
+        let std = store.insert(compile::std(&store, Profile::Unrestricted.into()));
         (store, std)
     };
 }
@@ -46,7 +47,7 @@ pub fn git_hash() -> String {
 pub fn get_qir(code: &str) -> Result<String, String> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
-    let std = compile::std(&store, TargetProfile::Base);
+    let std = compile::std(&store, Profile::Base.into());
     let std = store.insert(std);
     let sources = SourceMap::new([("test".into(), code.into())], None);
 
@@ -55,7 +56,7 @@ pub fn get_qir(code: &str) -> Result<String, String> {
         &[std],
         sources,
         PackageType::Exe,
-        TargetProfile::Base,
+        Profile::Base.into(),
     );
 
     // Ensure it compiles before trying to add it to the store.
@@ -76,7 +77,7 @@ pub fn get_estimates(code: &str, params: &str) -> Result<String, String> {
         true,
         SourceMap::new([("code".into(), code.into())], None),
         PackageType::Exe,
-        TargetProfile::Full,
+        Profile::Unrestricted.into(),
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -110,7 +111,7 @@ pub fn get_hir(code: &str) -> String {
             &[*std],
             sources,
             PackageType::Exe,
-            TargetProfile::Full,
+            Profile::Unrestricted.into(),
         );
         unit.package
     });
@@ -180,8 +181,12 @@ where
     let source_name = "code";
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([(source_name.into(), code.into())], Some(expr.into()));
-    let interpreter =
-        stateful::Interpreter::new(true, sources, PackageType::Exe, TargetProfile::Full);
+    let interpreter = stateful::Interpreter::new(
+        true,
+        sources,
+        PackageType::Exe,
+        Profile::Unrestricted.into(),
+    );
     if let Err(err) = interpreter {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
@@ -284,3 +289,8 @@ pub fn check_exercise_solution(
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     })
 }
+
+#[wasm_bindgen(typescript_custom_section)]
+const TARGET_PROFILE: &'static str = r#"
+export type TargetProfile = "base" | "unrestricted";
+"#;

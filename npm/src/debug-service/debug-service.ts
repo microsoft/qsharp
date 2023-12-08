@@ -9,6 +9,7 @@ import type {
   IVariable,
   IQuantumState,
 } from "../../lib/node/qsc_wasm.cjs";
+import { TargetProfile } from "../browser.js";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
 import { log } from "../log.js";
@@ -22,7 +23,7 @@ export interface IDebugService {
   loadSource(
     path: string,
     source: string,
-    target: "base" | "full",
+    target: TargetProfile,
     entry: string | undefined,
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
@@ -66,7 +67,7 @@ export class QSharpDebugService implements IDebugService {
   async loadSource(
     path: string,
     source: string,
-    target: "base" | "full",
+    target: TargetProfile,
     entry: string | undefined,
   ): Promise<string> {
     this.code[path] = source;

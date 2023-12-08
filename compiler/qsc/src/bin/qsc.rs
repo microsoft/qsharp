@@ -10,7 +10,7 @@ use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
 use qsc_frontend::{
-    compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetProfile},
+    compile::{PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName},
     error::WithSource,
 };
 use qsc_hir::hir::{Package, PackageId};
@@ -65,14 +65,14 @@ fn main() -> miette::Result<ExitCode> {
     let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
 
-    let (package_type, target) = if cli.emit.contains(&Emit::Qir) {
-        (PackageType::Exe, TargetProfile::Base)
+    let (package_type, capabilities) = if cli.emit.contains(&Emit::Qir) {
+        (PackageType::Exe, RuntimeCapabilityFlags::empty())
     } else {
-        (PackageType::Lib, TargetProfile::Full)
+        (PackageType::Lib, RuntimeCapabilityFlags::all())
     };
 
     if !cli.nostdlib {
-        dependencies.push(store.insert(qsc::compile::std(&store, target)));
+        dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
     }
 
     let mut sources = cli
@@ -94,7 +94,7 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
+    let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities);
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");
 

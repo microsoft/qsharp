@@ -5,7 +5,8 @@ use std::convert::Into;
 
 use crate::{
     interpret::{stateful::Interpreter, GenericReceiver},
-    PackageType, SourceMap, TargetProfile,
+    target::Profile,
+    PackageType, SourceMap,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -14,8 +15,13 @@ use super::LogicalCounter;
 
 fn veryify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
     let source_map = SourceMap::new([("test".into(), source.into())], entry.map(Into::into));
-    let mut interpreter = Interpreter::new(true, source_map, PackageType::Exe, TargetProfile::Full)
-        .expect("compilation should succeed");
+    let mut interpreter = Interpreter::new(
+        true,
+        source_map,
+        PackageType::Exe,
+        Profile::Unrestricted.into(),
+    )
+    .expect("compilation should succeed");
     let mut counter = LogicalCounter::default();
     let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
