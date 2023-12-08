@@ -428,7 +428,7 @@ fn auto_open_multiple_files() {
                         label: "FooOperation",
                         kind: Function,
                         sort_text: Some(
-                            "0500FooOperation",
+                            "0600FooOperation",
                         ),
                         detail: Some(
                             "operation FooOperation() : Unit",
