@@ -32,7 +32,6 @@ import {
   IStructStepResult,
   QscEventTarget,
   qsharpLibraryUriScheme,
-  getProjectLoader,
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
@@ -399,6 +398,10 @@ export class QscDebugSession extends LoggingDebugSession {
         return;
       }
       this.writeToDebugConsole(`Finished shot ${i + 1} of ${args.shots}`);
+      // Reset the interpreter for the next shot.
+      // The interactive interpreter doesn't do this automatically,
+      // and doesn't know how to deal with shots like the stateless version.
+      await this.init(associationId);
       if (this.failureMessage != "") {
         log.info(
           "compilation failed. sending error response and stopping execution.",
@@ -556,7 +559,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-              bp.fileLocation.startOffset <= endOffset,
+            bp.fileLocation.startOffset <= endOffset,
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
