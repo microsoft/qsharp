@@ -827,6 +827,8 @@ test("debug service compiling multiple sources - web worker", async () => {
     open Bar;
     @EntryPoint()
     operation Main() : Int {
+        Message("Hello");
+        Message("Hello");
         return HelloFromBar();
     }
 }`,
@@ -844,6 +846,11 @@ test("debug service compiling multiple sources - web worker", async () => {
       undefined,
     );
     assert.equal(result.trim(), "");
+    const fooBps = await debugService.getBreakpoints("Foo.qs");
+    assert.equal(fooBps.length, 3);
+
+    const barBps = await debugService.getBreakpoints("Bar.qs");
+    assert.equal(barBps.length, 1);
   } finally {
     debugService.terminate();
   }
