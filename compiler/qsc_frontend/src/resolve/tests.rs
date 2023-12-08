@@ -3,8 +3,12 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{Error, Names, Res};
-use crate::{compile, compile::RuntimeCapabilityFlags, resolve::Resolver};
+use super::{Error, Locals, Names, Res};
+use crate::{
+    compile,
+    compile::RuntimeCapabilityFlags,
+    resolve::{LocalKind, Resolver},
+};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -68,7 +72,7 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (package, names, errors) = compile(input);
+    let (package, names, _, errors) = compile(input);
     let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
@@ -82,7 +86,7 @@ fn resolve_names(input: &str) -> String {
     output
 }
 
-fn compile(input: &str) -> (Package, Names, Vec<Error>) {
+fn compile(input: &str) -> (Package, Names, Locals, Vec<Error>) {
     let (namespaces, parse_errors) = qsc_parse::namespaces(input);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
@@ -106,9 +110,9 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, mut resolve_errors) = resolver.into_names();
+    let (names, locals, mut resolve_errors) = resolver.into_result();
     errors.append(&mut resolve_errors);
-    (package, names, errors)
+    (package, names, locals, errors)
 }
 
 #[test]
@@ -1986,5 +1990,307 @@ fn multiple_definition_dropped_is_not_found() {
             // NotFound("B", Span { lo: 249, hi: 250 })
             // NotFound("C", Span { lo: 262, hi: 263 })
         "#]],
+    );
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn check_locals(input: &str, expect: &Expect) {
+    let parts = input.split('↘').collect::<Vec<_>>();
+    assert_eq!(
+        parts.len(),
+        2,
+        "input must contain exactly one cursor marker"
+    );
+    let cursor_offset = parts[0].len() as u32;
+    let source = parts.join("");
+
+    let (_, _, locals, _) = compile(&source);
+
+    let locals = locals.get_all_at_offset(cursor_offset);
+    let actual = locals.iter().fold(String::new(), |mut output, l| {
+        let _ = writeln!(
+            output,
+            "{} ({})",
+            l.name,
+            match l.kind {
+                LocalKind::Item(item_id) => item_id.to_string(),
+                LocalKind::TyParam(param_id) => format!("ty_param {param_id}"),
+                LocalKind::Var(node_id) => format!("var {node_id}"),
+            }
+        );
+        output
+    });
+
+    expect.assert_eq(&actual);
+}
+
+#[test]
+fn get_locals_vars() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    let x = 0;
+                    ↘
+                    let y = 0;
+                }
+            }
+        "},
+        &expect![[r#"
+            x (var 13)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_vars_shadowing_same_scope() {
+    check_locals(
+        indoc! {r#"
+            namespace Foo {
+                function A() : Int {
+                    let x = 0;
+                    let x = "foo";
+                    ↘
+                }
+            }
+        "#},
+        &expect![[r#"
+            x (var 17)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_vars_parent_scope() {
+    check_locals(
+        indoc! {r#"
+            namespace Foo {
+                function A() : Int {
+                    let x = 0;
+                    {
+                        let y = 0;
+                        ↘
+                    }
+                }
+            }
+        "#},
+        &expect![[r#"
+            y (var 20)
+            x (var 13)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_params() {
+    check_locals(
+        indoc! {r#"
+            namespace Foo {
+                function A(x : Int) : Int {
+                    ↘
+                }
+            }
+        "#},
+        &expect![[r#"
+            x (var 8)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_spec_params() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                operation A(q : Qubit) : (Qubit[], Qubit) {
+                    controlled (cs, ...) {
+                        ↘
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            cs (var 23)
+            q (var 8)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_before_binding() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    let y = 0;
+                    let x = { ↘ };
+                }
+            }
+        "},
+        &expect![[r#"
+            y (var 13)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_lambda_params() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    let y = 0;
+                    let f = x -> { ↘ };
+                }
+            }
+        "},
+        &expect![[r#"
+            x (var 20)
+            y (var 13)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_for_loop() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    for x in 0..1 {
+                        ↘
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            x (var 14)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_for_loop_before_binding() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    for x in 0..{ ↘ } {
+                    }
+                }
+            }
+        "},
+        &expect![""],
+    );
+}
+
+#[test]
+fn get_locals_items() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    ↘
+                    function B() : Unit {}
+                    newtype Bar = String;
+                }
+            }
+        "},
+        &expect![[r#"
+            Bar (Item 3)
+            B (Item 2)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_local_item_hide_parent_scope_variables() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    let x = 3;
+                    function B() : Unit {
+                        let y = 3;
+                        ↘
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            y (var 26)
+            B (Item 2)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_shadow_parent_scope() {
+    check_locals(
+        indoc! {r#"
+            namespace Foo {
+                function A() : Unit {
+                    let x = "foo";
+                    {
+                        let x = 0;
+                        ↘
+                    }
+                }
+            }
+        "#},
+        &expect![[r#"
+            x (var 20)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_type_params() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A<'T>(t: 'T) : Unit {
+                    {
+                        ↘
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            t (var 9)
+            'T (ty_param 0)
+        "#]],
+    );
+}
+
+#[test]
+fn get_locals_block_scope_boundary() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    {
+                        let x = 0;
+                    }↘
+                }
+            }
+        "},
+        &expect![""],
+    );
+}
+
+#[test]
+fn get_locals_block_scope_boundary_begin() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    ↘{
+                        function Bar(): Unit {}
+                    }
+                }
+            }
+        "},
+        &expect![""],
     );
 }

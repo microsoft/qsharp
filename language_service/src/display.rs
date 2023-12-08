@@ -29,22 +29,10 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
-    pub(crate) fn ident_ty_id(
-        &self,
-        ident: &'a ast::Ident,
-        ty_id: ast::NodeId,
-    ) -> impl Display + '_ {
-        IdentTyId {
+    pub(crate) fn name_ty_id(&self, name: &'a str, ty_id: ast::NodeId) -> impl Display + '_ {
+        NameTyId {
             lookup: self.compilation,
-            ident,
-            ty_id,
-        }
-    }
-
-    pub(crate) fn path_ty_id(&self, path: &'a ast::Path, ty_id: ast::NodeId) -> impl Display + '_ {
-        PathTyId {
-            lookup: self.compilation,
-            path,
+            name,
             ty_id,
         }
     }
@@ -90,38 +78,18 @@ impl<'a> Display for IdentTy<'a> {
     }
 }
 
-struct IdentTyId<'a> {
+struct NameTyId<'a> {
     lookup: &'a Compilation,
-    ident: &'a ast::Ident,
+    name: &'a str,
     ty_id: ast::NodeId,
 }
 
-impl<'a> Display for IdentTyId<'a> {
+impl<'a> Display for NameTyId<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
             "{} : {}",
-            self.ident.name,
-            TyId {
-                lookup: self.lookup,
-                ty_id: self.ty_id,
-            },
-        )
-    }
-}
-
-struct PathTyId<'a> {
-    lookup: &'a Compilation,
-    path: &'a ast::Path,
-    ty_id: ast::NodeId,
-}
-
-impl<'a> Display for PathTyId<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{} : {}",
-            &AstPath { path: self.path },
+            self.name,
             TyId {
                 lookup: self.lookup,
                 ty_id: self.ty_id,
@@ -262,9 +230,9 @@ impl<'a> Display for AstPat<'a> {
                 None => write!(
                     f,
                     "{}",
-                    IdentTyId {
+                    NameTyId {
                         lookup: self.lookup,
-                        ident,
+                        name: &ident.name,
                         ty_id: self.pat.id
                     }
                 ),

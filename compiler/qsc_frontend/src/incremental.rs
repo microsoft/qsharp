@@ -124,6 +124,7 @@ impl Compiler {
             ast: AstPackage {
                 package: ast,
                 names: self.resolver.names().clone(),
+                locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
             },
             hir,
@@ -163,6 +164,7 @@ impl Compiler {
             ast: AstPackage {
                 package: ast,
                 names: self.resolver.names().clone(),
+                locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
             },
             hir,
@@ -178,6 +180,7 @@ impl Compiler {
         // replace the current tables instead of extending.
         unit.ast.names = new.ast.names;
         unit.ast.tys = new.ast.tys;
+        unit.ast.locals = new.ast.locals;
 
         // Update the HIR
         extend_hir(&mut unit.package, new.hir);

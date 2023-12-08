@@ -262,6 +262,8 @@ impl LanguageService {
                         qsls::protocol::CompletionItemKind::Keyword => "keyword",
                         qsls::protocol::CompletionItemKind::Module => "module",
                         qsls::protocol::CompletionItemKind::Property => "property",
+                        qsls::protocol::CompletionItemKind::Variable => "variable",
+                        qsls::protocol::CompletionItemKind::TypeParameter => "typeParameter",
                     })
                     .to_string(),
                     sortText: i.sort_text,
@@ -435,7 +437,7 @@ serializable_type! {
     },
     r#"export interface ICompletionItem {
         label: string;
-        kind: "function" | "interface" | "keyword" | "module" | "property";
+        kind: "function" | "interface" | "keyword" | "module" | "property" | "variable" | "typeParameter";
         sortText?: string;
         detail?: string;
         additionalTextEdits?: ITextEdit[];

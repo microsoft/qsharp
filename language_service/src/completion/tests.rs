@@ -6,9 +6,12 @@
 use expect_test::{expect, Expect};
 
 use super::{get_completions, CompletionItem};
-use crate::test_utils::{
-    compile_notebook_with_fake_stdlib_and_markers, compile_project_with_fake_stdlib_and_markers,
-    compile_with_fake_stdlib_and_markers,
+use crate::{
+    protocol::CompletionList,
+    test_utils::{
+        compile_notebook_with_fake_stdlib_and_markers,
+        compile_project_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
+    },
 };
 use indoc::indoc;
 
@@ -47,6 +50,7 @@ fn check_project(
         .collect();
 
     expect.assert_debug_eq(&checked_completions);
+    assert_no_duplicates(actual_completions);
 }
 
 fn check_notebook(
@@ -68,6 +72,83 @@ fn check_notebook(
         .collect();
 
     expect.assert_debug_eq(&checked_completions);
+    assert_no_duplicates(actual_completions);
+}
+
+fn assert_no_duplicates(mut actual_completions: CompletionList) {
+    actual_completions
+        .items
+        .sort_by_key(|item| item.label.clone());
+    let mut dups: Vec<&CompletionItem> = vec![];
+    let mut last: Option<&CompletionItem> = None;
+    for completion in &actual_completions.items {
+        if let Some(last) = last.take() {
+            if last.label == completion.label {
+                dups.push(last);
+                dups.push(completion);
+            }
+        }
+        last.replace(completion);
+    }
+
+    assert!(dups.is_empty(), "duplicate completions found: {dups:#?}");
+}
+
+#[test]
+fn in_block_contains_std_functions_from_open_namespace() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            ↘
+        }
+    }"#,
+        &["Fake", "FakeWithParam", "FakeCtlAdj"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeWithParam",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700FakeWithParam",
+                        ),
+                        detail: Some(
+                            "operation FakeWithParam(x : Int) : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeCtlAdj",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700FakeCtlAdj",
+                        ),
+                        detail: Some(
+                            "operation FakeCtlAdj() : Unit is Adj + Ctl",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
 }
 
 #[test]
@@ -75,7 +156,7 @@ fn in_block_contains_std_functions() {
     check(
         indoc! {r#"
     namespace Test {
-        operation Test() : Unit {
+        operation Foo() : Unit {
             ↘
         }
     }"#},
@@ -87,7 +168,7 @@ fn in_block_contains_std_functions() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0600Fake",
+                            "0700Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -110,7 +191,7 @@ fn in_block_contains_std_functions() {
                         label: "FakeWithParam",
                         kind: Function,
                         sort_text: Some(
-                            "0600FakeWithParam",
+                            "0700FakeWithParam",
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
@@ -133,7 +214,7 @@ fn in_block_contains_std_functions() {
                         label: "FakeCtlAdj",
                         kind: Function,
                         sort_text: Some(
-                            "0600FakeCtlAdj",
+                            "0700FakeCtlAdj",
                         ),
                         detail: Some(
                             "operation FakeCtlAdj() : Unit is Adj + Ctl",
@@ -156,13 +237,76 @@ fn in_block_contains_std_functions() {
     );
 }
 
+#[ignore = "need to implement newtypes"]
+#[test]
+fn in_block_contains_newtypes() {
+    check(
+        r#"
+    namespace Test {
+        newtype Custom;
+        operation Foo() : Unit {
+            ↘
+        }
+    }"#,
+        &["Custom", "Udt"],
+        &expect![[r#"
+            [
+                some_valid_completion,
+                some_valid_completion,
+            ]
+        "#]],
+    );
+}
+
+#[ignore = "need more error recovery in parser to narrow down context in parameter list"]
+#[test]
+fn types_only_in_signature() {
+    check(
+        r#"
+    namespace Test {
+        operation Foo(foo: ↘) : Unit {
+        }
+        operation Bar() : Unit {
+        }
+    }"#,
+        &["Int", "String", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Int",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0102Int",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "String",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0110String",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
 #[test]
 fn in_block_no_auto_open() {
     check(
         indoc! {r#"
     namespace Test {
         open FakeStdLib;
-        operation Test() : Unit {
+        operation Foo() : Unit {
             ↘
         }
     }"#},
@@ -174,7 +318,7 @@ fn in_block_no_auto_open() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0600Fake",
+                            "0700Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -193,7 +337,7 @@ fn in_block_with_alias() {
         indoc! {r#"
     namespace Test {
         open FakeStdLib as Alias;
-        operation Test() : Unit {
+        operation Foo() : Unit {
             ↘
         }
     }"#},
@@ -205,7 +349,7 @@ fn in_block_with_alias() {
                         label: "Alias.Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0600Alias.Fake",
+                            "0700Alias.Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -223,7 +367,7 @@ fn in_block_from_other_namespace() {
     check(
         indoc! {r#"
     namespace Test {
-        operation Test() : Unit {
+        operation Bar() : Unit {
             ↘
         }
     }
@@ -238,7 +382,7 @@ fn in_block_from_other_namespace() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0500Foo",
+                            "0600Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -284,7 +428,7 @@ fn auto_open_multiple_files() {
                         label: "FooOperation",
                         kind: Function,
                         sort_text: Some(
-                            "0500FooOperation",
+                            "0600FooOperation",
                         ),
                         detail: Some(
                             "operation FooOperation() : Unit",
@@ -307,13 +451,12 @@ fn auto_open_multiple_files() {
     );
 }
 
-#[ignore = "nested callables are not currently supported for completions"]
 #[test]
 fn in_block_nested_op() {
     check(
         indoc! {r#"
     namespace Test {
-        operation Test() : Unit {
+        operation Bar() : Unit {
             operation Foo() : Unit {}
             ↘
         }
@@ -326,7 +469,7 @@ fn in_block_nested_op() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0500Foo",
+                            "0100Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -344,7 +487,7 @@ fn in_block_hidden_nested_op() {
     check(
         indoc! {r#"
     namespace Test {
-        operation Test() : Unit {
+        operation Baz() : Unit {
             ↘
         }
         operation Foo() : Unit {
@@ -366,7 +509,7 @@ fn in_namespace_contains_open() {
         indoc! {r#"
     namespace Test {
         ↘
-        operation Test() : Unit {
+        operation Foo() : Unit {
         }
     }"#},
         &["open"],
@@ -446,7 +589,7 @@ fn stdlib_udt() {
     check(
         indoc! {r#"
         namespace Test {
-            operation Test() : Unit {
+            operation Foo() : Unit {
                 ↘
             }
         "#},
@@ -458,7 +601,7 @@ fn stdlib_udt() {
                         label: "TakesUdt",
                         kind: Function,
                         sort_text: Some(
-                            "0600TakesUdt",
+                            "0700TakesUdt",
                         ),
                         detail: Some(
                             "function TakesUdt(input : Udt) : Udt",
@@ -498,7 +641,7 @@ fn notebook_top_level() {
                         label: "operation",
                         kind: Keyword,
                         sort_text: Some(
-                            "0101operation",
+                            "0201operation",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -509,7 +652,7 @@ fn notebook_top_level() {
                         label: "namespace",
                         kind: Keyword,
                         sort_text: Some(
-                            "1201namespace",
+                            "1301namespace",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -520,7 +663,7 @@ fn notebook_top_level() {
                         label: "let",
                         kind: Keyword,
                         sort_text: Some(
-                            "0201let",
+                            "0301let",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -531,7 +674,7 @@ fn notebook_top_level() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "0800Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -571,7 +714,7 @@ fn notebook_top_level_global() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "0800Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -613,7 +756,7 @@ fn notebook_top_level_namespace_already_open_for_global() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "0800Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -644,7 +787,7 @@ fn notebook_block() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0600Fake",
+                            "0700Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -667,9 +810,277 @@ fn notebook_block() {
                         label: "let",
                         kind: Keyword,
                         sort_text: Some(
-                            "0101let",
+                            "0201let",
                         ),
                         detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn local_vars() {
+    check(
+        r#"
+    namespace Test {
+        operation Foo() : Unit {
+            let bar = 3;
+            ↘
+            let foo = 3;
+        }
+    }"#,
+        &["foo", "bar"],
+        &expect![[r#"
+            [
+                None,
+                Some(
+                    CompletionItem {
+                        label: "bar",
+                        kind: Variable,
+                        sort_text: Some(
+                            "0100bar",
+                        ),
+                        detail: Some(
+                            "bar : Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn local_items() {
+    check(
+        r#"
+    namespace Test {
+        operation Baz() : Unit {
+            operation Foo() : Unit {}
+            ↘
+            operation Bar() : Unit {}
+            newtype Custom = String;
+        }
+    }"#,
+        &["Foo", "Bar", "Custom"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Custom",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0100Custom",
+                        ),
+                        detail: Some(
+                            "newtype Custom = String",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn type_params() {
+    check(
+        r#"
+    namespace Test {
+        operation Foo<'T>() : Unit {
+            ↘
+        }
+    }"#,
+        &["'T", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "'T",
+                        kind: TypeParameter,
+                        sort_text: Some(
+                            "0100'T",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn scoped_local_vars() {
+    check(
+        r#"
+    namespace Test {
+        operation Foo() : Unit {
+            {
+                let foo = 3;
+            }
+            ↘
+        }
+    }"#,
+        &["foo"],
+        &expect![[r#"
+            [
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn callable_params() {
+    check(
+        r#"
+    namespace Test {
+        newtype Custom = String;
+        operation Foo(foo: Int, bar: Custom) : Unit {
+            {
+                ↘
+            }
+        }
+    }"#,
+        &["foo", "bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "foo",
+                        kind: Variable,
+                        sort_text: Some(
+                            "0100foo",
+                        ),
+                        detail: Some(
+                            "foo : Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "bar",
+                        kind: Variable,
+                        sort_text: Some(
+                            "0100bar",
+                        ),
+                        detail: Some(
+                            "bar : Custom",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn local_var_in_callable_parent_scope() {
+    check(
+        r#"
+    namespace Test {
+        operation Foo(foo: Int) : Unit {
+            let bar = 3;
+            operation Bar() : Unit {
+                let baz = 3;
+                ↘
+            }
+        }
+    }"#,
+        &["foo", "bar", "baz"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                Some(
+                    CompletionItem {
+                        label: "baz",
+                        kind: Variable,
+                        sort_text: Some(
+                            "0100baz",
+                        ),
+                        detail: Some(
+                            "baz : Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+#[ignore = "completion list ignores shadowing rules for open statements"]
+fn local_var_and_open_shadowing_rules() {
+    check(
+        r#"
+        namespace Foo {
+            operation Bar() : Unit {
+            }
+        }
+
+        namespace Test {
+            operation Main() : Unit {
+                let Bar = 3;
+                Bar;
+                {
+                    // open Foo should shadow the local Bar declaration
+                    open Foo;
+                    Bar;
+                    ↘
+                }
+
+            }
+        }"#,
+        &["Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
                         additional_text_edits: None,
                     },
                 ),

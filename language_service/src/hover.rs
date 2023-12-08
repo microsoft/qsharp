@@ -185,7 +185,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
-        let contents = markdown_fenced_block(self.display.ident_ty_id(field_ref, *expr_id));
+        let contents = markdown_fenced_block(self.display.name_ty_id(&field_ref.name, *expr_id));
         self.hover = Some(Hover {
             contents,
             span: protocol_span(field_ref.span, &self.compilation.user_unit().sources),
@@ -198,7 +198,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         ident: &'a ast::Ident,
         pat: &'a ast::Pat,
     ) {
-        let code = markdown_fenced_block(self.display.ident_ty_id(ident, pat.id));
+        let code = markdown_fenced_block(self.display.name_ty_id(&ident.name, pat.id));
         let kind = if context.in_params {
             LocalKind::Param
         } else if context.in_lambda_params {
@@ -237,7 +237,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             .expect("locals should only exist in callables")
             .name
             .name;
-        let code = markdown_fenced_block(self.display.path_ty_id(path, *node_id));
+        let code = markdown_fenced_block(self.display.name_ty_id(local_name, *node_id));
         let kind = if is_param(&curr_callable_to_params(context.current_callable), *node_id) {
             LocalKind::Param
         } else if is_param(&context.lambda_params, *node_id) {

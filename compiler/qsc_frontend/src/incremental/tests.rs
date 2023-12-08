@@ -39,6 +39,61 @@ fn one_callable() {
             node_id:2,node_id:5,node_id:8,
             terms:
             node_id:6,node_id:10,
+            locals:
+            Locals {
+                scopes: [
+                    Scope {
+                        span: Span {
+                            lo: 0,
+                            hi: 4294967295,
+                        },
+                        kind: Block,
+                        opens: {},
+                        tys: {},
+                        terms: {},
+                        vars: {},
+                        ty_vars: {},
+                    },
+                    Scope {
+                        span: Span {
+                            lo: 0,
+                            hi: 44,
+                        },
+                        kind: Namespace(
+                            "Foo",
+                        ),
+                        opens: {},
+                        tys: {},
+                        terms: {},
+                        vars: {},
+                        ty_vars: {},
+                    },
+                    Scope {
+                        span: Span {
+                            lo: 16,
+                            hi: 42,
+                        },
+                        kind: Callable,
+                        opens: {},
+                        tys: {},
+                        terms: {},
+                        vars: {},
+                        ty_vars: {},
+                    },
+                    Scope {
+                        span: Span {
+                            lo: 40,
+                            hi: 42,
+                        },
+                        kind: Block,
+                        opens: {},
+                        tys: {},
+                        terms: {},
+                        vars: {},
+                        ty_vars: {},
+                    },
+                ],
+            }
             hir:
             Package:
                 Item 0 [0-44] (Public):
@@ -84,6 +139,30 @@ fn one_statement() {
             node_id:3,
             terms:
             node_id:1,node_id:2,node_id:3,node_id:4,
+            locals:
+            Locals {
+                scopes: [
+                    Scope {
+                        span: Span {
+                            lo: 0,
+                            hi: 4294967295,
+                        },
+                        kind: Block,
+                        opens: {},
+                        tys: {},
+                        terms: {},
+                        vars: {
+                            "q": (
+                                16,
+                                NodeId(
+                                    3,
+                                ),
+                            ),
+                        },
+                        ty_vars: {},
+                    },
+                ],
+            }
             hir:
             Package:
                 Stmt 0 [0-16]: Qubit (Fresh)
@@ -366,10 +445,15 @@ fn check_unit(expect: &Expect, actual: &Increment) {
                 output
             })
     );
+    let locals = format!("\nlocals:\n{:#?}", actual.ast.locals);
 
     let hir = format!("\nhir:\n{}", actual.hir);
 
-    expect.assert_eq(&[ast, names, terms, hir].into_iter().collect::<String>());
+    expect.assert_eq(
+        &[ast, names, terms, locals, hir]
+            .into_iter()
+            .collect::<String>(),
+    );
 }
 
 fn fail_on_error(errors: Vec<Error>) -> Result<(), Vec<Error>> {
