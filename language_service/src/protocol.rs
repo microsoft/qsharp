@@ -39,7 +39,7 @@ pub enum CompletionItemKind {
     TypeParameter,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
 pub struct CompletionList {
     pub items: Vec<CompletionItem>,

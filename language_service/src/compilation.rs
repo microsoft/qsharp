@@ -11,7 +11,7 @@ use qsc::{
     target::Profile,
     CompileUnit, PackageStore, PackageType, SourceMap,
 };
-use std::{iter::successors, sync::Arc};
+use std::iter::successors;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
@@ -26,10 +26,10 @@ pub(crate) struct Compilation {
 }
 
 pub(crate) enum CompilationKind {
-    /// An open Q# project.
-    /// In an `OpenProject` compilation, the user package contains
-    /// one or more sources, and a target profile.
-    OpenProject,
+    /// An open Q# document without a project manifest.
+    /// In an `OpenDocument` compilation, the user package always
+    /// contains a single `Source`.
+    OpenDocument,
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
@@ -37,19 +37,16 @@ pub(crate) enum CompilationKind {
 }
 
 impl Compilation {
-    /// Creates a new `Compilation` by compiling sources.
-    pub(crate) fn new(
-        sources: &[(Arc<str>, Arc<str>)],
+    /// Creates a new `Compilation` by compiling source from a single open document.
+    pub(crate) fn new_open_document(
+        source_name: &str,
+        source_contents: &str,
         package_type: PackageType,
         target_profile: Profile,
     ) -> Self {
-        if sources.len() == 1 {
-            trace!("compiling single-file document {}", sources[0].0);
-        } else {
-            trace!("compiling package with {} sources", sources.len());
-        }
-
-        let source_map = SourceMap::new(sources.iter().map(|(x, y)| (x.clone(), y.clone())), None);
+        trace!("compiling document {source_name}");
+        // Source map only contains the current document.
+        let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
 
         let mut package_store = PackageStore::new(compile::core());
         let std_package_id =
@@ -69,14 +66,14 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             errors,
-            kind: CompilationKind::OpenProject,
+            kind: CompilationKind::OpenDocument,
         }
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<I>(cells: I, target_profile: Profile) -> Self
+    pub(crate) fn new_notebook<'a, I>(cells: I, target_profile: Profile) -> Self
     where
-        I: Iterator<Item = (Arc<str>, Arc<str>)>,
+        I: Iterator<Item = (&'a str, &'a str)>,
     {
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
@@ -91,7 +88,7 @@ impl Compilation {
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
-                .compile_fragments(&name, &contents, |cell_errors| {
+                .compile_fragments(name, contents, |cell_errors| {
                     errors.extend(cell_errors);
                     Ok(()) // accumulate errors without failing
                 })
@@ -129,16 +126,15 @@ impl Compilation {
             + offset
     }
 
-    /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
+    /// Regenerates the compilation with the same sources but the passed in configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
-        let sources: Vec<_> = self
-            .user_source_contents()
-            .into_iter()
-            .map(|(a, b)| (Arc::from(a), Arc::from(b)))
-            .collect();
+        let sources = self.user_source_contents();
 
         let new = match self.kind {
-            CompilationKind::OpenProject => Self::new(&sources, package_type, target_profile),
+            CompilationKind::OpenDocument => {
+                assert!(sources.len() == 1);
+                Self::new_open_document(sources[0].0, sources[0].1, package_type, target_profile)
+            }
             CompilationKind::Notebook => Self::new_notebook(sources.into_iter(), target_profile),
         };
         self.package_store = new.package_store;

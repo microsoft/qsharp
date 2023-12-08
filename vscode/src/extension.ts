@@ -40,7 +40,6 @@ import { registerWebViewCommands } from "./webviewPanel.js";
 import { createReferenceProvider } from "./references.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
-import { getManifest, readFile, listDir } from "./projectSystem.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -146,10 +145,10 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }),
   );
 
-  async function updateIfQsharpDocument(document: vscode.TextDocument) {
+  function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
-      await languageService.updateDocument(
+      languageService.updateDocument(
         document.uri.toString(),
         document.version,
         document.getText(),
@@ -255,11 +254,7 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService(
-    readFile,
-    listDir,
-    getManifest,
-  );
+  const languageService = await getLanguageService();
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(

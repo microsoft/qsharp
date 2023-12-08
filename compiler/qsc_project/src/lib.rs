@@ -15,6 +15,4 @@ pub use error::Error;
 #[cfg(feature = "fs")]
 pub use fs::StdFs;
 pub use manifest::{Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
-#[cfg(feature = "async")]
-pub use project::FileSystemAsync;
 pub use project::{DirEntry, EntryType, FileSystem, Project};
