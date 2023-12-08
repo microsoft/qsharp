@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Unstable.Arithmetic {
-    open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;

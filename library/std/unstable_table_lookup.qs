@@ -2,14 +2,13 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Unstable.TableLookup {
-    open Microsoft.Quantum.Arithmetic;
-    open Microsoft.Quantum.Unstable.Arithmetic;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.ResourceEstimation;
+    open Microsoft.Quantum.Unstable.Arithmetic;
 
     /// # Summary
     /// Performs table lookup using a SELECT network
