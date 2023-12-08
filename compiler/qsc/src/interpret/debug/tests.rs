@@ -6,7 +6,7 @@
 use indoc::indoc;
 use miette::Result;
 use qsc_eval::{output::CursorReceiver, val::Value};
-use qsc_frontend::compile::{SourceMap, TargetProfile};
+use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 use std::io::Cursor;
 
@@ -65,8 +65,13 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         ],
         None,
     );
-    let mut interpreter = Interpreter::new(true, source_map, PackageType::Lib, TargetProfile::Full)
-        .expect("Failed to compile base environment.");
+    let mut interpreter = Interpreter::new(
+        true,
+        source_map,
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("Failed to compile base environment.");
 
     let (result, _) = line(
         &mut interpreter,
@@ -134,8 +139,13 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         ],
         Some("Adjoint Test2.A(0)".into()),
     );
-    let mut interpreter = Interpreter::new(true, source_map, PackageType::Exe, TargetProfile::Full)
-        .expect("Failed to compile base environment.");
+    let mut interpreter = Interpreter::new(
+        true,
+        source_map,
+        PackageType::Exe,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("Failed to compile base environment.");
 
     let (result, _) = eval(&mut interpreter);
 

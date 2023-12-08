@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::str::FromStr;
+
 use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
-use qsc::{fmt_complex, PackageType, SourceMap, TargetProfile};
+use qsc::{fmt_complex, target::Profile, PackageType, SourceMap};
 
 use crate::{serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
@@ -25,7 +27,7 @@ impl DebugService {
                 false,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetProfile::Full,
+                Profile::Unrestricted.into(),
             )
             .expect("Couldn't create interpreter"),
         }
@@ -42,12 +44,9 @@ impl DebugService {
             [(path.into(), source.into())],
             entry.as_deref().map(|value| value.into()),
         );
-        let target = match target_profile.as_str() {
-            "base" => TargetProfile::Base,
-            "full" => TargetProfile::Full,
-            _ => panic!("Invalid target : {}", target_profile),
-        };
-        match Interpreter::new(true, source_map, qsc::PackageType::Exe, target) {
+        let target = Profile::from_str(&target_profile)
+            .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
+        match Interpreter::new(true, source_map, PackageType::Exe, target.into()) {
             Ok(interpreter) => {
                 self.interpreter = interpreter;
                 match self.interpreter.set_entry() {

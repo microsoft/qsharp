@@ -13,7 +13,8 @@ use qsc::{
         stateful::{self, Interpreter},
         Value,
     },
-    PackageType, SourceContents, SourceMap, SourceName, TargetProfile,
+    target::Profile,
+    PackageType, SourceContents, SourceMap, SourceName,
 };
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
@@ -32,8 +33,12 @@ pub fn check_solution(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateful::Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
-    let mut interpreter: Interpreter =
-        Interpreter::new(true, source_map, PackageType::Exe, TargetProfile::Full)?;
+    let mut interpreter: Interpreter = Interpreter::new(
+        true,
+        source_map,
+        PackageType::Exe,
+        Profile::Unrestricted.into(),
+    )?;
     interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success

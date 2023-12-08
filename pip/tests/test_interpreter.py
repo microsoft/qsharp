@@ -9,7 +9,7 @@ import pytest
 
 
 def test_output() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
         nonlocal called
@@ -22,7 +22,7 @@ def test_output() -> None:
 
 
 def test_dump_output() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
         nonlocal called
@@ -42,8 +42,9 @@ def test_dump_output() -> None:
     )
     assert called
 
+
 def test_dump_machine() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
         assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
@@ -66,8 +67,9 @@ def test_dump_machine() -> None:
     assert state_dict[1][0] == 1.0
     assert state_dict[1][1] == 0.0
 
+
 def test_error() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     with pytest.raises(QSharpError) as excinfo:
         e.interpret("a864")
@@ -75,7 +77,7 @@ def test_error() -> None:
 
 
 def test_multiple_errors() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     with pytest.raises(QSharpError) as excinfo:
         e.interpret("operation Foo() : Unit { Bar(); Baz(); }")
@@ -84,61 +86,61 @@ def test_multiple_errors() -> None:
 
 
 def test_multiple_statements() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("1; Zero")
     assert value == Result.Zero
 
 
 def test_value_int() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("5")
     assert value == 5
 
 
 def test_value_double() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("3.1")
     assert value == 3.1
 
 
 def test_value_bool() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("true")
     assert value == True
 
 
 def test_value_string() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret('"hello"')
     assert value == "hello"
 
 
 def test_value_result() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("One")
     assert value == Result.One
 
 
 def test_value_pauli() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("PauliX")
     assert value == Pauli.X
 
 
 def test_value_tuple() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret('(1, "hello", One)')
     assert value == (1, "hello", Result.One)
 
 
 def test_value_unit() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("()")
     assert value is None
 
 
 def test_value_array() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
     value = e.interpret("[1, 2, 3]")
     assert value == [1, 2, 3]
 
@@ -159,7 +161,7 @@ def test_qirgen_compile_error() -> None:
 
 
 def test_error_spans_from_multiple_lines() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     # Qsc.Resolve.Ambiguous is chosen as a test case
     # because it contains multiple spans which can be from different lines
@@ -179,7 +181,7 @@ def test_qirgen() -> None:
 
 
 def test_run_with_shots() -> None:
-    e = Interpreter(TargetProfile.Full)
+    e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
         nonlocal called

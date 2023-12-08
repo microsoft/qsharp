@@ -6,7 +6,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{validate::Validator, visit::Visitor};
 
 use crate::conjugate_invert::invert_conjugate_exprs;
@@ -14,7 +14,7 @@ use crate::conjugate_invert::invert_conjugate_exprs;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, TargetProfile::Full);
+    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = invert_conjugate_exprs(store.core(), &mut unit.package, &mut unit.assigner);

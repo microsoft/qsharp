@@ -4,7 +4,7 @@
 use crate::compile::{self, compile, core, std};
 use miette::Diagnostic;
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, SourceMap, TargetProfile},
+    compile::{OpenPackageStore, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -36,18 +36,18 @@ impl Compiler {
         include_std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        target: TargetProfile,
+        capabilities: RuntimeCapabilityFlags,
     ) -> Result<Self, Errors> {
         let core = core();
         let mut store = PackageStore::new(core);
         let mut dependencies = Vec::new();
         if include_std {
-            let std = std(&store, target);
+            let std = std(&store, capabilities);
             let id = store.insert(std);
             dependencies.push(id);
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, package_type, target);
+        let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities);
         if !errors.is_empty() {
             return Err(errors);
         }
@@ -55,14 +55,14 @@ impl Compiler {
         let source_package_id = store.insert(unit);
         dependencies.push(source_package_id);
 
-        let frontend = qsc_frontend::incremental::Compiler::new(&store, dependencies, target);
+        let frontend = qsc_frontend::incremental::Compiler::new(&store, dependencies, capabilities);
         let store = store.open();
 
         Ok(Self {
             store,
             source_package_id,
             frontend,
-            passes: PassContext::new(target),
+            passes: PassContext::new(capabilities),
         })
     }
 

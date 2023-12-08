@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
+import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
 import { getTarget, setTarget } from "./config";
@@ -90,29 +90,29 @@ function registerTargetProfileCommand() {
 
 const targetProfiles = [
   { configName: "base", uiText: "QIR:Base" },
-  { configName: "full", uiText: "QIR:Full" },
+  { configName: "unrestricted", uiText: "Unrestricted" },
 ];
 
 function getTargetProfileUiText(targetProfile?: string) {
   switch (targetProfile) {
     case "base":
       return "QIR:Base";
-    case "full":
-      return "QIR:Full";
+    case "unrestricted":
+      return "Unrestricted";
     default:
       log.error("invalid target profile found");
       return "QIR:Invalid";
   }
 }
 
-function getTargetProfileSetting(uiText: string) {
+function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
     case "QIR:Base":
       return "base";
-    case "QIR:Full":
-      return "full";
+    case "Unrestricted":
+      return "unrestricted";
     default:
       log.error("invalid target profile found");
-      return "full";
+      return "unrestricted";
   }
 }

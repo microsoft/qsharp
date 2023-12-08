@@ -9,7 +9,7 @@ import json
 _interpreter = None
 
 
-def init(target_profile: TargetProfile = TargetProfile.Full) -> None:
+def init(target_profile: TargetProfile = TargetProfile.Unrestricted) -> None:
     """
     Initializes the Q# interpreter.
 
@@ -172,8 +172,8 @@ class Config:
 
     def __init__(self, target_profile: TargetProfile):
         match target_profile:
-            case TargetProfile.Full:
-                target_profile = "full"
+            case TargetProfile.Unrestricted:
+                target_profile = "unrestricted"
             case TargetProfile.Base:
                 target_profile = "base"
         self._config = {"targetProfile": target_profile}

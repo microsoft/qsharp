@@ -7,7 +7,9 @@ use qsc::{
     compile::{self, Error},
     hir::{self, PackageId},
     incremental::Compiler,
-    resolve, CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
+    resolve,
+    target::Profile,
+    CompileUnit, PackageStore, PackageType, SourceMap,
 };
 use std::{iter::successors, sync::Arc};
 
@@ -39,7 +41,7 @@ impl Compilation {
     pub(crate) fn new(
         sources: &[(Arc<str>, Arc<str>)],
         package_type: PackageType,
-        target_profile: TargetProfile,
+        target_profile: Profile,
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -50,14 +52,15 @@ impl Compilation {
         let source_map = SourceMap::new(sources.iter().map(|(x, y)| (x.clone(), y.clone())), None);
 
         let mut package_store = PackageStore::new(compile::core());
-        let std_package_id = package_store.insert(compile::std(&package_store, target_profile));
+        let std_package_id =
+            package_store.insert(compile::std(&package_store, target_profile.into()));
 
         let (unit, errors) = compile::compile(
             &package_store,
             &[std_package_id],
             source_map,
             package_type,
-            target_profile,
+            target_profile.into(),
         );
 
         let package_id = package_store.insert(unit);
@@ -71,14 +74,18 @@ impl Compilation {
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<I>(cells: I, target_profile: TargetProfile) -> Self
+    pub(crate) fn new_notebook<I>(cells: I, target_profile: Profile) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
         trace!("compiling notebook");
-        let mut compiler =
-            Compiler::new(true, SourceMap::default(), PackageType::Lib, target_profile)
-                .expect("expected incremental compiler creation to succeed");
+        let mut compiler = Compiler::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            target_profile.into(),
+        )
+        .expect("expected incremental compiler creation to succeed");
 
         let mut errors = Vec::new();
         for (name, contents) in cells {
@@ -123,7 +130,7 @@ impl Compilation {
     }
 
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
-    pub fn recompile(&mut self, package_type: PackageType, target_profile: TargetProfile) {
+    pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
         let sources: Vec<_> = self
             .user_source_contents()
             .into_iter()

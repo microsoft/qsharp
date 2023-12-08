@@ -1,25 +1,24 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
+import { TargetProfile, log } from "qsharp-lang";
 import * as vscode from "vscode";
-export type Target = "base" | "full";
 
-export function getTarget(): Target {
+export function getTarget(): TargetProfile {
   const target = vscode.workspace
     .getConfiguration("Q#")
-    .get<string>("targetProfile", "full");
+    .get<TargetProfile>("targetProfile", "unrestricted");
   switch (target) {
     case "base":
-    case "full":
+    case "unrestricted":
       return target;
     default:
       log.error("invalid target found: %s", target);
-      return "full";
+      return "unrestricted";
   }
 }
 
-export async function setTarget(target: Target) {
+export async function setTarget(target: TargetProfile) {
   const config = vscode.workspace.getConfiguration("Q#");
   await config.update(
     "targetProfile",
