@@ -15,7 +15,7 @@ use qsc::{self, target::Profile, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, path::PathBuf, pin::Pin, str::FromStr, sync::Arc};
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
