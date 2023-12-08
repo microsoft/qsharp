@@ -1,6 +1,5 @@
 //
 namespace Fuzz.Testing {
-    open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Characterization;

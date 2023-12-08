@@ -4,68 +4,14 @@
 use crate::{test_expression, test_expression_with_lib};
 use qsc::interpret::Value;
 
-// Tests for Microsoft.Quantum.Arithmetic namespace
-
-#[test]
-fn check_apply_xor_in_place() {
-    test_expression(
-        {
-            "{
-            use a = Qubit[3];
-            mutable result = [];
-            within {
-                Microsoft.Quantum.Arithmetic.ApplyXorInPlace(3, a);
-            }
-            apply {
-                set result = [M(a[0]),M(a[1]),M(a[2])];
-            }
-            return result;
-        }"
-        },
-        &Value::Array(vec![Value::RESULT_ONE, Value::RESULT_ONE, Value::RESULT_ZERO].into()),
-    );
-}
-
-#[test]
-fn check_apply_xor_in_place_l() {
-    test_expression(
-        {
-            "{
-            open Microsoft.Quantum.Arithmetic;
-            use q = Qubit[100];
-            ApplyXorInPlaceL(953L <<< 50, q);
-            let result = MeasureInteger(q[50...]);
-            ResetAll(q);
-            result
-        }"
-        },
-        &Value::Int(953),
-    );
-}
-
-#[test]
-fn check_measure_integer() {
-    test_expression(
-        {
-            "{
-                open Microsoft.Quantum.Arithmetic;
-                use q = Qubit[16];
-                ApplyXorInPlace(45967, q);
-                let result = MeasureInteger(q);
-                ResetAll(q);
-                return result;
-            }"
-        },
-        &Value::Int(45967),
-    );
-}
+// Tests for Microsoft.Quantum.Unstable.Arithmetic namespace
 
 #[test]
 fn check_maj() {
     test_expression(
         {
             "{
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
                 use q = Qubit[3];
                 mutable r = [];
@@ -99,7 +45,6 @@ fn check_reflect_about_integer() {
     test_expression(
         {
             "{
-                open Microsoft.Quantum.Arithmetic;
                 open Microsoft.Quantum.Unstable.Arithmetic;
                 open Microsoft.Quantum.Diagnostics;
                 operation ManuallyReflectAboutFive(register : Qubit[]) : Unit is Adj + Ctl {
@@ -162,7 +107,7 @@ fn check_inc_by_le_general() {
     test_expression(
         {
             "{  // General cases for IncByLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
                 use x1 = Qubit[10];
                 use y1 = Qubit[10];
@@ -228,7 +173,7 @@ fn check_ripple_carry_ttk_inc_by_le_general() {
     test_expression(
         {
             "{  // General cases for RippleCarryTTKIncByLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -334,7 +279,7 @@ fn check_ripple_carry_cg_inc_by_le_general() {
     test_expression(
         {
             "{  // General cases for RippleCarryCGIncByLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -491,7 +436,7 @@ fn check_inc_by_le_using_add_le_general() {
     test_expression(
         {
             "{  // General cases for IncByLEUsingAddLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -518,7 +463,7 @@ fn check_inc_by_i_general() {
     test_expression(
         {
             "{ // General cases for IncByI
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[1];
@@ -574,7 +519,7 @@ fn check_ripple_carry_cg_inc_by_i_general() {
     test_expression(
         {
             "{  // General cases for IncByIUsingIncByLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[10];
@@ -611,7 +556,7 @@ fn check_inc_by_l_general() {
     test_expression(
         {
             "{ // General cases for IncByL
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[1];
@@ -667,7 +612,7 @@ fn check_ripple_carry_cg_inc_by_l_general() {
     test_expression(
         {
             "{  // Branching cases for IncByLUsingIncByLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[10];
@@ -746,7 +691,7 @@ fn check_add_le_general() {
     test_expression(
         {
             "{   // General cases for AddLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -816,7 +761,7 @@ fn check_ripple_carry_cg_add_le_general() {
     test_expression(
         {
             "{  // General cases for RippleCarryAddLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -884,7 +829,7 @@ fn check_lookahead_dkrs_add_le_general() {
     test_expression(
         {
             "{  // General cases for LookAheadDKRSAddLE
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];

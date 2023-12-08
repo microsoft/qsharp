@@ -417,10 +417,6 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
     let sources = SourceMap::new(
         [
             (
-                "arithmetic.qs".into(),
-                include_str!("../../../library/std/arithmetic.qs").into(),
-            ),
-            (
                 "arrays.qs".into(),
                 include_str!("../../../library/std/arrays.qs").into(),
             ),
