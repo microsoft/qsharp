@@ -816,3 +816,36 @@ test("debug service getting breakpoints after loaded source succeeds when file n
     debugService.terminate();
   }
 });
+
+test("debug service compiling multiple sources - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      [
+        [
+          "Foo.qs",
+          `namespace Foo {
+    open Bar;
+    @EntryPoint()
+    operation Main() : Int {
+        return HelloFromBar();
+    }
+}`,
+        ],
+        [
+          "Bar.qs",
+          `namespace Bar {
+    operation HelloFromBar() : Int {
+          return 5;
+    }
+}`,
+        ],
+      ],
+      "unrestricted",
+      undefined,
+    );
+    assert.equal(result.trim(), "");
+  } finally {
+    debugService.terminate();
+  }
+});
