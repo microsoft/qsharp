@@ -540,11 +540,15 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Computes `target ^= (c == x)`, that is, inverts `target`
     /// if a BigInt value `c` is equal to the little-endian qubit register `x`
     operation InvertIfEqualL (c : BigInt, xs : Qubit[], target : Qubit) : Unit is Adj + Ctl {
-        let bits = BigIntAsBoolArray(c, Length(xs));
-        within {
-            ApplyPauliFromBitString(PauliX, false, bits, xs);
-        } apply {
-            Controlled X(xs, target);
+        let cBitSize = BitSizeL(c);
+        let xLen = Length(xs);
+        if (cBitSize <= xLen) {
+            let bits = BigIntAsBoolArray(c, Length(xs));
+            within {
+                ApplyPauliFromBitString(PauliX, false, bits, xs);
+            } apply {
+                Controlled X(xs, target);
+            }
         }
     }
 

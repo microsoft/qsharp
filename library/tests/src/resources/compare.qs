@@ -15,7 +15,7 @@ namespace Test {
             use qs = Qubit[n];
             use t = Qubit();
 
-            for a in 0 .. 2^n-1 {
+            for a in 0 .. 2^n+1 { // We want b to have more bits sometimes...
                 for b in 0 .. 2^n-1 {
                     ApplyXorInPlace(b, qs);
                     quantumComparator(IntAsBigInt(a), qs, t);
