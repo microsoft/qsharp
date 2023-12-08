@@ -427,8 +427,10 @@ impl<'a> Context<'a> {
                 let cond = self.infer_expr(cond);
                 self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
                 let if_true = self.infer_expr(if_true);
+                let if_false_span = if_false.span;
                 let if_false = self.infer_expr(if_false);
-                self.inferrer.eq(expr.span, if_true.ty.clone(), if_false.ty);
+                self.inferrer
+                    .eq(if_false_span, if_true.ty.clone(), if_false.ty);
                 self.diverge_if(
                     cond.diverges,
                     Partial {
@@ -562,34 +564,34 @@ impl<'a> Context<'a> {
 
         let ty = match op {
             BinOp::AndL | BinOp::OrL => {
-                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
                 self.inferrer
                     .eq(lhs_span, Ty::Prim(Prim::Bool), lhs.ty.clone());
                 lhs
             }
             BinOp::Eq | BinOp::Neq => {
-                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Eq(lhs.ty));
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
-                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Add(lhs.ty.clone()));
                 lhs
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
-                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty));
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::AndB | BinOp::OrB | BinOp::XorB => {
-                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
                 self.inferrer
                     .class(lhs_span, Class::Integral(lhs.ty.clone()));
                 lhs
             }
             BinOp::Div | BinOp::Mod | BinOp::Mul | BinOp::Sub => {
-                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty.clone()));
                 lhs
             }

@@ -313,7 +313,7 @@ fn add_wrong_types() {
             #13 42-43 "1" : Int
             #14 46-49 "[2]" : Int[]
             #15 47-48 "2" : Int
-            Error(Type(Error(TyMismatch("Int", "Int[]", Span { lo: 42, hi: 49 }))))
+            Error(Type(Error(TyMismatch("Int", "Int[]", Span { lo: 46, hi: 49 }))))
         "#]],
     );
 }
@@ -446,7 +446,7 @@ fn assignop_error() {
             #9 33-34 "x" : Bool
             #12 38-39 "1" : Int
             #14 45-46 "x" : Bool
-            Error(Type(Error(TyMismatch("Bool", "Int", Span { lo: 29, hi: 39 }))))
+            Error(Type(Error(TyMismatch("Bool", "Int", Span { lo: 38, hi: 39 }))))
             Error(Type(Error(MissingClassAdd("Bool", Span { lo: 33, hi: 34 }))))
         "#]],
     );
@@ -463,7 +463,7 @@ fn binop_add_invalid() {
             #3 1-2 "1" : Int
             #4 4-5 "3" : Int
             #5 9-12 "5.4" : Double
-            Error(Type(Error(TyMismatch("(Int, Int)", "Double", Span { lo: 0, hi: 12 }))))
+            Error(Type(Error(TyMismatch("(Int, Int)", "Double", Span { lo: 9, hi: 12 }))))
             Error(Type(Error(MissingClassAdd("(Int, Int)", Span { lo: 0, hi: 6 }))))
         "#]],
     );
@@ -478,7 +478,7 @@ fn binop_add_mismatch() {
             #1 0-7 "1 + 5.4" : Int
             #2 0-1 "1" : Int
             #3 4-7 "5.4" : Double
-            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 0, hi: 7 }))))
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 4, hi: 7 }))))
         "#]],
     );
 }
@@ -506,7 +506,7 @@ fn binop_andb_mismatch() {
             #1 0-10 "28 &&& 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Type(Error(TyMismatch("Int", "BigInt", Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(TyMismatch("Int", "BigInt", Span { lo: 7, hi: 10 }))))
         "#]],
     );
 }
@@ -550,7 +550,7 @@ fn binop_equal_tuple_arity_mismatch() {
             #8 17-18 "2" : Int
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
-            Error(Type(Error(TyMismatch("(Int, Int, Int)", "(Int, Int, Int, Int)", Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch("(Int, Int, Int)", "(Int, Int, Int, Int)", Span { lo: 13, hi: 25 }))))
         "#]],
     );
 }
@@ -570,7 +570,7 @@ fn binop_equal_tuple_type_mismatch() {
             #7 14-15 "1" : Int
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
-            Error(Type(Error(TyMismatch("Int", "Result", Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch("Int", "Result", Span { lo: 13, hi: 25 }))))
         "#]],
     );
 }
@@ -584,7 +584,7 @@ fn binop_eq_mismatch() {
             #1 0-9 "18L == 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
-            Error(Type(Error(TyMismatch("BigInt", "Int", Span { lo: 0, hi: 9 }))))
+            Error(Type(Error(TyMismatch("BigInt", "Int", Span { lo: 7, hi: 9 }))))
         "#]],
     );
 }
@@ -598,7 +598,7 @@ fn binop_neq_mismatch() {
             #1 0-9 "18L != 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
-            Error(Type(Error(TyMismatch("BigInt", "Int", Span { lo: 0, hi: 9 }))))
+            Error(Type(Error(TyMismatch("BigInt", "Int", Span { lo: 7, hi: 9 }))))
         "#]],
     );
 }
@@ -618,7 +618,7 @@ fn binop_neq_tuple_type_mismatch() {
             #7 14-15 "1" : Int
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
-            Error(Type(Error(TyMismatch("Int", "Result", Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch("Int", "Result", Span { lo: 13, hi: 25 }))))
         "#]],
     );
 }
@@ -639,7 +639,7 @@ fn binop_neq_tuple_arity_mismatch() {
             #8 17-18 "2" : Int
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
-            Error(Type(Error(TyMismatch("(Int, Int, Int)", "(Int, Int, Int, Int)", Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch("(Int, Int, Int)", "(Int, Int, Int, Int)", Span { lo: 13, hi: 25 }))))
         "#]],
     );
 }
@@ -667,7 +667,7 @@ fn binop_orb_mismatch() {
             #1 0-10 "28 ||| 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Type(Error(TyMismatch("Int", "BigInt", Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(TyMismatch("Int", "BigInt", Span { lo: 7, hi: 10 }))))
         "#]],
     );
 }
@@ -695,7 +695,7 @@ fn binop_xorb_mismatch() {
             #1 0-10 "28 ^^^ 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Type(Error(TyMismatch("Int", "BigInt", Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(TyMismatch("Int", "BigInt", Span { lo: 7, hi: 10 }))))
         "#]],
     );
 }
