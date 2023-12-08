@@ -44,7 +44,10 @@ import {
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
 import { getTarget } from "../config";
+<<<<<<< Updated upstream
 import { getManifest, listDir, readFile } from "../projectSystem";
+=======
+>>>>>>> Stashed changes
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -86,7 +89,6 @@ export class QscDebugSession extends LoggingDebugSession {
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private variableHandles = new Handles<"locals" | "quantum">();
   private failureMessage: string;
-  private program: vscode.Uri;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
 
@@ -97,7 +99,6 @@ export class QscDebugSession extends LoggingDebugSession {
   ) {
     super();
 
-    this.program = fileAccessor.resolvePathToUri(this.config.program);
     this.failureMessage = "";
     this.eventTarget = createDebugConsoleEventTarget((message) => {
       this.writeToStdOut(message);
@@ -109,6 +110,7 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
+<<<<<<< Updated upstream
   public async loadProject(): Promise<[string, string][]> {
     // get the project using this.program
     const manifest = await getManifest(this.program.toString());
@@ -131,6 +133,11 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const sources = await this.loadProject();
+=======
+
+  public async init(associationId: string, sources: [string, string][]): Promise<void> {
+    sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
+>>>>>>> Stashed changes
     const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
       sources,
@@ -421,10 +428,6 @@ export class QscDebugSession extends LoggingDebugSession {
         return;
       }
       this.writeToDebugConsole(`Finished shot ${i + 1} of ${args.shots}`);
-      // Reset the interpreter for the next shot.
-      // The interactive interpreter doesn't do this automatically,
-      // and doesn't know how to deal with shots like the stateless version.
-      await this.init(associationId);
       if (this.failureMessage != "") {
         log.info(
           "compilation failed. sending error response and stopping execution.",

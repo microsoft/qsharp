@@ -3,10 +3,17 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+<<<<<<< Updated upstream
 import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
+=======
+import { IDebugServiceWorker, getDebugServiceWorker, getProjectLoader, log } from "qsharp-lang";
+>>>>>>> Stashed changes
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
+import { getManifest, listDir, readFile } from "../projectSystem";
+
+import * as vscode from "vscode";
 
 import * as vscode from "vscode";
 
@@ -188,18 +195,36 @@ export const workspaceFileAccessor: FileAccessor = {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
+  public async loadProject(configUri: vscode.Uri): Promise<[string, string][]> {
+    // get the project using this.program
+    const manifest = await getManifest(configUri.toString());
+    if (manifest === null) {
+      // return just the one file if we are in single file mode
+      const file = await workspaceFileAccessor.openUri(configUri);
+
+      return [[configUri.toString(), file.getText()]];
+    }
+
+    const projectLoader = await getProjectLoader(
+      readFile,
+      listDir,
+      getManifest,
+    );
+    log.info("using project loader to debug");
+    return await projectLoader.load_project(manifest);
+  }
   createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
-    const qscSession = new QscDebugSession(
+    return loadProject(session.configuration.program).then(sources =>  new QscDebugSession(
       workspaceFileAccessor,
       worker,
       session.configuration,
-    );
-    return qscSession.init(getRandomGuid()).then(() => {
-      return new vscode.DebugAdapterInlineImplementation(qscSession);
-    });
+        sources)
+    ).then(session.configuration.program).then(=> qscSession.init(getRandomGuid(), sources).then(() => {
+      return new vscode.DebugAdapterInlineImplementation(qscSession );
+    }));
   }
 }
