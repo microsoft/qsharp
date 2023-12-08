@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::sync::Arc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
