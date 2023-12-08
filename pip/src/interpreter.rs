@@ -23,6 +23,7 @@ use qsc::{
         },
         Value,
     },
+    target::Profile,
     PackageType, SourceMap,
 };
 use rustc_hash::FxHashMap;
@@ -52,7 +53,7 @@ pub(crate) enum TargetProfile {
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
-    Full,
+    Unrestricted,
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
@@ -71,10 +72,15 @@ impl Interpreter {
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Full => qsc::TargetProfile::Full,
-            TargetProfile::Base => qsc::TargetProfile::Base,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
+            TargetProfile::Base => Profile::Base,
         };
-        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
+        match stateful::Interpreter::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            target.into(),
+        ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => {
                 let mut message = String::new();

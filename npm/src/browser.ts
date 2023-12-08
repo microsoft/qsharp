@@ -5,6 +5,7 @@
 // the "./main.js" module is the entry point.
 
 import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
+import { TargetProfile } from "../lib/web/qsc_wasm.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
 import { createCompilerProxy } from "./compiler/worker-proxy.js";
 import {
@@ -239,7 +240,7 @@ export {
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
 export { type VSDiagnostic } from "./vsdiagnostic.js";
-export { log, type LogLevel };
+export { log, type LogLevel, type TargetProfile };
 export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export type { IDebugServiceWorker, IDebugService };

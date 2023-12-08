@@ -281,10 +281,8 @@ if build_pip:
 if build_widgets:
     step_start("Building the Python widgets")
 
-    python_cmd = "python.exe" if platform.system() == "Windows" else "python"
-
     widgets_build_args = [
-        python_cmd,
+        sys.executable,
         "-m",
         "pip",
         "wheel",

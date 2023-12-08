@@ -73,12 +73,12 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Input
     /// ## number
-    /// A non-negative integer to be converted to an array of boolean values.
+    /// A non-negative integer to be converted to an array of Boolean values.
     /// ## bits
     /// The number of bits in the binary representation of `number`.
     ///
     /// # Output
-    /// An array of boolean values representing `number`.
+    /// An array of Boolean values representing `number`.
     ///
     /// # Remarks
     /// The input `bits` must be non-negative.
@@ -93,6 +93,36 @@ namespace Microsoft.Quantum.Convert {
             set runningValue >>>= 1;
         }
         Fact(runningValue == 0, $"`number`={number} is too large to fit into {bits} bits.");
+
+        result
+    }
+
+    /// # Summary
+    /// Produces a binary representation of a non-negative BigInt, using the
+    /// little-endian representation for the returned array.
+    ///
+    /// # Input
+    /// ## number
+    /// A non-negative BigInt to be converted to an array of Boolean values.
+    /// ## bits
+    /// The number of bits in the binary representation of `number`.
+    ///
+    /// # Output
+    /// An array of Boolean values representing `number`.
+    ///
+    /// # Remarks
+    /// The input `bits` must be non-negative.
+    /// The input `number` must be between 0 and 2^bits - 1.
+    function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[] {
+        Fact(bits >= 0, "Requested number of bits must be non-negative.");
+        Fact(number >= 0L, "Number must be non-negative.");
+        mutable runningValue = number;
+        mutable result = [];
+        for _ in 1..bits {
+            set result += [ (runningValue &&& 1L) != 0L ];
+            set runningValue >>>= 1;
+        }
+        Fact(runningValue == 0L, $"`number`={number} is too large to fit into {bits} bits.");
 
         result
     }

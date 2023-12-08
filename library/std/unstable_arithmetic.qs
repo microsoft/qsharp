@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Convert;
 
     /// # Summary
     /// This applies the in-place majority operation to 3 qubits.
@@ -508,6 +509,226 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
                 Controlled SWAP(ctls, (ys[i], qs[i]))
             }
             Adjoint backwardAdder(xs, ys, qs);
+        }
+    }
+
+    //
+    // Compare BigInt and qubit register in a little-endian format
+    //
+    //  target ^= c < x  | InvertIfLessL
+    //  target ^= c <= x | InvertIfLessOrEqualL
+    //  target ^= c == x | InvertIfEqualL
+    //  target ^= c >= x | InvertIfGreaterOrEqualL
+    //  target ^= c > x  | InvertIfGreaterL
+    //
+
+    /// # Summary
+    /// Computes `target ^= (c < x)`, that is, inverts `target`
+    /// if a BigInt value `c` is less than the little-endian qubit register `x`
+    operation InvertIfLessL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        ApplyActionIfGreaterThanOrEqualConstant(false, X, c + 1L, x, target);
+    }
+
+    /// # Summary
+    /// Computes `target ^= (c <= x)`, that is, inverts `target`
+    /// if a BigInt value `c` is less or equal to the little-endian qubit register `x`
+    operation InvertIfLessOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        ApplyActionIfGreaterThanOrEqualConstant(false, X, c, x, target);
+    }
+
+    /// # Summary
+    /// Computes `target ^= (c == x)`, that is, inverts `target`
+    /// if a BigInt value `c` is equal to the little-endian qubit register `x`
+    operation InvertIfEqualL (c : BigInt, xs : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        let cBitSize = BitSizeL(c);
+        let xLen = Length(xs);
+        if (cBitSize <= xLen) {
+            let bits = BigIntAsBoolArray(c, Length(xs));
+            within {
+                ApplyPauliFromBitString(PauliX, false, bits, xs);
+            } apply {
+                Controlled X(xs, target);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Computes `target ^= (c >= x)`, that is, inverts `target`
+    /// if a BigInt value `c` is greater or equal to the little-endian qubit register `x`
+    operation InvertIfGreaterOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        ApplyActionIfGreaterThanOrEqualConstant(true, X, c + 1L, x, target);
+    }
+
+    /// # Summary
+    /// Computes `target ^= (c > x)`, that is, inverts `target`
+    /// if a BigInt value `c` is greater than the little-endian qubit register `x`
+    operation InvertIfGreaterL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        ApplyActionIfGreaterThanOrEqualConstant(true, X, c, x, target);
+    }
+
+    //
+    // Compare two qubit registers in a little-endian format
+    //
+    //  target ^= x < y  | InvertIfLessLE
+    //  target ^= x <= y | InvertIfLessOrEqualLE
+    //  target ^= x == y | InvertIfEqualLE
+    //  target ^= x >= y | InvertIfGreaterOrEqualLE
+    //  target ^= x > y  | InvertIfGreaterLE
+    //
+
+    /// # Summary
+    /// Computes `target ^= (x < y)`, that is, inverts `target`
+    /// if register `x` is less than the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation InvertIfLessLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        InvertIfGreaterLE(y, x, target);
+    }
+
+    /// # Summary
+    /// Computes `target ^= (x <= y)`, that is, inverts `target`
+    /// if register `x` is less or equal to the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation InvertIfLessOrEqualLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        Fact(Length(x) > 0, "Bitwidth must be at least 1");
+
+        within {
+            ApplyToEachA(X, x);
+        } apply {
+           ApplyActionIfSumOverflows(X, x, y, false, target);
+        }
+    }
+
+    /// # Summary
+    /// Computes `target ^= (x == y)`, that is, inverts `target`
+    /// if register `x` is equal to the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation InvertIfEqualLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        Fact(Length(x) == Length(y), "x and y must be of same length");
+
+        within {
+            for i in IndexRange(x) {
+                CNOT(x[i], y[i]);
+                X(y[i]);
+            }
+        } apply {
+            Controlled X(y, target);
+        }
+    }
+
+    /// # Summary
+    /// Computes `target ^= (x >= y)`, that is, inverts `target`
+    /// if register `x` is greater or equal to the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation InvertIfGreaterOrEqualLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        InvertIfLessOrEqualLE(y, x, target);
+    }
+
+    /// # Summary
+    /// Computes `target ^= (x > y)`, that is, inverts `target`
+    /// if register `x` is greater than the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation InvertIfGreaterLE (x : Qubit[], y : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+        Fact(Length(x) > 0, "Bitwidth must be at least 1");
+
+        within {
+            ApplyToEachA(X, x);
+        } apply {
+            ApplyActionIfSumOverflows(X, x, y, true, target);
+        }
+    }
+
+    //
+    // Compare two qubit registers in a little-endian format and apply action
+    //
+    //  if x < y { action(target) }  | ApplyIfLessLE
+    //  if x <= y { action(target) } | ApplyIfLessOrEqualLE
+    //  if x == y { action(target) } | ApplyIfEqualLE
+    //  if x >= y { action(target) } | ApplyIfGreaterOrEqualLE
+    //  if x > y { action(target) }  | ApplyIfGreaterLE
+    //
+
+    /// # Summary
+    /// Computes `if x < y { action(target) }`, that is, applies `action` to `target`
+    /// if register `x` is less than the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation ApplyIfLessLE<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
+
+        ApplyIfGreaterLE(action, y, x, target);
+    }
+
+    /// # Summary
+    /// Computes `if x <= y { action(target) }`, that is, applies `action` to `target`
+    /// if register `x` is less or equal to the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation ApplyIfLessOrEqualLE<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
+
+        Fact(Length(x) > 0, "Bitwidth must be at least 1");
+        within {
+            ApplyToEachA(X, x);
+        } apply {
+            // control is not inverted
+            ApplyActionIfSumOverflows(action, x, y, false, target);
+        }
+    }
+
+    /// # Summary
+    /// Computes `x == y { action(target) }`, that is, applies `action` to `target`
+    /// if register `x` is equal to the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation ApplyIfEqualLE<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
+
+        Fact(Length(x) == Length(y), "x and y must be of same length");
+        within {
+            for i in IndexRange(x) {
+                CNOT(x[i], y[i]);
+                X(y[i]);
+            }
+        } apply {
+            Controlled action(y, target);
+        }
+    }
+
+    /// # Summary
+    /// Computes `if x >= y { action(target) }`, that is, applies `action` to `target`
+    /// if register `x` is greater or equal to the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation ApplyIfGreaterOrEqualLE<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
+
+        ApplyIfLessOrEqualLE(action, y, x, target);
+    }
+
+    /// # Summary
+    /// Computes `if x > y { action(target) }`, that is, applies `action` to `target`
+    /// if register `x` is greater than the register `y`.
+    /// Both qubit registers should be in a little-endian format.
+    operation ApplyIfGreaterLE<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
+
+        Fact(Length(x) > 0, "Bitwidth must be at least 1");
+        within {
+            ApplyToEachA(X, x);
+        } apply {
+            // control is inverted
+            ApplyActionIfSumOverflows(action, x, y, true, target);
         }
     }
 

@@ -11,10 +11,11 @@ use crate::{
     serializable_type,
 };
 use js_sys::JsString;
-use qsc::{self};
+use qsc::{self, target::Profile, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::{future::Future, path::PathBuf, pin::Pin, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -77,10 +78,12 @@ impl LanguageService {
         let config: WorkspaceConfiguration = config.into();
         self.0
             .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
-                target_profile: config.targetProfile.map(into_target_profile),
+                target_profile: config
+                    .targetProfile
+                    .map(|s| Profile::from_str(&s).expect("invalid target profile")),
                 package_type: config.packageType.map(|s| match s.as_str() {
-                    "lib" => qsc::PackageType::Lib,
-                    "exe" => qsc::PackageType::Exe,
+                    "lib" => PackageType::Lib,
+                    "exe" => PackageType::Exe,
                     _ => panic!("invalid package type"),
                 }),
             })
@@ -105,7 +108,9 @@ impl LanguageService {
         self.0.update_notebook_document(
             notebook_uri,
             &qsls::protocol::NotebookMetadata {
-                target_profile: notebook_metadata.targetProfile.map(into_target_profile),
+                target_profile: notebook_metadata
+                    .targetProfile
+                    .map(|s| Profile::from_str(&s).expect("invalid target profile")),
             },
             cells
                 .iter()
@@ -281,7 +286,7 @@ serializable_type! {
         pub packageType: Option<String>,
     },
     r#"export interface IWorkspaceConfiguration {
-        targetProfile?: "full" | "base";
+        targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
     }"#,
     IWorkspaceConfiguration
@@ -440,7 +445,7 @@ serializable_type! {
         pub targetProfile: Option<String>,
     },
     r#"export interface INotebookMetadata {
-        targetProfile?: "full" | "base";
+        targetProfile?: "unrestricted" | "base";
     }"#,
     INotebookMetadata
 }
@@ -451,12 +456,4 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => Promise<void>"
     )]
     pub type DiagnosticsCallback;
-}
-
-fn into_target_profile(value: String) -> qsc::TargetProfile {
-    match value.as_str() {
-        "base" => qsc::TargetProfile::Base,
-        "full" => qsc::TargetProfile::Full,
-        _ => panic!("invalid target profile"),
-    }
 }

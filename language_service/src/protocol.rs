@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::{compile::Error, PackageType, TargetProfile};
+use qsc::{compile::Error, target::Profile, PackageType};
 
 /// Workspace configuration
 #[derive(Clone, Debug, Default)]
 pub struct WorkspaceConfigurationUpdate {
-    pub target_profile: Option<TargetProfile>,
+    pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
 }
 
@@ -100,5 +100,5 @@ pub struct ParameterInformation {
 
 #[derive(Default)]
 pub struct NotebookMetadata {
-    pub target_profile: Option<TargetProfile>,
+    pub target_profile: Option<Profile>,
 }

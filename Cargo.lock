@@ -892,6 +892,7 @@ dependencies = [
 name = "qsc_frontend"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.4.1",
  "enum-iterator",
  "expect-test",
  "indoc",

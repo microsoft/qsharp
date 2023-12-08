@@ -9,6 +9,7 @@ import type {
   IVariable,
   IQuantumState,
 } from "../../lib/node/qsc_wasm.cjs";
+import { TargetProfile } from "../browser.js";
 import { eventStringToMsg } from "../compiler/common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
 import { log } from "../log.js";
@@ -21,7 +22,7 @@ type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 export interface IDebugService {
   loadSource(
     sources: [string, string][],
-    target: "base" | "full",
+    target: TargetProfile,
     entry: string | undefined,
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
@@ -64,7 +65,7 @@ export class QSharpDebugService implements IDebugService {
 
   async loadSource(
     sources: [string, string][],
-    target: "base" | "full",
+    target: TargetProfile,
     entry: string | undefined,
   ): Promise<string> {
     for (const [path, source] of sources) {

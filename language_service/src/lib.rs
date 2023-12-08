@@ -29,7 +29,7 @@ use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
-use qsc::{compile::Error, PackageType, TargetProfile};
+use qsc::{compile::Error, target::Profile, PackageType};
 use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{future::Future, mem::take, pin::Pin, sync::Arc};
@@ -105,14 +105,14 @@ pub enum PendingUpdate {
 
 #[derive(Debug)]
 struct Configuration {
-    pub target_profile: TargetProfile,
+    pub target_profile: Profile,
     pub package_type: PackageType,
 }
 
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            target_profile: TargetProfile::Full,
+            target_profile: Profile::Unrestricted,
             package_type: PackageType::Exe,
         }
     }
@@ -120,7 +120,7 @@ impl Default for Configuration {
 
 #[derive(Default)]
 struct PartialConfiguration {
-    pub target_profile: Option<TargetProfile>,
+    pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
 }
 
@@ -199,6 +199,7 @@ impl<'a> LanguageService<'a> {
         self.currently_updating = true;
         trace!("update_document: {uri} {version}");
         let manifest = (self.get_manifest)(uri.to_string()).await;
+        let in_project_mode = manifest.is_some();
         let sources = if let Some(ref manifest) = manifest {
             match self.load_project(manifest).await {
                 Ok(o) => o.sources,
@@ -235,22 +236,32 @@ impl<'a> LanguageService<'a> {
         // to be in the context of the project.
         // We remove them from the existing compilations and update
         // their compilation URI
-        for (path, _contents) in &sources {
-            log::trace!("Updating compilation of {path} to {uri}");
-            self.open_documents
-                .entry(path.clone())
-                .and_modify(|x| {
-                    // remove any old single-file compilations of this document
-                    // if this is a project
-                    if x.compilation != uri {
-                        self.compilations.remove(&x.compilation);
-                    }
-                    x.compilation = uri.clone();
-                })
-                .or_insert(OpenDocument {
+        if in_project_mode {
+            for (path, _contents) in &sources {
+                log::trace!("Updating compilation of {path} to {uri}");
+                self.open_documents
+                    .entry(path.clone())
+                    .and_modify(|x| {
+                        // remove any old single-file compilations of this document
+                        // if this is a project
+                        if x.compilation != uri {
+                            self.compilations.remove(&x.compilation);
+                        }
+                        x.compilation = uri.clone();
+                    })
+                    .or_insert(OpenDocument {
+                        version,
+                        compilation: uri.clone(),
+                    });
+            }
+        } else {
+            self.open_documents.insert(
+                uri.clone(),
+                OpenDocument {
                     version,
                     compilation: uri.clone(),
-                });
+                },
+            );
         }
 
         self.publish_diagnostics();

@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::compile::TargetProfile;
+use crate::compile::RuntimeCapabilityFlags;
 
 use super::{compile, Error, PackageStore, SourceMap};
 use expect_test::expect;
@@ -71,7 +71,7 @@ fn one_file_no_entry() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
@@ -100,7 +100,7 @@ fn one_file_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     let errors: Vec<_> = unit
         .errors
@@ -143,7 +143,7 @@ fn two_files_dependency() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
@@ -182,7 +182,7 @@ fn two_files_mutual_dependency() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
@@ -219,7 +219,7 @@ fn two_files_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     let errors: Vec<_> = unit
         .errors
@@ -255,7 +255,7 @@ fn entry_call_operation() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
@@ -294,7 +294,7 @@ fn entry_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert_eq!(
         ("<entry>", Span { lo: 4, hi: 5 }),
@@ -336,7 +336,7 @@ fn replace_node() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     Replacer.visit_package(&mut unit.package);
@@ -419,7 +419,7 @@ fn insert_core_call() {
     );
 
     let store = PackageStore::new(super::core());
-    let mut unit = compile(&store, &[], sources, TargetProfile::Full);
+    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     let mut inserter = Inserter { core: store.core() };
     inserter.visit_package(&mut unit.package);
@@ -465,7 +465,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -483,7 +483,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
     expect![[r#"
@@ -526,7 +526,7 @@ fn package_dependency_internal_error() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -544,7 +544,7 @@ fn package_dependency_internal_error() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
 
     let errors: Vec<_> = unit2
         .errors
@@ -594,7 +594,7 @@ fn package_dependency_udt() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -612,7 +612,7 @@ fn package_dependency_udt() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
     expect![[r#"
@@ -657,7 +657,7 @@ fn package_dependency_nested_udt() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, TargetProfile::Full);
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -680,7 +680,7 @@ fn package_dependency_nested_udt() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, TargetProfile::Full);
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
     expect![[r#"
@@ -735,7 +735,7 @@ fn package_dependency_nested_udt() {
 #[test]
 fn std_dependency() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, TargetProfile::Full));
+    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::all()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -754,14 +754,14 @@ fn std_dependency() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, TargetProfile::Full);
+    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all());
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
 fn std_dependency_base_profile() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, TargetProfile::Base));
+    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -780,14 +780,14 @@ fn std_dependency_base_profile() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, TargetProfile::Base);
+    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::empty());
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
 fn introduce_prelude_ambiguity() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, TargetProfile::Full));
+    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::all()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -802,7 +802,7 @@ fn introduce_prelude_ambiguity() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, TargetProfile::Full);
+    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all());
     let errors: Vec<Error> = unit.errors;
     assert!(
         errors.len() == 1
@@ -829,7 +829,7 @@ fn entry_parse_error() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
 
     assert_eq!(
@@ -860,7 +860,7 @@ fn two_files_error_eof() {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     let errors: Vec<_> = unit
         .errors
@@ -895,7 +895,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         None,
     );
     let mut store = PackageStore::new(super::core());
-    let lib = compile(&store, &[], lib_sources, TargetProfile::Full);
+    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all());
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
 
@@ -914,7 +914,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         )],
         None,
     );
-    let unit = compile(&store, &[lib], sources, TargetProfile::Full);
+    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all());
     expect![[r#"
         [
             Error(
@@ -952,7 +952,7 @@ fn unimplemented_attribute_call_within_unit_error() {
         None,
     );
     let store = PackageStore::new(super::core());
-    let unit = compile(&store, &[], sources, TargetProfile::Full);
+    let unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
     expect![[r#"
         [
             Error(
@@ -987,7 +987,7 @@ fn unimplemented_attribute_with_non_unit_expr_error() {
         None,
     );
     let store = PackageStore::new(super::core());
-    let unit = compile(&store, &[], sources, TargetProfile::Full);
+    let unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
     expect![[r#"
         [
             Error(
@@ -1022,7 +1022,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         None,
     );
     let mut store = PackageStore::new(super::core());
-    let lib = compile(&store, &[], lib_sources, TargetProfile::Full);
+    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all());
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
 
@@ -1045,7 +1045,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         )],
         None,
     );
-    let unit = compile(&store, &[lib], sources, TargetProfile::Full);
+    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all());
     expect![[r#"
         []
     "#]]

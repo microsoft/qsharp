@@ -9,7 +9,7 @@ import io
 
 
 def test_stdout() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Full)
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     f = io.StringIO()
     with redirect_stdout(f):
         result = qsharp.eval('Message("Hello, world!")')
@@ -19,7 +19,7 @@ def test_stdout() -> None:
 
 
 def test_stdout_multiple_lines() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Full)
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     f = io.StringIO()
     with redirect_stdout(f):
         qsharp.eval(
@@ -34,7 +34,7 @@ def test_stdout_multiple_lines() -> None:
 
 
 def test_dump_machine() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Full)
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.eval(
         """
     use q1 = Qubit();
