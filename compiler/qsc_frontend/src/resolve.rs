@@ -1064,6 +1064,9 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
     // variables
     if vars {
         names.extend(scope.vars.iter().filter_map(|(name, (valid_at, id))| {
+            // Bug: Because we keep track of only one `valid_at` offset per name, 
+            // when a variable is later shadowed in the same scope,
+            // it is missed in the list. https://github.com/microsoft/qsharp/issues/897
             if offset >= *valid_at {
                 Some(Local {
                     name: name.clone(),
