@@ -3,7 +3,12 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { IDebugServiceWorker, getDebugServiceWorker, getProjectLoader, log } from "qsharp-lang";
+import {
+  IDebugServiceWorker,
+  getDebugServiceWorker,
+  getProjectLoader,
+  log,
+} from "qsharp-lang";
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
@@ -187,20 +192,30 @@ export const workspaceFileAccessor: FileAccessor = {
 };
 
 class InlineDebugAdapterFactory
-  implements vscode.DebugAdapterDescriptorFactory {
+  implements vscode.DebugAdapterDescriptorFactory
+{
   createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
-    return loadProject(workspaceFileAccessor.resolvePathToUri(session.configuration.program)).then(sources => new QscDebugSession(
-      workspaceFileAccessor,
-      worker,
-      session.configuration,
-      sources)
-    ).then(qscSession => qscSession.init(getRandomGuid()).then(() => {
-      return new vscode.DebugAdapterInlineImplementation(qscSession);
-    }));
+    return loadProject(
+      workspaceFileAccessor.resolvePathToUri(session.configuration.program),
+    )
+      .then(
+        (sources) =>
+          new QscDebugSession(
+            workspaceFileAccessor,
+            worker,
+            session.configuration,
+            sources,
+          ),
+      )
+      .then((qscSession) =>
+        qscSession.init(getRandomGuid()).then(() => {
+          return new vscode.DebugAdapterInlineImplementation(qscSession);
+        }),
+      );
   }
 }
 async function loadProject(configUri: vscode.Uri): Promise<[string, string][]> {
@@ -213,12 +228,7 @@ async function loadProject(configUri: vscode.Uri): Promise<[string, string][]> {
     return [[configUri.toString(), file.getText()]];
   }
 
-  const projectLoader = await getProjectLoader(
-    readFile,
-    listDir,
-    getManifest,
-  );
+  const projectLoader = await getProjectLoader(readFile, listDir, getManifest);
   log.info("using project loader to debug");
   return await projectLoader.load_project(manifest);
 }
-

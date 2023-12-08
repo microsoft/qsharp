@@ -107,7 +107,6 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
-
   public async init(associationId: string): Promise<void> {
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const targetProfile = getTarget();
