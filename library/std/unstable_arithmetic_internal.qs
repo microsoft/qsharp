@@ -418,7 +418,11 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     // Internal operations for comparisons
     //
 
-    internal operation CompareGreaterThanOrEqualConstant<'T>(
+    /// # Summary
+    /// Applies `action` to `target` if register `x` is greater or equal to BigInt `c`
+    /// (if `invertControl` is false). If `invertControl` is true, the `action`
+    /// is applied in the opposite situation.
+    internal operation ApplyActionIfGreaterThanOrEqualConstant<'T>(
         invertControl: Bool,
         action: 'T => Unit is Adj + Ctl,
         c: BigInt,
@@ -427,9 +431,13 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
 
         let bitWidth = Length(x);
         if c == 0L {
-            action(target);
+            if not invertControl {
+                action(target);
+            }
         } elif c >= (2L^bitWidth) {
-            // do nothing
+            if invertControl {
+                action(target);
+            }
         } else {
             // normalize constant
             let l = TrailingZeroCountL(c);
@@ -468,93 +476,60 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    internal operation CompareRecursively (
-        x : Qubit[],
-        y : Qubit[],
-        carryIn : Qubit[]) : Unit is Adj + Ctl {
-
-        let n = Length(x);
-        Fact(Length(y) == n + 1, "bitwidth of y must be 1 more than x");
-
-        if n != 0 {
-            use carry = Qubit();
-            within {
-                if IsEmpty(carryIn) {
-                    CarryConstant(true, Head(x), Head(y), carry);
-                } else {
-                    CarryForInc(Head(carryIn), Head(x), Head(y), carry);
-                }
-            } apply {
-                if n == 1 {
-                    let carryOut = Tail(y);
-                    CNOT(carry, carryOut);
-                } else {
-                    CompareRecursively(Rest(x), Rest(y), [carry]);
-                }
-            }
-        }
-    }
-
-    internal operation CompareRecursivelyWithAction<'T> (
+    /// # Summary
+    /// Applies `action` to `target` if the sum of `x` and `y` registers
+    /// overflows, i.e. there's a carry out (if `invertControl` is false).
+    /// If `invertControl` is true, the `action` is applied when there's no carry out.
+    internal operation ApplyActionIfSumOverflows<'T> (
         action : 'T => Unit is Adj + Ctl,
         x : Qubit[],
         y : Qubit[],
         invertControl : Bool,
-        target : 'T,
-        carryIn : Qubit[]) : Unit is Adj + Ctl {
+        target : 'T) : Unit is Adj + Ctl {
 
         let n = Length(x);
-        Fact(Length(y) == n, "bitwidth of y must equal bitwidth of x");
+        Fact(n >= 1, "Registers must contain at least one qubit.");
+        Fact(Length(y) == n, "Registers must be of the same length.");
 
-        if n != 0 {
-            use carry = Qubit();
+        use carries = Qubit[n];
+
+        within {
+            CarryWith1CarryIn(x[0], y[0], carries[0]);
+            for i in 1..n-1 {
+                CarryForInc(carries[i-1], x[i], y[i], carries[i]);
+            }
+        } apply {
             within {
-                if IsEmpty(carryIn) {
-                    CarryConstant(true, Head(x), Head(y), carry);
-                } else {
-                    CarryForInc(Head(carryIn), Head(x), Head(y), carry);
+                if invertControl {
+                    X(carries[n-1]);
                 }
             } apply {
-                if n == 1 {
-                    within {
-                        if invertControl {
-                            X(carry);
-                        }
-                    } apply {
-                        Controlled action([carry], target);
-                    }
-                } else {
-                    CompareRecursivelyWithAction(action, Rest(x), Rest(y), invertControl, target, [carry]);
-                }
+                Controlled action([carries[n-1]], target);
             }
         }
     }
 
     /// # Summary
-    /// Computes carry with classical carryIn (Boolean)
-    internal operation CarryConstant(
-        carryIn : Bool,
+    /// Computes carry out assuming carry in is 1.
+    /// Simplified version that is only applicable for scenarios
+    /// where controlled version is the same as non-controlled.
+    internal operation CarryWith1CarryIn(
         x : Qubit,
         y : Qubit,
         carryOut : Qubit) : Unit is Adj + Ctl {
 
         body (...) {
-            Controlled CarryConstant([], (carryIn, x, y, carryOut));
+            X(x);
+            X(y);
+            ApplyAndAssuming0Target(x, y, carryOut);
+            X(carryOut);
         }
 
         adjoint auto;
 
         controlled (ctls, ...) {
             Fact(Length(ctls) <= 1, "Number of control lines must be at most 1");
-
-            if carryIn {
-                X(x);
-                X(y);
-            }
-            ApplyAndAssuming0Target(x, y, carryOut);
-            if carryIn {
-                X(carryOut);
-            }
+            CarryWith1CarryIn(x, y, carryOut);
         }
 
         controlled adjoint auto;

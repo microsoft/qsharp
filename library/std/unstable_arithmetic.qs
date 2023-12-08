@@ -526,14 +526,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Computes `target ^= (c < x)`, that is, inverts `target`
     /// if a BigInt value `c` is less than the little-endian qubit register `x`
     operation InvertIfLessL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
-        CompareGreaterThanOrEqualConstant(false, X, c + 1L, x, target);
+        ApplyActionIfGreaterThanOrEqualConstant(false, X, c + 1L, x, target);
     }
 
     /// # Summary
     /// Computes `target ^= (c <= x)`, that is, inverts `target`
     /// if a BigInt value `c` is less or equal to the little-endian qubit register `x`
     operation InvertIfLessOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
-        CompareGreaterThanOrEqualConstant(false, X, c, x, target);
+        ApplyActionIfGreaterThanOrEqualConstant(false, X, c, x, target);
     }
 
     /// # Summary
@@ -552,16 +552,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Computes `target ^= (c >= x)`, that is, inverts `target`
     /// if a BigInt value `c` is greater or equal to the little-endian qubit register `x`
     operation InvertIfGreaterOrEqualL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
-        CompareGreaterThanOrEqualConstant(false, X, c + 1L, x, target);
-        X(target);
+        ApplyActionIfGreaterThanOrEqualConstant(true, X, c + 1L, x, target);
     }
 
     /// # Summary
     /// Computes `target ^= (c > x)`, that is, inverts `target`
     /// if a BigInt value `c` is greater than the little-endian qubit register `x`
     operation InvertIfGreaterL (c : BigInt, x : Qubit[], target : Qubit) : Unit is Adj + Ctl {
-        CompareGreaterThanOrEqualConstant(false, X, c, x, target);
-        X(target);
+        ApplyActionIfGreaterThanOrEqualConstant(true, X, c, x, target);
     }
 
     //
@@ -592,7 +590,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         within {
             ApplyToEachA(X, x);
         } apply {
-            CompareRecursively(x, y + [target], []);
+           ApplyActionIfSumOverflows(X, x, y, false, target);
         }
     }
 
@@ -631,8 +629,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         within {
             ApplyToEachA(X, x);
         } apply {
-            CompareRecursively(x, y + [target], []);
-            X(target);
+            ApplyActionIfSumOverflows(X, x, y, true, target);
         }
     }
 
@@ -674,7 +671,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             ApplyToEachA(X, x);
         } apply {
             // control is not inverted
-            CompareRecursivelyWithAction(action, x, y, false, target, []);
+            ApplyActionIfSumOverflows(action, x, y, false, target);
         }
     }
 
@@ -727,7 +724,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             ApplyToEachA(X, x);
         } apply {
             // control is inverted
-            CompareRecursivelyWithAction(action, x, y, true, target, []);
+            ApplyActionIfSumOverflows(action, x, y, true, target);
         }
     }
 
