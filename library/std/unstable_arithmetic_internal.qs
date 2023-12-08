@@ -272,6 +272,16 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
+    internal operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        within {
+            X(control1);
+            X(control2);
+        } apply {
+            ApplyAndAssuming0Target(control1, control2, target);
+            X(target);
+        }
+    }
+
     /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state.
@@ -402,6 +412,127 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         for i in IndexRange(qs) {
             R1Frac(1, i, qs[i]);
         }
+    }
+
+    //
+    // Internal operations for comparisons
+    //
+
+    /// # Summary
+    /// Applies `action` to `target` if register `x` is greater or equal to BigInt `c`
+    /// (if `invertControl` is false). If `invertControl` is true, the `action`
+    /// is applied in the opposite situation.
+    internal operation ApplyActionIfGreaterThanOrEqualConstant<'T>(
+        invertControl: Bool,
+        action: 'T => Unit is Adj + Ctl,
+        c: BigInt,
+        x: Qubit[],
+        target: 'T) : Unit is Adj + Ctl {
+
+        let bitWidth = Length(x);
+        if c == 0L {
+            if not invertControl {
+                action(target);
+            }
+        } elif c >= (2L^bitWidth) {
+            if invertControl {
+                action(target);
+            }
+        } else {
+            // normalize constant
+            let l = TrailingZeroCountL(c);
+
+            let cNormalized = c >>> l;
+            let xNormalized = x[l...];
+            let bitWidthNormalized = Length(xNormalized);
+
+            // If c == 2L^(bitwidth - 1), then bitWidthNormalized will be 1,
+            // and qs will be empty.  In that case, we do not need to compute
+            // any temporary values, and some optimizations are apply, which
+            // are considered in the remainder.
+            use qs = Qubit[bitWidthNormalized - 1];
+            let cs1 = IsEmpty(qs) ? [] | [Head(xNormalized)] + Most(qs);
+
+            Fact(Length(cs1) == Length(qs),
+                "Arrays should be of the same length.");
+
+            within {
+                for i in 0..Length(cs1)-1 {
+                    let op =
+                        cNormalized &&& (1L <<< (i+1)) != 0L ?
+                        ApplyAndAssuming0Target | ApplyOrAssuming0Target;
+                    op(cs1[i], xNormalized[i+1], qs[i]);
+                }
+            } apply {
+                let control = IsEmpty(qs) ? Tail(x) | Tail(qs);
+                within {
+                    if invertControl {
+                        X(control);
+                    }
+                } apply {
+                    Controlled action([control], target);
+                }
+            }
+        }
+    }
+
+    /// # Summary
+    /// Applies `action` to `target` if the sum of `x` and `y` registers
+    /// overflows, i.e. there's a carry out (if `invertControl` is false).
+    /// If `invertControl` is true, the `action` is applied when there's no carry out.
+    internal operation ApplyActionIfSumOverflows<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        invertControl : Bool,
+        target : 'T) : Unit is Adj + Ctl {
+
+        let n = Length(x);
+        Fact(n >= 1, "Registers must contain at least one qubit.");
+        Fact(Length(y) == n, "Registers must be of the same length.");
+
+        use carries = Qubit[n];
+
+        within {
+            CarryWith1CarryIn(x[0], y[0], carries[0]);
+            for i in 1..n-1 {
+                CarryForInc(carries[i-1], x[i], y[i], carries[i]);
+            }
+        } apply {
+            within {
+                if invertControl {
+                    X(carries[n-1]);
+                }
+            } apply {
+                Controlled action([carries[n-1]], target);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Computes carry out assuming carry in is 1.
+    /// Simplified version that is only applicable for scenarios
+    /// where controlled version is the same as non-controlled.
+    internal operation CarryWith1CarryIn(
+        x : Qubit,
+        y : Qubit,
+        carryOut : Qubit) : Unit is Adj + Ctl {
+
+        body (...) {
+            X(x);
+            X(y);
+            ApplyAndAssuming0Target(x, y, carryOut);
+            X(carryOut);
+        }
+
+        adjoint auto;
+
+        controlled (ctls, ...) {
+            Fact(Length(ctls) <= 1, "Number of control lines must be at most 1");
+            CarryWith1CarryIn(x, y, carryOut);
+        }
+
+        controlled adjoint auto;
     }
 
 }
