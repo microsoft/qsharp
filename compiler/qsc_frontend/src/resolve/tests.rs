@@ -2262,3 +2262,35 @@ fn get_locals_type_params() {
         "#]],
     );
 }
+
+#[test]
+fn get_locals_block_scope_boundary() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    {
+                        let x = 0;
+                    }↘
+                }
+            }
+        "},
+        &expect![""],
+    );
+}
+
+#[test]
+fn get_locals_block_scope_boundary_begin() {
+    check_locals(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    ↘{
+                        function Bar(): Unit {}
+                    }
+                }
+            }
+        "},
+        &expect![""],
+    );
+}

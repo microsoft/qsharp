@@ -103,13 +103,25 @@ pub(super) enum Error {
 
 #[derive(Debug, Clone)]
 pub struct Scope {
+    /// The span that the scope applies to. For callables and namespaces, this includes
+    /// the entire callable / namespace declaration. For blocks, this includes the braces.
     span: Span,
     kind: ScopeKind,
+    /// Open statements. The key is the namespace name or alias.
     opens: FxHashMap<Rc<str>, Vec<Open>>,
+    /// Local newtype declarations.
     tys: FxHashMap<Rc<str>, ItemId>,
+    /// Local callable and newtype declarations.
     terms: FxHashMap<Rc<str>, ItemId>,
-    // u32 is the `valid_at` - the lowest offset at which the variable name can be used
+    /// Local variables, including callable parameters, for loop bindings, etc.
+    /// The u32 is the `valid_at` offset - the lowest offset at which the variable name is available.
+    /// It's used to determine which variables are visible at a specific offset in the scope.
+    ///
+    /// Bug: Because we keep track of only one `valid_at` offset per name,
+    /// when a variable is later shadowed in the same scope,
+    /// it is missed in the list. https://github.com/microsoft/qsharp/issues/897
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
+    /// Type parameters.
     ty_vars: FxHashMap<Rc<str>, ParamId>,
 }
 
@@ -192,7 +204,8 @@ impl Locals {
     {
         // reverse to go from innermost -> outermost
         self.scopes.iter().rev().for_each(|scope| {
-            if scope.span.lo <= offset && scope.span.hi >= offset {
+            // the block span includes the delimiters (e.g. the braces)
+            if scope.span.lo < offset && scope.span.hi > offset {
                 f(scope);
             }
         });
@@ -404,6 +417,13 @@ impl Resolver {
         }
     }
 
+    /// # Arguments
+    ///
+    /// * `pat` - The pattern to bind.
+    /// * `valid_at` - The offset at which the name becomes defined. This is used to determine
+    ///   whether a name is in scope at a given offset.
+    ///   e.g. For a local variable, this would be immediately after the declaration statement.
+    ///   For input parameters to a callable, this would be the start of the body block.
     fn bind_pat(&mut self, pat: &ast::Pat, valid_at: u32) {
         let mut bindings = FxHashSet::default();
         self.bind_pat_recursive(pat, valid_at, &mut bindings);
