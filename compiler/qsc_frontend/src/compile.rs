@@ -461,6 +461,10 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
                 include_str!("../../../library/std/random.qs").into(),
             ),
             (
+                "unimplemented.qs".into(),
+                include_str!("../../../library/std/unimplemented.qs").into(),
+            ),
+            (
                 "unstable_arithmetic.qs".into(),
                 include_str!("../../../library/std/unstable_arithmetic.qs").into(),
             ),
