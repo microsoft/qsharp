@@ -8,9 +8,33 @@ namespace Microsoft.Quantum.Math {
         fail "";
     }
 
-    /// ExpD is not supported. Use E()^a instead.
+    /// ExpD(a) is not supported. Use E()^a instead.
     @Unimplemented()
     function ExpD (a : Double) : Double {
+        fail "";
+    }
+
+    /// HalfIntegerBinom has been removed. Provide your own implementation if needed.
+    @Unimplemented()
+    function HalfIntegerBinom (k : Int) : Double {
+        fail "";
+    }
+
+    /// IEEERemainder has been removed. Provide your own implementation if needed.
+    @Unimplemented()
+    function IEEERemainder (x : Double, y : Double) : Double {
+        fail "";
+    }
+
+    /// Microsoft.Quantum.Math.ComplexPolarAsComplex has been moved. Use Microsoft.Quantum.Convert.ComplexPolarAsComplex instead.
+    @Unimplemented()
+    function ComplexPolarAsComplex (input : ComplexPolar) : Complex {
+        fail "";
+    }
+
+    /// Microsoft.Quantum.Math.ComplexAsComplexPolar has been moved. Use Microsoft.Quantum.Convert.ComplexAsComplexPolar instead.
+    @Unimplemented()
+    function ComplexAsComplexPolar (input : Complex) : ComplexPolar {
         fail "";
     }
 }
@@ -29,7 +53,7 @@ namespace Microsoft.Quantum.Arithmetic {
         fail "";
     }
 
-    /// LittleEndian type is not supported. All standart library functions use little-endian format for qubit registers `Qubit[]`.
+    /// Explicit LittleEndian type is not supported. Use Qubit[] directly since all library functions use little-endian format for qubit registers.
     @Unimplemented()
     newtype LittleEndian = Qubit[];
 
