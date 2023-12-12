@@ -101,15 +101,48 @@ export class QSharpLanguageService implements ILanguageService {
   // We need to keep a copy of the code for mapping diagnostics to utf16 offsets
   private code: { [uri: string]: string | undefined } = {};
 
-  constructor(wasm: QscWasm) {
+  private readFile: (uri: string) => Promise<string | null>;
+
+  constructor(
+    wasm: QscWasm,
+    readFile: (uri: string) => Promise<string | null> = () =>
+      Promise.resolve(null),
+    listDir: (uri: string) => Promise<[string, number][]> = () =>
+      Promise.resolve([]),
+    getManifest: (uri: string) => Promise<{
+      excludeFiles: string[];
+      excludeRegexes: string[];
+      manifestDirectory: string;
+    } | null> = () => Promise.resolve(null),
+  ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService(
       this.onDiagnostics.bind(this),
+      readFile,
+      listDir,
+      getManifest,
     );
+    this.readFile = readFile;
+  }
+
+  async loadFile(uri: string): Promise<string | null> {
+    const result = this.code[uri];
+    if (result === undefined || result === null) {
+      return await this.readFile(uri);
+    }
+    if (result === null || result === undefined) {
+      log.error(
+        "File",
+        uri,
+        "wasn't in document map when we expected it to be",
+      );
+      return null;
+    }
+    return result;
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
-    this.languageService.update_configuration(config);
+    await this.languageService.update_configuration(config);
   }
 
   async updateDocument(
@@ -118,7 +151,7 @@ export class QSharpLanguageService implements ILanguageService {
     code: string,
   ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_document(documentUri, version, code);
+    await this.languageService.update_document(documentUri, version, code);
   }
 
   async updateNotebookDocument(
@@ -133,12 +166,16 @@ export class QSharpLanguageService implements ILanguageService {
     for (const cell of cells) {
       this.code[cell.uri] = cell.code;
     }
-    this.languageService.update_notebook_document(notebookUri, metadata, cells);
+    await this.languageService.update_notebook_document(
+      notebookUri,
+      metadata,
+      cells,
+    );
   }
 
   async closeDocument(documentUri: string): Promise<void> {
     delete this.code[documentUri];
-    this.languageService.close_document(documentUri);
+    await this.languageService.close_document(documentUri);
   }
 
   async closeNotebookDocument(
@@ -146,15 +183,16 @@ export class QSharpLanguageService implements ILanguageService {
     cellUris: string[],
   ): Promise<void> {
     cellUris.forEach((uri) => delete this.code[uri]);
-    this.languageService.close_notebook_document(documentUri, cellUris);
+    await this.languageService.close_notebook_document(documentUri, cellUris);
   }
 
   async getCompletions(
     documentUri: string,
     offset: number,
   ): Promise<ICompletionList> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri);
+
+    if (code === null) {
       log.error(
         `getCompletions: expected ${documentUri} to be in the document map`,
       );
@@ -178,8 +216,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<IHover | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri);
+
+    if (code === null) {
       log.error(`getHover: expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -195,8 +234,8 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ILocation | undefined> {
-    const sourceCode = this.code[documentUri];
-    if (sourceCode === undefined) {
+    const sourceCode = await this.loadFile(documentUri);
+    if (sourceCode === undefined || sourceCode === null) {
       log.error(
         `getDefinition: expected ${documentUri} to be in the document map`,
       );
@@ -210,14 +249,14 @@ export class QSharpLanguageService implements ILanguageService {
       convertedOffset,
     );
     if (result) {
-      let targetCode = this.code[result.source];
-      if (targetCode === undefined) {
+      let targetCode = (await this.loadFile(result.source)) || null;
+      if (targetCode === null) {
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
         // If the scheme is our library scheme, we need to call the wasm to
         // provide the library file's contents to do the utf8->utf16 mapping.
         const url = new URL(result.source);
         if (url.protocol === qsharpLibraryUriScheme + ":") {
-          targetCode = wasm.get_library_source_content(url.pathname);
+          targetCode = wasm.get_library_source_content(url.pathname) || null;
           if (targetCode === undefined) {
             log.error(`getDefinition: expected ${url} to be in the library`);
             return undefined;
@@ -241,8 +280,8 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number,
     includeDeclaration: boolean,
   ): Promise<ILocation[]> {
-    const sourceCode = this.code[documentUri];
-    if (sourceCode === undefined) {
+    const sourceCode = await this.loadFile(documentUri);
+    if (sourceCode === undefined || sourceCode === null) {
       log.error(
         `getReferences: expected ${documentUri} to be in the document map`,
       );
@@ -259,14 +298,14 @@ export class QSharpLanguageService implements ILanguageService {
     if (results && results.length > 0) {
       const references: ILocation[] = [];
       for (const result of results) {
-        let resultCode = this.code[result.source];
+        let resultCode = await this.loadFile(result.source);
 
         // Inspect the URL protocol (equivalent to the URI scheme + ":").
         // If the scheme is our library scheme, we need to call the wasm to
         // provide the library file's contents to do the utf8->utf16 mapping.
         const url = new URL(result.source);
         if (url.protocol === qsharpLibraryUriScheme + ":") {
-          resultCode = wasm.get_library_source_content(url.pathname);
+          resultCode = wasm.get_library_source_content(url.pathname) || null;
           if (resultCode === undefined) {
             log.error(`getReferences: expected ${url} to be in the library`);
           }
@@ -292,8 +331,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ISignatureHelp | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri);
+
+    if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -319,8 +359,9 @@ export class QSharpLanguageService implements ILanguageService {
     offset: number,
     newName: string,
   ): Promise<IWorkspaceEdit | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri);
+
+    if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -333,7 +374,7 @@ export class QSharpLanguageService implements ILanguageService {
 
     const mappedChanges: [string, ITextEdit[]][] = [];
     for (const [uri, edits] of result.changes) {
-      const code = this.code[uri];
+      const code = await this.loadFile(uri);
       if (code) {
         const mappedEdits = edits.map((edit) => {
           updateSpanFromUtf8ToUtf16(edit.range, code);
@@ -350,8 +391,9 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     offset: number,
   ): Promise<ITextEdit | undefined> {
-    const code = this.code[documentUri];
-    if (code === undefined) {
+    const code = await this.loadFile(documentUri);
+
+    if (code === null) {
       log.error(`expected ${documentUri} to be in the document map`);
       return undefined;
     }
@@ -384,15 +426,15 @@ export class QSharpLanguageService implements ILanguageService {
     this.eventHandler.removeEventListener(type, listener);
   }
 
-  onDiagnostics(
+  async onDiagnostics(
     uri: string,
     version: number | undefined,
     diagnostics: VSDiagnostic[],
   ) {
     try {
-      const code = this.code[uri];
+      const code = await this.loadFile(uri);
       const empty = diagnostics.length === 0;
-      if (code === undefined && !empty) {
+      if (code === null && !empty) {
         // We need the contents of the document to convert error offsets to utf16.
         // But the contents aren't available after a document is closed.
         // It is possible to get a diagnostics event after a document is closed,

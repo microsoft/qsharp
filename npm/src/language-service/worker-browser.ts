@@ -23,7 +23,12 @@ export function messageHandler(e: MessageEvent) {
       {
         log.setLogLevel(data.qscLogLevel);
         wasm.initSync(data.wasmModule);
-        const languageService = new QSharpLanguageService(wasm);
+        const languageService = new QSharpLanguageService(
+          wasm,
+          // we omit the callback arguments for the
+          // project system  because the browser worker
+          // doesn't support the project system right now
+        );
         invokeCompiler = createLanguageServiceDispatcher(
           self.postMessage.bind(self),
           languageService,
