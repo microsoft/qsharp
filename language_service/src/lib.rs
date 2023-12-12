@@ -324,7 +324,9 @@ fn push_update(pending_updates: &mut Vec<Update>, update: Update) {
                 }
             }
         }
-        _ => (),
+        Update::Configuration { .. }
+        | Update::CloseDocument { .. }
+        | Update::CloseNotebookDocument { .. } => (), // These events aren't noisy enough to bother deduping.
     }
     pending_updates.push(update);
 }
