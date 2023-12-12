@@ -98,7 +98,7 @@ pub(crate) fn get_completions(
             builder.push_item_decl_keywords();
         }
         Context::NoCompilation | Context::TopLevel => match compilation.kind {
-            CompilationKind::OpenProject => builder.push_namespace_keyword(),
+            CompilationKind::OpenDocument => builder.push_namespace_keyword(),
             CompilationKind::Notebook => {
                 // For notebooks, the top-level allows for
                 // more syntax.

@@ -16,18 +16,14 @@ use std::path::PathBuf;
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
 /// A Q# manifest, used to describe project metadata.
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default)]
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
-    #[serde(default = "default_exclude_regexes")]
+    #[serde(default)]
     pub exclude_regexes: Vec<String>,
     #[serde(default)]
     pub exclude_files: Vec<String>,
-}
-
-fn default_exclude_regexes() -> Vec<String> {
-    vec![".*node_modules.*".into(), ".*\\.git.*".into()]
 }
 
 /// Describes the contents and location of a Q# manifest file.
