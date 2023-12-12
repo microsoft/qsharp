@@ -3,25 +3,7 @@
 
 use crate::state::CompilationStateUpdater;
 use async_trait::async_trait;
-use std::{convert::Infallible, path::PathBuf};
-
-#[derive(Debug)]
-pub struct JSFileEntry {
-    pub name: String,
-    pub r#type: qsc_project::EntryType,
-}
-
-impl qsc_project::DirEntry for JSFileEntry {
-    type Error = Infallible;
-
-    fn entry_type(&self) -> Result<qsc_project::EntryType, Self::Error> {
-        Ok(self.r#type)
-    }
-
-    fn path(&self) -> PathBuf {
-        PathBuf::from(&self.name)
-    }
-}
+use qsc_project::JSFileEntry;
 
 #[async_trait(?Send)]
 impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {

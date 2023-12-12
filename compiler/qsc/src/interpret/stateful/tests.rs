@@ -1047,6 +1047,8 @@ mod given_interpreter {
 
     #[cfg(test)]
     mod with_sources {
+        use std::sync::Arc;
+
         use super::*;
         use expect_test::expect;
         use indoc::indoc;
@@ -1124,6 +1126,47 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
+        }
+
+        #[test]
+        fn multiple_files_are_loaded_from_sources_into_eval_context() {
+            let sources: [(Arc<str>, Arc<str>); 2] = [
+                (
+                    "a.qs".into(),
+                    r#"
+            namespace Test {
+                function Hello() : String {
+                    "hello there..."
+                }
+            }"#
+                    .into(),
+                ),
+                (
+                    "b.qs".into(),
+                    r#"
+            namespace Test2 {
+                open Test;
+                operation Main() : String {
+                    Hello();
+                    Hello()
+                }
+            }"#
+                    .into(),
+                ),
+            ];
+
+            let sources = SourceMap::new(sources, None);
+            let interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                RuntimeCapabilityFlags::all(),
+            )
+            .expect("interpreter should be created");
+            let bps = interpreter.get_breakpoints("a.qs");
+            assert_eq!(1, bps.len());
+            let bps = interpreter.get_breakpoints("b.qs");
+            assert_eq!(2, bps.len());
         }
 
         #[test]

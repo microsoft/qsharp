@@ -7,6 +7,7 @@ use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use project_system::*;
 use qsc::{
     compile::{self},
     hir::PackageId,
@@ -26,6 +27,7 @@ mod debug_service;
 mod diagnostic;
 mod language_service;
 mod logging;
+mod project_system;
 mod serializable_type;
 
 #[cfg(test)]

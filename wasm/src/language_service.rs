@@ -1,63 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{diagnostic::VSDiagnostic, serializable_type};
+use crate::{
+    diagnostic::VSDiagnostic,
+    into_async_rust_fn_with,
+    project_system::{
+        get_manifest_transformer, list_directory_transformer, read_file_transformer,
+        GetManifestCallback, ListDirectoryCallback, ReadFileCallback,
+    },
+    serializable_type,
+};
 use js_sys::JsString;
 use qsc::{self, target::Profile, PackageType};
-use qsc_project::{EntryType, Manifest, ManifestDescriptor};
-use qsls::{protocol::DiagnosticUpdate, JSFileEntry};
+use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, path::PathBuf, pin::Pin, str::FromStr, sync::Arc};
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService);
-
-/// This macro produces a function that calls an async JS function, awaits it, and then applies a function to the resulting value.
-/// Ultimately, it returns a function that accepts a String and returns a Rust future that represents a JS Promise. Awaiting that
-/// Rust future will await the resolution of the promise.
-/// The name of this macro should be read like "convert a JS promise into an async rust function with this mapping function"
-macro_rules! into_async_rust_fn_with {
-    ($js_async_fn: ident, $map_result: expr) => {{
-        let $js_async_fn = to_js_function($js_async_fn.obj, stringify!($js_async_fn));
-
-        let $js_async_fn = move |input: String| {
-            let path = JsValue::from_str(&input);
-            let res: js_sys::Promise = $js_async_fn
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed")
-                .into();
-
-            let res: JsFuture = res.into();
-
-            Box::pin(map_js_promise(res, move |x| $map_result(x, input.clone())))
-                as Pin<Box<dyn Future<Output = _> + 'static>>
-        };
-        $js_async_fn
-    }};
-}
-
-async fn map_js_promise<F, T>(res: JsFuture, func: F) -> T
-where
-    F: Fn(JsValue) -> T,
-{
-    let res = res.await.expect("js future shouldn't throw an exception");
-    log::trace!("asynchronous callback from wasm returned {res:?}");
-    func(res)
-}
-
-fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
-    val.dyn_ref::<js_sys::Function>()
-        .unwrap_or_else(|| {
-            panic!(
-                "expected a valid JS function ({help_text_panic}), received {:?}",
-                val.js_typeof()
-            )
-        })
-        .clone()
-}
 
 #[wasm_bindgen]
 impl LanguageService {
@@ -74,99 +36,17 @@ impl LanguageService {
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
     ) -> js_sys::Promise {
-        let transformer = move |js_val: JsValue, path_buf_string: String| match js_val.as_string() {
-            Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
-            // this can happen if the document is completely empty
-            None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
-            None => unreachable!("Expected string from JS callback, received {js_val:?}"),
-        };
-        let read_file = into_async_rust_fn_with!(read_file, transformer);
+        let read_file = read_file.into();
+        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
 
-        let transformer = move |js_val: JsValue, _: String| {
-            match js_val.dyn_into::<js_sys::Array>()
-        {
-            Ok(arr) => arr
-                .into_iter()
-                .map(|x| {
-                    x.dyn_into::<js_sys::Array>()
-                        .expect("expected directory listing callback to return array of arrays")
-                })
-                .filter_map(|js_arr| {
-                    let mut arr = js_arr.into_iter().take(2);
-                    match (
-                        arr.next().unwrap().as_string(),
-                        arr.next().unwrap().as_f64(),
-                    ) {
-                        (Some(a), Some(b)) => Some((a, b as i32)),
-                        _ => None,
-                    }
-                })
-                .map(|(name, ty)| JSFileEntry {
-                    name,
-                    r#type: match ty {
-                        0 => EntryType::Unknown,
-                        1 => EntryType::File,
-                        2 => EntryType::Folder,
-                        64 => EntryType::Symlink,
-                        _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
-                    },
-                })
-                .collect::<Vec<_>>(),
-            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
-        }
-        };
-        let list_directory = into_async_rust_fn_with!(list_directory, transformer);
+        let list_directory = list_directory.into();
+        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
 
-        let transformer = move |js_val: JsValue, _| {
-            if js_val.is_null() {
-                return None;
-            }
+        let get_manifest: JsValue = get_manifest.into();
+        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
 
-            let manifest_dir = match js_sys::Reflect::get(&js_val, &JsValue::from_str("manifestDirectory")) {
-                    Ok(v) => v
-                        .as_string()
-                        .unwrap_or_else(|| panic!("manifest callback returned {:?}, but we expected a string representing its URI", v)),
-                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
-                };
-            log::trace!("found manifest at {manifest_dir:?}");
-
-            let manifest_dir = PathBuf::from(manifest_dir);
-
-            let exclude_files =
-                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeFiles")) {
-                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
-                        Ok(arr) => arr
-                            .into_iter()
-                            .filter_map(|x| x.as_string())
-                            .collect::<Vec<_>>(),
-                        Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
-                    },
-                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with an excludeFiles property is returned here"),
-                };
-            let exclude_regexes =
-                match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes")) {
-                    Ok(v) => match v.dyn_into::<js_sys::Array>() {
-                        Ok(arr) => arr
-                            .into_iter()
-                            .filter_map(|x| x.as_string())
-                            .collect::<Vec<_>>(),
-                        Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
-                    },
-                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with an excludeRegexes property is returned here"),
-                };
-
-            Some(ManifestDescriptor {
-                manifest: Manifest {
-                    exclude_regexes,
-                    exclude_files,
-                    ..Default::default()
-                },
-                manifest_dir,
-            })
-        };
-        let get_manifest = into_async_rust_fn_with!(get_manifest, transformer);
-
-        let diagnostics_callback = to_js_function(diagnostics_callback.obj, "diagnostics_callback");
+        let diagnostics_callback =
+            crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
@@ -590,24 +470,4 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
-    pub type ReadFileCallback;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<[string, number][]>")]
-    pub type ListDirectoryCallback;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(
-        typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string } | null>"
-    )]
-    pub type GetManifestCallback;
 }
