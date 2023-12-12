@@ -192,13 +192,27 @@ class InlineDebugAdapterFactory
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
-    const qscSession = new QscDebugSession(
-      workspaceFileAccessor,
-      worker,
-      session.configuration,
-    );
-    return qscSession.init(getRandomGuid()).then(() => {
-      return new vscode.DebugAdapterInlineImplementation(qscSession);
-    });
+    return loadProject(
+      workspaceFileAccessor.resolvePathToUri(session.configuration.program),
+    )
+      .then(
+        (sources) =>
+          new QscDebugSession(
+            workspaceFileAccessor,
+            worker,
+            session.configuration,
+            sources,
+          ),
+      )
+      .then((qscSession) =>
+        qscSession.init(getRandomGuid()).then(() => {
+          return new vscode.DebugAdapterInlineImplementation(qscSession);
+        }),
+      );
   }
+}
+
+async function loadProject(uri: vscode.Uri): Promise<[string, string][]> {
+  const file = await workspaceFileAccessor.openUri(uri);
+  return [[uri.toString(), file.getText()]];
 }
