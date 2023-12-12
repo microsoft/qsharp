@@ -75,7 +75,9 @@ impl LanguageService {
         worker
     }
 
-    ///
+    /// Stops the language service from processing further updates.
+    /// This will stop the update worker, and any update operations
+    /// that the language service receives after this call will be ignored.
     pub fn stop_updates(&mut self) {
         // Dropping the sender will cause the
         // worker created in [`create_update_worker()`] to stop.
