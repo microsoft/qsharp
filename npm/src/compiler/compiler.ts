@@ -58,7 +58,8 @@ export class Compiler implements ICompiler {
       () => Promise.resolve(null),
     );
     languageService.update_document("code", 1, code);
-    await new Promise<void>((resolve) => setTimeout(() => resolve(), 0));
+    // Yield to let the language service background worker handle the update
+    await Promise.resolve();
     languageService.stop_background_work();
     await work;
     languageService.free();
