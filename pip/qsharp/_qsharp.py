@@ -171,11 +171,10 @@ class Config:
     """
 
     def __init__(self, target_profile: TargetProfile):
-        match target_profile:
-            case TargetProfile.Unrestricted:
-                target_profile = "unrestricted"
-            case TargetProfile.Base:
-                target_profile = "base"
+        if target_profile == TargetProfile.Unrestricted:
+            target_profile = "unrestricted"
+        elif target_profile == TargetProfile.Base:
+            target_profile = "base"
         self._config = {"targetProfile": target_profile}
 
     def __repr__(self):
