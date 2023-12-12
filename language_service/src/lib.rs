@@ -36,11 +36,21 @@ use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc
 
 #[derive(Default)]
 pub struct LanguageService {
+    /// The compilation state. This state is protected by a `RefCell` so that
+    /// read and update operations can share it. Update operations should take
+    /// care never leave `CompilationState` in an inconsistent state during an
+    /// `await` point, as readers may have access to it.
     state: Rc<RefCell<CompilationState>>,
+    /// Channel for compilation state update messages coming from the client.
     state_updater: Option<UnboundedSender<Update>>,
 }
 
 impl LanguageService {
+    /// Creates an `UpdateWorker`. An update worker will read messages posted
+    /// to the update channel and apply them, sequentially, to the compilation state.
+    ///
+    /// This method *must* be called for the language service to do any work.
+    /// The caller needs to start the worker by calling `.run()` .
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
@@ -65,6 +75,7 @@ impl LanguageService {
         worker
     }
 
+    ///
     pub fn stop_updates(&mut self) {
         // Dropping the sender will cause the
         // worker created in [`create_update_worker()`] to stop.
@@ -78,7 +89,7 @@ impl LanguageService {
     /// LSP: workspace/didChangeConfiguration
     pub fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
         trace!("update_configuration: {configuration:?}");
-        self.queue_update(Update::Configuration {
+        self.send_update(Update::Configuration {
             changed: configuration.clone(),
         });
     }
@@ -93,7 +104,7 @@ impl LanguageService {
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         trace!("update_document: {uri} {version}");
-        self.queue_update(Update::Document {
+        self.send_update(Update::Document {
             uri: uri.into(),
             version,
             text: text.into(),
@@ -106,7 +117,7 @@ impl LanguageService {
     /// LSP: textDocument/didClose
     pub fn close_document(&mut self, uri: &str) {
         trace!("close_document: {uri}");
-        self.queue_update(Update::CloseDocument { uri: uri.into() });
+        self.send_update(Update::CloseDocument { uri: uri.into() });
     }
 
     /// The uri refers to the notebook itself, not any of the individual cells.
@@ -128,7 +139,7 @@ impl LanguageService {
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
     {
         trace!("update_notebook_document: {notebook_uri}");
-        self.queue_update(Update::NotebookDocument {
+        self.send_update(Update::NotebookDocument {
             notebook_uri: notebook_uri.into(),
             notebook_metadata: notebook_metadata.clone(),
             cells: cells
@@ -151,7 +162,7 @@ impl LanguageService {
         cell_uris: impl Iterator<Item = &'b str>,
     ) {
         trace!("close_notebook_document: {notebook_uri}");
-        self.queue_update(Update::CloseNotebookDocument {
+        self.send_update(Update::CloseNotebookDocument {
             notebook_uri: notebook_uri.into(),
             cell_uris: cell_uris.map(Into::into).collect(),
         });
@@ -216,7 +227,12 @@ impl LanguageService {
         self.document_op(rename::prepare_rename, "prepare_rename", uri, offset)
     }
 
-    /// Executes an operation that takes a document uri and offset, using the current compilation for that document
+    /// Executes an operation that takes a document uri and offset, using the current compilation for that document.
+    /// All "read" operations should go through this method. This method will borrow the current
+    /// compilation state to perform the request.
+    ///
+    /// If there are outstanding updates to the compilation in the update message queue,
+    /// this method will still just return the current compilation state.
     fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
     where
         F: Fn(&Compilation, &str, u32) -> T,
@@ -239,7 +255,11 @@ impl LanguageService {
         }
     }
 
-    fn queue_update(&mut self, update: Update) {
+    /// Queues an update to the compilation state. The message will be handled, and the
+    /// actual compilation state update, by the update worker which was created in `create_update_worker()`.
+    ///
+    /// All "update" operations should go through this method.
+    fn send_update(&mut self, update: Update) {
         if let Some(updater) = self.state_updater.as_mut() {
             updater
                 .unbounded_send(update)
@@ -256,13 +276,26 @@ pub struct UpdateWorker<'a> {
 }
 
 impl UpdateWorker<'_> {
-    #[allow(clippy::await_holding_refcell_ref)]
+    /// Runs the update worker. This method is expected to run
+    /// for the entire lifetime of the language service.
+    ///
+    /// It returns a future that will only complete when the
+    /// language service has explicitly closed the message
+    /// channel, in `stop_update_worker()`.
+    ///
     pub async fn run(&mut self) {
         while let Some(update) = self.recv.next().await {
             self.apply_this_and_pending(vec![update]).await;
         }
     }
 
+    /// Convenience method to apply *only* the pending updates
+    /// in the message queue. Used for testing, when it's desirable
+    /// to control exactly when updates are applied.
+    ///
+    /// Since `run()` will mutably borrow `self` for the entire
+    /// lifetime of the worker, this method should not ever be used
+    /// if `run()` has been called.
     #[cfg(test)]
     async fn apply_pending(&mut self) {
         self.apply_this_and_pending(vec![]).await;
