@@ -26,11 +26,11 @@ use compilation::Compilation;
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
-pub use project_system::JSFileEntry;
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
+use qsc_project::JSFileEntry;
 use state::{CompilationState, CompilationStateUpdater};
 use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
 

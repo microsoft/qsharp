@@ -5,7 +5,6 @@
 mod tests;
 
 use super::compilation::Compilation;
-pub use super::project_system::JSFileEntry;
 use super::protocol::{DiagnosticUpdate, NotebookMetadata};
 use crate::protocol::WorkspaceConfigurationUpdate;
 use log::{error, trace};
@@ -13,7 +12,7 @@ use miette::Diagnostic;
 use qsc::compile::Error;
 use qsc::target::Profile;
 use qsc::PackageType;
-use qsc_project::FileSystemAsync;
+use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
 
