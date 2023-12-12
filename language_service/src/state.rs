@@ -63,7 +63,7 @@ struct OpenDocument {
     pub compilation: CompilationUri,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
@@ -78,7 +78,7 @@ impl Default for Configuration {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Copy)]
 struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
