@@ -963,6 +963,7 @@ dependencies = [
 name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
  "expect-test",
  "getrandom",
  "indoc",

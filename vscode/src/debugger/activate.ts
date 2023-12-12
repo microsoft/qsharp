@@ -3,11 +3,18 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import * as vscode from "vscode";
-import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
+import {
+  IDebugServiceWorker,
+  getDebugServiceWorker,
+  getProjectLoader,
+  log,
+} from "qsharp-lang";
 import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
+import { getManifest, listDir, readFile } from "../projectSystem";
+
+import * as vscode from "vscode";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -187,18 +194,38 @@ export const workspaceFileAccessor: FileAccessor = {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
-  createDebugAdapterDescriptor(
+  async createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
-  ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+  ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
+    const uri = workspaceFileAccessor.resolvePathToUri(
+      session.configuration.program,
+    );
+    const sources = await loadProject(uri);
     const qscSession = new QscDebugSession(
       workspaceFileAccessor,
       worker,
       session.configuration,
+      sources,
     );
-    return qscSession.init(getRandomGuid()).then(() => {
-      return new vscode.DebugAdapterInlineImplementation(qscSession);
-    });
+
+    await qscSession.init(getRandomGuid());
+
+    return new vscode.DebugAdapterInlineImplementation(qscSession);
   }
+}
+async function loadProject(configUri: vscode.Uri): Promise<[string, string][]> {
+  // get the project using this.program
+  const manifest = await getManifest(configUri.toString());
+  if (manifest === null) {
+    // return just the one file if we are in single file mode
+    const file = await workspaceFileAccessor.openUri(configUri);
+
+    return [[configUri.toString(), file.getText()]];
+  }
+
+  const projectLoader = await getProjectLoader(readFile, listDir, getManifest);
+  log.info("using project loader to debug");
+  return await projectLoader.load_project(manifest);
 }
