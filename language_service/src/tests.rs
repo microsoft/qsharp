@@ -207,7 +207,7 @@ async fn document_in_project() {
 async fn completions_requested_before_document_load() {
     let errors = RefCell::new(Vec::new());
     let mut ls = LanguageService::default();
-    let mut worker = create_update_worker(&mut ls, &errors);
+    let _worker = create_update_worker(&mut ls, &errors);
 
     ls.update_document(
         "foo.qs",
@@ -220,8 +220,6 @@ async fn completions_requested_before_document_load() {
 
     // this should be empty, because the doc hasn't loaded
     assert!(ls.get_completions("foo.qs", 76).items.is_empty());
-
-    worker.apply_pending().await;
 }
 
 #[tokio::test]
