@@ -63,7 +63,7 @@ struct OpenDocument {
     pub compilation: CompilationUri,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
@@ -387,6 +387,12 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics();
     }
 
+    /// Borrows the compilation state immutably and invokes `f`.
+    /// Warning: This function is not reentrant. For dynamic borrow safety,
+    /// don't call `with_state` from within `with_state` or `with_state_mut`.
+    /// Use a direct reference to the state instead.
+    /// This function may also not be async since holding a borrow across
+    /// `await` points will interfere with other borrowers.
     fn with_state<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&CompilationState) -> T,
@@ -395,6 +401,12 @@ impl<'a> CompilationStateUpdater<'a> {
         f(&state)
     }
 
+    /// Borrows the compilation state immutably and invokes `f`.
+    /// Warning: This function is not reentrant.  For dynamic borrow safety,
+    /// don't call `with_state_mut` from within `with_state` or `with_state_mut`.
+    /// Use a direct reference to the state instead.
+    /// This function may also not be async since holding a borrow across
+    /// `await` points will interfere with other borrowers.
     fn with_state_mut<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&mut CompilationState) -> T,
