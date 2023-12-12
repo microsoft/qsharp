@@ -2,7 +2,10 @@ name: CI Build and Test
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - 'feature/**'
+      - 'release/**'
   merge_group:
   workflow_dispatch:
 
