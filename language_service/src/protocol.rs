@@ -100,7 +100,7 @@ pub struct ParameterInformation {
     pub documentation: Option<String>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct NotebookMetadata {
     pub target_profile: Option<Profile>,
 }

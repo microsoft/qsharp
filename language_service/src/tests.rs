@@ -3,223 +3,27 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::{
-    protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
-    LanguageService,
-};
+use crate::{protocol::DiagnosticUpdate, JSFileEntry, LanguageService, UpdateWorker};
 use expect_test::{expect, Expect};
-use qsc::{compile, target::Profile, PackageType};
-use std::{cell::RefCell, sync::Arc};
+use qsc::compile::{self, ErrorKind};
+use qsc_project::{EntryType, Manifest, ManifestDescriptor};
+use std::{cell::RefCell, future::ready, sync::Arc};
 
 #[tokio::test]
-async fn no_error() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
+async fn single_document() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &received_errors);
 
-    ls.update_document(
+    ls.update_document("foo.qs", 1, "namespace Foo { }");
+
+    worker.apply_pending().await;
+
+    check_errors_and_compilation(
+        &ls,
+        &mut received_errors.borrow_mut(),
         "foo.qs",
-        1,
-        "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-    )
-    .await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn clear_error() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_document("foo.qs", 1, "namespace {").await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Rule(
-                                            "identifier",
-                                            Open(
-                                                Brace,
-                                            ),
-                                            Span {
-                                                lo: 10,
-                                                hi: 11,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-
-    ls.update_document(
-        "foo.qs",
-        2,
-        "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-    )
-    .await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        2,
-                    ),
-                    [],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn clear_on_document_close() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_document("foo.qs", 1, "namespace {").await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Rule(
-                                            "identifier",
-                                            Open(
-                                                Brace,
-                                            ),
-                                            Span {
-                                                lo: 10,
-                                                hi: 11,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-
-    ls.close_document("foo.qs");
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    None,
-                    [],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn compile_error() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_document("foo.qs", 1, "badsyntax").await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            Ident,
-                                            Span {
-                                                lo: 0,
-                                                hi: 9,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn package_type_update_causes_error() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: None,
-        package_type: Some(PackageType::Lib),
-    });
-
-    ls.update_document("foo.qs", 1, "namespace Foo { operation Main() : Unit {} }")
-        .await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-    "#]],
-    );
-
-    ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: None,
-        package_type: Some(PackageType::Exe),
-    });
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
+        &(expect![[r#"
             [
                 (
                     "foo.qs",
@@ -235,417 +39,165 @@ async fn package_type_update_causes_error() {
                     ],
                 ),
             ]
-        "#]],
+        "#]]),
+        &(expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "foo.qs",
+                        contents: "namespace Foo { }",
+                        offset: 0,
+                    },
+                ],
+                entry: None,
+            }
+        "#]]),
     );
 }
 
 #[tokio::test]
-async fn target_profile_update_fixes_error() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
+#[allow(clippy::too_many_lines)]
+async fn single_document_update() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &received_errors);
 
-    ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Base),
-        package_type: Some(PackageType::Lib),
-    });
+    ls.update_document("foo.qs", 1, "namespace Foo { }");
 
+    worker.apply_pending().await;
+
+    check_errors_and_compilation(
+        &ls,
+        &mut received_errors.borrow_mut(),
+        "foo.qs",
+        &(expect![[r#"
+            [
+                (
+                    "foo.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]]),
+        &(expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "foo.qs",
+                        contents: "namespace Foo { }",
+                        offset: 0,
+                    },
+                ],
+                entry: None,
+            }
+        "#]]),
+    );
+
+    // UPDATE 2
     ls.update_document(
         "foo.qs",
         1,
-        r#"namespace Foo { operation Main() : Unit { if Zero == Zero { Message("hi") } } }"#,
-    )
-    .await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            BaseProfCk(
-                                ResultComparison(
-                                    Span {
-                                        lo: 45,
-                                        hi: 57,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            BaseProfCk(
-                                ResultLiteral(
-                                    Span {
-                                        lo: 45,
-                                        hi: 49,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            BaseProfCk(
-                                ResultLiteral(
-                                    Span {
-                                        lo: 53,
-                                        hi: 57,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
+        "namespace Foo { @EntryPoint() operation Bar() : Unit {} }",
     );
 
-    ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Unrestricted),
-        package_type: None,
-    });
+    worker.apply_pending().await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn target_profile_update_causes_error_in_stdlib() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_document(
+    check_errors_and_compilation(
+        &ls,
+        &mut received_errors.borrow_mut(),
         "foo.qs",
-        1,
-        r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
-    ).await;
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-        "#]],
-    );
-
-    ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Base),
-        package_type: None,
-    });
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
+        &(expect![[r#"
             [
                 (
                     "foo.qs",
                     Some(
                         1,
                     ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotAvailable(
-                                        "ResultAsBool",
-                                        "Microsoft.Quantum.Convert.ResultAsBool",
-                                        Span {
-                                            lo: 121,
-                                            hi: 133,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 95,
-                                                hi: 136,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
+                    [],
                 ),
             ]
-        "#]],
+        "#]]),
+        &(expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "foo.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Bar() : Unit {} }",
+                        offset: 0,
+                    },
+                ],
+                entry: None,
+            }
+        "#]]),
     );
 }
 
 #[tokio::test]
-async fn notebook_document_no_errors() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
+#[allow(clippy::too_many_lines)]
+async fn document_in_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &received_errors);
 
-    ls.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Main()"),
-        ]
-        .into_iter(),
-    );
+    ls.update_document("this_file.qs", 1, "namespace Foo { }");
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
+    check_errors_and_no_compilation(
+        &ls,
+        &mut received_errors.borrow_mut(),
+        "this_file.qs",
+        &(expect![[r#"
             []
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn notebook_document_errors() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
+        "#]]),
     );
 
-    expect_errors(
-        &errors,
+    // now process background work
+    worker.apply_pending().await;
+
+    check_errors_and_compilation(
+        &ls,
+        &mut received_errors.borrow_mut(),
+        "this_file.qs",
         &expect![[r#"
             [
                 (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn notebook_update_remove_cell_clears_errors() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-
-    ls.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
-    );
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "cell2",
+                    "./qsharp.json",
                     None,
-                    [],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[tokio::test]
-async fn close_notebook_clears_errors() {
-    let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
-
-    ls.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
-
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
                     [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
+                        Pass(
+                            EntryPoint(
+                                NotFound,
                             ),
                         ),
                     ],
                 ),
             ]
         "#]],
-    );
-
-    ls.close_notebook_document("notebook.ipynb", ["cell1", "cell2"].into_iter());
-
-    expect_errors(
-        &errors,
         &expect![[r#"
-            [
-                (
-                    "cell2",
-                    None,
-                    [],
-                ),
-            ]
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "other_file.qs",
+                        contents: "namespace OtherFile { operation Other() : Unit {} }",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "this_file.qs",
+                        contents: "namespace Foo { }",
+                        offset: 52,
+                    },
+                ],
+                entry: None,
+            }
         "#]],
     );
-}
-
-type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
-
-fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'_> {
-    let diagnostic_receiver = move |update: DiagnosticUpdate| {
-        let mut v = received.borrow_mut();
-
-        v.push((
-            update.uri.to_string(),
-            update.version,
-            update.errors.iter().map(|e| e.error().clone()).collect(),
-        ));
-    };
-
-    LanguageService::new(
-        diagnostic_receiver,
-        // these tests do not test project mode
-        // so we provide these stubbed-out functions
-        |_| Box::pin(std::future::ready((Arc::from(""), Arc::from("")))),
-        |_| Box::pin(std::future::ready(vec![])),
-        |_| Box::pin(std::future::ready(None)),
-    )
 }
 
 // the below tests test the asynchronous behavior of the language service.
@@ -654,25 +206,29 @@ fn new_language_service(received: &RefCell<Vec<ErrorInfo>>) -> LanguageService<'
 #[tokio::test]
 async fn completions_requested_before_document_load() {
     let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &errors);
 
-    // we intentionally don't await this to test how LSP features function when
-    // a document hasn't fully loaded
-    #[allow(clippy::let_underscore_future)]
-    let _ = ls.update_document(
+    ls.update_document(
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
     );
 
+    // we intentionally don't await work to test how LSP features function when
+    // a document hasn't fully loaded
+
     // this should be empty, because the doc hasn't loaded
     assert!(ls.get_completions("foo.qs", 76).items.is_empty());
+
+    worker.apply_pending().await;
 }
 
 #[tokio::test]
 async fn completions_requested_after_document_load() {
     let errors = RefCell::new(Vec::new());
-    let mut ls = new_language_service(&errors);
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &errors);
 
     // this test is a contrast to `completions_requested_before_document_load`
     // we want to ensure that completions load when the update_document call has been awaited
@@ -680,14 +236,111 @@ async fn completions_requested_after_document_load() {
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
-    ).await;
+    );
+
+    worker.apply_pending().await;
 
     // this should be empty, because the doc hasn't loaded
     assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13);
 }
 
-fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
-    expected.assert_debug_eq(&errors.borrow());
-    // reset accumulated errors after each check
-    errors.borrow_mut().clear();
+fn check_errors_and_compilation(
+    ls: &LanguageService,
+    received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,
+    uri: &str,
+    expected_errors: &Expect,
+    expected_compilation: &Expect,
+) {
+    expected_errors.assert_debug_eq(received_errors);
+    assert_compilation(ls, uri, expected_compilation);
+    received_errors.clear();
+}
+
+fn check_errors_and_no_compilation(
+    ls: &LanguageService,
+    received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,
+    uri: &str,
+    expected_errors: &Expect,
+) {
+    expected_errors.assert_debug_eq(received_errors);
+    received_errors.clear();
+
+    let state = ls.state.try_borrow().expect("borrow should succeed");
+    assert!(state.get_compilation(uri).is_none());
+}
+
+fn assert_compilation(ls: &LanguageService, uri: &str, expected: &Expect) {
+    let state = ls.state.try_borrow().expect("borrow should succeed");
+    let compilation = state
+        .get_compilation(uri)
+        .expect("compilation should exist");
+    expected.assert_debug_eq(&compilation.user_unit().sources);
+}
+
+type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
+
+fn create_update_worker<'a>(
+    ls: &mut LanguageService,
+    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+) -> UpdateWorker<'a> {
+    let worker = ls.create_update_worker(
+        |update: DiagnosticUpdate| {
+            let mut v = received_errors.borrow_mut();
+
+            v.push((
+                update.uri.to_string(),
+                update.version,
+                update
+                    .errors
+                    .iter()
+                    .map(|e| e.error().clone())
+                    .collect::<Vec<_>>(),
+            ));
+        },
+        |file| {
+            Box::pin(async {
+                tokio::spawn(ready(match file.as_str() {
+                    "other_file.qs" => (
+                        Arc::from(file),
+                        Arc::from("namespace OtherFile { operation Other() : Unit {} }"),
+                    ),
+                    "this_file.qs" => (Arc::from(file), Arc::from("namespace Foo { }")),
+                    _ => panic!("unknown file"),
+                }))
+                .await
+                .expect("spawn should not fail")
+            })
+        },
+        |_dir_name| {
+            Box::pin(async {
+                tokio::spawn(ready(vec![
+                    JSFileEntry {
+                        name: "other_file.qs".into(),
+                        r#type: EntryType::File,
+                    },
+                    JSFileEntry {
+                        name: "this_file.qs".into(),
+                        r#type: EntryType::File,
+                    },
+                ]))
+                .await
+                .expect("spawn should not fail")
+            })
+        },
+        |file| {
+            Box::pin(async move {
+                tokio::spawn(ready(match file.as_str() {
+                    "this_file.qs" => Some(ManifestDescriptor {
+                        manifest: Manifest::default(),
+                        manifest_dir: ".".into(),
+                    }),
+                    "foo.qs" => None,
+                    _ => panic!("unknown file"),
+                }))
+                .await
+                .expect("spawn should not fail")
+            })
+        },
+    );
+    worker
 }

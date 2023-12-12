@@ -35,6 +35,8 @@ criterion = { version = "0.5", default-features = false }
 enum-iterator = "1.4"
 env_logger = "0.10.0"
 expect-test = "1.4"
+futures = "0.3"
+futures-util = "0.3"
 fasteval = "0.2"
 getrandom = { version = "0.2" }
 indoc = "2.0"

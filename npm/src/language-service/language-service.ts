@@ -103,6 +103,8 @@ export class QSharpLanguageService implements ILanguageService {
 
   private readFile: (uri: string) => Promise<string | null>;
 
+  private backgroundWork: Promise<void>;
+
   constructor(
     wasm: QscWasm,
     readFile: (uri: string) => Promise<string | null> = () =>
@@ -116,12 +118,15 @@ export class QSharpLanguageService implements ILanguageService {
     } | null> = () => Promise.resolve(null),
   ) {
     log.info("Constructing a QSharpLanguageService instance");
-    this.languageService = new wasm.LanguageService(
+    this.languageService = new wasm.LanguageService();
+
+    this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
       readFile,
       listDir,
       getManifest,
     );
+
     this.readFile = readFile;
   }
 
@@ -142,7 +147,7 @@ export class QSharpLanguageService implements ILanguageService {
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
-    await this.languageService.update_configuration(config);
+    this.languageService.update_configuration(config);
   }
 
   async updateDocument(
@@ -151,7 +156,7 @@ export class QSharpLanguageService implements ILanguageService {
     code: string,
   ): Promise<void> {
     this.code[documentUri] = code;
-    await this.languageService.update_document(documentUri, version, code);
+    this.languageService.update_document(documentUri, version, code);
   }
 
   async updateNotebookDocument(
@@ -166,16 +171,12 @@ export class QSharpLanguageService implements ILanguageService {
     for (const cell of cells) {
       this.code[cell.uri] = cell.code;
     }
-    await this.languageService.update_notebook_document(
-      notebookUri,
-      metadata,
-      cells,
-    );
+    this.languageService.update_notebook_document(notebookUri, metadata, cells);
   }
 
   async closeDocument(documentUri: string): Promise<void> {
     delete this.code[documentUri];
-    await this.languageService.close_document(documentUri);
+    this.languageService.close_document(documentUri);
   }
 
   async closeNotebookDocument(
@@ -183,7 +184,7 @@ export class QSharpLanguageService implements ILanguageService {
     cellUris: string[],
   ): Promise<void> {
     cellUris.forEach((uri) => delete this.code[uri]);
-    await this.languageService.close_notebook_document(documentUri, cellUris);
+    this.languageService.close_notebook_document(documentUri, cellUris);
   }
 
   async getCompletions(
@@ -409,6 +410,8 @@ export class QSharpLanguageService implements ILanguageService {
   }
 
   async dispose() {
+    this.languageService.stop_background_work();
+    await this.backgroundWork;
     this.languageService.free();
   }
 

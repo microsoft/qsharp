@@ -15,6 +15,7 @@ crate-type = ["rlib", "cdylib"]
 doctest = false
 
 [dependencies]
+futures-util = { workspace = true }
 js-sys = { workspace = true }
 katas = { path = "../katas"}
 log = { workspace = true }

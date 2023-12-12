@@ -434,7 +434,7 @@ test("cancel worker", () => {
       assert(cancelledArray.length === 2);
       assert(cancelledArray[0] === "terminated");
       assert(cancelledArray[1] === "terminated");
-      resolve();
+      resolve(undefined);
     }, 4);
   });
 });
@@ -472,6 +472,9 @@ test("language service diagnostics", async () => {
     }
 }`,
   );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   assert(gotDiagnostics);
 });
 
@@ -529,6 +532,9 @@ test("diagnostics with related spans", async () => {
       }
     }`,
   );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   assert(gotDiagnostics);
 });
 
@@ -556,23 +562,20 @@ test("language service diagnostics - web worker", async () => {
     }
 }`,
   );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   languageService.terminate();
   assert(gotDiagnostics);
 });
 
 test("language service configuration update", async () => {
   const languageService = getLanguageServiceWorker();
-  let gotDiagnostics = false;
-  let expectedMessages = [
-    "entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
-  ];
+  let actualMessages = [];
   languageService.addEventListener("diagnostics", (event) => {
-    gotDiagnostics = true;
-    assert.equal(event.type, "diagnostics");
-    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
-    event.detail.diagnostics.map((d, i) =>
-      assert.equal(d.message, expectedMessages[i]),
-    );
+    actualMessages.push({
+      messages: event.detail.diagnostics.map((d) => d.message),
+    });
   });
   await languageService.updateDocument(
     "test.qs",
@@ -582,35 +585,42 @@ test("language service configuration update", async () => {
     }
 }`,
   );
-  // Above document should have generated a missing entrypoint error
-  assert(gotDiagnostics);
 
-  // Reset expectations
-  gotDiagnostics = false;
-  expectedMessages = [];
+  // Above document should have generated a missing entrypoint error.
 
+  // Now update the configuration.
   await languageService.updateConfiguration({ packageType: "lib" });
 
+  await languageService.dispose();
   languageService.terminate();
 
-  // Updating the config should cause another diagnostics event clearing the errors
-  assert(gotDiagnostics);
+  // Updating the config should cause another diagnostics event clearing the errors.
+
+  // All together, two events received: one with the error, one to clear it.
+  assert.deepStrictEqual(
+    [
+      {
+        messages: [
+          "entry point not found\n" +
+            "\n" +
+            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+        ],
+      },
+      {
+        messages: [],
+      },
+    ],
+    actualMessages,
+  );
 });
 
 test("language service in notebook", async () => {
   const languageService = getLanguageServiceWorker();
-  let gotDiagnostics = false;
-  let expectedMessages = [
-    "name error: `Foo` not found",
-    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation",
-  ];
+  let actualMessages = [];
   languageService.addEventListener("diagnostics", (event) => {
-    gotDiagnostics = true;
-    assert.equal(event.type, "diagnostics");
-    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
-    event.detail.diagnostics.map((d, i) =>
-      assert.equal(d.message, expectedMessages[i]),
-    );
+    actualMessages.push({
+      messages: event.detail.diagnostics.map((d) => d.message),
+    });
   });
 
   await languageService.updateNotebookDocument("notebook.ipynb", 1, {}, [
@@ -618,22 +628,36 @@ test("language service in notebook", async () => {
     { uri: "cell2", version: 1, code: "Foo()" },
   ]);
 
-  // Above document should have generated a resolve error
-  assert(gotDiagnostics);
-
-  // Reset expectations
-  gotDiagnostics = false;
-  expectedMessages = [];
+  // Above document should have generated a resolve error.
 
   await languageService.updateNotebookDocument("notebook.ipynb", 2, {}, [
     { uri: "cell1", version: 2, code: "operation Main() : Unit {}" },
     { uri: "cell2", version: 2, code: "Main()" },
   ]);
 
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   languageService.terminate();
 
-  // Updating the notebook should cause another diagnostics event clearing the errors
-  assert(gotDiagnostics);
+  // Updating the notebook should cause another diagnostics event clearing the errors.
+
+  // All together, two events received: one with the error, one to clear it.
+  assert.deepStrictEqual(
+    [
+      {
+        messages: [
+          "name error: `Foo` not found",
+          "type error: insufficient type information to infer type\n" +
+            "\n" +
+            "help: provide a type annotation",
+        ],
+      },
+      {
+        messages: [],
+      },
+    ],
+    actualMessages,
+  );
 });
 
 async function testCompilerError(useWorker) {

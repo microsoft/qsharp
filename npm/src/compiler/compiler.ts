@@ -48,20 +48,20 @@ export class Compiler implements ICompiler {
   // see https://github.com/microsoft/qsharp/pull/849#discussion_r1409821143
   async checkCode(code: string): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
-    const languageService = new this.wasm.LanguageService(
-      async (
-        uri: string,
-        version: number | undefined,
-        errors: VSDiagnostic[],
-      ) => {
+    const languageService = new this.wasm.LanguageService();
+    const work = languageService.start_background_work(
+      (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
       () => Promise.resolve(null),
       () => Promise.resolve([]),
-
       () => Promise.resolve(null),
     );
-    await languageService.update_document("code", 1, code);
+    languageService.update_document("code", 1, code);
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 0));
+    languageService.stop_background_work();
+    await work;
+    languageService.free();
     return mapDiagnostics(diags, code);
   }
 
