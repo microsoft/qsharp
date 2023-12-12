@@ -8,7 +8,6 @@ use super::compilation::Compilation;
 pub use super::project_system::JSFileEntry;
 use super::protocol::{DiagnosticUpdate, NotebookMetadata};
 use crate::protocol::WorkspaceConfigurationUpdate;
-use async_trait::async_trait;
 use log::{error, trace};
 use miette::Diagnostic;
 use qsc::compile::Error;
@@ -105,10 +104,10 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     /// Callback which lets the service read a file from the target filesystem
-    read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
+    pub(crate) read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
     /// Callback which lets the service list directory contents
     /// on the target file system
-    list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
+    pub(crate) list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
     /// Fetch the manifest file for a specific path
     get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
 }
@@ -419,21 +418,6 @@ impl CompilationState {
         Some(&self.compilations.get(compilation_uri).unwrap_or_else(|| {
             panic!("document associated with compilation that hasn't been initialized ({compilation_uri})" ,)
         }).0)
-    }
-}
-
-#[async_trait(?Send)]
-impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {
-    type Entry = JSFileEntry;
-    async fn read_file(
-        &self,
-        path: &std::path::Path,
-    ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-        Ok((self.read_file_callback)(path.to_string_lossy().to_string()).await)
-    }
-
-    async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        Ok((self.list_directory)(path.to_string_lossy().to_string()).await)
     }
 }
 
