@@ -259,9 +259,7 @@ impl UpdateWorker<'_> {
     #[allow(clippy::await_holding_refcell_ref)]
     pub async fn run(&mut self) {
         while let Some(update) = self.recv.next().await {
-            trace!("start applying updates");
             self.apply_this_and_pending(vec![update]).await;
-            trace!("end applying updates updates");
         }
     }
 
@@ -279,6 +277,7 @@ impl UpdateWorker<'_> {
             }
         }
 
+        trace!("applying {} updates", updates.len());
         if updates.len() > 100 {
             // This indicates that we're not keeping up with incoming updates.
             // Harmless, but an indicator that we could try intelligently
@@ -292,6 +291,7 @@ impl UpdateWorker<'_> {
         for update in updates.drain(..) {
             apply_update(&mut self.updater, update).await;
         }
+        trace!("end applying updates");
     }
 }
 

@@ -341,7 +341,10 @@ impl<'a> CompilationStateUpdater<'a> {
 
     fn publish_diagnostics_for_doc(&self, state: &CompilationState, uri: &str, errors: Vec<Error>) {
         let version = state.open_documents.get(uri).map(|d| d.version);
-        trace!("publishing diagnostics for {uri} {version:?}): {errors:?}");
+        trace!(
+            "publishing diagnostics for {uri} {version:?}): {} errors",
+            errors.len()
+        );
         (self.diagnostics_receiver)(DiagnosticUpdate {
             uri: uri.into(),
             version,
