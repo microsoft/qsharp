@@ -89,10 +89,10 @@ impl LanguageService {
     /// being published.
     ///
     /// LSP: workspace/didChangeConfiguration
-    pub fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
+    pub fn update_configuration(&mut self, configuration: WorkspaceConfigurationUpdate) {
         trace!("update_configuration: {configuration:?}");
         self.send_update(Update::Configuration {
-            changed: configuration.clone(),
+            changed: configuration,
         });
     }
 

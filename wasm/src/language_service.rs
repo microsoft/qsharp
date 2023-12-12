@@ -90,7 +90,7 @@ impl LanguageService {
     pub fn update_configuration(&mut self, config: IWorkspaceConfiguration) {
         let config: WorkspaceConfiguration = config.into();
         self.0
-            .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
+            .update_configuration(qsls::protocol::WorkspaceConfigurationUpdate {
                 target_profile: config
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
