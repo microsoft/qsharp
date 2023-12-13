@@ -18,6 +18,7 @@ import {
   window,
 } from "vscode";
 import { isQsharpDocument } from "./common";
+import { loadProject } from "./projectSystem";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -189,11 +190,10 @@ export function registerWebViewCommands(context: ExtensionContext) {
         worker.terminate();
       }, compilerRunTimeoutMs);
 
-      const code = editor.document.getText();
-
       try {
+        const sources = await loadProject(editor.document.uri);
         const estimatesStr = await worker.getEstimates(
-          code,
+          sources,
           JSON.stringify(params),
         );
         log.debug("Estimates result", estimatesStr);
