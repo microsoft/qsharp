@@ -163,16 +163,6 @@ impl<'a> CompilationStateUpdater<'a> {
             vec![(Arc::from(uri), Arc::from(text))]
         };
 
-        // if we are tracking the content of the currently open doc,
-        // update that content
-        if let Some(opened_current_doc) = self.state.borrow_mut().open_documents.get_mut(uri) {
-            trace!("updating document content: {uri}: {text}",);
-            opened_current_doc.latest_str_content = Arc::from(text);
-        } else {
-            trace!("current document is not in open document map",);
-        }
-
-        trace!("open documents: {:#?}", self.state.borrow().open_documents);
         // replace source with one from memory if it exists
         // this is what prioritizes open buffers over what exists on the fs for a
         // given document
@@ -180,6 +170,8 @@ impl<'a> CompilationStateUpdater<'a> {
             trace!("uri: {l_uri}");
             if let Some(doc) = self.state.borrow().open_documents.get(l_uri) {
                 *source = doc.latest_str_content.clone();
+            } else if &**l_uri == uri {
+                *source = Arc::from(text);
             }
         }
 
@@ -206,6 +198,10 @@ impl<'a> CompilationStateUpdater<'a> {
             state
                 .compilations
                 .insert(uri.clone(), (compilation, PartialConfiguration::default()));
+
+            if let Some(doc) = state.open_documents.get_mut(&uri) {
+                doc.latest_str_content = Arc::from(text);
+            }
 
             // There may be open buffers with sources in the project.
             // These buffers need to have their diagnostics reloaded,
