@@ -142,11 +142,38 @@ async function readFileUri(
   }
 }
 
+async function getManifestThrowsOnParseFailure(uri: string): Promise<{
+  excludeFiles: string[];
+  excludeRegexes: string[];
+  manifestDirectory: string;
+} | null> {
+  const manifestDocument = await findManifestDocument(uri);
+
+  if (manifestDocument) {
+    try {
+      JSON.parse(manifestDocument.content); // will throw if invalid
+    } catch (e: any) {
+      throw new Error("Failed to parse manifest: " + e.message);
+    }
+
+    const manifestDirectory = Utils.dirname(manifestDocument.uri);
+
+    return {
+      excludeFiles: [],
+      excludeRegexes: [],
+      manifestDirectory: manifestDirectory.toString(),
+    };
+  }
+  return null;
+}
+
 export async function loadProject(
   documentUri: vscode.Uri,
 ): Promise<[string, string][]> {
   // get the project using this.program
-  const manifest = await getManifest(documentUri.toString());
+  const manifest = await getManifestThrowsOnParseFailure(
+    documentUri.toString(),
+  );
   if (manifest === null) {
     // return just the one file if we are in single file mode
     const file = await vscode.workspace.openTextDocument(documentUri);

@@ -5,6 +5,7 @@ import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
 import { getTarget, setTarget } from "./config";
+import { isQsharpProject } from "./projectSystem";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
@@ -20,8 +21,12 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   statusBarItem.command = "qsharp-vscode.setTargetProfile";
 
   disposables.push(
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && isQsharpDocument(editor.document)) {
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      if (
+        editor &&
+        (isQsharpDocument(editor.document) ||
+          (await isQsharpProject(editor.document.uri)))
+      ) {
         refreshStatusBarItemValue();
       } else if (editor?.document.uri.scheme !== "output") {
         // The output window counts as a text editor.
