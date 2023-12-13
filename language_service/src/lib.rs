@@ -135,7 +135,7 @@ impl LanguageService {
     pub fn update_notebook_document<'b, I>(
         &mut self,
         notebook_uri: &str,
-        notebook_metadata: &NotebookMetadata,
+        notebook_metadata: NotebookMetadata,
         cells: I,
     ) where
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
@@ -143,7 +143,7 @@ impl LanguageService {
         trace!("update_notebook_document: {notebook_uri}");
         self.send_update(Update::NotebookDocument {
             notebook_uri: notebook_uri.into(),
-            notebook_metadata: notebook_metadata.clone(),
+            notebook_metadata,
             cells: cells
                 .map(|(uri, version, contents)| (uri.into(), version, contents.into()))
                 .collect(),
@@ -380,7 +380,7 @@ async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update)
             cells,
         } => updater.update_notebook_document(
             &notebook_uri,
-            &notebook_metadata,
+            notebook_metadata,
             cells
                 .iter()
                 .map(|(uri, version, contents)| (uri.as_ref(), *version, contents.as_ref())),
@@ -390,7 +390,7 @@ async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update)
             cell_uris,
         } => updater.close_notebook_document(&notebook_uri, cell_uris.iter().map(AsRef::as_ref)),
         Update::Configuration { changed } => {
-            updater.update_configuration(&changed);
+            updater.update_configuration(changed);
         }
     }
 }

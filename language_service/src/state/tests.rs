@@ -195,7 +195,7 @@ async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_configuration(&WorkspaceConfigurationUpdate {
+    updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: None,
         package_type: Some(PackageType::Lib),
     });
@@ -211,7 +211,7 @@ async fn package_type_update_causes_error() {
     "#]],
     );
 
-    updater.update_configuration(&WorkspaceConfigurationUpdate {
+    updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: None,
         package_type: Some(PackageType::Exe),
     });
@@ -243,7 +243,7 @@ async fn target_profile_update_fixes_error() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_configuration(&WorkspaceConfigurationUpdate {
+    updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
         package_type: Some(PackageType::Lib),
     });
@@ -302,7 +302,7 @@ async fn target_profile_update_fixes_error() {
         "#]],
     );
 
-    updater.update_configuration(&WorkspaceConfigurationUpdate {
+    updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Unrestricted),
         package_type: None,
     });
@@ -341,7 +341,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
         "#]],
     );
 
-    updater.update_configuration(&WorkspaceConfigurationUpdate {
+    updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
         package_type: None,
     });
@@ -398,7 +398,7 @@ fn notebook_document_no_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        &NotebookMetadata::default(),
+        NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
@@ -421,7 +421,7 @@ fn notebook_document_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        &NotebookMetadata::default(),
+        NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -480,7 +480,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        &NotebookMetadata::default(),
+        NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -533,7 +533,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        &NotebookMetadata::default(),
+        NotebookMetadata::default(),
         [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
@@ -558,7 +558,7 @@ fn close_notebook_clears_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        &NotebookMetadata::default(),
+        NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),

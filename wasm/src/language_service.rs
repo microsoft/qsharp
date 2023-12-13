@@ -120,7 +120,7 @@ impl LanguageService {
         let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
-            &qsls::protocol::NotebookMetadata {
+            qsls::protocol::NotebookMetadata {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),

@@ -134,7 +134,7 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Updates the workspace configuration. If any compiler settings are updated,
     /// a recompilation may be triggered, which will result in a new set of diagnostics
     /// being published.
-    pub fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
+    pub fn update_configuration(&mut self, configuration: WorkspaceConfigurationUpdate) {
         trace!("update_configuration: {configuration:?}");
 
         let need_recompile = self.apply_configuration(configuration);
@@ -233,7 +233,7 @@ impl<'a> CompilationStateUpdater<'a> {
     pub(super) fn update_notebook_document<'b, I>(
         &mut self,
         notebook_uri: &str,
-        notebook_metadata: &NotebookMetadata,
+        notebook_metadata: NotebookMetadata,
         cells: I,
     ) where
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
@@ -250,7 +250,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 target_profile: notebook_metadata.target_profile,
                 package_type: None,
             };
-            let configuration = merge_configurations(&notebook_configuration, &self.configuration);
+            let configuration = merge_configurations(notebook_configuration, self.configuration);
 
             // Compile the notebook and add each cell into the document map
             let compilation = Compilation::new_notebook(
@@ -351,7 +351,7 @@ impl<'a> CompilationStateUpdater<'a> {
         });
     }
 
-    fn apply_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) -> bool {
+    fn apply_configuration(&mut self, configuration: WorkspaceConfigurationUpdate) -> bool {
         let mut need_recompile = false;
 
         if let Some(package_type) = configuration.package_type {
@@ -377,7 +377,7 @@ impl<'a> CompilationStateUpdater<'a> {
     fn recompile_all(&mut self) {
         self.with_state_mut(|state| {
             for compilation in state.compilations.values_mut() {
-                let configuration = merge_configurations(&compilation.1, &self.configuration);
+                let configuration = merge_configurations(compilation.1, self.configuration);
                 compilation
                     .0
                     .recompile(configuration.package_type, configuration.target_profile);
@@ -463,8 +463,8 @@ fn map_errors_to_docs(
 
 /// Merges workspace configuration with any compilation-specific overrides.
 fn merge_configurations(
-    compilation_overrides: &PartialConfiguration,
-    workspace_scope: &Configuration,
+    compilation_overrides: PartialConfiguration,
+    workspace_scope: Configuration,
 ) -> Configuration {
     Configuration {
         target_profile: compilation_overrides
