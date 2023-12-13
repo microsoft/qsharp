@@ -163,30 +163,27 @@ impl<'a> CompilationStateUpdater<'a> {
             vec![(Arc::from(uri), Arc::from(text))]
         };
 
-        let (current_doc, rest_of_sources): (Vec<_>, Vec<_>) =
-            sources.iter_mut().partition(|(l_uri, _)| &**l_uri == uri);
+        // if we are tracking the content of the currently open doc,
+        // update that content
+        if let Some(opened_current_doc) = self.state.borrow_mut().open_documents.get_mut(uri) {
+            trace!("updating document content: {uri}: {text}",);
+            opened_current_doc.latest_str_content = Arc::from(text);
+        } else {
+            trace!("current document is not in open document map",);
+        }
+
+        trace!("open documents: {:#?}", self.state.borrow().open_documents);
         // replace source with one from memory if it exists
         // this is what prioritizes open buffers over what exists on the fs for a
         // given document
-        for (ref l_uri, ref mut source) in rest_of_sources {
+        for (ref l_uri, ref mut source) in &mut sources {
+            trace!("uri: {l_uri}");
             if let Some(doc) = self.state.borrow().open_documents.get(l_uri) {
                 *source = doc.latest_str_content.clone();
             }
         }
 
-        assert_eq!(current_doc.len(), 1);
-        let (current_doc_uri, current_doc_contents) = &current_doc[0];
-
-        // if we are tracking the content of the currently open doc,
-        // update that content
-        if let Some(opened_current_doc) = self
-            .state
-            .borrow_mut()
-            .open_documents
-            .get_mut(current_doc_uri)
-        {
-            opened_current_doc.latest_str_content = current_doc_contents.clone();
-        }
+        trace!("project sources: {sources:#?}");
 
         let compilation = Compilation::new(
             &sources,
