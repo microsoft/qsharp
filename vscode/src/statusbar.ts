@@ -66,6 +66,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     const targetProfile = getTarget();
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
+    statusBarItem.tooltip = getTargetProfileUiToolTip(targetProfile);
     statusBarItem.show();
   }
 
@@ -89,27 +90,40 @@ function registerTargetProfileCommand() {
 }
 
 const targetProfiles = [
-  { configName: "base", uiText: "QIR:Base" },
-  { configName: "unrestricted", uiText: "Unrestricted" },
+  { configName: "base", uiText: "Q#: QIR base" },
+  { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
 
 function getTargetProfileUiText(targetProfile?: string) {
   switch (targetProfile) {
     case "base":
-      return "QIR:Base";
+      return "Q#: QIR base";
     case "unrestricted":
-      return "Unrestricted";
+      return "Q#: unrestricted";
     default:
       log.error("invalid target profile found");
-      return "QIR:Invalid";
+      return "Q#: invalid";
+  }
+}
+
+function getTargetProfileUiToolTip(targetProfile?: string) {
+  const url = ", see https://aka.ms/qdk.qir";
+  switch (targetProfile) {
+    case "base":
+      return "Q# Base Profile QIR" + url;
+    case "unrestricted":
+      return "Q# Unrestricted Program Execution" + url;
+    default:
+      log.error("invalid target profile found");
+      return "Q#: invalid target profile";
   }
 }
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "QIR:Base":
+    case "Q#: QIR base":
       return "base";
-    case "Unrestricted":
+    case "Q#: unrestricted":
       return "unrestricted";
     default:
       log.error("invalid target profile found");
