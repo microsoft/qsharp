@@ -1,9 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
 import { Utils, URI } from "vscode-uri";
 import * as vscode from "vscode";
+
+import { getProjectLoader, log } from "qsharp-lang";
+
+export async function isQsharpProject(uri: vscode.Uri): Promise<boolean> {
+  // we look for a manifest file in the parent directory of the current file
+  // we don't care if it is correct or well-formed, just that it exists
+  return (await findManifestDocument(uri.toString())) == undefined;
+}
 
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
@@ -133,4 +140,21 @@ async function readFileUri(
     // `readFile` returns `err` if the file didn't exist.
     return null;
   }
+}
+
+export async function loadProject(
+  documentUri: vscode.Uri,
+): Promise<[string, string][]> {
+  // get the project using this.program
+  const manifest = await getManifest(documentUri.toString());
+  if (manifest === null) {
+    // return just the one file if we are in single file mode
+    const file = await vscode.workspace.openTextDocument(documentUri);
+
+    return [[documentUri.toString(), file.getText()]];
+  }
+
+  const projectLoader = await getProjectLoader(readFile, listDir, getManifest);
+  log.info("using project loader to debug");
+  return await projectLoader.load_project(manifest);
 }

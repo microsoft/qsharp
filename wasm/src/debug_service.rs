@@ -2,14 +2,13 @@
 // Licensed under the MIT License.
 
 use std::str::FromStr;
-use std::sync::Arc;
 
 use qsc::fir::StmtId;
 use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, target::Profile, PackageType, SourceMap};
 
-use crate::{serializable_type, CallbackReceiver};
+use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -36,24 +35,11 @@ impl DebugService {
 
     pub fn load_source(
         &mut self,
-        // can't wasm_bindgen [string; 2] or (string, string)
-        // so we have to manually assert length of the interior
-        // array and the content type in the function body
-        // `sources` should be Vec<[String; 2]> though
         sources: Vec<js_sys::Array>,
         target_profile: String,
         entry: Option<String>,
     ) -> String {
-        let sources = sources.into_iter().map(|js_arr| {
-            // map the inner arr elements into (String, String)
-            let elem_0 = js_arr.get(0).as_string();
-            let elem_1 = js_arr.get(1).as_string();
-            (
-                Arc::from(elem_0.unwrap_or_default()),
-                Arc::from(elem_1.unwrap_or_default()),
-            )
-        });
-        let source_map = SourceMap::new(sources, entry.as_deref().map(|value| value.into()));
+        let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
         match Interpreter::new(true, source_map, PackageType::Exe, target.into()) {

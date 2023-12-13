@@ -7,6 +7,7 @@ import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getTarget, setTarget } from "./config";
+import { isQsharpProject, loadProject } from "./projectSystem";
 
 const generateQirTimeoutMs = 30000;
 
@@ -22,9 +23,13 @@ export class QirGenerationError extends Error {
 export async function getQirForActiveWindow(): Promise<string> {
   let result = "";
   const editor = vscode.window.activeTextEditor;
-  if (!editor || !isQsharpDocument(editor.document)) {
+
+  if (
+    !editor ||
+    !(isQsharpDocument(editor.document) || isQsharpProject(editor.document.uri))
+  ) {
     throw new QirGenerationError(
-      "The currently active window is not a Q# file",
+      "The currently active window is not associated with Q#",
     );
   }
 
@@ -46,18 +51,17 @@ export async function getQirForActiveWindow(): Promise<string> {
       setTarget("base");
     }
   }
-
-  // Get the diagnostics for the current document.
-  const diagnostics = await vscode.languages.getDiagnostics(
-    editor.document.uri,
-  );
-  if (diagnostics?.length > 0) {
-    throw new QirGenerationError(
-      "The current program contains errors that must be fixed before submitting to Azure",
+  const sources = await loadProject(editor.document.uri);
+  for (const source of sources) {
+    const diagnostics = await vscode.languages.getDiagnostics(
+      vscode.Uri.parse(source[0]),
     );
+    if (diagnostics?.length > 0) {
+      throw new QirGenerationError(
+        "The current program contains errors that must be fixed before submitting to Azure",
+      );
+    }
   }
-
-  const code = editor.document.getText();
 
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
   // Let it run for max 10 seconds, then terminate it if not complete.
@@ -68,7 +72,7 @@ export async function getQirForActiveWindow(): Promise<string> {
   try {
     const associationId = getRandomGuid();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(code);
+    result = await worker.getQir(sources);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },
