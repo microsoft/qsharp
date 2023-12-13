@@ -20,7 +20,7 @@ use qsc::{
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -47,13 +47,35 @@ pub fn git_hash() -> String {
     git_hash.into()
 }
 
+// can't wasm_bindgen [string; 2] or (string, string)
+// so we have to manually assert length of the interior
+// array and the content type in the function body
+// `sources` should be Vec<[String; 2]> though
+pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> SourceMap {
+    let sources = sources.into_iter().map(|js_arr| {
+        // map the inner arr elements into (String, String)
+        let elem_0 = js_arr.get(0).as_string();
+        let elem_1 = js_arr.get(1).as_string();
+        (
+            Arc::from(elem_0.unwrap_or_default()),
+            Arc::from(elem_1.unwrap_or_default()),
+        )
+    });
+    SourceMap::new(sources, entry.as_deref().map(|value| value.into()))
+}
+
 #[wasm_bindgen]
-pub fn get_qir(code: &str) -> Result<String, String> {
+pub fn get_qir(sources: Vec<js_sys::Array>) -> Result<String, String> {
+    let sources = get_source_map(sources, None);
+    _get_qir(sources)
+}
+
+// allows testing without wasm bindings.
+fn _get_qir(sources: SourceMap) -> Result<String, String> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
     let std = compile::std(&store, Profile::Base.into());
     let std = store.insert(std);
-    let sources = SourceMap::new([("test".into(), code.into())], None);
 
     let (unit, errors) = qsc::compile::compile(
         &store,

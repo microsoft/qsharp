@@ -3,10 +3,9 @@
 
 use expect_test::expect;
 use indoc::indoc;
+use qsc::SourceMap;
 
 use super::run_internal;
-
-use crate::get_qir;
 
 #[test]
 fn test_missing_type() {
@@ -33,7 +32,8 @@ fn test_compile() {
     H(q);
     M(q)
     }}";
-    let result = get_qir(code);
+
+    let result = crate::_get_qir(SourceMap::new([("test.qs".into(), code.into())], None));
     assert!(result.is_ok());
 }
 
