@@ -378,7 +378,9 @@ namespace Microsoft.Quantum.Intrinsic {
                 EntangleForJointMeasure(bases[i], aux, qubits[i]);
             }
         }
-        __quantum__qis__m__body(aux)
+        let measurement = __quantum__qis__m__body(aux);
+        Reset(aux);
+        return measurement;
     }
 
     /// # Summary
