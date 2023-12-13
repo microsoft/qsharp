@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import { getProjectLoader, log } from "qsharp-lang";
 
 export async function isQsharpProject(uri: vscode.Uri): Promise<boolean> {
-  // we look for a manifest file in the parent directory of the current file
+  // we look for the manifest in the directory of the current file and all of its parent directories
   // we don't care if it is correct or well-formed, just that it exists
   return (await findManifestDocument(uri.toString())) == undefined;
 }
