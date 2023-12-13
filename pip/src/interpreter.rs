@@ -203,11 +203,24 @@ fn format_errors(errors: Vec<stateful::Error>) -> String {
             if let Some(stack_trace) = e.stack_trace() {
                 write!(message, "{stack_trace}").unwrap();
             }
+            let additional_help = python_help(&e);
             let report = Report::new(e);
             write!(message, "{report:?}").unwrap();
+            if let Some(additional_help) = additional_help {
+                writeln!(message, "{additional_help}").unwrap();
+            }
             message
         })
         .collect::<String>()
+}
+
+/// Additional help text for an error specific to the Python module
+fn python_help(error: &stateful::Error) -> Option<String> {
+    if matches!(error, stateful::Error::UnsupportedRuntimeCapabilities) {
+        Some("Unsupported target profile. Initialize Q# by running `qsharp.init(target_profile=qsharp.TargetProfile.Base)` before performing code generation.".into())
+    } else {
+        None
+    }
 }
 
 #[pyclass(unsendable)]
