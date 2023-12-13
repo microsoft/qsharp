@@ -60,7 +60,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
       >
         <path
           d={getPieSegment(250, 185, 180, 0, breakAngle, 120)}
-          fill="var(--vscode-charts-yellow, yellow)"
+          fill="var(--vscode-charts-orange, orange)"
           stroke="white"
         ></path>
         <path
@@ -79,7 +79,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
           y="400"
           width="25"
           height="25"
-          fill="var(--vscode-charts-yellow, yellow)"
+          fill="var(--vscode-charts-orange, orange)"
           stroke="white"
           stroke-width="1"
         />

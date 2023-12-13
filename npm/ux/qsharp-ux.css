@@ -35,7 +35,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   );
   --qs-tr-nth-color: var(
     --vscode-list-hoverBackground,
-    var(--jp-layout-color1, #f2f2f2)
+    var(--jp-layout-color1, var(--colab-secondary-surface-color, #f2f2f2))
   );
   --nav-background: #bed1f4;
   --nav-hover-background: #b3bede;
