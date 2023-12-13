@@ -7,7 +7,7 @@ import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getTarget, setTarget } from "./config";
-import { isQsharpProject, loadProject } from "./projectSystem";
+import { loadProject } from "./projectSystem";
 
 const generateQirTimeoutMs = 30000;
 
@@ -24,12 +24,9 @@ export async function getQirForActiveWindow(): Promise<string> {
   let result = "";
   const editor = vscode.window.activeTextEditor;
 
-  if (
-    !editor ||
-    !(isQsharpDocument(editor.document) || isQsharpProject(editor.document.uri))
-  ) {
+  if (!editor || !isQsharpDocument(editor.document)) {
     throw new QirGenerationError(
-      "The currently active window is not associated with Q#",
+      "The currently active window is not a Q# file",
     );
   }
 
