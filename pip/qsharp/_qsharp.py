@@ -84,6 +84,22 @@ def run(entry_expr, shots):
     return get_interpreter().run(entry_expr, shots, callback)
 
 
+def run_histogram(entry_expr, shot_count, on_result=None):
+    interpreter = get_interpreter()
+    results = []
+
+    def OnEvent(output):
+        results[len(results) - 1]["events"].append(output)
+
+    for i in range(shot_count):
+        results.append({"events": [], "result": None})
+        results[i]["result"] = (interpreter.run(entry_expr, 1, OnEvent))[0]
+        if on_result:
+            on_result(results[i])
+
+    return results
+
+
 def compile(entry_expr):
     """
     Compiles the Q# source code into a program that can be submitted to a target.

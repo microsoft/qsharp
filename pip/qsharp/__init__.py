@@ -1,7 +1,16 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._qsharp import init, eval, eval_file, run, compile, estimate, dump_machine
+from ._qsharp import (
+    init,
+    eval,
+    eval_file,
+    run,
+    run_histogram,
+    compile,
+    estimate,
+    dump_machine,
+)
 
 from ._native import Result, Pauli, QSharpError, TargetProfile, StateDump
 
@@ -21,6 +30,7 @@ __all__ = [
     "eval",
     "eval_file",
     "run",
+    "run_histogram",
     "dump_machine",
     "compile",
     "estimate",
