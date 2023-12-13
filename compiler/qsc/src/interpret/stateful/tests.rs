@@ -373,7 +373,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     type error: expected Double, found Int
-                       [line_1] [[0.0] + x]
+                       [line_1] [x]
                 "#]],
             );
         }
