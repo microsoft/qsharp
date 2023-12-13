@@ -3,8 +3,8 @@
 
 use qsc::{compile::Error, target::Profile, PackageType};
 
-/// Workspace configuration
-#[derive(Clone, Debug, Default)]
+/// A change to the workspace configuration
+#[derive(Clone, Debug, Default, Copy)]
 pub struct WorkspaceConfigurationUpdate {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
@@ -100,7 +100,7 @@ pub struct ParameterInformation {
     pub documentation: Option<String>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct NotebookMetadata {
     pub target_profile: Option<Profile>,
 }

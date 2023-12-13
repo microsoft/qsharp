@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(non_snake_case)]
+
 use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;

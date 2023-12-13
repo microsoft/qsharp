@@ -17,19 +17,26 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 
 #[wasm_bindgen]
-pub struct LanguageService(qsls::LanguageService<'static>);
+pub struct LanguageService(qsls::LanguageService);
 
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(
+    #[allow(clippy::new_without_default)] // wasm-bindgen requires constructor to be explicitly defined
+    pub fn new() -> Self {
+        LanguageService(qsls::LanguageService::default())
+    }
+
+    pub fn start_background_work(
+        &mut self,
         diagnostics_callback: DiagnosticsCallback,
         read_file: ReadFileCallback,
         list_directory: ListDirectoryCallback,
         get_manifest: GetManifestCallback,
-    ) -> Self {
+    ) -> js_sys::Promise {
         let read_file = read_file.into();
         let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
 
@@ -63,21 +70,27 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-
-        let inner = qsls::LanguageService::new(
+        let mut worker = self.0.create_update_worker(
             diagnostics_callback,
             read_file,
             list_directory,
             get_manifest,
         );
 
-        LanguageService(inner)
+        future_to_promise(async move {
+            worker.run().await;
+            Ok(JsValue::undefined())
+        })
+    }
+
+    pub fn stop_background_work(&mut self) {
+        self.0.stop_updates();
     }
 
     pub fn update_configuration(&mut self, config: IWorkspaceConfiguration) {
         let config: WorkspaceConfiguration = config.into();
         self.0
-            .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
+            .update_configuration(qsls::protocol::WorkspaceConfigurationUpdate {
                 target_profile: config
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
@@ -89,8 +102,8 @@ impl LanguageService {
             })
     }
 
-    pub async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        self.0.update_document(uri, version, text).await;
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        self.0.update_document(uri, version, text);
     }
 
     pub fn close_document(&mut self, uri: &str) {
@@ -107,7 +120,7 @@ impl LanguageService {
         let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
-            &qsls::protocol::NotebookMetadata {
+            qsls::protocol::NotebookMetadata {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
@@ -455,7 +468,7 @@ serializable_type! {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
-        typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => Promise<void>"
+        typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
 }

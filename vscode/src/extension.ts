@@ -146,10 +146,10 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }),
   );
 
-  async function updateIfQsharpDocument(document: vscode.TextDocument) {
+  function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
-      await languageService.updateDocument(
+      languageService.updateDocument(
         document.uri.toString(),
         document.version,
         document.getText(),
@@ -229,6 +229,9 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
       createRenameProvider(languageService),
     ),
   );
+
+  // add the language service dispose handler as well
+  subscriptions.push(languageService);
 
   return subscriptions;
 }

@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::LanguageService;
+use crate::state::CompilationStateUpdater;
 use async_trait::async_trait;
 use qsc_project::JSFileEntry;
 
 #[async_trait(?Send)]
-impl qsc_project::FileSystemAsync for LanguageService<'_> {
+impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {
     type Entry = JSFileEntry;
     async fn read_file(
         &self,

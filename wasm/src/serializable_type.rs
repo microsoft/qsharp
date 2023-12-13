@@ -106,7 +106,6 @@
 macro_rules! serializable_type {
     ($struct_ident: ident, $struct: tt, $typescript: literal) => {
         #[derive(Debug, Serialize, Deserialize)]
-        #[allow(non_snake_case)] // These types propagate to JS which expects camelCase
         pub(crate) struct $struct_ident $struct
 
         // TypeScript type definition that will be included in the generated .d.ts file.
@@ -118,7 +117,6 @@ macro_rules! serializable_type {
 
     ($struct_ident: ident, $struct: tt, $typescript: literal, $typescript_type_ident:ident) => {
         #[derive(Debug, Serialize, Deserialize)]
-        #[allow(non_snake_case)] // These types propagate to JS which expects camelCase
         pub(crate) struct $struct_ident $struct
 
         // TypeScript type definition that will be included in the generated .d.ts file.
