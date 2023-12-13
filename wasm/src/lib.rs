@@ -13,7 +13,7 @@ use qsc::{
         stateful::{self, re::estimate_entry},
     },
     target::Profile,
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName,
+    PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
@@ -181,25 +181,27 @@ where
     let source_name = "code";
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([(source_name.into(), code.into())], Some(expr.into()));
-    let interpreter = stateful::Interpreter::new(
+    let mut interpreter = match stateful::Interpreter::new(
         true,
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-    );
-    if let Err(err) = interpreter {
-        // TODO: handle multiple errors
-        // https://github.com/microsoft/qsharp/issues/149
-        let e = err[0].clone();
-        let diag = VSDiagnostic::from_interpret_error(source_name, &e);
-        let msg = json!(
-            {"type": "Result", "success": false, "result": diag});
-        (out.event_cb)(&msg.to_string());
-        return Err(Box::new(e));
-    }
-    let mut interpreter = interpreter.expect("context should be valid");
+    ) {
+        Ok(interpreter) => interpreter,
+        Err(err) => {
+            // TODO: handle multiple errors
+            // https://github.com/microsoft/qsharp/issues/149
+            let e = err[0].clone();
+            let diag = VSDiagnostic::from_interpret_error(source_name, &e);
+            let msg = json!(
+                {"type": "Result", "success": false, "result": diag});
+            (out.event_cb)(&msg.to_string());
+            return Err(Box::new(e));
+        }
+    };
+
     for _ in 0..shots {
-        let result = interpreter.eval_entry(&mut out);
+        let result = interpreter.eval_entry_with_sim(&mut SparseSim::new(), &mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),

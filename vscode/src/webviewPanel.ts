@@ -315,7 +315,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         await worker.run(code, "", parseInt(numberOfShots), evtTarget);
         clearTimeout(compilerTimeout);
       } catch (e: any) {
-        log.error("Codegen error. ", e.toString());
+        log.error("Histogram error. ", e.toString());
         throw new Error("Run failed");
       } finally {
         worker.terminate();
