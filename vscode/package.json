@@ -342,9 +342,6 @@
         "extensions": [
           ".qs"
         ],
-        "filenames": [
-          "qsharp.json"
-        ],
         "configuration": "./language-configuration.json"
       }
     ],
