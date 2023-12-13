@@ -51,20 +51,19 @@ export async function getQirForActiveWindow(): Promise<string> {
   let sources: [string, string][] = [];
   try {
     sources = await loadProject(editor.document.uri);
-    for (const source of sources) {
-      const diagnostics = await vscode.languages.getDiagnostics(
-        vscode.Uri.parse(source[0]),
-      );
-      if (diagnostics?.length > 0) {
-        throw new QirGenerationError(
-          "The current program contains errors that must be fixed before submitting to Azure",
-        );
-      }
-    }
   } catch (e: any) {
     throw new QirGenerationError(e.message);
   }
-
+  for (const source of sources) {
+    const diagnostics = await vscode.languages.getDiagnostics(
+      vscode.Uri.parse(source[0]),
+    );
+    if (diagnostics?.length > 0) {
+      throw new QirGenerationError(
+        "The current program contains errors that must be fixed before submitting to Azure",
+      );
+    }
+  }
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
   // Let it run for max 10 seconds, then terminate it if not complete.
   const worker = getCompilerWorker(compilerWorkerScriptPath);
