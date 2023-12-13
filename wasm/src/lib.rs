@@ -98,10 +98,12 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(code: &str, params: &str) -> Result<String, String> {
+pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String, String> {
+    let sources = get_source_map(sources, None);
+
     let mut interpreter = stateful::Interpreter::new(
         true,
-        SourceMap::new([("code".into(), code.into())], None),
+        sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
     )
