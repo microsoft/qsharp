@@ -264,6 +264,7 @@ fn test_runtime_error_with_span() {
     .assert_eq(&output.join("\n"));
 }
 
+// Need to revisit spans in output: https://github.com/microsoft/qsharp/issues/944
 #[test]
 fn test_runtime_error_in_another_file_with_project() {
     let mut output = Vec::new();
