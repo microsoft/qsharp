@@ -16,7 +16,7 @@ fn test_missing_type() {
     let _ = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","end_pos":1,"message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","end_pos":33,"message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","severity":"error","start_pos":32},"success":false,"type":"Result"}"#]].assert_eq(msg);
             count.set(count.get() + 1);
         },
         1,
@@ -75,7 +75,7 @@ fn fail_ry() {
     let _result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.TypeCk.TyMismatch","end_pos":1,"message":"type error: expected (Double, Qubit), found Qubit","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.TyMismatch","end_pos":105,"message":"type error: expected (Double, Qubit), found Qubit","severity":"error","start_pos":99},"success":false,"type":"Result"}"#]].assert_eq(msg);
             count.set(count.get() + 1);
         },
         1,

@@ -202,9 +202,9 @@ where
     F: FnMut(&str),
 {
     let source_name = sources
-        .find_by_offset(0)
+        .get_names()
+        .next()
         .expect("There must be a source to process")
-        .name
         .to_string();
     let mut out = CallbackReceiver { event_cb };
     let interpreter = stateful::Interpreter::new(
