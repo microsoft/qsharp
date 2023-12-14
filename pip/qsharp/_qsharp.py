@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from ._native import Interpreter, Output, TargetProfile, StateDump
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -61,6 +61,7 @@ def get_interpreter() -> Interpreter:
     global _interpreter
     if _interpreter is None:
         init()
+        assert _interpreter is not None, "Failed to initialize the Q# interpreter."
     return _interpreter
 
 
@@ -93,23 +94,59 @@ def eval_file(path: str) -> Any:
     return eval(f.read())
 
 
-def run(entry_expr: str, shots: int) -> Any:
+class ShotResult(TypedDict):
+    """
+    A single result of a shot.
+    """
+
+    events: List[Output]
+    result: Any
+
+
+def run(
+    entry_expr: str,
+    shots: int,
+    *,
+    on_result: Optional[Callable[[ShotResult], None]] = None,
+    save_events: bool = False,
+) -> List[Any]:
     """
     Runs the given Q# expression for the given number of shots.
     Each shot uses an independent instance of the simulator.
 
     :param entry_expr: The entry expression.
     :param shots: The number of shots to run.
+    :param on_result: A callback function that will be called with each result.
+    :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
 
-    :returns values: A list of results or runtime errors.
+    :returns values: A list of results or runtime errors. If `save_events` is true,
+    a List of ShotResults is returned.
 
     :raises QSharpError: If there is an error interpreting the input.
     """
 
-    def callback(output: Output) -> None:
+    results: List[ShotResult] = []
+
+    def print_output(output: Output) -> None:
         print(output)
 
-    return get_interpreter().run(entry_expr, shots, callback)
+    def on_save_events(output: Output) -> None:
+        # Append the output to the last shot's output list
+        results[-1]["events"].append(output)
+
+    for _ in range(shots):
+        results.append({"result": None, "events": []})
+        run_results = get_interpreter().run(
+            entry_expr, 1, on_save_events if save_events else print_output
+        )
+        results[-1]["result"] = run_results[0]
+        if on_result:
+            on_result(results[-1])
+
+    if save_events:
+        return results
+    else:
+        return [shot["result"] for shot in results]
 
 
 # Class that wraps generated QIR, which can be used by
