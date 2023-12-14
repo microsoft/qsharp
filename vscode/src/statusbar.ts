@@ -66,7 +66,10 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     const targetProfile = getTarget();
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
-    statusBarItem.tooltip = getTargetProfileUiToolTip(targetProfile);
+    statusBarItem.tooltip = new vscode.MarkdownString(`## Q# target profile
+  The target profile determines the set of operations that are available to Q#
+  programs, in order to generate valid QIR for the target platform. For more
+  details see <https://aka.ms/qdk.qir>.`);
     statusBarItem.show();
   }
 
@@ -103,19 +106,6 @@ function getTargetProfileUiText(targetProfile?: string) {
     default:
       log.error("invalid target profile found");
       return "Q#: invalid";
-  }
-}
-
-function getTargetProfileUiToolTip(targetProfile?: string) {
-  const url = ", see https://aka.ms/qdk.qir";
-  switch (targetProfile) {
-    case "base":
-      return "Q# Base Profile QIR" + url;
-    case "unrestricted":
-      return "Q# Unrestricted Program Execution" + url;
-    default:
-      log.error("invalid target profile found");
-      return "Q#: invalid target profile";
   }
 }
 
