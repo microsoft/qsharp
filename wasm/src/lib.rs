@@ -197,18 +197,16 @@ where
     }
 }
 
-fn run_internal<F>(
-    code: &str,
-    expr: &str,
-    event_cb: F,
-    shots: u32,
-) -> Result<(), Box<stateful::Error>>
+fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<stateful::Error>>
 where
     F: FnMut(&str),
 {
-    let source_name = "code";
+    let source_name = sources
+        .get_names()
+        .next()
+        .expect("There must be a source to process")
+        .to_string();
     let mut out = CallbackReceiver { event_cb };
-    let sources = SourceMap::new([(source_name.into(), code.into())], Some(expr.into()));
     let interpreter = stateful::Interpreter::new(
         true,
         sources,
@@ -219,7 +217,7 @@ where
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
-        let diag = VSDiagnostic::from_interpret_error(source_name, &e);
+        let diag = VSDiagnostic::from_interpret_error(&source_name, &e);
         let msg = json!(
             {"type": "Result", "success": false, "result": diag});
         (out.event_cb)(&msg.to_string());
@@ -235,7 +233,7 @@ where
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from_interpret_error(source_name, &errors[0]).json()
+                VSDiagnostic::from_interpret_error(&source_name, &errors[0]).json()
             }
         };
 
@@ -247,7 +245,7 @@ where
 
 #[wasm_bindgen]
 pub fn run(
-    code: &str,
+    sources: Vec<js_sys::Array>,
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
@@ -255,10 +253,9 @@ pub fn run(
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
-
+    let sources = get_source_map(sources, Some(expr.into()));
     match run_internal(
-        code,
-        expr,
+        sources,
         |msg: &str| {
             // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));

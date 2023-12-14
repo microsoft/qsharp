@@ -17,7 +17,7 @@ export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
-    code: string,
+    sources: [string, string][],
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
@@ -82,7 +82,7 @@ export class Compiler implements ICompiler {
   }
 
   async run(
-    code: string,
+    sources: [string, string][],
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
@@ -91,7 +91,7 @@ export class Compiler implements ICompiler {
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
     this.wasm.run(
-      code,
+      sources,
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
       shots,
