@@ -1254,7 +1254,6 @@ impl State {
         Ok(())
     }
 
-    #[allow(clippy::similar_names)] // `env` and `end` are similar but distinct
     fn eval_update_index_in_place(
         &mut self,
         env: &mut Env,
