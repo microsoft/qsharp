@@ -61,6 +61,7 @@ def get_interpreter() -> Interpreter:
     global _interpreter
     if _interpreter is None:
         init()
+        assert _interpreter is not None, "Failed to initialize the Q# interpreter."
     return _interpreter
 
 
@@ -106,8 +107,8 @@ def run(
     entry_expr: str,
     shots: int,
     on_result: Optional[Callable[[ShotResult], None]] = None,
-    save_output: bool = False,
-) -> Any:
+    save_events: bool = False,
+) -> List[Any]:
     """
     Runs the given Q# expression for the given number of shots.
     Each shot uses an independent instance of the simulator.
@@ -115,38 +116,36 @@ def run(
     :param entry_expr: The entry expression.
     :param shots: The number of shots to run.
     :param on_result: A callback function that will be called with each result.
-    :param save_output: If true, the output of each shot will be saved. If false, they will be printed.
+    :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
 
-    :returns values: A list of results or runtime errors. If `save_output` is true,
-    a Dict is returned with a "results" property containing the list of results,
-    and an "events" property containing a list of lists of events for each result.
+    :returns values: A list of results or runtime errors. If `save_events` is true,
+    a List of ShotResults is returned.
 
     :raises QSharpError: If there is an error interpreting the input.
     """
 
-    results: List[Any] = []
-    outputs: List[List[Output]] = []
+    results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
         print(output)
 
-    def on_save_output(output: Output) -> None:
+    def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
-        outputs[len(outputs) - 1].append(output)
+        results[-1]["events"].append(output)
 
-    for i in range(shots):
-        outputs.append([])
+    for _ in range(shots):
+        results.append({"result": None, "events": []})
         run_results = get_interpreter().run(
-            entry_expr, 1, on_save_output if save_output else print_output
+            entry_expr, 1, on_save_events if save_events else print_output
         )
-        results.append(run_results[0])
+        results[-1]["result"] = run_results[0]
         if on_result:
-            on_result({"events": outputs[i], "result": results[i]})
+            on_result(results[-1])
 
-    if save_output:
-        return {"results": results, "events": outputs}
-    else:
+    if save_events:
         return results
+    else:
+        return [shot["result"] for shot in results]
 
 
 # Class that wraps generated QIR, which can be used by

@@ -57,8 +57,8 @@ class Histogram(anywidget.AnyWidget):
         self._new_buckets.update({result_str: old_value + 1})
         self._new_count += 1
 
-        # Only update the UI max 20 times per second
-        if time.time() - self._last_message >= 0.05:
+        # Only update the UI max 10 times per second
+        if time.time() - self._last_message >= 0.1:
             self._update_ui()
 
     def __init__(self, results=None):
@@ -70,20 +70,15 @@ class Histogram(anywidget.AnyWidget):
 
         # If provided a list of results, count the buckets and update.
         # Need to distinguish between the case where we're provided a list of results
-        # or a dictionary of results and events.
+        # or a list of ShotResults
         if results is not None:
-            if isinstance(results, dict) and "results" in results:
-                result_list = results["results"]
-            elif isinstance(results, list):
-                result_list = results
-            else:
-                raise ValueError(
-                    "Expected a list of results or a dictionary with a 'results' key."
-                )
+            for result in results:
+                if isinstance(result, dict) and "result" in result:
+                    self._add_result(result)
+                else:
+                    # Convert the raw result to a ShotResult for the call
+                    self._add_result({"result": result, "events": []})
 
-            # Count up the buckets
-            for result in result_list:
-                self._add_result({"result": result, "events": []})
             self._update_ui()
 
     def run(self, entry_expr, shots):
@@ -96,7 +91,7 @@ class Histogram(anywidget.AnyWidget):
         # up the results for each bucket. If/when we add output details and
         # navigation, then we'll need to save the results. However, we pass
         # 'save_results=True' to avoid printing to the console.
-        qsharp.run(entry_expr, shots, on_result=self._add_result, save_output=True)
+        qsharp.run(entry_expr, shots, on_result=self._add_result, save_events=True)
 
         # Update the UI one last time to make sure we show the final results
         self._update_ui()
