@@ -136,8 +136,6 @@ impl<'a> CompilationStateUpdater<'a> {
     /// a recompilation may be triggered, which will result in a new set of diagnostics
     /// being published.
     pub fn update_configuration(&mut self, configuration: WorkspaceConfigurationUpdate) {
-        trace!("update_configuration: {configuration:?}");
-
         let need_recompile = self.apply_configuration(configuration);
 
         // Some configuration options require a recompilation as they impact error checking
@@ -147,103 +145,70 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        let doc_uri: Arc<str> = Arc::from(uri);
+        let text: Arc<str> = Arc::from(text);
+
         let manifest = (self.get_manifest)(uri.to_string()).await;
-        let in_project_mode = manifest.is_some();
         let mut sources = if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
             match res {
                 Ok(o) => o.sources,
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
-                    vec![(Arc::from(uri), Arc::from(text))]
+                    vec![(doc_uri.clone(), text.clone())]
                 }
             }
         } else {
             trace!("Running in single file mode");
-            vec![(Arc::from(uri), Arc::from(text))]
+            vec![(doc_uri.clone(), text.clone())]
         };
 
-        // replace source with one from memory if it exists
-        // this is what prioritizes open buffers over what exists on the fs for a
-        // given document
-        for (ref l_uri, ref mut source) in &mut sources {
-            trace!("uri: {l_uri}");
-            if let Some(doc) = self.state.borrow().open_documents.get(l_uri) {
-                *source = doc.latest_str_content.clone();
-            } else if &**l_uri == uri {
-                *source = Arc::from(text);
-            }
-        }
-
-        trace!("project sources: {sources:#?}");
-
-        let compilation = Compilation::new(
-            &sources,
-            self.configuration.package_type,
-            self.configuration.target_profile,
-        );
         // If we are in single file mode, use the file's path as the compilation identifier.
         // If we are compiling a project, use the path to the project manifest
-        let uri: Arc<str> = if let Some(manifest) = manifest {
+        let compilation_uri: Arc<str> = if let Some(manifest) = manifest {
             Arc::from(format!(
                 "{}/qsharp.json",
                 manifest.manifest_dir.to_string_lossy()
             ))
         } else {
-            uri.into()
+            doc_uri.clone()
         };
-        trace!("Loaded project uri {uri} with {} sources", sources.len());
+
+        trace!(
+            "Loaded project uri {compilation_uri} with {} sources",
+            sources.len()
+        );
 
         self.with_state_mut(|state| {
-            state
-                .compilations
-                .insert(uri.clone(), (compilation, PartialConfiguration::default()));
+            state.open_documents.insert(
+                doc_uri.clone(),
+                OpenDocument {
+                    version,
+                    compilation: compilation_uri.clone(),
+                    latest_str_content: text,
+                },
+            );
 
-            if let Some(doc) = state.open_documents.get_mut(&uri) {
-                doc.latest_str_content = Arc::from(text);
-            }
-
-            // There may be open buffers with sources in the project.
-            // These buffers need to have their diagnostics reloaded,
-            // to be in the context of the project.
-            // We remove them from the existing compilations and update
-            // their compilation URI
-            if in_project_mode {
-                for (path, contents) in &sources {
-                    // if this is the current document being updated...
-                    let contents = if *path == uri {
-                        Arc::from(text)
-                    } else {
-                        contents.clone()
-                    };
-                    log::trace!("Updating compilation of {path} to {uri}");
-                    state
-                        .open_documents
-                        .entry(path.clone())
-                        .and_modify(|x| {
-                            // remove any old single-file compilations of this document
-                            // if this is a project
-                            if x.compilation != uri {
-                                state.compilations.remove(&x.compilation);
-                            }
-                            x.compilation = uri.clone();
-                        })
-                        .or_insert(OpenDocument {
-                            version,
-                            compilation: uri.clone(),
-                            latest_str_content: contents.clone(),
-                        });
+            // replace source with one from memory if it exists
+            // this is what prioritizes open buffers over what exists on the fs for a
+            // given document
+            for (ref l_uri, ref mut source) in &mut sources {
+                if let Some(doc) = state.open_documents.get(l_uri) {
+                    trace!("{l_uri} is open, using source from open document");
+                    *source = doc.latest_str_content.clone();
                 }
-            } else {
-                state.open_documents.insert(
-                    uri.clone(),
-                    OpenDocument {
-                        version,
-                        compilation: uri.clone(),
-                        latest_str_content: Arc::from(text),
-                    },
-                );
             }
+
+            let compilation = Compilation::new(
+                &sources,
+                self.configuration.package_type,
+                self.configuration.target_profile,
+            );
+
+            state.compilations.insert(
+                compilation_uri.clone(),
+                (compilation, PartialConfiguration::default()),
+            );
         });
 
         self.publish_diagnostics();

@@ -5,7 +5,8 @@ use super::{CompilationState, CompilationStateUpdater};
 use crate::protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate};
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
+use std::{cell::RefCell, fmt::Write, future::ready, rc::Rc, sync::Arc};
 
 #[tokio::test]
 async fn no_error() {
@@ -625,6 +626,189 @@ fn close_notebook_clears_errors() {
     );
 }
 
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
+async fn update_doc_updates_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document(
+            "other_file.qs",
+            1,
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+        )
+        .await;
+    updater
+        .update_document("this_file.qs", 1, "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥")
+        .await;
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "other_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "./qsharp.json",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                },
+                "this_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "./qsharp.json",
+                    latest_str_content: "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "this_file.qs",
+                        contents: "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥",
+                        offset: 59,
+                    },
+                ],
+                entry: None,
+            }"#]],
+        &expect![[r#"
+            [
+                (
+                    "this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Lex(
+                                            Unknown(
+                                                '🔥',
+                                                Span {
+                                                    lo: 59,
+                                                    hi: 63,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Lex(
+                                            Unknown(
+                                                '🔥',
+                                                Span {
+                                                    lo: 63,
+                                                    hi: 67,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Token(
+                                            Eof,
+                                            Ident,
+                                            Span {
+                                                lo: 67,
+                                                hi: 71,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Lex(
+                                            Unknown(
+                                                '🔥',
+                                                Span {
+                                                    lo: 86,
+                                                    hi: 90,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Lex(
+                                            Unknown(
+                                                '🔥',
+                                                Span {
+                                                    lo: 90,
+                                                    hi: 94,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Lex(
+                                            Unknown(
+                                                '🔥',
+                                                Span {
+                                                    lo: 94,
+                                                    hi: 98,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Lex(
+                                            Unknown(
+                                                '🔥',
+                                                Span {
+                                                    lo: 98,
+                                                    hi: 102,
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
 type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
@@ -645,11 +829,52 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        // these tests do not test project mode
-        // so we provide these stubbed-out functions
-        |_| Box::pin(std::future::ready((Arc::from(""), Arc::from("")))),
-        |_| Box::pin(std::future::ready(vec![])),
-        |_| Box::pin(std::future::ready(None)),
+        |file| {
+            Box::pin(async {
+                tokio::spawn(ready(match file.as_str() {
+                    "other_file.qs" => (
+                        Arc::from(file),
+                        Arc::from("// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit {} }"),
+                    ),
+                    "this_file.qs" => (Arc::from(file), Arc::from("// DISK CONTENTS\n namespace Foo { }")),
+                    _ => panic!("unknown file"),
+                }))
+                .await
+                .expect("spawn should not fail")
+            })
+        },
+        |_dir_name| {
+            Box::pin(async move {
+                tokio::spawn(ready({
+                    vec![
+                        JSFileEntry {
+                            name: "other_file.qs".into(),
+                            r#type: EntryType::File,
+                        },
+                        JSFileEntry {
+                            name: "this_file.qs".into(),
+                            r#type: EntryType::File,
+                        },
+                    ]
+                }))
+                .await
+                .expect("spawn should not fail")
+            })
+        },
+        |file| {
+            Box::pin(async move {
+                tokio::spawn(ready(match file.as_str() {
+                    "other_file.qs" | "this_file.qs" => Some(ManifestDescriptor {
+                        manifest: Manifest::default(),
+                        manifest_dir: ".".into(),
+                    }),
+                    "foo.qs" => None,
+                    _ => panic!("unknown file"),
+                }))
+                .await
+                .expect("spawn should not fail")
+            })
+        },
     )
 }
 
@@ -657,4 +882,34 @@ fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
     expected.assert_debug_eq(&errors.borrow());
     // reset accumulated errors after each check
     errors.borrow_mut().clear();
+}
+
+fn assert_compilation_sources(updater: &CompilationStateUpdater<'_>, expected: &Expect) {
+    let state = updater.state.try_borrow().expect("borrow should succeed");
+
+    let compilation_sources = state
+        .compilations
+        .values()
+        .fold(String::new(), |mut output, c| {
+            let _ = write!(output, "{:#?}", c.0.user_unit().sources);
+            output
+        });
+    expected.assert_eq(&compilation_sources);
+}
+
+fn assert_open_documents(updater: &CompilationStateUpdater<'_>, expected: &Expect) {
+    let state = updater.state.try_borrow().expect("borrow should succeed");
+    expected.assert_debug_eq(&state.open_documents);
+}
+
+fn check_errors_and_compilation(
+    updater: &CompilationStateUpdater<'_>,
+    received_errors: &RefCell<Vec<ErrorInfo>>,
+    expected_open_documents: &Expect,
+    expected_compilation_sources: &Expect,
+    expected_errors: &Expect,
+) {
+    assert_open_documents(updater, expected_open_documents);
+    assert_compilation_sources(updater, expected_compilation_sources);
+    expect_errors(received_errors, expected_errors);
 }
