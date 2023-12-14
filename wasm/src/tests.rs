@@ -265,6 +265,79 @@ fn test_runtime_error_with_span() {
 }
 
 #[test]
+fn test_runtime_error_in_another_file_with_project() {
+    let mut output = Vec::new();
+    let first = indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    Test.other()
+                }
+            }"#
+    };
+    let second = indoc! {r#"
+            namespace Test {
+                operation other() : Unit {
+                    fail "hello"
+                }
+            }"#
+    };
+    run_internal(
+        SourceMap::new(
+            [
+                ("test1.qs".into(), first.into()),
+                ("test2.qs".into(), second.into()),
+            ],
+            None,
+        ),
+        |s| output.push(s.to_string()),
+        1,
+    )
+    .expect("code should compile and run");
+    expect![[r#"
+        {"result":{"code":"Qsc.Eval.UserFail","end_pos":1,"message":"runtime error: program failed: hello","related":[{"end_pos":68,"message":"explicit fail","source":"test2.qs","start_pos":56}],"severity":"error","start_pos":0},"success":false,"type":"Result"}"#]]
+    .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_runtime_error_with_failure_in_main_file_project() {
+    let mut output = Vec::new();
+    let first = indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    Test.other()
+                }
+                operation failing_call() : Unit {
+                    fail "hello"
+                }
+            }"#
+    };
+    let second = indoc! {r#"
+            namespace Test {
+                operation other() : Unit {
+                    Test.failing_call()
+                }
+            }"#
+    };
+    run_internal(
+        SourceMap::new(
+            [
+                ("test1.qs".into(), first.into()),
+                ("test2.qs".into(), second.into()),
+            ],
+            None,
+        ),
+        |s| output.push(s.to_string()),
+        1,
+    )
+    .expect("code should compile and run");
+    expect![[r#"
+        {"result":{"code":"Qsc.Eval.UserFail","end_pos":150,"message":"runtime error: program failed: hello","related":[{"end_pos":150,"message":"explicit fail","source":"test1.qs","start_pos":138}],"severity":"error","start_pos":138},"success":false,"type":"Result"}"#]]
+    .assert_eq(&output.join("\n"));
+}
+
+#[test]
 fn test_compile_error_related_spans() {
     let mut output = Vec::new();
     let code = indoc! {r#"
