@@ -1196,13 +1196,29 @@ impl State {
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
         let values = self.pop_val().unwrap_array();
         let update = self.pop_val();
-        let index = self.pop_val().unwrap_int();
+        let index = self.pop_val();
         let span = self.to_global_span(span);
+        match index {
+            Value::Int(index) => self.eval_update_index_single(&values, index, update, span),
+            Value::Range(start, step, end) => {
+                self.eval_update_index_range(&values, start, step, end, update, span)
+            }
+            _ => unreachable!("array should only be indexed by Int or Range"),
+        }
+    }
+
+    fn eval_update_index_single(
+        &mut self,
+        values: &[Value],
+        index: i64,
+        update: Value,
+        span: PackageSpan,
+    ) -> Result<(), Error> {
         if index < 0 {
             return Err(Error::InvalidNegativeInt(index, span));
         }
         let i = index.as_index(span)?;
-        let mut values = values.iter().cloned().collect::<Vec<_>>();
+        let mut values = values.to_vec();
         match values.get_mut(i) {
             Some(value) => {
                 *value = update;
@@ -1213,6 +1229,32 @@ impl State {
         Ok(())
     }
 
+    fn eval_update_index_range(
+        &mut self,
+        values: &[Value],
+        start: Option<i64>,
+        step: i64,
+        end: Option<i64>,
+        update: Value,
+        span: PackageSpan,
+    ) -> Result<(), Error> {
+        let range = make_range(values, start, step, end, span)?;
+        let mut values = values.to_vec();
+        let update = update.unwrap_array();
+        for (idx, update) in range.into_iter().zip(update.iter()) {
+            let i = idx.as_index(span)?;
+            match values.get_mut(i) {
+                Some(value) => {
+                    *value = update.clone();
+                }
+                None => return Err(Error::IndexOutOfRange(idx, span)),
+            }
+        }
+        self.push_val(Value::Array(values.into()));
+        Ok(())
+    }
+
+    #[allow(clippy::similar_names)] // `env` and `end` are similar but distinct
     fn eval_update_index_in_place(
         &mut self,
         env: &mut Env,
@@ -1221,13 +1263,21 @@ impl State {
         span: Span,
     ) -> Result<(), Error> {
         let update = self.pop_val();
-        let index = self.pop_val().unwrap_int();
+        let index = self.pop_val();
         let span = self.to_global_span(span);
-        if index < 0 {
-            return Err(Error::InvalidNegativeInt(index, span));
+        match index {
+            Value::Int(index) => {
+                if index < 0 {
+                    return Err(Error::InvalidNegativeInt(index, span));
+                }
+                let i = index.as_index(span)?;
+                self.update_array_index_single(env, globals, lhs, span, i, update)
+            }
+            range @ Value::Range(..) => {
+                self.update_array_index_range(env, globals, lhs, span, &range, update)
+            }
+            _ => unreachable!("array should only be indexed by Int or Range"),
         }
-        let i = index.as_index(span)?;
-        self.update_array_index(env, globals, lhs, i, update)
     }
 
     fn eval_tup(&mut self, len: usize) {
@@ -1369,19 +1419,67 @@ impl State {
         Ok(())
     }
 
-    fn update_array_index(
+    fn update_array_index_single(
         &self,
         env: &mut Env,
         globals: &impl NodeLookup,
         lhs: ExprId,
+        span: PackageSpan,
         index: usize,
         rhs: Value,
     ) -> Result<(), Error> {
         let lhs = globals.get_expr(self.package, lhs);
-        match (&lhs.kind, rhs) {
-            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+        match &lhs.kind {
+            &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
                 Some(var) if var.is_mutable() => {
-                    var.value.update_array(index, rhs);
+                    var.value.update_array(index, rhs).map_err(|idx| {
+                        Error::IndexOutOfRange(idx.try_into().expect("index should be valid"), span)
+                    })?;
+                }
+                Some(_) => {
+                    unreachable!("update of mutable variable should be disallowed by compiler")
+                }
+                None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
+            },
+            _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::similar_names)] // `env` and `end` are similar but distinct
+    fn update_array_index_range(
+        &self,
+        env: &mut Env,
+        globals: &impl NodeLookup,
+        lhs: ExprId,
+        range_span: PackageSpan,
+        range: &Value,
+        update: Value,
+    ) -> Result<(), Error> {
+        let lhs = globals.get_expr(self.package, lhs);
+        match &lhs.kind {
+            &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
+                Some(var) if var.is_mutable() => {
+                    let rhs = update.unwrap_array();
+                    let Value::Array(arr) = &mut var.value else {
+                        panic!("variable should be an array");
+                    };
+                    let Value::Range(start, step, end) = range else {
+                        unreachable!("range should be a Value::Range");
+                    };
+                    let range = make_range(arr, *start, *step, *end, range_span)?;
+                    for (idx, rhs) in range.into_iter().zip(rhs.iter()) {
+                        if idx < 0 {
+                            return Err(Error::InvalidNegativeInt(idx, range_span));
+                        }
+                        let i = idx.as_index(range_span)?;
+                        var.value.update_array(i, rhs.clone()).map_err(|idx| {
+                            Error::IndexOutOfRange(
+                                idx.try_into().expect("index should be valid"),
+                                range_span,
+                            )
+                        })?;
+                    }
                 }
                 Some(_) => {
                     unreachable!("update of mutable variable should be disallowed by compiler")
@@ -1541,6 +1639,22 @@ fn slice_array(
     end: Option<i64>,
     span: PackageSpan,
 ) -> Result<Value, Error> {
+    let range = make_range(arr, start, step, end, span)?;
+    let mut slice = vec![];
+    for i in range {
+        slice.push(index_array(arr, i, span)?);
+    }
+
+    Ok(Value::Array(slice.into()))
+}
+
+fn make_range(
+    arr: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    span: PackageSpan,
+) -> Result<Range, Error> {
     if step == 0 {
         Err(Error::RangeStepZero(span))
     } else {
@@ -1553,14 +1667,7 @@ fn slice_array(
         } else {
             (start.unwrap_or(len - 1), end.unwrap_or(0))
         };
-
-        let range = Range::new(start, step, end);
-        let mut slice = vec![];
-        for i in range {
-            slice.push(index_array(arr, i, span)?);
-        }
-
-        Ok(Value::Array(slice.into()))
+        Ok(Range::new(start, step, end))
     }
 }
 
