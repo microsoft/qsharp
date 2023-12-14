@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::displayable_output::{DisplayableOutput, DisplayableState};
+use crate::{
+    displayable_output::{DisplayableOutput, DisplayableState},
+    fs::file_system,
+};
 use miette::Report;
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -11,7 +14,7 @@ use pyo3::{
     prelude::*,
     pyclass::CompareOp,
     types::PyList,
-    types::{PyDict, PyTuple},
+    types::{PyDict, PyString, PyTuple},
 };
 use qsc::{
     fir,
@@ -23,6 +26,7 @@ use qsc::{
         },
         Value,
     },
+    project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
     PackageType, SourceMap,
 };
@@ -65,31 +69,72 @@ pub(crate) struct Interpreter {
     pub(crate) interpreter: stateful::Interpreter,
 }
 
+pub(crate) struct PyManifestDescriptor(ManifestDescriptor);
+
+impl FromPyObject<'_> for PyManifestDescriptor {
+    fn extract(ob: &PyAny) -> PyResult<Self> {
+        let dict = ob.downcast::<PyDict>()?;
+        let manifest_dir = get_dict_opt_string(dict, "manifest_dir")?.ok_or(
+            PyException::new_err("missing key `manifest_dir` in manifest descriptor"),
+        )?;
+        let manifest = dict
+            .get_item("manifest")?
+            .ok_or(PyException::new_err(
+                "missing key `manifest` in manifest descriptor",
+            ))?
+            .downcast::<PyDict>()?;
+
+        Ok(Self(ManifestDescriptor {
+            manifest: Manifest {
+                author: get_dict_opt_string(manifest, "author")?,
+                license: get_dict_opt_string(manifest, "license")?,
+                exclude_regexes: get_dict_vec_string(manifest, "exclude_regexes")?,
+                exclude_files: get_dict_vec_string(manifest, "exclude_files")?,
+            },
+            manifest_dir: manifest_dir.into(),
+        }))
+    }
+}
+
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
-    pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
+    pub(crate) fn new(
+        py: Python,
+        target: TargetProfile,
+        manifest_descriptor: Option<PyManifestDescriptor>,
+        read_file: Option<PyObject>,
+        list_directory: Option<PyObject>,
+    ) -> PyResult<Self> {
         let target = match target {
             TargetProfile::Unrestricted => Profile::Unrestricted,
             TargetProfile::Base => Profile::Base,
         };
-        match stateful::Interpreter::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            target.into(),
-        ) {
-            Ok(interpreter) => Ok(Self { interpreter }),
-            Err(errors) => {
-                let mut message = String::new();
-                for error in errors {
-                    writeln!(message, "{error}").expect("string should be writable");
-                }
-                Err(PyException::new_err(message))
-            }
-        }
+
+        let sources = if let Some(manifest_descriptor) = manifest_descriptor {
+            let project = file_system(
+                py,
+                read_file.expect(
+                    "file system hooks should have been passed in with a manifest descriptor",
+                ),
+                list_directory.expect(
+                    "file system hooks should have been passed in with a manifest descriptor",
+                ),
+            )
+            .load_project(manifest_descriptor.0)
+            .map_py_err()?;
+            SourceMap::new(project.sources, None)
+        } else {
+            SourceMap::default()
+        };
+
+        let interpreter =
+            stateful::Interpreter::new(true, sources, PackageType::Lib, target.into())
+                .map_py_err()?;
+
+        Ok(Self { interpreter })
     }
 
     /// Interprets Q# source code.
@@ -255,8 +300,8 @@ pub(crate) struct StateDump(pub(crate) DisplayableState);
 
 #[pymethods]
 impl StateDump {
-    fn get_dict(&self, py: Python) -> Py<PyDict> {
-        PyDict::from_sequence(
+    fn get_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
+        Ok(PyDict::from_sequence(
             py,
             PyList::new(
                 py,
@@ -272,9 +317,8 @@ impl StateDump {
                     .collect::<Vec<_>>(),
             )
             .into_py(py),
-        )
-        .expect("should be able to create dict")
-        .into_py(py)
+        )?
+        .into_py(py))
     }
 
     #[getter]
@@ -437,5 +481,61 @@ impl Receiver for OptionalCallbackReceiver<'_> {
                 .map_err(|_| Error)?;
         }
         Ok(())
+    }
+}
+
+trait MapPyErr<T, E> {
+    fn map_py_err(self) -> core::result::Result<T, PyErr>;
+}
+
+impl<T, E> MapPyErr<T, E> for core::result::Result<T, E>
+where
+    E: IntoPyErr,
+{
+    fn map_py_err(self) -> core::result::Result<T, PyErr>
+    where
+        E: IntoPyErr,
+    {
+        self.map_err(IntoPyErr::into_py_err)
+    }
+}
+
+trait IntoPyErr {
+    fn into_py_err(self) -> PyErr;
+}
+
+impl IntoPyErr for Report {
+    fn into_py_err(self) -> PyErr {
+        PyException::new_err(format!("{self:?}"))
+    }
+}
+
+impl IntoPyErr for Vec<stateful::Error> {
+    fn into_py_err(self) -> PyErr {
+        let mut message = String::new();
+        for error in self {
+            writeln!(message, "{error}").expect("string should be writable");
+        }
+        PyException::new_err(message)
+    }
+}
+
+fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
+    let value = dict.get_item(key)?;
+    Ok(match value {
+        Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
+        None => None,
+    })
+}
+
+fn get_dict_vec_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
+    match dict.get_item(key)? {
+        Some(item) => {
+            let list = item.downcast::<PyList>()?;
+            list.into_iter()
+                .map(|s| Ok(s.downcast::<PyString>()?.to_string_lossy().into()))
+                .collect()
+        }
+        None => Ok(vec![]),
     }
 }

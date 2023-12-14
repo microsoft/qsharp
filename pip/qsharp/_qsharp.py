@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from ._native import Interpreter, TargetProfile, StateDump, QSharpError, Output
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
-from ._native import Interpreter, Output, TargetProfile, StateDump
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 
@@ -37,16 +37,54 @@ class Config:
         return {"application/x.qsharp-config": self._config}
 
 
-def init(target_profile: TargetProfile = TargetProfile.Unrestricted) -> Config:
+def init(
+    *, target_profile: TargetProfile = TargetProfile.Unrestricted, project_root=None
+) -> Config:
     """
     Initializes the Q# interpreter.
 
     :param target_profile: Setting the target profile allows the Q#
         interpreter to generate programs that are compatible
         with a specific target. See :py:class: `qsharp.TargetProfile`.
+
+    :param project_root: The root directory of the Q# project. It must
+        contain a qsharp.json project manifest.
     """
+    from ._fs import read_file, list_directory, exists
+
     global _interpreter
-    _interpreter = Interpreter(target_profile)
+
+    manifest_descriptor = None
+    if project_root is not None:
+        import os
+
+        qsharp_json = os.path.join(project_root, "qsharp.json")
+        if not exists(qsharp_json):
+            raise QSharpError(
+                f"{qsharp_json} not found. qsharp.json should exist at the project root and be a valid JSON file."
+            )
+
+        manifest_descriptor = {}
+        manifest_descriptor["manifest_dir"] = project_root
+
+        try:
+            (_, file_contents) = read_file(qsharp_json)
+        except Exception as e:
+            raise QSharpError(
+                f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
+            ) from e
+
+        try:
+            manifest_descriptor["manifest"] = json.loads(file_contents)
+        except Exception as e:
+            raise QSharpError(
+                f"Error parsing {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
+            ) from e
+
+    _interpreter = Interpreter(
+        target_profile, manifest_descriptor, read_file, list_directory
+    )
+
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
     return Config(target_profile)
@@ -85,13 +123,13 @@ def eval(source: str) -> Any:
 def eval_file(path: str) -> Any:
     """
     Reads Q# source code from a file and evaluates it.
-
     :param path: The path to the Q# source file.
     :returns: The value returned by the last statement in the file.
     :raises: QSharpError
     """
-    f = open(path, mode="r", encoding="utf-8")
-    return eval(f.read())
+    from ._fs import read_file
+
+    return eval(read_file(path))
 
 
 class ShotResult(TypedDict):

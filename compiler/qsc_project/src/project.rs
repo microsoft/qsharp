@@ -18,7 +18,7 @@ pub struct Project {
 }
 
 /// This enum represents a filesystem object type. It is analogous to [std::fs::FileType].
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum EntryType {
     File,
     Folder,
