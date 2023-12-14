@@ -28,3 +28,7 @@ def list_directory(dir_path):
 
 def exists(path):
     return os.path.exists(path)
+
+
+def join(path, *paths):
+    return os.path.join(path, *paths)

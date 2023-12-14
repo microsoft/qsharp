@@ -50,15 +50,13 @@ def init(
     :param project_root: The root directory of the Q# project. It must
         contain a qsharp.json project manifest.
     """
-    from ._fs import read_file, list_directory, exists
+    from ._fs import read_file, list_directory, exists, join
 
     global _interpreter
 
     manifest_descriptor = None
     if project_root is not None:
-        import os
-
-        qsharp_json = os.path.join(project_root, "qsharp.json")
+        qsharp_json = join(project_root, "qsharp.json")
         if not exists(qsharp_json):
             raise QSharpError(
                 f"{qsharp_json} not found. qsharp.json should exist at the project root and be a valid JSON file."

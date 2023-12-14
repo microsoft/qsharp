@@ -110,3 +110,7 @@ def exists_memfs(path):
             return False
 
     return True
+
+
+def join_memfs(path, *paths):
+    return "/".join([path, *paths])
