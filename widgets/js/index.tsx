@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { render as prender } from "preact";
-import { ReTable, SpaceChart } from "qsharp-lang/ux";
+import { ReTable, SpaceChart, Histogram } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -35,6 +35,9 @@ export function render({ model, el }: RenderArgs) {
     case "EstimateDetails":
       renderTable({ model, el });
       break;
+    case "Histogram":
+      renderHistogram({ model, el });
+      break;
     default:
       throw new Error(`Unknown component type ${componentType}`);
   }
@@ -61,4 +64,27 @@ function renderChart({ model, el }: RenderArgs) {
 
   onChange();
   model.on("change:estimates", onChange);
+}
+
+function renderHistogram({ model, el }: RenderArgs) {
+  const onChange = () => {
+    const buckets = model.get("buckets") as { [key: string]: number };
+    const bucketMap = new Map(Object.entries(buckets));
+    const shot_count = model.get("shot_count") as number;
+
+    prender(
+      <Histogram
+        data={bucketMap}
+        shotCount={shot_count}
+        filter={""}
+        onFilter={() => undefined}
+        shotsHeader={true}
+      ></Histogram>,
+      el,
+    );
+  };
+
+  onChange();
+  model.on("change:buckets", onChange);
+  model.on("change:shot_count", onChange);
 }
