@@ -201,8 +201,12 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
+    let source_name = sources
+        .find_by_offset(0)
+        .expect("There must be a source to process")
+        .name
+        .to_string();
     let mut out = CallbackReceiver { event_cb };
-    let source_name = sources.find_by_offset(0).expect("msg").name.to_string();
     let interpreter = stateful::Interpreter::new(
         true,
         sources,
