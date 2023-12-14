@@ -16,7 +16,7 @@ fn test_missing_type() {
     let _ = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","end_pos":33,"message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","severity":"error","start_pos":32},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","end_pos":1,"message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]].assert_eq(msg);
             count.set(count.get() + 1);
         },
         1,
@@ -75,7 +75,7 @@ fn fail_ry() {
     let _result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.TypeCk.TyMismatch","end_pos":105,"message":"type error: expected (Double, Qubit), found Qubit","severity":"error","start_pos":99},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.TyMismatch","end_pos":1,"message":"type error: expected (Double, Qubit), found Qubit","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]].assert_eq(msg);
             count.set(count.get() + 1);
         },
         1,
@@ -234,9 +234,9 @@ fn test_run_error_program_multiple_shots() {
     )
     .expect("code should compile and run");
     expect![[r#"
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1937,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":1920},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1937,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":1920},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1937,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":1920},"success":false,"type":"Result"}"#]]
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
@@ -330,6 +330,6 @@ fn test_runtime_error_default_span() {
         1,
     )
     .expect("code should compile and run");
-    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","end_pos":429,"message":"runtime error: program failed: Cannot allocate qubit array with a negative length","related":[{"end_pos":429,"message":"explicit fail","source":"core/qir.qs","start_pos":372}],"severity":"error","start_pos":372},"success":false,"type":"Result"}"#]]
+    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","end_pos":1,"message":"runtime error: program failed: Cannot allocate qubit array with a negative length","related":[{"end_pos":429,"message":"explicit fail","source":"core/qir.qs","start_pos":372}],"severity":"error","start_pos":0},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }

@@ -202,6 +202,7 @@ where
     F: FnMut(&str),
 {
     let mut out = CallbackReceiver { event_cb };
+    let source_name = sources.find_by_offset(0).expect("msg").name.to_string();
     let interpreter = stateful::Interpreter::new(
         true,
         sources,
@@ -212,7 +213,7 @@ where
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
-        let diag = VSDiagnostic::from_interpret_error(&e);
+        let diag = VSDiagnostic::from_interpret_error(&source_name, &e);
         let msg = json!(
             {"type": "Result", "success": false, "result": diag});
         (out.event_cb)(&msg.to_string());
@@ -228,7 +229,7 @@ where
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from_interpret_error(&errors[0]).json()
+                VSDiagnostic::from_interpret_error(&source_name, &errors[0]).json()
             }
         };
 
@@ -281,7 +282,10 @@ fn check_exercise_solution_internal(
             // TODO: handle multiple errors
             // https://github.com/microsoft/qsharp/issues/149
             runtime_success = false;
-            (false, VSDiagnostic::from_interpret_error(&errors[0]).json())
+            (
+                false,
+                VSDiagnostic::from_interpret_error(source_name, &errors[0]).json(),
+            )
         }
     };
     let msg_string =
