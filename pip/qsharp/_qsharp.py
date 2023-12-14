@@ -106,6 +106,7 @@ class ShotResult(TypedDict):
 def run(
     entry_expr: str,
     shots: int,
+    *,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
 ) -> List[Any]:

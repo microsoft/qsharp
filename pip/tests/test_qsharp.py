@@ -67,3 +67,32 @@ def test_compile_qir_str() -> None:
     operation = qsharp.compile("Program()")
     qir = str(operation)
     assert "define void @ENTRYPOINT__main()" in qir
+
+
+def test_run_with_result(capsys) -> None:
+    qsharp.init()
+    qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
+    results = qsharp.run("Foo()", 3)
+    assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
+    stdout = capsys.readouterr().out
+    assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
+
+
+def test_run_with_result_callback(capsys) -> None:
+    def on_result(result):
+        nonlocal called
+        called = True
+        assert result["result"] == qsharp.Result.Zero
+        assert str(result["events"]) == "[Hello, world!]"
+
+    called = False
+    qsharp.init()
+    qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
+    results = qsharp.run("Foo()", 3, on_result=on_result, save_events=True)
+    assert (
+        str(results)
+        == "[{'result': Zero, 'events': [Hello, world!]}, {'result': Zero, 'events': [Hello, world!]}, {'result': Zero, 'events': [Hello, world!]}]"
+    )
+    stdout = capsys.readouterr().out
+    assert stdout == ""
+    assert called
