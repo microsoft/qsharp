@@ -3,9 +3,9 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::test_expression;
+use crate::{test_expression, test_expression_with_lib_and_profile};
 use indoc::indoc;
-use qsc::interpret::Value;
+use qsc::{interpret::Value, target::Profile};
 
 //
 // Core namespace
@@ -83,5 +83,21 @@ fn check_exp_with_swap() {
             CheckAllZero([aux] + qs)
         }"#},
         &Value::Bool(true),
+    );
+}
+
+#[test]
+fn check_base_profile_measure_resets_aux_qubits() {
+    test_expression_with_lib_and_profile(
+        indoc! {"{
+            use q = Qubit();
+            X(q);
+            let result = M(q);
+            Reset(q);
+            result
+        }"},
+        "",
+        Profile::Base,
+        &Value::RESULT_ONE,
     );
 }
