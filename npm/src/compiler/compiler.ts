@@ -17,13 +17,13 @@ export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string): Promise<string>;
   run(
-    code: string,
+    sources: [string, string][],
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
   ): Promise<void>;
-  getQir(code: string): Promise<string>;
-  getEstimates(code: string, params: string): Promise<string>;
+  getQir(sources: [string, string][]): Promise<string>;
+  getEstimates(sources: [string, string][], params: string): Promise<string>;
   checkExerciseSolution(
     user_code: string,
     exercise_sources: string[],
@@ -44,23 +44,37 @@ export class Compiler implements ICompiler {
     globalThis.qscGitHash = this.wasm.git_hash();
   }
 
+  // Note: This function does not support project mode.
+  // see https://github.com/microsoft/qsharp/pull/849#discussion_r1409821143
   async checkCode(code: string): Promise<VSDiagnostic[]> {
     let diags: VSDiagnostic[] = [];
-    const languageService = new this.wasm.LanguageService(
+    const languageService = new this.wasm.LanguageService();
+    const work = languageService.start_background_work(
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
+      () => Promise.resolve(null),
+      () => Promise.resolve([]),
+      () => Promise.resolve(null),
     );
     languageService.update_document("code", 1, code);
+    // Yield to let the language service background worker handle the update
+    await Promise.resolve();
+    languageService.stop_background_work();
+    await work;
+    languageService.free();
     return mapDiagnostics(diags, code);
   }
 
-  async getQir(code: string): Promise<string> {
-    return this.wasm.get_qir(code);
+  async getQir(sources: [string, string][]): Promise<string> {
+    return this.wasm.get_qir(sources);
   }
 
-  async getEstimates(code: string, params: string): Promise<string> {
-    return this.wasm.get_estimates(code, params);
+  async getEstimates(
+    sources: [string, string][],
+    params: string,
+  ): Promise<string> {
+    return this.wasm.get_estimates(sources, params);
   }
 
   async getHir(code: string): Promise<string> {
@@ -68,7 +82,7 @@ export class Compiler implements ICompiler {
   }
 
   async run(
-    code: string,
+    sources: [string, string][],
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
@@ -77,7 +91,7 @@ export class Compiler implements ICompiler {
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
     this.wasm.run(
-      code,
+      sources,
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
       shots,

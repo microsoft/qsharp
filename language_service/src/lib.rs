@@ -10,108 +10,78 @@ pub mod definition;
 mod display;
 pub mod hover;
 mod name_locator;
+mod project_system;
 pub mod protocol;
 mod qsc_utils;
 pub mod references;
 pub mod rename;
 pub mod signature_help;
+mod state;
 #[cfg(test)]
 mod test_utils;
 #[cfg(test)]
 mod tests;
 
 use compilation::Compilation;
-use log::trace;
-use miette::Diagnostic;
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures_util::StreamExt;
+use log::{trace, warn};
 use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
-use qsc::{compile::Error, target::Profile, PackageType};
-use rustc_hash::{FxHashMap, FxHashSet};
-use std::{mem::take, sync::Arc};
-
-type CompilationUri = Arc<str>;
-type DocumentUri = Arc<str>;
-
-pub struct LanguageService<'a> {
-    /// Workspace-wide configuration settings. These can include compiler settings that
-    /// affect error checking and other language server behavior.
-    ///
-    /// Some settings can be set both at the compilation scope and at the workspace scope.
-    /// Compilation-scoped settings take precedence over workspace-scoped settings.
-    configuration: Configuration,
-    /// A `CompilationUri` is an identifier for a unique compilation.
-    /// It is NOT required to be a uri that represents an actual document.
-    ///
-    /// For single Q# documents, the `CompilationUri` is the same as the
-    /// document uri.
-    ///
-    /// For notebooks, the `CompilationUri` is the notebook uri.
-    ///
-    /// The `CompilatinUri` is used when compilation-level errors get reported
-    /// to the client. Compilation-level errors are defined as errors without
-    /// an associated source document.
-    ///
-    /// `PartialConfiguration` contains configuration overrides for this
-    /// compilation, explicitly specified through a project manifest (not currently implemented)
-    /// or notebook metadata.
-    compilations: FxHashMap<CompilationUri, (Compilation, PartialConfiguration)>,
-    /// All the documents that we were told about by the client.
-    ///
-    /// This map doesn't necessarily contain ALL the documents that
-    /// make up a compilation - only the ones that are currently open.
-    open_documents: FxHashMap<DocumentUri, OpenDocument>,
-    /// Documents that we have previously published errors about. We need to
-    /// keep track of this so we can clear errors from them when documents are removed
-    /// from a compilation or when a recompilation occurs.
-    documents_with_errors: FxHashSet<DocumentUri>,
-    /// Callback which will receive diagnostics (compilation errors)
-    /// whenever a (re-)compilation occurs.
-    diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
-}
-
-#[derive(Debug)]
-struct Configuration {
-    pub target_profile: Profile,
-    pub package_type: PackageType,
-}
-
-impl Default for Configuration {
-    fn default() -> Self {
-        Self {
-            target_profile: Profile::Unrestricted,
-            package_type: PackageType::Exe,
-        }
-    }
-}
+use qsc_project::JSFileEntry;
+use state::{CompilationState, CompilationStateUpdater};
+use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
 
 #[derive(Default)]
-struct PartialConfiguration {
-    pub target_profile: Option<Profile>,
-    pub package_type: Option<PackageType>,
+pub struct LanguageService {
+    /// The compilation state. This state is protected by a `RefCell` so that
+    /// read and update operations can share it. Update operations should take
+    /// care never leave `CompilationState` in an inconsistent state during an
+    /// `await` point, as readers may have access to it.
+    state: Rc<RefCell<CompilationState>>,
+    /// Channel for compilation state update messages coming from the client.
+    state_updater: Option<UnboundedSender<Update>>,
 }
 
-#[derive(Debug)]
-struct OpenDocument {
-    /// This version is the document version provided by the client.
-    /// It increases strictly with each text change, though this knowledge should
-    /// not be important. The version is only ever used when publishing
-    /// diagnostics to help the client associate the list of diagnostics
-    /// with a snapshot of the document.
-    pub version: u32,
-    pub compilation: CompilationUri,
-}
+impl LanguageService {
+    /// Creates an `UpdateWorker`. An update worker will read messages posted
+    /// to the update channel and apply them, sequentially, to the compilation state.
+    ///
+    /// This method *must* be called for the language service to do any work.
+    /// The caller needs to start the worker by calling `.run()` .
+    pub fn create_update_worker<'a>(
+        &mut self,
+        diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
+        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
+        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
+            + 'a,
+    ) -> UpdateWorker<'a> {
+        assert!(self.state_updater.is_none());
+        let (send, recv) = unbounded();
+        let worker = UpdateWorker {
+            updater: CompilationStateUpdater::new(
+                self.state.clone(),
+                diagnostics_receiver,
+                read_file,
+                list_directory,
+                get_manifest,
+            ),
+            recv,
+        };
+        self.state_updater = Some(send);
+        worker
+    }
 
-impl<'a> LanguageService<'a> {
-    pub fn new(diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a) -> Self {
-        LanguageService {
-            configuration: Configuration::default(),
-            compilations: FxHashMap::default(),
-            open_documents: FxHashMap::default(),
-            documents_with_errors: FxHashSet::default(),
-            diagnostics_receiver: Box::new(diagnostics_receiver),
-        }
+    /// Stops the language service from processing further updates.
+    /// This will stop the update worker, and any update operations
+    /// that the language service receives after this call will be ignored.
+    pub fn stop_updates(&mut self) {
+        // Dropping the sender will cause the
+        // worker created in [`create_update_worker()`] to stop.
+        self.state_updater = None;
     }
 
     /// Updates the workspace configuration. If any compiler settings are updated,
@@ -119,15 +89,11 @@ impl<'a> LanguageService<'a> {
     /// being published.
     ///
     /// LSP: workspace/didChangeConfiguration
-    pub fn update_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) {
+    pub fn update_configuration(&mut self, configuration: WorkspaceConfigurationUpdate) {
         trace!("update_configuration: {configuration:?}");
-
-        let need_recompile = self.apply_configuration(configuration);
-
-        // Some configuration options require a recompilation as they impact error checking
-        if need_recompile {
-            self.recompile_all();
-        }
+        self.send_update(Update::Configuration {
+            changed: configuration,
+        });
     }
 
     /// Indicates that the document has been opened or the source has been updated.
@@ -135,28 +101,16 @@ impl<'a> LanguageService<'a> {
     /// for the document, typically when the document is first opened in the editor.
     /// It should also be called whenever the source code is updated.
     ///
+    /// This is the "entry point" for the language service's logic, after its constructor.
+    ///
     /// LSP: textDocument/didOpen, textDocument/didChange
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         trace!("update_document: {uri} {version}");
-        let compilation = Compilation::new_open_document(
-            uri,
-            text,
-            self.configuration.package_type,
-            self.configuration.target_profile,
-        );
-
-        // Associate each known document with a separate compilation.
-        let uri: Arc<str> = uri.into();
-        self.compilations
-            .insert(uri.clone(), (compilation, PartialConfiguration::default()));
-        self.open_documents.insert(
-            uri.clone(),
-            OpenDocument {
-                version,
-                compilation: uri,
-            },
-        );
-        self.publish_diagnostics();
+        self.send_update(Update::Document {
+            uri: uri.into(),
+            version,
+            text: text.into(),
+        });
     }
 
     /// Indicates that the client is no longer interested in the document,
@@ -165,11 +119,7 @@ impl<'a> LanguageService<'a> {
     /// LSP: textDocument/didClose
     pub fn close_document(&mut self, uri: &str) {
         trace!("close_document: {uri}");
-
-        self.compilations.remove(uri);
-        self.open_documents.remove(uri);
-
-        self.publish_diagnostics();
+        self.send_update(Update::CloseDocument { uri: uri.into() });
     }
 
     /// The uri refers to the notebook itself, not any of the individual cells.
@@ -185,47 +135,19 @@ impl<'a> LanguageService<'a> {
     pub fn update_notebook_document<'b, I>(
         &mut self,
         notebook_uri: &str,
-        notebook_metadata: &NotebookMetadata,
+        notebook_metadata: NotebookMetadata,
         cells: I,
     ) where
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
     {
         trace!("update_notebook_document: {notebook_uri}");
-
-        let compilation_uri: Arc<str> = notebook_uri.into();
-
-        // First remove all previously known cells for this notebook
-        self.open_documents
-            .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
-
-        let notebook_configuration = PartialConfiguration {
-            target_profile: notebook_metadata.target_profile,
-            package_type: None,
-        };
-        let configuration = merge_configurations(&notebook_configuration, &self.configuration);
-
-        // Compile the notebook and add each cell into the document map
-        let compilation = Compilation::new_notebook(
-            cells.map(|(cell_uri, version, cell_contents)| {
-                trace!("update_notebook_document: cell: {cell_uri} {version}");
-                self.open_documents.insert(
-                    (*cell_uri).into(),
-                    OpenDocument {
-                        version,
-                        compilation: compilation_uri.clone(),
-                    },
-                );
-                (cell_uri, cell_contents)
-            }),
-            configuration.target_profile,
-        );
-
-        self.compilations.insert(
-            compilation_uri.clone(),
-            (compilation, notebook_configuration),
-        );
-
-        self.publish_diagnostics();
+        self.send_update(Update::NotebookDocument {
+            notebook_uri: notebook_uri.into(),
+            notebook_metadata,
+            cells: cells
+                .map(|(uri, version, contents)| (uri.into(), version, contents.into()))
+                .collect(),
+        });
     }
 
     /// Indicates that the client is no longer interested in the notebook.
@@ -242,26 +164,10 @@ impl<'a> LanguageService<'a> {
         cell_uris: impl Iterator<Item = &'b str>,
     ) {
         trace!("close_notebook_document: {notebook_uri}");
-
-        for cell_uri in cell_uris {
-            trace!("close_notebook_document: cell: {cell_uri}");
-            self.open_documents.remove(cell_uri);
-        }
-
-        // The client should have sent all cell uris along with
-        // the notebook. Validate our assumptions about the client
-        // here, by checking that all the cells for this notebook
-        // have been removed from the open documents map.
-        for open_doc in self.open_documents.values() {
-            assert!(
-                notebook_uri != open_doc.compilation.as_ref(),
-                "all cells should have been closed along with the notebook"
-            );
-        }
-
-        self.compilations.remove(notebook_uri);
-
-        self.publish_diagnostics();
+        self.send_update(Update::CloseNotebookDocument {
+            notebook_uri: notebook_uri.into(),
+            cell_uris: cell_uris.map(Into::into).collect(),
+        });
     }
 
     /// LSP: textDocument/completion
@@ -276,7 +182,7 @@ impl<'a> LanguageService<'a> {
         self.document_op(definition::get_definition, "get_definition", uri, offset)
     }
 
-    /// LSP: textDocument/hover
+    /// LSP: textDocument/references
     #[must_use]
     pub fn get_references(
         &self,
@@ -294,6 +200,7 @@ impl<'a> LanguageService<'a> {
         )
     }
 
+    /// LSP: textDocument/hover
     #[must_use]
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
         self.document_op(hover::get_hover, "get_hover", uri, offset)
@@ -322,141 +229,191 @@ impl<'a> LanguageService<'a> {
         self.document_op(rename::prepare_rename, "prepare_rename", uri, offset)
     }
 
-    /// Executes an operation that takes a document uri and offset, using the current compilation for that document
+    /// Executes an operation that takes a document uri and offset, using the current compilation for that document.
+    /// All "read" operations should go through this method. This method will borrow the current
+    /// compilation state to perform the request.
+    ///
+    /// If there are outstanding updates to the compilation in the update message queue,
+    /// this method will still just return the current compilation state.
     fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
     where
         F: Fn(&Compilation, &str, u32) -> T,
-        T: std::fmt::Debug,
+        T: Debug + Default,
     {
         trace!("{op_name}: uri: {uri}, offset: {offset}");
-        let compilation_uri = &self
-            .open_documents
-            .get(uri)
-            .unwrap_or_else(|| {
-                panic!("{op_name} should not be called for a document that has not been opened",)
-            })
-            .compilation;
 
-        trace!("{op_name}: compilation_uri: {compilation_uri}");
-        let compilation = self.compilations.get(compilation_uri).unwrap_or_else(|| {
-            panic!("{op_name} should not be called before compilation has been initialized",)
-        });
-
-        let res = op(&compilation.0, uri, offset);
-        trace!("{op_name} result: {res:?}");
-        res
+        // Borrow must succeed here. If it doesn't succeed, a writer
+        // (i.e. [`state::CompilationStateUpdater`]) must be holding a mutable reference across
+        // an `await` point. Which it shouldn't be doing.
+        let compilation_state = self.state.borrow();
+        if let Some(compilation) = compilation_state.get_compilation(uri) {
+            let res = op(compilation, uri, offset);
+            trace!("{op_name} result: {res:?}");
+            res
+        } else {
+            // The current state doesn't yet contain the document. Updates must be pending.
+            trace!("Skipping {op_name} for {uri} since compilation is in progress");
+            T::default()
+        }
     }
 
-    // It gets really messy knowing when to clear diagnostics
-    // when the document changes ownership between compilations, etc.
-    // So let's do it the simplest way possible. Republish all the diagnostics every time.
-    fn publish_diagnostics(&mut self) {
-        let last_docs_with_errors = take(&mut self.documents_with_errors);
+    /// Queues an update to the compilation state. The message will be handled, and the
+    /// actual compilation state update, by the update worker which was created in `create_update_worker()`.
+    ///
+    /// All "update" operations should go through this method.
+    fn send_update(&mut self, update: Update) {
+        if let Some(updater) = self.state_updater.as_mut() {
+            updater
+                .unbounded_send(update)
+                .expect("send error in queue_update");
+        } else {
+            warn!("Ignoring update, no worker is listening");
+        }
+    }
+}
 
-        for (compilation_uri, compilation) in &self.compilations {
-            trace!("publishing diagnostics for {compilation_uri}");
-            for (uri, errors) in map_errors_to_docs(compilation_uri, &compilation.0.errors) {
-                if !self.documents_with_errors.insert(uri.clone()) {
-                    // We already published diagnostics for this document for
-                    // a different compilation.
-                    // When the same document is included in multiple compilations,
-                    // only report the errors for one of them, the goal being
-                    // a less confusing user experience.
-                    continue;
-                }
+pub struct UpdateWorker<'a> {
+    updater: CompilationStateUpdater<'a>,
+    recv: UnboundedReceiver<Update>,
+}
 
-                self.publish_diagnostics_for_doc(&uri, errors);
+impl UpdateWorker<'_> {
+    /// Runs the update worker. This method is expected to run
+    /// for the entire lifetime of the language service.
+    ///
+    /// It returns a future that will only complete when the
+    /// language service has explicitly closed the message
+    /// channel, in `stop_update_worker()`.
+    ///
+    pub async fn run(&mut self) {
+        while let Some(update) = self.recv.next().await {
+            self.apply_this_and_pending(vec![update]).await;
+        }
+    }
+
+    /// Convenience method to apply *only* the pending updates
+    /// in the message queue. Used for testing, when it's desirable
+    /// to control exactly when updates are applied.
+    ///
+    /// Since `run()` will mutably borrow `self` for the entire
+    /// lifetime of the worker, this method should not ever be used
+    /// if `run()` has been called.
+    #[cfg(test)]
+    async fn apply_pending(&mut self) {
+        self.apply_this_and_pending(vec![]).await;
+    }
+
+    async fn apply_this_and_pending(&mut self, mut updates: Vec<Update>) {
+        // Consume any backed up messages in the channel as well.
+        while let Ok(update) = self.recv.try_next() {
+            match update {
+                Some(update) => push_update(&mut updates, update),
+                None => return, // channel has been closed, don't bother with updates.
             }
         }
 
-        // Clear errors from any documents that previously had errors
-        for uri in last_docs_with_errors.difference(&self.documents_with_errors) {
-            self.publish_diagnostics_for_doc(uri, vec![]);
-        }
-    }
-
-    fn publish_diagnostics_for_doc(&self, uri: &str, errors: Vec<Error>) {
-        let version = self.open_documents.get(uri).map(|d| d.version);
-        trace!("publishing diagnostics for {uri} {version:?}): {errors:?}");
-        (self.diagnostics_receiver)(DiagnosticUpdate {
-            uri: uri.into(),
-            version,
-            errors,
-        });
-    }
-
-    fn apply_configuration(&mut self, configuration: &WorkspaceConfigurationUpdate) -> bool {
-        let mut need_recompile = false;
-
-        if let Some(package_type) = configuration.package_type {
-            need_recompile |= self.configuration.package_type != package_type;
-            self.configuration.package_type = package_type;
+        trace!("applying {} updates", updates.len());
+        if updates.len() > 100 {
+            // This indicates that we're not keeping up with incoming updates.
+            // Harmless, but an indicator that we could try intelligently
+            // dropping updates or otherwise optimizing.
+            warn!(
+                "perf: {} pending updates found even after deduping",
+                updates.len()
+            );
         }
 
-        if let Some(target_profile) = configuration.target_profile {
-            need_recompile |= self.configuration.target_profile != target_profile;
-            self.configuration.target_profile = target_profile;
+        for update in updates.drain(..) {
+            apply_update(&mut self.updater, update).await;
         }
-
-        // Possible optimization: some projects will have overrides for these configurations,
-        // so workspace updates won't impact them. We could exclude those projects
-        // from recompilation, but we don't right now.
-        trace!("need_recompile after configuration update: {need_recompile}");
-        need_recompile
-    }
-
-    /// Recompiles the currently known documents with
-    /// the current configuration. Publishes updated
-    /// diagnostics for all documents.
-    fn recompile_all(&mut self) {
-        for compilation in self.compilations.values_mut() {
-            let configuration = merge_configurations(&compilation.1, &self.configuration);
-            compilation
-                .0
-                .recompile(configuration.package_type, configuration.target_profile);
-        }
-
-        self.publish_diagnostics();
+        trace!("end applying updates");
     }
 }
 
-/// Merges workspace configuration with any compilation-specific overrides.
-fn merge_configurations(
-    compilation_scope: &PartialConfiguration,
-    workspace_scope: &Configuration,
-) -> Configuration {
+fn push_update(pending_updates: &mut Vec<Update>, update: Update) {
+    // Dedup consecutive updates to the same document.
+    match &update {
+        Update::Document { uri, .. } => {
+            if let Some(last) = pending_updates.last_mut() {
+                if let Update::Document { uri: last_uri, .. } = last {
+                    if last_uri == uri {
+                        // overwrite the last element
+                        *last = update;
+                        return;
+                    }
+                }
+            }
+        }
+        Update::NotebookDocument { notebook_uri, .. } => {
+            if let Some(last) = pending_updates.last_mut() {
+                if let Update::NotebookDocument {
+                    notebook_uri: last_uri,
+                    ..
+                } = last
+                {
+                    if last_uri == notebook_uri {
+                        // overwrite the last element
+                        *last = update;
+                        return;
+                    }
+                }
+            }
+        }
+        Update::Configuration { .. }
+        | Update::CloseDocument { .. }
+        | Update::CloseNotebookDocument { .. } => (), // These events aren't noisy enough to bother deduping.
+    }
+    pending_updates.push(update);
+}
+
+async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update) {
+    match update {
+        Update::CloseDocument { uri } => {
+            updater.close_document(&uri);
+        }
+        Update::Document { uri, version, text } => {
+            updater.update_document(&uri, version, &text).await;
+        }
+        Update::NotebookDocument {
+            notebook_uri,
+            notebook_metadata,
+            cells,
+        } => updater.update_notebook_document(
+            &notebook_uri,
+            notebook_metadata,
+            cells
+                .iter()
+                .map(|(uri, version, contents)| (uri.as_ref(), *version, contents.as_ref())),
+        ),
+        Update::CloseNotebookDocument {
+            notebook_uri,
+            cell_uris,
+        } => updater.close_notebook_document(&notebook_uri, cell_uris.iter().map(AsRef::as_ref)),
+        Update::Configuration { changed } => {
+            updater.update_configuration(changed);
+        }
+    }
+}
+
+enum Update {
     Configuration {
-        target_profile: compilation_scope
-            .target_profile
-            .unwrap_or(workspace_scope.target_profile),
-        package_type: compilation_scope
-            .package_type
-            .unwrap_or(workspace_scope.package_type),
-    }
-}
-
-fn map_errors_to_docs(
-    compilation_uri: &Arc<str>,
-    errors: &Vec<Error>,
-) -> FxHashMap<Arc<str>, Vec<Error>> {
-    let mut map = FxHashMap::default();
-
-    for err in errors {
-        // Use the compilation_uri as a location for span-less errors
-        let doc = err
-            .labels()
-            .into_iter()
-            .flatten()
-            .next()
-            .map_or(compilation_uri, |l| {
-                let (source, _) = err.resolve_span(l.inner());
-                &source.name
-            });
-
-        map.entry(doc.clone())
-            .or_insert_with(Vec::new)
-            .push(err.clone());
-    }
-
-    map
+        changed: WorkspaceConfigurationUpdate,
+    },
+    Document {
+        uri: String,
+        version: u32,
+        text: String,
+    },
+    CloseDocument {
+        uri: String,
+    },
+    NotebookDocument {
+        notebook_uri: String,
+        notebook_metadata: NotebookMetadata,
+        cells: Vec<(String, u32, String)>,
+    },
+    CloseNotebookDocument {
+        notebook_uri: String,
+        cell_uris: Vec<String>,
+    },
 }

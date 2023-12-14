@@ -169,6 +169,10 @@ impl SourceMap {
     pub fn find_by_name(&self, name: &str) -> Option<&Source> {
         self.sources.iter().find(|s| s.name.as_ref() == name)
     }
+
+    pub fn get_names(&self) -> impl Iterator<Item = &Arc<str>> {
+        self.sources.iter().map(|s| &s.name)
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -21,8 +21,7 @@ type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the debugger in the same thread the result will be synchronous (a resolved promise).
 export interface IDebugService {
   loadSource(
-    path: string,
-    source: string,
+    sources: [string, string][],
     target: TargetProfile,
     entry: string | undefined,
   ): Promise<string>;
@@ -65,13 +64,14 @@ export class QSharpDebugService implements IDebugService {
   }
 
   async loadSource(
-    path: string,
-    source: string,
+    sources: [string, string][],
     target: TargetProfile,
     entry: string | undefined,
   ): Promise<string> {
-    this.code[path] = source;
-    return this.debugService.load_source(path, source, target, entry);
+    for (const [path, source] of sources) {
+      this.code[path] = source;
+    }
+    return this.debugService.load_source(sources, target, entry);
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {

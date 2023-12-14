@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(non_snake_case)]
+
 use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use project_system::*;
 use qsc::{
     compile::{self},
     hir::PackageId,
@@ -17,13 +20,14 @@ use qsc::{
 };
 use qsc_codegen::qir_base::generate_qir;
 use serde_json::json;
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
 mod diagnostic;
 mod language_service;
 mod logging;
+mod project_system;
 mod serializable_type;
 
 #[cfg(test)]
@@ -43,13 +47,35 @@ pub fn git_hash() -> String {
     git_hash.into()
 }
 
+// can't wasm_bindgen [string; 2] or (string, string)
+// so we have to manually assert length of the interior
+// array and the content type in the function body
+// `sources` should be Vec<[String; 2]> though
+pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> SourceMap {
+    let sources = sources.into_iter().map(|js_arr| {
+        // map the inner arr elements into (String, String)
+        let elem_0 = js_arr.get(0).as_string();
+        let elem_1 = js_arr.get(1).as_string();
+        (
+            Arc::from(elem_0.unwrap_or_default()),
+            Arc::from(elem_1.unwrap_or_default()),
+        )
+    });
+    SourceMap::new(sources, entry.as_deref().map(|value| value.into()))
+}
+
 #[wasm_bindgen]
-pub fn get_qir(code: &str) -> Result<String, String> {
+pub fn get_qir(sources: Vec<js_sys::Array>) -> Result<String, String> {
+    let sources = get_source_map(sources, None);
+    _get_qir(sources)
+}
+
+// allows testing without wasm bindings.
+fn _get_qir(sources: SourceMap) -> Result<String, String> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
     let std = compile::std(&store, Profile::Base.into());
     let std = store.insert(std);
-    let sources = SourceMap::new([("test".into(), code.into())], None);
 
     let (unit, errors) = qsc::compile::compile(
         &store,
@@ -72,10 +98,12 @@ pub fn get_qir(code: &str) -> Result<String, String> {
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(code: &str, params: &str) -> Result<String, String> {
+pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String, String> {
+    let sources = get_source_map(sources, None);
+
     let mut interpreter = stateful::Interpreter::new(
         true,
-        SourceMap::new([("code".into(), code.into())], None),
+        sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
     )
@@ -169,18 +197,16 @@ where
     }
 }
 
-fn run_internal<F>(
-    code: &str,
-    expr: &str,
-    event_cb: F,
-    shots: u32,
-) -> Result<(), Box<stateful::Error>>
+fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<stateful::Error>>
 where
     F: FnMut(&str),
 {
-    let source_name = "code";
+    let source_name = sources
+        .get_names()
+        .next()
+        .expect("There must be a source to process")
+        .to_string();
     let mut out = CallbackReceiver { event_cb };
-    let sources = SourceMap::new([(source_name.into(), code.into())], Some(expr.into()));
     let interpreter = stateful::Interpreter::new(
         true,
         sources,
@@ -191,7 +217,7 @@ where
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
-        let diag = VSDiagnostic::from_interpret_error(source_name, &e);
+        let diag = VSDiagnostic::from_interpret_error(&source_name, &e);
         let msg = json!(
             {"type": "Result", "success": false, "result": diag});
         (out.event_cb)(&msg.to_string());
@@ -207,7 +233,7 @@ where
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from_interpret_error(source_name, &errors[0]).json()
+                VSDiagnostic::from_interpret_error(&source_name, &errors[0]).json()
             }
         };
 
@@ -219,7 +245,7 @@ where
 
 #[wasm_bindgen]
 pub fn run(
-    code: &str,
+    sources: Vec<js_sys::Array>,
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
@@ -227,10 +253,9 @@ pub fn run(
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
-
+    let sources = get_source_map(sources, Some(expr.into()));
     match run_internal(
-        code,
-        expr,
+        sources,
         |msg: &str| {
             // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));

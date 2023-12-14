@@ -24,7 +24,10 @@ const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-
 
 const postMessage = port.postMessage.bind(port);
 
-const compiler = new QSharpLanguageService(wasm);
+const compiler = new QSharpLanguageService(
+  wasm,
+  // omit project system callback arguments as the worker doesn't support that
+);
 const invokeCompiler = createLanguageServiceDispatcher(postMessage, compiler);
 
 function messageHandler(data: any) {
