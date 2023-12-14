@@ -270,8 +270,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
         worker.terminate(); // Confirm: Does the 'terminate' in the finally below error if this happens?
       }, compilerRunTimeoutMs);
       try {
-        const code = editor.document.getText();
-
         const validateShotsInput = (input: string) => {
           const result = parseFloat(input);
           if (isNaN(result) || Math.floor(result) !== result || result <= 0) {
@@ -311,8 +309,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
           };
           sendMessageToPanel("histogram", false, message);
         });
-
-        await worker.run(code, "", parseInt(numberOfShots), evtTarget);
+        const sources = await loadProject(editor.document.uri);
+        await worker.run(sources, "", parseInt(numberOfShots), evtTarget);
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Codegen error. ", e.toString());

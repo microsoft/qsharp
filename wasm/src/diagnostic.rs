@@ -52,10 +52,7 @@ impl VSDiagnostic {
     }
 
     /// Creates a [VSDiagnostic] from an interpreter error. See `VSDiagnostic::new()` for details.
-    pub(crate) fn from_interpret_error(
-        source_name: &str,
-        err: &qsc::interpret::stateful::Error,
-    ) -> Self {
+    pub(crate) fn from_interpret_error(err: &qsc::interpret::stateful::Error) -> Self {
         let labels = match err {
             stateful::Error::Compile(e) => error_labels(e),
             stateful::Error::Pass(e) => error_labels(e),
@@ -64,14 +61,14 @@ impl VSDiagnostic {
             stateful::Error::TargetMismatch => Vec::new(),
         };
 
-        Self::new(labels, source_name, err)
+        Self::new(labels, err)
     }
 
     /// Creates a [VSDiagnostic] from a compiler error. See `VSDiagnostic::new()` for details.
-    pub(crate) fn from_compile_error(source_name: &str, err: &qsc::compile::Error) -> Self {
+    pub(crate) fn from_compile_error(err: &qsc::compile::Error) -> Self {
         let labels = error_labels(err);
 
-        Self::new(labels, source_name, err)
+        Self::new(labels, err)
     }
 
     /// Creates a [VSDiagnostic] using the information from a [miette::Diagnostic].
@@ -91,17 +88,14 @@ impl VSDiagnostic {
     /// Any labels with associated messages are included as "related information"
     /// objects in the [VSDiagnostic], whether they fall in the current document or not.
     /// Editors can display these as links to other source locations.
-    fn new<T>(labels: Vec<Label>, source_name: &str, err: &T) -> VSDiagnostic
+    fn new<T>(labels: Vec<Label>, err: &T) -> VSDiagnostic
     where
         T: Diagnostic,
     {
         let mut labels = labels.into_iter().peekable();
 
         let default = (0, 1);
-        let (start_pos, end_pos) = labels
-            .peek()
-            .filter(|l| l.source_name.as_ref() == source_name)
-            .map_or(default, |l| (l.start, l.end));
+        let (start_pos, end_pos) = labels.peek().map_or(default, |l| (l.start, l.end));
 
         let related: Vec<Related> = labels
             .filter_map(|label| match label.message {
