@@ -90,7 +90,6 @@ def list_directory_memfs(dir_path):
             lambda x: {
                 "path": os.path.join(dir_path, x[0]),
                 "entry_name": x[0],
-                "extension": os.path.splitext(x[0])[1][1:],
                 "type": "folder" if isinstance(x[1], dict) else "file",
             },
             item.items(),

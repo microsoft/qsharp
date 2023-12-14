@@ -38,7 +38,6 @@ struct Entry {
     entry_type: EntryType,
     path: String,
     entry_name: String,
-    extension: String,
 }
 
 impl DirEntry for Entry {
@@ -46,10 +45,6 @@ impl DirEntry for Entry {
 
     fn entry_type(&self) -> Result<EntryType, Self::Error> {
         Ok(self.entry_type)
-    }
-
-    fn extension(&self) -> String {
-        self.extension.clone()
     }
 
     fn entry_name(&self) -> String {
@@ -109,7 +104,6 @@ fn list_directory(py: Python, list_directory: &PyObject, path: &Path) -> PyResul
                 entry_type,
                 path: get_dict_string(dict, "path")?.to_string(),
                 entry_name: get_dict_string(dict, "entry_name")?.to_string(),
-                extension: get_dict_string(dict, "extension")?.to_string(),
             })
         })
         .collect() // Returns all values if all Ok, or first Err

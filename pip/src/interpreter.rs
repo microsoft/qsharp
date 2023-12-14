@@ -123,7 +123,7 @@ impl Interpreter {
                     "file system hooks should have been passed in with a manifest descriptor",
                 ),
             )
-            .load_project(manifest_descriptor.0)
+            .load_project(&manifest_descriptor.0)
             .map_py_err()?;
             SourceMap::new(project.sources, None)
         } else {

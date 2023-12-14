@@ -15,7 +15,6 @@ def list_directory(dir_path):
             lambda e: {
                 "path": os.path.join(dir_path, e),
                 "entry_name": e,
-                "extension": os.path.splitext(e)[1][1:],
                 "type": "file"
                 if os.path.isfile(os.path.join(dir_path, e))
                 else "folder"
