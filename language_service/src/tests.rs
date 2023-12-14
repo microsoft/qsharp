@@ -199,6 +199,48 @@ async fn document_in_project() {
         "#]],
     );
 }
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn update_doc_updates_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &received_errors);
+
+    ls.update_document(
+        "other_file.qs",
+        1,
+        "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+    );
+    ls.update_document("this_file.qs", 1, "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥");
+
+    // now process background work
+    worker.apply_pending().await;
+
+    check_errors_and_compilation(
+        &ls,
+        &mut received_errors.borrow_mut(),
+        "other_file.qs",
+        &expect![[r#"
+            []
+        "#]],
+        &expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "other_file.qs",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "this_file.qs",
+                        contents: "namespace Foo { operation Main() : Unit {} }",
+                        offset: 52,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+    );
+}
 
 // the below tests test the asynchronous behavior of the language service.
 // we use `get_completions` as a rough analog for all document operations, as
@@ -329,6 +371,10 @@ fn create_update_worker<'a>(
             Box::pin(async move {
                 tokio::spawn(ready(match file.as_str() {
                     "this_file.qs" => Some(ManifestDescriptor {
+                        manifest: Manifest::default(),
+                        manifest_dir: ".".into(),
+                    }),
+                    "other_file.qs" => Some(ManifestDescriptor {
                         manifest: Manifest::default(),
                         manifest_dir: ".".into(),
                     }),
