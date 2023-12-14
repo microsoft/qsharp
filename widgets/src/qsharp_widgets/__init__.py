@@ -94,8 +94,9 @@ class Histogram(anywidget.AnyWidget):
 
         # Note: For now, we don't care about saving the results, just counting
         # up the results for each bucket. If/when we add output details and
-        # navigation, then we'll need to save the results.
-        qsharp.run(entry_expr, shots, on_result=self._add_result)
+        # navigation, then we'll need to save the results. However, we pass
+        # 'save_results=True' to avoid printing to the console.
+        qsharp.run(entry_expr, shots, on_result=self._add_result, save_output=True)
 
         # Update the UI one last time to make sure we show the final results
         self._update_ui()
