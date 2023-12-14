@@ -46,18 +46,12 @@ class Histogram(anywidget.AnyWidget):
     buckets = traitlets.Dict().tag(sync=True)
     shot_count = traitlets.Integer().tag(sync=True)
 
-    _new_buckets = {}
-    _new_count = 0
-    _last_message = time.time()
-
-    results = []
-
     def _update_ui(self):
         self.buckets = self._new_buckets.copy()
         self.shot_count = self._new_count
         self._last_message = time.time()
 
-    def add_result(self, result):
+    def _add_result(self, result):
         result_str = str(result["result"])
         old_value = self._new_buckets.get(result_str, 0)
         self._new_buckets.update({result_str: old_value + 1})
@@ -67,15 +61,41 @@ class Histogram(anywidget.AnyWidget):
         if time.time() - self._last_message >= 0.05:
             self._update_ui()
 
-    def __init__(self, entry_expr=None, shot_count=None):
+    def __init__(self, results=None):
         super().__init__()
-        if entry_expr and shot_count:
-            self.run(entry_expr, shot_count)
 
-    def run(self, expr, shots):
+        self._new_buckets = {}
+        self._new_count = 0
+        self._last_message = time.time()
+
+        # If provided a list of results, count the buckets and update.
+        # Need to distinguish between the case where we're provided a list of results
+        # or a dictionary of results and events.
+        if results is not None:
+            if isinstance(results, dict) and "results" in results:
+                result_list = results["results"]
+            elif isinstance(results, list):
+                result_list = results
+            else:
+                raise ValueError(
+                    "Expected a list of results or a dictionary with a 'results' key."
+                )
+
+            # Count up the buckets
+            for result in result_list:
+                self._add_result({"result": result, "events": []})
+            self._update_ui()
+
+    def run(self, entry_expr, shots):
         import qsharp
 
         self._new_buckets = {}
         self._new_count = 0
-        self.results = qsharp.run_histogram(expr, shots, self.add_result)
+
+        # Note: For now, we don't care about saving the results, just counting
+        # up the results for each bucket. If/when we add output details and
+        # navigation, then we'll need to save the results.
+        qsharp.run(entry_expr, shots, on_result=self._add_result)
+
+        # Update the UI one last time to make sure we show the final results
         self._update_ui()
