@@ -6,8 +6,9 @@
 /// of 2-outcome measurements to multiple qubits and other bases.
 namespace Sample {
     open Microsoft.Quantum.Diagnostics;
+
     @EntryPoint()
-        operation Main() : (Result, Result[]) {
+    operation Main() : (Result, Result[]) {
         // Prepare an entangled state.
         use qs = Qubit[2];  // |00〉
         H(qs[0]);           // 1/sqrt(2)(|00〉 + |10〉)
@@ -20,7 +21,7 @@ namespace Sample {
         // of the first two qubits. In this case, the parity measurement result
         // will always be `Zero`.
         // Notice how the state was not collapsed by the joint measurement.
-        let parityResult = Measure([PauliZ, PauliZ], qs[...1]); 
+        let parityResult = Measure([PauliZ, PauliZ], qs[...1]);
         DumpMachine();
 
         // However, if we perform a measurement just on the first qubit, we can
@@ -29,7 +30,7 @@ namespace Sample {
         DumpMachine();
 
         // Measuring the last qubit does not change the quantum state
-        // since the state of the second qubit collapsed when the first qubit 
+        // since the state of the second qubit collapsed when the first qubit
         // was measured because they were entangled.
         let secondQubitResult = M(qs[1]);
         DumpMachine();

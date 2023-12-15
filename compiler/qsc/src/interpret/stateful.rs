@@ -63,9 +63,9 @@ pub enum Error {
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
-    #[error("code generation target mismatch")]
-    #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
-    TargetMismatch,
+    #[error("unsupported runtime capabilities for code generation")]
+    #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
+    UnsupportedRuntimeCapabilities,
 }
 
 struct Lookup<'a> {
@@ -368,7 +368,7 @@ impl Interpreter {
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<Error>> {
         if self.capabilities != RuntimeCapabilityFlags::empty() {
-            return Err(vec![Error::TargetMismatch]);
+            return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
 
         let mut sim = BaseProfSim::new();

@@ -39,18 +39,23 @@ pub fn test_expression(expr: &str, expected: &Value) {
 }
 
 pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) {
+    test_expression_with_lib_and_profile(expr, lib, Profile::Unrestricted, expected);
+}
+
+pub fn test_expression_with_lib_and_profile(
+    expr: &str,
+    lib: &str,
+    profile: Profile,
+    expected: &Value,
+) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let mut interpreter = stateful::Interpreter::new(
-        true,
-        sources,
-        PackageType::Exe,
-        Profile::Unrestricted.into(),
-    )
-    .expect("test should compile");
+    let mut interpreter =
+        stateful::Interpreter::new(true, sources, PackageType::Exe, profile.into())
+            .expect("test should compile");
     let result = interpreter
         .eval_entry(&mut out)
         .expect("test should run successfully");
