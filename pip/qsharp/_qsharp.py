@@ -32,7 +32,7 @@ class Config:
     # Editor services that interact with the notebook frontend
     # (i.e. the language service) can read and interpret the data.
     def _repr_mimebundle_(
-        self, include: Any | None = None, exclude: Any | None = None
+        self, include: Union[Any, None] = None, exclude: Union[Any, None] = None
     ) -> Dict[str, Dict[str, str]]:
         return {"application/x.qsharp-config": self._config}
 

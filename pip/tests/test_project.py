@@ -13,6 +13,7 @@ def qsharp():
     qsharp._fs.read_file = read_file_memfs
     qsharp._fs.list_directory = list_directory_memfs
     qsharp._fs.exists = exists_memfs
+    qsharp._fs.join = join_memfs
 
     return qsharp
 
