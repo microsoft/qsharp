@@ -512,7 +512,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     }
 
     //
-    // Compariosons
+    // Comparisons
     //
     // Compare BigInt and qubit register in a little-endian format and apply action
     //   if c < x { action(target) }  | ApplyIfLessL
