@@ -738,7 +738,11 @@ async fn close_doc_prioritizes_fs() {
         )
         .await;
     updater
-        .update_document("this_file.qs", 1, "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥")
+        .update_document(
+            "this_file.qs",
+            1,
+            "/* this should not show up in the final state */ we should not see compile errors",
+        )
         .await;
 
     updater.close_document("this_file.qs").await;
@@ -783,115 +787,15 @@ async fn close_doc_prioritizes_fs() {
                             Error(
                                 Parse(
                                     Error(
-                                        Lex(
-                                            Unknown(
-                                                '🔥',
-                                                Span {
-                                                    lo: 59,
-                                                    hi: 63,
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Lex(
-                                            Unknown(
-                                                '🔥',
-                                                Span {
-                                                    lo: 63,
-                                                    hi: 67,
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
                                         Token(
                                             Eof,
-                                            Ident,
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
                                             Span {
-                                                lo: 67,
-                                                hi: 71,
+                                                lo: 59,
+                                                hi: 60,
                                             },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Lex(
-                                            Unknown(
-                                                '🔥',
-                                                Span {
-                                                    lo: 86,
-                                                    hi: 90,
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Lex(
-                                            Unknown(
-                                                '🔥',
-                                                Span {
-                                                    lo: 90,
-                                                    hi: 94,
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Lex(
-                                            Unknown(
-                                                '🔥',
-                                                Span {
-                                                    lo: 94,
-                                                    hi: 98,
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Lex(
-                                            Unknown(
-                                                '🔥',
-                                                Span {
-                                                    lo: 98,
-                                                    hi: 102,
-                                                },
-                                            ),
                                         ),
                                     ),
                                 ),
