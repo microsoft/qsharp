@@ -143,6 +143,7 @@ async function readFileUri(
   }
 }
 
+// TODO: consolidate with `getManifest`
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   excludeFiles: string[];
   excludeRegexes: string[];
@@ -154,8 +155,14 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
     try {
       JSON.parse(manifestDocument.content); // will throw if invalid
     } catch (e: any) {
+      updateQSharpJsonDiagnostics(
+        manifestDocument.uri,
+        "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
+      );
       throw new Error("Failed to parse manifest: " + e.message);
     }
+
+    updateQSharpJsonDiagnostics(manifestDocument.uri);
 
     const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
