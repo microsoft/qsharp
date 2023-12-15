@@ -22,6 +22,7 @@ fn set_indentation<'a, 'b>(
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+// TODO (cesarzc): This should be a bit set.
 pub enum RuntimeCapability {
     ConditionalForwardBranching,
     // QubitReuse, // CONSIDER (cesarzc): Possibly not needed.

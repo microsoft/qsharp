@@ -24,10 +24,10 @@ namespace QuantumHelloWorld {
         //let dynBar2 = Bar(dynInt, 1);
         //let dynBar3 = Bar(dynInt, dynInt);
 
-        //let staticBaz0 = Baz(0, 1);
-        //let staticBaz1 = Baz(0, dynInt);
-        //let dynBaz2 = Baz(dynInt, 1);
-        //let dynBaz3 = Baz(dynInt, dynInt);
+        let staticBaz0 = Baz(0, 1);
+        let staticBaz1 = Baz(0, dynInt);
+        let dynBaz2 = Baz(dynInt, 1);
+        let dynBaz3 = Baz(dynInt, dynInt);
 
         Reset(myQubit);
         return result;
@@ -39,11 +39,16 @@ namespace QuantumHelloWorld {
     }
 
     function Bar(a : Int, b : Int) : Double {
+        let j = Foo(a);
         let i = a + b;
         IntAsDouble(i)
     }
 
     function Baz(a : Int, b : Int) : Double {
         IntAsDouble(a / 1)
+    }
+
+    function Bat(a: Int, b: Int, c: Int, d: Int): Int {
+        b + d
     }
 }

@@ -67,7 +67,7 @@ pub struct PackageComputeProps {
     pub blocks: IndexMap<BlockId, ElmntComputeProps>,
     pub stmts: IndexMap<StmtId, ElmntComputeProps>,
     pub exprs: IndexMap<ExprId, ElmntComputeProps>,
-    pub pats: IndexMap<PatId, PatComputeProps>,
+    pub pats: IndexMap<PatId, PatComputeProps>, // TODO (cesarzc): 
 }
 
 impl Default for PackageComputeProps {
