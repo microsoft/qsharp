@@ -177,5 +177,7 @@ export async function loadProject(
 
   const projectLoader = await getProjectLoader(readFile, listDir, getManifest);
   log.info("using project loader to debug");
-  return await projectLoader.load_project(manifest);
+  const project = projectLoader.load_project(manifest);
+  projectLoader.free();
+  return project;
 }
