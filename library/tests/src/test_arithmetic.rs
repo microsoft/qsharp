@@ -959,3 +959,28 @@ fn check_apply_if_greater_le_exhaustive() {
         &Value::Tuple(vec![].into()),
     );
 }
+
+#[test]
+fn check_apply_if_less_l_non_x_action() {
+    test_expression(
+        "{
+            open Microsoft.Quantum.Unstable.Arithmetic;
+            open Microsoft.Quantum.Measurement;
+            use input = Qubit[10];
+            use output1 = Qubit[10];
+            use output2 = Qubit[10];
+            ApplyXorInPlace(569, input);
+            ApplyXorInPlace(753, output1);
+            ApplyXorInPlace(753, output2);
+            ApplyIfGreaterL(IncByI(5, _), 572L, input, output1);
+            ApplyIfLessL(IncByI(5, _), 572L, input, output2);
+            let result1 = MeasureInteger(output1);
+            let result2 = MeasureInteger(output2);
+            ResetAll(input);
+            ResetAll(output1);
+            ResetAll(output2);
+            (result1, result2)
+        }",
+        &Value::Tuple(vec![Value::Int(758), Value::Int(753)].into()),
+    );
+}
