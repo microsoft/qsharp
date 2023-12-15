@@ -148,7 +148,12 @@ export function Editor(props: {
         );
       } else {
         performance.mark("compiler-run-start");
-        await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
+        await props.compiler.run(
+          [["code", code]],
+          runExpr,
+          shotCount,
+          props.evtTarget,
+        );
         const runTimer = performance.measure(
           "compiler-run",
           "compiler-run-start",
