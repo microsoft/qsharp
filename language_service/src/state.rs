@@ -149,7 +149,7 @@ impl<'a> CompilationStateUpdater<'a> {
         let text: Arc<str> = Arc::from(text);
 
         let manifest = (self.get_manifest)(uri.to_string()).await;
-        let mut sources = if let Some(ref manifest) = manifest {
+        let sources = if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
             match res {
                 Ok(o) => o.sources,
@@ -166,10 +166,7 @@ impl<'a> CompilationStateUpdater<'a> {
         // If we are in single file mode, use the file's path as the compilation identifier.
         // If we are compiling a project, use the path to the project manifest
         let compilation_uri: Arc<str> = if let Some(manifest) = manifest {
-            Arc::from(format!(
-                "{}/qsharp.json",
-                manifest.manifest_dir.to_string_lossy()
-            ))
+            manifest.compilation_uri()
         } else {
             doc_uri.clone()
         };
@@ -188,7 +185,18 @@ impl<'a> CompilationStateUpdater<'a> {
                     latest_str_content: text,
                 },
             );
+        });
+        self.insert_buffer_aware_compilation(sources, &compilation_uri);
 
+        self.publish_diagnostics();
+    }
+
+    fn insert_buffer_aware_compilation(
+        &mut self,
+        mut sources: Vec<(Arc<str>, Arc<str>)>,
+        compilation_uri: &Arc<str>,
+    ) {
+        self.with_state_mut(|state| {
             // replace source with one from memory if it exists
             // this is what prioritizes open buffers over what exists on the fs for a
             // given document
@@ -210,16 +218,31 @@ impl<'a> CompilationStateUpdater<'a> {
                 (compilation, PartialConfiguration::default()),
             );
         });
+    }
 
+    pub(super) async fn close_document(&mut self, uri: &str) {
+        self.close_single_document(uri);
+
+        let manifest = (self.get_manifest)(uri.to_string()).await;
+        if let Some(ref manifest) = manifest {
+            let res = self.load_project(manifest).await;
+            let sources = match res {
+                Ok(o) => o.sources,
+                Err(e) => {
+                    error!("failed to load manifest: {e:?}, defaulting to closin file in single-file mode");
+                    return;
+                }
+            };
+            self.insert_buffer_aware_compilation(sources, &manifest.compilation_uri());
+        };
         self.publish_diagnostics();
     }
 
-    pub(super) fn close_document(&mut self, uri: &str) {
+    fn close_single_document(&mut self, uri: &str) {
         self.with_state_mut(|state| {
             state.compilations.remove(uri);
             state.open_documents.remove(uri);
         });
-        self.publish_diagnostics();
     }
 
     pub(super) fn update_notebook_document<'b, I>(
@@ -268,6 +291,8 @@ impl<'a> CompilationStateUpdater<'a> {
         });
         self.publish_diagnostics();
     }
+
+    // TODO
 
     pub(super) fn close_notebook_document<'b>(
         &mut self,

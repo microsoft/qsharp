@@ -369,7 +369,7 @@ fn push_update(pending_updates: &mut Vec<Update>, update: Update) {
 async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update) {
     match update {
         Update::CloseDocument { uri } => {
-            updater.close_document(&uri);
+            updater.close_document(&uri).await;
         }
         Update::Document { uri, version, text } => {
             updater.update_document(&uri, version, &text).await;

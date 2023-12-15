@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// expect-test updates these strings automatically
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::{CompilationState, CompilationStateUpdater};
 use crate::protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate};
 use expect_test::{expect, Expect};
@@ -135,7 +138,7 @@ async fn clear_on_document_close() {
         "#]],
     );
 
-    updater.close_document("foo.qs");
+    updater.close_document("foo.qs").await;
 
     expect_errors(
         &errors,
@@ -640,7 +643,11 @@ async fn update_doc_updates_project() {
         )
         .await;
     updater
-        .update_document("this_file.qs", 1, "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥")
+        .update_document(
+            "this_file.qs",
+            1,
+            "namespace Foo {/* we should see this comment in the source*/ }",
+        )
         .await;
 
     check_errors_and_compilation(
@@ -656,7 +663,7 @@ async fn update_doc_updates_project() {
                 "this_file.qs": OpenDocument {
                     version: 1,
                     compilation: "./qsharp.json",
-                    latest_str_content: "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥",
+                    latest_str_content: "namespace Foo {/* we should see this comment in the source*/ }",
                 },
             }
         "#]],
@@ -670,7 +677,95 @@ async fn update_doc_updates_project() {
                     },
                     Source {
                         name: "this_file.qs",
-                        contents: "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥",
+                        contents: "namespace Foo {/* we should see this comment in the source*/ }",
+                        offset: 59,
+                    },
+                ],
+                entry: None,
+            }"#]],
+        &expect![[r#"
+            [
+                (
+                    "this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Token(
+                                            Close(
+                                                Brace,
+                                            ),
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
+                                            Span {
+                                                lo: 74,
+                                                hi: 75,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+/// In this test, we:
+/// open a project
+/// update a buffer in the LS
+/// close that buffer
+/// assert that the LS no longer prioritizes that open buffer
+/// over the FS
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
+async fn close_doc_prioritizes_fs() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document(
+            "other_file.qs",
+            1,
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+        )
+        .await;
+    updater
+        .update_document("this_file.qs", 1, "🔥🔥THIS SHOULD SHOW UP🔥🔥🔥🔥")
+        .await;
+
+    updater.close_document("this_file.qs").await;
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "other_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "./qsharp.json",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 59,
                     },
                 ],
@@ -804,11 +899,15 @@ async fn update_doc_updates_project() {
                         ),
                     ],
                 ),
+                (
+                    "this_file.qs",
+                    None,
+                    [],
+                ),
             ]
         "#]],
     );
 }
-
 type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
