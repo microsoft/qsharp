@@ -191,6 +191,10 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics();
     }
 
+    /// This function takes a vector of sources and creates a compilation out of them.
+    /// It checks currently open documents and uses those buffers instead of any
+    /// sources provided in the vector, effectively prioritizing open document contents
+    /// over fs contents.
     fn insert_buffer_aware_compilation(
         &mut self,
         mut sources: Vec<(Arc<str>, Arc<str>)>,
