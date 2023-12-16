@@ -296,8 +296,6 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics();
     }
 
-    // TODO
-
     pub(super) fn close_notebook_document<'b>(
         &mut self,
         notebook_uri: &str,

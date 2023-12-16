@@ -646,7 +646,7 @@ async fn update_doc_updates_project() {
         .update_document(
             "this_file.qs",
             1,
-            "namespace Foo {/* we should see this comment in the source*/ }",
+            "namespace Foo { we should see this in the source }",
         )
         .await;
 
@@ -663,7 +663,7 @@ async fn update_doc_updates_project() {
                 "this_file.qs": OpenDocument {
                     version: 1,
                     compilation: "./qsharp.json",
-                    latest_str_content: "namespace Foo {/* we should see this comment in the source*/ }",
+                    latest_str_content: "namespace Foo { we should see this in the source }",
                 },
             }
         "#]],
@@ -677,7 +677,7 @@ async fn update_doc_updates_project() {
                     },
                     Source {
                         name: "this_file.qs",
-                        contents: "namespace Foo {/* we should see this comment in the source*/ }",
+                        contents: "namespace Foo { we should see this in the source }",
                         offset: 59,
                     },
                 ],
@@ -699,12 +699,10 @@ async fn update_doc_updates_project() {
                                             Close(
                                                 Brace,
                                             ),
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
+                                            Ident,
                                             Span {
-                                                lo: 74,
-                                                hi: 75,
+                                                lo: 75,
+                                                hi: 77,
                                             },
                                         ),
                                     ),
