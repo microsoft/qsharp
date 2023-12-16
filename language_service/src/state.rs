@@ -61,6 +61,7 @@ struct OpenDocument {
     /// with a snapshot of the document.
     pub version: u32,
     pub compilation: CompilationUri,
+    pub latest_str_content: Arc<str>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -135,8 +136,6 @@ impl<'a> CompilationStateUpdater<'a> {
     /// a recompilation may be triggered, which will result in a new set of diagnostics
     /// being published.
     pub fn update_configuration(&mut self, configuration: WorkspaceConfigurationUpdate) {
-        trace!("update_configuration: {configuration:?}");
-
         let need_recompile = self.apply_configuration(configuration);
 
         // Some configuration options require a recompilation as they impact error checking
@@ -146,88 +145,108 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        let doc_uri: Arc<str> = Arc::from(uri);
+        let text: Arc<str> = Arc::from(text);
+
         let manifest = (self.get_manifest)(uri.to_string()).await;
-        let in_project_mode = manifest.is_some();
         let sources = if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
             match res {
                 Ok(o) => o.sources,
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
-                    vec![(Arc::from(uri), Arc::from(text))]
+                    vec![(doc_uri.clone(), text.clone())]
                 }
             }
         } else {
             trace!("Running in single file mode");
-            vec![(Arc::from(uri), Arc::from(text))]
+            vec![(doc_uri.clone(), text.clone())]
         };
 
-        let compilation = Compilation::new(
-            &sources,
-            self.configuration.package_type,
-            self.configuration.target_profile,
-        );
         // If we are in single file mode, use the file's path as the compilation identifier.
         // If we are compiling a project, use the path to the project manifest
-        let uri: Arc<str> = if let Some(manifest) = manifest {
-            Arc::from(format!(
-                "{}/qsharp.json",
-                manifest.manifest_dir.to_string_lossy()
-            ))
+        let compilation_uri: Arc<str> = if let Some(manifest) = manifest {
+            manifest.compilation_uri()
         } else {
-            uri.into()
+            doc_uri.clone()
         };
-        trace!("Loaded project uri {uri} with {} sources", sources.len());
+
+        trace!(
+            "Loaded project uri {compilation_uri} with {} sources",
+            sources.len()
+        );
 
         self.with_state_mut(|state| {
-            state
-                .compilations
-                .insert(uri.clone(), (compilation, PartialConfiguration::default()));
-
-            // There may be open buffers with sources in the project.
-            // These buffers need to have their diagnostics reloaded,
-            // to be in the context of the project.
-            // We remove them from the existing compilations and update
-            // their compilation URI
-            if in_project_mode {
-                for (path, _contents) in &sources {
-                    log::trace!("Updating compilation of {path} to {uri}");
-                    state
-                        .open_documents
-                        .entry(path.clone())
-                        .and_modify(|x| {
-                            // remove any old single-file compilations of this document
-                            // if this is a project
-                            if x.compilation != uri {
-                                state.compilations.remove(&x.compilation);
-                            }
-                            x.compilation = uri.clone();
-                        })
-                        .or_insert(OpenDocument {
-                            version,
-                            compilation: uri.clone(),
-                        });
-                }
-            } else {
-                state.open_documents.insert(
-                    uri.clone(),
-                    OpenDocument {
-                        version,
-                        compilation: uri.clone(),
-                    },
-                );
-            }
+            state.open_documents.insert(
+                doc_uri.clone(),
+                OpenDocument {
+                    version,
+                    compilation: compilation_uri.clone(),
+                    latest_str_content: text,
+                },
+            );
         });
+        self.insert_buffer_aware_compilation(sources, &compilation_uri);
 
         self.publish_diagnostics();
     }
 
-    pub(super) fn close_document(&mut self, uri: &str) {
+    /// This function takes a vector of sources and creates a compilation out of them.
+    /// It checks currently open documents and uses those buffers instead of any
+    /// sources provided in the vector, effectively prioritizing open document contents
+    /// over fs contents.
+    fn insert_buffer_aware_compilation(
+        &mut self,
+        mut sources: Vec<(Arc<str>, Arc<str>)>,
+        compilation_uri: &Arc<str>,
+    ) {
+        self.with_state_mut(|state| {
+            // replace source with one from memory if it exists
+            // this is what prioritizes open buffers over what exists on the fs for a
+            // given document
+            for (ref l_uri, ref mut source) in &mut sources {
+                if let Some(doc) = state.open_documents.get(l_uri) {
+                    trace!("{l_uri} is open, using source from open document");
+                    *source = doc.latest_str_content.clone();
+                }
+            }
+
+            let compilation = Compilation::new(
+                &sources,
+                self.configuration.package_type,
+                self.configuration.target_profile,
+            );
+
+            state.compilations.insert(
+                compilation_uri.clone(),
+                (compilation, PartialConfiguration::default()),
+            );
+        });
+    }
+
+    pub(super) async fn close_document(&mut self, uri: &str) {
+        self.close_single_document(uri);
+
+        let manifest = (self.get_manifest)(uri.to_string()).await;
+        if let Some(ref manifest) = manifest {
+            let res = self.load_project(manifest).await;
+            let sources = match res {
+                Ok(o) => o.sources,
+                Err(e) => {
+                    error!("failed to load manifest: {e:?}, defaulting to closin file in single-file mode");
+                    return;
+                }
+            };
+            self.insert_buffer_aware_compilation(sources, &manifest.compilation_uri());
+        };
+        self.publish_diagnostics();
+    }
+
+    fn close_single_document(&mut self, uri: &str) {
         self.with_state_mut(|state| {
             state.compilations.remove(uri);
             state.open_documents.remove(uri);
         });
-        self.publish_diagnostics();
     }
 
     pub(super) fn update_notebook_document<'b, I>(
@@ -261,6 +280,7 @@ impl<'a> CompilationStateUpdater<'a> {
                         OpenDocument {
                             version,
                             compilation: compilation_uri.clone(),
+                            latest_str_content: Arc::from(cell_contents),
                         },
                     );
                     (Arc::from(cell_uri), Arc::from(cell_contents))

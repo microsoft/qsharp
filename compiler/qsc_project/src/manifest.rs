@@ -11,7 +11,7 @@ use std::{
 
 use regex_lite::Regex;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
@@ -49,6 +49,13 @@ impl ManifestDescriptor {
 
     pub(crate) fn exclude_files(&self) -> &[String] {
         &self.manifest.exclude_files
+    }
+    /// Generate a canonical compilation URI for the project associated with this manifest
+    pub fn compilation_uri(&self) -> Arc<str> {
+        Arc::from(format!(
+            "{}/qsharp.json",
+            self.manifest_dir.to_string_lossy()
+        ))
     }
 }
 
