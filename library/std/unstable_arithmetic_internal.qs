@@ -536,8 +536,8 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     }
 
     /// # Summary
-    /// This wrapper allows operations controllable by one qubit only
-    /// to be used in a multi-controlled scenarios. It provides
+    /// This wrapper allows operations that support only one control
+    /// qubit to be used in a multi-controlled scenarios. It provides
     /// controlled version that collects controls into one qubit
     /// by applying AND chain using auxiliary qubit array.
     internal operation ApplyAsSinglyControlled<'TIn> (
