@@ -569,7 +569,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             within {
                 ApplyPauliFromBitString(PauliX, false, bits, xs);
             } apply {
-                Controlled action(xs, target);
+                Controlled ApplyAsSinglyControlled(xs, (a => action(a), target));
             }
         }
     }
@@ -647,7 +647,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
                 X(y[i]);
             }
         } apply {
-            Controlled action(y, target);
+            Controlled ApplyAsSinglyControlled(y, (a => action(a), target))
         }
     }
 
