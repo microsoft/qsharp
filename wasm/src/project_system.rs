@@ -81,7 +81,6 @@ where
     F: Fn(JsValue) -> T,
 {
     let res = res.await.expect("js future shouldn't throw an exception");
-    log::trace!("asynchronous callback from wasm returned {res:?}");
     func(res)
 }
 
