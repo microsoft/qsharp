@@ -202,7 +202,8 @@ where
     F: FnMut(&str),
 {
     let source_name = sources
-        .get_names()
+        .iter()
+        .map(|x| x.name.clone())
         .next()
         .expect("There must be a source to process")
         .to_string();

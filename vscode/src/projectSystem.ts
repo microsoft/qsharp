@@ -161,6 +161,8 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   return null;
 }
 
+let projectLoader: any | undefined = undefined; 
+
 export async function loadProject(
   documentUri: vscode.Uri,
 ): Promise<[string, string][]> {
@@ -175,7 +177,9 @@ export async function loadProject(
     return [[documentUri.toString(), file.getText()]];
   }
 
-  const projectLoader = await getProjectLoader(readFile, listDir, getManifest);
-  log.info("using project loader to debug");
-  return await projectLoader.load_project(manifest);
+  if (!projectLoader) {
+      projectLoader = await getProjectLoader(readFile, listDir, getManifest);
+  }
+  const project = await projectLoader.load_project(manifest);
+  return project;
 }
