@@ -159,7 +159,9 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
         manifestDocument.uri,
         "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
       );
-      throw new Error("Failed to parse qsharp.json. For a minimal Q# project manifest, try: {}");
+      throw new Error(
+        "Failed to parse qsharp.json. For a minimal Q# project manifest, try: {}",
+      );
     }
 
     updateQSharpJsonDiagnostics(manifestDocument.uri);
