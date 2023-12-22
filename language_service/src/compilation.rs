@@ -11,7 +11,7 @@ use qsc::{
     target::Profile,
     CompileUnit, PackageStore, PackageType, SourceMap,
 };
-use std::{iter::successors, sync::Arc};
+use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
@@ -131,41 +131,21 @@ impl Compilation {
 
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
-        let sources: Vec<_> = self
-            .user_source_contents()
-            .into_iter()
-            .map(|(a, b)| (Arc::from(a), Arc::from(b)))
-            .collect();
+        let sources = self
+            .user_unit()
+            .sources
+            .iter()
+            .map(|source| (source.name.clone(), source.contents.clone()));
 
         let new = match self.kind {
-            CompilationKind::OpenProject => Self::new(&sources, package_type, target_profile),
-            CompilationKind::Notebook => Self::new_notebook(sources.into_iter(), target_profile),
+            CompilationKind::OpenProject => {
+                Self::new(&sources.collect::<Vec<_>>(), package_type, target_profile)
+            }
+            CompilationKind::Notebook => Self::new_notebook(sources, target_profile),
         };
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
-    }
-
-    /// Returns the original sources that were used to create the compilation.
-    fn user_source_contents(&self) -> Vec<(&str, &str)> {
-        let sources = &self.user_unit().sources;
-
-        successors(sources.find_by_offset(0), |last| {
-            sources
-                .find_by_offset(
-                    u32::try_from(last.contents.len()).expect("source contents should fit in u32")
-                        + 1,
-                )
-                .and_then(|s| {
-                    if s.offset == last.offset {
-                        None
-                    } else {
-                        Some(s)
-                    }
-                })
-        })
-        .map(|s| (s.name.as_ref(), s.contents.as_ref()))
-        .collect()
     }
 }
 
