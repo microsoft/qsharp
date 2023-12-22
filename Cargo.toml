@@ -57,6 +57,10 @@ rand = "0.8"
 serde_json = { version = "1.0" }
 pyo3 = { version = "0.20" }
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "f000e0066f56338595be37092cd0498f72ab10a2", default-features = false }
+libc = "0.2"
+jemalloc-ctl = { version = "0.5" }
+jemallocator = { version = "0.5" }
+jemalloc-sys = { version = "0.5", features = ["stats"] }
 
 [profile.release]
 debug = 1
