@@ -34,9 +34,7 @@ serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = { workspace = true }
 fasteval = { workspace = true }
 jemallocator = { workspace = true }
-jemalloc-sys = { workspace = true }
 jemalloc-ctl = { workspace = true }
-libc = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
