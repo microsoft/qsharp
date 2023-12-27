@@ -26,7 +26,7 @@ env:
 jobs:
   format:
     name: Format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -41,7 +41,7 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -57,7 +57,7 @@ jobs:
 
   benches:
     name: Benches
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -73,7 +73,7 @@ jobs:
 
   web-check:
     name: Check web files
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -90,7 +90,7 @@ jobs:
     name: Build and test
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-20.04, macos-latest]
 
     runs-on: ${{matrix.os}}
 
@@ -118,14 +118,59 @@ jobs:
         run: python ./prereqs.py --install
       - name: Build and Test
         run: python ./build.py --no-check
-
+      # Now we need to prepare the artifacts for upload.
+      # Run auditwheel on Linux
+      - name: Run auditwheel for Linux Wheels
+        run: |
+          python -m pip install auditwheel patchelf
+          ls target/wheels
+          ls target/wheels/*x86_64*.whl | xargs auditwheel show
+          ls target/wheels/*x86_64*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/ --plat manylinux_2_31_x86_64
+          rm target/wheels/*-linux_x86_64.whl
+          ls target/wheels
+        if: matrix.os == 'ubuntu-20.04'
+      # publish wheels for active target
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-wheels-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            ./target/wheels/*.whl
+      # Publish vsix for VSCode if on linux
+      - name: Create VSCode Ext Package
+        working-directory: ./vscode
+        run: |
+          npm install -g @vscode/vsce
+          vsce package
+        if: matrix.os == 'ubuntu-20.04'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-vsix
+          if-no-files-found: error
+          path: |
+            ./vscode/*.vsix
+        if: matrix.os == 'ubuntu-20.04'
+      # Create npm package
+      - name: Create npm package
+        working-directory: ./npm
+        run: |
+          mkdir -p ../target/npm
+          npm pack --pack-destination ../target/npm
+        if: matrix.os == 'ubuntu-20.04'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-npm
+          if-no-files-found: error
+          path: |
+            ./target/npm
+        if: matrix.os == 'ubuntu-20.04'
   integration-tests:
     name: Integration tests
     if: ${{ ! github.event.pull_request }}
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-20.04, macos-latest]
 
     runs-on: ${{matrix.os}}
 
@@ -153,3 +198,33 @@ jobs:
         run: python ./prereqs.py --install
       - name: Run integration tests
         run: python ./build.py --no-check --no-test --wasm --npm --vscode --integration-tests
+  python-compat-checks:
+    needs: [build]
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        pyver: ['3.9', '3.10', '3.11']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.pyver }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: build-artifact-wheels-*
+          path: ./target/wheels
+          merge-multiple: true
+      - name: Run python compatibility checks
+        run: |
+          python ./build.py --no-check --no-check-prereqs --artifact-tests
