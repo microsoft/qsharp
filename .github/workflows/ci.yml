@@ -162,7 +162,7 @@ jobs:
           name: build-artifact-npm
           if-no-files-found: error
           path: |
-            ../target/npm
+            ./target/npm
         if: matrix.os == 'ubuntu-20.04'
   integration-tests:
     name: Integration tests
