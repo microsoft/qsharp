@@ -121,7 +121,7 @@ jobs:
       # Now we need to prepare the artifacts for upload.
       # Run auditwheel on Linux
       - name: Run auditwheel for Linux Wheels
-        uses: |
+        run: |
           python -m pip install auditwheel patchelf
           ls target/wheels
           ls target/wheels/*.whl | xargs auditwheel show
