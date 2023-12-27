@@ -76,6 +76,8 @@ args = parser.parse_args()
 
 if args.check_prereqs:
     check_prereqs()
+else:
+    print("Skipping prerequisites check")
 
 # If no specific project given then build all
 build_all = (

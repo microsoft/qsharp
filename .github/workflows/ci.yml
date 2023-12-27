@@ -228,4 +228,4 @@ jobs:
       - name: Run python compatibility checks
         run: |
           ls -la ./target/wheels
-          python ./build.py --no-check --artifact-tests
+          python ./build.py --no-check --no-check-prereqs --artifact-tests
