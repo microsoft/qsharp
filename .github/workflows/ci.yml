@@ -118,7 +118,52 @@ jobs:
         run: python ./prereqs.py --install
       - name: Build and Test
         run: python ./build.py --no-check
-
+      # Now we need to prepare the artifacts for upload.
+      # Run auditwheel on Linux
+      - name: Run auditwheel for Linux Wheels
+        uses: |
+          python -m pip install auditwheel patchelf
+          ls target/wheels
+          ls target/wheels/*.whl | xargs auditwheel show
+          ls target/wheels/*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/ --plat manylinux_2_31_x86_64
+          rm target/wheels/*-linux_x86_64.whl
+          ls target/wheels
+        if: matrix.os == 'ubuntu-latest'
+      # publish wheels for active target
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-wheels
+          if-no-files-found: error
+          path: |
+            ./target/wheels/*.whl
+      # Publish vsix for VSCode if on linux
+      - name: Create VSCode Ext Package
+        working-directory: ./vscode
+        run: |
+          npm install -g @vscode/vsce
+          vsce package
+        if: matrix.os == 'ubuntu-latest'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-vsix
+          if-no-files-found: error
+          path: |
+            ./vscode/*.vsix
+        if: matrix.os == 'ubuntu-latest'
+      # Create npm package
+      - name: Create npm package
+        working-directory: ./npm
+        run: |
+          mkdir -p ../target/npm
+          npm pack --pack-destination ../target/npm
+        if: matrix.os == 'ubuntu-latest'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-npm
+          if-no-files-found: error
+          path: |
+            ../target/npm
+        if: matrix.os == 'ubuntu-latest'
   integration-tests:
     name: Integration tests
     if: ${{ ! github.event.pull_request }}
