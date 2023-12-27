@@ -36,6 +36,9 @@ parser.add_argument("--vscode", action="store_true", help="Build the VS Code ext
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
 )
+parser.add_argument(
+    "--artifact-tests", action="store_true", help="Run tests using built artifacts"
+)
 
 parser.add_argument(
     "--debug", action="store_true", help="Create a debug build (default is release)"
@@ -85,6 +88,7 @@ build_all = (
     and not args.play
     and not args.vscode
     and not args.jupyterlab
+    and not args.artifact_tests
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
@@ -95,6 +99,7 @@ build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
 build_jupyterlab = build_all or args.jupyterlab
+run_artifact_tests = not build_all and args.artifact_tests
 
 # JavaScript projects and eslint, prettier depend on npm_install
 # However the JupyterLab extension uses yarn in a separate workspace
@@ -117,6 +122,28 @@ widgets_src = os.path.join(root_dir, "widgets")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
 jupyterlab_src = os.path.join(root_dir, "jupyterlab")
+
+# Configure python environment
+python_bin = sys.executable
+if (
+    os.environ.get("VIRTUAL_ENV") is None
+    and os.environ.get("CONDA_PREFIX") is None
+    and os.environ.get("CI") is None
+):
+    print("Not in a virtual python environment")
+
+    venv_dir = os.path.join(pip_src, ".venv")
+    # Create virtual environment under repo root
+    if not os.path.exists(venv_dir):
+        print(f"Creating a virtual environment under {venv_dir}")
+        venv.main([venv_dir])
+
+    # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
+    python_bin = os.path.join(venv_dir, "bin", "python")
+    if not os.path.exists(python_bin):
+        python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
+
+print(f"Using python from {python_bin}")
 
 
 def step_start(description):
@@ -183,31 +210,62 @@ if build_cli:
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
     step_end()
 
+
+def run_python_tests() -> None:
+    print("Running tests for the pip package")
+
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "test_requirements.txt",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheels_dir,
+        f"qsharp-lang",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+    pytest_args = [python_bin, "-m", "pytest"]
+    subprocess.run(
+        pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
+    )
+
+    qir_test_dir = os.path.join(pip_src, "tests-qir")
+    # Try to install PyQIR and if successful, run additional tests.
+    qir_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "test_requirements.txt",
+    ]
+    subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
+    pyqir_check_args = [python_bin, "-c", "import pyqir"]
+    if (
+        subprocess.run(
+            pyqir_check_args, check=False, text=True, cwd=qir_test_dir
+        ).returncode
+        == 0
+    ):
+        print("Running tests for the pip package with PyQIR")
+        pytest_args = [python_bin, "-m", "pytest"]
+        subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
+    else:
+        print("Could not import PyQIR, skipping tests")
+
+
 if build_pip:
     step_start("Building the pip package")
-    # Check if in a virtual environment
-    if (
-        os.environ.get("VIRTUAL_ENV") is None
-        and os.environ.get("CONDA_PREFIX") is None
-        and os.environ.get("CI") is None
-    ):
-        print("Not in a virtual python environment")
-
-        venv_dir = os.path.join(pip_src, ".venv")
-        # Create virtual environment under repo root
-        if not os.path.exists(venv_dir):
-            print(f"Creating a virtual environment under {venv_dir}")
-            venv.main([venv_dir])
-
-        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
-        python_bin = os.path.join(venv_dir, "bin", "python")
-        if not os.path.exists(python_bin):
-            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
-        print(f"Using python from {python_bin}")
-    else:
-        # Already in a virtual environment, use current Python
-        python_bin = sys.executable
-
     # copy the process env vars
     pip_env: dict[str, str] = os.environ.copy()
     if platform.system() == "Darwin":
@@ -226,56 +284,7 @@ if build_pip:
     subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
 
     if run_tests:
-        print("Running tests for the pip package")
-
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "--force-reinstall",
-            "--no-index",
-            "--find-links=" + wheels_dir,
-            f"qsharp-lang",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(
-            pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
-        )
-
-        qir_test_dir = os.path.join(pip_src, "tests-qir")
-        # Try to install PyQIR and if successful, run additional tests.
-        qir_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
-        pyqir_check_args = [python_bin, "-c", "import pyqir"]
-        if (
-            subprocess.run(
-                pyqir_check_args, check=False, text=True, cwd=qir_test_dir
-            ).returncode
-            == 0
-        ):
-            print("Running tests for the pip package with PyQIR")
-            pytest_args = [python_bin, "-m", "pytest"]
-            subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
-        else:
-            print("Could not import PyQIR, skipping tests")
+        run_python_tests()
     step_end()
 
 if build_widgets:
@@ -412,4 +421,9 @@ if args.integration_tests:
     step_start("Running the VS Code integration tests")
     vscode_args = [npm_cmd, "test", "--", "--verbose"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+    step_end()
+
+if run_artifact_tests:
+    step_start("Running tests using built artifacts")
+    run_python_tests()
     step_end()

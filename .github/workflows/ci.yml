@@ -198,3 +198,36 @@ jobs:
         run: python ./prereqs.py --install
       - name: Run integration tests
         run: python ./build.py --no-check --no-test --wasm --npm --vscode --integration-tests
+  python-compat-checks:
+    needs: [build]
+    strategy:
+      matrix:
+        pyver: ['3.8', '3.9', '3.10', '3.11']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.pyver }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Prereqs
+        run: python ./prereqs.py --install
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifact-wheels
+          path: ./target/wheels
+          merge-multiple: true
+      - name: Run python compatibility checks
+        run: |
+          ls -la ./target/wheels
+          python ./build.py --no-check --artifact-tests
