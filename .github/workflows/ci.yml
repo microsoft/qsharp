@@ -26,7 +26,7 @@ env:
 jobs:
   format:
     name: Format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -41,7 +41,7 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -57,7 +57,7 @@ jobs:
 
   benches:
     name: Benches
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -73,7 +73,7 @@ jobs:
 
   web-check:
     name: Check web files
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -90,7 +90,7 @@ jobs:
     name: Build and test
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-20.04, macos-latest]
 
     runs-on: ${{matrix.os}}
 
@@ -128,7 +128,7 @@ jobs:
           ls target/wheels/*x86_64*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/ --plat manylinux_2_31_x86_64
           rm target/wheels/*-linux_x86_64.whl
           ls target/wheels
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
       # publish wheels for active target
       - uses: actions/upload-artifact@v4
         with:
@@ -142,35 +142,35 @@ jobs:
         run: |
           npm install -g @vscode/vsce
           vsce package
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
       - uses: actions/upload-artifact@v4
         with:
           name: build-artifact-vsix
           if-no-files-found: error
           path: |
             ./vscode/*.vsix
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
       # Create npm package
       - name: Create npm package
         working-directory: ./npm
         run: |
           mkdir -p ../target/npm
           npm pack --pack-destination ../target/npm
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
       - uses: actions/upload-artifact@v4
         with:
           name: build-artifact-npm
           if-no-files-found: error
           path: |
             ../target/npm
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
   integration-tests:
     name: Integration tests
     if: ${{ ! github.event.pull_request }}
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-20.04, macos-latest]
 
     runs-on: ${{matrix.os}}
 
