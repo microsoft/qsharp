@@ -132,7 +132,7 @@ jobs:
       # publish wheels for active target
       - uses: actions/upload-artifact@v4
         with:
-          name: build-artifact-wheels
+          name: build-artifact-wheels-${{ matrix.os }}
           if-no-files-found: error
           path: |
             ./target/wheels/*.whl
@@ -202,8 +202,9 @@ jobs:
     needs: [build]
     strategy:
       matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
         pyver: ['3.8', '3.9', '3.10', '3.11']
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -224,7 +225,7 @@ jobs:
         run: python ./prereqs.py --install
       - uses: actions/download-artifact@v4
         with:
-          name: build-artifact-wheels
+          pattern: build-artifact-wheels-*
           path: ./target/wheels
           merge-multiple: true
       - name: Run python compatibility checks
