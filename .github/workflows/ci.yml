@@ -227,5 +227,4 @@ jobs:
           merge-multiple: true
       - name: Run python compatibility checks
         run: |
-          ls -la ./target/wheels
           python ./build.py --no-check --no-check-prereqs --artifact-tests
