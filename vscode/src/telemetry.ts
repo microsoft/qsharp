@@ -54,7 +54,7 @@ type EventTypes = {
   };
   [EventType.GenerateQirEnd]: {
     properties: { associationId: string };
-    measurements: { qirLength: number, timeToCompleteMs: number };
+    measurements: { qirLength: number; timeToCompleteMs: number };
   };
   [EventType.RenderQuantumStateStart]: {
     properties: { associationId: string };
@@ -62,7 +62,7 @@ type EventTypes = {
   };
   [EventType.RenderQuantumStateEnd]: {
     properties: { associationId: string };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.SubmitToAzureStart]: {
     properties: { associationId: string };
@@ -74,7 +74,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.AuthSessionStart]: {
     properties: { associationId: string };
@@ -86,7 +86,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.QueryWorkspacesStart]: {
     properties: { associationId: string };
@@ -98,7 +98,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.AzureRequestFailed]: {
     properties: { associationId: string; reason?: string };
@@ -118,7 +118,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.QueryWorkspaceStart]: {
     properties: { associationId: string };
@@ -130,7 +130,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.CheckCorsStart]: {
     properties: { associationId: string };
@@ -142,7 +142,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.InitializeRuntimeStart]: {
     properties: { associationId: string };
@@ -154,7 +154,7 @@ type EventTypes = {
       reason?: string;
       flowStatus: UserFlowStatus;
     };
-    measurements: { timeToCompleteMs: number } ;
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.DebugSessionEvent]: {
     properties: {
