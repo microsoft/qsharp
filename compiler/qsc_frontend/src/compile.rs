@@ -256,6 +256,13 @@ impl PackageStore {
         }
     }
 }
+impl<'a> IntoIterator for &'a PackageStore {
+    type IntoIter = Iter<'a>;
+    type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
 
 /// A package store that contains one mutable `CompileUnit`.
 pub struct OpenPackageStore {
