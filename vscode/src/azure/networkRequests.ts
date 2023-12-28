@@ -122,7 +122,7 @@ export async function storageRequest(
 export class AzureUris {
   readonly apiVersion = "2020-01-01";
 
-  constructor(public mgmtEndpoint = publicMgmtEndpoint) { }
+  constructor(public mgmtEndpoint = publicMgmtEndpoint) {}
 
   tenants() {
     // https://learn.microsoft.com/en-us/rest/api/resources/tenants/list
@@ -146,7 +146,7 @@ export class QuantumUris {
   constructor(
     public endpoint: string, // e.g. "https://westus.quantum.azure.com"
     public id: string, // e.g. "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/quantumResourcegroup/providers/Microsoft.Quantum/Workspaces/quantumworkspace1"
-  ) { }
+  ) {}
 
   quotas() {
     return `${this.endpoint}${this.id}/quotas?api-version=${this.apiVersion}`;

@@ -560,7 +560,7 @@ export class QscDebugSession extends LoggingDebugSession {
           isLineBreakpoint
             ? bp.uiLocation.line == args.line
             : startOffset <= bp.fileLocation.startOffset &&
-            bp.fileLocation.startOffset <= endOffset,
+              bp.fileLocation.startOffset <= endOffset,
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
