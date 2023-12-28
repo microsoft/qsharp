@@ -10,8 +10,11 @@ mod result;
 mod tfactory;
 
 pub use constraints::Constraints;
-pub use job_params::JobParams;
+pub use job_params::{ErrorBudgetSpecification, JobParams, Profiling};
 pub use logical_counts::LogicalResourceCounts;
 pub use physical_counts::{PhysicalResourceCounts, PhysicalResourceCountsBreakdown};
-pub use report::{FormattedPhysicalResourceCounts, Report};
+pub use report::{format_duration, format_metric_prefix, FormattedPhysicalResourceCounts, Report};
 pub use result::{Failure, Success};
+pub use tfactory::{
+    TFactoryDistillationUnitSpecification, TFactoryProtocolSpecificDistillationUnitSpecification,
+};
