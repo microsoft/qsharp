@@ -264,7 +264,7 @@ impl Interpreter {
         };
 
         eval_expr(
-            &mut self.state,
+            &mut State::new(self.source_package),
             expr,
             &globals,
             &mut Env::with_empty_scope(),
