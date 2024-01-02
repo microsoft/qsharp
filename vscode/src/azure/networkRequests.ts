@@ -202,6 +202,7 @@ export class StorageUris {
 
 export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   const associationId = getRandomGuid();
+  const start = performance.now();
   sendTelemetryEvent(EventType.CheckCorsStart, { associationId }, {});
 
   log.debug("Checking CORS configuration for the workspace");
@@ -260,7 +261,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   sendTelemetryEvent(
     EventType.CheckCorsEnd,
     { associationId, flowStatus: UserFlowStatus.Succeeded },
-    {},
+    { timeToCompleteMs: performance.now() - start },
   );
 }
 
