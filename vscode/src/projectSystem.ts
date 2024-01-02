@@ -143,7 +143,6 @@ async function readFileUri(
   }
 }
 
-// TODO: consolidate with `getManifest`
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   excludeFiles: string[];
   excludeRegexes: string[];
