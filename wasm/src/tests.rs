@@ -203,7 +203,7 @@ fn test_run_simple_program_multiple_shots() {
             }"
     };
     run_internal(
-        SourceMap::new([("test.qs".into(), code.into())], None),
+        SourceMap::new([("code".into(), code.into())], None),
         |s| output.push(s.to_string()),
         3,
     )
@@ -245,8 +245,7 @@ fn test_run_error_program_multiple_shots_qubit_leak() {
     // If qubits are leaked from execution, the runtime will fail with an out of memory
     // error pretty quickly.
     let mut output = Vec::new();
-    run_internal(
-        indoc! {"
+    let code = indoc! {"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
@@ -254,8 +253,9 @@ fn test_run_error_program_multiple_shots_qubit_leak() {
                     H(q);
                 }
             }"
-        },
-        "",
+    };
+    run_internal(
+        SourceMap::new([("code".into(), code.into())], None),
         |s| output.push(s.to_string()),
         100,
     )
