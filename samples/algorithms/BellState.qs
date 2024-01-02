@@ -31,8 +31,7 @@ namespace Sample {
             prepare(register);
             Message($"Bell state {label}:");
             DumpMachine();
-            set measurements += [(M(register[0]), M(register[1]))];
-            ResetAll(register);
+            set measurements += [(MResetZ(register[0]), MResetZ(register[1]))];
         }
         return measurements;
     }
