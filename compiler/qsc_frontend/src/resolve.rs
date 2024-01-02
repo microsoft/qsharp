@@ -668,17 +668,8 @@ impl AstVisitor<'_> for With<'_> {
             ast::StmtKind::Qubit(_, pat, init, block) => {
                 ast_visit::walk_qubit_init(self, init);
                 if let Some(block) = block {
-                    self.with_scope(block.span, ScopeKind::Block, |visitor| {
-                        // The binding is valid after end of the statement, but scoped to the current block.
-                        visitor.resolver.bind_pat(pat, stmt.span.hi);
-
-                        for stmt in &*block.stmts {
-                            if let ast::StmtKind::Item(item) = &*stmt.kind {
-                                visitor.resolver.bind_local_item(visitor.assigner, item);
-                            }
-                        }
-
-                        ast_visit::walk_block(visitor, block);
+                    self.with_pat(block.span, ScopeKind::Block, pat, |visitor| {
+                        visitor.visit_block(block);
                     });
                 } else {
                     // The binding is valid after end of the statement.
