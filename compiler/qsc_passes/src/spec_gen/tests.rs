@@ -73,7 +73,7 @@ fn generate_specs_body_auto_should_fail() {
 }
 
 #[test]
-fn genrate_specs_body_self_should_fail() {
+fn generate_specs_body_self_should_fail() {
     check(
         indoc! {"
         namespace test {
