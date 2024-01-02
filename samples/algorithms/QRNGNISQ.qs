@@ -31,8 +31,7 @@ namespace Sample {
         // and 50% chance of being measured in the |1〉 state.
         // Measure each qubit and reset them all so they can be safely
         // deallocated.
-        let results = MeasureEachZ(register);
-        ResetAll(register);
+        let results = MResetEachZ(register);
         return results;
     }
 }
