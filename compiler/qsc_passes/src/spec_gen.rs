@@ -35,6 +35,30 @@ pub enum Error {
     #[error(transparent)]
     AdjGen(adj_gen::Error),
 
+    #[error("invalid specialization generator")]
+    #[diagnostic(code("Qsc.SpecGen.InvalidAdjGen"))]
+    #[diagnostic(help(
+        "valid specialization generators for adjoint are `auto`, `invert`, and `self`"
+    ))]
+    InvalidAdjGen(#[label] Span),
+
+    #[error("invalid specialization generator")]
+    #[diagnostic(code("Qsc.SpecGen.InvalidBodyGen"))]
+    #[diagnostic(help("body specialization only supports `intrinsic`"))]
+    InvalidBodyGen(#[label] Span),
+
+    #[error("invalid specialization generator")]
+    #[diagnostic(code("Qsc.SpecGen.InvalidCtlGen"))]
+    #[diagnostic(help(
+        "valid specialization generators for controlled are `auto` and `distribute`"
+    ))]
+    InvalidCtlGen(#[label] Span),
+
+    #[error("invalid specialization generator")]
+    #[diagnostic(code("Qsc.SpecGen.InvalidCtlAdjGen"))]
+    #[diagnostic(help("valid specialization generators for controlled adjoint are `auto`, `distribute`, `invert`, and `self`"))]
+    InvalidCtlAdjGen(#[label] Span),
+
     #[error("specialization generation missing required body implementation")]
     #[diagnostic(code("Qsc.SpecGen.MissingBody"))]
     MissingBody(#[label] Span),
@@ -185,12 +209,21 @@ impl<'a> SpecImplPass<'a> {
 
 impl<'a> MutVisitor for SpecImplPass<'a> {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
+        let body = &decl.body;
+
+        match body.body {
+            SpecBody::Impl(..) | SpecBody::Gen(SpecGen::Intrinsic) => {}
+            SpecBody::Gen(_) => {
+                self.errors.push(Error::InvalidBodyGen(body.span));
+                return;
+            }
+        }
+
         // Only applies to operations.
         if decl.kind == CallableKind::Function {
             return;
         }
 
-        let body = &decl.body;
         let adj = &mut decl.adj;
         let ctl = &mut decl.ctl;
         let ctl_adj = &mut decl.ctl_adj;
@@ -205,23 +238,28 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
         };
 
         if let Some(ctl) = ctl.as_mut() {
-            if ctl.body == SpecBody::Gen(SpecGen::Distribute)
-                || ctl.body == SpecBody::Gen(SpecGen::Auto)
-            {
-                self.ctl_distrib(ctl, body_block);
-                NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl);
+            match ctl.body {
+                SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
+                    self.ctl_distrib(ctl, body_block);
+                    NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl);
+                }
+                SpecBody::Impl(..) => {}
+                SpecBody::Gen(_) => self.errors.push(Error::InvalidCtlGen(ctl.span)),
             }
         };
 
         if let Some(adj) = adj.as_mut() {
-            if adj.body == SpecBody::Gen(SpecGen::Slf) {
-                adj.body = body.body.clone();
-                NodeIdRefresher::new(self.assigner).visit_spec_decl(adj);
-            } else if adj.body == SpecBody::Gen(SpecGen::Invert)
-                || adj.body == SpecBody::Gen(SpecGen::Auto)
-            {
-                self.adj_invert(adj, body_block, None);
-                NodeIdRefresher::new(self.assigner).visit_spec_decl(adj);
+            match adj.body {
+                SpecBody::Gen(SpecGen::Slf) => {
+                    adj.body = body.body.clone();
+                    NodeIdRefresher::new(self.assigner).visit_spec_decl(adj);
+                }
+                SpecBody::Gen(SpecGen::Invert | SpecGen::Auto) => {
+                    self.adj_invert(adj, body_block, None);
+                    NodeIdRefresher::new(self.assigner).visit_spec_decl(adj);
+                }
+                SpecBody::Impl(..) => {}
+                SpecBody::Gen(_) => self.errors.push(Error::InvalidAdjGen(adj.span)),
             }
         }
 
@@ -243,7 +281,8 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                         NodeIdRefresher::new(self.assigner).visit_spec_decl(ctl_adj);
                     }
                 }
-                _ => {}
+                SpecBody::Impl(..) => {}
+                SpecBody::Gen(_) => self.errors.push(Error::InvalidCtlAdjGen(ctl_adj.span)),
             }
         };
     }

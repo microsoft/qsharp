@@ -241,6 +241,36 @@ fn test_run_error_program_multiple_shots() {
 }
 
 #[test]
+fn test_run_error_program_multiple_shots_qubit_leak() {
+    // If qubits are leaked from execution, the runtime will fail with an out of memory
+    // error pretty quickly.
+    let mut output = Vec::new();
+    run_internal(
+        indoc! {"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    H(q);
+                }
+            }"
+        },
+        "",
+        |s| output.push(s.to_string()),
+        100,
+    )
+    .expect("code should compile and run");
+
+    // Spot check the results to make sure we're getting the right error.
+    expect![[r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]]
+        .assert_eq(&output[0]);
+    expect![r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]
+        .assert_eq(&output[50]);
+    expect![r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]
+        .assert_eq(&output[99]);
+}
+
+#[test]
 fn test_runtime_error_with_span() {
     let mut output = Vec::new();
     let code = indoc! {r#"
