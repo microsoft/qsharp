@@ -1436,7 +1436,7 @@ impl State {
                     })?;
                 }
                 Some(_) => {
-                    unreachable!("update of mutable variable should be disallowed by compiler")
+                    unreachable!("update of immutable variable should be disallowed by compiler")
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
