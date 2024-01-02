@@ -119,14 +119,31 @@ impl Compilation {
 
     /// Maps a source-relative offset from the user package
     /// to a package (`SourceMap`)-relative offset.
-    pub(crate) fn source_offset_to_package_offset(&self, source_name: &str, offset: u32) -> u32 {
+    pub(crate) fn source_offset_to_package_offset(
+        &self,
+        source_name: &str,
+        mut offset: u32,
+    ) -> u32 {
         let unit = self.user_unit();
 
-        unit.sources
+        let source = unit
+            .sources
             .find_by_name(source_name)
-            .expect("source should exist in the user source map")
-            .offset
-            + offset
+            .expect("source should exist in the user source map");
+
+        let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
+        if offset > len {
+            // This can happen if the document contents are out of sync with the client's view.
+            // we don't want to accidentally return an offset into the next file -
+            // remap to the end of the current file.
+            trace!(
+                "offset {offset} out of bounds for {}, using end offset instead",
+                source.name
+            );
+            offset = len;
+        }
+
+        source.offset + offset
     }
 
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
