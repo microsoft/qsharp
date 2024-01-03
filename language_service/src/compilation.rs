@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
+#[derive(Debug)]
 pub(crate) struct Compilation {
     /// Package store, containing the current package and all its dependencies.
     pub package_store: PackageStore,
@@ -25,6 +26,7 @@ pub(crate) struct Compilation {
     pub kind: CompilationKind,
 }
 
+#[derive(Debug)]
 pub(crate) enum CompilationKind {
     /// An open Q# project.
     /// In an `OpenProject` compilation, the user package contains

@@ -242,6 +242,31 @@ async fn completions_requested_after_document_load() {
     assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13);
 }
 
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn close_last_doc_in_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut ls = LanguageService::default();
+    let mut worker = create_update_worker(&mut ls, &received_errors);
+
+    ls.update_document("this_file.qs", 1, "namespace Foo { }");
+    // now process background work
+    worker.apply_pending().await;
+    // the project should be open
+    assert!(worker
+        .updater
+        .with_state(|state| state.get_compilation("this_file.qs").is_some()));
+
+    ls.close_document("this_file.qs");
+
+    worker.apply_pending().await;
+
+    // the project should be closed
+    assert!(worker
+        .updater
+        .with_state(|state| state.get_compilation("./qsharp.json").is_none()));
+}
+
 fn check_errors_and_compilation(
     ls: &LanguageService,
     received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,

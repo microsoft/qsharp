@@ -210,6 +210,12 @@ pub struct PackageStore {
     next_id: PackageId,
 }
 
+impl Debug for PackageStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "package store with {} units", self.units.iter().count())
+    }
+}
+
 impl PackageStore {
     #[must_use]
     pub fn new(core: CompileUnit) -> Self {

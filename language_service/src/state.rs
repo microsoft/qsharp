@@ -225,8 +225,6 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn close_document(&mut self, uri: &str) {
-        self.close_single_document(uri);
-
         let manifest = (self.get_manifest)(uri.to_string()).await;
         if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
@@ -239,7 +237,26 @@ impl<'a> CompilationStateUpdater<'a> {
             };
             self.insert_buffer_aware_compilation(sources, &manifest.compilation_uri());
         };
+        self.close_single_document(uri);
+        if let Some(ref manifest) = manifest {
+            self.maybe_close_project(manifest);
+        }
         self.publish_diagnostics();
+    }
+
+    fn maybe_close_project(&mut self, manifest: &qsc_project::ManifestDescriptor) {
+        self.with_state_mut(|state| {
+            let compilation_uri = manifest.compilation_uri();
+            // if there are no remaining open documents with the project's compilation URI
+            if state
+                .open_documents
+                .iter()
+                .all(|(_uri, doc)| doc.compilation != compilation_uri)
+            {
+                trace!("closing project {:?}", compilation_uri);
+                state.compilations.remove(&compilation_uri);
+            }
+        });
     }
 
     fn close_single_document(&mut self, uri: &str) {
@@ -413,6 +430,7 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Use a direct reference to the state instead.
     /// This function may also not be async since holding a borrow across
     /// `await` points will interfere with other borrowers.
+    #[cfg(not(test))]
     fn with_state<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&CompilationState) -> T,
@@ -433,6 +451,17 @@ impl<'a> CompilationStateUpdater<'a> {
     {
         let mut state = self.state.borrow_mut();
         f(&mut state)
+    }
+
+    /// in testing, we need this exported so we can unit test the state
+    /// of the LS
+    #[cfg(test)]
+    pub fn with_state<F, T>(&self, f: F) -> T
+    where
+        F: FnOnce(&CompilationState) -> T,
+    {
+        let state = self.state.borrow();
+        f(&state)
     }
 }
 
