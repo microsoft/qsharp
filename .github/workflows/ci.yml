@@ -147,3 +147,4 @@ jobs:
         with:
           branchName: ${{ github.base_ref }}
           cwd: "compiler/qsc"
+        if: ${{ github.base_ref != null }}
