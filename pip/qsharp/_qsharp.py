@@ -38,7 +38,9 @@ class Config:
 
 
 def init(
-    *, target_profile: TargetProfile = TargetProfile.Unrestricted, project_root=None
+    *,
+    target_profile: TargetProfile = TargetProfile.Unrestricted,
+    project_root: Optional[str] = None,
 ) -> Config:
     """
     Initializes the Q# interpreter.
