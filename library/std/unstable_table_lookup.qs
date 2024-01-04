@@ -11,7 +11,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Unstable.Arithmetic;
 
     @Config(Full)
-    operation BasicSelect(
+    internal operation BasicSelect(
         data : Bool[][],
         address : Qubit[],
         target : Qubit[]
