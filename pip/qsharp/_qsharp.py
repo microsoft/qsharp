@@ -49,8 +49,8 @@ def init(
         interpreter to generate programs that are compatible
         with a specific target. See :py:class: `qsharp.TargetProfile`.
 
-    :param project_root: The root directory of the Q# project. It must
-        contain a qsharp.json project manifest.
+    :param project_root: An optional path to a root directory with a Q# project to include.
+        It must contain a qsharp.json project manifest.
     """
     from ._fs import read_file, list_directory, exists, join
 
