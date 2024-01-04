@@ -440,11 +440,18 @@ export class QSharpLanguageService implements ILanguageService {
       if (code === null && !empty) {
         // We need the contents of the document to convert error offsets to utf16.
         // But the contents aren't available after a document is closed.
-        // It is possible to get a diagnostics event after a document is closed,
-        // but it will be done with an empty array, to clear the diagnostics.
-        // In that case, it's ok not to have the document contents available,
-        // because there are no offsets to convert.
-        log.error(`onDiagnostics: expected ${uri} to be in the document map`);
+
+        // It is possible to get diagnostics events for a document after it's been closed,
+        // since document events are handled asynchronously by the language service.
+        // We just drop those diagnostics, assuming that eventually we will receive further
+        // events that will bring the diagnostics up to date.
+
+        // However, if we receive an *empty* array of diagnostics for a document, we don't want
+        // to drop that update. It's necessary for the diagnostics to get cleared for a document
+        // that has been closed.
+        log.warn(
+          `onDiagnostics: received diagnostics for ${uri} which is not in the document map`,
+        );
         return;
       }
       const event = new Event("diagnostics") as LanguageServiceEvent & Event;
