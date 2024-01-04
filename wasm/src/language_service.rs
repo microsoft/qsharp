@@ -190,7 +190,7 @@ impl LanguageService {
                     .into_iter()
                     .map(|sig| SignatureInformation {
                         label: sig.label,
-                        documentation: sig.documentation,
+                        documentation: sig.documentation.unwrap_or_default(),
                         parameters: sig
                             .parameters
                             .into_iter()
@@ -199,7 +199,7 @@ impl LanguageService {
                                     start: param.label.start,
                                     end: param.label.end,
                                 },
-                                documentation: param.documentation,
+                                documentation: param.documentation.unwrap_or_default(),
                             })
                             .collect(),
                     })
@@ -347,12 +347,12 @@ serializable_type! {
     SignatureInformation,
     {
         label: String,
-        documentation: Option<String>,
+        documentation: String,
         parameters: Vec<ParameterInformation>,
     },
     r#"export interface ISignatureInformation {
         label: string;
-        documentation?: string;
+        documentation: string;
         parameters: IParameterInformation[];
     }"#
 }
@@ -361,11 +361,11 @@ serializable_type! {
     ParameterInformation,
     {
         label: Span,
-        documentation: Option<String>,
+        documentation: String,
     },
     r#"export interface IParameterInformation {
         label: ISpan;
-        documentation?: string;
+        documentation: string;
     }"#
 }
 
