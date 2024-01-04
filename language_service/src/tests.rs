@@ -328,7 +328,7 @@ fn create_update_worker<'a>(
         |file| {
             Box::pin(async move {
                 tokio::spawn(ready(match file.as_str() {
-                    "this_file.qs" => Some(ManifestDescriptor {
+                    "other_file.qs" | "this_file.qs" => Some(ManifestDescriptor {
                         manifest: Manifest::default(),
                         manifest_dir: ".".into(),
                     }),

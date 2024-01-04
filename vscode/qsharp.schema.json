@@ -1,0 +1,14 @@
+{
+  "title": "Q# project manifest",
+  "type": "object",
+  "properties": {
+    "author": {
+      "title": "Author",
+      "type": "string"
+    },
+    "license": {
+      "title": "License",
+      "type": "string"
+    }
+  }
+}

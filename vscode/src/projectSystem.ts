@@ -5,6 +5,7 @@ import { Utils, URI } from "vscode-uri";
 import * as vscode from "vscode";
 
 import { getProjectLoader, log } from "qsharp-lang";
+import { updateQSharpJsonDiagnostics } from "./diagnostics";
 
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
@@ -25,12 +26,18 @@ export async function getManifest(uri: string): Promise<{
   try {
     parsedManifest = JSON.parse(manifestDocument.content);
   } catch (e) {
-    log.error(
-      "Found manifest document, but the Q# manifest was not valid JSON",
+    log.warn(
+      `failed to parse manifest at ${manifestDocument.uri.toString()}`,
       e,
+    );
+    updateQSharpJsonDiagnostics(
+      manifestDocument.uri,
+      "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
     );
     return null;
   }
+
+  updateQSharpJsonDiagnostics(manifestDocument.uri);
 
   const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
@@ -147,8 +154,16 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
     try {
       JSON.parse(manifestDocument.content); // will throw if invalid
     } catch (e: any) {
-      throw new Error("Failed to parse manifest: " + e.message);
+      updateQSharpJsonDiagnostics(
+        manifestDocument.uri,
+        "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
+      );
+      throw new Error(
+        "Failed to parse qsharp.json. For a minimal Q# project manifest, try: {}",
+      );
     }
+
+    updateQSharpJsonDiagnostics(manifestDocument.uri);
 
     const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
@@ -160,6 +175,8 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   }
   return null;
 }
+
+let projectLoader: any | undefined = undefined;
 
 export async function loadProject(
   documentUri: vscode.Uri,
@@ -175,7 +192,9 @@ export async function loadProject(
     return [[documentUri.toString(), file.getText()]];
   }
 
-  const projectLoader = await getProjectLoader(readFile, listDir, getManifest);
-  log.info("using project loader to debug");
-  return await projectLoader.load_project(manifest);
+  if (!projectLoader) {
+    projectLoader = await getProjectLoader(readFile, listDir, getManifest);
+  }
+  const project = await projectLoader.load_project(manifest);
+  return project;
 }

@@ -2149,6 +2149,171 @@ fn update_range_to_end() {
 }
 
 #[test]
+fn update_array_with_range() {
+    check_expr("", "[0, 1, 2] w/ 1..2 <- [10, 11]", &expect!["[0, 10, 11]"]);
+}
+
+#[test]
+fn update_array_with_range_start() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 1... <- [10, 11]",
+        &expect!["[0, 10, 11, 3]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_step() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ ...2... <- [10, 11]",
+        &expect!["[10, 1, 11, 3]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_end() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ ...2 <- [10, 11, 12, 13]",
+        &expect!["[10, 11, 12, 3]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_fully_open() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ ... <- [10, 11, 12, 13]",
+        &expect!["[10, 11, 12, 13]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_reverse() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 2..-1..0 <- [10, 11]",
+        &expect!["[0, 11, 10, 3]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_out_of_range_err() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 1..5 <- [10, 11, 12, 13]",
+        &expect![[r#"
+            (
+                IndexOutOfRange(
+                    4,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 16,
+                            hi: 20,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn update_array_with_range_negative_index_err() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ -1..0 <- [10, 11, 12, 13]",
+        &expect![[r#"
+            (
+                InvalidIndex(
+                    -1,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 16,
+                            hi: 21,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn update_array_with_range_zero_step_err() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ ...0... <- [10, 11, 12, 13]",
+        &expect![[r#"
+            (
+                RangeStepZero(
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 16,
+                            hi: 23,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn update_array_with_range_bigger_than_update() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 1..3 <- [10]",
+        &expect!["[0, 10, 2, 3]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_smaller_than_update() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 1..3 <- [10, 11, 12, 13]",
+        &expect!["[0, 10, 11, 12]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_open_ended_bigger_than_update() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 1... <- [10]",
+        &expect!["[0, 10, 2, 3]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_open_ended_smaller_than_update() {
+    check_expr(
+        "",
+        "[0, 1, 2, 3] w/ 1... <- [10, 11, 12, 13]",
+        &expect!["[0, 10, 11, 12]"],
+    );
+}
+
+#[test]
+fn update_array_with_range_empty_update() {
+    check_expr("", "[0, 1, 2, 3] w/ 1..3 <- []", &expect!["[0, 1, 2, 3]"]);
+}
+
+#[test]
 fn assignupdate_expr() {
     check_expr(
         "",
@@ -2158,6 +2323,64 @@ fn assignupdate_expr() {
             x
         }"},
         &expect!["[1, 2, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_out_of_range_err() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3];
+            set x w/= 4 <- 4;
+            x
+        }"},
+        &expect![[r#"
+            (
+                IndexOutOfRange(
+                    4,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 43,
+                            hi: 44,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn assignupdate_expr_negative_index_err() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3];
+            set x w/= -1 <- 4;
+            x
+        }"},
+        &expect![[r#"
+            (
+                InvalidNegativeInt(
+                    -1,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 43,
+                            hi: 45,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
     );
 }
 
@@ -2176,6 +2399,207 @@ fn assignupdate_expr_using_field_name() {
             p
         }"},
         &expect!["(3, 2)"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3];
+            set x w/= 1..2 <- [10, 11];
+            x
+        }"},
+        &expect!["[1, 10, 11]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_start() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1... <- [10, 11];
+            x
+        }"},
+        &expect!["[1, 10, 11, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_step() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= ...2... <- [10, 11];
+            x
+        }"},
+        &expect!["[10, 2, 11, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_end() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= ...2 <- [10, 11, 12, 13];
+            x
+        }"},
+        &expect!["[10, 11, 12, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_fully_open() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= ... <- [10, 11, 12, 13];
+            x
+        }"},
+        &expect!["[10, 11, 12, 13]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_reverse() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 2..-1..0 <- [10, 11];
+            x
+        }"},
+        &expect!["[1, 11, 10, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_bigger_than_update() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1..3 <- [10];
+            x
+        }"},
+        &expect!["[1, 10, 3, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_smaller_than_update() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1..3 <- [10, 11, 12, 13];
+            x
+        }"},
+        &expect!["[1, 10, 11, 12]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_open_ended_bigger_than_update() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1... <- [10, 11];
+            x
+        }"},
+        &expect!["[1, 10, 11, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_open_ended_smaller_than_update() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1... <- [10, 11, 12, 13];
+            x
+        }"},
+        &expect!["[1, 10, 11, 12]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_empty_update() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1..3 <- [];
+            x
+        }"},
+        &expect!["[1, 2, 3, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_out_of_range_err() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= 1..5 <- [10, 11, 12, 13];
+            x
+        }"},
+        &expect![[r#"
+            (
+                IndexOutOfRange(
+                    4,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 46,
+                            hi: 50,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn assignupdate_expr_using_range_negative_index_err() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3, 4];
+            set x w/= -1..0 <- [10, 11, 12, 13];
+            x
+        }"},
+        &expect![[r#"
+            (
+                InvalidNegativeInt(
+                    -1,
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 46,
+                            hi: 51,
+                        },
+                    },
+                ),
+                [],
+            )
+        "#]],
     );
 }
 

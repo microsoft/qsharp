@@ -1170,6 +1170,71 @@ fn ternop_update_udt_unknown_field_name_known_global() {
 }
 
 #[test]
+fn ternop_update_array_range_takes_array() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [0, 1, 2];
+                    let ys = xs w/ 0..1 <- [3, 4];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #8 38-112 "{\n        let xs = [0, 1, 2];\n        let ys = xs w/ 0..1 <- [3, 4];\n    }" : Unit
+            #10 52-54 "xs" : Int[]
+            #12 57-66 "[0, 1, 2]" : Int[]
+            #13 58-59 "0" : Int
+            #14 61-62 "1" : Int
+            #15 64-65 "2" : Int
+            #17 80-82 "ys" : Int[]
+            #19 85-105 "xs w/ 0..1 <- [3, 4]" : Int[]
+            #20 85-87 "xs" : Int[]
+            #23 91-95 "0..1" : Range
+            #24 91-92 "0" : Int
+            #25 94-95 "1" : Int
+            #26 99-105 "[3, 4]" : Int[]
+            #27 100-101 "3" : Int
+            #28 103-104 "4" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_array_range_with_non_array_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [0, 1, 2];
+                    let ys = xs w/ 0..1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #8 38-107 "{\n        let xs = [0, 1, 2];\n        let ys = xs w/ 0..1 <- 3;\n    }" : Unit
+            #10 52-54 "xs" : Int[]
+            #12 57-66 "[0, 1, 2]" : Int[]
+            #13 58-59 "0" : Int
+            #14 61-62 "1" : Int
+            #15 64-65 "2" : Int
+            #17 80-82 "ys" : Int[]
+            #19 85-100 "xs w/ 0..1 <- 3" : Int[]
+            #20 85-87 "xs" : Int[]
+            #23 91-95 "0..1" : Range
+            #24 91-92 "0" : Int
+            #25 94-95 "1" : Int
+            #26 99-100 "3" : Int
+            Error(Type(Error(TyMismatch("Int[]", "Int", Span { lo: 85, hi: 100 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn unop_bitwise_not_bool() {
     check(
         "",

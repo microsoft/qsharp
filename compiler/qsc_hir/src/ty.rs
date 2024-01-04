@@ -93,7 +93,7 @@ impl Ty {
                 if items.is_empty() {
                     "Unit".to_string()
                 } else if items.len() == 1 {
-                    let item = items.get(0).expect("expected single item");
+                    let item = items.first().expect("expected single item");
                     format!("({},)", item.display())
                 } else {
                     let items = items.iter().map(Ty::display).collect::<Vec<_>>().join(", ");

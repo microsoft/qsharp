@@ -170,8 +170,8 @@ impl SourceMap {
         self.sources.iter().find(|s| s.name.as_ref() == name)
     }
 
-    pub fn get_names(&self) -> impl Iterator<Item = &Arc<str>> {
-        self.sources.iter().map(|s| &s.name)
+    pub fn iter(&self) -> impl Iterator<Item = &Source> {
+        self.sources.iter()
     }
 }
 
@@ -258,6 +258,13 @@ impl PackageStore {
             store: self,
             open: id,
         }
+    }
+}
+impl<'a> IntoIterator for &'a PackageStore {
+    type IntoIter = Iter<'a>;
+    type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 

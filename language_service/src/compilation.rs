@@ -11,7 +11,7 @@ use qsc::{
     target::Profile,
     CompileUnit, PackageStore, PackageType, SourceMap,
 };
-use std::{iter::successors, sync::Arc};
+use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
@@ -119,53 +119,50 @@ impl Compilation {
 
     /// Maps a source-relative offset from the user package
     /// to a package (`SourceMap`)-relative offset.
-    pub(crate) fn source_offset_to_package_offset(&self, source_name: &str, offset: u32) -> u32 {
+    pub(crate) fn source_offset_to_package_offset(
+        &self,
+        source_name: &str,
+        mut offset: u32,
+    ) -> u32 {
         let unit = self.user_unit();
 
-        unit.sources
+        let source = unit
+            .sources
             .find_by_name(source_name)
-            .expect("source should exist in the user source map")
-            .offset
-            + offset
+            .expect("source should exist in the user source map");
+
+        let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
+        if offset > len {
+            // This can happen if the document contents are out of sync with the client's view.
+            // we don't want to accidentally return an offset into the next file -
+            // remap to the end of the current file.
+            trace!(
+                "offset {offset} out of bounds for {}, using end offset instead",
+                source.name
+            );
+            offset = len;
+        }
+
+        source.offset + offset
     }
 
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
-        let sources: Vec<_> = self
-            .user_source_contents()
-            .into_iter()
-            .map(|(a, b)| (Arc::from(a), Arc::from(b)))
-            .collect();
+        let sources = self
+            .user_unit()
+            .sources
+            .iter()
+            .map(|source| (source.name.clone(), source.contents.clone()));
 
         let new = match self.kind {
-            CompilationKind::OpenProject => Self::new(&sources, package_type, target_profile),
-            CompilationKind::Notebook => Self::new_notebook(sources.into_iter(), target_profile),
+            CompilationKind::OpenProject => {
+                Self::new(&sources.collect::<Vec<_>>(), package_type, target_profile)
+            }
+            CompilationKind::Notebook => Self::new_notebook(sources, target_profile),
         };
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
-    }
-
-    /// Returns the original sources that were used to create the compilation.
-    fn user_source_contents(&self) -> Vec<(&str, &str)> {
-        let sources = &self.user_unit().sources;
-
-        successors(sources.find_by_offset(0), |last| {
-            sources
-                .find_by_offset(
-                    u32::try_from(last.contents.len()).expect("source contents should fit in u32")
-                        + 1,
-                )
-                .and_then(|s| {
-                    if s.offset == last.offset {
-                        None
-                    } else {
-                        Some(s)
-                    }
-                })
-        })
-        .map(|s| (s.name.as_ref(), s.contents.as_ref()))
-        .collect()
     }
 }
 

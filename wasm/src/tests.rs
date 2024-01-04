@@ -203,7 +203,7 @@ fn test_run_simple_program_multiple_shots() {
             }"
     };
     run_internal(
-        SourceMap::new([("test.qs".into(), code.into())], None),
+        SourceMap::new([("code".into(), code.into())], None),
         |s| output.push(s.to_string()),
         3,
     )
@@ -238,6 +238,36 @@ fn test_run_error_program_multiple_shots() {
         {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}
         {"result":{"code":"Qsc.Eval.QubitUniqueness","end_pos":1,"message":"runtime error: qubits in gate invocation are not unique","severity":"error","start_pos":0},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_run_error_program_multiple_shots_qubit_leak() {
+    // If qubits are leaked from execution, the runtime will fail with an out of memory
+    // error pretty quickly.
+    let mut output = Vec::new();
+    let code = indoc! {"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    H(q);
+                }
+            }"
+    };
+    run_internal(
+        SourceMap::new([("code".into(), code.into())], None),
+        |s| output.push(s.to_string()),
+        100,
+    )
+    .expect("code should compile and run");
+
+    // Spot check the results to make sure we're getting the right error.
+    expect![[r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]]
+        .assert_eq(&output[0]);
+    expect![r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]
+        .assert_eq(&output[50]);
+    expect![r#"{"result":{"code":"Qsc.Eval.ReleasedQubitNotZero","end_pos":89,"message":"runtime error: Qubit0 released while not in |0⟩ state\n\nhelp: qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state","related":[{"end_pos":89,"message":"Qubit0","source":"code","start_pos":73}],"severity":"error","start_pos":73},"success":false,"type":"Result"}"#]
+        .assert_eq(&output[99]);
 }
 
 #[test]

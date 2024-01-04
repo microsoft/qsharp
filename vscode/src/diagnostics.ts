@@ -4,12 +4,22 @@
 import {
   ILanguageService,
   VSDiagnostic,
+  log,
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { loadDocument, qsharpLanguageId } from "./common.js";
 
 export function startCheckingQSharp(
+  languageService: ILanguageService,
+): vscode.Disposable[] {
+  return [
+    ...startLanguageServiceDiagnostics(languageService),
+    ...startQsharpJsonDiagnostics(),
+  ];
+}
+
+function startLanguageServiceDiagnostics(
   languageService: ILanguageService,
 ): vscode.Disposable[] {
   const diagCollection =
@@ -94,4 +104,47 @@ export function startCheckingQSharp(
     },
     diagCollection,
   ];
+}
+
+let qsharpJsonDiagnostics: vscode.DiagnosticCollection | undefined;
+let deleteQsharpJsonListener: vscode.Disposable | undefined;
+const trackedQsharpJsons = new Set<string>();
+
+function startQsharpJsonDiagnostics(): vscode.Disposable[] {
+  qsharpJsonDiagnostics =
+    vscode.languages.createDiagnosticCollection(qsharpLanguageId);
+
+  deleteQsharpJsonListener = vscode.workspace.onDidDeleteFiles((event) => {
+    for (const uri of event.files) {
+      if (trackedQsharpJsons.delete(uri.toString())) {
+        // Clear the diagnostics when the qsharp.json is deleted
+        qsharpJsonDiagnostics?.set(uri, []);
+      }
+    }
+  });
+
+  return [qsharpJsonDiagnostics, deleteQsharpJsonListener];
+}
+
+export function updateQSharpJsonDiagnostics(
+  qsharpJson: vscode.Uri,
+  error?: string,
+) {
+  if (!qsharpJsonDiagnostics) {
+    log.warn("no diagnostic collection for qsharp.json, not reporting");
+  }
+
+  trackedQsharpJsons.add(qsharpJson.toString());
+
+  const errors = error
+    ? [
+        new vscode.Diagnostic(
+          new vscode.Range(0, 0, 0, 0),
+          error,
+          vscode.DiagnosticSeverity.Error,
+        ),
+      ]
+    : [];
+
+  qsharpJsonDiagnostics?.set(qsharpJson, errors);
 }
