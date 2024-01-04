@@ -24,7 +24,7 @@ type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 /// `'a` represents the lifetime of the contained `dyn Fn`.
 type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(super) struct CompilationState {
     /// A `CompilationUri` is an identifier for a unique compilation.
     /// It is NOT required to be a uri that represents an actual document.
@@ -79,7 +79,7 @@ impl Default for Configuration {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
@@ -225,8 +225,6 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn close_document(&mut self, uri: &str) {
-        self.close_single_document(uri);
-
         let manifest = (self.get_manifest)(uri.to_string()).await;
         if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
@@ -237,9 +235,28 @@ impl<'a> CompilationStateUpdater<'a> {
                     return;
                 }
             };
+            self.close_single_document(uri);
             self.insert_buffer_aware_compilation(sources, &manifest.compilation_uri());
+            self.maybe_close_project(manifest);
+        } else {
+            self.close_single_document(uri);
         };
         self.publish_diagnostics();
+    }
+
+    fn maybe_close_project(&mut self, manifest: &qsc_project::ManifestDescriptor) {
+        self.with_state_mut(|state| {
+            let compilation_uri = manifest.compilation_uri();
+            // if there are no remaining open documents with the project's compilation URI
+            if state
+                .open_documents
+                .iter()
+                .all(|(_uri, doc)| doc.compilation != compilation_uri)
+            {
+                trace!("closing project {:?}", compilation_uri);
+                state.compilations.remove(&compilation_uri);
+            }
+        });
     }
 
     fn close_single_document(&mut self, uri: &str) {

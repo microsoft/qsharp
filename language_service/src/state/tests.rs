@@ -98,6 +98,110 @@ async fn clear_error() {
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn close_last_doc_in_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document(
+            "other_file.qs",
+            1,
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+        )
+        .await;
+    updater
+        .update_document(
+            "this_file.qs",
+            1,
+            "/* this should not show up in the final state */ we should not see compile errors",
+        )
+        .await;
+
+    updater.close_document("this_file.qs").await;
+    // now there should be one compilation and one open document
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "other_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "./qsharp.json",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            SourceMap {
+                sources: [
+                    Source {
+                        name: "other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 59,
+                    },
+                ],
+                entry: None,
+            }"#]],
+        &expect![[r#"
+            [
+                (
+                    "this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Token(
+                                            Eof,
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
+                                            Span {
+                                                lo: 59,
+                                                hi: 60,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "this_file.qs",
+                    None,
+                    [],
+                ),
+            ]
+        "#]],
+    );
+    updater.close_document("other_file.qs").await;
+
+    // now there should be no file and no compilation
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {}
+        "#]],
+        &expect![""],
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[tokio::test]
 async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
