@@ -107,6 +107,7 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(associationId: string): Promise<void> {
+    const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
@@ -158,7 +159,7 @@ export class QscDebugSession extends LoggingDebugSession {
             reason: "compilation failed",
             flowStatus: UserFlowStatus.Aborted,
           },
-          {},
+          { timeToCompleteMs: performance.now() - start },
         );
         this.failureMessage = failureMessage;
       }
@@ -166,7 +167,7 @@ export class QscDebugSession extends LoggingDebugSession {
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
       { associationId, flowStatus: UserFlowStatus.Succeeded },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
   }
 
@@ -878,6 +879,7 @@ export class QscDebugSession extends LoggingDebugSession {
       };
     } else if (handle === "quantum") {
       const associationId = getRandomGuid();
+      const start = performance.now();
       sendTelemetryEvent(
         EventType.RenderQuantumStateStart,
         { associationId },
@@ -896,7 +898,7 @@ export class QscDebugSession extends LoggingDebugSession {
       sendTelemetryEvent(
         EventType.RenderQuantumStateEnd,
         { associationId },
-        {},
+        { timeToCompleteMs: performance.now() - start },
       );
       response.body = {
         variables: variables,

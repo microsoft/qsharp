@@ -72,12 +72,13 @@ export async function getQirForActiveWindow(): Promise<string> {
   }, generateQirTimeoutMs);
   try {
     const associationId = getRandomGuid();
+    const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
     result = await worker.getQir(sources);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },
-      { qirLength: result.length },
+      { qirLength: result.length, timeToCompleteMs: performance.now() - start },
     );
     clearTimeout(compilerTimeout);
   } catch (e: any) {

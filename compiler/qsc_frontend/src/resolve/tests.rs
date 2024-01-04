@@ -1381,6 +1381,40 @@ fn use_qubit_block() {
 }
 
 #[test]
+fn use_qubit_block_qubit_restricted_to_block_scope() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation X(q : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation A() : Unit {
+                    use q = Qubit() {
+                        X(q);
+                    }
+                    X(q);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1(local8 : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation item2() : Unit {
+                    use local26 = Qubit() {
+                        item1(local26);
+                    }
+                    item1(q);
+                }
+            }
+
+            // NotFound("q", Span { lo: 173, hi: 174 })
+        "#]],
+    );
+}
+
+#[test]
 fn local_function() {
     check(
         indoc! {"
