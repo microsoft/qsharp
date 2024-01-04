@@ -11,14 +11,19 @@ repository.workspace = true
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
+tokio = { workspace = true }
 
 [dependencies]
+futures = { workspace = true }
+futures-util = { workspace = true }
 log = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 rustc-hash = { workspace = true }
 enum-iterator = { workspace = true }
 regex-lite = { workspace = true }
+qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
+async-trait = { workspace = true }
 
 [lib]
 doctest = false

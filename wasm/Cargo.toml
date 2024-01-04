@@ -15,6 +15,7 @@ crate-type = ["rlib", "cdylib"]
 doctest = false
 
 [dependencies]
+futures-util = { workspace = true }
 js-sys = { workspace = true }
 katas = { path = "../katas"}
 log = { workspace = true }
@@ -24,11 +25,14 @@ num-complex = { workspace = true }
 qsls = { path = "../language_service" }
 qsc = { path = "../compiler/qsc" }
 qsc_codegen = { path = "../compiler/qsc_codegen" }
+qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
+wasm-bindgen-futures = { workspace = true}
 serde_json = { workspace = true }
 rustc-hash = { workspace = true }
+async-trait = { workspace = true }
 
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
 getrandom = { workspace = true, features = ["js"] }

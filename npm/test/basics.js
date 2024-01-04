@@ -35,7 +35,7 @@ export function runSingleShot(code, expr, useWorker) {
     const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
     compiler
-      .run(code, expr, 1, resultsHandler)
+      .run([["test.qs", code]], expr, 1, resultsHandler)
       .then(() => resolve(resultsHandler.getResults()[0]))
       .catch((err) => reject(err))
       /* @ts-expect-error: ICompiler does not include 'terminate' */
@@ -339,7 +339,7 @@ test("worker 100 shots", async () => {
 
   const resultsHandler = new QscEventTarget(true);
   const compiler = getCompilerWorker();
-  await compiler.run(code, expr, 100, resultsHandler);
+  await compiler.run([["test.qs", code]], expr, 100, resultsHandler);
   compiler.terminate();
 
   const results = resultsHandler.getResults();
@@ -357,7 +357,7 @@ test("Run samples", async () => {
   const resultsHandler = new QscEventTarget(true);
 
   for await (const sample of samples) {
-    await compiler.run(sample.code, "", 1, resultsHandler);
+    await compiler.run([[sample.title, sample.code]], "", 1, resultsHandler);
   }
 
   compiler.terminate();
@@ -382,7 +382,7 @@ test("state change", async () => {
         return M(q1);
     }
   }`;
-  await compiler.run(code, "", 10, resultsHandler);
+  await compiler.run([["test.qs", code]], "", 10, resultsHandler);
   compiler.terminate();
   // There SHOULDN'T be a race condition here between the 'run' promise completing and the
   // statechange events firing, as the run promise should 'resolve' in the next microtask,
@@ -410,7 +410,7 @@ test("cancel worker", () => {
     const resultsHandler = new QscEventTarget(false);
 
     // Queue some tasks that will never complete
-    compiler.run(code, "", 10, resultsHandler).catch((err) => {
+    compiler.run([["test.qs", code]], "", 10, resultsHandler).catch((err) => {
       cancelledArray.push(err);
     });
     compiler.getHir(code).catch((err) => {
@@ -434,7 +434,7 @@ test("cancel worker", () => {
       assert(cancelledArray.length === 2);
       assert(cancelledArray[0] === "terminated");
       assert(cancelledArray[1] === "terminated");
-      resolve();
+      resolve(undefined);
     }, 4);
   });
 });
@@ -472,6 +472,9 @@ test("language service diagnostics", async () => {
     }
 }`,
   );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   assert(gotDiagnostics);
 });
 
@@ -529,6 +532,9 @@ test("diagnostics with related spans", async () => {
       }
     }`,
   );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   assert(gotDiagnostics);
 });
 
@@ -556,23 +562,20 @@ test("language service diagnostics - web worker", async () => {
     }
 }`,
   );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   languageService.terminate();
   assert(gotDiagnostics);
 });
 
 test("language service configuration update", async () => {
   const languageService = getLanguageServiceWorker();
-  let gotDiagnostics = false;
-  let expectedMessages = [
-    "entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
-  ];
+  let actualMessages = [];
   languageService.addEventListener("diagnostics", (event) => {
-    gotDiagnostics = true;
-    assert.equal(event.type, "diagnostics");
-    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
-    event.detail.diagnostics.map((d, i) =>
-      assert.equal(d.message, expectedMessages[i]),
-    );
+    actualMessages.push({
+      messages: event.detail.diagnostics.map((d) => d.message),
+    });
   });
   await languageService.updateDocument(
     "test.qs",
@@ -582,35 +585,42 @@ test("language service configuration update", async () => {
     }
 }`,
   );
-  // Above document should have generated a missing entrypoint error
-  assert(gotDiagnostics);
 
-  // Reset expectations
-  gotDiagnostics = false;
-  expectedMessages = [];
+  // Above document should have generated a missing entrypoint error.
 
+  // Now update the configuration.
   await languageService.updateConfiguration({ packageType: "lib" });
 
+  await languageService.dispose();
   languageService.terminate();
 
-  // Updating the config should cause another diagnostics event clearing the errors
-  assert(gotDiagnostics);
+  // Updating the config should cause another diagnostics event clearing the errors.
+
+  // All together, two events received: one with the error, one to clear it.
+  assert.deepStrictEqual(
+    [
+      {
+        messages: [
+          "entry point not found\n" +
+            "\n" +
+            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+        ],
+      },
+      {
+        messages: [],
+      },
+    ],
+    actualMessages,
+  );
 });
 
 test("language service in notebook", async () => {
   const languageService = getLanguageServiceWorker();
-  let gotDiagnostics = false;
-  let expectedMessages = [
-    "name error: `Foo` not found",
-    "type error: insufficient type information to infer type\n\nhelp: provide a type annotation",
-  ];
+  let actualMessages = [];
   languageService.addEventListener("diagnostics", (event) => {
-    gotDiagnostics = true;
-    assert.equal(event.type, "diagnostics");
-    assert.equal(event.detail.diagnostics.length, expectedMessages.length);
-    event.detail.diagnostics.map((d, i) =>
-      assert.equal(d.message, expectedMessages[i]),
-    );
+    actualMessages.push({
+      messages: event.detail.diagnostics.map((d) => d.message),
+    });
   });
 
   await languageService.updateNotebookDocument("notebook.ipynb", 1, {}, [
@@ -618,22 +628,36 @@ test("language service in notebook", async () => {
     { uri: "cell2", version: 1, code: "Foo()" },
   ]);
 
-  // Above document should have generated a resolve error
-  assert(gotDiagnostics);
-
-  // Reset expectations
-  gotDiagnostics = false;
-  expectedMessages = [];
+  // Above document should have generated a resolve error.
 
   await languageService.updateNotebookDocument("notebook.ipynb", 2, {}, [
     { uri: "cell1", version: 2, code: "operation Main() : Unit {}" },
     { uri: "cell2", version: 2, code: "Main()" },
   ]);
 
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
   languageService.terminate();
 
-  // Updating the notebook should cause another diagnostics event clearing the errors
-  assert(gotDiagnostics);
+  // Updating the notebook should cause another diagnostics event clearing the errors.
+
+  // All together, two events received: one with the error, one to clear it.
+  assert.deepStrictEqual(
+    [
+      {
+        messages: [
+          "name error: `Foo` not found",
+          "type error: insufficient type information to infer type\n" +
+            "\n" +
+            "help: provide a type annotation",
+        ],
+      },
+      {
+        messages: [],
+      },
+    ],
+    actualMessages,
+  );
 });
 
 async function testCompilerError(useWorker) {
@@ -649,7 +673,7 @@ async function testCompilerError(useWorker) {
   let promiseResult = undefined;
   let lastState = undefined;
   await compiler
-    .run("invalid code", "", 1, events)
+    .run([["test.qs", "invalid code"]], "", 1, events)
     .then(() => {
       promiseResult = "success";
     })
@@ -686,8 +710,10 @@ test("debug service loading source without entry point attr fails - web worker",
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     operation main() : Result[] {
         use q1 = Qubit();
         Y(q1);
@@ -695,6 +721,8 @@ test("debug service loading source without entry point attr fails - web worker",
         return [m1];
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
@@ -708,11 +736,15 @@ test("debug service loading source with syntax error fails - web worker", async 
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     operation main() : Result[]
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
@@ -726,8 +758,7 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample { operation main() : Unit { } }`,
+      [["test.qs", `namespace Sample { operation main() : Unit { } }`]],
       "base",
       "SomeBadExpr()",
     );
@@ -741,8 +772,7 @@ test("debug service loading source with good entry expr succeeds - web worker", 
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample { operation Main() : Unit { } }`,
+      [["test.qs", `namespace Sample { operation Main() : Unit { } }`]],
       "unrestricted",
       "Sample.Main()",
     );
@@ -757,8 +787,10 @@ test("debug service loading source with entry point attr succeeds - web worker",
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     @EntryPoint()
     operation main() : Result[] {
         use q1 = Qubit();
@@ -767,6 +799,8 @@ test("debug service loading source with entry point attr succeeds - web worker",
         return [m1];
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
@@ -781,8 +815,10 @@ test("debug service getting breakpoints after loaded source succeeds when file n
   const debugService = getDebugServiceWorker();
   try {
     const result = await debugService.loadSource(
-      "test.qs",
-      `namespace Sample {
+      [
+        [
+          "test.qs",
+          `namespace Sample {
     @EntryPoint()
     operation main() : Result[] {
         use q1 = Qubit();
@@ -791,12 +827,54 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         return [m1];
     }
 }`,
+        ],
+      ],
       "base",
       undefined,
     );
     assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
     assert.equal(bps.length, 4);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service compiling multiple sources - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      [
+        [
+          "Foo.qs",
+          `namespace Foo {
+    open Bar;
+    @EntryPoint()
+    operation Main() : Int {
+        Message("Hello");
+        Message("Hello");
+        return HelloFromBar();
+    }
+}`,
+        ],
+        [
+          "Bar.qs",
+          `namespace Bar {
+    operation HelloFromBar() : Int {
+          return 5;
+    }
+}`,
+        ],
+      ],
+      "unrestricted",
+      undefined,
+    );
+    assert.equal(result.trim(), "");
+    const fooBps = await debugService.getBreakpoints("Foo.qs");
+    assert.equal(fooBps.length, 3);
+
+    const barBps = await debugService.getBreakpoints("Bar.qs");
+    assert.equal(barBps.length, 1);
   } finally {
     debugService.terminate();
   }

@@ -35,6 +35,8 @@ criterion = { version = "0.5", default-features = false }
 enum-iterator = "1.4"
 env_logger = "0.10.0"
 expect-test = "1.4"
+futures = "0.3"
+futures-util = "0.3"
 fasteval = "0.2"
 getrandom = { version = "0.2" }
 indoc = "2.0"
@@ -53,10 +55,13 @@ rustc-hash = "1.1.0"
 serde = "1.0"
 serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = { version = "1.0" }
 pyo3 = { version = "0.20" }
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "f000e0066f56338595be37092cd0498f72ab10a2", default-features = false }
+async-trait = "0.1"
+tokio = { version = "1.34", features = ["macros", "rt"] }
 
 [profile.release]
 debug = 1

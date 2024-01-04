@@ -98,6 +98,19 @@ export async function getDebugService(): Promise<IDebugService> {
   return new QSharpDebugService(wasm);
 }
 
+export async function getProjectLoader(
+  readFile: (path: string) => Promise<string | null>,
+  loadDirectory: (path: string) => Promise<[string, number][]>,
+  getManifest: (path: string) => Promise<{
+    excludeFiles: string[];
+    excludeRegexes: string[];
+    manifestDirectory: string;
+  } | null>,
+): Promise<wasm.ProjectLoader> {
+  await instantiateWasm();
+  return new wasm.ProjectLoader(readFile, loadDirectory, getManifest);
+}
+
 // Create the debugger inside a WebWorker and proxy requests.
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.
@@ -163,9 +176,17 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
   return proxy;
 }
 
-export async function getLanguageService(): Promise<ILanguageService> {
+export async function getLanguageService(
+  readFile?: (uri: string) => Promise<string | null>,
+  listDir?: (uri: string) => Promise<[string, number][]>,
+  getManifest?: (uri: string) => Promise<{
+    excludeFiles: string[];
+    excludeRegexes: string[];
+    manifestDirectory: string;
+  } | null>,
+): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm);
+  return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.

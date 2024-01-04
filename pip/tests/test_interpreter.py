@@ -1,7 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qsharp._native import Interpreter, Result, Pauli, QSharpError, TargetProfile
+from qsharp._native import (
+    Interpreter,
+    Result,
+    Pauli,
+    QSharpError,
+    TargetProfile,
+)
+
 import pytest
 
 

@@ -30,6 +30,10 @@ pub mod ast {
     pub use qsc_ast::{ast::*, *};
 }
 
+pub mod project {
+    pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
+}
+
 pub use qsc_data_structures::span::Span;
 
 pub use qsc_passes::{PackageType, PassContext};
