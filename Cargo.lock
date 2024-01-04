@@ -329,6 +329,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fasteval"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f4cdac9e4065d7c48e30770f8665b8cef9a3a73a63a4056a33a5f395bc7cf75"
+
+[[package]]
 name = "fuzz"
 version = "0.0.0"
 dependencies = [
@@ -465,6 +471,12 @@ dependencies = [
  "cc",
  "once_cell",
 ]
+
+[[package]]
+name = "libm"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
 name = "linux-raw-sys"
@@ -663,6 +675,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
+name = "probability"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42746b805e424b759d46c22c65dc66ccca057a2db96e9db4fda6c337a287e485"
+dependencies = [
+ "random",
+ "special",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -751,11 +773,13 @@ dependencies = [
  "criterion",
  "env_logger",
  "expect-test",
+ "fasteval",
  "indoc",
  "log",
  "miette",
  "num-bigint",
  "num-complex",
+ "probability",
  "qsc_ast",
  "qsc_codegen",
  "qsc_data_structures",
@@ -765,7 +789,11 @@ dependencies = [
  "qsc_hir",
  "qsc_passes",
  "qsc_project",
+ "rand",
+ "regex-lite",
  "rustc-hash",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -836,6 +864,7 @@ dependencies = [
 name = "qsc_frontend"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.4.1",
  "enum-iterator",
  "expect-test",
  "indoc",
@@ -1003,6 +1032,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "random"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "474c42c904f04dfe2a595a02f71e1a0e5e92ffb5761cc9a4c02140b93b8dd504"
+
+[[package]]
 name = "rawpointer"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1151,6 +1186,15 @@ name = "smawk"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7c388c1b5e93756d0c740965c41e8822f866621d41acbdf6336a6a168f8840c"
+
+[[package]]
+name = "special"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "322ed043a063dd3cabb4b53b2a37bce115854d94df19acf766d9dacaff218c5a"
+dependencies = [
+ "libm",
+]
 
 [[package]]
 name = "stdlib_tests"

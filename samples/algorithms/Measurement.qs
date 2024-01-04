@@ -12,6 +12,7 @@
 /// This Q# program exemplifies different types of measurements.
 namespace Sample {
     open Microsoft.Quantum.Measurement;
+
     @EntryPoint()
     operation Main () : (Result, Result[]) {
         // The `M` operation performs a measurement of a single qubit in the

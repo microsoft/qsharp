@@ -24,7 +24,8 @@
     "onDebug",
     "onDebugResolve:qsharp",
     "onDebugDynamicConfigurations:qsharp",
-    "onFileSystem:qsharp-vfs"
+    "onFileSystem:qsharp-vfs",
+    "onWebviewPanel:qsharp-webview"
   ],
   "contributes": {
     "walkthroughs": [
@@ -97,13 +98,13 @@
       "properties": {
         "Q#.targetProfile": {
           "type": "string",
-          "default": "full",
+          "default": "unrestricted",
           "enum": [
-            "full",
+            "unrestricted",
             "base"
           ],
           "enumDescriptions": [
-            "The full set of capabilities required to run any Q# program. This option maps to the Full Profile as defined by the QIR specification.",
+            "The set of all capabilities required to run any Q# program.",
             "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification."
           ],
           "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
@@ -256,7 +257,7 @@
       },
       {
         "command": "qsharp-vscode.showRe",
-        "title": "Show RE",
+        "title": "Calculate Resource Estimates",
         "category": "Q#"
       },
       {

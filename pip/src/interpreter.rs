@@ -17,9 +17,13 @@ use qsc::{
     fir,
     interpret::{
         output::{Error, Receiver},
-        stateful::{self},
+        stateful::{
+            self,
+            re::{self, estimate_expr},
+        },
         Value,
     },
+    target::Profile,
     PackageType, SourceMap,
 };
 use rustc_hash::FxHashMap;
@@ -33,6 +37,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
     m.add_class::<StateDump>()?;
+    m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
     Ok(())
@@ -48,7 +53,7 @@ pub(crate) enum TargetProfile {
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
-    Full,
+    Unrestricted,
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
@@ -67,10 +72,15 @@ impl Interpreter {
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python, target: TargetProfile) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Full => qsc::TargetProfile::Full,
-            TargetProfile::Base => qsc::TargetProfile::Base,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
+            TargetProfile::Base => Profile::Base,
         };
-        match stateful::Interpreter::new(true, SourceMap::default(), PackageType::Lib, target) {
+        match stateful::Interpreter::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            target.into(),
+        ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => {
                 let mut message = String::new();
@@ -141,6 +151,41 @@ impl Interpreter {
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
+
+    fn estimate(&mut self, _py: Python, entry_expr: &str, job_params: &str) -> PyResult<String> {
+        match estimate_expr(&mut self.interpreter, entry_expr, job_params) {
+            Ok(estimate) => Ok(estimate),
+            Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
+                Err(QSharpError::new_err(format_errors(
+                    errors
+                        .into_iter()
+                        .map(|e| match e {
+                            re::Error::Interpreter(e) => e,
+                            re::Error::Estimation(_) => unreachable!(),
+                        })
+                        .collect::<Vec<_>>(),
+                )))
+            }
+            Err(errors) => Err(QSharpError::new_err(
+                errors
+                    .into_iter()
+                    .map(|e| match e {
+                        re::Error::Estimation(e) => e.to_string(),
+                        re::Error::Interpreter(_) => unreachable!(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )),
+        }
+    }
+}
+
+#[pyfunction]
+pub fn physical_estimates(logical_resources: &str, job_params: &str) -> PyResult<String> {
+    match re::estimate_physical_resources_from_json(logical_resources, job_params) {
+        Ok(estimates) => Ok(estimates),
+        Err(error) => Err(QSharpError::new_err(error.to_string())),
+    }
 }
 
 create_exception!(
@@ -158,11 +203,24 @@ fn format_errors(errors: Vec<stateful::Error>) -> String {
             if let Some(stack_trace) = e.stack_trace() {
                 write!(message, "{stack_trace}").unwrap();
             }
+            let additional_help = python_help(&e);
             let report = Report::new(e);
             write!(message, "{report:?}").unwrap();
+            if let Some(additional_help) = additional_help {
+                writeln!(message, "{additional_help}").unwrap();
+            }
             message
         })
         .collect::<String>()
+}
+
+/// Additional help text for an error specific to the Python module
+fn python_help(error: &stateful::Error) -> Option<String> {
+    if matches!(error, stateful::Error::UnsupportedRuntimeCapabilities) {
+        Some("Unsupported target profile. Initialize Q# by running `qsharp.init(target_profile=qsharp.TargetProfile.Base)` before performing code generation.".into())
+    } else {
+        None
+    }
 }
 
 #[pyclass(unsendable)]

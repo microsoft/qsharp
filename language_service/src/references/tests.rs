@@ -7,8 +7,7 @@ use super::get_references;
 use crate::{
     protocol,
     test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
-        get_source_and_marker_offsets, target_offsets_to_spans,
+        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
     },
 };
 use expect_test::{expect, Expect};
@@ -17,9 +16,8 @@ use indoc::indoc;
 /// Asserts that the reference locations given at the cursor position matches the expected reference locations.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn check_with_std(source_with_markers: &str, expect: &Expect) {
-    let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_references(&compilation, "<source>", cursor_offsets[0], true);
+    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_references(&compilation, "<source>", cursor_offset, true);
     expect.assert_debug_eq(&actual);
 }
 
@@ -27,19 +25,12 @@ fn check_with_std(source_with_markers: &str, expect: &Expect) {
 /// The cursor position is indicated by a `↘` marker in the source text.
 /// The expected reference location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str, include_declaration: bool) {
-    let (source, cursor_offsets, target_offsets) =
-        get_source_and_marker_offsets(source_with_markers);
-    let target_spans = target_offsets_to_spans(&target_offsets);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_references(
-        &compilation,
-        "<source>",
-        cursor_offsets[0],
-        include_declaration,
-    )
-    .into_iter()
-    .map(|l| l.span)
-    .collect::<Vec<_>>();
+    let (compilation, cursor_offset, target_spans) =
+        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_references(&compilation, "<source>", cursor_offset, include_declaration)
+        .into_iter()
+        .map(|l| l.span)
+        .collect::<Vec<_>>();
     for target in &target_spans {
         assert!(
             actual.contains(target),

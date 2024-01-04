@@ -7,6 +7,8 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
+pub mod re;
+
 use super::debug::format_call_stack;
 use crate::{
     error::{self, WithStack},
@@ -30,7 +32,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetProfile},
+    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
     error::WithSource,
 };
 use qsc_passes::PackageType;
@@ -61,9 +63,9 @@ pub enum Error {
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
-    #[error("code generation target mismatch")]
-    #[diagnostic(code("Qsc.Interpret.TargetMismatch"))]
-    TargetMismatch,
+    #[error("unsupported runtime capabilities for code generation")]
+    #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
+    UnsupportedRuntimeCapabilities,
 }
 
 struct Lookup<'a> {
@@ -112,8 +114,8 @@ impl<'a> NodeLookup for Lookup<'a> {
 pub struct Interpreter {
     /// The incremental Q# compiler.
     compiler: Compiler,
-    /// The `TargetProfile` used for compilation.
-    target: TargetProfile,
+    /// The runtime capabilities used for compilation.
+    capabilities: RuntimeCapabilityFlags,
     /// The number of lines that have so far been compiled.
     /// This field is used to generate a unique label
     /// for each line evaluated with `eval_fragments`.
@@ -147,14 +149,15 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        target: TargetProfile,
+        capabilities: RuntimeCapabilityFlags,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = IndexMap::new();
 
-        let compiler = Compiler::new(std, sources, package_type, target).map_err(into_errors)?;
+        let compiler =
+            Compiler::new(std, sources, package_type, capabilities).map_err(into_errors)?;
 
-        for (id, unit) in compiler.package_store().iter() {
+        for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
                 lowerer.lower_package(&unit.package),
@@ -167,7 +170,7 @@ impl Interpreter {
         Ok(Self {
             compiler,
             lines: 0,
-            target,
+            capabilities,
             fir_store,
             lowerer,
             env: Env::with_empty_scope(),
@@ -236,6 +239,36 @@ impl Interpreter {
             &globals,
             &mut Env::with_empty_scope(),
             &mut self.sim,
+            receiver,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
+    }
+
+    /// Executes the entry expression until the end of execution, using the given simulator backend
+    /// and a new instance of the environment.
+    pub fn eval_entry_with_sim(
+        &mut self,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        receiver: &mut impl Receiver,
+    ) -> Result<Value, Vec<Error>> {
+        let expr = self.get_entry_expr()?;
+        let globals = Lookup {
+            fir_store: &self.fir_store,
+        };
+
+        eval_expr(
+            &mut State::new(self.source_package),
+            expr,
+            &globals,
+            &mut Env::with_empty_scope(),
+            sim,
             receiver,
         )
         .map_err(|(error, call_stack)| {
@@ -334,8 +367,8 @@ impl Interpreter {
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<Error>> {
-        if self.target != TargetProfile::Base {
-            return Err(vec![Error::TargetMismatch]);
+        if self.capabilities != RuntimeCapabilityFlags::empty() {
+            return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
 
         let mut sim = BaseProfSim::new();
@@ -421,7 +454,7 @@ impl Interpreter {
         self.compiler.update(increment);
 
         assert!(stmts.len() == 1, "expected exactly one statement");
-        let stmt_id = stmts.get(0).expect("expected exactly one statement");
+        let stmt_id = stmts.first().expect("expected exactly one statement");
 
         Ok(*stmt_id)
     }

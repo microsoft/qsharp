@@ -27,6 +27,7 @@ parser.add_argument(
     "--cli", action="store_true", help="Build the command-line compiler"
 )
 parser.add_argument("--pip", action="store_true", help="Build the pip wheel")
+parser.add_argument("--widgets", action="store_true", help="Build the Python widgets")
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
@@ -77,6 +78,7 @@ if args.check_prereqs:
 build_all = (
     not args.cli
     and not args.pip
+    and not args.widgets
     and not args.wasm
     and not args.samples
     and not args.npm
@@ -86,6 +88,7 @@ build_all = (
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
+build_widgets = build_all or args.widgets
 build_wasm = build_all or args.wasm
 build_samples = build_all or args.samples
 build_npm = build_all or args.npm
@@ -110,6 +113,7 @@ samples_src = os.path.join(root_dir, "samples")
 npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
 pip_src = os.path.join(root_dir, "pip")
+widgets_src = os.path.join(root_dir, "widgets")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
 jupyterlab_src = os.path.join(root_dir, "jupyterlab")
@@ -272,6 +276,23 @@ if build_pip:
             subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
         else:
             print("Could not import PyQIR, skipping tests")
+    step_end()
+
+if build_widgets:
+    step_start("Building the Python widgets")
+
+    widgets_build_args = [
+        sys.executable,
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--wheel-dir",
+        wheels_dir,
+        widgets_src,
+    ]
+    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
+
     step_end()
 
 if build_wasm:

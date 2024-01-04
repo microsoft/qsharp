@@ -23,6 +23,7 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<void>;
   getQir(code: string): Promise<string>;
+  getEstimates(code: string, params: string): Promise<string>;
   checkExerciseSolution(
     user_code: string,
     exercise_sources: string[],
@@ -56,6 +57,10 @@ export class Compiler implements ICompiler {
 
   async getQir(code: string): Promise<string> {
     return this.wasm.get_qir(code);
+  }
+
+  async getEstimates(code: string, params: string): Promise<string> {
+    return this.wasm.get_estimates(code, params);
   }
 
   async getHir(code: string): Promise<string> {

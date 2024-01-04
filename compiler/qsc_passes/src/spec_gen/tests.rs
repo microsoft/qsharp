@@ -6,7 +6,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{validate::Validator, visit::Visitor};
 
 use crate::spec_gen::generate_specs;
@@ -14,7 +14,7 @@ use crate::spec_gen::generate_specs;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, TargetProfile::Full);
+    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = generate_specs(store.core(), &mut unit.package, &mut unit.assigner);
@@ -42,6 +42,218 @@ fn generate_specs_body_intrinsic_should_fail() {
                     Span {
                         lo: 74,
                         hi: 89,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_body_auto_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit {
+                body auto;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidBodyGen(
+                    Span {
+                        lo: 61,
+                        hi: 71,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_body_self_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit {
+                body self;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidBodyGen(
+                    Span {
+                        lo: 61,
+                        hi: 71,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_body_invert_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit {
+                body invert;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidBodyGen(
+                    Span {
+                        lo: 61,
+                        hi: 73,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_body_distribute_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit {
+                body distribute;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidBodyGen(
+                    Span {
+                        lo: 61,
+                        hi: 77,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_ctl_intrinsic_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj + Ctl {
+                body ... {}
+                controlled intrinsic;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidCtlGen(
+                    Span {
+                        lo: 94,
+                        hi: 115,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_ctl_self_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj + Ctl {
+                body ... {}
+                controlled self;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidCtlGen(
+                    Span {
+                        lo: 94,
+                        hi: 110,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_ctl_invert_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj + Ctl {
+                body ... {}
+                controlled invert;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidCtlGen(
+                    Span {
+                        lo: 94,
+                        hi: 112,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_adj_intrinsic_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj + Ctl {
+                body ... {}
+                adjoint intrinsic;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidAdjGen(
+                    Span {
+                        lo: 94,
+                        hi: 112,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_adjoint_distribute_should_fail() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj + Ctl {
+                body ... {}
+                adjoint distribute;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                InvalidAdjGen(
+                    Span {
+                        lo: 94,
+                        hi: 113,
                     },
                 ),
             ]

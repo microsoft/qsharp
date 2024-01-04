@@ -9,9 +9,10 @@ pub mod preprocess;
 use crate::{
     error::WithSource,
     lower::{self, Lowerer},
-    resolve::{self, Names, Resolver},
+    resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
+use bitflags::bitflags;
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -35,13 +36,24 @@ use qsc_hir::{
 use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
 
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct RuntimeCapabilityFlags: u32 {
+        const ConditionalForwardBranching = 0b0000_0001;
+        const IntegerComputations = 0b0000_0010;
+        const FloatingPointComputation = 0b0000_0100;
+        const BackwardsBranching = 0b0000_1000;
+        const HigherLevelConstructs = 0b0001_0000;
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TargetProfile {
+pub enum ConfigAttr {
     Full,
     Base,
 }
 
-impl TargetProfile {
+impl ConfigAttr {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
         match self {
@@ -56,14 +68,23 @@ impl TargetProfile {
     }
 }
 
-impl FromStr for TargetProfile {
+impl FromStr for ConfigAttr {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Full" => Ok(TargetProfile::Full),
-            "Base" => Ok(Self::Base),
+            "Full" => Ok(ConfigAttr::Full),
+            "Base" => Ok(ConfigAttr::Base),
             _ => Err(()),
+        }
+    }
+}
+
+impl From<ConfigAttr> for RuntimeCapabilityFlags {
+    fn from(value: ConfigAttr) -> Self {
+        match value {
+            ConfigAttr::Full => Self::all(),
+            ConfigAttr::Base => Self::empty(),
         }
     }
 }
@@ -84,6 +105,7 @@ pub struct AstPackage {
     pub package: ast::Package,
     pub tys: Table,
     pub names: Names,
+    pub locals: Locals,
 }
 
 #[derive(Debug, Default)]
@@ -234,6 +256,13 @@ impl PackageStore {
         }
     }
 }
+impl<'a> IntoIterator for &'a PackageStore {
+    type IntoIter = Iter<'a>;
+    type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
 
 /// A package store that contains one mutable `CompileUnit`.
 pub struct OpenPackageStore {
@@ -302,11 +331,11 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
 
-    let mut cond_compile = preprocess::Conditional::new(target);
+    let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();
 
@@ -314,7 +343,7 @@ pub fn compile(
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, name_errors) = resolve_all(
+    let (names, locals, name_errors) = resolve_all(
         store,
         dependencies,
         &mut hir_assigner,
@@ -344,6 +373,7 @@ pub fn compile(
             package: ast_package,
             tys,
             names,
+            locals,
         },
         assigner: hir_assigner,
         sources,
@@ -379,7 +409,7 @@ pub fn core() -> CompileUnit {
         None,
     );
 
-    let mut unit = compile(&store, &[], sources, TargetProfile::Base);
+    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::empty());
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -390,17 +420,9 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
     let sources = SourceMap::new(
         [
-            (
-                "arithmetic.qs".into(),
-                include_str!("../../../library/std/arithmetic.qs").into(),
-            ),
-            (
-                "arithmetic_internal.qs".into(),
-                include_str!("../../../library/std/arithmetic_internal.qs").into(),
-            ),
             (
                 "arrays.qs".into(),
                 include_str!("../../../library/std/arrays.qs").into(),
@@ -445,11 +467,27 @@ pub fn std(store: &PackageStore, target: TargetProfile) -> CompileUnit {
                 "random.qs".into(),
                 include_str!("../../../library/std/random.qs").into(),
             ),
+            (
+                "unstable_arithmetic.qs".into(),
+                include_str!("../../../library/std/unstable_arithmetic.qs").into(),
+            ),
+            (
+                "unstable_arithmetic_internal.qs".into(),
+                include_str!("../../../library/std/unstable_arithmetic_internal.qs").into(),
+            ),
+            (
+                "unstable_table_lookup.qs".into(),
+                include_str!("../../../library/std/unstable_table_lookup.qs").into(),
+            ),
+            (
+                "re.qs".into(),
+                include_str!("../../../library/std/re.qs").into(),
+            ),
         ],
         None,
     );
 
-    let mut unit = compile(store, &[PackageId::CORE], sources, target);
+    let mut unit = compile(store, &[PackageId::CORE], sources, capabilities);
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -493,7 +531,7 @@ fn resolve_all(
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
-) -> (Names, Vec<resolve::Error>) {
+) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -511,9 +549,9 @@ fn resolve_all(
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
-    let (names, mut resolver_errors) = resolver.into_names();
+    let (names, locals, mut resolver_errors) = resolver.into_result();
     errors.append(&mut resolver_errors);
-    (names, errors)
+    (names, locals, errors)
 }
 
 fn typeck_all(

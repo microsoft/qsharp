@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
+import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
 import { getTarget, setTarget } from "./config";
@@ -66,6 +66,10 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     const targetProfile = getTarget();
 
     statusBarItem.text = getTargetProfileUiText(targetProfile);
+    statusBarItem.tooltip = new vscode.MarkdownString(`## Q# target profile
+  The target profile determines the set of operations that are available to Q#
+  programs, in order to generate valid QIR for the target platform. For more
+  details see <https://aka.ms/qdk.qir>.`);
     statusBarItem.show();
   }
 
@@ -89,30 +93,30 @@ function registerTargetProfileCommand() {
 }
 
 const targetProfiles = [
-  { configName: "base", uiText: "QIR:Base" },
-  { configName: "full", uiText: "QIR:Full" },
+  { configName: "base", uiText: "Q#: QIR base" },
+  { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
 
 function getTargetProfileUiText(targetProfile?: string) {
   switch (targetProfile) {
     case "base":
-      return "QIR:Base";
-    case "full":
-      return "QIR:Full";
+      return "Q#: QIR base";
+    case "unrestricted":
+      return "Q#: unrestricted";
     default:
       log.error("invalid target profile found");
-      return "QIR:Invalid";
+      return "Q#: invalid";
   }
 }
 
-function getTargetProfileSetting(uiText: string) {
+function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "QIR:Base":
+    case "Q#: QIR base":
       return "base";
-    case "QIR:Full":
-      return "full";
+    case "Q#: unrestricted":
+      return "unrestricted";
     default:
       log.error("invalid target profile found");
-      return "full";
+      return "unrestricted";
   }
 }

@@ -1,36 +1,127 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Arithmetic {
+namespace Microsoft.Quantum.Unstable.Arithmetic {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-
-    // Computes ys += xs + carryIn using a ripple carry architecture
-    internal operation IncWithCarryIn(carryIn : Qubit, xs : Qubit[], ys : Qubit[])
+    /// # Summary
+    /// Implements the outer operation for RippleCarryTTKIncByLE to conjugate
+    /// the inner operation to construct the full adder. Only Length(xs)
+    /// qubits are processed.
+    ///
+    /// # Input
+    /// ## xs
+    /// Qubit register in a little-endian format containing the first summand
+    /// input to RippleCarryTTKIncByLE.
+    /// ## ys
+    /// Qubit register in a little-endian format containing the second summand
+    /// input to RippleCarryTTKIncByLE.
+    ///
+    /// # References
+    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
+    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
+    ///   Computation, Vol. 10, 2010.
+    ///   https://arxiv.org/abs/0910.2530
+    internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
-        // We assume that it has already been checked that xs and ys are of
-        // equal size and non-empty in RippleCarryIncByLE
-        if Length(xs) == 1 {
-            if Length(ys) == 1 {
-                within {
-                    CNOT(carryIn, xs[0]);
-                } apply {
-                    CNOT(xs[0], ys[0]);
-                }
-            } elif Length(ys) == 2 {
-                FullAdderForInc(carryIn, xs[0], ys[0], ys[1]);
-            }
-        } else {
-            let (x0, xrest) = HeadAndRest(xs);
-            let (y0, yrest) = HeadAndRest(ys);
+        Fact(Length(xs) <= Length(ys),
+            "Input register ys must be at lease as long as xs." );
+        for i in 1..Length(xs)-1 {
+            CNOT(xs[i], ys[i]);
+        }
+        for i in Length(xs)-2..-1..1 {
+            CNOT(xs[i], xs[i+1]);
+        }
+    }
 
-            use carryOut = Qubit();
-            CarryForInc(carryIn, x0, y0, carryOut);
-            IncWithCarryIn(carryOut, xrest, yrest);
-            UncarryForInc(carryIn, x0, y0, carryOut);
+    /// # Summary
+    /// Implements the inner addition function for the operation
+    /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
+    /// with the outer operation to construct the full adder.
+    ///
+    /// # Input
+    /// ## xs
+    /// Qubit register in a little-endian format containing the first summand
+    /// input to RippleCarryTTKIncByLE.
+    /// ## ys
+    /// Qubit register in a little-endian format containing the second summand
+    /// input to RippleCarryTTKIncByLE.
+    ///
+    /// # References
+    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
+    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
+    ///   Computation, Vol. 10, 2010.
+    ///   https://arxiv.org/abs/0910.2530
+    ///
+    /// # Remarks
+    /// The specified controlled operation makes use of symmetry and mutual
+    /// cancellation of operations to improve on the default implementation
+    /// that adds a control to every operation.
+    internal operation ApplyInnerTTKAdderNoCarry(xs : Qubit[], ys : Qubit[])
+    : Unit is Adj + Ctl {
+        body (...) {
+            (Controlled ApplyInnerTTKAdderNoCarry) ([], (xs, ys));
+        }
+        controlled ( controls, ... ) {
+            Fact(Length(xs) == Length(ys),
+                "Input registers must have the same number of qubits." );
+
+            for idx in 0..Length(xs) - 2 {
+                CCNOT (xs[idx], ys[idx], xs[idx + 1]);
+            }
+            for idx in Length(xs)-1..-1..1 {
+                Controlled CNOT(controls, (xs[idx], ys[idx]));
+                CCNOT(xs[idx - 1], ys[idx - 1], xs[idx]);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Implements the inner addition function for the operation
+    /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
+    /// with the outer operation to construct the full adder.
+    ///
+    /// # Input
+    /// ## xs
+    /// Qubit register in a little-endian format containing the first summand
+    /// input to RippleCarryTTKIncByLE.
+    /// ## ys
+    /// Qubit register in a little-endian format containing the second summand
+    /// input to RippleCarryTTKIncByLE.
+    ///
+    /// # References
+    /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
+    ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
+    ///   Computation, Vol. 10, 2010.
+    ///   https://arxiv.org/abs/0910.2530
+    ///
+    /// # Remarks
+    /// The specified controlled operation makes use of symmetry and mutual
+    /// cancellation of operations to improve on the default implementation
+    /// that adds a control to every operation.
+    internal operation ApplyInnerTTKAdderWithCarry(xs : Qubit[], ys : Qubit[])
+    : Unit is Adj + Ctl {
+        body (...) {
+            (Controlled ApplyInnerTTKAdderWithCarry)([], (xs, ys));
+        }
+        controlled ( controls, ... ) {
+            Fact(Length(xs)+1 == Length(ys),
+                "ys must be one qubit longer then xs." );
+            Fact(Length(xs) > 0, "Array should not be empty.");
+
+
+            let nQubits = Length(xs);
+            for idx in 0..nQubits - 2 {
+                CCNOT(xs[idx], ys[idx], xs[idx+1]);
+            }
+            (Controlled CCNOT)(controls, (xs[nQubits-1], ys[nQubits-1], ys[nQubits]));
+            for idx in nQubits - 1..-1..1 {
+                Controlled CNOT(controls, (xs[idx], ys[idx]));
+                CCNOT(xs[idx-1], ys[idx-1], xs[idx]);
+            }
         }
     }
 
@@ -170,21 +261,7 @@ namespace Microsoft.Quantum.Arithmetic {
             if not CheckZero(target) {
                 fail "ApplyAndAssuming0Target expects `target` to be in |0> state.";
             }
-            H(target);
-            T(target);
-            CNOT(control1, target);
-            CNOT(control2, target);
-            within {
-                CNOT(target, control1);
-                CNOT(target, control2);
-            }
-            apply {
-                Adjoint T(control1);
-                Adjoint T(control2);
-                T(target);
-            }
-            H(target);
-            S(target);            
+            CCNOT(control1, control2, target);
         }
         adjoint (...) {
             H(target);
@@ -192,6 +269,16 @@ namespace Microsoft.Quantum.Arithmetic {
                 Reset(target);
                 CZ(control1, control2);
             }
+        }
+    }
+
+    internal operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        within {
+            X(control1);
+            X(control2);
+        } apply {
+            ApplyAndAssuming0Target(control1, control2, target);
+            X(target);
         }
     }
 
@@ -277,8 +364,8 @@ namespace Microsoft.Quantum.Arithmetic {
             // accessed in round t.
             let (current, next) = (Rest(ws[0]), ws[1]);
 
-            for (m, target) in Enumerated(next) {
-                ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], target);
+            for m in IndexRange(next) {
+                ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], next[m]);
             }
         }
     }
@@ -322,8 +409,162 @@ namespace Microsoft.Quantum.Arithmetic {
     }
 
     internal operation PhaseGradient (qs : Qubit[]) : Unit is Adj + Ctl {
-        for (i, q) in Enumerated(qs) {
-            R1Frac(1, i, q);
+        for i in IndexRange(qs) {
+            R1Frac(1, i, qs[i]);
+        }
+    }
+
+    //
+    // Internal operations for comparisons
+    //
+
+    /// # Summary
+    /// Applies `action` to `target` if register `x` is greater or equal to BigInt `c`
+    /// (if `invertControl` is false). If `invertControl` is true, the `action`
+    /// is applied in the opposite situation.
+    internal operation ApplyActionIfGreaterThanOrEqualConstant<'T>(
+        invertControl: Bool,
+        action: 'T => Unit is Adj + Ctl,
+        c: BigInt,
+        x: Qubit[],
+        target: 'T) : Unit is Adj + Ctl {
+
+        let bitWidth = Length(x);
+        if c == 0L {
+            if not invertControl {
+                action(target);
+            }
+        } elif c >= (2L^bitWidth) {
+            if invertControl {
+                action(target);
+            }
+        } else {
+            // normalize constant
+            let l = TrailingZeroCountL(c);
+
+            let cNormalized = c >>> l;
+            let xNormalized = x[l...];
+            let bitWidthNormalized = Length(xNormalized);
+
+            // If c == 2L^(bitwidth - 1), then bitWidthNormalized will be 1,
+            // and qs will be empty.  In that case, we do not need to compute
+            // any temporary values, and some optimizations are apply, which
+            // are considered in the remainder.
+            use qs = Qubit[bitWidthNormalized - 1];
+            let cs1 = IsEmpty(qs) ? [] | [Head(xNormalized)] + Most(qs);
+
+            Fact(Length(cs1) == Length(qs),
+                "Arrays should be of the same length.");
+
+            within {
+                for i in 0..Length(cs1)-1 {
+                    let op =
+                        cNormalized &&& (1L <<< (i+1)) != 0L ?
+                        ApplyAndAssuming0Target | ApplyOrAssuming0Target;
+                    op(cs1[i], xNormalized[i+1], qs[i]);
+                }
+            } apply {
+                let control = IsEmpty(qs) ? Tail(x) | Tail(qs);
+                within {
+                    if invertControl {
+                        X(control);
+                    }
+                } apply {
+                    Controlled action([control], target);
+                }
+            }
+        }
+    }
+
+    /// # Summary
+    /// Applies `action` to `target` if the sum of `x` and `y` registers
+    /// overflows, i.e. there's a carry out (if `invertControl` is false).
+    /// If `invertControl` is true, the `action` is applied when there's no carry out.
+    internal operation ApplyActionIfSumOverflows<'T> (
+        action : 'T => Unit is Adj + Ctl,
+        x : Qubit[],
+        y : Qubit[],
+        invertControl : Bool,
+        target : 'T) : Unit is Adj + Ctl {
+
+        let n = Length(x);
+        Fact(n >= 1, "Registers must contain at least one qubit.");
+        Fact(Length(y) == n, "Registers must be of the same length.");
+
+        use carries = Qubit[n];
+
+        within {
+            CarryWith1CarryIn(x[0], y[0], carries[0]);
+            for i in 1..n-1 {
+                CarryForInc(carries[i-1], x[i], y[i], carries[i]);
+            }
+        } apply {
+            within {
+                if invertControl {
+                    X(carries[n-1]);
+                }
+            } apply {
+                Controlled action([carries[n-1]], target);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Computes carry out assuming carry in is 1.
+    /// Simplified version that is only applicable for scenarios
+    /// where controlled version is the same as non-controlled.
+    internal operation CarryWith1CarryIn(
+        x : Qubit,
+        y : Qubit,
+        carryOut : Qubit) : Unit is Adj + Ctl {
+
+        body (...) {
+            X(x);
+            X(y);
+            ApplyAndAssuming0Target(x, y, carryOut);
+            X(carryOut);
+        }
+
+        adjoint auto;
+
+        controlled (ctls, ...) {
+            Fact(Length(ctls) <= 1, "Number of control lines must be at most 1");
+            CarryWith1CarryIn(x, y, carryOut);
+        }
+
+        controlled adjoint auto;
+    }
+
+    /// # Summary
+    /// This wrapper allows operations that support only one control
+    /// qubit to be used in a multi-controlled scenarios. It provides
+    /// controlled version that collects controls into one qubit
+    /// by applying AND chain using auxiliary qubit array.
+    internal operation ApplyAsSinglyControlled<'TIn> (
+        op : ( 'TIn => Unit is Adj + Ctl ),
+        input : 'TIn ) : Unit is Adj + Ctl {
+
+        body (...) {
+            op(input);
+        }
+
+        controlled (ctls, ...) {
+            let n = Length(ctls);
+            if n == 0 {
+                op(input);
+            } elif n == 1 {
+                Controlled op(ctls, input);
+            } else {
+                use aux = Qubit[n-1];
+                within {
+                    ApplyAndAssuming0Target(ctls[0], ctls[1], aux[0]);
+                    for i in 1..n-2 {
+                        ApplyAndAssuming0Target(aux[i-1], ctls[i+1], aux[i]);
+                    }
+                } apply {
+                    Controlled op(aux[n-2..n-2], input);
+                }
+            }
         }
     }
 

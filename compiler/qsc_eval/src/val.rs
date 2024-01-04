@@ -191,12 +191,18 @@ impl Value {
     /// Updates a value in an array in-place.
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Array`].
-    pub fn update_array(&mut self, index: usize, value: Self) {
+    pub fn update_array(&mut self, index: usize, value: Self) -> core::result::Result<(), usize> {
         let Value::Array(arr) = self else {
             panic!("value should be Array, got {}", self.type_name());
         };
         let arr = Rc::get_mut(arr).expect("array should be uniquely referenced");
-        arr[index] = value;
+        match arr.get_mut(index) {
+            Some(v) => {
+                *v = value;
+                Ok(())
+            }
+            None => Err(index),
+        }
     }
 
     /// Appends a value to an array in-place.

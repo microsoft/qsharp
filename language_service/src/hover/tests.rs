@@ -4,12 +4,8 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::get_hover;
-use crate::{
-    protocol,
-    test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib,
-        get_source_and_marker_offsets,
-    },
+use crate::test_utils::{
+    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -18,25 +14,17 @@ use indoc::indoc;
 /// The cursor position is indicated by a `↘` marker in the source text.
 /// The expected hover span is indicated by two `◉` markers in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
-    let (source, cursor_offsets, target_offsets) =
-        get_source_and_marker_offsets(source_with_markers);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_hover(&compilation, "<source>", cursor_offsets[0]).expect("Expected a hover.");
-    assert_eq!(
-        &actual.span,
-        &protocol::Span {
-            start: target_offsets[0],
-            end: target_offsets[1],
-        }
-    );
+    let (compilation, cursor_offset, target_spans) =
+        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_hover(&compilation, "<source>", cursor_offset).expect("Expected a hover.");
+    assert_eq!(&actual.span, &target_spans[0]);
     expect.assert_eq(&actual.contents);
 }
 
 /// Asserts that there is no hover for the given test case.
 fn check_none(source_with_markers: &str) {
-    let (source, cursor_offsets, _) = get_source_and_marker_offsets(source_with_markers);
-    let compilation = compile_with_fake_stdlib("<source>", &source);
-    let actual = get_hover(&compilation, "<source>", cursor_offsets[0]);
+    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_hover(&compilation, "<source>", cursor_offset);
     assert!(actual.is_none());
 }
 

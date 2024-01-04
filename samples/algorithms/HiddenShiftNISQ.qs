@@ -9,7 +9,6 @@
 ///
 /// This Q# program implements an algorithm to solve the hidden shift problem.
 namespace Sample {
-    open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;

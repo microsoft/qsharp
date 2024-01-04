@@ -6,8 +6,8 @@ mod tests;
 
 use crate::{
     compile::{
-        self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap,
-        TargetProfile,
+        self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, RuntimeCapabilityFlags,
+        SourceMap,
     },
     error::WithSource,
     lower::Lowerer,
@@ -37,7 +37,7 @@ pub struct Compiler {
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
 }
 
 pub type Error = WithSource<compile::Error>;
@@ -56,7 +56,7 @@ impl Compiler {
     pub fn new(
         store: &PackageStore,
         dependencies: impl IntoIterator<Item = PackageId>,
-        target: TargetProfile,
+        capabilities: RuntimeCapabilityFlags,
     ) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
@@ -81,7 +81,7 @@ impl Compiler {
             resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
-            target,
+            capabilities,
         }
     }
 
@@ -124,6 +124,7 @@ impl Compiler {
             ast: AstPackage {
                 package: ast,
                 names: self.resolver.names().clone(),
+                locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
             },
             hir,
@@ -163,6 +164,7 @@ impl Compiler {
             ast: AstPackage {
                 package: ast,
                 names: self.resolver.names().clone(),
+                locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
             },
             hir,
@@ -178,6 +180,7 @@ impl Compiler {
         // replace the current tables instead of extending.
         unit.ast.names = new.ast.names;
         unit.ast.tys = new.ast.tys;
+        unit.ast.locals = new.ast.locals;
 
         // Update the HIR
         extend_hir(&mut unit.package, new.hir);
@@ -188,7 +191,7 @@ impl Compiler {
         unit: &mut CompileUnit,
         ast: &mut ast::Package,
     ) -> (hir::Package, Vec<Error>) {
-        let mut cond_compile = preprocess::Conditional::new(self.target);
+        let mut cond_compile = preprocess::Conditional::new(self.capabilities);
         cond_compile.visit_package(ast);
 
         self.ast_assigner.visit_package(ast);

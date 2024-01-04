@@ -14,7 +14,7 @@ fn check_apply_to_each() {
     test_expression(
         indoc! {r#"{
             use register = Qubit[3];
-            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            ApplyToEach(X, register);
             let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
             ResetAll(register);
             results
@@ -28,7 +28,7 @@ fn check_apply_to_each_a() {
     test_expression(
         indoc! {r#"{
             use register = Qubit[3];
-            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            ApplyToEach(X, register);
             Adjoint Microsoft.Quantum.Canon.ApplyToEachA(X, register);
             let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             results
@@ -323,7 +323,7 @@ fn check_swap_reverse_register() {
     test_expression(
         {
             "{
-                open Microsoft.Quantum.Arithmetic;
+                open Microsoft.Quantum.Measurement;
                 use q = Qubit[10];
                 ApplyXorInPlace(328, q);
                 SwapReverseRegister(q);
@@ -333,5 +333,42 @@ fn check_swap_reverse_register() {
         }"
         },
         &Value::Int(74),
+    );
+}
+
+#[test]
+fn check_apply_xor_in_place() {
+    test_expression(
+        {
+            "{
+            use a = Qubit[3];
+            mutable result = [];
+            within {
+                ApplyXorInPlace(3, a);
+            }
+            apply {
+                set result = [M(a[0]),M(a[1]),M(a[2])];
+            }
+            return result;
+        }"
+        },
+        &Value::Array(vec![Value::RESULT_ONE, Value::RESULT_ONE, Value::RESULT_ZERO].into()),
+    );
+}
+
+#[test]
+fn check_apply_xor_in_place_l() {
+    test_expression(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[100];
+            ApplyXorInPlaceL(953L <<< 50, q);
+            let result = MeasureInteger(q[50...]);
+            ResetAll(q);
+            result
+        }"
+        },
+        &Value::Int(953),
     );
 }

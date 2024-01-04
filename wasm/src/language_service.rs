@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::str::FromStr;
+
 use crate::{diagnostic::VSDiagnostic, serializable_type};
 use js_sys::JsString;
-use qsc::{self};
+use qsc::{self, target::Profile, PackageType};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -42,14 +44,12 @@ impl LanguageService {
         let config: WorkspaceConfiguration = config.into();
         self.0
             .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
-                target_profile: config.targetProfile.map(|s| match s.as_str() {
-                    "base" => qsc::TargetProfile::Base,
-                    "full" => qsc::TargetProfile::Full,
-                    _ => panic!("invalid target profile"),
-                }),
+                target_profile: config
+                    .targetProfile
+                    .map(|s| Profile::from_str(&s).expect("invalid target profile")),
                 package_type: config.packageType.map(|s| match s.as_str() {
-                    "lib" => qsc::PackageType::Lib,
-                    "exe" => qsc::PackageType::Exe,
+                    "lib" => PackageType::Lib,
+                    "exe" => PackageType::Exe,
                     _ => panic!("invalid package type"),
                 }),
             })
@@ -63,10 +63,21 @@ impl LanguageService {
         self.0.close_document(uri);
     }
 
-    pub fn update_notebook_document(&mut self, notebook_uri: &str, cells: Vec<ICell>) {
+    pub fn update_notebook_document(
+        &mut self,
+        notebook_uri: &str,
+        notebook_metadata: INotebookMetadata,
+        cells: Vec<ICell>,
+    ) {
         let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
+        let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
+            &qsls::protocol::NotebookMetadata {
+                target_profile: notebook_metadata
+                    .targetProfile
+                    .map(|s| Profile::from_str(&s).expect("invalid target profile")),
+            },
             cells
                 .iter()
                 .map(|s| (s.uri.as_ref(), s.version, s.code.as_ref())),
@@ -96,6 +107,8 @@ impl LanguageService {
                         qsls::protocol::CompletionItemKind::Keyword => "keyword",
                         qsls::protocol::CompletionItemKind::Module => "module",
                         qsls::protocol::CompletionItemKind::Property => "property",
+                        qsls::protocol::CompletionItemKind::Variable => "variable",
+                        qsls::protocol::CompletionItemKind::TypeParameter => "typeParameter",
                     })
                     .to_string(),
                     sortText: i.sort_text,
@@ -177,7 +190,7 @@ impl LanguageService {
                     .into_iter()
                     .map(|sig| SignatureInformation {
                         label: sig.label,
-                        documentation: sig.documentation,
+                        documentation: sig.documentation.unwrap_or_default(),
                         parameters: sig
                             .parameters
                             .into_iter()
@@ -186,7 +199,7 @@ impl LanguageService {
                                     start: param.label.start,
                                     end: param.label.end,
                                 },
-                                documentation: param.documentation,
+                                documentation: param.documentation.unwrap_or_default(),
                             })
                             .collect(),
                     })
@@ -241,7 +254,7 @@ serializable_type! {
         pub packageType: Option<String>,
     },
     r#"export interface IWorkspaceConfiguration {
-        targetProfile?: "full" | "base";
+        targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
     }"#,
     IWorkspaceConfiguration
@@ -269,7 +282,7 @@ serializable_type! {
     },
     r#"export interface ICompletionItem {
         label: string;
-        kind: "function" | "interface" | "keyword" | "module" | "property";
+        kind: "function" | "interface" | "keyword" | "module" | "property" | "variable" | "typeParameter";
         sortText?: string;
         detail?: string;
         additionalTextEdits?: ITextEdit[];
@@ -334,12 +347,12 @@ serializable_type! {
     SignatureInformation,
     {
         label: String,
-        documentation: Option<String>,
+        documentation: String,
         parameters: Vec<ParameterInformation>,
     },
     r#"export interface ISignatureInformation {
         label: string;
-        documentation?: string;
+        documentation: string;
         parameters: IParameterInformation[];
     }"#
 }
@@ -348,11 +361,11 @@ serializable_type! {
     ParameterInformation,
     {
         label: Span,
-        documentation: Option<String>,
+        documentation: String,
     },
     r#"export interface IParameterInformation {
         label: ISpan;
-        documentation?: string;
+        documentation: string;
     }"#
 }
 
@@ -392,6 +405,17 @@ serializable_type! {
         code: string;
     }"#,
     ICell
+}
+
+serializable_type! {
+    NotebookMetadata,
+    {
+        pub targetProfile: Option<String>,
+    },
+    r#"export interface INotebookMetadata {
+        targetProfile?: "unrestricted" | "base";
+    }"#,
+    INotebookMetadata
 }
 
 #[wasm_bindgen]

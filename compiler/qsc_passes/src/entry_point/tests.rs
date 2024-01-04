@@ -6,7 +6,7 @@
 use crate::entry_point::generate_entry_expr;
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -14,7 +14,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

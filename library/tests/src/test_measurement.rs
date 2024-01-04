@@ -134,3 +134,20 @@ fn check_mreset_z() {
         &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),
     );
 }
+
+#[test]
+fn check_measure_integer() {
+    test_expression(
+        {
+            "{
+                open Microsoft.Quantum.Measurement;
+                use q = Qubit[16];
+                ApplyXorInPlace(45967, q);
+                let result = MeasureInteger(q);
+                ResetAll(q);
+                return result;
+            }"
+        },
+        &Value::Int(45967),
+    );
+}

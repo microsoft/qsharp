@@ -21,7 +21,7 @@ use callable_limits::CallableLimits;
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
-use qsc_frontend::compile::{CompileUnit, TargetProfile};
+use qsc_frontend::compile::{CompileUnit, RuntimeCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     global::{self, Table},
@@ -52,15 +52,15 @@ pub enum PackageType {
 }
 
 pub struct PassContext {
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
     borrow_check: borrowck::Checker,
 }
 
 impl PassContext {
     #[must_use]
-    pub fn new(target: TargetProfile) -> Self {
+    pub fn new(capabilities: RuntimeCapabilityFlags) -> Self {
         Self {
-            target,
+            capabilities,
             borrow_check: borrowck::Checker::default(),
         }
     }
@@ -100,7 +100,7 @@ impl PassContext {
         ReplaceQubitAllocation::new(core, assigner).visit_package(package);
         Validator::default().visit_package(package);
 
-        let base_prof_errors = if self.target == TargetProfile::Base {
+        let base_prof_errors = if self.capabilities == RuntimeCapabilityFlags::empty() {
             baseprofck::check_base_profile_compliance(package)
         } else {
             Vec::new()
@@ -123,9 +123,9 @@ pub fn run_default_passes(
     core: &Table,
     unit: &mut CompileUnit,
     package_type: PackageType,
-    target: TargetProfile,
+    capabilities: RuntimeCapabilityFlags,
 ) -> Vec<Error> {
-    PassContext::new(target).run_default_passes(
+    PassContext::new(capabilities).run_default_passes(
         &mut unit.package,
         &mut unit.assigner,
         core,

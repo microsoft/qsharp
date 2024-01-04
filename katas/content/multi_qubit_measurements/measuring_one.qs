@@ -1,6 +1,6 @@
 namespace Kata {
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
 

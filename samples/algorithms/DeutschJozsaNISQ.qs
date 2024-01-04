@@ -8,7 +8,6 @@
 ///
 /// This Q# program implements the Deutsch–Jozsa algorithm.
 namespace Sample {
-
     open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
@@ -84,8 +83,7 @@ namespace Sample {
 
         // Measure the query register and reset all qubits so they can be safely
         // deallocated.
-        let results = MeasureEachZ(queryRegister);
-        ResetAll(queryRegister);
+        let results = MResetEachZ(queryRegister);
         Reset(target);
         return results;
     }

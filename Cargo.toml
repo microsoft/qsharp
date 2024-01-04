@@ -29,11 +29,13 @@ license = "MIT"
 version = "0.0.0"
 
 [workspace.dependencies]
+bitflags = "2.4.1"
 clap = "4.4"
 criterion = { version = "0.5", default-features = false }
 enum-iterator = "1.4"
 env_logger = "0.10.0"
 expect-test = "1.4"
+fasteval = "0.2"
 getrandom = { version = "0.2" }
 indoc = "2.0"
 js-sys = "0.3"
@@ -44,6 +46,7 @@ thiserror = "1.0"
 num-bigint = "0.4"
 num-complex = "0.4"
 num-traits = "0.2"
+probability = "0.20"
 indenter = "0.3"
 regex-lite = "0.1"
 rustc-hash = "1.1.0"

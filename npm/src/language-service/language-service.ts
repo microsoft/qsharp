@@ -7,11 +7,12 @@ import type {
   IHover,
   ILocation,
   ISignatureHelp,
-  LanguageService,
+  INotebookMetadata,
   IWorkspaceConfiguration,
   IWorkspaceEdit,
   ITextEdit,
   ISpan,
+  LanguageService,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
 import {
@@ -41,6 +42,7 @@ export interface ILanguageService {
   updateNotebookDocument(
     notebookUri: string,
     version: number,
+    metadata: INotebookMetadata,
     cells: {
       uri: string;
       version: number;
@@ -122,6 +124,7 @@ export class QSharpLanguageService implements ILanguageService {
   async updateNotebookDocument(
     notebookUri: string,
     version: number,
+    metadata: INotebookMetadata,
     cells: { uri: string; version: number; code: string }[],
   ): Promise<void> {
     // Note: If a cell was deleted, its uri & contents will remain in the map.
@@ -130,7 +133,7 @@ export class QSharpLanguageService implements ILanguageService {
     for (const cell of cells) {
       this.code[cell.uri] = cell.code;
     }
-    this.languageService.update_notebook_document(notebookUri, cells);
+    this.languageService.update_notebook_document(notebookUri, metadata, cells);
   }
 
   async closeDocument(documentUri: string): Promise<void> {

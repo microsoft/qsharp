@@ -19,7 +19,7 @@ use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, PackageId, PatId, StmtId};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetProfile};
+use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 struct Lookup<'a> {
@@ -198,26 +198,26 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let core_fir = fir_lowerer.lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
-    let mut std = compile::std(&store, TargetProfile::Full);
+    let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(
         store.core(),
         &mut std,
         PackageType::Lib,
-        TargetProfile::Full
+        RuntimeCapabilityFlags::all()
     )
     .is_empty());
     let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources, TargetProfile::Full);
+    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all());
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(
         store.core(),
         &mut unit,
         PackageType::Lib,
-        TargetProfile::Full
+        RuntimeCapabilityFlags::all()
     )
     .is_empty());
     let unit_fir = fir_lowerer.lower_package(&unit.package);

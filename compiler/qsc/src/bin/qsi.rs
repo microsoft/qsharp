@@ -8,15 +8,12 @@ use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::{
-    interpret::stateful::{self, InterpretResult, Interpreter},
-    TargetProfile,
-};
+use qsc::interpret::stateful::{self, InterpretResult, Interpreter};
 use qsc_eval::{
     output::{self, Receiver},
     val::Value,
 };
-use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
+use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
@@ -94,7 +91,7 @@ fn main() -> miette::Result<ExitCode> {
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
-            TargetProfile::Full,
+            RuntimeCapabilityFlags::all(),
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -113,7 +110,7 @@ fn main() -> miette::Result<ExitCode> {
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
-        TargetProfile::Full,
+        RuntimeCapabilityFlags::all(),
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

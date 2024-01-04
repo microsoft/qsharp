@@ -1,0 +1,95 @@
+<svg viewBox="0 0 1265 550" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .qs-vs-iconbar {
+            fill: var(--vscode-tab-inactiveBackground);
+            fill-rule: evenodd;
+            stroke: none;
+        }
+
+        .qs-vs-belowIconbar {
+            fill: var(--vscode-breadcrumb-background);
+            fill-rule: evenodd;
+            stroke: none;
+        }
+
+        .qs-dropdown-background {
+            fill: var(--vscode-dropdown-background);
+            stroke: none;
+        }
+
+        .qs-vs-icon {
+            stroke: var(--vscode-icon-foreground);
+            stroke-width: 6;
+            fill: none;
+        }
+
+        .qs-vs-dropdown-arrow {
+            stroke-width: 3;
+        }
+
+        .qs-vs-dots {
+            fill: var(--vscode-icon-foreground);
+            stroke: none;
+        }
+
+        .qs-menu-box {
+            fill: var(--vscode-menu-background);
+            stroke: var(--vscode-menu-border);
+            stroke-width: 6;
+            box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+        }
+
+        .qs-menu-selected {
+            fill: var(--vscode-menu-selectionBackground);
+            stroke: none;
+        }
+
+        .qs-menu-text {
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe WPC","Segoe UI",system-ui,Ubuntu,"Droid Sans",sans-serif;
+            font-size: 79px;
+            fill: var(--vscode-menu-foreground);
+        }
+
+        .qs-menu-textSelected {
+            fill: var(--vscode-menu-selectionForeground, var(--vscode-menu-foreground))
+        }
+
+        .qs-code-text {
+            font-family: "SF Mono",Monaco,Menlo,Consolas,"Courier New","Ubuntu Mono","Liberation Mono",monospace;
+        }
+    </style>
+
+    <!-- The horizontal bars in the background -->
+    <rect class="qs-vs-iconbar" x="0" y="0" width="1265" height="242" />
+    <rect class="qs-vs-belowIconbar" x="0" y="241" width="1265" height="242" />
+
+    <!-- The arrow in the dropdown box -->
+    <rect class="qs-dropdown-background" x="745" y="48" width="110" height="145" rx="30" />
+    <path class="qs-vs-icon qs-vs-dropdown-arrow" d="M 774 112 L 800 138 L 824 114"/>
+
+    <!-- The debug icon -->
+    <path class="qs-vs-icon" d="M 667 121 L 668 70 L 737 115 L 694 144"/>
+    <path class="qs-vs-icon" d="M 639 142 L 630 133"/>
+    <path class="qs-vs-icon" d="M 672 141 L 683 133"/>
+    <path class="qs-vs-icon" d="M 639 157 L 628 157"/>
+    <path class="qs-vs-icon" d="M 674 157 L 684 157"/>
+    <path class="qs-vs-icon" d="M 671 169 L 683 179"/>
+    <path class="qs-vs-icon" d="M 640 170 L 630 179"/>
+    <path class="qs-vs-icon" d="M 639 145 L 673 145"/>
+    <ellipse class="qs-vs-icon" cx="656" cy="155" rx="17" ry="28" />
+
+    <!-- The split window icon -->
+    <rect class="qs-vs-icon" x="925" y="77" rx="10" width="90" height="90" />
+    <path class="qs-vs-icon" d="M 970 166 L 970 77"/>
+
+    <!-- The 3 dots menu icon -->
+    <circle class="qs-vs-dots" cx="1118" cy="125" r="8"/>
+    <circle class="qs-vs-dots" cx="1154" cy="125" r="8"/>
+    <circle class="qs-vs-dots" cx="1190" cy="125" r="8"/>
+
+    <!-- The dropdown menu box-->
+    <rect class="qs-menu-box" x="179" y="198" rx="30" width="674" height="320"/>
+    <rect class="qs-menu-selected" x="205" y="360" width="620" height="130" rx="28"/>
+    <text class="qs-menu-text" xml:space="preserve" x="263" y="323">Run Q# File</text>
+    <text class="qs-menu-text qs-menu-textSelected" xml:space="preserve" x="263" y="457">Debug Q# File</text>
+</svg>

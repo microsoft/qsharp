@@ -4,11 +4,11 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use crate::{
-    protocol::{DiagnosticUpdate, WorkspaceConfigurationUpdate},
+    protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
     LanguageService,
 };
 use expect_test::{expect, Expect};
-use qsc::{compile, PackageType, TargetProfile};
+use qsc::{compile, target::Profile, PackageType};
 use std::cell::RefCell;
 
 #[test]
@@ -242,7 +242,7 @@ fn target_profile_update_fixes_error() {
     let mut ls = new_language_service(&errors);
 
     ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(TargetProfile::Base),
+        target_profile: Some(Profile::Base),
         package_type: Some(PackageType::Lib),
     });
 
@@ -299,7 +299,7 @@ fn target_profile_update_fixes_error() {
     );
 
     ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(TargetProfile::Full),
+        target_profile: Some(Profile::Unrestricted),
         package_type: None,
     });
 
@@ -338,7 +338,7 @@ fn target_profile_update_causes_error_in_stdlib() {
     );
 
     ls.update_configuration(&WorkspaceConfigurationUpdate {
-        target_profile: Some(TargetProfile::Base),
+        target_profile: Some(Profile::Base),
         package_type: None,
     });
 
@@ -394,6 +394,7 @@ fn notebook_document_no_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
@@ -416,6 +417,7 @@ fn notebook_document_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -474,6 +476,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -526,6 +529,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
@@ -550,6 +554,7 @@ fn close_notebook_clears_errors() {
 
     ls.update_notebook_document(
         "notebook.ipynb",
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),

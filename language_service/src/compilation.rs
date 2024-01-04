@@ -7,7 +7,9 @@ use qsc::{
     compile::{self, Error},
     hir::{self, PackageId},
     incremental::Compiler,
-    resolve, CompileUnit, PackageStore, PackageType, SourceMap, TargetProfile,
+    resolve,
+    target::Profile,
+    CompileUnit, PackageStore, PackageType, SourceMap,
 };
 use std::iter::successors;
 
@@ -40,21 +42,22 @@ impl Compilation {
         source_name: &str,
         source_contents: &str,
         package_type: PackageType,
-        target_profile: TargetProfile,
+        target_profile: Profile,
     ) -> Self {
         trace!("compiling document {source_name}");
         // Source map only contains the current document.
         let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
 
         let mut package_store = PackageStore::new(compile::core());
-        let std_package_id = package_store.insert(compile::std(&package_store, target_profile));
+        let std_package_id =
+            package_store.insert(compile::std(&package_store, target_profile.into()));
 
         let (unit, errors) = compile::compile(
             &package_store,
             &[std_package_id],
             source_map,
             package_type,
-            target_profile,
+            target_profile.into(),
         );
 
         let package_id = package_store.insert(unit);
@@ -68,7 +71,7 @@ impl Compilation {
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<'a, I>(cells: I) -> Self
+    pub(crate) fn new_notebook<'a, I>(cells: I, target_profile: Profile) -> Self
     where
         I: Iterator<Item = (&'a str, &'a str)>,
     {
@@ -77,7 +80,7 @@ impl Compilation {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            TargetProfile::Full,
+            target_profile.into(),
         )
         .expect("expected incremental compiler creation to succeed");
 
@@ -124,7 +127,7 @@ impl Compilation {
     }
 
     /// Regenerates the compilation with the same sources but the passed in configuration options.
-    pub fn recompile(&mut self, package_type: PackageType, target_profile: TargetProfile) {
+    pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
         let sources = self.user_source_contents();
 
         let new = match self.kind {
@@ -132,7 +135,7 @@ impl Compilation {
                 assert!(sources.len() == 1);
                 Self::new_open_document(sources[0].0, sources[0].1, package_type, target_profile)
             }
-            CompilationKind::Notebook => Self::new_notebook(sources.into_iter()),
+            CompilationKind::Notebook => Self::new_notebook(sources.into_iter(), target_profile),
         };
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;

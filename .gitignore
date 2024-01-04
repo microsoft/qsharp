@@ -1,6 +1,9 @@
 /target
+/widgets/dist/
+/widgets/src/qsharp_widgets/static/
 node_modules/
 __pycache__/
+.venv/
 .DS_Store
 .vscode/*
 .vscode-test-web/
