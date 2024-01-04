@@ -24,7 +24,7 @@ type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 /// `'a` represents the lifetime of the contained `dyn Fn`.
 type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(super) struct CompilationState {
     /// A `CompilationUri` is an identifier for a unique compilation.
     /// It is NOT required to be a uri that represents an actual document.
@@ -79,7 +79,7 @@ impl Default for Configuration {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
@@ -235,12 +235,12 @@ impl<'a> CompilationStateUpdater<'a> {
                     return;
                 }
             };
+            self.close_single_document(uri);
             self.insert_buffer_aware_compilation(sources, &manifest.compilation_uri());
-        };
-        self.close_single_document(uri);
-        if let Some(ref manifest) = manifest {
             self.maybe_close_project(manifest);
-        }
+        } else {
+            self.close_single_document(uri);
+        };
         self.publish_diagnostics();
     }
 
@@ -430,7 +430,6 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Use a direct reference to the state instead.
     /// This function may also not be async since holding a borrow across
     /// `await` points will interfere with other borrowers.
-    #[cfg(not(test))]
     fn with_state<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&CompilationState) -> T,
@@ -451,17 +450,6 @@ impl<'a> CompilationStateUpdater<'a> {
     {
         let mut state = self.state.borrow_mut();
         f(&mut state)
-    }
-
-    /// in testing, we need this exported so we can unit test the state
-    /// of the LS
-    #[cfg(test)]
-    pub fn with_state<F, T>(&self, f: F) -> T
-    where
-        F: FnOnce(&CompilationState) -> T,
-    {
-        let state = self.state.borrow();
-        f(&state)
     }
 }
 
