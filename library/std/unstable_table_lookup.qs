@@ -10,6 +10,65 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.ResourceEstimation;
     open Microsoft.Quantum.Unstable.Arithmetic;
 
+    @Config(Full)
+    operation BasicSelect(
+        data : Bool[][],
+        address : Qubit[],
+        target : Qubit[]
+    ) : Unit is Adj + Ctl {
+        body (...) {
+            let (N, n) = DimensionsForSelect(data, address);
+
+            if N == 1 { // base case
+                WriteMemoryContents(Head(data), target);
+            } else {
+                let (most, tail) = MostAndTail(address[...n - 1]);
+                let parts = Partitioned([2^(n - 1)], data);
+
+                within {
+                    X(tail);
+                } apply {
+                    Controlled BasicSelect([tail], (parts[0], most, target));
+                }
+
+                Controlled BasicSelect([tail], (parts[1], most, target));
+            }
+        }
+        controlled (ctls, ...) {
+            Fact(Length(ctls) == 1, "BasicSelect can only be controlled by one qubit.");
+            let ctl = Head(ctls);
+            let (N, n) = DimensionsForSelect(data, address);
+
+            if BeginEstimateCaching("Microsoft.Quantum.Unstable.TableLookup.SinglyControlledSelect", N) {
+                if N == 1 { // base case
+                    Controlled WriteMemoryContents([ctl], (Head(data), target));
+                } else {
+                    use helper = Qubit();
+
+                    let (most, tail) = MostAndTail(address[...n - 1]);
+                    let parts = Partitioned([2^(n - 1)], data);
+
+                    within {
+                        X(tail);
+                    } apply {
+                        ApplyAndAssuming0Target(ctl, tail, helper);
+                    }
+
+                    Controlled BasicSelect([helper], (parts[0], most, target));
+
+                    CNOT(ctl, helper);
+
+                    Controlled BasicSelect([helper], (parts[1], most, target));
+
+                    Adjoint ApplyAndAssuming0Target(ctl, tail, helper);
+                }
+
+                EndEstimateCaching();
+            }
+        }
+    }
+
+
     /// # Summary
     /// Performs table lookup using a SELECT network
     ///
@@ -51,86 +110,18 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         target : Qubit[]
     ) : Unit is Adj + Ctl {
         body (...) {
-            let (N, n) = DimensionsForSelect(data, address);
-
-            if N == 1 { // base case
-                WriteMemoryContents(Head(data), target);
-            } else {
-                let (most, tail) = MostAndTail(address[...n - 1]);
-                let parts = Partitioned([2^(n - 1)], data);
-
-                within {
-                    X(tail);
-                } apply {
-                    SinglyControlledSelect(tail, parts[0], most, target);
-                }
-
-                SinglyControlledSelect(tail, parts[1], most, target);
-            }
+            BasicSelect(data, address, target);
         }
         adjoint (...) {
             Unlookup(Select, data, address, target);
         }
 
         controlled (ctls, ...) {
-            let numCtls = Length(ctls);
-
-            if numCtls == 0 {
-                Select(data, address, target);
-            } elif numCtls == 1 {
-                SinglyControlledSelect(ctls[0], data, address, target);
-            } else {
-                use andChainTarget = Qubit();
-                let andChain = MakeAndChain(ctls, andChainTarget);
-                use helper = Qubit[andChain::NGarbageQubits];
-
-                within {
-                    andChain::Apply(helper);
-                } apply {
-                    SinglyControlledSelect(andChainTarget, data, address, target);
-                }
-            }
+            Controlled ApplyAsSinglyControlled(ctls, (BasicSelect, (data, address, target)));
         }
 
         controlled adjoint (ctls, ...) {
             Controlled Select(ctls, (data, address, target));
-        }
-    }
-
-    @Config(Full)
-    internal operation SinglyControlledSelect(
-        ctl : Qubit,
-        data : Bool[][],
-        address : Qubit[],
-        target : Qubit[]
-    ) : Unit {
-        let (N, n) = DimensionsForSelect(data, address);
-
-        if BeginEstimateCaching("Microsoft.Quantum.Unstable.TableLookup.SinglyControlledSelect", N) {
-            if N == 1 { // base case
-                Controlled WriteMemoryContents([ctl], (Head(data), target));
-            } else {
-                use helper = Qubit();
-
-                let (most, tail) = MostAndTail(address[...n - 1]);
-                let parts = Partitioned([2^(n - 1)], data);
-
-                within {
-                    X(tail);
-                } apply {
-                    ApplyAndAssuming0Target(ctl, tail, helper);
-                }
-
-                SinglyControlledSelect(helper, parts[0], most, target);
-
-                CNOT(ctl, helper);
-
-                SinglyControlledSelect(helper, parts[1], most, target);
-
-                Adjoint ApplyAndAssuming0Target(ctl, tail, helper);
-            }
-
-            EndEstimateCaching();
         }
     }
 
@@ -240,37 +231,5 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
             }
         }
 
-    }
-
-    internal newtype AndChain = (
-        NGarbageQubits: Int,
-        Apply: Qubit[] => Unit is Adj
-    );
-
-    internal function MakeAndChain(ctls : Qubit[], target : Qubit) : AndChain {
-        AndChain(
-            MaxI(Length(ctls) - 2, 0),
-            helper => AndChainOperation(ctls, helper, target)
-        )
-    }
-
-    internal operation AndChainOperation(ctls : Qubit[], helper : Qubit[], target : Qubit) : Unit is Adj {
-        let n = Length(ctls);
-
-        Fact(Length(helper) == MaxI(n - 2, 0), "Invalid number of helper qubits");
-
-        if n == 0 {
-            X(target);
-        } elif n == 1 {
-            CNOT(ctls[0], target);
-        } else {
-            let ctls1 = ctls[0..0] + helper;
-            let ctls2 = ctls[1...];
-            let tgts = helper + [target];
-
-            for idx in IndexRange(tgts) {
-                ApplyAndAssuming0Target(ctls1[idx], ctls2[idx], tgts[idx]);
-            }
-        }
     }
 }
