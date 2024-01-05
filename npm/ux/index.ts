@@ -8,4 +8,4 @@ import "./qsharp-ux.css";
 export { Histogram } from "./histogram.js";
 export { ReTable, type ReData } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";
-export { ResultsTable, type CellValue } from "./resultsTable.js";
+export { ResultsTable } from "./resultsTable.js";

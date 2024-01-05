@@ -29,6 +29,12 @@ export enum EventType {
   DebugSessionEvent = "Qsharp.DebugSessionEvent",
   Launch = "Qsharp.Launch",
   OpenedDocument = "Qsharp.OpenedDocument",
+  TriggerResourceEstimation = "Qsharp.TriggerResourceEstimation",
+  ResourceEstimationStart = "Qsharp.ResourceEstimationStart",
+  ResourceEstimationEnd = "Qsharp.ResourceEstimationEnd",
+  TriggerHistogram = "Qsharp.TriggerHistogram",
+  HistogramStart = "Qsharp.HistogramStart",
+  HistogramEnd = "Qsharp.HistogramEnd",
 }
 
 type Empty = { [K in any]: never };
@@ -170,6 +176,30 @@ type EventTypes = {
   [EventType.OpenedDocument]: {
     properties: { documentType: QsharpDocumentType };
     measurements: { linesOfCode: number };
+  };
+  [EventType.TriggerResourceEstimation]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.ResourceEstimationStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.ResourceEstimationEnd]: {
+    properties: { associationId: string };
+    measurements: { timeToCompleteMs: number };
+  };
+  [EventType.TriggerHistogram]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.HistogramStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.HistogramEnd]: {
+    properties: { associationId: string };
+    measurements: { timeToCompleteMs: number };
   };
 };
 

@@ -19,6 +19,8 @@ import {
 } from "vscode";
 import { isQsharpDocument } from "./common";
 import { loadProject } from "./projectSystem";
+import { EventType, sendTelemetryEvent } from "./telemetry";
+import { getRandomGuid } from "./utils";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -36,11 +38,14 @@ export function registerWebViewCommands(context: ExtensionContext) {
     "./out/compilerWorker.js",
   ).toString();
 
-  // Stub for now to prototype the UX
-  // Add the following to settings.json to enable the command:
-  //   "Q#.experimental-re": true
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showRe", async () => {
+      const associationId = getRandomGuid();
+      sendTelemetryEvent(
+        EventType.TriggerResourceEstimation,
+        { associationId },
+        {},
+      );
       const editor = window.activeTextEditor;
       if (!editor || !isQsharpDocument(editor.document)) {
         throw new Error("The currently active window is not a Q# file");
@@ -49,24 +54,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
       const qubitType = await window.showQuickPick(
         [
           {
-            label: "qubit_gate_us_e3",
-            detail: "Ion-based qubit with 1e-3 error rate",
-            params: {
-              qubitParams: { name: "qubit_gate_us_e3" },
-              qecScheme: { name: "surface_code" },
-            },
-          },
-          {
-            label: "qubit_gate_us_e4",
-            detail: "Ion-based qubit with 1e-4 error rate",
-            params: {
-              qubitParams: { name: "qubit_gate_us_e4" },
-              qecScheme: { name: "surface_code" },
-            },
-          },
-          {
             label: "qubit_gate_ns_e3",
             detail: "Superconducting/spin qubit with 1e-3 error rate",
+            picked: true,
             params: {
               qubitParams: { name: "qubit_gate_ns_e3" },
               qecScheme: { name: "surface_code" },
@@ -77,6 +67,22 @@ export function registerWebViewCommands(context: ExtensionContext) {
             detail: "Superconducting/spin qubit with 1e-4 error rate",
             params: {
               qubitParams: { name: "qubit_gate_ns_e4" },
+              qecScheme: { name: "surface_code" },
+            },
+          },
+          {
+            label: "qubit_gate_us_e3",
+            detail: "Trapped ion qubit with 1e-3 error rate",
+            params: {
+              qubitParams: { name: "qubit_gate_us_e3" },
+              qecScheme: { name: "surface_code" },
+            },
+          },
+          {
+            label: "qubit_gate_us_e4",
+            detail: "Trapped ion qubit with 1e-4 error rate",
+            params: {
+              qubitParams: { name: "qubit_gate_us_e4" },
               qecScheme: { name: "surface_code" },
             },
           },
@@ -116,6 +122,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
         {
           canPickMany: true,
           title: "Qubit types",
+          placeHolder: "Superconducting/spin qubit with 1e-3 error rate",
+          matchOnDetail: true,
         },
       );
 
@@ -126,7 +134,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       // Prompt for error budget (default to 0.001)
       const validateErrorBudget = (input: string) => {
         const result = parseFloat(input);
-        if (isNaN(result) || result < 0 || result > 1) {
+        if (isNaN(result) || result <= 0.0 || result >= 1.0) {
           return "Error budgets must be between 0 and 1";
         }
       };
@@ -142,8 +150,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
         return;
       }
 
+      // use document uri path to get the project name, since it is normalized to `/` separators
+      // see https://code.visualstudio.com/api/references/vscode-api#Uri for difference between
+      // path and fsPath
       const projectName =
-        editor.document.fileName.split("/").pop()?.split(".")[0] || "program";
+        editor.document.uri.path.split("/").pop()?.split(".")[0] || "program";
 
       let runName = await window.showInputBox({
         title: "Friendly name for run",
@@ -192,14 +203,34 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
       try {
         const sources = await loadProject(editor.document.uri);
+        const start = performance.now();
+        sendTelemetryEvent(
+          EventType.ResourceEstimationStart,
+          { associationId },
+          {},
+        );
         const estimatesStr = await worker.getEstimates(
           sources,
           JSON.stringify(params),
+        );
+        sendTelemetryEvent(
+          EventType.ResourceEstimationEnd,
+          { associationId },
+          { timeToCompleteMs: performance.now() - start },
         );
         log.debug("Estimates result", estimatesStr);
 
         // Should be an array of one ReData object returned
         const estimates = JSON.parse(estimatesStr);
+
+        for (const item of estimates) {
+          // if item doesn't have a status property, it's an error
+          if (!("status" in item) || item.status !== "success") {
+            log.error("Estimates error code: ", item.code);
+            log.error("Estimates error message: ", item.message);
+            throw item.message;
+          }
+        }
 
         (estimates as Array<any>).forEach(
           (item, idx) =>
@@ -231,8 +262,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
             "The resource estimation timed out. Please try again.",
           );
         } else {
-          log.error("getEstimates error. ", e.toString());
-          throw new Error("Estimating failed. " + e.toString());
+          log.error("getEstimates error: ", e.toString());
+          throw new Error("Estimating failed with error: " + e.toString());
         }
       } finally {
         if (!timedOut) {
@@ -254,6 +285,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showHistogram", async () => {
+      const associationId = getRandomGuid();
+      sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
       function resultToLabel(result: string | VSDiagnostic): string {
         if (typeof result !== "string") return "ERROR";
         return result;
@@ -310,7 +343,14 @@ export function registerWebViewCommands(context: ExtensionContext) {
           sendMessageToPanel("histogram", false, message);
         });
         const sources = await loadProject(editor.document.uri);
+        const start = performance.now();
+        sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
         await worker.run(sources, "", parseInt(numberOfShots), evtTarget);
+        sendTelemetryEvent(
+          EventType.HistogramEnd,
+          { associationId },
+          { timeToCompleteMs: performance.now() - start },
+        );
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Histogram error. ", e.toString());

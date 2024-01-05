@@ -86,12 +86,12 @@ where
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
     let js_ty = val.js_typeof();
-    TryInto::<js_sys::Function>::try_into(val).unwrap_or_else(|_| {
-        panic!(
-            "expected a valid JS function ({help_text_panic}), received {:?}",
-            js_ty
-        )
-    })
+    assert!(
+        val.is_function(),
+        "expected a valid JS function ({help_text_panic}), received {:?}",
+        js_ty
+    );
+    Into::<js_sys::Function>::into(val)
 }
 pub(crate) use into_async_rust_fn_with;
 

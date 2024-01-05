@@ -163,7 +163,7 @@
         },
         {
           "command": "qsharp-vscode.showRe",
-          "when": "resourceLangId == qsharp && config.Q#.experimental-re"
+          "when": "resourceLangId == qsharp"
         },
         {
           "command": "qsharp-vscode.showHelp",

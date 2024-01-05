@@ -127,4 +127,59 @@ namespace Microsoft.Quantum.ResourceEstimation {
         body intrinsic;
     }
 
+    /// # Summary
+    ///
+    /// Instructs the resource estimator to assume that the resources from the
+    /// call of this operation until a call to `EndRepeatEstimates` are
+    /// accounted for `count` times, without the need to execute the code that many
+    /// times. Calls to `BeginRepeatEstimates` and `EndRepeatEstimates` can be nested.
+    /// A helper operation `RepeatEstimates` allows to call the two functions in a
+    /// `within` block.
+    ///
+    /// # Input
+    /// ## count
+    /// Assumed number of repetitions, factor to multiply the cost with
+    operation BeginRepeatEstimates(count : Int) : Unit {
+        body ... {
+            BeginRepeatEstimatesInternal(count);
+        }
+        adjoint self;
+    }
+
+    internal operation BeginRepeatEstimatesInternal(count : Int) : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    ///
+    /// Companion operation to `BeginRepeatEstimates`.
+    operation EndRepeatEstimates() : Unit {
+        body ... {
+            EndRepeatEstimatesInternal();
+        }
+        adjoint self;
+    }
+
+    internal operation EndRepeatEstimatesInternal() : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    ///
+    /// Instructs the resource estimator to assume that the resources from the
+    /// call of this operation until a call to `Adjoint RepeatEstimates` are
+    /// accounted for `count` times, without the need to execute the code that many
+    /// times.
+    ///
+    /// # Input
+    /// ## count
+    /// Assumed number of repetitions, factor to multiply the cost with
+    operation RepeatEstimates(count : Int) : Unit is Adj {
+        body ... {
+            BeginRepeatEstimates(count);
+        }
+        adjoint ... {
+            EndRepeatEstimates();
+        }
+    }
 }

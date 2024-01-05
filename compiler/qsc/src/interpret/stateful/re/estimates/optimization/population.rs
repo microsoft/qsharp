@@ -184,6 +184,10 @@ where
         self.items.sort_by(|a, b| b.cmp(a));
     }
 
+    pub(crate) fn extract(self) -> Vec<P> {
+        self.items
+    }
+
     pub(crate) fn attempt_filter_out_dominated(&mut self) {
         if self.nonexecuted_attempts_to_filter_out_dominated
             <= Self::MAX_NONEXECUTED_ATTEMPTS_TO_FILTER_OUT_DOMINATED

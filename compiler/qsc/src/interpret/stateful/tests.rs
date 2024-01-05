@@ -1045,6 +1045,91 @@ mod given_interpreter {
         }
     }
 
+    fn get_interpreter() -> Interpreter {
+        Interpreter::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            RuntimeCapabilityFlags::all(),
+        )
+        .expect("interpreter should be created")
+    }
+
+    fn is_only_value(result: &InterpretResult, output: &str, value: &Value) {
+        assert_eq!("", output);
+
+        match result {
+            Ok(v) => assert_eq!(value, v),
+            Err(e) => panic!("Expected unit value, got {e:?}"),
+        }
+    }
+
+    fn is_unit_with_output_eval_entry(
+        result: &Result<Value, Vec<crate::interpret::stateful::Error>>,
+        output: &str,
+        expected_output: &str,
+    ) {
+        assert_eq!(expected_output, output);
+
+        match result {
+            Ok(value) => assert_eq!(Value::unit(), *value),
+            Err(e) => panic!("Expected unit value, got {e:?}"),
+        }
+    }
+
+    fn is_unit_with_output(result: &InterpretResult, output: &str, expected_output: &str) {
+        assert_eq!(expected_output, output);
+
+        match result {
+            Ok(value) => assert_eq!(Value::unit(), *value),
+            Err(e) => panic!("Expected unit value, got {e:?}"),
+        }
+    }
+
+    fn is_only_error<E>(result: &Result<Value, Vec<E>>, output: &str, expected_errors: &Expect)
+    where
+        E: Diagnostic,
+    {
+        assert_eq!("", output);
+
+        match result {
+            Ok(value) => panic!("Expected error , got {value:?}"),
+            Err(errors) => is_error(errors, expected_errors),
+        }
+    }
+
+    fn is_error<E>(errors: &Vec<E>, expected_errors: &Expect)
+    where
+        E: Diagnostic,
+    {
+        let mut actual = String::new();
+        for error in errors {
+            write!(actual, "{error}").expect("writing should succeed");
+            for s in iter::successors(error.source(), |&s| s.source()) {
+                write!(actual, ": {s}").expect("writing should succeed");
+            }
+            for label in error.labels().into_iter().flatten() {
+                let span = error
+                    .source_code()
+                    .expect("expected valid source code")
+                    .read_span(label.inner(), 0, 0)
+                    .expect("expected to be able to read span");
+
+                write!(
+                    actual,
+                    "\n  {} [{}] [{}]",
+                    label.label().unwrap_or(""),
+                    span.name().expect("expected source file name"),
+                    from_utf8(span.data()).expect("expected valid utf-8 string"),
+                )
+                .expect("writing should succeed");
+            }
+            writeln!(actual).expect("writing should succeed");
+        }
+
+        expected_errors.assert_eq(&actual);
+    }
+
     #[cfg(test)]
     mod with_sources {
         use std::sync::Arc;
@@ -1232,90 +1317,5 @@ mod given_interpreter {
                 "#]],
             );
         }
-    }
-
-    fn get_interpreter() -> Interpreter {
-        Interpreter::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
-        )
-        .expect("interpreter should be created")
-    }
-
-    fn is_only_value(result: &InterpretResult, output: &str, value: &Value) {
-        assert_eq!("", output);
-
-        match result {
-            Ok(v) => assert_eq!(value, v),
-            Err(e) => panic!("Expected unit value, got {e:?}"),
-        }
-    }
-
-    fn is_unit_with_output_eval_entry(
-        result: &Result<Value, Vec<crate::interpret::stateful::Error>>,
-        output: &str,
-        expected_output: &str,
-    ) {
-        assert_eq!(expected_output, output);
-
-        match result {
-            Ok(value) => assert_eq!(Value::unit(), *value),
-            Err(e) => panic!("Expected unit value, got {e:?}"),
-        }
-    }
-
-    fn is_unit_with_output(result: &InterpretResult, output: &str, expected_output: &str) {
-        assert_eq!(expected_output, output);
-
-        match result {
-            Ok(value) => assert_eq!(Value::unit(), *value),
-            Err(e) => panic!("Expected unit value, got {e:?}"),
-        }
-    }
-
-    fn is_only_error<E>(result: &Result<Value, Vec<E>>, output: &str, expected_errors: &Expect)
-    where
-        E: Diagnostic,
-    {
-        assert_eq!("", output);
-
-        match result {
-            Ok(value) => panic!("Expected error , got {value:?}"),
-            Err(errors) => is_error(errors, expected_errors),
-        }
-    }
-
-    fn is_error<E>(errors: &Vec<E>, expected_errors: &Expect)
-    where
-        E: Diagnostic,
-    {
-        let mut actual = String::new();
-        for error in errors {
-            write!(actual, "{error}").expect("writing should succeed");
-            for s in iter::successors(error.source(), |&s| s.source()) {
-                write!(actual, ": {s}").expect("writing should succeed");
-            }
-            for label in error.labels().into_iter().flatten() {
-                let span = error
-                    .source_code()
-                    .expect("expected valid source code")
-                    .read_span(label.inner(), 0, 0)
-                    .expect("expected to be able to read span");
-
-                write!(
-                    actual,
-                    "\n  {} [{}] [{}]",
-                    label.label().unwrap_or(""),
-                    span.name().expect("expected source file name"),
-                    from_utf8(span.data()).expect("expected valid utf-8 string"),
-                )
-                .expect("writing should succeed");
-            }
-            writeln!(actual).expect("writing should succeed");
-        }
-
-        expected_errors.assert_eq(&actual);
     }
 }
