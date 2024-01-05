@@ -151,3 +151,30 @@ fn folder_structure() {
             }"#]],
     )
 }
+#[test]
+fn hidden_files() {
+    check(
+        "hidden_files".into(),
+        &expect![[r#"
+            Project {
+                sources: [
+                    (
+                        "hidden_files/src/Project.qs",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
+                    ),
+                    (
+                        "hidden_files/src/utils/ops/Add.qs",
+                        "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
+                    ),
+                    (
+                        "hidden_files/src/utils/ops/Subtract.qs",
+                        "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
+                    ),
+                ],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                },
+            }"#]],
+    )
+}
