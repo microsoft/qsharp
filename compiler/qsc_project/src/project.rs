@@ -131,7 +131,7 @@ pub trait FileSystem {
     fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
         let mut project_path = manifest.manifest_dir.clone();
         project_path.push("src");
-        let qs_files = self.collect_project_sources(dbg!(&project_path))?;
+        let qs_files = self.collect_project_sources(&project_path)?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
 
