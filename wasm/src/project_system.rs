@@ -20,16 +20,14 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(
-        typescript_type = "{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string }"
-    )]
+    #[wasm_bindgen(typescript_type = "{ manifestDirectory: string }")]
     pub type ManifestDescriptorObject;
 }
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(
-        typescript_type = "(uri: string) => Promise<{ excludeFiles: string[], excludeRegexes: string[], manifestDirectory: string }| null>"
+        typescript_type = "(uri: string) => Promise<{ manifestDirectory: string }| null>"
     )]
     pub type GetManifestCallback;
 }
@@ -170,32 +168,8 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
 
     let manifest_dir = PathBuf::from(manifest_dir);
 
-    let exclude_files = match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeFiles")) {
-        Ok(v) => match v.dyn_into::<js_sys::Array>() {
-            Ok(arr) => arr
-                .into_iter()
-                .filter_map(|x| x.as_string())
-                .collect::<Vec<_>>(),
-            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
-        },
-                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a excludeFiles property is returned here"),
-    };
-    let exclude_regexes = match js_sys::Reflect::get(&js_val, &JsValue::from_str("excludeRegexes"))
-    {
-        Ok(v) => match v.dyn_into::<js_sys::Array>() {
-            Ok(arr) => arr
-                .into_iter()
-                .filter_map(|x| x.as_string())
-                .collect::<Vec<_>>(),
-            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
-        },
-        Err(_) => unreachable!("our typescript bindings should guarantee that an object with a excludeRegexes property is returned here"),
-    };
-
     Some(ManifestDescriptor {
         manifest: Manifest {
-            exclude_regexes,
-            exclude_files,
             ..Default::default()
         },
         manifest_dir,

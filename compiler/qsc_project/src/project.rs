@@ -67,7 +67,7 @@ pub trait FileSystemAsync {
     ) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path).await?;
         let mut files = vec![];
-        for item in listing {
+        for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => {
@@ -99,6 +99,13 @@ pub trait FileSystemAsync {
     }
 }
 
+/// Filters out any hidden files (files that start with '.')
+fn filter_hidden_files<Entry: DirEntry>(
+    listing: impl Iterator<Item = Entry>,
+) -> impl Iterator<Item = Entry> {
+    listing.filter(|x| !x.entry_name().starts_with('.'))
+}
+
 /// This trait is used to abstract filesystem logic with regards to Q# projects.
 /// A Q# project requires some multi-file structure, but that may not actually be
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
@@ -116,7 +123,7 @@ pub trait FileSystem {
     fn collect_project_sources(&self, initial_path: &Path) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path)?;
         let mut files = vec![];
-        for item in listing {
+        for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => {
