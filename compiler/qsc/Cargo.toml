@@ -33,13 +33,18 @@ regex-lite = { workspace = true }
 serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = { workspace = true }
 fasteval = { workspace = true }
-jemallocator = { workspace = true }
-jemalloc-ctl = { workspace = true }
+
+# these cannot be workspace dependencies as they are optional
+jemallocator = { version = "0.5.4", optional = true }
+jemalloc-ctl = { version = "0.5.4", optional = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
 expect-test = { workspace = true }
 indoc = { workspace = true }
+
+[features]
+jemalloc = ["jemallocator", "jemalloc-ctl"]
 
 [lib]
 bench = false
@@ -56,6 +61,7 @@ bench = false
 [[bin]]
 name = "memtest"
 bench = false
+required-features = ["jemalloc"]
 
 [[bench]]
 name = "large"
