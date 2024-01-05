@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use crate::manifest::ManifestDescriptor;
-use regex_lite::Regex;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -61,34 +60,19 @@ pub trait FileSystemAsync {
     /// Given a path, list its directory contents (if any).
     /// This function should only return files that end in *.qs and folders.
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
-
-    /// Given an initial path and some regexes to exclude, fetch files that don't match
-    /// those regexes.
-    async fn fetch_files_with_exclude_pattern(
+    /// Given an initial path, fetch files matching <initial_path>/**/*.qs
+    async fn collect_project_sources(
         &self,
-        exclude_patterns: &[Regex],
-        exclude_files: &[String],
         initial_path: &Path,
     ) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path).await?;
         let mut files = vec![];
         for item in listing {
-            let file_name = item.entry_name();
-            let name = item.path().to_string_lossy().to_string();
-            if regex_matches(exclude_patterns, &name) || exclude_files.contains(&file_name) {
-                continue;
-            }
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
-                Ok(EntryType::Folder) => files.append(
-                    &mut self
-                        .fetch_files_with_exclude_pattern(
-                            exclude_patterns,
-                            exclude_files,
-                            &item.path(),
-                        )
-                        .await?,
-                ),
+                Ok(EntryType::Folder) => {
+                    files.append(&mut self.collect_project_sources(&item.path()).await?)
+                }
                 _ => (),
             }
         }
@@ -97,13 +81,9 @@ pub trait FileSystemAsync {
 
     /// Given a [ManifestDescriptor], load project sources.
     async fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
-        let qs_files = self
-            .fetch_files_with_exclude_pattern(
-                &manifest.exclude_regexes()?,
-                manifest.exclude_files(),
-                &manifest.manifest_dir,
-            )
-            .await?;
+        let mut project_path = manifest.manifest_dir.clone();
+        project_path.push("/src");
+        let qs_files = self.collect_project_sources(&project_path).await?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
 
@@ -132,42 +112,26 @@ pub trait FileSystem {
     /// Given a path, list its directory contents (if any).
     fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
-    /// Given an initial path and some regexes to exclude, fetch files that don't match
-    /// those regexes.
-    fn fetch_files_with_exclude_pattern(
-        &self,
-        exclude_patterns: &[Regex],
-        exclude_files: &[String],
-        initial_path: &Path,
-    ) -> miette::Result<Vec<Self::Entry>> {
+    /// Given an initial path, fetch files matching <initial_path>/**/*.qs
+    fn collect_project_sources(&self, initial_path: &Path) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path)?;
         let mut files = vec![];
         for item in listing {
-            let file_name = item.entry_name();
-            let name = item.path().to_string_lossy().to_string();
-            if regex_matches(exclude_patterns, &name) || exclude_files.contains(&file_name) {
-                continue;
-            }
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
-                Ok(EntryType::Folder) => files.append(&mut self.fetch_files_with_exclude_pattern(
-                    exclude_patterns,
-                    exclude_files,
-                    &item.path(),
-                )?),
+                Ok(EntryType::Folder) => {
+                    files.append(&mut self.collect_project_sources(&item.path())?)
+                }
                 _ => (),
             }
         }
         Ok(files)
     }
-
     /// Given a [ManifestDescriptor], load project sources.
     fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
-        let qs_files = self.fetch_files_with_exclude_pattern(
-            &manifest.exclude_regexes()?,
-            manifest.exclude_files(),
-            &manifest.manifest_dir,
-        )?;
+        let mut project_path = manifest.manifest_dir.clone();
+        project_path.push("/src");
+        let qs_files = self.collect_project_sources(&project_path)?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
 
@@ -179,10 +143,4 @@ pub trait FileSystem {
             sources,
         })
     }
-}
-
-fn regex_matches(exclude_patterns: &[Regex], entry_name: &str) -> bool {
-    exclude_patterns
-        .iter()
-        .any(|pattern| matches!(pattern.find(entry_name), Some(item) if item.as_str().len() == entry_name.len()))
 }
