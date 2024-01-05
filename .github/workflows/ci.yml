@@ -153,6 +153,16 @@ jobs:
     name: run memory profile
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v2
+      - run: |
+          SCRIPT_OUTPUT=$(cargo run --bin memtest --features=jemalloc)
+          echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
+          echo "$SCRIPT_OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - run: |
+          echo "${{env.SCRIPT_OUTPUT}}"
+          echo $SCRIPT_OUTPUT
       - uses: actions/github-script@v6
         with:
           script: |
@@ -160,5 +170,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'testing'
+              body: ${{env.SCRIPT_OUTPUT}}
             })

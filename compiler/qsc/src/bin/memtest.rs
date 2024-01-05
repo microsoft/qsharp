@@ -28,8 +28,12 @@ fn main() {
     epoch::advance().unwrap();
 
     let after_allocated = stats::allocated::read().unwrap();
+    let std = after_allocated - before_allocated;
     println!(
-        "{} allocated during compilation",
-        after_allocated - before_allocated
+        r#"# Memory Report
+| Test         | This Branch | On Main |
+|--------------|-------------|---------|
+| standard lib | {std}       |         |
+"#
     );
 }
