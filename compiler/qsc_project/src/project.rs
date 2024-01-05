@@ -66,23 +66,40 @@ pub trait FileSystemAsync {
         initial_path: &Path,
     ) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path).await?;
+        if let Some(src_dir) = listing.into_iter().find(|x| {
+            let Ok(entry_type) = x.entry_type() else {
+                return false;
+            };
+            entry_type == EntryType::Folder && x.entry_name() == "src"
+        }) {
+            self.collect_project_sources_inner(&src_dir.path()).await
+        } else {
+            Err(miette::ErrReport::msg(
+                "No `src` directory found for project.",
+            ))
+        }
+    }
+
+    async fn collect_project_sources_inner(
+        &self,
+        initial_path: &Path,
+    ) -> miette::Result<Vec<Self::Entry>> {
+        let listing = self.list_directory(initial_path).await?;
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => {
-                    files.append(&mut self.collect_project_sources(&item.path()).await?)
+                    files.append(&mut self.collect_project_sources_inner(&item.path()).await?)
                 }
                 _ => (),
             }
         }
         Ok(files)
     }
-
     /// Given a [ManifestDescriptor], load project sources.
     async fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
-        let mut project_path = manifest.manifest_dir.clone();
-        project_path.push("src");
+        let project_path = manifest.manifest_dir.clone();
         let qs_files = self.collect_project_sources(&project_path).await?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
@@ -118,26 +135,44 @@ pub trait FileSystem {
 
     /// Given a path, list its directory contents (if any).
     fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
-
     /// Given an initial path, fetch files matching <initial_path>/**/*.qs
     fn collect_project_sources(&self, initial_path: &Path) -> miette::Result<Vec<Self::Entry>> {
+        let listing = self.list_directory(initial_path)?;
+        if let Some(src_dir) = listing.into_iter().find(|x| {
+            let Ok(entry_type) = x.entry_type() else {
+                return false;
+            };
+            entry_type == EntryType::Folder && x.entry_name() == "src"
+        }) {
+            self.collect_project_sources_inner(&src_dir.path())
+        } else {
+            Err(miette::ErrReport::msg(
+                "No `src` directory found for project.",
+            ))
+        }
+    }
+
+    fn collect_project_sources_inner(
+        &self,
+        initial_path: &Path,
+    ) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path)?;
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => {
-                    files.append(&mut self.collect_project_sources(&item.path())?)
+                    files.append(&mut self.collect_project_sources_inner(&item.path())?)
                 }
                 _ => (),
             }
         }
         Ok(files)
     }
+
     /// Given a [ManifestDescriptor], load project sources.
     fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
-        let mut project_path = manifest.manifest_dir.clone();
-        project_path.push("src");
+        let project_path = manifest.manifest_dir.clone();
         let qs_files = self.collect_project_sources(&project_path)?;
 
         let qs_files = qs_files.into_iter().map(|file| file.path());
