@@ -55,22 +55,6 @@ jobs:
       - name: Clippy Lints
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-  benches:
-    name: Benches
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: "true"
-      - name: Setup rust toolchain
-        uses: ./.github/actions/toolchains/rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo bench
-        run: cargo bench --workspace
-
   web-check:
     name: Check web files
     runs-on: ubuntu-latest
@@ -153,3 +137,14 @@ jobs:
         run: python ./prereqs.py --install
       - name: Run integration tests
         run: python ./build.py --no-check --no-test --wasm --npm --vscode --integration-tests
+
+  runBenchmark:
+    name: run benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: boa-dev/criterion-compare-action@v3
+        with:
+          branchName: ${{ github.base_ref }}
+          cwd: "compiler/qsc"
+        if: ${{ github.base_ref != null }}

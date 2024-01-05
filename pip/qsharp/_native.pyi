@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, ClassVar, Tuple, Optional
+from typing import Any, Callable, ClassVar, Tuple, Optional, Dict
 
 class TargetProfile:
     """
@@ -28,11 +28,16 @@ class TargetProfile:
 class Interpreter:
     """A Q# interpreter."""
 
-    def __init__(self, target_profile: TargetProfile) -> None:
+    def __init__(
+        self,
+        target_profile: TargetProfile,
+        manifest_descriptor: Optional[Dict[str, str]],
+    ) -> None:
         """
         Initializes the Q# interpreter.
 
         :param target_profile: The target profile to use for the interpreter.
+        :param manifest_descriptor: A dictionary that represents the manifest descriptor
         """
         ...
     def interpret(self, input: str, output_fn: Callable[[Output], None]) -> Any:

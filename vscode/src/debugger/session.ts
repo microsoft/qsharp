@@ -43,6 +43,7 @@ import {
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
 import { getTarget } from "../config";
+
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
@@ -83,7 +84,6 @@ export class QscDebugSession extends LoggingDebugSession {
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private variableHandles = new Handles<"locals" | "quantum">();
   private failureMessage: string;
-  private program: vscode.Uri;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
 
@@ -91,10 +91,10 @@ export class QscDebugSession extends LoggingDebugSession {
     private fileAccessor: FileAccessor,
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
+    private sources: [string, string][],
   ) {
     super();
 
-    this.program = fileAccessor.resolvePathToUri(this.config.program);
     this.failureMessage = "";
     this.eventTarget = createDebugConsoleEventTarget((message) => {
       this.writeToStdOut(message);
@@ -107,68 +107,67 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   public async init(associationId: string): Promise<void> {
+    const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const file = await this.fileAccessor.openUri(this.program);
-    const programText = file.getText();
     const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
-      this.program.toString(),
-      programText,
+      this.sources,
       targetProfile,
       this.config.entry,
     );
-    if (failureMessage == "") {
-      const locations = await this.debugService.getBreakpoints(
-        this.program.toString(),
-      );
-      log.trace(`init breakpointLocations: %O`, locations);
-      const mapped = locations.map((location) => {
-        const startPos = file.positionAt(location.lo);
-        const endPos = file.positionAt(location.hi);
-        const bpLocation: DebugProtocol.BreakpointLocation = {
-          line: startPos.line,
-          column: startPos.character,
-          endLine: endPos.line,
-          endColumn: endPos.character,
-        };
-        const fileLocation = {
-          startOffset: file.offsetAt(startPos),
-          endOffset: file.offsetAt(endPos),
-          startPos: startPos,
-          endPos: endPos,
-          bpLocation: bpLocation,
-        };
-        const uiLocation: DebugProtocol.BreakpointLocation = {
-          line: this.convertDebuggerLineToClient(startPos.line),
-          column: this.convertDebuggerColumnToClient(startPos.character),
-          endLine: this.convertDebuggerLineToClient(endPos.line),
-          endColumn: this.convertDebuggerColumnToClient(endPos.character),
-        };
-        return {
-          debuggerLocation: location,
-          fileLocation: fileLocation,
-          uiLocation: uiLocation,
-          breakpoint: this.createBreakpoint(location.id, uiLocation),
-        } as IBreakpointLocationData;
-      });
-      this.breakpointLocations.set(this.program.toString(), mapped);
-    } else {
-      log.warn(`compilation failed. ${failureMessage}`);
-      sendTelemetryEvent(
-        EventType.InitializeRuntimeEnd,
-        {
-          associationId,
-          reason: "compilation failed",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        {},
-      );
-      this.failureMessage = failureMessage;
+    for (const [path, _contents] of this.sources) {
+      if (failureMessage == "") {
+        const locations = await this.debugService.getBreakpoints(path);
+        const file = await this.fileAccessor.openPath(path);
+        log.trace(`init breakpointLocations: %O`, locations);
+        const mapped = locations.map((location) => {
+          const startPos = file.positionAt(location.lo);
+          const endPos = file.positionAt(location.hi);
+          const bpLocation: DebugProtocol.BreakpointLocation = {
+            line: startPos.line,
+            column: startPos.character,
+            endLine: endPos.line,
+            endColumn: endPos.character,
+          };
+          const fileLocation = {
+            startOffset: file.offsetAt(startPos),
+            endOffset: file.offsetAt(endPos),
+            startPos: startPos,
+            endPos: endPos,
+            bpLocation: bpLocation,
+          };
+          const uiLocation: DebugProtocol.BreakpointLocation = {
+            line: this.convertDebuggerLineToClient(startPos.line),
+            column: this.convertDebuggerColumnToClient(startPos.character),
+            endLine: this.convertDebuggerLineToClient(endPos.line),
+            endColumn: this.convertDebuggerColumnToClient(endPos.character),
+          };
+          return {
+            debuggerLocation: location,
+            fileLocation: fileLocation,
+            uiLocation: uiLocation,
+            breakpoint: this.createBreakpoint(location.id, uiLocation),
+          } as IBreakpointLocationData;
+        });
+        this.breakpointLocations.set(path, mapped);
+      } else {
+        log.warn(`compilation failed. ${failureMessage}`);
+        sendTelemetryEvent(
+          EventType.InitializeRuntimeEnd,
+          {
+            associationId,
+            reason: "compilation failed",
+            flowStatus: UserFlowStatus.Aborted,
+          },
+          { timeToCompleteMs: performance.now() - start },
+        );
+        this.failureMessage = failureMessage;
+      }
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
       { associationId, flowStatus: UserFlowStatus.Succeeded },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
   }
 
@@ -418,9 +417,11 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private getBreakpointIds(): number[] {
     const bps: number[] = [];
-    for (const bp of this.breakpoints.get(this.program.toString()) ?? []) {
-      if (bp && bp.id) {
-        bps.push(bp.id);
+    for (const file_bps of this.breakpoints.values()) {
+      for (const bp of file_bps) {
+        if (bp && bp.id) {
+          bps.push(bp.id);
+        }
       }
     }
 
@@ -878,6 +879,7 @@ export class QscDebugSession extends LoggingDebugSession {
       };
     } else if (handle === "quantum") {
       const associationId = getRandomGuid();
+      const start = performance.now();
       sendTelemetryEvent(
         EventType.RenderQuantumStateStart,
         { associationId },
@@ -896,7 +898,7 @@ export class QscDebugSession extends LoggingDebugSession {
       sendTelemetryEvent(
         EventType.RenderQuantumStateEnd,
         { associationId },
-        {},
+        { timeToCompleteMs: performance.now() - start },
       );
       response.body = {
         variables: variables,

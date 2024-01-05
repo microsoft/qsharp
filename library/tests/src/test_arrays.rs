@@ -108,6 +108,30 @@ fn check_chunks() {
 }
 
 #[test]
+fn check_circularly_shifted() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.CircularlyShifted(0, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(10), Value::Int(11), Value::Int(12)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.CircularlyShifted(1, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(12), Value::Int(10), Value::Int(11)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.CircularlyShifted(-1, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(11), Value::Int(12), Value::Int(10)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.CircularlyShifted(500, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(11), Value::Int(12), Value::Int(10)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.CircularlyShifted(-500, [10, 11, 12])",
+        &Value::Array(vec![Value::Int(12), Value::Int(10), Value::Int(11)].into()),
+    );
+}
+
+#[test]
 fn check_column_at() {
     test_expression(
         "Microsoft.Quantum.Arrays.ColumnAt(0, [[1, 2, 3], [4, 5, 6], [7, 8, 9]])",

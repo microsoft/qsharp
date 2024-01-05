@@ -352,6 +352,12 @@
         "path": "./syntaxes/qsharp.tmLanguage.json"
       }
     ],
+    "jsonValidation": [
+      {
+        "fileMatch": "qsharp.json",
+        "url": "./qsharp.schema.json"
+      }
+    ],
     "debuggers": [
       {
         "type": "qsharp",

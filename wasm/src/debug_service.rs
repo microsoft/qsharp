@@ -8,7 +8,7 @@ use qsc::interpret::stateful::Interpreter;
 use qsc::interpret::{stateful, StepAction, StepResult};
 use qsc::{fmt_complex, target::Profile, PackageType, SourceMap};
 
-use crate::{serializable_type, CallbackReceiver};
+use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -35,15 +35,11 @@ impl DebugService {
 
     pub fn load_source(
         &mut self,
-        path: String,
-        source: String,
+        sources: Vec<js_sys::Array>,
         target_profile: String,
         entry: Option<String>,
     ) -> String {
-        let source_map = SourceMap::new(
-            [(path.into(), source.into())],
-            entry.as_deref().map(|value| value.into()),
-        );
+        let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
         match Interpreter::new(true, source_map, PackageType::Exe, target.into()) {

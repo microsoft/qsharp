@@ -1,27 +1,60 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::str::FromStr;
-
-use crate::{diagnostic::VSDiagnostic, serializable_type};
+use crate::{
+    diagnostic::VSDiagnostic,
+    into_async_rust_fn_with,
+    project_system::{
+        get_manifest_transformer, list_directory_transformer, read_file_transformer,
+        GetManifestCallback, ListDirectoryCallback, ReadFileCallback,
+    },
+    serializable_type,
+};
 use js_sys::JsString;
 use qsc::{self, target::Profile, PackageType};
+use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 
 #[wasm_bindgen]
-pub struct LanguageService(qsls::LanguageService<'static>);
+pub struct LanguageService(qsls::LanguageService);
 
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(diagnostics_callback: DiagnosticsCallback) -> Self {
+    #[allow(clippy::new_without_default)] // wasm-bindgen requires constructor to be explicitly defined
+    pub fn new() -> Self {
+        LanguageService(qsls::LanguageService::default())
+    }
+
+    pub fn start_background_work(
+        &mut self,
+        diagnostics_callback: DiagnosticsCallback,
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+        get_manifest: GetManifestCallback,
+    ) -> js_sys::Promise {
+        let read_file = read_file.into();
+        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
+
+        let list_directory = list_directory.into();
+        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
+
+        let get_manifest: JsValue = get_manifest.into();
+        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
+
+        let diagnostics_callback =
+            crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
+
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
             .clone();
-        let inner = qsls::LanguageService::new(move |update| {
+
+        let diagnostics_callback = move |update: DiagnosticUpdate| {
             let diags = update
                 .errors
                 .iter()
@@ -36,14 +69,28 @@ impl LanguageService {
                         .expect("conversion to VSDiagnostic should succeed"),
                 )
                 .expect("callback should succeed");
-        });
-        LanguageService(inner)
+        };
+        let mut worker = self.0.create_update_worker(
+            diagnostics_callback,
+            read_file,
+            list_directory,
+            get_manifest,
+        );
+
+        future_to_promise(async move {
+            worker.run().await;
+            Ok(JsValue::undefined())
+        })
+    }
+
+    pub fn stop_background_work(&mut self) {
+        self.0.stop_updates();
     }
 
     pub fn update_configuration(&mut self, config: IWorkspaceConfiguration) {
         let config: WorkspaceConfiguration = config.into();
         self.0
-            .update_configuration(&qsls::protocol::WorkspaceConfigurationUpdate {
+            .update_configuration(qsls::protocol::WorkspaceConfigurationUpdate {
                 target_profile: config
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
@@ -73,7 +120,7 @@ impl LanguageService {
         let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
-            &qsls::protocol::NotebookMetadata {
+            qsls::protocol::NotebookMetadata {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
@@ -190,7 +237,7 @@ impl LanguageService {
                     .into_iter()
                     .map(|sig| SignatureInformation {
                         label: sig.label,
-                        documentation: sig.documentation,
+                        documentation: sig.documentation.unwrap_or_default(),
                         parameters: sig
                             .parameters
                             .into_iter()
@@ -199,7 +246,7 @@ impl LanguageService {
                                     start: param.label.start,
                                     end: param.label.end,
                                 },
-                                documentation: param.documentation,
+                                documentation: param.documentation.unwrap_or_default(),
                             })
                             .collect(),
                     })
@@ -347,12 +394,12 @@ serializable_type! {
     SignatureInformation,
     {
         label: String,
-        documentation: Option<String>,
+        documentation: String,
         parameters: Vec<ParameterInformation>,
     },
     r#"export interface ISignatureInformation {
         label: string;
-        documentation?: string;
+        documentation: string;
         parameters: IParameterInformation[];
     }"#
 }
@@ -361,11 +408,11 @@ serializable_type! {
     ParameterInformation,
     {
         label: Span,
-        documentation: Option<String>,
+        documentation: String,
     },
     r#"export interface IParameterInformation {
         label: ISpan;
-        documentation?: string;
+        documentation: string;
     }"#
 }
 

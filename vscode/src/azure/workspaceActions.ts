@@ -28,6 +28,7 @@ export async function getAuthSession(
   scopes: string[],
   associationId: string,
 ): Promise<vscode.AuthenticationSession> {
+  const start = performance.now();
   sendTelemetryEvent(EventType.AuthSessionStart, { associationId }, {});
   log.debug("About to getSession for scopes", scopes.join(","));
   try {
@@ -47,7 +48,7 @@ export async function getAuthSession(
         associationId,
         flowStatus: UserFlowStatus.Succeeded,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     return session;
   } catch (e) {
@@ -58,7 +59,7 @@ export async function getAuthSession(
         reason: "exception in getAuthSession",
         flowStatus: UserFlowStatus.Failed,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     log.error("Exception occurred in getAuthSession: ", e);
     throw e;
@@ -119,6 +120,7 @@ export async function queryWorkspaces(): Promise<
 > {
   log.debug("Querying for account workspaces");
   const associationId = getRandomGuid();
+  const start = performance.now();
   sendTelemetryEvent(EventType.QueryWorkspacesStart, { associationId }, {});
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
 
@@ -135,7 +137,7 @@ export async function queryWorkspaces(): Promise<
         reason: "no auth session returned",
         flowStatus: UserFlowStatus.Failed,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     return;
   }
@@ -158,7 +160,7 @@ export async function queryWorkspaces(): Promise<
         reason: "no tenants exist for account",
         flowStatus: UserFlowStatus.Failed,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     vscode.window.showErrorMessage(
       "There a no tenants listed for the account. Ensure the account has an Azure subscription.",
@@ -184,7 +186,7 @@ export async function queryWorkspaces(): Promise<
           reason: "aborted tenant choice",
           flowStatus: UserFlowStatus.Aborted,
         },
-        {},
+        { timeToCompleteMs: performance.now() - start },
       );
       return;
     }
@@ -210,7 +212,7 @@ export async function queryWorkspaces(): Promise<
           reason: "authentication session did not return",
           flowStatus: UserFlowStatus.Aborted,
         },
-        {},
+        { timeToCompleteMs: performance.now() - start },
       );
       // The user may have cancelled the login
       log.debug("No AAD authentication session returned during 2nd auth");
@@ -252,7 +254,7 @@ export async function queryWorkspaces(): Promise<
           reason: "aborted subscription choice",
           flowStatus: UserFlowStatus.Aborted,
         },
-        {},
+        { timeToCompleteMs: performance.now() - start },
       );
       return;
     }
@@ -277,7 +279,7 @@ export async function queryWorkspaces(): Promise<
         reason: "no quantum workspaces in azure subscription",
         flowStatus: UserFlowStatus.Aborted,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     vscode.window.showErrorMessage(
       "No Quantum Workspaces found in the Azure subscription",
@@ -307,7 +309,7 @@ export async function queryWorkspaces(): Promise<
           reason: "aborted workspace selection",
           flowStatus: UserFlowStatus.Aborted,
         },
-        {},
+        { timeToCompleteMs: performance.now() - start },
       );
       return;
     }
@@ -357,6 +359,7 @@ export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
 // - https://github.com/microsoft/qdk-python/blob/main/azure-quantum/azure/quantum/_client/aio/operations/_operations.py
 // - https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/data-plane/Microsoft.Quantum/preview/2022-09-12-preview/quantum.json
 export async function queryWorkspace(workspace: WorkspaceConnection) {
+  const start = performance.now();
   const token = await getTokenForWorkspace(workspace);
 
   const associationId = getRandomGuid();
@@ -414,7 +417,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
         reason: "no jobs returned",
         flowStatus: UserFlowStatus.Aborted,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     return;
   }
@@ -427,7 +430,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   sendTelemetryEvent(
     EventType.QueryWorkspaceEnd,
     { associationId, flowStatus: UserFlowStatus.Succeeded },
-    {},
+    { timeToCompleteMs: performance.now() - start },
   );
 
   return;
@@ -439,6 +442,7 @@ export async function getJobFiles(
   token: string,
   quantumUris: QuantumUris,
 ): Promise<string> {
+  const start = performance.now();
   const associationId = getRandomGuid();
   log.debug(`Fetching job file from ${containerName}/${blobName}`);
   sendTelemetryEvent(EventType.GetJobFilesStart, { associationId }, {});
@@ -469,7 +473,7 @@ export async function getJobFiles(
         reason: "no files returned",
         flowStatus: UserFlowStatus.Aborted,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     throw "No file returned";
   }
@@ -478,7 +482,7 @@ export async function getJobFiles(
   sendTelemetryEvent(
     EventType.GetJobFilesEnd,
     { associationId, flowStatus: UserFlowStatus.Succeeded },
-    {},
+    { timeToCompleteMs: performance.now() - start },
   );
   return blob;
 }
@@ -491,6 +495,7 @@ export async function submitJob(
   target: string,
 ) {
   const associationId = getRandomGuid();
+  const start = performance.now();
   sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
 
   const containerName = getRandomGuid();
@@ -520,7 +525,7 @@ export async function submitJob(
         reason: "undefined number of shots",
         flowStatus: UserFlowStatus.Aborted,
       },
-      {},
+      { timeToCompleteMs: performance.now() - start },
     );
     return;
   }
@@ -609,7 +614,7 @@ export async function submitJob(
       reason: "job submitted",
       flowStatus: UserFlowStatus.Succeeded,
     },
-    {},
+    { timeToCompleteMs: performance.now() - start },
   );
 
   return containerName; // The jobId

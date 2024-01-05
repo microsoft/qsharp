@@ -7,6 +7,7 @@ import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getTarget, setTarget } from "./config";
+import { loadProject } from "./projectSystem";
 
 const generateQirTimeoutMs = 30000;
 
@@ -22,6 +23,7 @@ export class QirGenerationError extends Error {
 export async function getQirForActiveWindow(): Promise<string> {
   let result = "";
   const editor = vscode.window.activeTextEditor;
+
   if (!editor || !isQsharpDocument(editor.document)) {
     throw new QirGenerationError(
       "The currently active window is not a Q# file",
@@ -46,19 +48,22 @@ export async function getQirForActiveWindow(): Promise<string> {
       setTarget("base");
     }
   }
-
-  // Get the diagnostics for the current document.
-  const diagnostics = await vscode.languages.getDiagnostics(
-    editor.document.uri,
-  );
-  if (diagnostics?.length > 0) {
-    throw new QirGenerationError(
-      "The current program contains errors that must be fixed before submitting to Azure",
-    );
+  let sources: [string, string][] = [];
+  try {
+    sources = await loadProject(editor.document.uri);
+  } catch (e: any) {
+    throw new QirGenerationError(e.message);
   }
-
-  const code = editor.document.getText();
-
+  for (const source of sources) {
+    const diagnostics = await vscode.languages.getDiagnostics(
+      vscode.Uri.parse(source[0]),
+    );
+    if (diagnostics?.length > 0) {
+      throw new QirGenerationError(
+        "The current program contains errors that must be fixed before submitting to Azure",
+      );
+    }
+  }
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
   // Let it run for max 10 seconds, then terminate it if not complete.
   const worker = getCompilerWorker(compilerWorkerScriptPath);
@@ -67,12 +72,13 @@ export async function getQirForActiveWindow(): Promise<string> {
   }, generateQirTimeoutMs);
   try {
     const associationId = getRandomGuid();
+    const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(code);
+    result = await worker.getQir(sources);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },
-      { qirLength: result.length },
+      { qirLength: result.length, timeToCompleteMs: performance.now() - start },
     );
     clearTimeout(compilerTimeout);
   } catch (e: any) {

@@ -11,19 +11,23 @@ use std::{
 
 use regex_lite::Regex;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
 /// A Q# manifest, used to describe project metadata.
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
-    #[serde(default)]
+    #[serde(default = "default_exclude_regexes")]
     pub exclude_regexes: Vec<String>,
     #[serde(default)]
     pub exclude_files: Vec<String>,
+}
+
+fn default_exclude_regexes() -> Vec<String> {
+    vec![".*node_modules.*".into(), ".*\\.git.*".into()]
 }
 
 /// Describes the contents and location of a Q# manifest file.
@@ -45,6 +49,13 @@ impl ManifestDescriptor {
 
     pub(crate) fn exclude_files(&self) -> &[String] {
         &self.manifest.exclude_files
+    }
+    /// Generate a canonical compilation URI for the project associated with this manifest
+    pub fn compilation_uri(&self) -> Arc<str> {
+        Arc::from(format!(
+            "{}/qsharp.json",
+            self.manifest_dir.to_string_lossy()
+        ))
     }
 }
 

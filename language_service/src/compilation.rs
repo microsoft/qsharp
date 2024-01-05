@@ -11,10 +11,11 @@ use qsc::{
     target::Profile,
     CompileUnit, PackageStore, PackageType, SourceMap,
 };
-use std::iter::successors;
+use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
+#[derive(Debug)]
 pub(crate) struct Compilation {
     /// Package store, containing the current package and all its dependencies.
     pub package_store: PackageStore,
@@ -25,11 +26,12 @@ pub(crate) struct Compilation {
     pub kind: CompilationKind,
 }
 
+#[derive(Debug)]
 pub(crate) enum CompilationKind {
-    /// An open Q# document without a project manifest.
-    /// In an `OpenDocument` compilation, the user package always
-    /// contains a single `Source`.
-    OpenDocument,
+    /// An open Q# project.
+    /// In an `OpenProject` compilation, the user package contains
+    /// one or more sources, and a target profile.
+    OpenProject,
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
@@ -37,16 +39,19 @@ pub(crate) enum CompilationKind {
 }
 
 impl Compilation {
-    /// Creates a new `Compilation` by compiling source from a single open document.
-    pub(crate) fn new_open_document(
-        source_name: &str,
-        source_contents: &str,
+    /// Creates a new `Compilation` by compiling sources.
+    pub(crate) fn new(
+        sources: &[(Arc<str>, Arc<str>)],
         package_type: PackageType,
         target_profile: Profile,
     ) -> Self {
-        trace!("compiling document {source_name}");
-        // Source map only contains the current document.
-        let source_map = SourceMap::new([(source_name.into(), source_contents.into())], None);
+        if sources.len() == 1 {
+            trace!("compiling single-file document {}", sources[0].0);
+        } else {
+            trace!("compiling package with {} sources", sources.len());
+        }
+
+        let source_map = SourceMap::new(sources.iter().map(|(x, y)| (x.clone(), y.clone())), None);
 
         let mut package_store = PackageStore::new(compile::core());
         let std_package_id =
@@ -66,14 +71,14 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             errors,
-            kind: CompilationKind::OpenDocument,
+            kind: CompilationKind::OpenProject,
         }
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<'a, I>(cells: I, target_profile: Profile) -> Self
+    pub(crate) fn new_notebook<I>(cells: I, target_profile: Profile) -> Self
     where
-        I: Iterator<Item = (&'a str, &'a str)>,
+        I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
@@ -88,7 +93,7 @@ impl Compilation {
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
-                .compile_fragments(name, contents, |cell_errors| {
+                .compile_fragments(&name, &contents, |cell_errors| {
                     errors.extend(cell_errors);
                     Ok(()) // accumulate errors without failing
                 })
@@ -116,52 +121,50 @@ impl Compilation {
 
     /// Maps a source-relative offset from the user package
     /// to a package (`SourceMap`)-relative offset.
-    pub(crate) fn source_offset_to_package_offset(&self, source_name: &str, offset: u32) -> u32 {
+    pub(crate) fn source_offset_to_package_offset(
+        &self,
+        source_name: &str,
+        mut offset: u32,
+    ) -> u32 {
         let unit = self.user_unit();
 
-        unit.sources
+        let source = unit
+            .sources
             .find_by_name(source_name)
-            .expect("source should exist in the user source map")
-            .offset
-            + offset
+            .expect("source should exist in the user source map");
+
+        let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
+        if offset > len {
+            // This can happen if the document contents are out of sync with the client's view.
+            // we don't want to accidentally return an offset into the next file -
+            // remap to the end of the current file.
+            trace!(
+                "offset {offset} out of bounds for {}, using end offset instead",
+                source.name
+            );
+            offset = len;
+        }
+
+        source.offset + offset
     }
 
-    /// Regenerates the compilation with the same sources but the passed in configuration options.
+    /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
-        let sources = self.user_source_contents();
+        let sources = self
+            .user_unit()
+            .sources
+            .iter()
+            .map(|source| (source.name.clone(), source.contents.clone()));
 
         let new = match self.kind {
-            CompilationKind::OpenDocument => {
-                assert!(sources.len() == 1);
-                Self::new_open_document(sources[0].0, sources[0].1, package_type, target_profile)
+            CompilationKind::OpenProject => {
+                Self::new(&sources.collect::<Vec<_>>(), package_type, target_profile)
             }
-            CompilationKind::Notebook => Self::new_notebook(sources.into_iter(), target_profile),
+            CompilationKind::Notebook => Self::new_notebook(sources, target_profile),
         };
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
-    }
-
-    /// Returns the original sources that were used to create the compilation.
-    fn user_source_contents(&self) -> Vec<(&str, &str)> {
-        let sources = &self.user_unit().sources;
-
-        successors(sources.find_by_offset(0), |last| {
-            sources
-                .find_by_offset(
-                    u32::try_from(last.contents.len()).expect("source contents should fit in u32")
-                        + 1,
-                )
-                .and_then(|s| {
-                    if s.offset == last.offset {
-                        None
-                    } else {
-                        Some(s)
-                    }
-                })
-        })
-        .map(|s| (s.name.as_ref(), s.contents.as_ref()))
-        .collect()
     }
 }
 

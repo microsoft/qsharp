@@ -157,7 +157,7 @@ impl Interpreter {
         let compiler =
             Compiler::new(std, sources, package_type, capabilities).map_err(into_errors)?;
 
-        for (id, unit) in compiler.package_store().iter() {
+        for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
                 lowerer.lower_package(&unit.package),
@@ -264,7 +264,7 @@ impl Interpreter {
         };
 
         eval_expr(
-            &mut self.state,
+            &mut State::new(self.source_package),
             expr,
             &globals,
             &mut Env::with_empty_scope(),
@@ -454,7 +454,7 @@ impl Interpreter {
         self.compiler.update(increment);
 
         assert!(stmts.len() == 1, "expected exactly one statement");
-        let stmt_id = stmts.get(0).expect("expected exactly one statement");
+        let stmt_id = stmts.first().expect("expected exactly one statement");
 
         Ok(*stmt_id)
     }
@@ -622,15 +622,15 @@ impl<'a> BreakpointCollector<'a> {
     }
 
     fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
-        let source: &Source = self.get_source(self.offset);
+        let source: &Source = self.get_source(stmt.span.lo);
         if source.offset == self.offset {
             let span = stmt.span - source.offset;
-            let bps = BreakpointSpan {
-                id: stmt.id.into(),
-                lo: span.lo,
-                hi: span.hi,
-            };
             if span != Span::default() {
+                let bps = BreakpointSpan {
+                    id: stmt.id.into(),
+                    lo: span.lo,
+                    hi: span.hi,
+                };
                 self.statements.insert(bps);
             }
         }

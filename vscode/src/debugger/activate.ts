@@ -3,11 +3,13 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import * as vscode from "vscode";
 import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
-import { FileAccessor, qsharpExtensionId, isQsharpDocument } from "../common";
+import { qsharpExtensionId, isQsharpDocument, FileAccessor } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
+
+import * as vscode from "vscode";
+import { loadProject } from "../projectSystem";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -187,18 +189,24 @@ export const workspaceFileAccessor: FileAccessor = {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
-  createDebugAdapterDescriptor(
+  async createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
-  ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+  ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
+    const uri = workspaceFileAccessor.resolvePathToUri(
+      session.configuration.program,
+    );
+    const sources = await loadProject(uri);
     const qscSession = new QscDebugSession(
       workspaceFileAccessor,
       worker,
       session.configuration,
+      sources,
     );
-    return qscSession.init(getRandomGuid()).then(() => {
-      return new vscode.DebugAdapterInlineImplementation(qscSession);
-    });
+
+    await qscSession.init(getRandomGuid());
+
+    return new vscode.DebugAdapterInlineImplementation(qscSession);
   }
 }

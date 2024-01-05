@@ -35,7 +35,7 @@ pub fn generate_qir(
     let package = map_hir_package_to_fir(package);
     let mut sim = BaseProfSim::default();
 
-    for (id, unit) in store.iter() {
+    for (id, unit) in store {
         fir_store.insert(
             map_hir_package_to_fir(id),
             fir_lowerer.lower_package(&unit.package),

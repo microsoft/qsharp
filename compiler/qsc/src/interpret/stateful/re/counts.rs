@@ -77,11 +77,7 @@ impl LogicalCounter {
             num_qubits: self.next_free,
             t_count: self.t_count,
             rotation_count: self.r_count,
-            rotation_depth: self
-                .layers
-                .iter()
-                .filter(|layer| layer.r_count != 0)
-                .count(),
+            rotation_depth: self.layers.iter().filter(|layer| layer.r != 0).count(),
             ccz_count: self.ccz_count,
             measurement_count: self.m_count,
         }
@@ -93,7 +89,7 @@ impl LogicalCounter {
         if level == self.layers.len() {
             self.layers.push(LayerInfo::new_with_r());
         } else {
-            self.layers[level].r_count += 1;
+            self.layers[level].r += 1;
         }
 
         self.max_layer[q] += 1;
@@ -105,7 +101,7 @@ impl LogicalCounter {
         if level == self.layers.len() {
             self.layers.push(LayerInfo::new_with_t());
         } else {
-            self.layers[level].t_count += 1;
+            self.layers[level].t += 1;
         }
 
         self.max_layer[q] += 1;
@@ -120,7 +116,7 @@ impl LogicalCounter {
         if max_depth == self.layers.len() {
             self.layers.push(LayerInfo::new_with_ccz());
         } else {
-            self.layers[max_depth].ccz_count += 1;
+            self.layers[max_depth].ccz += 1;
         }
 
         self.max_layer[q1] = max_depth + 1;
@@ -167,9 +163,9 @@ impl LogicalCounter {
         {
             self.layers.extend_from_within(*start_depth..*end_depth);
 
-            self.t_count += combined_layer.t_count;
-            self.r_count += combined_layer.r_count;
-            self.ccz_count += combined_layer.ccz_count;
+            self.t_count += combined_layer.t;
+            self.r_count += combined_layer.r;
+            self.ccz_count += combined_layer.ccz;
             self.m_count += *m_count;
 
             false
@@ -285,9 +281,9 @@ impl LogicalCounter {
             }
 
             self.layers.push(LayerInfo {
-                t_count,
-                r_count,
-                ccz_count,
+                t: t_count,
+                r: r_count,
+                ccz: ccz_count,
             });
 
             1
@@ -305,16 +301,16 @@ impl LogicalCounter {
             let extra_count = r_count - (r_count_per_layer * r_depth);
 
             self.layers.push(LayerInfo {
-                t_count,
-                r_count: r_count_per_layer + extra_count,
-                ccz_count,
+                t: t_count,
+                r: r_count_per_layer + extra_count,
+                ccz: ccz_count,
             });
 
             for _ in 1..r_depth {
                 self.layers.push(LayerInfo {
-                    t_count: 0,
-                    r_count: r_count_per_layer,
-                    ccz_count: 0,
+                    t: 0,
+                    r: r_count_per_layer,
+                    ccz: 0,
                 });
             }
 
@@ -503,34 +499,22 @@ impl Backend for LogicalCounter {
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct LayerInfo {
-    t_count: usize,
-    r_count: usize,
-    ccz_count: usize,
+    t: usize,
+    r: usize,
+    ccz: usize,
 }
 
 impl LayerInfo {
     pub fn new_with_t() -> Self {
-        Self {
-            t_count: 1,
-            r_count: 0,
-            ccz_count: 0,
-        }
+        Self { t: 1, r: 0, ccz: 0 }
     }
 
     pub fn new_with_r() -> Self {
-        Self {
-            t_count: 0,
-            r_count: 1,
-            ccz_count: 0,
-        }
+        Self { t: 0, r: 1, ccz: 0 }
     }
 
     pub fn new_with_ccz() -> Self {
-        Self {
-            t_count: 0,
-            r_count: 0,
-            ccz_count: 1,
-        }
+        Self { t: 0, r: 0, ccz: 1 }
     }
 }
 
@@ -539,9 +523,9 @@ impl<'a> Sum<&'a LayerInfo> for LayerInfo {
         let mut layer = LayerInfo::default();
 
         for current in iter {
-            layer.t_count += current.t_count;
-            layer.r_count += current.r_count;
-            layer.ccz_count += current.ccz_count;
+            layer.t += current.t;
+            layer.r += current.r;
+            layer.ccz += current.ccz;
         }
 
         layer
