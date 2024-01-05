@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 
 import { useRef, useState } from "preact/hooks";
+import { type ReData } from "./reTable.js";
 
-export type CellValue = string | number | { value: string; sortBy: number };
+type CellValue = string | number | { value: string; sortBy: number };
 
 // Note: column 0 is expected to be unique amongst all rows
 export function ResultsTable(props: {
   columnNames: string[];
-  rows: CellValue[][];
+  data: ReData[];
   initialColumns: number[];
   ensureSelected: boolean;
   onRowSelected(rowId: string): void;
@@ -23,8 +24,20 @@ export function ResultsTable(props: {
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showRowMenu, setShowRowMenu] = useState("");
 
-  if (!selectedRow && props.ensureSelected && props.rows.length > 0) {
-    const rowId = props.rows[0][0].toString();
+  const rows = props.data.map(ReDataToRow);
+
+  // Find the first row that is new in the current sort order
+  const newest = getSortedRows(rows).find(
+    (row) => (row[row.length - 1] as string) === "New",
+  );
+
+  // Select the first of the newest rows, otherwise preserve the existing selection
+  if (newest && props.ensureSelected) {
+    const rowId = newest[0].toString();
+    setSelectedRow(rowId);
+    props.onRowSelected(rowId);
+  } else if (!selectedRow && props.ensureSelected && rows.length > 0) {
+    const rowId = rows[0][0].toString();
     setSelectedRow(rowId);
     props.onRowSelected(rowId);
   }
@@ -331,7 +344,7 @@ export function ResultsTable(props: {
         </tr>
       </thead>
       <tbody>
-        {getSortedRows(props.rows).map((row) => {
+        {getSortedRows(rows).map((row) => {
           const rowId = row[0].toString();
           return (
             <tr
@@ -382,4 +395,26 @@ export function ResultsTable(props: {
       </tbody>
     </table>
   );
+}
+
+function ReDataToRow(data: ReData): CellValue[] {
+  return [
+    data.jobParams.runName,
+    data.jobParams.qubitParams.name,
+    data.jobParams.qecScheme.name,
+    data.jobParams.errorBudget,
+    data.physicalCounts.breakdown.algorithmicLogicalQubits,
+    data.physicalCounts.breakdown.algorithmicLogicalDepth,
+    data.logicalQubit.codeDistance,
+    data.physicalCounts.breakdown.numTstates,
+    data.physicalCounts.breakdown.numTfactories,
+    data.physicalCountsFormatted.physicalQubitsForTfactoriesPercentage,
+    {
+      value: data.physicalCountsFormatted.runtime,
+      sortBy: data.physicalCounts.runtime,
+    },
+    data.physicalCounts.rqops,
+    data.physicalCounts.physicalQubits,
+    data.new ? "New" : "Cached",
+  ];
 }

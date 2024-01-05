@@ -123,6 +123,17 @@ pub enum InvalidInput {
     #[error("No solution found for the provided maximum number of T factories.")]
     #[diagnostic(code("Qsc.Estimates.InvalidInputError.NoSolutionFoundForMaxTFactories"))]
     NoSolutionFoundForMaxTFactories,
+    /// Constraints provided for frontier estimation
+    /// (maximal time, maximal number of qubits, maximal number of T factories)
+    /// are not supported for frontier estimation.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("Unsupported constraints provided for Frontier Estimation.")]
+    #[diagnostic(code(
+        "Qsc.Estimates.InvalidInputError.ConstraintsProvidedForFrontierEstimation"
+    ))]
+    ConstraintsProvidedForFrontierEstimation,
 }
 
 #[derive(Debug, Error, Diagnostic)]

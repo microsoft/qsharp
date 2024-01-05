@@ -25,6 +25,7 @@ export type ReData = {
     }[];
     assumptions: string[];
   };
+  new: boolean;
 };
 
 export function ReTable(props: {

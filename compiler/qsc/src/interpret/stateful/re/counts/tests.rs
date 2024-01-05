@@ -15,7 +15,7 @@ use indoc::indoc;
 
 use super::LogicalCounter;
 
-fn veryify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
+fn verify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
     let source_map = SourceMap::new([("test".into(), source.into())], entry.map(Into::into));
     let mut interpreter = Interpreter::new(
         true,
@@ -35,8 +35,8 @@ fn veryify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
 
 #[test]
 fn gates_are_counted() {
-    veryify_logical_counts(
-        indoc! {r#"
+    verify_logical_counts(
+        indoc! {"
             namespace Test {
                 open Microsoft.Quantum.Measurement;
 
@@ -61,9 +61,9 @@ fn gates_are_counted() {
                     MResetEachZ(qs)
                 }
             }
-        "#},
+        "},
         None,
-        &expect![[r#"
+        &expect![["
             LogicalResources {
                 num_qubits: 10,
                 t_count: 2,
@@ -72,13 +72,13 @@ fn gates_are_counted() {
                 ccz_count: 2,
                 measurement_count: 10,
             }
-        "#]],
+        "]],
     );
 }
 
 #[test]
 fn estimate_caching_works() {
-    veryify_logical_counts(
+    verify_logical_counts(
         indoc! {r#"
             namespace Test {
                 open Microsoft.Quantum.ResourceEstimation;
@@ -109,6 +109,52 @@ fn estimate_caching_works() {
             }
         "#},
         None,
+        &expect![["
+            LogicalResources {
+                num_qubits: 10,
+                t_count: 1,
+                rotation_count: 300,
+                rotation_depth: 30,
+                ccz_count: 0,
+                measurement_count: 0,
+            }
+        "]],
+    );
+}
+
+#[test]
+fn estimate_repeat_works() {
+    verify_logical_counts(
+        indoc! {r#"
+            namespace Test {
+                open Microsoft.Quantum.ResourceEstimation;
+
+                operation Rotate(qs: Qubit[]) : Unit {
+                    for q in qs {
+                        Rx(1.0, q);
+                        Ry(1.0, q);
+                        Rz(1.0, q);
+                    }
+                }
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use qs = Qubit[10];
+                    mutable count = 0;
+                    within {
+                        RepeatEstimates(10);
+                    }
+                    apply {
+                        Rotate(qs);
+                        set count += 1;
+                    }
+                    for _ in 1..count {
+                        T(qs[0]);
+                    }
+                }
+            }
+        "#},
+        None,
         &expect![[r#"
             LogicalResources {
                 num_qubits: 10,
@@ -124,8 +170,8 @@ fn estimate_caching_works() {
 
 #[test]
 fn account_for_estimates_works() {
-    veryify_logical_counts(
-        indoc! {r#"
+    verify_logical_counts(
+        indoc! {"
             namespace Test {
                 open Microsoft.Quantum.ResourceEstimation;
 
@@ -145,9 +191,9 @@ fn account_for_estimates_works() {
                         qs);
                 }
             }
-        "#},
+        "},
         None,
-        &expect![[r#"
+        &expect![["
             LogicalResources {
                 num_qubits: 11,
                 t_count: 2,
@@ -156,6 +202,6 @@ fn account_for_estimates_works() {
                 ccz_count: 5,
                 measurement_count: 6,
             }
-        "#]],
+        "]],
     );
 }

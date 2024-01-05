@@ -16,7 +16,8 @@ use super::{
             tfactory::TFactory,
         },
     },
-    JobParams, LogicalResourceCounts,
+    job_params::JobParams,
+    LogicalResourceCounts,
 };
 
 #[derive(Serialize)]

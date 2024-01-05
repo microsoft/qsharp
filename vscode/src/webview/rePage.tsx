@@ -2,13 +2,7 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import {
-  ResultsTable,
-  SpaceChart,
-  ReTable,
-  type ReData,
-  type CellValue,
-} from "qsharp-lang/ux";
+import { ResultsTable, SpaceChart, ReTable, type ReData } from "qsharp-lang/ux";
 
 const columnNames = [
   "Run name",
@@ -28,27 +22,6 @@ const columnNames = [
 
 const initialColumns = [0, 1, 2, 3, 4, 10, 11, 12];
 
-function ReDataToRow(data: ReData): CellValue[] {
-  return [
-    data.jobParams.runName,
-    data.jobParams.qubitParams.name,
-    data.jobParams.qecScheme.name,
-    data.jobParams.errorBudget,
-    data.physicalCounts.breakdown.algorithmicLogicalQubits,
-    data.physicalCounts.breakdown.algorithmicLogicalDepth,
-    data.logicalQubit.codeDistance,
-    data.physicalCounts.breakdown.numTstates,
-    data.physicalCounts.breakdown.numTfactories,
-    data.physicalCountsFormatted.physicalQubitsForTfactoriesPercentage,
-    {
-      value: data.physicalCountsFormatted.runtime,
-      sortBy: data.physicalCounts.runtime,
-    },
-    data.physicalCounts.rqops,
-    data.physicalCounts.physicalQubits,
-  ];
-}
-
 export function RePage(props: {
   estimatesData: ReData[];
   calculating: boolean;
@@ -58,6 +31,9 @@ export function RePage(props: {
   const [estimate, setEstimate] = useState<ReData | null>(null);
 
   function onRowSelected(rowId: string) {
+    // On any selection, clear the "new" flag on all rows. This ensures that
+    // new rows do not steal focus from the user selected row.
+    props.estimatesData.forEach((data) => (data.new = false));
     if (!rowId) {
       setEstimate(null);
     } else {
@@ -126,7 +102,7 @@ export function RePage(props: {
         </summary>
         <ResultsTable
           columnNames={columnNames}
-          rows={props.estimatesData.map(ReDataToRow)}
+          data={props.estimatesData}
           initialColumns={initialColumns}
           ensureSelected={true}
           onRowSelected={onRowSelected}

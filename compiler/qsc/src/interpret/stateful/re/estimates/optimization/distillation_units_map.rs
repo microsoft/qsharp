@@ -66,7 +66,7 @@ impl<'a> DistillationUnitsMap<'a> {
         physical_distillation_units.append(&mut purely_physical_distillation_units);
 
         let mut is_valid_physical_distillation_units =
-            vec![true; num_code_distances + num_physical_distillation_units];
+            vec![true; num_combined_distillation_units + num_physical_distillation_units];
 
         for idx in 0..num_combined_distillation_units {
             if !physical_distillation_units[idx].is_valid() {
