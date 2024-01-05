@@ -12,8 +12,6 @@ import { updateQSharpJsonDiagnostics } from "./diagnostics";
  * was malformed.
  */
 export async function getManifest(uri: string): Promise<{
-  excludeFiles: string[];
-  excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
@@ -42,8 +40,6 @@ export async function getManifest(uri: string): Promise<{
   const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
   return {
-    excludeFiles: parsedManifest.excludeFiles || [],
-    excludeRegexes: parsedManifest.excludeRegexes || [],
     manifestDirectory: manifestDirectory.toString(),
   };
 }
@@ -144,8 +140,6 @@ async function readFileUri(
 }
 
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
-  excludeFiles: string[];
-  excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
@@ -168,8 +162,6 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
     const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
     return {
-      excludeFiles: [],
-      excludeRegexes: [],
       manifestDirectory: manifestDirectory.toString(),
     };
   }
