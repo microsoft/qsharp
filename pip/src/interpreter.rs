@@ -130,11 +130,10 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        let interpreter =
-            stateful::Interpreter::new(true, sources, PackageType::Lib, target.into())
-                .map_py_err()?;
-
-        Ok(Self { interpreter })
+        match stateful::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
+            Ok(interpreter) => Ok(Self { interpreter }),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
     }
 
     /// Interprets Q# source code.
