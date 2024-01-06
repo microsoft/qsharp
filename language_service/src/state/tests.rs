@@ -948,10 +948,18 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
                 .expect("spawn should not fail")
             })
         },
-        |_dir_name| {
+        |dir_name| {
             Box::pin(async move {
                 tokio::spawn(ready({
                     vec![
+                        JSFileEntry {
+                            name: "src".into(),
+                            r#type: (if dir_name.as_str() == "src" {
+                                EntryType::File
+                            } else {
+                                EntryType::Folder
+                            }),
+                        },
                         JSFileEntry {
                             name: "other_file.qs".into(),
                             r#type: EntryType::File,
