@@ -9,6 +9,7 @@ use crate::protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfiguration
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
+use rustc_hash::FxHashMap;
 use std::{cell::RefCell, fmt::Write, future::ready, rc::Rc, sync::Arc};
 
 #[tokio::test]
@@ -18,7 +19,7 @@ async fn no_error() {
 
     updater
         .update_document(
-            "foo.qs",
+            "single/foo.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
@@ -37,14 +38,16 @@ async fn clear_error() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_document("foo.qs", 1, "namespace {").await;
+    updater
+        .update_document("single/foo.qs", 1, "namespace {")
+        .await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -75,7 +78,7 @@ async fn clear_error() {
 
     updater
         .update_document(
-            "foo.qs",
+            "single/foo.qs",
             2,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
@@ -86,7 +89,7 @@ async fn clear_error() {
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         2,
                     ),
@@ -105,20 +108,20 @@ async fn close_last_doc_in_project() {
 
     updater
         .update_document(
-            "other_file.qs",
+            "project/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
         .update_document(
-            "this_file.qs",
+            "project/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
         )
         .await;
 
-    updater.close_document("this_file.qs").await;
+    updater.close_document("project/this_file.qs").await;
     // now there should be one compilation and one open document
 
     check_errors_and_compilation(
@@ -126,9 +129,9 @@ async fn close_last_doc_in_project() {
         &received_errors,
         &expect![[r#"
             {
-                "other_file.qs": OpenDocument {
+                "project/other_file.qs": OpenDocument {
                     version: 1,
-                    compilation: "./qsharp.json",
+                    compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
@@ -137,12 +140,12 @@ async fn close_last_doc_in_project() {
             SourceMap {
                 sources: [
                     Source {
-                        name: "other_file.qs",
+                        name: "project/other_file.qs",
                         contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "this_file.qs",
+                        name: "project/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 59,
                     },
@@ -152,7 +155,7 @@ async fn close_last_doc_in_project() {
         &expect![[r#"
             [
                 (
-                    "this_file.qs",
+                    "project/this_file.qs",
                     Some(
                         1,
                     ),
@@ -178,14 +181,14 @@ async fn close_last_doc_in_project() {
                     ],
                 ),
                 (
-                    "this_file.qs",
+                    "project/this_file.qs",
                     None,
                     [],
                 ),
             ]
         "#]],
     );
-    updater.close_document("other_file.qs").await;
+    updater.close_document("project/other_file.qs").await;
 
     // now there should be no file and no compilation
     check_errors_and_compilation(
@@ -206,14 +209,16 @@ async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_document("foo.qs", 1, "namespace {").await;
+    updater
+        .update_document("single/foo.qs", 1, "namespace {")
+        .await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -242,14 +247,14 @@ async fn clear_on_document_close() {
         "#]],
     );
 
-    updater.close_document("foo.qs").await;
+    updater.close_document("single/foo.qs").await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     None,
                     [],
                 ),
@@ -263,14 +268,16 @@ async fn compile_error() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_document("foo.qs", 1, "badsyntax").await;
+    updater
+        .update_document("single/foo.qs", 1, "badsyntax")
+        .await;
 
     expect_errors(
         &errors,
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -309,7 +316,11 @@ async fn package_type_update_causes_error() {
     });
 
     updater
-        .update_document("foo.qs", 1, "namespace Foo { operation Main() : Unit {} }")
+        .update_document(
+            "single/foo.qs",
+            1,
+            "namespace Foo { operation Main() : Unit {} }",
+        )
         .await;
 
     expect_errors(
@@ -329,7 +340,7 @@ async fn package_type_update_causes_error() {
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -358,7 +369,7 @@ async fn target_profile_update_fixes_error() {
 
     updater
         .update_document(
-            "foo.qs",
+            "single/foo.qs",
             1,
             r#"namespace Foo { operation Main() : Unit { if Zero == Zero { Message("hi") } } }"#,
         )
@@ -369,7 +380,7 @@ async fn target_profile_update_fixes_error() {
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -420,7 +431,7 @@ async fn target_profile_update_fixes_error() {
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -437,7 +448,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
     let mut updater = new_updater(&errors);
 
     updater.update_document(
-        "foo.qs",
+        "single/foo.qs",
         1,
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
     ).await;
@@ -459,7 +470,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
         &expect![[r#"
             [
                 (
-                    "foo.qs",
+                    "single/foo.qs",
                     Some(
                         1,
                     ),
@@ -741,14 +752,14 @@ async fn update_doc_updates_project() {
 
     updater
         .update_document(
-            "other_file.qs",
+            "project/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
         .update_document(
-            "this_file.qs",
+            "project/this_file.qs",
             1,
             "namespace Foo { we should see this in the source }",
         )
@@ -759,15 +770,15 @@ async fn update_doc_updates_project() {
         &received_errors,
         &expect![[r#"
             {
-                "other_file.qs": OpenDocument {
+                "project/this_file.qs": OpenDocument {
                     version: 1,
-                    compilation: "./qsharp.json",
-                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                },
-                "this_file.qs": OpenDocument {
-                    version: 1,
-                    compilation: "./qsharp.json",
+                    compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { we should see this in the source }",
+                },
+                "project/other_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
         "#]],
@@ -775,12 +786,12 @@ async fn update_doc_updates_project() {
             SourceMap {
                 sources: [
                     Source {
-                        name: "other_file.qs",
+                        name: "project/other_file.qs",
                         contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "this_file.qs",
+                        name: "project/this_file.qs",
                         contents: "namespace Foo { we should see this in the source }",
                         offset: 59,
                     },
@@ -790,7 +801,7 @@ async fn update_doc_updates_project() {
         &expect![[r#"
             [
                 (
-                    "this_file.qs",
+                    "project/this_file.qs",
                     Some(
                         1,
                     ),
@@ -834,29 +845,29 @@ async fn close_doc_prioritizes_fs() {
 
     updater
         .update_document(
-            "other_file.qs",
+            "project/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
         .update_document(
-            "this_file.qs",
+            "project/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
         )
         .await;
 
-    updater.close_document("this_file.qs").await;
+    updater.close_document("project/this_file.qs").await;
 
     check_errors_and_compilation(
         &updater,
         &received_errors,
         &expect![[r#"
             {
-                "other_file.qs": OpenDocument {
+                "project/other_file.qs": OpenDocument {
                     version: 1,
-                    compilation: "./qsharp.json",
+                    compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
@@ -865,12 +876,12 @@ async fn close_doc_prioritizes_fs() {
             SourceMap {
                 sources: [
                     Source {
-                        name: "other_file.qs",
+                        name: "project/other_file.qs",
                         contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "this_file.qs",
+                        name: "project/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 59,
                     },
@@ -880,7 +891,7 @@ async fn close_doc_prioritizes_fs() {
         &expect![[r#"
             [
                 (
-                    "this_file.qs",
+                    "project/this_file.qs",
                     Some(
                         1,
                     ),
@@ -906,7 +917,7 @@ async fn close_doc_prioritizes_fs() {
                     ],
                 ),
                 (
-                    "this_file.qs",
+                    "project/this_file.qs",
                     None,
                     [],
                 ),
@@ -934,52 +945,9 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file| {
-            Box::pin(async {
-                tokio::spawn(ready(match file.as_str() {
-                    "other_file.qs" => (
-                        Arc::from(file),
-                        Arc::from("// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit {} }"),
-                    ),
-                    "this_file.qs" => (Arc::from(file), Arc::from("// DISK CONTENTS\n namespace Foo { }")),
-                    _ => panic!("unknown file"),
-                }))
-                .await
-                .expect("spawn should not fail")
-            })
-        },
-        |_dir_name| {
-            Box::pin(async move {
-                tokio::spawn(ready({
-                    vec![
-                        JSFileEntry {
-                            name: "other_file.qs".into(),
-                            r#type: EntryType::File,
-                        },
-                        JSFileEntry {
-                            name: "this_file.qs".into(),
-                            r#type: EntryType::File,
-                        },
-                    ]
-                }))
-                .await
-                .expect("spawn should not fail")
-            })
-        },
-        |file| {
-            Box::pin(async move {
-                tokio::spawn(ready(match file.as_str() {
-                    "other_file.qs" | "this_file.qs" => Some(ManifestDescriptor {
-                        manifest: Manifest::default(),
-                        manifest_dir: ".".into(),
-                    }),
-                    "foo.qs" => None,
-                    _ => panic!("unknown file"),
-                }))
-                .await
-                .expect("spawn should not fail")
-            })
-        },
+        |file: String| Box::pin(ready(MEM_FS.with(|fs| fs.read_file(file)))),
+        |dir_name: String| Box::pin(ready(MEM_FS.with(|fs| fs.list_directory(dir_name)))),
+        |file| Box::pin(ready(MEM_FS.with(|fs| fs.get_manifest(file)))),
     )
 }
 
@@ -1017,4 +985,121 @@ fn check_errors_and_compilation(
     assert_open_documents(updater, expected_open_documents);
     assert_compilation_sources(updater, expected_compilation_sources);
     expect_errors(received_errors, expected_errors);
+}
+
+thread_local! { static MEM_FS: FsNode = FsNode::test_fs() }
+
+enum FsNode {
+    Dir(FxHashMap<Arc<str>, FsNode>),
+    File(Arc<str>),
+}
+
+impl FsNode {
+    fn test_fs() -> Self {
+        FsNode::Dir(
+            [
+                Self::dir(
+                    "project",
+                    [
+                        Self::file(
+                            "other_file.qs",
+                            "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                        ),
+                        Self::file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
+                        Self::file("qsharp.json", "{}"),
+                    ],
+                ),
+                Self::dir(
+                    "single",
+                    [Self::file(
+                        "foo.qs",
+                        "// DISK CONTENTS\n namespace Foo { operation Foo() : Unit {} }",
+                    )],
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        )
+    }
+
+    fn dir<const COUNT: usize>(
+        name: &str,
+        contents: [(Arc<str>, FsNode); COUNT],
+    ) -> (Arc<str>, FsNode) {
+        (name.into(), FsNode::Dir(contents.into_iter().collect()))
+    }
+
+    fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
+        (name.into(), FsNode::File(Arc::from(contents)))
+    }
+
+    fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
+        let mut curr = Some(self);
+
+        for part in file.split('/') {
+            curr = curr.and_then(|node| match node {
+                FsNode::Dir(dir) => dir.get(part),
+                FsNode::File(_) => None,
+            });
+        }
+
+        match curr {
+            Some(FsNode::File(contents)) => (file.into(), contents.clone()),
+            Some(FsNode::Dir(_)) | None => (file.into(), "".into()),
+        }
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    fn list_directory(&self, dir_name: String) -> Vec<JSFileEntry> {
+        let mut curr = Some(self);
+
+        for part in dir_name.split('/') {
+            curr = curr.and_then(|node| match node {
+                FsNode::Dir(dir) => dir.get(part),
+                FsNode::File(_) => None,
+            });
+        }
+
+        match curr {
+            Some(FsNode::Dir(dir)) => dir
+                .iter()
+                .map(|(name, node)| JSFileEntry {
+                    name: format!("{dir_name}/{name}"),
+                    r#type: match node {
+                        FsNode::Dir(_) => EntryType::Folder,
+                        FsNode::File(_) => EntryType::File,
+                    },
+                })
+                .collect(),
+            Some(FsNode::File(_)) | None => Vec::default(),
+        }
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    fn get_manifest(&self, file: String) -> Option<ManifestDescriptor> {
+        let mut curr = Some(self);
+        let mut curr_path = String::new();
+        let mut last_manifest_dir = None;
+
+        for part in file.split('/') {
+            curr = curr.and_then(|node| match node {
+                FsNode::Dir(dir) => {
+                    if dir.get("qsharp.json").is_some() {
+                        last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                    }
+                    curr_path = format!("{curr_path}{part}/");
+                    dir.get(part)
+                }
+                FsNode::File(_) => None,
+            });
+        }
+
+        match curr {
+            Some(FsNode::Dir(_)) | None => None,
+            Some(FsNode::File(_)) => last_manifest_dir.map(|dir| ManifestDescriptor {
+                manifest: Manifest::default(),
+                manifest_dir: dir.into(),
+            }),
+        }
+    }
 }
