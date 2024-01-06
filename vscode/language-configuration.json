@@ -22,7 +22,7 @@
     ["{", "}"],
     ["\"", "\""]
   ],
-  // This is the sample word pattern from https://code.visualstudio.com/api/language-extensions/language-configuration-guide
+  // This is the default word pattern from https://code.visualstudio.com/api/language-extensions/language-configuration-guide
   // with the following modifications:
   //   @foo - Attributes, including the leading '@', are treated as one word.
   //   foo.bar - Qualified names, including the dots, are treated as one word.
