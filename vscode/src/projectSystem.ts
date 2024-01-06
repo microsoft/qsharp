@@ -35,14 +35,14 @@ export async function getManifest(uri: string): Promise<{
 async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
-  // file://home/foo/bar/document.qs
+  // file://home/foo/bar/src/document.qs
   // or, e.g. in vscode on a virtual file system,
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
   // just the parent
   // e.g.
-  // file://home/foo/bar
+  // file://home/foo/bar/src
   let uriToQuery = Utils.dirname(currentDocumentUri);
 
   let attempts = 100;
@@ -63,6 +63,13 @@ async function findManifestDocument(
       log.debug("Aborting search for manifest file outside of workspace");
       return null;
     }
+
+    const oldUriToQuery = uriToQuery;
+    uriToQuery = Utils.resolvePath(uriToQuery, "..");
+    if (oldUriToQuery === uriToQuery) {
+      return null;
+    }
+
     const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
 
     let listing;
@@ -74,12 +81,6 @@ async function findManifestDocument(
 
     if (listing) {
       return listing;
-    }
-
-    const oldUriToQuery = uriToQuery;
-    uriToQuery = Utils.resolvePath(uriToQuery, "..");
-    if (oldUriToQuery === uriToQuery) {
-      return null;
     }
   }
   return null;
