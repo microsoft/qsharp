@@ -47,6 +47,8 @@ async function findManifestDocument(
 
   let attempts = 100;
 
+  let seenSrcDir = false;
+
   while (attempts > 0) {
     attempts--;
     // we abort this check if we are going above the current VS Code
@@ -64,23 +66,32 @@ async function findManifestDocument(
       return null;
     }
 
+    if (uriToQuery.toString().endsWith("src")) {
+      seenSrcDir = true;
+    }
+
+    if (seenSrcDir) {
+      const potentialManifestLocation = Utils.joinPath(
+        uriToQuery,
+        "qsharp.json",
+      );
+
+      let listing;
+      try {
+        listing = await readFileUri(potentialManifestLocation);
+      } catch (err) {
+        log.error("Error thrown when reading file: ", err);
+      }
+
+      if (listing) {
+        return listing;
+      }
+    }
+
     const oldUriToQuery = uriToQuery;
     uriToQuery = Utils.resolvePath(uriToQuery, "..");
     if (oldUriToQuery === uriToQuery) {
       return null;
-    }
-
-    const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
-
-    let listing;
-    try {
-      listing = await readFileUri(potentialManifestLocation);
-    } catch (err) {
-      log.error("Error thrown when reading file: ", err);
-    }
-
-    if (listing) {
-      return listing;
     }
   }
   return null;
