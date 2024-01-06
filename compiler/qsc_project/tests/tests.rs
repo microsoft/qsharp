@@ -178,3 +178,34 @@ fn hidden_files() {
             }"#]],
     )
 }
+#[test]
+fn peer_file() {
+    check(
+        "peer_file".into(),
+        &expect![[r#"
+            Project {
+                sources: [
+                    (
+                        "peer_file/src/Project.qs",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
+                    ),
+                    (
+                        "peer_file/src/utils/ops/Add.qs",
+                        "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
+                    ),
+                    (
+                        "peer_file/src/utils/ops/Subtract.qs",
+                        "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
+                    ),
+                    (
+                        "peer_file/src/utils/strings/Concat.qs",
+                        "namespace Strings {\n    function Concat(a: String, b: String) : String {\n        a + b\n    }\n}\n",
+                    ),
+                ],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                },
+            }"#]],
+    )
+}
