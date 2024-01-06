@@ -66,10 +66,6 @@ async function findManifestDocument(
       return null;
     }
 
-    if (uriToQuery.toString().endsWith("src")) {
-      seenSrcDir = true;
-    }
-
     if (seenSrcDir) {
       const potentialManifestLocation = Utils.joinPath(
         uriToQuery,
@@ -86,6 +82,11 @@ async function findManifestDocument(
       if (listing) {
         return listing;
       }
+    }
+    if (uriToQuery.toString().endsWith("src")) {
+      seenSrcDir = true;
+    } else {
+      seenSrcDir = false;
     }
 
     const oldUriToQuery = uriToQuery;
