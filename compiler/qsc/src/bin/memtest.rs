@@ -3,11 +3,6 @@
 
 //! Tests the memory usage of the compiler.
 
-// TODO:
-// - different memory benchmarks
-// - generate report for PR
-// - compare against base branch
-
 use qsc::{compile, CompileUnit};
 use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags};
 
@@ -60,10 +55,10 @@ fn main() {
 
     println!(
         r#"# Memory Report
-| Test                        | This Branch | On Main |
-|-----------------------------|-------------|---------|
-| compile core                | {core}      | 376080  |
-| compile core + standard lib | {std}       | 376080  |
+| Test                        | This Branch | On Main  |
+|-----------------------------|-------------|----------|
+| compile core                | {core}      | 97632    |
+| compile core + standard lib | {std}       | 15044465 |
 "#
     );
 }
