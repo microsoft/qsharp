@@ -137,21 +137,22 @@ async fn close_last_doc_in_project() {
             }
         "#]],
         &expect![[r#"
-            SourceMap {
+            project/qsharp.json: SourceMap {
                 sources: [
-                    Source {
-                        name: "project/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
                     Source {
                         name: "project/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 59,
+                        offset: 0,
+                    },
+                    Source {
+                        name: "project/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                        offset: 36,
                     },
                 ],
                 entry: None,
-            }"#]],
+            }
+        "#]],
         &expect![[r#"
             [
                 (
@@ -170,8 +171,8 @@ async fn close_last_doc_in_project() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 59,
-                                                hi: 60,
+                                                lo: 0,
+                                                hi: 1,
                                             },
                                         ),
                                     ),
@@ -783,21 +784,22 @@ async fn update_doc_updates_project() {
             }
         "#]],
         &expect![[r#"
-            SourceMap {
+            project/qsharp.json: SourceMap {
                 sources: [
-                    Source {
-                        name: "project/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
                     Source {
                         name: "project/this_file.qs",
                         contents: "namespace Foo { we should see this in the source }",
-                        offset: 59,
+                        offset: 0,
+                    },
+                    Source {
+                        name: "project/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                        offset: 51,
                     },
                 ],
                 entry: None,
-            }"#]],
+            }
+        "#]],
         &expect![[r#"
             [
                 (
@@ -816,8 +818,8 @@ async fn update_doc_updates_project() {
                                             ),
                                             Ident,
                                             Span {
-                                                lo: 75,
-                                                hi: 77,
+                                                lo: 16,
+                                                hi: 18,
                                             },
                                         ),
                                     ),
@@ -873,21 +875,22 @@ async fn close_doc_prioritizes_fs() {
             }
         "#]],
         &expect![[r#"
-            SourceMap {
+            project/qsharp.json: SourceMap {
                 sources: [
-                    Source {
-                        name: "project/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
                     Source {
                         name: "project/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 59,
+                        offset: 0,
+                    },
+                    Source {
+                        name: "project/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+                        offset: 36,
                     },
                 ],
                 entry: None,
-            }"#]],
+            }
+        "#]],
         &expect![[r#"
             [
                 (
@@ -906,8 +909,8 @@ async fn close_doc_prioritizes_fs() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 59,
-                                                hi: 60,
+                                                lo: 0,
+                                                hi: 1,
                                             },
                                         ),
                                     ),
@@ -925,6 +928,209 @@ async fn close_doc_prioritizes_fs() {
         "#]],
     );
 }
+
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
+async fn delete_manifest() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document(
+            "project/this_file.qs",
+            1,
+            "// DISK CONTENTS\n namespace Foo { }",
+        )
+        .await;
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/this_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "project/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "project/other_file.qs",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                        offset: 36,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "project/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+
+    MEM_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+
+    updater
+        .update_document(
+            "project/this_file.qs",
+            2,
+            "// DISK CONTENTS\n namespace Foo { }",
+        )
+        .await;
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/this_file.qs": OpenDocument {
+                    version: 2,
+                    compilation: "project/this_file.qs",
+                    latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/this_file.qs: SourceMap {
+                sources: [
+                    Source {
+                        name: "project/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 0,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "project/this_file.qs",
+                    Some(
+                        2,
+                    ),
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "project/qsharp.json",
+                    None,
+                    [],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
+async fn delete_manifest_then_close() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document(
+            "project/this_file.qs",
+            1,
+            "// DISK CONTENTS\n namespace Foo { }",
+        )
+        .await;
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/this_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "project/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "project/other_file.qs",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                        offset: 36,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "project/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+
+    MEM_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+
+    updater.close_document("project/this_file.qs").await;
+
+    check_errors_and_compilation(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {}
+        "#]],
+        &expect![""],
+        &expect![[r#"
+            [
+                (
+                    "project/qsharp.json",
+                    None,
+                    [],
+                ),
+            ]
+        "#]],
+    );
+}
+
 type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
@@ -945,9 +1151,13 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file: String| Box::pin(ready(MEM_FS.with(|fs| fs.read_file(file)))),
-        |dir_name: String| Box::pin(ready(MEM_FS.with(|fs| fs.list_directory(dir_name)))),
-        |file| Box::pin(ready(MEM_FS.with(|fs| fs.get_manifest(file)))),
+        |file: String| Box::pin(ready(MEM_FS.with(|fs| fs.borrow().read_file(file)))),
+        |dir_name: String| {
+            Box::pin(ready(
+                MEM_FS.with(|fs| fs.borrow().list_directory(dir_name)),
+            ))
+        },
+        |file| Box::pin(ready(MEM_FS.with(|fs| fs.borrow().get_manifest(file)))),
     )
 }
 
@@ -960,13 +1170,14 @@ fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
 fn assert_compilation_sources(updater: &CompilationStateUpdater<'_>, expected: &Expect) {
     let state = updater.state.try_borrow().expect("borrow should succeed");
 
-    let compilation_sources = state
-        .compilations
-        .values()
-        .fold(String::new(), |mut output, c| {
-            let _ = write!(output, "{:#?}", c.0.user_unit().sources);
-            output
-        });
+    let compilation_sources =
+        state
+            .compilations
+            .iter()
+            .fold(String::new(), |mut output, (name, compilation)| {
+                let _ = writeln!(output, "{}: {:#?}", name, compilation.0.user_unit().sources);
+                output
+            });
     expected.assert_eq(&compilation_sources);
 }
 
@@ -987,7 +1198,7 @@ fn check_errors_and_compilation(
     expect_errors(received_errors, expected_errors);
 }
 
-thread_local! { static MEM_FS: FsNode = FsNode::test_fs() }
+thread_local! { static MEM_FS: RefCell<FsNode> = RefCell::new(FsNode::test_fs()) }
 
 enum FsNode {
     Dir(FxHashMap<Arc<str>, FsNode>),
@@ -997,26 +1208,17 @@ enum FsNode {
 impl FsNode {
     fn test_fs() -> Self {
         FsNode::Dir(
-            [
-                Self::dir(
-                    "project",
-                    [
-                        Self::file(
-                            "other_file.qs",
-                            "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        ),
-                        Self::file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
-                        Self::file("qsharp.json", "{}"),
-                    ],
-                ),
-                Self::dir(
-                    "single",
-                    [Self::file(
-                        "foo.qs",
-                        "// DISK CONTENTS\n namespace Foo { operation Foo() : Unit {} }",
-                    )],
-                ),
-            ]
+            [Self::dir(
+                "project",
+                [
+                    Self::file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
+                    Self::file(
+                        "other_file.qs",
+                        "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                    ),
+                    Self::file("qsharp.json", "{}"),
+                ],
+            )]
             .into_iter()
             .collect(),
         )
@@ -1101,5 +1303,27 @@ impl FsNode {
                 manifest_dir: dir.into(),
             }),
         }
+    }
+
+    fn remove(&mut self, path: &str) {
+        let mut curr_parent = Some(self);
+        let mut curr_name = None;
+
+        for part in path.split('/') {
+            if let Some(name) = curr_name {
+                if let Some(FsNode::Dir(dir)) = curr_parent {
+                    curr_parent = dir.get_mut(name);
+                }
+            }
+
+            curr_name = Some(part);
+        }
+
+        let name = curr_name.expect("file name should have been set");
+
+        match curr_parent {
+            Some(FsNode::Dir(dir)) => dir.remove(name),
+            Some(FsNode::File(_)) | None => panic!("path {path} does not exist"),
+        };
     }
 }
