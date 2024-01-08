@@ -4,7 +4,6 @@
 from ._qsharp import (
     init,
     eval,
-    eval_file,
     run,
     compile,
     estimate,
@@ -27,7 +26,6 @@ except NameError:
 __all__ = [
     "init",
     "eval",
-    "eval_file",
     "run",
     "dump_machine",
     "compile",

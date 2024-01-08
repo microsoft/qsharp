@@ -30,7 +30,9 @@ code such as that shown below:
 import qsharp
 from qsharp_widgets import SpaceChart, EstimateDetails
 
-qsharp.eval_file("sample.qs")
+with open("sample.qs", "r") as f:
+    contents = f.read()
+qsharp.eval(contents)
 result1 = qsharp.estimate("Sample.Main()")
 
 # Cell-2 : Display the details in table form
