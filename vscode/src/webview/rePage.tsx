@@ -16,7 +16,7 @@ import {
   type Axis,
 } from "qsharp-lang/ux";
 
-import { colormap } from "colormap";
+import colormap from "colormap";
 
 const columnNames = [
   "Run name",
