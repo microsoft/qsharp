@@ -33,7 +33,7 @@ fn main() {
         r#"# Memory Report
 | Test         | This Branch | On Main |
 |--------------|-------------|---------|
-| standard lib | {std}       |         |
+| standard lib | {std}       | 376080  |
 "#
     );
 }
