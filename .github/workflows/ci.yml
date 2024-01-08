@@ -185,5 +185,5 @@ jobs:
               body: `# Memory Report for ${{ github.sha }}
             | Test                        | This Branch | On Main  |
             |-----------------------------|-------------|----------|
-            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }}  | ${{ env.MAIN_MEASUREMENT }} |`
+            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
             })

@@ -1,42 +1,49 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! Tests the memory usage of the compiler.
+//! Records the memory usage of the compiler.
 
 use qsc::{compile, CompileUnit};
 use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags};
+use std::{
+    alloc::{GlobalAlloc, Layout, System},
+    sync::atomic::{AtomicU64, Ordering},
+};
 
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicU64, Ordering};
+/// A wrapper around a memory allocator that tracks allocation amounts.
+pub struct AllocationCounter<A: GlobalAlloc> {
+    pub allocator: A,
+    pub counter: AtomicU64,
+}
 
-pub struct Trallocator<A: GlobalAlloc>(pub A, AtomicU64);
-
-unsafe impl<A: GlobalAlloc> GlobalAlloc for Trallocator<A> {
+unsafe impl<A: GlobalAlloc> GlobalAlloc for AllocationCounter<A> {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
-        self.1.fetch_add(l.size() as u64, Ordering::SeqCst);
-        self.0.alloc(l)
+        self.counter.fetch_add(l.size() as u64, Ordering::SeqCst);
+        self.allocator.alloc(l)
     }
     unsafe fn dealloc(&self, ptr: *mut u8, l: Layout) {
-        self.0.dealloc(ptr, l);
-        self.1.fetch_sub(l.size() as u64, Ordering::SeqCst);
+        self.allocator.dealloc(ptr, l);
+        self.counter.fetch_sub(l.size() as u64, Ordering::SeqCst);
     }
 }
 
-impl<A: GlobalAlloc> Trallocator<A> {
-    pub const fn new(a: A) -> Self {
-        Trallocator(a, AtomicU64::new(0))
+impl<A: GlobalAlloc> AllocationCounter<A> {
+    pub const fn new(allocator: A) -> Self {
+        AllocationCounter {
+            allocator,
+            counter: AtomicU64::new(0),
+        }
     }
-
     pub fn reset(&self) {
-        self.1.store(0, Ordering::SeqCst);
+        self.counter.store(0, Ordering::SeqCst);
     }
-    pub fn get(&self) -> u64 {
-        self.1.load(Ordering::SeqCst)
+    pub fn read(&self) -> u64 {
+        self.counter.load(Ordering::SeqCst)
     }
 }
 
 #[global_allocator]
-static GLOBAL: Trallocator<System> = Trallocator::new(System);
+static ALLOCATOR: AllocationCounter<System> = AllocationCounter::new(System);
 
 pub fn compile_stdlib() -> CompileUnit {
     let store = PackageStore::new(compile::core());
@@ -45,8 +52,8 @@ pub fn compile_stdlib() -> CompileUnit {
 
 fn main() {
     let _stdlib = compile_stdlib();
-    let std = GLOBAL.get();
+    let std = ALLOCATOR.read();
 
-    GLOBAL.reset();
+    ALLOCATOR.reset();
     println!("{std}");
 }
