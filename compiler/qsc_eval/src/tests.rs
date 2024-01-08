@@ -614,27 +614,18 @@ fn binop_div_double() {
 }
 
 #[test]
-fn binop_div_double_zero() {
-    check_expr(
-        "",
-        "1.2 / 0.0",
-        &expect![[r#"
-            (
-                DivZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 9,
-                        },
-                    },
-                ),
-                [],
-            )
-        "#]],
-    );
+fn binop_div_double_inf() {
+    check_expr("", "1.2 / 0.0", &expect!["inf"]);
+}
+
+#[test]
+fn binop_div_double_neg_inf() {
+    check_expr("", "1.2 / -0.0", &expect!["-inf"]);
+}
+
+#[test]
+fn binop_div_double_nan() {
+    check_expr("", "0.0 / 0.0", &expect!["NaN"]);
 }
 
 #[test]
