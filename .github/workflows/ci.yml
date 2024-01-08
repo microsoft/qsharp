@@ -154,9 +154,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v2
         with:
           ref: main
+      - uses: Swatinem/rust-cache@v2
       - run: |
           MAIN_MEASUREMENT=$(cargo run --bin memtest)
           echo "MAIN_MEASUREMENT<<EOF" >> $GITHUB_ENV
