@@ -48,5 +48,8 @@
     "typescript": "^5.2.2",
     "url": "^0.11.3",
     "vscode-uri": "^3.0.8"
+  },
+  "dependencies": {
+    "colormap": "^2.3.2"
   }
 }

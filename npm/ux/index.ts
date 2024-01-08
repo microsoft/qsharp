@@ -6,6 +6,14 @@
 import "./qsharp-ux.css";
 
 export { Histogram } from "./histogram.js";
-export { ReTable, type ReData } from "./reTable.js";
+export { ReTable, type ReData, type FrontierEntry } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";
-export { ResultsTable } from "./resultsTable.js";
+export {
+  HideTooltip,
+  ScatterChart,
+  type ScatterSeries,
+  type PlotItem,
+  type Axis,
+} from "./scatterChart.js";
+export { ResultsTable, type Row } from "./resultsTable.js";
+export { CreateIntegerTicks, CreateTimeTicks, type Tick } from "./ticks.js";

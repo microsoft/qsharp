@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
+import { createReport } from "./report.js";
 
 export type ReData = {
   status: string;
@@ -12,20 +13,34 @@ export type ReData = {
   tfactory: any;
   errorBudget: any;
   logicalCounts: any;
-  reportData: {
-    groups: {
-      title: string;
-      alwaysVisible: boolean;
-      entries: {
-        path: string;
-        label: string;
-        description: string;
-        explanation: string;
-      }[];
-    }[];
-    assumptions: string[];
-  };
   new: boolean;
+  frontierEntries: FrontierEntry[];
+};
+
+export type ReportData = {
+  groups: ReportGroup[];
+  assumptions: string[];
+};
+
+export type ReportGroup = {
+  title: string;
+  alwaysVisible: boolean;
+  entries: ReportEntry[];
+};
+
+export type ReportEntry = {
+  path: string;
+  label: string;
+  description: string;
+  explanation: string;
+};
+
+export type FrontierEntry = {
+  logicalQubit: any;
+  tfactory: any;
+  errorBudget: any;
+  physicalCounts: any;
+  physicalCountsFormatted: any;
 };
 
 export function ReTable(props: {
@@ -36,6 +51,8 @@ export function ReTable(props: {
   const toggleDetail = () => {
     setShowDetail(!showDetail);
   };
+
+  const reportData = createReport(props.estimatesData);
 
   return (
     <div>
@@ -48,7 +65,7 @@ export function ReTable(props: {
         />
         <label htmlFor="showDetail"> Show detailed rows</label>
       </div>
-      {props.estimatesData.reportData.groups.map((group) => {
+      {reportData.groups.map((group) => {
         return (
           <details className="estimate-details">
             <summary>
@@ -101,7 +118,7 @@ export function ReTable(props: {
           <strong>Assumptions</strong>
         </summary>
         <ul className="estimate-table">
-          {props.estimatesData.reportData.assumptions.map((assumption) => (
+          {reportData.assumptions.map((assumption) => (
             <li
               className="estimate-assumption"
               dangerouslySetInnerHTML={{ __html: props.mdRenderer(assumption) }}

@@ -615,3 +615,14 @@ html {
   fill: var(--vscode-icon-foreground, gray);
   animation: codicon-spin 1.5s steps(45) infinite;
 }
+
+.qs-scatterChart {
+  font-size: 14px;
+}
+.qs-scatterChart-axisTitle {
+  font-size: 16px;
+}
+
+.qs-scatterChart-line {
+  stroke: var(--border-color);
+}
