@@ -182,10 +182,10 @@ fn udt_item_doc() {
                 New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-124]: Tuple:
                     TyDef _id_ [56-66]: Field:
                         Ident _id_ [56-60] "arg1"
-                        Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")
+                        Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")(doc "doc-string for arg1")
                     TyDef _id_ [108-118]: Field:
                         Ident _id_ [108-112] "arg2"
-                        Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
+                        Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")(doc "doc-string for arg2")"#]],
     );
 }
 
@@ -195,31 +195,31 @@ fn nested_udt_item_doc() {
         parse,
         "newtype Nested = (Double, 
             (
-                /// Doc comment
+                /// Doc comment 1
                 ItemName : Int,
-                /// Doc comment
+                /// Doc comment 2
                 String,
                 (
-                    /// Doc comment
+                    /// Doc comment 3
                     ItemName: String
                 )
             )
         );",
         &expect![[r#"
-            Item _id_ [0-294]:
-                New Type (Ident _id_ [8-14] "Nested"): TyDef _id_ [17-293]: Tuple:
+            Item _id_ [0-300]:
+                New Type (Ident _id_ [8-14] "Nested"): TyDef _id_ [17-299]: Tuple:
                     TyDef _id_ [18-24]: Field:
                         Type _id_ [18-24]: Path: Path _id_ [18-24] (Ident _id_ [18-24] "Double")
-                    TyDef _id_ [39-283]: Tuple:
-                        TyDef _id_ [89-103]: Field:
-                            Ident _id_ [89-97] "ItemName"
-                            Type _id_ [100-103]: Path: Path _id_ [100-103] (Ident _id_ [100-103] "Int")
-                        TyDef _id_ [153-159]: Field:
-                            Type _id_ [153-159]: Path: Path _id_ [153-159] (Ident _id_ [153-159] "String")
-                        TyDef _id_ [177-269]: Paren:
-                            TyDef _id_ [235-251]: Field:
-                                Ident _id_ [235-243] "ItemName"
-                                Type _id_ [245-251]: Path: Path _id_ [245-251] (Ident _id_ [245-251] "String")"#]],
+                    TyDef _id_ [39-289]: Tuple:
+                        TyDef _id_ [91-105]: Field:
+                            Ident _id_ [91-99] "ItemName"
+                            Type _id_ [102-105]: Path: Path _id_ [102-105] (Ident _id_ [102-105] "Int")(doc "Doc comment 1")
+                        TyDef _id_ [157-163]: Field:
+                            Type _id_ [157-163]: Path: Path _id_ [157-163] (Ident _id_ [157-163] "String")(doc "Doc comment 2")
+                        TyDef _id_ [181-275]: Paren:
+                            TyDef _id_ [241-257]: Field:
+                                Ident _id_ [241-249] "ItemName"
+                                Type _id_ [251-257]: Path: Path _id_ [251-257] (Ident _id_ [251-257] "String")(doc "Doc comment 3")"#]],
     );
 }
 

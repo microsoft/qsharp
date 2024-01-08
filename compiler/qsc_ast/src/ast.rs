@@ -342,7 +342,11 @@ impl Default for TyDef {
 
 impl Display for TyDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
+        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)?;
+        if !self.doc.is_empty() {
+            write!(f, "(doc \"{}\")", self.doc)?;
+        }
+        Ok(())
     }
 }
 

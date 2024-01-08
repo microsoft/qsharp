@@ -667,14 +667,14 @@ impl State {
         Ok(())
     }
 
-    fn cont_tup(&mut self, tup: &Vec<ExprId>) {
+    fn cont_tup(&mut self, tup: &[ExprId]) {
         self.push_action(Action::Tuple(tup.len()));
         for tup_expr in tup.iter().rev() {
             self.push_expr(*tup_expr);
         }
     }
 
-    fn cont_arr(&mut self, arr: &Vec<ExprId>) {
+    fn cont_arr(&mut self, arr: &[ExprId]) {
         self.push_action(Action::Array(arr.len()));
         for entry in arr.iter().rev() {
             self.push_expr(*entry);
