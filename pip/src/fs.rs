@@ -35,20 +35,20 @@ struct FsHooks {
 
 #[derive(Debug)]
 struct Entry {
-    entry_type: EntryType,
+    ty: EntryType,
     path: String,
-    entry_name: String,
+    name: String,
 }
 
 impl DirEntry for Entry {
     type Error = pyo3::PyErr;
 
     fn entry_type(&self) -> Result<EntryType, Self::Error> {
-        Ok(self.entry_type)
+        Ok(self.ty)
     }
 
     fn entry_name(&self) -> String {
-        self.entry_name.clone()
+        self.name.clone()
     }
 
     fn path(&self) -> PathBuf {
@@ -101,9 +101,9 @@ fn list_directory(py: Python, list_directory: &PyObject, path: &Path) -> PyResul
             };
 
             Ok(Entry {
-                entry_type,
+                ty: entry_type,
                 path: get_dict_string(dict, "path")?.to_string(),
-                entry_name: get_dict_string(dict, "entry_name")?.to_string(),
+                name: get_dict_string(dict, "entry_name")?.to_string(),
             })
         })
         .collect() // Returns all values if all Ok, or first Err

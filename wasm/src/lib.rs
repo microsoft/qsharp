@@ -13,7 +13,10 @@ use qsc::{
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateful::{self, re::estimate_entry},
+        stateful::{
+            self,
+            re::{self, estimate_entry},
+        },
     },
     target::Profile,
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
@@ -109,7 +112,11 @@ pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String
     )
     .map_err(|e| e[0].to_string())?;
 
-    estimate_entry(&mut interpreter, params).map_err(|e| e[0].to_string())
+    estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
+        re::Error::Interpreter(stateful::Error::Eval(e)) => e.to_string(),
+        re::Error::Interpreter(_) => unreachable!("interpreter errors should be eval errors"),
+        re::Error::Estimation(e) => e.to_string(),
+    })
 }
 
 #[wasm_bindgen]

@@ -187,6 +187,7 @@ def test_estimation_from_logical_counts_with_single_params() -> None:
     assert res["physicalCounts"] is not None
     assert res["jobParams"]["qubitParams"]["name"] == "qubit_maj_ns_e4"
     assert res.logical_counts == logical_counts
+    assert "frontierEntries" not in res
 
 
 def test_estimation_from_logical_counts_with_multiple_params() -> None:
@@ -219,3 +220,32 @@ def test_estimation_from_logical_counts_with_multiple_params() -> None:
         )
         assert res[idx]["logicalCounts"] == logical_counts
     assert res[2]["jobParams"]["qecScheme"]["name"] == QECScheme.FLOQUET_CODE
+
+
+def test_building_frontier_from_logical_counts_with_single_params() -> None:
+    logical_counts = LogicalCounts(
+        {
+            "numQubits": 12581,
+            "tCount": 12,
+            "rotationCount": 12,
+            "rotationDepth": 12,
+            "cczCount": 3731607428,
+            "measurementCount": 1078154040,
+        }
+    )
+    params = EstimatorParams()
+    params.error_budget = 0.333
+    params.qubit_params.name = QubitParams.MAJ_NS_E4
+    params.estimate_type = "frontier"
+    res = logical_counts.estimate(params=params)
+
+    assert res["status"] == "success"
+    assert "physicalCounts" not in res
+    assert "physicalCountsFormatted" not in res
+    assert res["jobParams"]["qubitParams"]["name"] == "qubit_maj_ns_e4"
+    assert res.logical_counts == logical_counts
+    assert res["frontierEntries"] is not None
+    assert len(res["frontierEntries"]) > 0
+    first_entry = res["frontierEntries"][0]
+    assert first_entry["physicalCounts"] is not None
+    assert first_entry["physicalCountsFormatted"] is not None

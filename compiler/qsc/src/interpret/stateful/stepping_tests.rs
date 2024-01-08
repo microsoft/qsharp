@@ -10,6 +10,104 @@ use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 use std::io::Cursor;
 
+fn get_breakpoint_ids(interpreter: &Interpreter, path: &str) -> Vec<StmtId> {
+    let mut bps = interpreter.get_breakpoints(path);
+    bps.sort_by_key(|f| f.id);
+    let ids = bps.iter().map(|f| f.id.into()).collect::<Vec<_>>();
+    ids
+}
+
+fn expect_return(mut interpreter: Interpreter, expected: &str) {
+    let r = step_next(&mut interpreter, &[]);
+    match r.0 {
+        Ok(StepResult::Return(value)) => assert_eq!(value.to_string(), expected),
+        Ok(v) => panic!("Expected Return, got {v:?}"),
+        Err(e) => panic!("Expected Return, got {e:?}"),
+    }
+}
+
+fn expect_bp(interpreter: &mut Interpreter, ids: &[StmtId], expected_id: StmtId) {
+    let r = step_next(interpreter, ids);
+    match r.0 {
+        Ok(StepResult::BreakpointHit(actual_id)) => assert!(actual_id == expected_id),
+        Ok(v) => panic!("Expected BP, got {v:?}"),
+        Err(e) => panic!("Expected BP, got {e:?}"),
+    }
+}
+
+fn step_in(
+    interpreter: &mut Interpreter,
+    breakpoints: &[StmtId],
+) -> (
+    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
+    String,
+) {
+    step(interpreter, breakpoints, qsc_eval::StepAction::In)
+}
+
+fn step_next(
+    interpreter: &mut Interpreter,
+    breakpoints: &[StmtId],
+) -> (
+    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
+    String,
+) {
+    step(interpreter, breakpoints, qsc_eval::StepAction::Next)
+}
+
+fn step_out(
+    interpreter: &mut Interpreter,
+    breakpoints: &[StmtId],
+) -> (
+    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
+    String,
+) {
+    step(interpreter, breakpoints, qsc_eval::StepAction::Out)
+}
+
+fn step(
+    interpreter: &mut Interpreter,
+    breakpoints: &[StmtId],
+    step: StepAction,
+) -> (
+    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
+    String,
+) {
+    let mut cursor = Cursor::new(Vec::<u8>::new());
+    let mut receiver = CursorReceiver::new(&mut cursor);
+    (
+        interpreter.eval_step(&mut receiver, breakpoints, step),
+        receiver.dump(),
+    )
+}
+
+fn expect_next(interpreter: &mut Interpreter) {
+    let result = step_next(interpreter, &[]);
+    match result.0 {
+        Ok(StepResult::Next) => (),
+        Ok(v) => panic!("Expected Next, got {v:?}"),
+        Err(e) => panic!("Expected Next, got {e:?}"),
+    }
+}
+
+fn expect_in(interpreter: &mut Interpreter) {
+    let result = step_in(interpreter, &[]);
+    match result.0 {
+        Ok(StepResult::StepIn) => (),
+        Ok(v) => panic!("Expected StepIn, got {v:?}"),
+        Err(e) => panic!("Expected StepIn, got {e:?}"),
+    }
+}
+
+fn expect_out(interpreter: &mut Interpreter) {
+    let result = step_out(interpreter, &[]);
+    match result.0 {
+        Ok(StepResult::StepOut) => (),
+        Ok(v) => panic!("Expected StepOut, got {v:?}"),
+        Err(e) => panic!("Expected StepOut, got {e:?}"),
+    }
+}
+
 #[cfg(test)]
 mod given_interpreter_with_sources {
     use super::*;
@@ -133,103 +231,5 @@ mod given_interpreter_with_sources {
             expect_return(interpreter, expected);
             Ok(())
         }
-    }
-}
-
-fn get_breakpoint_ids(interpreter: &Interpreter, path: &str) -> Vec<StmtId> {
-    let mut bps = interpreter.get_breakpoints(path);
-    bps.sort_by_key(|f| f.id);
-    let ids = bps.iter().map(|f| f.id.into()).collect::<Vec<_>>();
-    ids
-}
-
-fn expect_return(mut interpreter: Interpreter, expected: &str) {
-    let r = step_next(&mut interpreter, &[]);
-    match r.0 {
-        Ok(StepResult::Return(value)) => assert_eq!(value.to_string(), expected),
-        Ok(v) => panic!("Expected Return, got {v:?}"),
-        Err(e) => panic!("Expected Return, got {e:?}"),
-    }
-}
-
-fn expect_bp(interpreter: &mut Interpreter, ids: &[StmtId], expected_id: StmtId) {
-    let r = step_next(interpreter, ids);
-    match r.0 {
-        Ok(StepResult::BreakpointHit(actual_id)) => assert!(actual_id == expected_id),
-        Ok(v) => panic!("Expected BP, got {v:?}"),
-        Err(e) => panic!("Expected BP, got {e:?}"),
-    }
-}
-
-fn step_in(
-    interpreter: &mut Interpreter,
-    breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
-    step(interpreter, breakpoints, qsc_eval::StepAction::In)
-}
-
-fn step_next(
-    interpreter: &mut Interpreter,
-    breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
-    step(interpreter, breakpoints, qsc_eval::StepAction::Next)
-}
-
-fn step_out(
-    interpreter: &mut Interpreter,
-    breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
-    step(interpreter, breakpoints, qsc_eval::StepAction::Out)
-}
-
-fn step(
-    interpreter: &mut Interpreter,
-    breakpoints: &[StmtId],
-    step: StepAction,
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
-    let mut cursor = Cursor::new(Vec::<u8>::new());
-    let mut receiver = CursorReceiver::new(&mut cursor);
-    (
-        interpreter.eval_step(&mut receiver, breakpoints, step),
-        receiver.dump(),
-    )
-}
-
-fn expect_next(interpreter: &mut Interpreter) {
-    let result = step_next(interpreter, &[]);
-    match result.0 {
-        Ok(StepResult::Next) => (),
-        Ok(v) => panic!("Expected Next, got {v:?}"),
-        Err(e) => panic!("Expected Next, got {e:?}"),
-    }
-}
-
-fn expect_in(interpreter: &mut Interpreter) {
-    let result = step_in(interpreter, &[]);
-    match result.0 {
-        Ok(StepResult::StepIn) => (),
-        Ok(v) => panic!("Expected StepIn, got {v:?}"),
-        Err(e) => panic!("Expected StepIn, got {e:?}"),
-    }
-}
-
-fn expect_out(interpreter: &mut Interpreter) {
-    let result = step_out(interpreter, &[]);
-    match result.0 {
-        Ok(StepResult::StepOut) => (),
-        Ok(v) => panic!("Expected StepOut, got {v:?}"),
-        Err(e) => panic!("Expected StepOut, got {e:?}"),
     }
 }

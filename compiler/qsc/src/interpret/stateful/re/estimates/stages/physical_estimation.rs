@@ -11,7 +11,7 @@ use super::{
             MaxPhysicalQubitsTooSmall, NoSolutionFoundForMaxTFactories, NoTFactoriesFound,
         },
         modeling::{ErrorBudget, LogicalQubit, PhysicalQubit, Protocol},
-        optimization::find_nondominated_tfactories,
+        optimization::{find_nondominated_tfactories, Point2D, Population},
         Result,
     },
     layout::Overhead,
@@ -248,6 +248,155 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
             (Some(max_duration), None) => self.estimate_with_max_duration(max_duration),
             _ => Err(BothDurationAndPhysicalQubitsProvided.into()),
         }
+    }
+
+    #[allow(clippy::too_many_lines)]
+    pub fn build_frontier(&self) -> Result<Vec<PhysicalResourceEstimationResult<L>>> {
+        let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
+
+        // The required T-state error rate is computed by dividing the total
+        // error budget for T states by the number of T-states required for the
+        // algorithm.
+        let num_ts_per_rotation = self
+            .layout_overhead
+            .num_ts_per_rotation(self.error_budget.rotations());
+        let required_logical_tstate_error_rate = self.error_budget.tstates()
+            / self
+                .layout_overhead
+                .num_tstates(num_ts_per_rotation.unwrap_or_default()) as f64;
+
+        // Required logical error rate (\eps_{\log} / (Q * C) in the paper)
+        let required_logical_qubit_error_rate = self.error_budget.logical()
+            / (self.layout_overhead.logical_qubits() * num_cycles_required_by_layout_overhead)
+                as f64;
+
+        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate);
+        let max_code_distance = self.ftp.max_code_distance();
+
+        if min_code_distance > max_code_distance {
+            return Err(InvalidCodeDistance(min_code_distance, max_code_distance).into());
+        }
+
+        if self
+            .layout_overhead
+            .num_tstates(num_ts_per_rotation.unwrap_or_default())
+            == 0
+        {
+            let logical_qubit =
+                LogicalQubit::new(&self.ftp, min_code_distance, self.qubit.clone())?;
+
+            return Ok(vec![PhysicalResourceEstimationResult::new(
+                self,
+                logical_qubit,
+                num_cycles_required_by_layout_overhead,
+                None,
+                0,
+                required_logical_qubit_error_rate,
+                None,
+            )]);
+        }
+
+        let mut best_estimation_results =
+            Population::<Point2D<PhysicalResourceEstimationResult<L>>>::new();
+
+        let max_odd_code_distance = self.get_max_odd_code_distance();
+        let mut last_tfactories: Vec<TFactory> = Vec::new();
+        let mut last_code_distance = max_code_distance + 1;
+
+        for code_distance in (min_code_distance..=max_odd_code_distance).rev().step_by(2) {
+            let logical_qubit = LogicalQubit::new(&self.ftp, code_distance, self.qubit.clone())?;
+
+            let allowed_logical_qubit_error_rate = self.compute_logical_error_rate(code_distance);
+
+            let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
+                / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
+                .floor() as u64;
+
+            if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
+                continue;
+            }
+
+            let max_num_cycles_allowed = max_num_cycles_allowed_by_error_rate;
+
+            // The initial value for the last code distance
+            // is max_code_distance + 1 which is larger than any code distance in the loop.
+            // This ensures that the first code distance is always tried.
+            // After that, the last code distance governs the reuse of T-factory.
+            if last_code_distance > code_distance {
+                last_tfactories = find_nondominated_tfactories(
+                    &self.ftp,
+                    &self.qubit,
+                    &self.distillation_unit_templates,
+                    required_logical_tstate_error_rate,
+                    code_distance,
+                );
+
+                last_code_distance = Self::find_highest_code_distance(&last_tfactories);
+            }
+
+            if let Some((tfactory, _)) = Self::try_pick_tfactory_with_num_cycles(
+                &last_tfactories,
+                &logical_qubit,
+                max_num_cycles_allowed,
+            ) {
+                // Here we compute the number of T-factories required limited by the
+                // maximum number of cycles allowed by the duration constraint (and the error rate).
+                let min_num_tfactories =
+                    self.num_tfactories(&logical_qubit, &tfactory, max_num_cycles_allowed);
+
+                let mut num_tfactories = min_num_tfactories;
+
+                loop {
+                    // Based on the num_tfactories we compute the number of cycles required
+                    // which must be smaller than the maximum number of cycles allowed by the
+                    // duration constraint (and the error rate).
+                    let num_cycles_required_for_tstates = self
+                        .compute_num_cycles_required_for_tstates(
+                            num_tfactories,
+                            &tfactory,
+                            &logical_qubit,
+                        );
+
+                    // This num_cycles could be larger than num_cycles_required_by_layout_overhead
+                    // but must still not exceed the maximum number of cycles allowed by the
+                    // duration constraint (and the error rate).
+                    let num_cycles =
+                        num_cycles_required_for_tstates.max(num_cycles_required_by_layout_overhead);
+
+                    let result = PhysicalResourceEstimationResult::new(
+                        self,
+                        LogicalQubit::new(&self.ftp, code_distance, self.qubit.clone())?,
+                        num_cycles,
+                        Some(tfactory.clone()),
+                        num_tfactories,
+                        required_logical_qubit_error_rate,
+                        Some(required_logical_tstate_error_rate),
+                    );
+
+                    let value1 = result.runtime() as f64;
+                    let value2 = result.physical_qubits();
+                    let num_t_factory_runs = result.num_tfactory_runs();
+                    let point = Point2D::new(result, value1, value2);
+                    best_estimation_results.push(point);
+
+                    if num_cycles_required_for_tstates <= num_cycles_required_by_layout_overhead
+                        || num_t_factory_runs <= 1
+                    {
+                        break;
+                    }
+
+                    num_tfactories += 1;
+                }
+            }
+        }
+
+        best_estimation_results.filter_out_dominated();
+
+        Ok(best_estimation_results
+            .extract()
+            .into_iter()
+            .map(|p| p.item)
+            .collect())
     }
 
     fn estimate_without_restrictions(&self) -> Result<PhysicalResourceEstimationResult<L>> {
@@ -704,15 +853,13 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
         let num_ts_per_rotation = self
             .layout_overhead
             .num_ts_per_rotation(self.error_budget.rotations());
-        let required_runs = ((self
+        let required_runs = self
             .layout_overhead
             .num_tstates(num_ts_per_rotation.unwrap_or_default())
-            as f64)
-            / tstates_per_run as f64)
-            .floor() as u64;
+            .div_ceil(tstates_per_run);
 
         let required_duration = required_runs * tfactory.duration();
-        (required_duration as f64 / logical_qubit.logical_cycle_time() as f64).floor() as u64
+        required_duration.div_ceil(logical_qubit.logical_cycle_time())
     }
 
     fn try_pick_tfactory_below_or_equal_num_qubits(

@@ -33,6 +33,9 @@ pub struct JobParams {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     distillation_unit_specifications: TFactoryDistillationUnitSpecifications,
+
+    #[serde(default)]
+    estimate_type: EstimateType,
 }
 
 impl JobParams {
@@ -70,6 +73,12 @@ impl JobParams {
     #[inline]
     pub fn distillation_unit_specifications(&self) -> &TFactoryDistillationUnitSpecifications {
         &self.distillation_unit_specifications
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn estimate_type(&self) -> &EstimateType {
+        &self.estimate_type
     }
 }
 
@@ -169,5 +178,18 @@ impl ErrorBudgetSpecification {
 impl Default for ErrorBudgetSpecification {
     fn default() -> Self {
         Self::Total(1e-3)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub enum EstimateType {
+    Frontier,
+    SinglePoint,
+}
+
+impl Default for EstimateType {
+    fn default() -> Self {
+        Self::SinglePoint
     }
 }

@@ -344,7 +344,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> super::super::super::Resu
     assert!(result2.physical_qubits() <= max_num_qubits2);
     assert!(result1.runtime() >= result2.runtime());
 
-    assert_eq!(result1.runtime(), 329_008_500_u64);
+    assert_eq!(result1.runtime(), 329_010_000_u64);
     assert_eq!(result2.runtime(), 33_934_500_u64);
     Ok(())
 }
@@ -423,7 +423,7 @@ pub fn test_chemistry_based_max_duration() -> super::super::super::Result<()> {
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
 
-    assert_eq!(result.runtime(), 22_371_634_030_828_800_u64);
+    assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
 
     assert_eq!(tfactory.physical_qubits(), 286_000);
     assert_eq!(tfactory.num_rounds(), 4);
@@ -482,7 +482,7 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
     assert_eq!(result.physical_qubits_for_tfactories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
-    assert_eq!(result.runtime(), 22_371_634_030_828_800_u64);
+    assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
 
     assert_eq!(tfactory.physical_qubits(), 286_000);
     assert_eq!(tfactory.num_rounds(), 4);
@@ -647,6 +647,174 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate(
     assert_eq!(result_no_max_num_qubits.runtime(), result.runtime());
 
     Ok(())
+}
+
+fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
+) -> PhysicalResourceEstimation<LogicalResourceCounts> {
+    let ftp = Protocol::surface_code_gate_based();
+    let qubit = Rc::new(PhysicalQubit::qubit_gate_us_e3());
+
+    let value = r#"{
+        "numQubits": 100,
+        "tCount": 0,
+        "rotationCount": 112110,
+        "rotationDepth": 2001,
+        "cczCount": 0,
+        "ccixCount": 0,
+        "measurementCount": 0
+    }"#;
+
+    let counts: LogicalResourceCounts = serde_json::from_str(value).expect("cannot parse json");
+
+    let partitioning = ErrorBudgetSpecification::Total(1e-3)
+        .partitioning(&counts)
+        .expect("cannot setup error budget partitioning");
+    PhysicalResourceEstimation::new(ftp, qubit, counts, partitioning)
+}
+
+#[test]
+fn build_frontier_test() {
+    let estimation = prepare_ising20x20_estimation_with_pessimistic_gate_based();
+
+    let frontier_result = estimation.build_frontier();
+
+    let points = frontier_result.expect("failed to estimate");
+    assert_eq!(points.len(), 195);
+
+    for i in 0..points.len() - 1 {
+        assert!(points[i].runtime() <= points[i + 1].runtime());
+        assert!(points[i].physical_qubits() >= points[i + 1].physical_qubits());
+        assert!(points[i].num_tfactories() >= points[i + 1].num_tfactories());
+        assert!(
+            points[i].logical_qubit().code_distance()
+                <= points[i + 1].logical_qubit().code_distance()
+        );
+    }
+
+    let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
+    assert_eq!(points[0].runtime(), shortest_runtime_result.runtime());
+    assert_eq!(
+        points[0].physical_qubits(),
+        shortest_runtime_result.physical_qubits()
+    );
+    assert_eq!(
+        points[0].num_tfactories(),
+        shortest_runtime_result.num_tfactories()
+    );
+    assert_eq!(
+        points[0].logical_qubit().code_distance(),
+        shortest_runtime_result.logical_qubit().code_distance()
+    );
+
+    let mut max_duration = shortest_runtime_result.runtime();
+    let num_iterations = 100;
+    let coefficient = 1.05;
+    for _ in 0..num_iterations {
+        max_duration = (max_duration as f64 * coefficient) as u64;
+        let result = estimation
+            .estimate_with_max_duration(max_duration)
+            .expect("failed to estimate");
+
+        assert!(
+            points
+                .iter()
+                .filter(|point| point.runtime() <= result.runtime()
+                    && point.physical_qubits() == result.physical_qubits())
+                .count()
+                == 1
+        );
+    }
+
+    let mut max_num_qubits = shortest_runtime_result.physical_qubits();
+    let num_iterations = 100;
+    let coefficient = 1.10;
+    for _ in 0..num_iterations {
+        max_num_qubits = (max_num_qubits as f64 / coefficient) as u64;
+        let result = estimation.estimate_with_max_num_qubits(max_num_qubits);
+
+        if let Ok(result) = result {
+            assert!(
+                points
+                    .iter()
+                    .filter(|point| point.runtime() <= result.runtime()
+                        && point.physical_qubits() == result.physical_qubits())
+                    .count()
+                    == 1
+            );
+        }
+    }
+}
+
+fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
+) -> PhysicalResourceEstimation<LogicalResourceCounts> {
+    let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
+    let ftp = Protocol::floquet_code();
+
+    let value = r#"{
+        "numQubits": 5,
+        "tCount": 0,
+        "rotationCount": 1,
+        "rotationDepth": 1,
+        "cczCount": 0,
+        "ccixCount": 0,
+        "measurementCount": 3
+    }"#;
+
+    let counts: LogicalResourceCounts = serde_json::from_str(value).expect("cannot parse json");
+
+    let partitioning = ErrorBudgetSpecification::Total(1e-3)
+        .partitioning(&counts)
+        .expect("cannot setup error budget partitioning");
+    PhysicalResourceEstimation::new(ftp, qubit, counts, partitioning)
+}
+
+#[test]
+fn build_frontier_bit_flip_code_test() {
+    let estimation = prepare_bit_flip_code_resources_and_majorana_n6_qubit();
+
+    let frontier_result = estimation.build_frontier();
+
+    let points = frontier_result.expect("failed to estimate");
+    assert_eq!(points.len(), 7);
+
+    let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
+
+    assert_eq!(points[0].runtime(), shortest_runtime_result.runtime());
+    assert_eq!(
+        points[0]
+            .tfactory()
+            .expect("point should have valid tfactory value")
+            .duration(),
+        shortest_runtime_result
+            .tfactory()
+            .expect("shortest result should have valid tfactory value")
+            .duration()
+    );
+
+    assert_eq!(
+        points[0]
+            .tfactory()
+            .expect("point should have valid tfactory value")
+            .physical_qubits(),
+        shortest_runtime_result
+            .tfactory()
+            .expect("shortest result should have valid tfactory value")
+            .physical_qubits()
+    );
+
+    assert_eq!(
+        points[0].num_tfactories(),
+        shortest_runtime_result.num_tfactories()
+    );
+
+    assert_eq!(
+        points[0].physical_qubits(),
+        shortest_runtime_result.physical_qubits()
+    );
+    assert_eq!(
+        points[0].num_tfactories(),
+        shortest_runtime_result.num_tfactories()
+    );
 }
 
 #[allow(clippy::cast_lossless)]

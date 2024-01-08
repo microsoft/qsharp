@@ -8,10 +8,26 @@ from .._native import physical_estimates
 import json
 
 try:
+    # Both markdown and mdx_math (from python-markdown-math) must be present for our markdown
+    # rendering logic to work. If either is missing, we'll fall back to plain text.
     import markdown
+    import mdx_math
+
     has_markdown = True
 except ImportError:
     has_markdown = False
+
+class EstimatorError(BaseException):
+    """
+    An error returned from the resource estimation.
+    """
+
+    def __init__(self, code: str, message: str):
+        self.message = f"Error estimating resources ({code}):\n{message}"
+        self.code = code
+
+    def __str__(self):
+        return self.message
 
 @dataclass
 class AutoValidatingParams:
@@ -24,6 +40,7 @@ class AutoValidatingParams:
     to camel case, and if validate is True and if the field has a validation
     function, the field is validated beforehand.
     """
+
     def as_dict(self, validate=True):
         result = {}
 
@@ -40,7 +57,7 @@ class AutoValidatingParams:
 
                 # translate field name to camel case
                 s = re.sub(r"(_|-)+", " ", name).title().replace(" ", "")
-                attribute = ''.join([s[0].lower(), s[1:]])
+                attribute = "".join([s[0].lower(), s[1:]])
                 result[attribute] = field_value
 
         if validate:
@@ -57,11 +74,13 @@ class AutoValidatingParams:
         """
         pass
 
+
 def validating_field(validation_func, default=None):
     """
     A helper method to declare field for an AutoValidatingParams data class.
     """
     return field(default=default, metadata={"validate": validation_func})
+
 
 class QubitParams:
     GATE_US_E3 = "qubit_gate_us_e3"
@@ -71,13 +90,16 @@ class QubitParams:
     MAJ_NS_E4 = "qubit_maj_ns_e4"
     MAJ_NS_E6 = "qubit_maj_ns_e6"
 
+
 class QECScheme:
     SURFACE_CODE = "surface_code"
     FLOQUET_CODE = "floquet_code"
 
+
 def _check_error_rate(name, value):
     if value <= 0.0 or value >= 1.0:
         raise ValueError(f"{name} must be between 0 and 1")
+
 
 def _check_error_rate_or_process_and_readout(name, value):
     if value is None:
@@ -88,58 +110,75 @@ def _check_error_rate_or_process_and_readout(name, value):
         return
 
     if not isinstance(value, MeasurementErrorRate):
-        raise ValueError(f"{name} must be either a float or "
-                         "MeasurementErrorRate with two fields: 'process' and 'readout'")
+        raise ValueError(
+            f"{name} must be either a float or "
+            "MeasurementErrorRate with two fields: 'process' and 'readout'"
+        )
+
 
 def check_time(name, value):
     pat = r"^(\+?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)\s*(s|ms|μs|µs|us|ns)$"
     if re.match(pat, value) is None:
-        raise ValueError(f"{name} is not a valid time string; use a "
-                         "suffix s, ms, us, or ns")
+        raise ValueError(
+            f"{name} is not a valid time string; use a " "suffix s, ms, us, or ns"
+        )
+
 
 @dataclass
 class MeasurementErrorRate(AutoValidatingParams):
     process: float = field(metadata={"validate": _check_error_rate})
     readout: float = field(metadata={"validate": _check_error_rate})
 
+
 @dataclass
 class EstimatorQubitParams(AutoValidatingParams):
     @staticmethod
     def check_instruction_set(name, value):
-        if value not in ["gate-based", "gate_based", "GateBased", "gateBased",
-                         "Majorana", "majorana"]:
+        if value not in [
+            "gate-based",
+            "gate_based",
+            "GateBased",
+            "gateBased",
+            "Majorana",
+            "majorana",
+        ]:
             raise ValueError(f"{name} must be GateBased or Majorana")
 
     name: Optional[str] = None
     instruction_set: Optional[str] = validating_field(check_instruction_set)
     one_qubit_measurement_time: Optional[str] = validating_field(check_time)
-    two_qubit_joint_measurement_time: Optional[str] = \
-        validating_field(check_time)
+    two_qubit_joint_measurement_time: Optional[str] = validating_field(check_time)
     one_qubit_gate_time: Optional[str] = validating_field(check_time)
     two_qubit_gate_time: Optional[str] = validating_field(check_time)
     t_gate_time: Optional[str] = validating_field(check_time)
-    one_qubit_measurement_error_rate: Union[None, float, MeasurementErrorRate] = \
-        validating_field(_check_error_rate_or_process_and_readout)
-    two_qubit_joint_measurement_error_rate: Union[None, float, MeasurementErrorRate] = \
-        validating_field(_check_error_rate_or_process_and_readout)
-    one_qubit_gate_error_rate: Optional[float] = \
-        validating_field(_check_error_rate)
-    two_qubit_gate_error_rate: Optional[float] = \
-        validating_field(_check_error_rate)
+    one_qubit_measurement_error_rate: Union[
+        None, float, MeasurementErrorRate
+    ] = validating_field(_check_error_rate_or_process_and_readout)
+    two_qubit_joint_measurement_error_rate: Union[
+        None, float, MeasurementErrorRate
+    ] = validating_field(_check_error_rate_or_process_and_readout)
+    one_qubit_gate_error_rate: Optional[float] = validating_field(_check_error_rate)
+    two_qubit_gate_error_rate: Optional[float] = validating_field(_check_error_rate)
     t_gate_error_rate: Optional[float] = validating_field(_check_error_rate)
     idle_error_rate: Optional[float] = validating_field(_check_error_rate)
 
-    _default_models = [QubitParams.GATE_US_E3, QubitParams.GATE_US_E4,
-                       QubitParams.GATE_NS_E3, QubitParams.GATE_NS_E4,
-                       QubitParams.MAJ_NS_E4, QubitParams.MAJ_NS_E6]
+    _default_models = [
+        QubitParams.GATE_US_E3,
+        QubitParams.GATE_US_E4,
+        QubitParams.GATE_NS_E3,
+        QubitParams.GATE_NS_E4,
+        QubitParams.MAJ_NS_E4,
+        QubitParams.MAJ_NS_E6,
+    ]
     _gate_based = ["gate-based", "gate_based", "GateBased", "gateBased"]
     _maj_based = ["Majorana", "majorana"]
 
     def post_validation(self, result):
         # check whether all fields have been specified in case a custom qubit
         # model is specified
-        custom = result != {} and \
-            (self.name is None or self.name not in self._default_models)
+        custom = result != {} and (
+            self.name is None or self.name not in self._default_models
+        )
 
         # no further validation needed for non-custom models
         if not custom:
@@ -147,8 +186,9 @@ class EstimatorQubitParams(AutoValidatingParams):
 
         # instruction set must be set
         if self.instruction_set is None:
-            raise LookupError("instruction_set must be set for custom qubit "
-                              "parameters")
+            raise LookupError(
+                "instruction_set must be set for custom qubit " "parameters"
+            )
 
         # NOTE at this point, we know that instruction set must have valid
         # value
@@ -166,23 +206,28 @@ class EstimatorQubitParams(AutoValidatingParams):
         qubit_params = super().as_dict(validate)
         if len(qubit_params) != 0:
             if isinstance(self.one_qubit_measurement_error_rate, MeasurementErrorRate):
-                qubit_params["oneQubitMeasurementErrorRate"] = \
-                self.one_qubit_measurement_error_rate.as_dict(validate)
+                qubit_params[
+                    "oneQubitMeasurementErrorRate"
+                ] = self.one_qubit_measurement_error_rate.as_dict(validate)
 
-            if isinstance(self.two_qubit_joint_measurement_error_rate, MeasurementErrorRate):
-                qubit_params["twoQubitJointMeasurementErrorRate"] = \
-                self.two_qubit_joint_measurement_error_rate.as_dict(validate)
+            if isinstance(
+                self.two_qubit_joint_measurement_error_rate, MeasurementErrorRate
+            ):
+                qubit_params[
+                    "twoQubitJointMeasurementErrorRate"
+                ] = self.two_qubit_joint_measurement_error_rate.as_dict(validate)
 
         return qubit_params
+
 
 @dataclass
 class EstimatorQecScheme(AutoValidatingParams):
     name: Optional[str] = None
-    error_correction_threshold: Optional[float] = \
-        validating_field(_check_error_rate)
+    error_correction_threshold: Optional[float] = validating_field(_check_error_rate)
     crossing_prefactor: Optional[float] = None
     logical_cycle_time: Optional[str] = None
     physical_qubits_per_logical_qubit: Optional[str] = None
+
 
 @dataclass
 class ProtocolSpecificDistillationUnitSpecification(AutoValidatingParams):
@@ -196,45 +241,56 @@ class ProtocolSpecificDistillationUnitSpecification(AutoValidatingParams):
         if self.duration_in_qubit_cycle_time is None:
             raise LookupError("duration_in_qubit_cycle_time must be set")
 
+
 @dataclass
 class DistillationUnitSpecification(AutoValidatingParams):
     name: Optional[str] = None
     display_name: Optional[str] = None
     num_input_ts: Optional[int] = None
     num_output_ts: Optional[int] = None
-    failure_probability_formula:  Optional[str] = None
-    output_error_rate_formula:  Optional[str] = None
-    physical_qubit_specification: Optional[ProtocolSpecificDistillationUnitSpecification] = None
-    logical_qubit_specification: Optional[ProtocolSpecificDistillationUnitSpecification] = None
-    logical_qubit_specification_first_round_override: \
-        Optional[ProtocolSpecificDistillationUnitSpecification] = None
+    failure_probability_formula: Optional[str] = None
+    output_error_rate_formula: Optional[str] = None
+    physical_qubit_specification: Optional[
+        ProtocolSpecificDistillationUnitSpecification
+    ] = None
+    logical_qubit_specification: Optional[
+        ProtocolSpecificDistillationUnitSpecification
+    ] = None
+    logical_qubit_specification_first_round_override: Optional[
+        ProtocolSpecificDistillationUnitSpecification
+    ] = None
 
     def has_custom_specification(self):
-        return \
-        self.display_name is not None \
-        or self.num_input_ts is not None \
-        or self.num_output_ts is not None \
-        or self.failure_probability_formula is not None \
-        or self.output_error_rate_formula is not None \
-        or self.physical_qubit_specification is not None \
-        or self.logical_qubit_specification is not None \
-        or self.logical_qubit_specification_first_round_override is not None
+        return (
+            self.display_name is not None
+            or self.num_input_ts is not None
+            or self.num_output_ts is not None
+            or self.failure_probability_formula is not None
+            or self.output_error_rate_formula is not None
+            or self.physical_qubit_specification is not None
+            or self.logical_qubit_specification is not None
+            or self.logical_qubit_specification_first_round_override is not None
+        )
 
     def has_predefined_name(self):
         return self.name is not None
 
     def post_validation(self, result):
         if not self.has_custom_specification() and not self.has_predefined_name():
-            raise LookupError("name must be set or custom specification must be provided")
+            raise LookupError(
+                "name must be set or custom specification must be provided"
+            )
 
         if self.has_custom_specification() and self.has_predefined_name():
-            raise LookupError("If predefined name is provided, "
-                            "custom specification is not allowed. "
-                            "Either remove name or remove all other "
-                            "specification of the distillation unit")
+            raise LookupError(
+                "If predefined name is provided, "
+                "custom specification is not allowed. "
+                "Either remove name or remove all other "
+                "specification of the distillation unit"
+            )
 
         if self.has_predefined_name():
-            return # all other validation is on the server side
+            return  # all other validation is on the server side
 
         if self.num_input_ts is None:
             raise LookupError("num_input_ts must be set")
@@ -255,39 +311,51 @@ class DistillationUnitSpecification(AutoValidatingParams):
             self.logical_qubit_specification.post_validation(result)
 
         if self.logical_qubit_specification_first_round_override is not None:
-            self.logical_qubit_specification_first_round_override.post_validation(result)
+            self.logical_qubit_specification_first_round_override.post_validation(
+                result
+            )
 
     def as_dict(self, validate=True) -> Dict[str, Any]:
         specification_dict = super().as_dict(validate)
         if len(specification_dict) != 0:
             if self.physical_qubit_specification is not None:
-                physical_qubit_specification_dict = \
-                self.physical_qubit_specification.as_dict(validate)
+                physical_qubit_specification_dict = (
+                    self.physical_qubit_specification.as_dict(validate)
+                )
                 if len(physical_qubit_specification_dict) != 0:
-                    specification_dict["physicalQubitSpecification"] = \
-                        physical_qubit_specification_dict
+                    specification_dict[
+                        "physicalQubitSpecification"
+                    ] = physical_qubit_specification_dict
 
             if self.logical_qubit_specification is not None:
-                logical_qubit_specification_dict = \
-                self.logical_qubit_specification.as_dict(validate)
+                logical_qubit_specification_dict = (
+                    self.logical_qubit_specification.as_dict(validate)
+                )
                 if len(logical_qubit_specification_dict) != 0:
-                    specification_dict["logicalQubitSpecification"] = \
-                        logical_qubit_specification_dict
+                    specification_dict[
+                        "logicalQubitSpecification"
+                    ] = logical_qubit_specification_dict
 
             if self.logical_qubit_specification_first_round_override is not None:
-                logical_qubit_specification_first_round_override_dict = \
-                self.logical_qubit_specification_first_round_override.as_dict(validate)
+                logical_qubit_specification_first_round_override_dict = (
+                    self.logical_qubit_specification_first_round_override.as_dict(
+                        validate
+                    )
+                )
                 if len(logical_qubit_specification_first_round_override_dict) != 0:
-                    specification_dict["logicalQubitSpecificationFirstRoundOverride"] = \
-                        logical_qubit_specification_first_round_override_dict
+                    specification_dict[
+                        "logicalQubitSpecificationFirstRoundOverride"
+                    ] = logical_qubit_specification_first_round_override_dict
 
         return specification_dict
+
 
 @dataclass
 class ErrorBudgetPartition(AutoValidatingParams):
     logical: float = 0.001 / 3
     t_states: float = 0.001 / 3
     rotations: float = 0.001 / 3
+
 
 @dataclass
 class EstimatorConstraints(AutoValidatingParams):
@@ -303,7 +371,10 @@ class EstimatorConstraints(AutoValidatingParams):
 
     def post_validation(self, result):
         if self.max_duration is not None and self.max_physical_qubits is not None:
-            raise LookupError("Both duration and number of physical qubits constraints are provided, but only one is allowe at a time.")
+            raise LookupError(
+                "Both duration and number of physical qubits constraints are provided, but only one is allowe at a time."
+            )
+
 
 class EstimatorInputParamsItem:
     """
@@ -315,16 +386,16 @@ class EstimatorInputParamsItem:
     def __init__(self):
         super().__init__()
 
-        self.qubit_params: EstimatorQubitParams = \
-            EstimatorQubitParams()
-        self.qec_scheme: EstimatorQecScheme = \
-            EstimatorQecScheme()
-        self.distillation_unit_specifications = []  # type: List[DistillationUnitSpecification]
-        self.constraints: EstimatorConstraints = \
-            EstimatorConstraints()
+        self.qubit_params: EstimatorQubitParams = EstimatorQubitParams()
+        self.qec_scheme: EstimatorQecScheme = EstimatorQecScheme()
+        self.distillation_unit_specifications = (
+            []
+        )  # type: List[DistillationUnitSpecification]
+        self.constraints: EstimatorConstraints = EstimatorConstraints()
         self.error_budget: Optional[Union[float, ErrorBudgetPartition]] = None
+        self.estimate_type: Optional[str] = None
 
-    def as_dict(self, validate=True, additional_params = None) -> Dict[str, Any]:
+    def as_dict(self, validate=True, additional_params=None) -> Dict[str, Any]:
         result = {}
 
         qubit_params = self.qubit_params.as_dict(validate)
@@ -350,8 +421,9 @@ class EstimatorInputParamsItem:
                     result["distillationUnitSpecifications"] = []
 
                 result["distillationUnitSpecifications"].append(specification_dict)
-        if result.get("distillationUnitSpecifications") is not None and \
-            hasattr(additional_params, "distillation_unit_specifications"):
+        if result.get("distillationUnitSpecifications") is not None and hasattr(
+            additional_params, "distillation_unit_specifications"
+        ):
             for specification in additional_params.distillation_unit_specifications:
                 specification_dict = specification.as_dict(validate)
                 if len(specification_dict) != 0:
@@ -369,33 +441,43 @@ class EstimatorInputParamsItem:
                 result["constraints"] = constraints
 
         if self.error_budget is not None:
-            if isinstance(self.error_budget, float) or \
-                    isinstance(self.error_budget, int):
-                if validate and \
-                        (self.error_budget <= 0 or self.error_budget >= 1):
+            if isinstance(self.error_budget, float) or isinstance(
+                self.error_budget, int
+            ):
+                if validate and (self.error_budget <= 0 or self.error_budget >= 1):
                     message = "error_budget must be value between 0 and 1"
                     raise ValueError(message)
                 result["errorBudget"] = self.error_budget
             elif isinstance(self.error_budget, ErrorBudgetPartition):
                 result["errorBudget"] = self.error_budget.as_dict(validate)
         elif hasattr(additional_params, "error_budget"):
-            if isinstance(additional_params.error_budget, float) or \
-                    isinstance(additional_params.error_budget, int):
-                if validate and \
-                        (additional_params.error_budget <= 0 or additional_params.error_budget >= 1):
+            if isinstance(additional_params.error_budget, float) or isinstance(
+                additional_params.error_budget, int
+            ):
+                if validate and (
+                    additional_params.error_budget <= 0
+                    or additional_params.error_budget >= 1
+                ):
                     message = "error_budget must be value between 0 and 1"
                     raise ValueError(message)
                 result["errorBudget"] = additional_params.error_budget
             elif isinstance(additional_params.error_budget, ErrorBudgetPartition):
                 result["errorBudget"] = additional_params.error_budget.as_dict(validate)
 
+        if self.estimate_type is not None:
+            if self.estimate_type not in ["frontier", "singlePoint"]:
+                raise ValueError(
+                    "estimate_type must be either 'frontier' or 'singlePoint'"
+                )
+            result["estimateType"] = self.estimate_type
+
         return result
+
 
 class EstimatorParams(EstimatorInputParamsItem):
     MAX_NUM_ITEMS: int = 1000
 
     def __init__(self, num_items: Optional[int] = None):
-
         EstimatorInputParamsItem.__init__(self)
 
         if num_items is not None:
@@ -403,7 +485,8 @@ class EstimatorParams(EstimatorInputParamsItem):
             if num_items <= 0 or num_items > self.MAX_NUM_ITEMS:
                 raise ValueError(
                     "num_items must be a positive value less or equal to "
-                    f"{self.MAX_NUM_ITEMS}")
+                    f"{self.MAX_NUM_ITEMS}"
+                )
             self._items = [EstimatorInputParamsItem() for _ in range(num_items)]
         else:
             self.has_items = False
@@ -413,8 +496,10 @@ class EstimatorParams(EstimatorInputParamsItem):
         if self.has_items:
             return self._items
         else:
-            raise Exception("Cannot access items in a non-batching job, call "
-                            "make_params with num_items parameter")
+            raise Exception(
+                "Cannot access items in a non-batching job, call "
+                "make_params with num_items parameter"
+            )
 
     def as_dict(self, validate=True) -> Dict[str, Any]:
         """
@@ -433,6 +518,7 @@ class EstimatorParams(EstimatorInputParamsItem):
             result["resumeAfterFailedItem"] = True
 
         return result
+
 
 class HTMLWrapper:
     """
@@ -458,9 +544,14 @@ class EstimatorResult(dict):
     MAX_DEFAULT_ITEMS_IN_TABLE = 5
 
     def __init__(self, data: Union[Dict, List]):
-        if isinstance(data, dict) or (isinstance(data, list) and len(data) == 1):
-            if isinstance(data, list):
-                data = data[0]
+        self._error = None
+
+        if isinstance(data, list) and len(data) == 1:
+            data = data[0]
+            if not EstimatorResult._is_succeeded(data):
+                raise EstimatorError(data['code'] ,data['message'])
+
+        if isinstance(data, dict):
             self._data = data
             super().__init__(data)
 
@@ -469,6 +560,8 @@ class EstimatorResult(dict):
                 self._repr = self._item_result_table()
                 self.summary = HTMLWrapper(self._item_result_summary_table())
                 self.diagram = EstimatorResultDiagram(self.data().copy())
+            else:
+                self._error = EstimatorError(data['code'] ,data['message'])
 
         elif isinstance(data, list):
             super().__init__(
@@ -495,7 +588,7 @@ class EstimatorResult(dict):
             self.summary_data_frame = self._summary_data_frame
 
     def _is_succeeded(self):
-        return 'status' in self and self['status'] == "success"
+        return "status" in self and self["status"] == "success"
 
     def data(self, idx: Optional[int] = None) -> Any:
         """
@@ -513,6 +606,13 @@ class EstimatorResult(dict):
             raise ValueError(msg)
 
     @property
+    def error(self) -> Optional[EstimatorError]:
+        """
+        Returns the error object if the result is an error.
+        """
+        return self._error
+
+    @property
     def logical_counts(self):
         """
         Returns the logical counts of the result.
@@ -526,6 +626,8 @@ class EstimatorResult(dict):
         """
         HTML table representation of the result.
         """
+        if self._error:
+            raise self._error
         return self._repr
 
     def __getitem__(self, key):
@@ -542,7 +644,12 @@ class EstimatorResult(dict):
                 raise ValueError(msg)
             return HTMLWrapper(self._batch_result_table(range(len(self))[key]))
         else:
-            return super().__getitem__(key)
+            if super().__contains__(key):
+                return super().__getitem__(key)
+            elif super().__contains__("frontierEntries"):
+                return super().__getitem__("frontierEntries")[0].__getitem__(key)
+            else:
+                raise KeyError(key)
 
     def _plot(self, **kwargs):
         """
@@ -678,10 +785,10 @@ class EstimatorResult(dict):
                     formatted["physicalQubitsForTfactoriesPercentage"],
                     formatted["physicalQubits"],
                     formatted["rqops"],
-                    formatted["runtime"]
+                    formatted["runtime"],
                 )
             else:
-                return ['No solution found'] * 9
+                return ["No solution found"] * 9
 
         data = [get_row(self.data(index)) for index in range(len(self))]
         columns = [
@@ -712,6 +819,8 @@ class EstimatorResult(dict):
             for entry in group["entries"]:
                 val = self
                 for key in entry["path"].split("/"):
+                    if key not in val and "frontierEntries" in val:
+                        val = val["frontierEntries"][0]
                     val = val[key]
                 if has_markdown:
                     explanation = md.convert(entry["explanation"])
@@ -814,7 +923,9 @@ class EstimatorResult(dict):
         return html
 
     def _batch_result_table(self, indices):
-        succeeded_item_indices = [i for i in indices if EstimatorResult._is_succeeded(self[i])]
+        succeeded_item_indices = [
+            i for i in indices if EstimatorResult._is_succeeded(self[i])
+        ]
         if len(succeeded_item_indices) == 0:
             print("None of the jobs succeeded")
             return ""
@@ -828,7 +939,9 @@ class EstimatorResult(dict):
 
         item_headers = "".join(f"<th>{i}</th>" for i in indices)
 
-        for group_index, group in enumerate(self[first_succeeded_item_index]['reportData']['groups']):
+        for group_index, group in enumerate(
+            self[first_succeeded_item_index]["reportData"]["groups"]
+        ):
             html += f"""
                 <details {"open" if group['alwaysVisible'] else ""}>
                     <summary style="display:list-item">
@@ -839,8 +952,12 @@ class EstimatorResult(dict):
 
             visited_entries = set()
 
-            for entry in [entry for index in succeeded_item_indices for entry in self[index]['reportData']['groups'][group_index]['entries']]:
-                label = entry['label']
+            for entry in [
+                entry
+                for index in succeeded_item_indices
+                for entry in self[index]["reportData"]["groups"][group_index]["entries"]
+            ]:
+                label = entry["label"]
                 if label in visited_entries:
                     continue
                 visited_entries.add(label)
@@ -853,7 +970,7 @@ class EstimatorResult(dict):
                 for index in indices:
                     val = self[index]
                     if index in succeeded_item_indices:
-                        for key in entry['path'].split("/"):
+                        for key in entry["path"].split("/"):
                             if key in val:
                                 val = val[key]
                             else:
@@ -880,7 +997,7 @@ class EstimatorResult(dict):
 
     @staticmethod
     def _is_succeeded(obj):
-        return 'status' in obj and obj['status'] == "success"
+        return "status" in obj and obj["status"] == "success"
 
 
 class EstimatorResultDiagram:
@@ -902,6 +1019,7 @@ class EstimatorResultDiagram:
             <script src={self.vis_lib}></script>
             <re-time-diagram data={self.data_json}></re-time-diagram>"""
         return html
+
 
 class LogicalCounts(dict):
     """
@@ -934,7 +1052,9 @@ class LogicalCounts(dict):
 
         return self._json
 
-    def estimate(self, params: Union[dict, List, EstimatorParams] = None) -> EstimatorResult:
+    def estimate(
+        self, params: Union[dict, List, EstimatorParams] = None
+    ) -> EstimatorResult:
         """
         Estimates resources for the current logical counts, using the
         Parallel Synthesis Sequential Pauli Computation (PSSPC) layout method.
@@ -954,4 +1074,5 @@ class LogicalCounts(dict):
         elif isinstance(params, dict):
             params = [params]
         return EstimatorResult(
-            json.loads(physical_estimates(self.json, json.dumps(params))))
+            json.loads(physical_estimates(self.json, json.dumps(params)))
+        )

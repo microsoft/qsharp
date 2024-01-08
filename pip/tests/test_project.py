@@ -23,6 +23,10 @@ def test_project(qsharp) -> None:
     result = qsharp.eval("Test.ReturnsFour()")
     assert result == 4
 
+def test_project_compile_error(qsharp) -> None:
+    with pytest.raises(Exception) as excinfo:
+        qsharp.init(project_root="/compile_error")
+    assert str(excinfo.value).startswith("Qsc.TypeCk.TyMismatch")
 
 def test_project_bad_qsharp_json(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
@@ -56,6 +60,10 @@ memfs = {
         },
         "unreadable_source": {
             "test.qs": OSError("could not read test.qs"),
+            "qsharp.json": "{}",
+        },
+        "compile_error": {
+            "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
             "qsharp.json": "{}",
         },
     }

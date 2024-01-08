@@ -47,6 +47,8 @@ pub struct LogicalCounter {
     caching_stack: Vec<String>,
     /// Caching
     caching_layers: FxHashMap<String, LayerCache>,
+    /// Repeating
+    repeats: Vec<RepeatEntry>,
     /// Random number generator
     rnd: RefCell<StdRng>,
 }
@@ -65,6 +67,7 @@ impl Default for LogicalCounter {
             allocation_barrier: 0,
             caching_stack: vec![],
             caching_layers: FxHashMap::default(),
+            repeats: vec![],
             rnd: RefCell::new(StdRng::seed_from_u64(0)),
         }
     }
@@ -220,6 +223,74 @@ impl LogicalCounter {
 
         self.global_barrier();
         Ok(())
+    }
+
+    pub fn begin_repeat(&mut self, count: i64) -> Result<(), String> {
+        let start_depth = self.global_barrier();
+
+        self.repeats.push(RepeatEntry {
+            count: count
+                .try_into()
+                .map_err(|_| format!("Estimate count {count} is too large to fit in a usize.",))?,
+            start_depth,
+            m_count: self.m_count,
+        });
+
+        Ok(())
+    }
+
+    #[allow(clippy::similar_names)]
+    pub fn end_repeat(&mut self) {
+        if let Some(RepeatEntry {
+            count,
+            start_depth,
+            m_count,
+        }) = self.repeats.pop()
+        {
+            if count == 0 {
+                return;
+            }
+
+            let end_depth = self.global_barrier();
+
+            let range = &self.layers[start_depth..end_depth];
+            let sum: LayerInfo = range.iter().sum();
+
+            // We skip one iteration, which was already done explicitly between
+            // begin_repeat and end_repeat
+            let r_depth = range.iter().filter(|l| l.r != 0).count();
+            let combined_r_depth = r_depth * (count - 1);
+            let combined_t_count = sum.t * (count - 1);
+            let combined_r_count = sum.r * (count - 1);
+            let combined_ccz_count = sum.ccz * (count - 1);
+            let combined_m_count = (self.m_count - m_count) * (count - 1);
+
+            if r_depth > 0 {
+                let first_layer_r_count = combined_r_count - (combined_r_depth - 1);
+
+                self.layers.push(LayerInfo {
+                    ccz: combined_ccz_count,
+                    r: first_layer_r_count,
+                    t: combined_t_count,
+                });
+                for _ in 1..combined_r_depth {
+                    self.layers.push(LayerInfo::new_with_r());
+                }
+            } else {
+                self.layers.push(LayerInfo {
+                    ccz: combined_ccz_count,
+                    r: combined_r_count,
+                    t: combined_t_count,
+                });
+            }
+
+            self.t_count += combined_t_count;
+            self.r_count += combined_r_count;
+            self.ccz_count += combined_ccz_count;
+            self.m_count += combined_m_count;
+
+            self.global_barrier();
+        }
     }
 
     fn add_estimate(
@@ -467,6 +538,14 @@ impl Backend for LogicalCounter {
                 ))))
             }
             "EndEstimateCaching" => Some(self.end_caching().map(|()| Value::unit())),
+            "BeginRepeatEstimatesInternal" => {
+                let count = arg.unwrap_int();
+                Some(self.begin_repeat(count).map(|()| Value::unit()))
+            }
+            "EndRepeatEstimatesInternal" => {
+                self.end_repeat();
+                Some(Ok(Value::unit()))
+            }
             "AccountForEstimatesInternal" => {
                 let values = arg.unwrap_tuple();
                 let [estimates, layout, qubits] = array::from_fn(|i| values[i].clone());
@@ -543,4 +622,10 @@ enum LayerCache {
         combined_layer: LayerInfo,
         m_count: usize,
     },
+}
+
+struct RepeatEntry {
+    count: usize,
+    start_depth: usize,
+    m_count: usize,
 }

@@ -32,12 +32,16 @@ class Interpreter:
         self,
         target_profile: TargetProfile,
         manifest_descriptor: Optional[Dict[str, str]],
+        read_file: Callable[[str], str],
+        list_directory: Callable[[str], str],
     ) -> None:
         """
         Initializes the Q# interpreter.
 
         :param target_profile: The target profile to use for the interpreter.
         :param manifest_descriptor: A dictionary that represents the manifest descriptor
+        :param read_file: A function that reads a file from the file system.
+        :param list_directory: A function that lists the contents of a directory.
         """
         ...
     def interpret(self, input: str, output_fn: Callable[[Output], None]) -> Any:
