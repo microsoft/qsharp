@@ -12,8 +12,6 @@ import { updateQSharpJsonDiagnostics } from "./diagnostics";
  * was malformed.
  */
 export async function getManifest(uri: string): Promise<{
-  excludeFiles: string[];
-  excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
@@ -22,9 +20,8 @@ export async function getManifest(uri: string): Promise<{
     return null;
   }
 
-  let parsedManifest;
   try {
-    parsedManifest = JSON.parse(manifestDocument.content);
+    JSON.parse(manifestDocument.content);
   } catch (e) {
     log.warn(
       `failed to parse manifest at ${manifestDocument.uri.toString()}`,
@@ -34,7 +31,6 @@ export async function getManifest(uri: string): Promise<{
       manifestDocument.uri,
       "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
     );
-    return null;
   }
 
   updateQSharpJsonDiagnostics(manifestDocument.uri);
@@ -42,8 +38,6 @@ export async function getManifest(uri: string): Promise<{
   const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
   return {
-    excludeFiles: parsedManifest.excludeFiles || [],
-    excludeRegexes: parsedManifest.excludeRegexes || [],
     manifestDirectory: manifestDirectory.toString(),
   };
 }
@@ -54,17 +48,19 @@ export async function getManifest(uri: string): Promise<{
 async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ uri: vscode.Uri; content: string } | null> {
-  // file://home/foo/bar/document.qs
+  // file://home/foo/bar/src/document.qs
   // or, e.g. in vscode on a virtual file system,
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
   // just the parent
   // e.g.
-  // file://home/foo/bar
+  // file://home/foo/bar/src
   let uriToQuery = Utils.dirname(currentDocumentUri);
 
   let attempts = 100;
+
+  let seenSrcDir = false;
 
   while (attempts > 0) {
     attempts--;
@@ -82,17 +78,28 @@ async function findManifestDocument(
       log.debug("Aborting search for manifest file outside of workspace");
       return null;
     }
-    const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
 
-    let listing;
-    try {
-      listing = await readFileUri(potentialManifestLocation);
-    } catch (err) {
-      log.error("Error thrown when reading file: ", err);
+    if (seenSrcDir) {
+      const potentialManifestLocation = Utils.joinPath(
+        uriToQuery,
+        "qsharp.json",
+      );
+
+      let listing;
+      try {
+        listing = await readFileUri(potentialManifestLocation);
+      } catch (err) {
+        log.error("Error thrown when reading file: ", err);
+      }
+
+      if (listing) {
+        return listing;
+      }
     }
-
-    if (listing) {
-      return listing;
+    if (uriToQuery.toString().endsWith("src")) {
+      seenSrcDir = true;
+    } else {
+      seenSrcDir = false;
     }
 
     const oldUriToQuery = uriToQuery;
@@ -144,8 +151,6 @@ async function readFileUri(
 }
 
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
-  excludeFiles: string[];
-  excludeRegexes: string[];
   manifestDirectory: string;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
@@ -168,8 +173,6 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
     const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
     return {
-      excludeFiles: [],
-      excludeRegexes: [],
       manifestDirectory: manifestDirectory.toString(),
     };
   }
