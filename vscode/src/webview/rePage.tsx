@@ -265,6 +265,11 @@ export function RePage(props: {
           onRowSelected={onRowSelected}
           onRowDeleted={onRowDeleted}
         />
+      </details>
+      <details open>
+        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+          Scatter chart
+        </summary>
         <ScatterChart
           xAxis={xAxis}
           yAxis={yAxis}
