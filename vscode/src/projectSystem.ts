@@ -20,6 +20,19 @@ export async function getManifest(uri: string): Promise<{
     return null;
   }
 
+  try {
+    JSON.parse(manifestDocument.content);
+  } catch (e) {
+    log.warn(
+      `failed to parse manifest at ${manifestDocument.uri.toString()}`,
+      e,
+    );
+    updateQSharpJsonDiagnostics(
+      manifestDocument.uri,
+      "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
+    );
+  }
+
   updateQSharpJsonDiagnostics(manifestDocument.uri);
 
   const manifestDirectory = Utils.dirname(manifestDocument.uri);
