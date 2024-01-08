@@ -156,7 +156,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: Swatinem/rust-cache@v2
       - run: |
-          SCRIPT_OUTPUT=$(cargo run --bin memtest --features=jemalloc)
+          SCRIPT_OUTPUT=$(cargo run --bin memtest)
           echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
           echo "$SCRIPT_OUTPUT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -173,6 +173,5 @@ jobs:
               body: `# Memory Report for ${{ github.sha }}
                     | Test                        | This Branch | On Main  |
                     |-----------------------------|-------------|----------|
-                    | compile core + standard lib | ${{ env.SCRIPT_OUTPUT }}  | 15044465 |
-          `
+                    | compile core + standard lib | ${{ env.SCRIPT_OUTPUT }}  | 15044465 |`
             })
