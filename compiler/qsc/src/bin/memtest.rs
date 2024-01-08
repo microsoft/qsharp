@@ -48,17 +48,5 @@ fn main() {
     let std = GLOBAL.get();
 
     GLOBAL.reset();
-
-    let _core = PackageStore::new(compile::core());
-
-    let core = GLOBAL.get();
-
-    println!(
-        r#"# Memory Report
-| Test                        | This Branch | On Main  |
-|-----------------------------|-------------|----------|
-| compile core                | {core}      | 97632    |
-| compile core + standard lib | {std}       | 15044465 |
-"#
-    );
+    println!("{std}");
 }
