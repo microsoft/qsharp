@@ -51,6 +51,10 @@ bench = false
 name = "qsi"
 bench = false
 
+[[bin]]
+name = "memtest"
+bench = false
+
 [[bench]]
 name = "large"
 harness = false
