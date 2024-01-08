@@ -317,7 +317,7 @@ impl Display for Attr {
 }
 
 /// A type definition.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TyDef {
     /// The node ID.
     pub id: NodeId,
@@ -325,6 +325,19 @@ pub struct TyDef {
     pub span: Span,
     /// The type definition kind.
     pub kind: Box<TyDefKind>,
+    /// The documentation.
+    pub doc: Rc<str>,
+}
+
+impl Default for TyDef {
+    fn default() -> Self {
+        TyDef {
+            id: NodeId::default(),
+            span: Span::default(),
+            kind: Box::default(),
+            doc: Rc::from(""),
+        }
+    }
 }
 
 impl Display for TyDef {

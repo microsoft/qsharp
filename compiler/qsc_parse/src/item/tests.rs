@@ -168,6 +168,28 @@ fn ty_decl_doc() {
 }
 
 #[test]
+fn udt_item_doc() {
+    check(
+        parse,
+        "newtype Foo = (
+        /// doc-string for arg1
+        arg1 : Int,
+        /// doc-string for arg2
+        arg2 : Int
+    );",
+        &expect![[r#"
+            Item _id_ [0-125]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-124]: Tuple:
+                    TyDef _id_ [56-66]: Field:
+                        Ident _id_ [56-60] "arg1"
+                        Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")
+                    TyDef _id_ [108-118]: Field:
+                        Ident _id_ [108-112] "arg2"
+                        Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
+    );
+}
+
+#[test]
 fn ty_def_invalid_field_name() {
     check(
         parse,

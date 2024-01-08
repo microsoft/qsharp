@@ -197,6 +197,7 @@ fn parse_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
 }
 
 fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
+    let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Newtype))?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
@@ -208,6 +209,7 @@ fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
             id: def.id,
             span: ty.span,
             kind: Box::new(TyDefKind::Field(None, Box::new(ty))),
+            doc: doc.into(),
         });
     }
     token(s, TokenKind::Semi)?;
@@ -235,6 +237,7 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
 }
 
 fn parse_ty_def(s: &mut Scanner) -> Result<Box<TyDef>> {
+    let doc = parse_doc(s).unwrap_or_default();
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (defs, final_sep) = seq(s, parse_ty_def)?;
@@ -252,6 +255,7 @@ fn parse_ty_def(s: &mut Scanner) -> Result<Box<TyDef>> {
     };
 
     Ok(Box::new(TyDef {
+        doc: doc.into(),
         id: NodeId::default(),
         span: s.span(lo),
         kind: Box::new(kind),

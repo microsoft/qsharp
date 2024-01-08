@@ -551,7 +551,6 @@ dependencies = [
 name = "katas"
 version = "0.0.0"
 dependencies = [
- "indoc",
  "qsc",
 ]
 
