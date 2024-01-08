@@ -155,14 +155,26 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: Swatinem/rust-cache@v2
+        with:
+          ref: main
       - run: |
-          SCRIPT_OUTPUT=$(cargo run --bin memtest)
-          echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
-          echo "$SCRIPT_OUTPUT" >> $GITHUB_ENV
+          MAIN_MEASUREMENT=$(cargo run --bin memtest)
+          echo "MAIN_MEASUREMENT<<EOF" >> $GITHUB_ENV
+          echo "$MAIN_MEASUREMENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
       - run: |
-          echo "${{env.SCRIPT_OUTPUT}}"
-          echo $SCRIPT_OUTPUT
+          echo "${{env.MAIN_MEASUREMENT}}"
+          echo $MAIN_MEASUREMENT
+
+      - uses: actions/checkout@v2
+      - run: |
+          BRANCH_MEASUREMENT=$(cargo run --bin memtest)
+          echo "BRANCH_MEASUREMENT<<EOF" >> $GITHUB_ENV
+          echo "$BRANCH_MEASUREMENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - run: |
+          echo "${{env.BRANCH_MEASUREMENT}}"
+          echo $BRANCH_MEASUREMENT
       - uses: actions/github-script@v6
         with:
           script: |
@@ -173,5 +185,5 @@ jobs:
               body: `# Memory Report for ${{ github.sha }}
             | Test                        | This Branch | On Main  |
             |-----------------------------|-------------|----------|
-            | compile core + standard lib | ${{ env.SCRIPT_OUTPUT }}  | 15044465 |`
+            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }}  | ${{ env.MAIN_MEASUREMENT }} |`
             })
