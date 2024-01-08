@@ -124,7 +124,7 @@ async fn close_last_doc_in_project() {
     updater.close_document("project/this_file.qs").await;
     // now there should be one compilation and one open document
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -192,7 +192,7 @@ async fn close_last_doc_in_project() {
     updater.close_document("project/other_file.qs").await;
 
     // now there should be no file and no compilation
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -766,7 +766,7 @@ async fn update_doc_updates_project() {
         )
         .await;
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -862,7 +862,7 @@ async fn close_doc_prioritizes_fs() {
 
     updater.close_document("project/this_file.qs").await;
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -943,7 +943,7 @@ async fn delete_manifest() {
         )
         .await;
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -999,7 +999,7 @@ async fn delete_manifest() {
         )
         .await;
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -1050,6 +1050,66 @@ async fn delete_manifest() {
 
 #[allow(clippy::too_many_lines)]
 #[tokio::test]
+async fn corrupt_manifest() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    MEM_FS.with_borrow_mut(|fs| fs.write("project/qsharp.json", "BAD JSON"));
+
+    updater
+        .update_document(
+            "project/this_file.qs",
+            1,
+            "// DISK CONTENTS\n namespace Foo { }",
+        )
+        .await;
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/this_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/this_file.qs",
+                    latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/this_file.qs: SourceMap {
+                sources: [
+                    Source {
+                        name: "project/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 0,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "project/this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
 async fn delete_manifest_then_close() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors);
@@ -1062,7 +1122,7 @@ async fn delete_manifest_then_close() {
         )
         .await;
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -1112,7 +1172,7 @@ async fn delete_manifest_then_close() {
 
     updater.close_document("project/this_file.qs").await;
 
-    check_errors_and_compilation(
+    check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
@@ -1123,6 +1183,375 @@ async fn delete_manifest_then_close() {
             [
                 (
                     "project/qsharp.json",
+                    None,
+                    [],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
+async fn doc_switches_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document("nested_projects/src/subdir/a.qs", 1, "namespace A {}")
+        .await;
+
+    updater
+        .update_document("nested_projects/src/subdir/b.qs", 1, "namespace B {}")
+        .await;
+
+    check_state(
+        &updater,
+        &expect![[r#"
+            {
+                "nested_projects/src/subdir/a.qs": OpenDocument {
+                    version: 1,
+                    compilation: "nested_projects/src/subdir/qsharp.json",
+                    latest_str_content: "namespace A {}",
+                },
+                "nested_projects/src/subdir/b.qs": OpenDocument {
+                    version: 1,
+                    compilation: "nested_projects/src/subdir/qsharp.json",
+                    latest_str_content: "namespace B {}",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            nested_projects/src/subdir/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+    );
+
+    // This is just a trick to cause the file to move between projects.
+    // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
+    // by the parent directory's qsharp.json
+    MEM_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+
+    updater
+        .update_document("nested_projects/src/subdir/a.qs", 2, "namespace A {}")
+        .await;
+
+    check_state(
+        &updater,
+        &expect![[r#"
+            {
+                "nested_projects/src/subdir/a.qs": OpenDocument {
+                    version: 2,
+                    compilation: "nested_projects/src/qsharp.json",
+                    latest_str_content: "namespace A {}",
+                },
+                "nested_projects/src/subdir/b.qs": OpenDocument {
+                    version: 1,
+                    compilation: "nested_projects/src/subdir/qsharp.json",
+                    latest_str_content: "namespace B {}",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            nested_projects/src/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+            nested_projects/src/subdir/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+    );
+
+    // this should stabilize it..
+    updater
+        .update_document("nested_projects/src/subdir/b.qs", 2, "namespace B {}")
+        .await;
+
+    // the error should now be coming from the parent qsharp.json? But the document
+    // is closed........
+    check_state(
+        &updater,
+        &expect![[r#"
+            {
+                "nested_projects/src/subdir/a.qs": OpenDocument {
+                    version: 2,
+                    compilation: "nested_projects/src/qsharp.json",
+                    latest_str_content: "namespace A {}",
+                },
+                "nested_projects/src/subdir/b.qs": OpenDocument {
+                    version: 2,
+                    compilation: "nested_projects/src/qsharp.json",
+                    latest_str_content: "namespace B {}",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            nested_projects/src/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+    );
+}
+
+#[allow(clippy::too_many_lines)]
+#[tokio::test]
+async fn doc_switches_project_on_close() {
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+
+    updater
+        .update_document("nested_projects/src/subdir/a.qs", 1, "namespace A {}")
+        .await;
+
+    updater
+        .update_document("nested_projects/src/subdir/b.qs", 1, "namespace B {}")
+        .await;
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "nested_projects/src/subdir/a.qs": OpenDocument {
+                    version: 1,
+                    compilation: "nested_projects/src/subdir/qsharp.json",
+                    latest_str_content: "namespace A {}",
+                },
+                "nested_projects/src/subdir/b.qs": OpenDocument {
+                    version: 1,
+                    compilation: "nested_projects/src/subdir/qsharp.json",
+                    latest_str_content: "namespace B {}",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            nested_projects/src/subdir/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "nested_projects/src/subdir/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "nested_projects/src/subdir/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+
+    // This is just a trick to cause the file to move between projects.
+    // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
+    // by the parent directory's qsharp.json
+    MEM_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+
+    updater
+        .close_document("nested_projects/src/subdir/a.qs")
+        .await;
+
+    // the error should now be coming from the parent qsharp.json? But the document
+    // is closed........
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "nested_projects/src/subdir/b.qs": OpenDocument {
+                    version: 1,
+                    compilation: "nested_projects/src/subdir/qsharp.json",
+                    latest_str_content: "namespace B {}",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            nested_projects/src/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+            nested_projects/src/subdir/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "nested_projects/src/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "nested_projects/src/subdir/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+
+    // this should stabilize it..
+    updater
+        .update_document("nested_projects/src/subdir/b.qs", 2, "namespace B {}")
+        .await;
+
+    // the error should now be coming from the parent qsharp.json? But the document
+    // is closed........
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "nested_projects/src/subdir/b.qs": OpenDocument {
+                    version: 2,
+                    compilation: "nested_projects/src/qsharp.json",
+                    latest_str_content: "namespace B {}",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            nested_projects/src/qsharp.json: SourceMap {
+                sources: [
+                    Source {
+                        name: "nested_projects/src/subdir/b.qs",
+                        contents: "namespace B {}",
+                        offset: 0,
+                    },
+                    Source {
+                        name: "nested_projects/src/subdir/a.qs",
+                        contents: "namespace A {}",
+                        offset: 15,
+                    },
+                ],
+                entry: None,
+            }
+        "#]],
+        &expect![[r#"
+            [
+                (
+                    "nested_projects/src/qsharp.json",
+                    None,
+                    [
+                        Pass(
+                            EntryPoint(
+                                NotFound,
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "nested_projects/src/subdir/qsharp.json",
                     None,
                     [],
                 ),
@@ -1186,7 +1615,7 @@ fn assert_open_documents(updater: &CompilationStateUpdater<'_>, expected: &Expec
     expected.assert_debug_eq(&state.open_documents);
 }
 
-fn check_errors_and_compilation(
+fn check_state_and_errors(
     updater: &CompilationStateUpdater<'_>,
     received_errors: &RefCell<Vec<ErrorInfo>>,
     expected_open_documents: &Expect,
@@ -1196,6 +1625,15 @@ fn check_errors_and_compilation(
     assert_open_documents(updater, expected_open_documents);
     assert_compilation_sources(updater, expected_compilation_sources);
     expect_errors(received_errors, expected_errors);
+}
+
+fn check_state(
+    updater: &CompilationStateUpdater<'_>,
+    expected_open_documents: &Expect,
+    expected_compilation_sources: &Expect,
+) {
+    assert_open_documents(updater, expected_open_documents);
+    assert_compilation_sources(updater, expected_compilation_sources);
 }
 
 thread_local! { static MEM_FS: RefCell<FsNode> = RefCell::new(FsNode::test_fs()) }
@@ -1208,17 +1646,36 @@ enum FsNode {
 impl FsNode {
     fn test_fs() -> Self {
         FsNode::Dir(
-            [Self::dir(
-                "project",
-                [
-                    Self::file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
-                    Self::file(
-                        "other_file.qs",
-                        "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                    ),
-                    Self::file("qsharp.json", "{}"),
-                ],
-            )]
+            [
+                Self::dir(
+                    "project",
+                    [
+                        Self::file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
+                        Self::file(
+                            "other_file.qs",
+                            "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                        ),
+                        Self::file("qsharp.json", "{}"),
+                    ],
+                ),
+                Self::dir(
+                    "nested_projects",
+                    [Self::dir(
+                        "src",
+                        [
+                            Self::file("qsharp.json", "{}"),
+                            Self::dir(
+                                "subdir",
+                                [
+                                    Self::file("qsharp.json", "{}"),
+                                    Self::file("a.qs", "namespace A {}"),
+                                    Self::file("b.qs", "namespace B {}"),
+                                ],
+                            ),
+                        ],
+                    )],
+                ),
+            ]
             .into_iter()
             .collect(),
         )
@@ -1286,8 +1743,12 @@ impl FsNode {
         for part in file.split('/') {
             curr = curr.and_then(|node| match node {
                 FsNode::Dir(dir) => {
-                    if dir.get("qsharp.json").is_some() {
-                        last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                    if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
+                        // The semantics of get_manifest is that we only return the manifest
+                        // if we've succeeded in parsing it
+                        if manifest.as_ref() == "{}" {
+                            last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                        }
                     }
                     curr_path = format!("{curr_path}{part}/");
                     dir.get(part)
@@ -1324,6 +1785,22 @@ impl FsNode {
         match curr_parent {
             Some(FsNode::Dir(dir)) => dir.remove(name),
             Some(FsNode::File(_)) | None => panic!("path {path} does not exist"),
+        };
+    }
+
+    fn write(&mut self, file: &str, contents: &str) {
+        let mut curr = Some(self);
+
+        for part in file.split('/') {
+            curr = curr.and_then(|node| match node {
+                FsNode::Dir(dir) => dir.get_mut(part),
+                FsNode::File(_) => None,
+            });
+        }
+
+        match curr {
+            Some(f @ FsNode::File(_)) => *f = FsNode::File(Arc::from(contents)),
+            Some(FsNode::Dir(_)) | None => panic!("path {file} is not a file"),
         };
     }
 }

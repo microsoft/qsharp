@@ -9,9 +9,7 @@ use super::protocol::{DiagnosticUpdate, NotebookMetadata};
 use crate::protocol::WorkspaceConfigurationUpdate;
 use log::{error, trace};
 use miette::Diagnostic;
-use qsc::compile::Error;
-use qsc::target::Profile;
-use qsc::PackageType;
+use qsc::{compile::Error, target::Profile, PackageType};
 use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
@@ -148,47 +146,61 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let manifest = (self.get_manifest)(uri.to_string()).await;
-        let sources = if let Some(ref manifest) = manifest {
+        let project = self.maybe_load_project(&doc_uri).await;
+
+        let (compilation_uri, sources) = project.unwrap_or_else(|| {
+            // If we are in single file mode, use the file's path as the compilation identifier.
+            (doc_uri.clone(), vec![(doc_uri.clone(), text.clone())])
+        });
+
+        let prev_compilation_uri = self.with_state_mut(|state| {
+            state
+                .open_documents
+                .insert(
+                    doc_uri.clone(),
+                    OpenDocument {
+                        version,
+                        compilation: compilation_uri.clone(),
+                        latest_str_content: text,
+                    },
+                )
+                .map(|d| d.compilation)
+        });
+
+        // If a document switched projects, we may need to close the project
+        // it previously belonged to.
+        if let Some(prev_compilation_uri) = prev_compilation_uri {
+            if prev_compilation_uri != compilation_uri {
+                self.maybe_close_project(&prev_compilation_uri);
+            }
+        }
+
+        self.insert_buffer_aware_compilation(sources, &compilation_uri);
+
+        self.publish_diagnostics();
+    }
+
+    /// Attempts to resolve a manifest for the given document uri.
+    /// If a manifest is found, returns the manifest uri along
+    /// with the sources for the project
+    async fn maybe_load_project(
+        &self,
+        doc_uri: &Arc<str>,
+    ) -> Option<(Arc<str>, Vec<(Arc<str>, Arc<str>)>)> {
+        let manifest = (self.get_manifest)(doc_uri.to_string()).await;
+        if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
             match res {
-                Ok(o) => o.sources,
+                Ok(o) => Some((manifest.compilation_uri(), o.sources)),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
-                    vec![(doc_uri.clone(), text.clone())]
+                    None
                 }
             }
         } else {
             trace!("Running in single file mode");
-            vec![(doc_uri.clone(), text.clone())]
-        };
-
-        // If we are in single file mode, use the file's path as the compilation identifier.
-        // If we are compiling a project, use the path to the project manifest
-        let compilation_uri: Arc<str> = if let Some(manifest) = manifest {
-            manifest.compilation_uri()
-        } else {
-            doc_uri.clone()
-        };
-
-        trace!(
-            "Loaded project uri {compilation_uri} with {} sources",
-            sources.len()
-        );
-
-        self.with_state_mut(|state| {
-            state.open_documents.insert(
-                doc_uri.clone(),
-                OpenDocument {
-                    version,
-                    compilation: compilation_uri.clone(),
-                    latest_str_content: text,
-                },
-            );
-        });
-        self.insert_buffer_aware_compilation(sources, &compilation_uri);
-
-        self.publish_diagnostics();
+            None
+        }
     }
 
     /// This function takes a vector of sources and creates a compilation out of them.
@@ -225,45 +237,46 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn close_document(&mut self, uri: &str) {
-        let manifest = (self.get_manifest)(uri.to_string()).await;
-        if let Some(ref manifest) = manifest {
-            let res = self.load_project(manifest).await;
-            let sources = match res {
-                Ok(o) => o.sources,
-                Err(e) => {
-                    error!("failed to load manifest: {e:?}, defaulting to closin file in single-file mode");
-                    return;
-                }
-            };
-            self.close_single_document(uri);
-            self.insert_buffer_aware_compilation(sources, &manifest.compilation_uri());
-            self.maybe_close_project(manifest);
-        } else {
-            self.close_single_document(uri);
-        };
+        let project = self.maybe_load_project(&uri.into()).await;
+
+        let closed_project = self.remove_open_document(uri);
+
+        if !closed_project {
+            if let Some(project) = project {
+                self.insert_buffer_aware_compilation(project.1, &project.0);
+            }
+        }
+
         self.publish_diagnostics();
     }
 
-    fn maybe_close_project(&mut self, manifest: &qsc_project::ManifestDescriptor) {
+    fn remove_open_document(&mut self, uri: &str) -> bool {
+        let existing_compilation_uri = self.with_state_mut(|state| {
+            state.compilations.remove(uri);
+
+            state
+                .open_documents
+                .remove(uri)
+                .expect("document should exist")
+                .compilation
+        });
+        self.maybe_close_project(&existing_compilation_uri)
+    }
+
+    fn maybe_close_project(&mut self, compilation_uri: &Arc<str>) -> bool {
         self.with_state_mut(|state| {
-            let compilation_uri = manifest.compilation_uri();
             // if there are no remaining open documents with the project's compilation URI
             if state
                 .open_documents
                 .iter()
-                .all(|(_uri, doc)| doc.compilation != compilation_uri)
+                .all(|(_uri, doc)| doc.compilation != *compilation_uri)
             {
                 trace!("closing project {:?}", compilation_uri);
-                state.compilations.remove(&compilation_uri);
+                state.compilations.remove(compilation_uri);
+                return true;
             }
-        });
-    }
-
-    fn close_single_document(&mut self, uri: &str) {
-        self.with_state_mut(|state| {
-            state.compilations.remove(uri);
-            state.open_documents.remove(uri);
-        });
+            false
+        })
     }
 
     pub(super) fn update_notebook_document<'b, I>(
