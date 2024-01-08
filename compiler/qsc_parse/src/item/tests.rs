@@ -190,6 +190,66 @@ fn udt_item_doc() {
 }
 
 #[test]
+fn nested_udt_item_doc() {
+    check(
+        parse,
+        "newtype Nested = (Double, 
+            (
+                /// Doc comment
+                ItemName : Int,
+                /// Doc comment
+                String,
+                (
+                    /// Doc comment
+                    ItemName: String
+                )
+            )
+        );",
+        &expect![[r#"
+            Item _id_ [0-294]:
+                New Type (Ident _id_ [8-14] "Nested"): TyDef _id_ [17-293]: Tuple:
+                    TyDef _id_ [18-24]: Field:
+                        Type _id_ [18-24]: Path: Path _id_ [18-24] (Ident _id_ [18-24] "Double")
+                    TyDef _id_ [39-283]: Tuple:
+                        TyDef _id_ [89-103]: Field:
+                            Ident _id_ [89-97] "ItemName"
+                            Type _id_ [100-103]: Path: Path _id_ [100-103] (Ident _id_ [100-103] "Int")
+                        TyDef _id_ [153-159]: Field:
+                            Type _id_ [153-159]: Path: Path _id_ [153-159] (Ident _id_ [153-159] "String")
+                        TyDef _id_ [177-269]: Paren:
+                            TyDef _id_ [235-251]: Field:
+                                Ident _id_ [235-243] "ItemName"
+                                Type _id_ [245-251]: Path: Path _id_ [245-251] (Ident _id_ [245-251] "String")"#]],
+    );
+}
+
+#[test]
+fn disallow_docstring_basic_type() {
+    check(
+        parse,
+        "newtype Nested = (Double, 
+            (
+            ItemName: 
+                /// Doc comment
+                String
+            )
+        );",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "type",
+                    DocComment,
+                    Span {
+                        lo: 80,
+                        hi: 95,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn ty_def_invalid_field_name() {
     check(
         parse,
