@@ -157,10 +157,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
   function closeIfKnownQsharpNotebook(notebook: vscode.NotebookDocument) {
     const notebookUri = notebook.uri.toString();
     if (openQSharpNotebooks.has(notebookUri)) {
-      languageService.closeNotebookDocument(
-        notebookUri,
-        getQSharpCells(notebook).map((cell) => cell.document.uri.toString()),
-      );
+      languageService.closeNotebookDocument(notebookUri);
       openQSharpNotebooks.delete(notebook.uri.toString());
     }
   }

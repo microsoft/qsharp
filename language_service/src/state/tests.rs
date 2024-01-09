@@ -717,7 +717,7 @@ fn close_notebook_clears_errors() {
         "#]],
     );
 
-    updater.close_notebook_document("notebook.ipynb", ["cell1", "cell2"].into_iter());
+    updater.close_notebook_document("notebook.ipynb");
 
     expect_errors(
         &errors,

@@ -1,13 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import {
-  DocumentFilter,
-  TextDocument,
-  Uri,
-  languages,
-  workspace,
-} from "vscode";
+import { DocumentFilter, TextDocument, Uri, workspace } from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 
@@ -23,11 +17,14 @@ export const qsharpNotebookCellDocumentFilter: DocumentFilter = {
 };
 
 export function isQsharpDocument(document: TextDocument): boolean {
-  return languages.match(qsharpDocumentFilter, document) > 0;
+  return document.languageId === qsharpLanguageId;
 }
 
 export function isQsharpNotebookCell(document: TextDocument): boolean {
-  return languages.match(qsharpNotebookCellDocumentFilter, document) > 0;
+  return (
+    document.languageId === qsharpLanguageId &&
+    document.uri.scheme === "vscode-notebook-cell"
+  );
 }
 
 export const qsharpExtensionId = "qsharp-vscode";

@@ -313,32 +313,19 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics();
     }
 
-    pub(super) fn close_notebook_document<'b>(
-        &mut self,
-        notebook_uri: &str,
-        cell_uris: impl Iterator<Item = &'b str>,
-    ) {
+    pub(super) fn close_notebook_document(&mut self, notebook_uri: &str) {
         self.with_state_mut(|state| {
             trace!("close_notebook_document: {notebook_uri}");
 
-            for cell_uri in cell_uris {
-                trace!("close_notebook_document: cell: {cell_uri}");
-                state.open_documents.remove(cell_uri);
-            }
+            // First remove all the cells for the notebook
+            state
+                .open_documents
+                .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
 
-            // The client should have sent all cell uris along with
-            // the notebook. Validate our assumptions about the client
-            // here, by checking that all the cells for this notebook
-            // have been removed from the open documents map.
-            for open_doc in state.open_documents.values() {
-                assert!(
-                    notebook_uri != open_doc.compilation.as_ref(),
-                    "all cells should have been closed along with the notebook"
-                );
-            }
-
+            // Then remove the notebook itself
             state.compilations.remove(notebook_uri);
         });
+
         self.publish_diagnostics();
     }
 
