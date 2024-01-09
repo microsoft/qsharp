@@ -112,8 +112,6 @@ export class QSharpLanguageService implements ILanguageService {
     listDir: (uri: string) => Promise<[string, number][]> = () =>
       Promise.resolve([]),
     getManifest: (uri: string) => Promise<{
-      excludeFiles: string[];
-      excludeRegexes: string[];
       manifestDirectory: string;
     } | null> = () => Promise.resolve(null),
   ) {

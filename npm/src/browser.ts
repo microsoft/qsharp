@@ -102,8 +102,6 @@ export async function getProjectLoader(
   readFile: (path: string) => Promise<string | null>,
   loadDirectory: (path: string) => Promise<[string, number][]>,
   getManifest: (path: string) => Promise<{
-    excludeFiles: string[];
-    excludeRegexes: string[];
     manifestDirectory: string;
   } | null>,
 ): Promise<wasm.ProjectLoader> {
@@ -180,8 +178,6 @@ export async function getLanguageService(
   readFile?: (uri: string) => Promise<string | null>,
   listDir?: (uri: string) => Promise<[string, number][]>,
   getManifest?: (uri: string) => Promise<{
-    excludeFiles: string[];
-    excludeRegexes: string[];
     manifestDirectory: string;
   } | null>,
 ): Promise<ILanguageService> {
