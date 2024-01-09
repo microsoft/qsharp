@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Given a quantum register initially in the state ∑ᵢ(αᵢ|i⟩),
     /// where each |i⟩ is a basis state representing an integer i,
     /// reflects the state of the register about the basis state |j⟩
-    /// for a given integer j: ∑ᵢ(-1)^(δᵢⱼ)(αᵢ|i⟩) 
+    /// for a given integer j: ∑ᵢ(-1)^(δᵢⱼ)(αᵢ|i⟩)
     ///
     /// # Input
     /// ## index
@@ -48,12 +48,17 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// additional auxiliary qubits.
     operation ReflectAboutInteger (index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
         within {
-            // We want to reduce to the problem of reflecting about the all-ones
-            // state. To do that, we apply our reflection within an application
-            // of X instructions that flip all the zeros in our index.
-            ApplyPauliFromInt(PauliX, false, index, reg);
+            // Evaluation optimization for case index == 0
+            if index == 0 {
+                ApplyToEachA(X, reg);
+            } else {
+                // We want to reduce to the problem of reflecting about the all-ones
+                // state. To do that, we apply our reflection within an application
+                // of X instructions that flip all the zeros in our index.
+                ApplyPauliFromInt(PauliX, false, index, reg);
+            }
         } apply {
-            Controlled Z(Most(reg), Tail(reg));
+            Controlled ApplyAsSinglyControlled(Most(reg), (Z, Tail(reg)));
         }
     }
 
@@ -145,7 +150,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///     - [arXiv:0910.2530](https://arxiv.org/abs/0910.2530)
     ///       "Quantum Addition Circuits and Unbounded Fan-Out"
     ///       by Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro
-    ///   
+    ///
     operation RippleCarryTTKIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
@@ -244,7 +249,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys using the ripple-carry algorithm.
     ///
-    /// # Description 
+    /// # Description
     /// Computes zs := xs + ys + zs[0] modulo 2ⁿ, where xs, ys, and zs are
     /// little-endian registers, Length(xs) = Length(ys) ≤ Length(zs) = n,
     /// assuming zs is 0-initialized, except for maybe zs[0], which can be
@@ -421,7 +426,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// out-of-place adder in backwards direction to require no T gates.
     ///
     /// The controlled variant is also optimized in a way that everything but
-    /// the adders is controlled, 
+    /// the adders is controlled,
     ///
     /// # Reference
     ///     - [arXiv:2012.01624](https://arxiv.org/abs/2012.01624)
