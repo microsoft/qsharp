@@ -54,7 +54,7 @@ try:
         pypi_info = json.loads(f.read().decode('utf-8'))
     latest_version = pypi_info['info']['version']
 
-    if parse_version(latest_version) > parse_version(__version__):
+    if __version__ != "0.0.0" and parse_version(latest_version) > parse_version(__version__):
         print(
             f'You are using qsharp {__version__}, but version {latest_version} is available.\n'
             'Consider upgrading via the "pip install --upgrade qsharp" command.',
