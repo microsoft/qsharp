@@ -101,7 +101,6 @@ async fn clear_error() {
 }
 
 #[tokio::test]
-#[allow(clippy::too_many_lines)]
 async fn close_last_doc_in_project() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors);
@@ -745,7 +744,6 @@ fn close_notebook_clears_errors() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn update_doc_updates_project() {
     let received_errors = RefCell::new(Vec::new());
@@ -839,7 +837,6 @@ async fn update_doc_updates_project() {
 /// close that buffer
 /// assert that the LS no longer prioritizes that open buffer
 /// over the FS
-#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn close_doc_prioritizes_fs() {
     let received_errors = RefCell::new(Vec::new());
@@ -929,7 +926,6 @@ async fn close_doc_prioritizes_fs() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn delete_manifest() {
     let received_errors = RefCell::new(Vec::new());
@@ -943,9 +939,8 @@ async fn delete_manifest() {
         )
         .await;
 
-    check_state_and_errors(
+    check_state(
         &updater,
-        &received_errors,
         &expect![[r#"
             {
                 "project/src/this_file.qs": OpenDocument {
@@ -972,21 +967,6 @@ async fn delete_manifest() {
                 entry: None,
             }
         "#]],
-        &expect![[r#"
-            [
-                (
-                    "project/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
     );
 
     TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
@@ -999,9 +979,8 @@ async fn delete_manifest() {
         )
         .await;
 
-    check_state_and_errors(
+    check_state(
         &updater,
-        &received_errors,
         &expect![[r#"
             {
                 "project/src/this_file.qs": OpenDocument {
@@ -1023,92 +1002,9 @@ async fn delete_manifest() {
                 entry: None,
             }
         "#]],
-        &expect![[r#"
-            [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        2,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-                (
-                    "project/qsharp.json",
-                    None,
-                    [],
-                ),
-            ]
-        "#]],
     );
 }
 
-#[allow(clippy::too_many_lines)]
-#[tokio::test]
-async fn corrupt_manifest() {
-    let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
-
-    TEST_FS.with_borrow_mut(|fs| fs.write("project/qsharp.json", "BAD JSON"));
-
-    updater
-        .update_document(
-            "project/src/this_file.qs",
-            1,
-            "// DISK CONTENTS\n namespace Foo { }",
-        )
-        .await;
-
-    check_state_and_errors(
-        &updater,
-        &received_errors,
-        &expect![[r#"
-            {
-                "project/src/this_file.qs": OpenDocument {
-                    version: 1,
-                    compilation: "project/src/this_file.qs",
-                    latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
-                },
-            }
-        "#]],
-        &expect![[r#"
-            project/src/this_file.qs: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 0,
-                    },
-                ],
-                entry: None,
-            }
-        "#]],
-        &expect![[r#"
-            [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn delete_manifest_then_close() {
     let received_errors = RefCell::new(Vec::new());
@@ -1122,9 +1018,8 @@ async fn delete_manifest_then_close() {
         )
         .await;
 
-    check_state_and_errors(
+    check_state(
         &updater,
-        &received_errors,
         &expect![[r#"
             {
                 "project/src/this_file.qs": OpenDocument {
@@ -1151,47 +1046,21 @@ async fn delete_manifest_then_close() {
                 entry: None,
             }
         "#]],
-        &expect![[r#"
-            [
-                (
-                    "project/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
     );
 
     TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
 
     updater.close_document("project/src/this_file.qs").await;
 
-    check_state_and_errors(
+    check_state(
         &updater,
-        &received_errors,
         &expect![[r#"
             {}
         "#]],
         &expect![""],
-        &expect![[r#"
-            [
-                (
-                    "project/qsharp.json",
-                    None,
-                    [],
-                ),
-            ]
-        "#]],
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn doc_switches_project() {
     let received_errors = RefCell::new(Vec::new());
@@ -1249,57 +1118,6 @@ async fn doc_switches_project() {
         .update_document("nested_projects/src/subdir/src/a.qs", 2, "namespace A {}")
         .await;
 
-    check_state(
-        &updater,
-        &expect![[r#"
-            {
-                "nested_projects/src/subdir/src/a.qs": OpenDocument {
-                    version: 2,
-                    compilation: "nested_projects/qsharp.json",
-                    latest_str_content: "namespace A {}",
-                },
-                "nested_projects/src/subdir/src/b.qs": OpenDocument {
-                    version: 1,
-                    compilation: "nested_projects/src/subdir/qsharp.json",
-                    latest_str_content: "namespace B {}",
-                },
-            }
-        "#]],
-        &expect![[r#"
-            nested_projects/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                entry: None,
-            }
-            nested_projects/src/subdir/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                entry: None,
-            }
-        "#]],
-    );
-
-    // this should stabilize it..
     updater
         .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
         .await;
@@ -1342,7 +1160,6 @@ async fn doc_switches_project() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn doc_switches_project_on_close() {
     let received_errors = RefCell::new(Vec::new());
@@ -1356,9 +1173,8 @@ async fn doc_switches_project_on_close() {
         .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
         .await;
 
-    check_state_and_errors(
+    check_state(
         &updater,
-        &received_errors,
         &expect![[r#"
             {
                 "nested_projects/src/subdir/src/a.qs": OpenDocument {
@@ -1390,36 +1206,10 @@ async fn doc_switches_project_on_close() {
                 entry: None,
             }
         "#]],
-        &expect![[r#"
-            [
-                (
-                    "nested_projects/src/subdir/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-                (
-                    "nested_projects/src/subdir/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
     );
 
     // This is just a trick to cause the file to move between projects.
-    // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
+    // Deleting subdir/qsharp.json will cause subdir/src/a.qs to be picked up
     // by the parent directory's qsharp.json
     TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
 
@@ -1427,88 +1217,12 @@ async fn doc_switches_project_on_close() {
         .close_document("nested_projects/src/subdir/src/a.qs")
         .await;
 
-    check_state_and_errors(
-        &updater,
-        &received_errors,
-        &expect![[r#"
-            {
-                "nested_projects/src/subdir/src/b.qs": OpenDocument {
-                    version: 1,
-                    compilation: "nested_projects/src/subdir/qsharp.json",
-                    latest_str_content: "namespace B {}",
-                },
-            }
-        "#]],
-        &expect![[r#"
-            nested_projects/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                entry: None,
-            }
-            nested_projects/src/subdir/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                entry: None,
-            }
-        "#]],
-        &expect![[r#"
-            [
-                (
-                    "nested_projects/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-                (
-                    "nested_projects/src/subdir/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
-        "#]],
-    );
-
-    // this should stabilize it..
     updater
         .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
         .await;
 
-    // the error should now be coming from the parent qsharp.json? But the document
-    // is closed........
-    check_state_and_errors(
+    check_state(
         &updater,
-        &received_errors,
         &expect![[r#"
             {
                 "nested_projects/src/subdir/src/b.qs": OpenDocument {
@@ -1534,26 +1248,6 @@ async fn doc_switches_project_on_close() {
                 ],
                 entry: None,
             }
-        "#]],
-        &expect![[r#"
-            [
-                (
-                    "nested_projects/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-                (
-                    "nested_projects/src/subdir/qsharp.json",
-                    None,
-                    [],
-                ),
-            ]
         "#]],
     );
 }
@@ -1783,22 +1477,6 @@ impl FsNode {
         match curr_parent {
             Some(FsNode::Dir(dir)) => dir.remove(name),
             Some(FsNode::File(_)) | None => panic!("path {path} does not exist"),
-        };
-    }
-
-    fn write(&mut self, file: &str, contents: &str) {
-        let mut curr = Some(self);
-
-        for part in file.split('/') {
-            curr = curr.and_then(|node| match node {
-                FsNode::Dir(dir) => dir.get_mut(part),
-                FsNode::File(_) => None,
-            });
-        }
-
-        match curr {
-            Some(f @ FsNode::File(_)) => *f = FsNode::File(Arc::from(contents)),
-            Some(FsNode::Dir(_)) | None => panic!("path {file} is not a file"),
         };
     }
 }

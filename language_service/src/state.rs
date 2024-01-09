@@ -146,7 +146,7 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let project = self.maybe_load_project(&doc_uri).await;
+        let project = self.load_manifest(&doc_uri).await;
 
         let (compilation_uri, sources) = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
@@ -167,7 +167,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 .map(|d| d.compilation)
         });
 
-        // If a document switched projects, we may need to close the project
+        // If a document switched compilations, we may need to remove the compilation
         // it previously belonged to.
         if let Some(prev_compilation_uri) = prev_compilation_uri {
             if prev_compilation_uri != compilation_uri {
@@ -183,7 +183,7 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
-    async fn maybe_load_project(
+    async fn load_manifest(
         &self,
         doc_uri: &Arc<str>,
     ) -> Option<(Arc<str>, Vec<(Arc<str>, Arc<str>)>)> {
@@ -237,11 +237,14 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn close_document(&mut self, uri: &str) {
-        let project = self.maybe_load_project(&uri.into()).await;
+        let project = self.load_manifest(&uri.into()).await;
 
-        let closed_project = self.remove_open_document(uri);
+        let removed_compilation = self.remove_open_document(uri);
 
-        if !closed_project {
+        if !removed_compilation {
+            // If the project is still open, update it so that it
+            // uses the disk contents instead of the open buffer contents
+            // for this document
             if let Some(project) = project {
                 self.insert_buffer_aware_compilation(project.1, &project.0);
             }
@@ -250,6 +253,9 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics();
     }
 
+    /// Removes a document from the open documents map. If the
+    /// document was the last open document in a compilation,
+    /// the compilation is also removed.
     fn remove_open_document(&mut self, uri: &str) -> bool {
         let existing_compilation_uri = self.with_state_mut(|state| {
             state.compilations.remove(uri);
