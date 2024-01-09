@@ -11,6 +11,7 @@ use crate::qsc_utils::{protocol_span, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId};
 use qsc::resolve::{Local, LocalKind};
+use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
 const PRELUDE: [&str; 3] = [
@@ -157,19 +158,19 @@ fn get_indent(compilation: &Compilation, package_offset: u32) -> String {
 
 struct CompletionListBuilder {
     current_sort_group: u32,
-    items: Vec<CompletionItem>,
+    items: FxHashSet<CompletionItem>,
 }
 
 impl CompletionListBuilder {
     fn new() -> Self {
         CompletionListBuilder {
             current_sort_group: 1,
-            items: Vec::new(),
+            items: FxHashSet::default(),
         }
     }
 
     fn into_items(self) -> Vec<CompletionItem> {
-        self.items
+        self.items.into_iter().collect()
     }
 
     fn push_item_decl_keywords(&mut self) {
