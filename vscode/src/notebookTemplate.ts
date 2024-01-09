@@ -10,7 +10,7 @@ export const notebookTemplate: vscode.NotebookData = {
       languageId: "markdown",
       value: `## Azure Quantum Q# notebook
 
-To use Jupyter Notebooks with Q#, the "qsharp-lang" and "jupyterlab" Python packages should be installed.
+To use Jupyter Notebooks with Q#, the "qsharp" and "jupyterlab" Python packages should be installed.
 
 To render charts as shown in this notebook, Matplotlib with notebook widgets support should be installed via "ipympl".
 
@@ -19,7 +19,7 @@ To submit to Azure Quantum as shown in this notebook, the "azure-quantum" packag
 You can install all the above packages in your Python environment by running the below in your terminal:
 
 \`\`\`bash
-pip install jupyterlab qsharp-lang ipympl azure-quantum
+pip install jupyterlab qsharp ipympl azure-quantum
 \`\`\``,
     },
     {
