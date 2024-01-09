@@ -188,6 +188,48 @@ fn udt_item_doc() {
                         Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
     );
 }
+#[test]
+fn callable_param_doc() {
+    check(
+        parse,
+        "
+        operation Foo(
+          /// the input
+        input: Int): Unit {}
+        ",
+        &expect![[r#"
+            Item _id_ [9-76]:
+                Callable _id_ [9-76] (Operation):
+                    name: Ident _id_ [19-22] "Foo"
+                    input: Pat _id_ [22-67]: Paren:
+                        Pat _id_ [56-66]: Bind:
+                            Ident _id_ [56-61] "input"
+                            Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")
+                    output: Type _id_ [69-73]: Path: Path _id_ [69-73] (Ident _id_ [69-73] "Unit")
+                    body: Block: Block _id_ [74-76]: <empty>"#]],
+    );
+}
+#[test]
+fn callable_return_doc() {
+    check(
+        parse,
+        "
+        operation Foo(input: Int): 
+        /// the return type
+        Unit {}
+        ",
+        &expect![[r#"
+            Item _id_ [9-80]:
+                Callable _id_ [9-80] (Operation):
+                    name: Ident _id_ [19-22] "Foo"
+                    input: Pat _id_ [22-34]: Paren:
+                        Pat _id_ [23-33]: Bind:
+                            Ident _id_ [23-28] "input"
+                            Type _id_ [30-33]: Path: Path _id_ [30-33] (Ident _id_ [30-33] "Int")
+                    output: Type _id_ [73-77]: Path: Path _id_ [73-77] (Ident _id_ [73-77] "Unit")
+                    body: Block: Block _id_ [78-80]: <empty>"#]],
+    );
+}
 
 #[test]
 fn nested_udt_item_doc() {

@@ -316,12 +316,14 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     let input = pat(s)?;
     check_input_parens(&input)?;
     token(s, TokenKind::Colon)?;
+    throw_away_doc(s);
     let output = ty(s)?;
     let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
         Some(Box::new(ty::functor_expr(s)?))
     } else {
         None
     };
+    throw_away_doc(s);
     let body = parse_callable_body(s)?;
 
     Ok(Box::new(CallableDecl {
