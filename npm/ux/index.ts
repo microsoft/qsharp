@@ -5,10 +5,10 @@
 // to a CSS file adjacent to the JS bundle and with the same name.
 import "./qsharp-ux.css";
 
+export { ColorMap } from "./colormap.js";
 export {
   ColumnNames,
   CreateReData,
-  GetColor,
   InitialColumns,
   ReDataToRow,
   ReDataToRowScatter,

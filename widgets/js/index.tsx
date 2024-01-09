@@ -3,7 +3,7 @@
 
 import { render as prender } from "preact";
 import {
-  GetColor,
+  ColorMap,
   ReTable,
   SpaceChart,
   Histogram,
@@ -105,13 +105,13 @@ function renderScatterChart({ model, el }: RenderArgs) {
         (item.jobParams.runName = `(${String.fromCharCode(0x61 + idx)})`),
     );
 
-    const estimatesCount = estimates.length;
+    const colormap = ColorMap(estimates.length);
 
     const rows = estimates.map((estimate: ReData, index: number) =>
-      ReDataToRow(estimate, GetColor(index, estimatesCount)),
+      ReDataToRow(estimate, colormap[index]),
     );
     const scatterData = estimates.map((estimate: ReData, index: number) =>
-      ReDataToRowScatter(estimate, GetColor(index, rows.length)),
+      ReDataToRowScatter(estimate, colormap[index]),
     );
 
     prender(

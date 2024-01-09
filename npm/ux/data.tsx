@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 // Data structures and functions for the scatter chart and the results table.
 
-import colormap from "colormap";
 import { FrontierEntry, ReData } from "./reTable.js";
 import { Row } from "./resultsTable.js";
 import { Axis, PlotItem, ScatterSeries } from "./scatterChart.js";
@@ -35,37 +34,6 @@ export const yAxis: Axis = {
   isTime: false,
   label: "Physical Qubits",
 };
-
-const predefinedColors = [
-  "#FF0000", // Red
-  "#0000FF", // Blue
-  "#00FF00", // Green
-  "#800080", // Purple
-  "#FFA500", // Orange
-  "#008080", // Teal
-  "#FFC0CB", // Pink
-  "#FFFF00", // Yellow
-  "#A52A2A", // Brown
-  "#00FFFF", // Cyan
-];
-
-let colors = predefinedColors;
-
-export function GetColor(index: number, totalNumber: number) {
-  if (totalNumber != colors.length) {
-    if (totalNumber > predefinedColors.length) {
-      colors = colormap({
-        colormap: "jet",
-        nshades: Math.max(6, totalNumber), // 6 is the minimum number of colors in the colormap 'jet'
-        format: "hex",
-        alpha: 1,
-      });
-    } else {
-      colors = predefinedColors;
-    }
-  }
-  return colors[index];
-}
 
 export function CreateReData(
   input: ReData,

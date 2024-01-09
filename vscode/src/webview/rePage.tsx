@@ -16,7 +16,7 @@ import {
   ScatterChart,
   xAxis,
   yAxis,
-  GetColor,
+  ColorMap,
 } from "qsharp-lang/ux";
 
 export function RePage(props: {
@@ -26,6 +26,7 @@ export function RePage(props: {
   onRowDeleted: (rowId: string) => void;
 }) {
   const [estimate, setEstimate] = useState<ReData | null>(null);
+  const colormap = ColorMap(props.estimatesData.length);
 
   function onRowSelected(rowId: string) {
     // On any selection, clear the "new" flag on all rows. This ensures that
@@ -54,10 +55,6 @@ export function RePage(props: {
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
     setEstimate(CreateReData(data, pointIndex));
-  }
-
-  function getColor(index: number) {
-    return GetColor(index, props.estimatesData.length);
   }
 
   return (
@@ -115,7 +112,7 @@ export function RePage(props: {
         <ResultsTable
           columnNames={ColumnNames}
           rows={props.estimatesData.map((dataItem, index) =>
-            ReDataToRow(dataItem, getColor(index)),
+            ReDataToRow(dataItem, colormap[index]),
           )}
           initialColumns={InitialColumns}
           ensureSelected={true}
@@ -131,7 +128,7 @@ export function RePage(props: {
           xAxis={xAxis}
           yAxis={yAxis}
           data={props.estimatesData.map((dataItem, index) =>
-            ReDataToRowScatter(dataItem, getColor(index)),
+            ReDataToRowScatter(dataItem, colormap[index]),
           )}
           onPointSelected={onPointSelected}
         />
