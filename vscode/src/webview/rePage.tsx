@@ -3,135 +3,21 @@
 
 import { useState } from "preact/hooks";
 import {
+  CreateReData,
+  ColumnNames,
+  InitialColumns,
   ResultsTable,
   SpaceChart,
   ReTable,
+  ReDataToRow,
+  ReDataToRowScatter,
   type ReData,
-  type FrontierEntry,
-  type Row,
   HideTooltip,
   ScatterChart,
-  type ScatterSeries,
-  type PlotItem,
-  type Axis,
+  xAxis,
+  yAxis,
+  GetColor,
 } from "qsharp-lang/ux";
-
-import colormap from "colormap";
-
-const columnNames = [
-  "Run name",
-  "Estimate type",
-  "Qubit type",
-  "QEC scheme",
-  "Error budget",
-  "Logical qubits",
-  "Logical depth",
-  "Code distance",
-  "T states",
-  "T factories",
-  "T factory fraction",
-  "Runtime",
-  "rQOPS",
-  "Physical qubits",
-];
-
-const initialColumns = [0, 1, 2, 3, 4, 10, 11, 12];
-
-const xAxis: Axis = {
-  isTime: true,
-  label: "Runtime",
-};
-
-const yAxis: Axis = {
-  isTime: false,
-  label: "Physical Qubits",
-};
-
-function reDataToRow(input: ReData, color: string): Row {
-  const data = createReData(input, 0);
-  const estimateType =
-    data.frontierEntries == null
-      ? "Single"
-      : "Frontier (" + data.frontierEntries.length + "  items)";
-
-  return {
-    cells: [
-      data.jobParams.runName,
-      estimateType,
-      data.jobParams.qubitParams.name,
-      data.jobParams.qecScheme.name,
-      data.jobParams.errorBudget,
-      data.physicalCounts.breakdown.algorithmicLogicalQubits,
-      data.physicalCounts.breakdown.algorithmicLogicalDepth,
-      data.logicalQubit.codeDistance,
-      data.physicalCounts.breakdown.numTstates,
-      data.physicalCounts.breakdown.numTfactories,
-      data.physicalCountsFormatted.physicalQubitsForTfactoriesPercentage,
-      {
-        value: data.physicalCountsFormatted.runtime,
-        sortBy: data.physicalCounts.runtime,
-      },
-      data.physicalCounts.rqops,
-      data.physicalCounts.physicalQubits,
-      data.new ? "New" : "Cached",
-    ],
-    color: color,
-  };
-}
-
-function frontierEntryToPlotEntry(entry: FrontierEntry): PlotItem {
-  return {
-    x: entry.physicalCounts.runtime,
-    y: entry.physicalCounts.physicalQubits,
-    label:
-      entry.physicalCountsFormatted.runtime +
-      " " +
-      entry.physicalCountsFormatted.physicalQubits,
-  };
-}
-
-function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
-  if (data.frontierEntries == null || data.frontierEntries.length === 0) {
-    return {
-      color: color,
-      items: [
-        {
-          x: data.physicalCounts.runtime,
-          y: data.physicalCounts.physicalQubits,
-          label:
-            data.physicalCountsFormatted.runtime +
-            " " +
-            data.physicalCountsFormatted.physicalQubits,
-        },
-      ],
-    };
-  }
-
-  return {
-    color: color,
-    items: data.frontierEntries.map(frontierEntryToPlotEntry),
-  };
-}
-
-function createReData(input: ReData, frontierEntryIndex: number): ReData {
-  if (input.frontierEntries == null || input.frontierEntries.length === 0) {
-    return input;
-  } else {
-    const entry = input.frontierEntries[frontierEntryIndex];
-    return {
-      status: input.status,
-      jobParams: input.jobParams,
-      physicalCounts: entry.physicalCounts,
-      physicalCountsFormatted: entry.physicalCountsFormatted,
-      logicalQubit: entry.logicalQubit,
-      tfactory: entry.tfactory,
-      errorBudget: entry.errorBudget,
-      logicalCounts: input.logicalCounts,
-      frontierEntries: input.frontierEntries,
-      new: input.new,
-    };
-  }
-}
 
 export function RePage(props: {
   estimatesData: ReData[];
@@ -154,7 +40,7 @@ export function RePage(props: {
       if (estimateFound == null) {
         setEstimate(null);
       } else {
-        setEstimate(createReData(estimateFound, 0));
+        setEstimate(CreateReData(estimateFound, 0));
       }
     }
 
@@ -167,40 +53,11 @@ export function RePage(props: {
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
-    setEstimate(createReData(data, pointIndex));
+    setEstimate(CreateReData(data, pointIndex));
   }
 
-  const predefinedColors = [
-    "#FF0000", // Red
-    "#0000FF", // Blue
-    "#00FF00", // Green
-    "#800080", // Purple
-    "#FFA500", // Orange
-    "#008080", // Teal
-    "#FFC0CB", // Pink
-    "#FFFF00", // Yellow
-    "#A52A2A", // Brown
-    "#00FFFF", // Cyan
-  ];
-
-  let colors = predefinedColors;
-
   function getColor(index: number) {
-    if (props.estimatesData != null && props.estimatesData.length > 0) {
-      if (props.estimatesData.length > predefinedColors.length) {
-        if (props.estimatesData.length != colors.length) {
-          colors = colormap({
-            colormap: "jet",
-            nshades: Math.max(6, props.estimatesData.length), // 6 is the minimum number of colors in the colormap 'jet'
-            format: "hex",
-            alpha: 1,
-          });
-        }
-      } else {
-        colors = predefinedColors;
-      }
-    }
-    return colors[index];
+    return GetColor(index, props.estimatesData.length);
   }
 
   return (
@@ -256,11 +113,11 @@ export function RePage(props: {
           Results
         </summary>
         <ResultsTable
-          columnNames={columnNames}
+          columnNames={ColumnNames}
           rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, getColor(index)),
+            ReDataToRow(dataItem, getColor(index)),
           )}
-          initialColumns={initialColumns}
+          initialColumns={InitialColumns}
           ensureSelected={true}
           onRowSelected={onRowSelected}
           onRowDeleted={onRowDeleted}
@@ -274,7 +131,7 @@ export function RePage(props: {
           xAxis={xAxis}
           yAxis={yAxis}
           data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, getColor(index)),
+            ReDataToRowScatter(dataItem, getColor(index)),
           )}
           onPointSelected={onPointSelected}
         />

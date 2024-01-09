@@ -5,6 +5,16 @@
 // to a CSS file adjacent to the JS bundle and with the same name.
 import "./qsharp-ux.css";
 
+export {
+  ColumnNames,
+  CreateReData,
+  GetColor,
+  InitialColumns,
+  ReDataToRow,
+  ReDataToRowScatter,
+  xAxis,
+  yAxis,
+} from "./data.js";
 export { Histogram } from "./histogram.js";
 export { ReTable, type ReData, type FrontierEntry } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";

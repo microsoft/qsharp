@@ -26,6 +26,18 @@ class SpaceChart(anywidget.AnyWidget):
         self.estimates = estimates
 
 
+class ScatterChart(anywidget.AnyWidget):
+    _esm = pathlib.Path(__file__).parent / "static" / "index.js"
+    _css = pathlib.Path(__file__).parent / "static" / "index.css"
+
+    comp = traitlets.Unicode("ScatterChart").tag(sync=True)
+    estimates = traitlets.Dict().tag(sync=True)
+
+    def __init__(self, estimates):
+        super().__init__()
+        self.estimates = estimates
+
+
 class EstimateDetails(anywidget.AnyWidget):
     _esm = pathlib.Path(__file__).parent / "static" / "index.js"
     _css = pathlib.Path(__file__).parent / "static" / "index.css"

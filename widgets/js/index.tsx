@@ -2,7 +2,21 @@
 // Licensed under the MIT License.
 
 import { render as prender } from "preact";
-import { ReTable, SpaceChart, Histogram } from "qsharp-lang/ux";
+import {
+  GetColor,
+  ReTable,
+  SpaceChart,
+  Histogram,
+  ScatterChart,
+  xAxis,
+  yAxis,
+  ResultsTable,
+  ColumnNames,
+  ReDataToRowScatter,
+  ReDataToRow,
+  InitialColumns,
+  ReData,
+} from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -20,17 +34,24 @@ export function mdRenderer(input: string) {
 
 // Param types for AnyWidget render functions
 import type { AnyModel } from "@anywidget/types";
+
 type RenderArgs = {
   model: AnyModel;
   el: HTMLElement;
 };
 
 export function render({ model, el }: RenderArgs) {
+  console.error("render");
   const componentType = model.get("comp");
+  console.log("componentType");
+  console.error("Some error");
 
   switch (componentType) {
     case "SpaceChart":
       renderChart({ model, el });
+      break;
+    case "ScatterChart":
+      renderScatterChart({ model, el });
       break;
     case "EstimateDetails":
       renderTable({ model, el });
@@ -60,6 +81,58 @@ function renderChart({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
     prender(<SpaceChart estimatesData={estimates}></SpaceChart>, el);
+  };
+
+  onChange();
+  model.on("change:estimates", onChange);
+}
+
+function renderScatterChart({ model, el }: RenderArgs) {
+  const onChange = () => {
+    const results = model.get("estimates");
+
+    const estimates = [];
+    if (results[0] == null) {
+      estimates.push(results);
+    } else {
+      for (const estimate of Object.values(results)) {
+        estimates.push(estimate);
+      }
+    }
+
+    (estimates as Array<any>).forEach(
+      (item, idx) =>
+        (item.jobParams.runName = `(${String.fromCharCode(0x61 + idx)})`),
+    );
+
+    const estimatesCount = estimates.length;
+
+    const rows = estimates.map((estimate: ReData, index: number) =>
+      ReDataToRow(estimate, GetColor(index, estimatesCount)),
+    );
+    const scatterData = estimates.map((estimate: ReData, index: number) =>
+      ReDataToRowScatter(estimate, GetColor(index, rows.length)),
+    );
+
+    prender(
+      <>
+        <ResultsTable
+          columnNames={ColumnNames}
+          initialColumns={InitialColumns}
+          rows={rows}
+          ensureSelected={true}
+          onRowDeleted={() => undefined}
+          onRowSelected={() => undefined}
+        ></ResultsTable>
+        <ScatterChart
+          data={scatterData}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          onPointSelected={() => undefined}
+        ></ScatterChart>
+      </>,
+      el,
+    );
   };
 
   onChange();
