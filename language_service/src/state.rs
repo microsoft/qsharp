@@ -317,12 +317,14 @@ impl<'a> CompilationStateUpdater<'a> {
         self.with_state_mut(|state| {
             trace!("close_notebook_document: {notebook_uri}");
 
-            // First remove all the cells for the notebook
+            // Cells for the notebook are kept in the open documents map.
+            // First remove all the cells for the notebook from the open
+            // documents map.
             state
                 .open_documents
                 .retain(|_, open_doc| notebook_uri != open_doc.compilation.as_ref());
 
-            // Then remove the notebook itself
+            // Then remove the notebook itself from the compilations map
             state.compilations.remove(notebook_uri);
         });
 
