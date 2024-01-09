@@ -108,20 +108,20 @@ async fn close_last_doc_in_project() {
 
     updater
         .update_document(
-            "project/other_file.qs",
+            "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
         )
         .await;
 
-    updater.close_document("project/this_file.qs").await;
+    updater.close_document("project/src/this_file.qs").await;
     // now there should be one compilation and one open document
 
     check_state_and_errors(
@@ -129,7 +129,7 @@ async fn close_last_doc_in_project() {
         &received_errors,
         &expect![[r#"
             {
-                "project/other_file.qs": OpenDocument {
+                "project/src/other_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
@@ -140,12 +140,12 @@ async fn close_last_doc_in_project() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/other_file.qs",
+                        name: "project/src/other_file.qs",
                         contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 36,
                     },
@@ -156,7 +156,7 @@ async fn close_last_doc_in_project() {
         &expect![[r#"
             [
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     Some(
                         1,
                     ),
@@ -182,14 +182,14 @@ async fn close_last_doc_in_project() {
                     ],
                 ),
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     None,
                     [],
                 ),
             ]
         "#]],
     );
-    updater.close_document("project/other_file.qs").await;
+    updater.close_document("project/src/other_file.qs").await;
 
     // now there should be no file and no compilation
     check_state_and_errors(
@@ -753,14 +753,14 @@ async fn update_doc_updates_project() {
 
     updater
         .update_document(
-            "project/other_file.qs",
+            "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             1,
             "namespace Foo { we should see this in the source }",
         )
@@ -771,12 +771,12 @@ async fn update_doc_updates_project() {
         &received_errors,
         &expect![[r#"
             {
-                "project/this_file.qs": OpenDocument {
+                "project/src/this_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { we should see this in the source }",
                 },
-                "project/other_file.qs": OpenDocument {
+                "project/src/other_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
@@ -787,12 +787,12 @@ async fn update_doc_updates_project() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "namespace Foo { we should see this in the source }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/other_file.qs",
+                        name: "project/src/other_file.qs",
                         contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 51,
                     },
@@ -803,7 +803,7 @@ async fn update_doc_updates_project() {
         &expect![[r#"
             [
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     Some(
                         1,
                     ),
@@ -847,27 +847,27 @@ async fn close_doc_prioritizes_fs() {
 
     updater
         .update_document(
-            "project/other_file.qs",
+            "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
         )
         .await;
 
-    updater.close_document("project/this_file.qs").await;
+    updater.close_document("project/src/this_file.qs").await;
 
     check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
             {
-                "project/other_file.qs": OpenDocument {
+                "project/src/other_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
@@ -878,12 +878,12 @@ async fn close_doc_prioritizes_fs() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/other_file.qs",
+                        name: "project/src/other_file.qs",
                         contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 36,
                     },
@@ -894,7 +894,7 @@ async fn close_doc_prioritizes_fs() {
         &expect![[r#"
             [
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     Some(
                         1,
                     ),
@@ -920,7 +920,7 @@ async fn close_doc_prioritizes_fs() {
                     ],
                 ),
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     None,
                     [],
                 ),
@@ -937,7 +937,7 @@ async fn delete_manifest() {
 
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
         )
@@ -948,7 +948,7 @@ async fn delete_manifest() {
         &received_errors,
         &expect![[r#"
             {
-                "project/this_file.qs": OpenDocument {
+                "project/src/this_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
@@ -959,12 +959,12 @@ async fn delete_manifest() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/other_file.qs",
+                        name: "project/src/other_file.qs",
                         contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 36,
                     },
@@ -993,7 +993,7 @@ async fn delete_manifest() {
 
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             2,
             "// DISK CONTENTS\n namespace Foo { }",
         )
@@ -1004,18 +1004,18 @@ async fn delete_manifest() {
         &received_errors,
         &expect![[r#"
             {
-                "project/this_file.qs": OpenDocument {
+                "project/src/this_file.qs": OpenDocument {
                     version: 2,
-                    compilation: "project/this_file.qs",
+                    compilation: "project/src/this_file.qs",
                     latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
                 },
             }
         "#]],
         &expect![[r#"
-            project/this_file.qs: SourceMap {
+            project/src/this_file.qs: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 0,
                     },
@@ -1026,7 +1026,7 @@ async fn delete_manifest() {
         &expect![[r#"
             [
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     Some(
                         2,
                     ),
@@ -1058,7 +1058,7 @@ async fn corrupt_manifest() {
 
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
         )
@@ -1069,18 +1069,18 @@ async fn corrupt_manifest() {
         &received_errors,
         &expect![[r#"
             {
-                "project/this_file.qs": OpenDocument {
+                "project/src/this_file.qs": OpenDocument {
                     version: 1,
-                    compilation: "project/this_file.qs",
+                    compilation: "project/src/this_file.qs",
                     latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
                 },
             }
         "#]],
         &expect![[r#"
-            project/this_file.qs: SourceMap {
+            project/src/this_file.qs: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 0,
                     },
@@ -1091,7 +1091,7 @@ async fn corrupt_manifest() {
         &expect![[r#"
             [
                 (
-                    "project/this_file.qs",
+                    "project/src/this_file.qs",
                     Some(
                         1,
                     ),
@@ -1116,7 +1116,7 @@ async fn delete_manifest_then_close() {
 
     updater
         .update_document(
-            "project/this_file.qs",
+            "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
         )
@@ -1127,7 +1127,7 @@ async fn delete_manifest_then_close() {
         &received_errors,
         &expect![[r#"
             {
-                "project/this_file.qs": OpenDocument {
+                "project/src/this_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "// DISK CONTENTS\n namespace Foo { }",
@@ -1138,12 +1138,12 @@ async fn delete_manifest_then_close() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/other_file.qs",
+                        name: "project/src/other_file.qs",
                         contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 36,
                     },
@@ -1170,7 +1170,7 @@ async fn delete_manifest_then_close() {
 
     TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
 
-    updater.close_document("project/this_file.qs").await;
+    updater.close_document("project/src/this_file.qs").await;
 
     check_state_and_errors(
         &updater,
@@ -1198,23 +1198,23 @@ async fn doc_switches_project() {
     let mut updater = new_updater(&received_errors);
 
     updater
-        .update_document("nested_projects/src/subdir/a.qs", 1, "namespace A {}")
+        .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/b.qs", 1, "namespace B {}")
+        .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
         .await;
 
     check_state(
         &updater,
         &expect![[r#"
             {
-                "nested_projects/src/subdir/a.qs": OpenDocument {
+                "nested_projects/src/subdir/src/a.qs": OpenDocument {
                     version: 1,
                     compilation: "nested_projects/src/subdir/qsharp.json",
                     latest_str_content: "namespace A {}",
                 },
-                "nested_projects/src/subdir/b.qs": OpenDocument {
+                "nested_projects/src/subdir/src/b.qs": OpenDocument {
                     version: 1,
                     compilation: "nested_projects/src/subdir/qsharp.json",
                     latest_str_content: "namespace B {}",
@@ -1225,13 +1225,13 @@ async fn doc_switches_project() {
             nested_projects/src/subdir/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1246,19 +1246,19 @@ async fn doc_switches_project() {
     TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
 
     updater
-        .update_document("nested_projects/src/subdir/a.qs", 2, "namespace A {}")
+        .update_document("nested_projects/src/subdir/src/a.qs", 2, "namespace A {}")
         .await;
 
     check_state(
         &updater,
         &expect![[r#"
             {
-                "nested_projects/src/subdir/a.qs": OpenDocument {
+                "nested_projects/src/subdir/src/a.qs": OpenDocument {
                     version: 2,
-                    compilation: "nested_projects/src/qsharp.json",
+                    compilation: "nested_projects/qsharp.json",
                     latest_str_content: "namespace A {}",
                 },
-                "nested_projects/src/subdir/b.qs": OpenDocument {
+                "nested_projects/src/subdir/src/b.qs": OpenDocument {
                     version: 1,
                     compilation: "nested_projects/src/subdir/qsharp.json",
                     latest_str_content: "namespace B {}",
@@ -1266,16 +1266,16 @@ async fn doc_switches_project() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/qsharp.json: SourceMap {
+            nested_projects/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1284,13 +1284,13 @@ async fn doc_switches_project() {
             nested_projects/src/subdir/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1301,7 +1301,7 @@ async fn doc_switches_project() {
 
     // this should stabilize it..
     updater
-        .update_document("nested_projects/src/subdir/b.qs", 2, "namespace B {}")
+        .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
         .await;
 
     // the error should now be coming from the parent qsharp.json? But the document
@@ -1310,29 +1310,29 @@ async fn doc_switches_project() {
         &updater,
         &expect![[r#"
             {
-                "nested_projects/src/subdir/a.qs": OpenDocument {
+                "nested_projects/src/subdir/src/a.qs": OpenDocument {
                     version: 2,
-                    compilation: "nested_projects/src/qsharp.json",
+                    compilation: "nested_projects/qsharp.json",
                     latest_str_content: "namespace A {}",
                 },
-                "nested_projects/src/subdir/b.qs": OpenDocument {
+                "nested_projects/src/subdir/src/b.qs": OpenDocument {
                     version: 2,
-                    compilation: "nested_projects/src/qsharp.json",
+                    compilation: "nested_projects/qsharp.json",
                     latest_str_content: "namespace B {}",
                 },
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/qsharp.json: SourceMap {
+            nested_projects/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1349,11 +1349,11 @@ async fn doc_switches_project_on_close() {
     let mut updater = new_updater(&received_errors);
 
     updater
-        .update_document("nested_projects/src/subdir/a.qs", 1, "namespace A {}")
+        .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/b.qs", 1, "namespace B {}")
+        .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
         .await;
 
     check_state_and_errors(
@@ -1361,12 +1361,12 @@ async fn doc_switches_project_on_close() {
         &received_errors,
         &expect![[r#"
             {
-                "nested_projects/src/subdir/a.qs": OpenDocument {
+                "nested_projects/src/subdir/src/a.qs": OpenDocument {
                     version: 1,
                     compilation: "nested_projects/src/subdir/qsharp.json",
                     latest_str_content: "namespace A {}",
                 },
-                "nested_projects/src/subdir/b.qs": OpenDocument {
+                "nested_projects/src/subdir/src/b.qs": OpenDocument {
                     version: 1,
                     compilation: "nested_projects/src/subdir/qsharp.json",
                     latest_str_content: "namespace B {}",
@@ -1377,13 +1377,13 @@ async fn doc_switches_project_on_close() {
             nested_projects/src/subdir/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1424,17 +1424,15 @@ async fn doc_switches_project_on_close() {
     TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
 
     updater
-        .close_document("nested_projects/src/subdir/a.qs")
+        .close_document("nested_projects/src/subdir/src/a.qs")
         .await;
 
-    // the error should now be coming from the parent qsharp.json? But the document
-    // is closed........
     check_state_and_errors(
         &updater,
         &received_errors,
         &expect![[r#"
             {
-                "nested_projects/src/subdir/b.qs": OpenDocument {
+                "nested_projects/src/subdir/src/b.qs": OpenDocument {
                     version: 1,
                     compilation: "nested_projects/src/subdir/qsharp.json",
                     latest_str_content: "namespace B {}",
@@ -1442,16 +1440,16 @@ async fn doc_switches_project_on_close() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/qsharp.json: SourceMap {
+            nested_projects/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1460,13 +1458,13 @@ async fn doc_switches_project_on_close() {
             nested_projects/src/subdir/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1476,7 +1474,7 @@ async fn doc_switches_project_on_close() {
         &expect![[r#"
             [
                 (
-                    "nested_projects/src/qsharp.json",
+                    "nested_projects/qsharp.json",
                     None,
                     [
                         Pass(
@@ -1503,7 +1501,7 @@ async fn doc_switches_project_on_close() {
 
     // this should stabilize it..
     updater
-        .update_document("nested_projects/src/subdir/b.qs", 2, "namespace B {}")
+        .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
         .await;
 
     // the error should now be coming from the parent qsharp.json? But the document
@@ -1513,24 +1511,24 @@ async fn doc_switches_project_on_close() {
         &received_errors,
         &expect![[r#"
             {
-                "nested_projects/src/subdir/b.qs": OpenDocument {
+                "nested_projects/src/subdir/src/b.qs": OpenDocument {
                     version: 2,
-                    compilation: "nested_projects/src/qsharp.json",
+                    compilation: "nested_projects/qsharp.json",
                     latest_str_content: "namespace B {}",
                 },
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/qsharp.json: SourceMap {
+            nested_projects/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "nested_projects/src/subdir/b.qs",
-                        contents: "namespace B {}",
+                        name: "nested_projects/src/subdir/src/a.qs",
+                        contents: "namespace A {}",
                         offset: 0,
                     },
                     Source {
-                        name: "nested_projects/src/subdir/a.qs",
-                        contents: "namespace A {}",
+                        name: "nested_projects/src/subdir/src/b.qs",
+                        contents: "namespace B {}",
                         offset: 15,
                     },
                 ],
@@ -1540,7 +1538,7 @@ async fn doc_switches_project_on_close() {
         &expect![[r#"
             [
                 (
-                    "nested_projects/src/qsharp.json",
+                    "nested_projects/qsharp.json",
                     None,
                     [
                         Pass(
@@ -1643,34 +1641,41 @@ fn test_fs() -> FsNode {
         [
             dir(
                 "project",
-                [dir(
-                    "src",
-                    [
-                        file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
-                        file(
-                            "other_file.qs",
-                            "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        ),
-                        file("qsharp.json", "{}"),
-                    ],
-                )],
+                [
+                    file("qsharp.json", "{}"),
+                    dir(
+                        "src",
+                        [
+                            file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
+                            file(
+                                "other_file.qs",
+                                "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                            ),
+                        ],
+                    ),
+                ],
             ),
             dir(
                 "nested_projects",
-                [dir(
-                    "src",
-                    [
-                        file("qsharp.json", "{}"),
-                        dir(
+                [
+                    file("qsharp.json", "{}"),
+                    dir(
+                        "src",
+                        [dir(
                             "subdir",
                             [
                                 file("qsharp.json", "{}"),
-                                file("a.qs", "namespace A {}"),
-                                file("b.qs", "namespace B {}"),
+                                dir(
+                                    "src",
+                                    [
+                                        file("a.qs", "namespace A {}"),
+                                        file("b.qs", "namespace B {}"),
+                                    ],
+                                ),
                             ],
-                        ),
-                    ],
-                )],
+                        )],
+                    ),
+                ],
             ),
         ]
         .into_iter()
