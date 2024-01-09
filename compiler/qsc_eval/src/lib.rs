@@ -1731,11 +1731,7 @@ fn eval_binop_div(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resu
         }
         Value::Double(val) => {
             let rhs = rhs_val.unwrap_double();
-            if rhs == 0.0 {
-                Err(Error::DivZero(rhs_span))
-            } else {
-                Ok(Value::Double(val / rhs))
-            }
+            Ok(Value::Double(val / rhs))
         }
         _ => panic!("value should support div"),
     }
