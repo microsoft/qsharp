@@ -88,8 +88,6 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             manifest: Manifest {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
-                exclude_regexes: get_dict_vec_string(manifest, "exclude_regexes")?,
-                exclude_files: get_dict_vec_string(manifest, "exclude_files")?,
             },
             manifest_dir: manifest_dir.into(),
         }))
@@ -525,16 +523,4 @@ fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
         Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
         None => None,
     })
-}
-
-fn get_dict_vec_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
-    match dict.get_item(key)? {
-        Some(item) => {
-            let list = item.downcast::<PyList>()?;
-            list.into_iter()
-                .map(|s| Ok(s.downcast::<PyString>()?.to_string_lossy().into()))
-                .collect()
-        }
-        None => Ok(vec![]),
-    }
 }

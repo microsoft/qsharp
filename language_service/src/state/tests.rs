@@ -989,7 +989,7 @@ async fn delete_manifest() {
         "#]],
     );
 
-    MEM_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+    TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
 
     updater
         .update_document(
@@ -1054,7 +1054,7 @@ async fn corrupt_manifest() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors);
 
-    MEM_FS.with_borrow_mut(|fs| fs.write("project/qsharp.json", "BAD JSON"));
+    TEST_FS.with_borrow_mut(|fs| fs.write("project/qsharp.json", "BAD JSON"));
 
     updater
         .update_document(
@@ -1168,7 +1168,7 @@ async fn delete_manifest_then_close() {
         "#]],
     );
 
-    MEM_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+    TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
 
     updater.close_document("project/this_file.qs").await;
 
@@ -1243,7 +1243,7 @@ async fn doc_switches_project() {
     // This is just a trick to cause the file to move between projects.
     // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
     // by the parent directory's qsharp.json
-    MEM_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+    TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
 
     updater
         .update_document("nested_projects/src/subdir/a.qs", 2, "namespace A {}")
@@ -1421,7 +1421,7 @@ async fn doc_switches_project_on_close() {
     // This is just a trick to cause the file to move between projects.
     // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
     // by the parent directory's qsharp.json
-    MEM_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+    TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
 
     updater
         .close_document("nested_projects/src/subdir/a.qs")
@@ -1580,13 +1580,13 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file: String| Box::pin(ready(MEM_FS.with(|fs| fs.borrow().read_file(file)))),
+        |file: String| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().read_file(file)))),
         |dir_name: String| {
             Box::pin(ready(
-                MEM_FS.with(|fs| fs.borrow().list_directory(dir_name)),
+                TEST_FS.with(|fs| fs.borrow().list_directory(dir_name)),
             ))
         },
-        |file| Box::pin(ready(MEM_FS.with(|fs| fs.borrow().get_manifest(file)))),
+        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(file)))),
     )
 }
 
@@ -1636,62 +1636,55 @@ fn check_state(
     assert_compilation_sources(updater, expected_compilation_sources);
 }
 
-thread_local! { static MEM_FS: RefCell<FsNode> = RefCell::new(FsNode::test_fs()) }
+thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
 
+fn test_fs() -> FsNode {
+    FsNode::Dir(
+        [
+            dir(
+                "project",
+                [dir(
+                    "src",
+                    [
+                        file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
+                        file(
+                            "other_file.qs",
+                            "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+                        ),
+                        file("qsharp.json", "{}"),
+                    ],
+                )],
+            ),
+            dir(
+                "nested_projects",
+                [dir(
+                    "src",
+                    [
+                        file("qsharp.json", "{}"),
+                        dir(
+                            "subdir",
+                            [
+                                file("qsharp.json", "{}"),
+                                file("a.qs", "namespace A {}"),
+                                file("b.qs", "namespace B {}"),
+                            ],
+                        ),
+                    ],
+                )],
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    )
+}
+
+/// An in-memory file system implementation for the unit tests.
 enum FsNode {
     Dir(FxHashMap<Arc<str>, FsNode>),
     File(Arc<str>),
 }
 
 impl FsNode {
-    fn test_fs() -> Self {
-        FsNode::Dir(
-            [
-                Self::dir(
-                    "project",
-                    [
-                        Self::file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
-                        Self::file(
-                            "other_file.qs",
-                            "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        ),
-                        Self::file("qsharp.json", "{}"),
-                    ],
-                ),
-                Self::dir(
-                    "nested_projects",
-                    [Self::dir(
-                        "src",
-                        [
-                            Self::file("qsharp.json", "{}"),
-                            Self::dir(
-                                "subdir",
-                                [
-                                    Self::file("qsharp.json", "{}"),
-                                    Self::file("a.qs", "namespace A {}"),
-                                    Self::file("b.qs", "namespace B {}"),
-                                ],
-                            ),
-                        ],
-                    )],
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        )
-    }
-
-    fn dir<const COUNT: usize>(
-        name: &str,
-        contents: [(Arc<str>, FsNode); COUNT],
-    ) -> (Arc<str>, FsNode) {
-        (name.into(), FsNode::Dir(contents.into_iter().collect()))
-    }
-
-    fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
-        (name.into(), FsNode::File(Arc::from(contents)))
-    }
-
     fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
         let mut curr = Some(self);
 
@@ -1803,4 +1796,15 @@ impl FsNode {
             Some(FsNode::Dir(_)) | None => panic!("path {file} is not a file"),
         };
     }
+}
+
+fn dir<const COUNT: usize>(
+    name: &str,
+    contents: [(Arc<str>, FsNode); COUNT],
+) -> (Arc<str>, FsNode) {
+    (name.into(), FsNode::Dir(contents.into_iter().collect()))
+}
+
+fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
+    (name.into(), FsNode::File(Arc::from(contents)))
 }
