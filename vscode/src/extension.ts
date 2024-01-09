@@ -13,7 +13,7 @@ import * as vscode from "vscode";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
-  qsharpDocumentFilter,
+  qsharpLanguageId,
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
 import { activateDebugger } from "./debugger/activate";
@@ -182,7 +182,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // completions
   subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
-      qsharpDocumentFilter,
+      qsharpLanguageId,
       createCompletionItemProvider(languageService),
       "@", // for attribute completion
     ),
@@ -191,7 +191,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // hover
   subscriptions.push(
     vscode.languages.registerHoverProvider(
-      qsharpDocumentFilter,
+      qsharpLanguageId,
       createHoverProvider(languageService),
     ),
   );
@@ -199,7 +199,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // go to def
   subscriptions.push(
     vscode.languages.registerDefinitionProvider(
-      qsharpDocumentFilter,
+      qsharpLanguageId,
       createDefinitionProvider(languageService),
     ),
   );
@@ -207,7 +207,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // find references
   subscriptions.push(
     vscode.languages.registerReferenceProvider(
-      qsharpDocumentFilter,
+      qsharpLanguageId,
       createReferenceProvider(languageService),
     ),
   );
@@ -215,7 +215,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // signature help
   subscriptions.push(
     vscode.languages.registerSignatureHelpProvider(
-      qsharpDocumentFilter,
+      qsharpLanguageId,
       createSignatureHelpProvider(languageService),
       "(",
       ",",
@@ -225,7 +225,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // rename symbol
   subscriptions.push(
     vscode.languages.registerRenameProvider(
-      qsharpDocumentFilter,
+      qsharpLanguageId,
       createRenameProvider(languageService),
     ),
   );
