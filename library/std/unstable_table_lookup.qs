@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     ///     "Windowed arithmetic"
     /// [3] [arXiv:2211.01133](https://arxiv.org/abs/2211.01133)
     ///     "Space-time optimized table lookup"
-    @Config(Full)
+    @Config(Unrestricted)
     operation Select(
         data : Bool[][],
         address : Qubit[],
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         }
     }
 
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation SinglyControlledSelect(
         ctl : Qubit,
         data : Bool[][],
@@ -163,7 +163,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     /// # References
     /// - [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
     ///   "Windowed arithmetic"
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation Unlookup(
         lookup : (Bool[][], Qubit[], Qubit[]) => Unit,
         data : Bool[][],

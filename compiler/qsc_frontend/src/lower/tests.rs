@@ -108,7 +108,7 @@ fn test_target_profile_full_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @Config(Full)
+                @Config(Unrestricted)
                 operation Foo() : Unit {
                     body ... {}
                 }
