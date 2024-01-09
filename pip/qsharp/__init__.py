@@ -36,3 +36,27 @@ __all__ = [
     "TargetProfile",
     "StateDump",
 ]
+
+__version__ = "0.0.0"
+
+# Check if there is a newer published version of the package
+# and warn the user if there is. This is best effort only.
+
+try:
+    import urllib.request
+    import json
+    import sys
+    from packaging.version import parse as parse_version
+
+    url = 'https://pypi.org/pypi/qsharp-lang/json'
+    with urllib.request.urlopen(url, timeout=3) as f:
+        pypi_info = json.loads(f.read().decode('utf-8'))
+    latest_version = pypi_info['info']['version']
+
+    if parse_version(latest_version) > parse_version(__version__):
+        print(
+            f'You are using qsharp {__version__}, but version {latest_version} is available.\n'
+            'Consider upgrading via the "pip install --upgrade qsharp" command.',
+            file=sys.stderr)
+except:
+    pass

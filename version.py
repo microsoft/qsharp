@@ -55,6 +55,11 @@ update_file(
     r'version = "{}"'.format(pip_version),
 )
 update_file(
+    os.path.join(root_dir, "pip/qsharp/__init__.py"),
+    r'__version__ = "0.0.0"',
+    r'__version__ = "{}"'.format(pip_version),
+)
+update_file(
     os.path.join(root_dir, "widgets/pyproject.toml"),
     r'version = "0.0.0"',
     r'version = "{}"'.format(pip_version),
