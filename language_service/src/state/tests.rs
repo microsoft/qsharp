@@ -140,14 +140,14 @@ async fn close_last_doc_in_project() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 59,
                     },
                 ],
                 entry: None,
@@ -171,8 +171,8 @@ async fn close_last_doc_in_project() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 0,
-                                                hi: 1,
+                                                lo: 59,
+                                                hi: 60,
                                             },
                                         ),
                                     ),
@@ -787,14 +787,14 @@ async fn update_doc_updates_project() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "namespace Foo { we should see this in the source }",
+                        name: "project/src/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 51,
+                        name: "project/src/this_file.qs",
+                        contents: "namespace Foo { we should see this in the source }",
+                        offset: 59,
                     },
                 ],
                 entry: None,
@@ -818,8 +818,8 @@ async fn update_doc_updates_project() {
                                             ),
                                             Ident,
                                             Span {
-                                                lo: 16,
-                                                hi: 18,
+                                                lo: 75,
+                                                hi: 77,
                                             },
                                         ),
                                     ),
@@ -878,14 +878,14 @@ async fn close_doc_prioritizes_fs() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 59,
                     },
                 ],
                 entry: None,
@@ -909,8 +909,8 @@ async fn close_doc_prioritizes_fs() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 0,
-                                                hi: 1,
+                                                lo: 59,
+                                                hi: 60,
                                             },
                                         ),
                                     ),
@@ -959,14 +959,14 @@ async fn delete_manifest() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 71,
                     },
                 ],
                 entry: None,
@@ -1138,14 +1138,14 @@ async fn delete_manifest_then_close() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 71,
                     },
                 ],
                 entry: None,
@@ -1646,11 +1646,11 @@ fn test_fs() -> FsNode {
                     dir(
                         "src",
                         [
-                            file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
                             file(
                                 "other_file.qs",
                                 "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                             ),
+                            file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
                         ],
                     ),
                 ],
