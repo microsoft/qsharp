@@ -10,8 +10,5 @@
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
     "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch",
     "start": "node build.js --serve"
-  },
-  "devDependencies": {
-    "eslint": "^8.56.0"
   }
 }
