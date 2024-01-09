@@ -37,7 +37,8 @@ __all__ = [
     "StateDump",
 ]
 
-__version__ = "0.0.0"
+import importlib.metadata
+__version__ = importlib.metadata.version("qsharp-lang")
 
 # Check if there is a newer published version of the package
 # and warn the user if there is. This is best effort only.
