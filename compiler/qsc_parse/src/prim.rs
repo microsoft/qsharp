@@ -6,6 +6,7 @@ mod tests;
 
 use super::{keyword::Keyword, scan::Scanner, ty::ty, Error, Parser, Result};
 use crate::{
+    item::throw_away_doc,
     lex::{Delim, TokenKind},
     ErrorKind,
 };
@@ -122,6 +123,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Box<Path>> {
 }
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Box<Pat>> {
+    throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {

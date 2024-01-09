@@ -182,10 +182,10 @@ fn udt_item_doc() {
                 New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-124]: Tuple:
                     TyDef _id_ [56-66]: Field:
                         Ident _id_ [56-60] "arg1"
-                        Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")(doc "doc-string for arg1")
+                        Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")
                     TyDef _id_ [108-118]: Field:
                         Ident _id_ [108-112] "arg2"
-                        Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")(doc "doc-string for arg2")"#]],
+                        Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
     );
 }
 
@@ -213,13 +213,13 @@ fn nested_udt_item_doc() {
                     TyDef _id_ [39-289]: Tuple:
                         TyDef _id_ [91-105]: Field:
                             Ident _id_ [91-99] "ItemName"
-                            Type _id_ [102-105]: Path: Path _id_ [102-105] (Ident _id_ [102-105] "Int")(doc "Doc comment 1")
+                            Type _id_ [102-105]: Path: Path _id_ [102-105] (Ident _id_ [102-105] "Int")
                         TyDef _id_ [157-163]: Field:
-                            Type _id_ [157-163]: Path: Path _id_ [157-163] (Ident _id_ [157-163] "String")(doc "Doc comment 2")
+                            Type _id_ [157-163]: Path: Path _id_ [157-163] (Ident _id_ [157-163] "String")
                         TyDef _id_ [181-275]: Paren:
                             TyDef _id_ [241-257]: Field:
                                 Ident _id_ [241-249] "ItemName"
-                                Type _id_ [251-257]: Path: Path _id_ [251-257] (Ident _id_ [251-257] "String")(doc "Doc comment 3")"#]],
+                                Type _id_ [251-257]: Path: Path _id_ [251-257] (Ident _id_ [251-257] "String")"#]],
     );
 }
 
@@ -237,11 +237,11 @@ fn disallow_docstring_basic_type() {
         &expect![[r#"
             Error(
                 Rule(
-                    "type",
-                    DocComment,
+                    "generic parameter",
+                    Ident,
                     Span {
-                        lo: 80,
-                        hi: 95,
+                        lo: 112,
+                        hi: 118,
                     },
                 ),
             )

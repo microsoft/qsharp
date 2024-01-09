@@ -317,7 +317,7 @@ impl Display for Attr {
 }
 
 /// A type definition.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct TyDef {
     /// The node ID.
     pub id: NodeId,
@@ -325,28 +325,11 @@ pub struct TyDef {
     pub span: Span,
     /// The type definition kind.
     pub kind: Box<TyDefKind>,
-    /// The documentation.
-    pub doc: Rc<str>,
-}
-
-impl Default for TyDef {
-    fn default() -> Self {
-        TyDef {
-            id: NodeId::default(),
-            span: Span::default(),
-            kind: Box::default(),
-            doc: Rc::from(""),
-        }
-    }
 }
 
 impl Display for TyDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)?;
-        if !self.doc.is_empty() {
-            write!(f, "(doc \"{}\")", self.doc)?;
-        }
-        Ok(())
+        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
     }
 }
 
