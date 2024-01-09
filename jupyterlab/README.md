@@ -12,7 +12,7 @@ To install the Q# JupyterLab extension, run:
 pip install qsharp-jupyterlab
 ```
 
-To run Q# in Jupyter notebooks, remember to also install the `qsharp-lang` package: [https://pypi.org/project/qsharp-lang].
+To run Q# in Jupyter notebooks, remember to also install the `qsharp` package: [https://pypi.org/project/qsharp].
 
 ## Support
 

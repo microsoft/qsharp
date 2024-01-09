@@ -245,7 +245,7 @@ if build_pip:
             "--force-reinstall",
             "--no-index",
             "--find-links=" + wheels_dir,
-            f"qsharp-lang",
+            f"qsharp",
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]
