@@ -209,7 +209,6 @@ fn parse_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
 }
 
 fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
-    throw_away_doc(s);
     token(s, TokenKind::Keyword(Keyword::Newtype))?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;

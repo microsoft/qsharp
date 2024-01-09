@@ -83,6 +83,7 @@ fn arrow(s: &mut Scanner) -> Result<CallableKind> {
 }
 
 fn base(s: &mut Scanner) -> Result<Ty> {
+    throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         Ok(TyKind::Hole)
