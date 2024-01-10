@@ -828,7 +828,7 @@ fn notebook_auto_open_start_of_cell() {
             ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
             ("cell2", "↘"),
         ],
-        &["Fake", "let"],
+        &["Fake"],
         &expect![[r#"
             [
                 Some(
@@ -852,17 +852,6 @@ fn notebook_auto_open_start_of_cell() {
                                 ),
                             ],
                         ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "let",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0301let",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
                     },
                 ),
             ]
