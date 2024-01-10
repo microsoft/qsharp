@@ -2,22 +2,7 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import {
-  CreateReData,
-  ColumnNames,
-  InitialColumns,
-  ResultsTable,
-  SpaceChart,
-  ReTable,
-  ReDataToRow,
-  ReDataToRowScatter,
-  type ReData,
-  HideTooltip,
-  ScatterChart,
-  xAxis,
-  yAxis,
-  ColorMap,
-} from "qsharp-lang/ux";
+import { SpaceChart, ReTable, type ReData, Summary } from "qsharp-lang/ux";
 
 export function RePage(props: {
   estimatesData: ReData[];
@@ -26,36 +11,6 @@ export function RePage(props: {
   onRowDeleted: (rowId: string) => void;
 }) {
   const [estimate, setEstimate] = useState<ReData | null>(null);
-  const colormap = ColorMap(props.estimatesData.length);
-
-  function onRowSelected(rowId: string) {
-    // On any selection, clear the "new" flag on all rows. This ensures that
-    // new rows do not steal focus from the user selected row.
-    props.estimatesData.forEach((data) => (data.new = false));
-    if (!rowId) {
-      setEstimate(null);
-    } else {
-      const estimateFound =
-        props.estimatesData.find((data) => data.jobParams.runName === rowId) ||
-        null;
-      if (estimateFound == null) {
-        setEstimate(null);
-      } else {
-        setEstimate(CreateReData(estimateFound, 0));
-      }
-    }
-
-    HideTooltip();
-  }
-
-  function onRowDeleted(rowId: string) {
-    props.onRowDeleted(rowId);
-  }
-
-  function onPointSelected(seriesIndex: number, pointIndex: number): void {
-    const data = props.estimatesData[seriesIndex];
-    setEstimate(CreateReData(data, pointIndex));
-  }
 
   return (
     <>
@@ -105,34 +60,12 @@ export function RePage(props: {
         ) : null}
         <h1>Azure Quantum Resource Estimator</h1>
       </div>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Results
-        </summary>
-        <ResultsTable
-          columnNames={ColumnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            ReDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={InitialColumns}
-          ensureSelected={true}
-          onRowSelected={onRowSelected}
-          onRowDeleted={onRowDeleted}
-        />
-      </details>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Scatter chart
-        </summary>
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            ReDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
-      </details>
+      <Summary
+        estimatesData={props.estimatesData}
+        isSimplifiedView={false}
+        onRowDeleted={props.onRowDeleted}
+        setEstimate={setEstimate}
+      ></Summary>
       {!estimate ? null : (
         <>
           <details open>

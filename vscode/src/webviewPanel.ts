@@ -160,7 +160,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
             },
           },
           {
-            label: "Single point",
+            label: "Shortest runtime estimate",
             detail: "Single estimate for the shortest runtime",
             params: {
               estimateType: "singlePoint",

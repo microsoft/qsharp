@@ -2,21 +2,7 @@
 // Licensed under the MIT License.
 
 import { render as prender } from "preact";
-import {
-  ColorMap,
-  ReTable,
-  SpaceChart,
-  Histogram,
-  ScatterChart,
-  xAxis,
-  yAxis,
-  ResultsTable,
-  ColumnNames,
-  ReDataToRowScatter,
-  ReDataToRow,
-  InitialColumns,
-  ReData,
-} from "qsharp-lang/ux";
+import { ReTable, SpaceChart, Histogram, Summary } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -47,8 +33,8 @@ export function render({ model, el }: RenderArgs) {
     case "SpaceChart":
       renderChart({ model, el });
       break;
-    case "ScatterChart":
-      renderScatterChart({ model, el });
+    case "Summary":
+      renderSummary({ model, el });
       break;
     case "EstimateDetails":
       renderTable({ model, el });
@@ -84,7 +70,7 @@ function renderChart({ model, el }: RenderArgs) {
   model.on("change:estimates", onChange);
 }
 
-function renderScatterChart({ model, el }: RenderArgs) {
+function renderSummary({ model, el }: RenderArgs) {
   const onChange = () => {
     const results = model.get("estimates");
 
@@ -102,32 +88,13 @@ function renderScatterChart({ model, el }: RenderArgs) {
         (item.jobParams.runName = `(${String.fromCharCode(0x61 + idx)})`),
     );
 
-    const colormap = ColorMap(estimates.length);
-
-    const rows = estimates.map((estimate: ReData, index: number) =>
-      ReDataToRow(estimate, colormap[index]),
-    );
-    const scatterData = estimates.map((estimate: ReData, index: number) =>
-      ReDataToRowScatter(estimate, colormap[index]),
-    );
-
     prender(
-      <>
-        <ResultsTable
-          columnNames={ColumnNames}
-          initialColumns={InitialColumns}
-          rows={rows}
-          ensureSelected={true}
-          onRowDeleted={() => undefined}
-          onRowSelected={() => undefined}
-        ></ResultsTable>
-        <ScatterChart
-          data={scatterData}
-          xAxis={xAxis}
-          yAxis={yAxis}
-          onPointSelected={() => undefined}
-        ></ScatterChart>
-      </>,
+      <Summary
+        estimatesData={estimates}
+        isSimplifiedView={true}
+        onRowDeleted={() => undefined}
+        setEstimate={() => undefined}
+      ></Summary>,
       el,
     );
   };
