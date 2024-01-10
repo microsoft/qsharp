@@ -2,7 +2,7 @@
 
 This extension brings rich Q# language support to VS Code. Develop, build, and run your Q# code from VS Code either locally on simulators, or by submitting a job to Azure Quantum.
 
-You can also try out this extension in VS Code for Web at [vscode.dev/quantum](http://vscode.dev/quantum).
+You can also try out this extension in VS Code for Web at [vscode.dev/quantum](https://vscode.dev/quantum).
 
 For more information about the Modern QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
 

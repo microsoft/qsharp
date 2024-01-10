@@ -1,4 +1,4 @@
-# Modern QDK
+# Azure Quantum Development Kit
 
 Welcome to the Modern Quantum Development Kit!
 
