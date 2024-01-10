@@ -41,7 +41,7 @@ BellState()
 
 ## Support
 
-For more information about the Modern QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
+For more information about the Azure Quantum Development Kit, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
 
 ## Contributing
 
