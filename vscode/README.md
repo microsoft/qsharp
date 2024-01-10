@@ -1,12 +1,10 @@
-# Azure Quantum Development Kit (QDK) Preview
-
-**This extension is currently in preview. If you are looking for the current stable QDK, see the documentation
-at <https://learn.microsoft.com/en-us/azure/quantum/install-overview-qdk>**
-
-_Note: To install pre-release versions of this extension, you must click the drop-down
-next to the 'Install' button and select 'Install Pre-Release Version'_
+# Azure Quantum Development Kit (Modern QDK)
 
 This extension brings rich Q# language support to VS Code. Develop, build, and run your Q# code from VS Code either locally on simulators, or by submitting a job to Azure Quantum.
+
+You can also try out this extension in VS Code for Web at [vscode.dev/quantum](http://vscode.dev/quantum).
+
+For more information about the Modern QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
 
 ## Features
 

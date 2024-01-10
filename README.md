@@ -1,6 +1,6 @@
-# Q# language and tooling
+# Modern QDK
 
-> Under development
+Welcome to the Modern Quantum Development Kit!
 
 This repository contains Q# tooling, specifically:
 
@@ -14,6 +14,7 @@ This repository contains Q# tooling, specifically:
 - **[playground](./playground/)**: simple website for interacting with Q#
 - **[vscode](./vscode/)**: Visual Studio Code extension
 - **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
+- **[widgets](./widgets)**: The Q# Jupyter widgets Python package
 
 There are also the tutorials and samples in the `./katas` and `./samples` directories, respectively.
 
