@@ -44,7 +44,15 @@ pub(crate) fn get_completions(
     };
     context_finder.visit_package(user_ast_package);
 
-    let indent = match context_finder.start_of_namespace {
+    let insert_open_at = match compilation.kind {
+        CompilationKind::OpenProject => context_finder.start_of_namespace,
+        // Since notebooks don't typically contain namespace declarations,
+        // open statements should just get before the first non-whitespace
+        // character (i.e. at the top of the cell)
+        CompilationKind::Notebook => Some(get_first_non_whitespace_in_source(compilation, offset)),
+    };
+
+    let indent = match insert_open_at {
         Some(start) => get_indent(compilation, start),
         None => String::new(),
     };
@@ -71,7 +79,7 @@ pub(crate) fn get_completions(
             builder.push_globals(
                 compilation,
                 &context_finder.opens,
-                context_finder.start_of_namespace,
+                insert_open_at,
                 &context_finder.current_namespace_name,
                 &indent,
             );
@@ -90,7 +98,7 @@ pub(crate) fn get_completions(
             builder.push_globals(
                 compilation,
                 &context_finder.opens,
-                context_finder.start_of_namespace,
+                insert_open_at,
                 &context_finder.current_namespace_name,
                 &indent,
             );
@@ -116,7 +124,7 @@ pub(crate) fn get_completions(
                 builder.push_globals(
                     compilation,
                     &context_finder.opens,
-                    context_finder.start_of_namespace,
+                    insert_open_at,
                     &context_finder.current_namespace_name,
                     &indent,
                 );
@@ -130,6 +138,23 @@ pub(crate) fn get_completions(
     CompletionList {
         items: builder.into_items(),
     }
+}
+
+fn get_first_non_whitespace_in_source(compilation: &Compilation, package_offset: u32) -> u32 {
+    let source = compilation
+        .user_unit()
+        .sources
+        .find_by_offset(package_offset)
+        .expect("source should exist in the user source map");
+
+    let first = source
+        .contents
+        .find(|c: char| !c.is_whitespace())
+        .unwrap_or(source.contents.len());
+
+    let first = u32::try_from(first).expect("source length should fit into u32");
+
+    source.offset + first
 }
 
 fn get_indent(compilation: &Compilation, package_offset: u32) -> String {
@@ -227,7 +252,7 @@ impl CompletionListBuilder {
         &mut self,
         compilation: &Compilation,
         opens: &[(Rc<str>, Option<Rc<str>>)],
-        start_of_namespace: Option<u32>,
+        insert_open_at: Option<u32>,
         current_namespace_name: &Option<Rc<str>>,
         indent: &String,
     ) {
@@ -251,7 +276,7 @@ impl CompletionListBuilder {
                 compilation,
                 *package_id,
                 opens,
-                start_of_namespace,
+                insert_open_at,
                 current_namespace_name.clone(),
                 indent,
             ));
@@ -349,7 +374,7 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package_id: PackageId,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
-        start_of_namespace: Option<u32>,
+        insert_open_at: Option<u32>,
         current_namespace_name: Option<Rc<str>>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
@@ -392,7 +417,7 @@ impl CompletionListBuilder {
                                         });
                                         qualification = match open {
                                             Some(alias) => alias.as_ref().cloned(),
-                                            None => match start_of_namespace {
+                                            None => match insert_open_at {
                                                 Some(start) => {
                                                     additional_edits.push((
                                                         protocol_span(

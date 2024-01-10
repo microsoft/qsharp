@@ -822,6 +822,82 @@ fn notebook_block() {
 }
 
 #[test]
+fn notebook_auto_open_start_of_cell_empty() {
+    check_notebook(
+        &[
+            ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
+            ("cell2", "↘"),
+        ],
+        &["Fake"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0800Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 0,
+                                        end: 0,
+                                    },
+                                    "open FakeStdLib;\n",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_auto_open_start_of_cell() {
+    check_notebook(
+        &[
+            ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
+            ("cell2", r#"   Message("hi") ↘"#),
+        ],
+        &["Fake"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0800Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 3,
+                                        end: 3,
+                                    },
+                                    "open FakeStdLib;\n   ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn local_vars() {
     check(
         r#"

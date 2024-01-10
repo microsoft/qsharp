@@ -168,6 +168,127 @@ fn ty_decl_doc() {
 }
 
 #[test]
+fn udt_item_doc() {
+    check(
+        parse,
+        "newtype Foo = (
+        /// doc-string for arg1
+        arg1 : Int,
+        /// doc-string for arg2
+        arg2 : Int
+    );",
+        &expect![[r#"
+            Item _id_ [0-125]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-124]: Tuple:
+                    TyDef _id_ [56-66]: Field:
+                        Ident _id_ [56-60] "arg1"
+                        Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")
+                    TyDef _id_ [108-118]: Field:
+                        Ident _id_ [108-112] "arg2"
+                        Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
+    );
+}
+#[test]
+fn callable_param_doc() {
+    check(
+        parse,
+        "
+        operation Foo(
+          /// the input
+        input: Int): Unit {}
+        ",
+        &expect![[r#"
+            Item _id_ [9-76]:
+                Callable _id_ [9-76] (Operation):
+                    name: Ident _id_ [19-22] "Foo"
+                    input: Pat _id_ [22-67]: Paren:
+                        Pat _id_ [56-66]: Bind:
+                            Ident _id_ [56-61] "input"
+                            Type _id_ [63-66]: Path: Path _id_ [63-66] (Ident _id_ [63-66] "Int")
+                    output: Type _id_ [69-73]: Path: Path _id_ [69-73] (Ident _id_ [69-73] "Unit")
+                    body: Block: Block _id_ [74-76]: <empty>"#]],
+    );
+}
+#[test]
+fn callable_return_doc() {
+    check(
+        parse,
+        "
+        operation Foo(input: Int):
+        /// the return type
+        Unit {}
+        ",
+        &expect![[r#"
+            Item _id_ [9-79]:
+                Callable _id_ [9-79] (Operation):
+                    name: Ident _id_ [19-22] "Foo"
+                    input: Pat _id_ [22-34]: Paren:
+                        Pat _id_ [23-33]: Bind:
+                            Ident _id_ [23-28] "input"
+                            Type _id_ [30-33]: Path: Path _id_ [30-33] (Ident _id_ [30-33] "Int")
+                    output: Type _id_ [72-76]: Path: Path _id_ [72-76] (Ident _id_ [72-76] "Unit")
+                    body: Block: Block _id_ [77-79]: <empty>"#]],
+    );
+}
+
+#[test]
+fn nested_udt_item_doc() {
+    check(
+        parse,
+        "newtype Nested = (Double,
+            (
+                /// Doc comment 1
+                ItemName : Int,
+                /// Doc comment 2
+                String,
+                (
+                    /// Doc comment 3
+                    ItemName: String
+                )
+            )
+        );",
+        &expect![[r#"
+            Item _id_ [0-299]:
+                New Type (Ident _id_ [8-14] "Nested"): TyDef _id_ [17-298]: Tuple:
+                    TyDef _id_ [18-24]: Field:
+                        Type _id_ [18-24]: Path: Path _id_ [18-24] (Ident _id_ [18-24] "Double")
+                    TyDef _id_ [38-288]: Tuple:
+                        TyDef _id_ [90-104]: Field:
+                            Ident _id_ [90-98] "ItemName"
+                            Type _id_ [101-104]: Path: Path _id_ [101-104] (Ident _id_ [101-104] "Int")
+                        TyDef _id_ [156-162]: Field:
+                            Type _id_ [156-162]: Path: Path _id_ [156-162] (Ident _id_ [156-162] "String")
+                        TyDef _id_ [180-274]: Paren:
+                            TyDef _id_ [240-256]: Field:
+                                Ident _id_ [240-248] "ItemName"
+                                Type _id_ [250-256]: Path: Path _id_ [250-256] (Ident _id_ [250-256] "String")"#]],
+    );
+}
+
+#[test]
+fn allow_docstring_basic_type() {
+    check(
+        parse,
+        "newtype Nested = (Double,
+            (
+            ItemName:
+                /// Doc comment
+                String
+            )
+        );",
+        &expect![[r#"
+            Item _id_ [0-141]:
+                New Type (Ident _id_ [8-14] "Nested"): TyDef _id_ [17-140]: Tuple:
+                    TyDef _id_ [18-24]: Field:
+                        Type _id_ [18-24]: Path: Path _id_ [18-24] (Ident _id_ [18-24] "Double")
+                    TyDef _id_ [38-130]: Paren:
+                        TyDef _id_ [52-116]: Field:
+                            Ident _id_ [52-60] "ItemName"
+                            Type _id_ [110-116]: Path: Path _id_ [110-116] (Ident _id_ [110-116] "String")"#]],
+    );
+}
+
+#[test]
 fn ty_def_invalid_field_name() {
     check(
         parse,

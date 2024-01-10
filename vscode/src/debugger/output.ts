@@ -25,25 +25,21 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
     }
 
     const dump = evt.detail;
-    out("");
-    out("DumpMachine:");
-    out("");
-    out("  Basis | Amplitude     | Probability   | Phase");
-    out("  ---------------------------------------------");
+    let out_str = "\n";
+    out_str += "DumpMachine:\n\n";
+    out_str += "  Basis | Amplitude     | Probability   | Phase\n";
+    out_str += "  ---------------------------------------------\n";
     Object.keys(dump).map((basis) => {
       const [real, imag] = dump[basis];
       const complex = formatComplex(real, imag);
       const probabilityPercent = probability(real, imag) * 100;
       const phase = Math.atan2(imag, real);
 
-      out(
-        `  ${basis}  | ${complex} | ${probabilityPercent.toFixed(
-          4,
-        )}%     | ${phase.toFixed(4)}`,
-      );
+      out_str += `  ${basis}  | ${complex} | ${probabilityPercent.toFixed(
+        4,
+      )}%     | ${phase.toFixed(4)}\n`;
     });
-    out("");
-    out("");
+    out(out_str);
   });
 
   eventTarget.addEventListener("Result", (evt) => {

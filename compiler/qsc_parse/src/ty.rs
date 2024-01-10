@@ -11,6 +11,7 @@ use super::{
     Error, Parser, Result,
 };
 use crate::{
+    item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
     ErrorKind,
 };
@@ -57,6 +58,7 @@ pub(super) fn array_or_arrow(s: &mut Scanner<'_>, mut lhs: Ty, lo: u32) -> Resul
 }
 
 pub(super) fn param(s: &mut Scanner) -> Result<Box<Ident>> {
+    throw_away_doc(s);
     apos_ident(s)
 }
 
@@ -81,6 +83,7 @@ fn arrow(s: &mut Scanner) -> Result<CallableKind> {
 }
 
 fn base(s: &mut Scanner) -> Result<Ty> {
+    throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         Ok(TyKind::Hole)
