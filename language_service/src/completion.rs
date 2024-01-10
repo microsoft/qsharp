@@ -9,7 +9,7 @@ use crate::display::CodeDisplay;
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
 use crate::qsc_utils::{protocol_span, span_contains};
 use qsc::ast::visit::{self, Visitor};
-use qsc::hir::{ItemKind, Package, PackageId};
+use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::resolve::{Local, LocalKind};
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
@@ -385,6 +385,8 @@ impl CompletionListBuilder {
             .package;
         let display = CodeDisplay { compilation };
 
+        let is_user_package = compilation.user_package_id == package_id;
+
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
             if let Some(item_id) = i.parent {
@@ -392,6 +394,23 @@ impl CompletionListBuilder {
                     if let ItemKind::Namespace(namespace, _) = &parent.kind {
                         if namespace.name.starts_with("Microsoft.Quantum.Unstable") {
                             return None;
+                        }
+                        // If the item's visibility is internal, the item may be ignored
+                        if matches!(i.visibility, Visibility::Internal) {
+                            if !is_user_package {
+                                return None; // ignore item if not in the user's package
+                            }
+                            // ignore item if the user is not in the item's namespace
+                            match &current_namespace_name {
+                                Some(curr_ns) => {
+                                    if *curr_ns != namespace.name {
+                                        return None;
+                                    }
+                                }
+                                None => {
+                                    return None;
+                                }
+                            }
                         }
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
