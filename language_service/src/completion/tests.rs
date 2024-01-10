@@ -164,6 +164,100 @@ fn ignore_unstable_callable() {
 }
 
 #[test]
+fn ignore_internal_callable() {
+    check(
+        r#"
+        namespace Test {
+            internal operation Foo() : Unit {}
+            operation Bar() : Unit {
+                ↘
+            }
+        }
+
+        namespace Test {
+            internal operation Baz() : Unit {}
+        }"#,
+        &["Fake", "Foo", "Baz", "Hidden"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 38,
+                                        end: 38,
+                                    },
+                                    "open FakeStdLib;\n            ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Baz",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Baz",
+                        ),
+                        detail: Some(
+                            "operation Baz() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Hidden",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700Hidden",
+                        ),
+                        detail: Some(
+                            "operation Hidden() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 38,
+                                        end: 38,
+                                    },
+                                    "open FakeStdLib;\n            ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn in_block_contains_std_functions_from_open_namespace() {
     check(
         r#"
