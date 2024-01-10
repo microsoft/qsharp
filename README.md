@@ -1,8 +1,8 @@
 # Azure Quantum Development Kit
 
-Welcome to the Modern Quantum Development Kit!
+Welcome to the Azure Quantum Development Kit!
 
-This repository contains Q# tooling, specifically:
+This repository contains tooling for the Q# language, specifically:
 
 - **[compiler](./compiler/qsc/)**: core compiler logic and command-line tooling
 - **[fuzz](./fuzz/)**: fuzz testing infrastructure
