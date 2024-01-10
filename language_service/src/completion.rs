@@ -501,10 +501,14 @@ impl CompletionListBuilder {
 
     fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
         package.items.values().filter_map(|i| match &i.kind {
-            ItemKind::Namespace(namespace, _) => Some(CompletionItem::new(
-                namespace.name.to_string(),
-                CompletionItemKind::Module,
-            )),
+            ItemKind::Namespace(namespace, _)
+                if !namespace.name.starts_with("Microsoft.Quantum.Unstable") =>
+            {
+                Some(CompletionItem::new(
+                    namespace.name.to_string(),
+                    CompletionItemKind::Module,
+                ))
+            }
             _ => None,
         })
     }
