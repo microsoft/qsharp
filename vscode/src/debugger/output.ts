@@ -39,7 +39,6 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
         4,
       )}%     | ${phase.toFixed(4)}\n`;
     });
-    out_str += "\n";
     out(out_str);
   });
 
