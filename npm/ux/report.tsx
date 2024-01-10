@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 import { ReData, ReportData, ReportEntry, ReportGroup } from "./reTable.js";
 
 // no-unused-vars is disabled because it is used in code executed dynamically
@@ -22,8 +23,8 @@ function formatThousandSep(str: string): string {
   return parts.join(",");
 }
 
-export function createReport(result: ReData): ReportData {
-  // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH generate_report_code.py from output_data.md
+// THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH generate_report_code.py from output_data.md
+export function CreateReport(result: ReData): ReportData {
   const groups = [] as ReportGroup[];
   let entries = [] as ReportEntry[];
 
@@ -559,3 +560,4 @@ export function createReport(result: ReData): ReportData {
 
   return { groups: groups, assumptions: assumptions };
 }
+// END OF AUTOMATICALLY GENERATED CODE

@@ -41,10 +41,7 @@ type RenderArgs = {
 };
 
 export function render({ model, el }: RenderArgs) {
-  console.error("render");
   const componentType = model.get("comp");
-  console.log("componentType");
-  console.error("Some error");
 
   switch (componentType) {
     case "SpaceChart":

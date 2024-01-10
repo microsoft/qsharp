@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import { createReport } from "./report.js";
+import { CreateReport } from "./report.js";
 
 export type ReData = {
   status: string;
@@ -52,7 +52,7 @@ export function ReTable(props: {
     setShowDetail(!showDetail);
   };
 
-  const reportData = createReport(props.estimatesData);
+  const reportData = CreateReport(props.estimatesData);
 
   return (
     <div>

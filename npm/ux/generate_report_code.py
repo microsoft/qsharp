@@ -1,3 +1,11 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+# This script generates the code for the report page from the output_data.md file.
+# To run, simply execute `python generate_report_code.py` in the npm/ux folder.
+# copy the output and paste it into the report.tsx file.
+# It provides a code for the CreateReport function.
+
 import re
 
 parse = False
@@ -74,11 +82,14 @@ path_map = {
     "tfactory/runtime": "formatThousandSep(result.tfactory == null ? 0 result.tfactory.duration)",
 }
 
+print()
+print()
 print(
-    "        // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH generate_report_code.py from output_data.md"
+    "// THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH generate_report_code.py from output_data.md"
 )
-print("        const groups = [] as ReportGroup[];")
-print("        let entries = [] as ReportEntry[];")
+print("export function CreateReport(result: ReData): ReportData {")
+print("    const groups = [] as ReportGroup[];")
+print("    let entries = [] as ReportEntry[];")
 print()
 
 
@@ -87,10 +98,10 @@ def add_group():
 
     if len(entries) != 0:
         if title == "T factory parameters":
-            print("        if (result.tfactory != null) {")
+            print("    if (result.tfactory != null) {")
 
         always_visible_str = "true" if always_visible else "false"
-        print("        entries = [];")
+        print("    entries = [];")
         for path, label, description, explanation in entries:
             if path in [
                 "jobParams/qubitParams/oneQubitGateTime",
@@ -99,10 +110,10 @@ def add_group():
                 "jobParams/qubitParams/twoQubitGateErrorRate",
             ]:
                 print(
-                    '        if (result.jobParams.qubitParams.instructionSet == "GateBased") {'
+                    '    if (result.jobParams.qubitParams.instructionSet == "GateBased") {'
                 )
                 print(
-                    f'            entries.push({{path: "{path}", label: "{label}", description: {description}, explanation: {explanation}}});'
+                    f'        entries.push({{path: "{path}", label: "{label}", description: {description}, explanation: {explanation}}});'
                 )
                 print("        }")
             elif path in [
@@ -110,23 +121,23 @@ def add_group():
                 "jobParams/qubitParams/twoQubitJointMeasurementErrorRate",
             ]:
                 print(
-                    '        if (result.jobParams.qubitParams.instructionSet == "Majorana") {'
+                    '    if (result.jobParams.qubitParams.instructionSet == "Majorana") {'
                 )
                 print(
-                    f'            entries.push({{path: "{path}", label: "{label}", description: {description}, explanation: {explanation}}});'
+                    f'        entries.push({{path: "{path}", label: "{label}", description: {description}, explanation: {explanation}}});'
                 )
-                print("        }")
+                print("    }")
             else:
                 print(
-                    f'            entries.push({{path: "{path}", label: "{label}", description: {description}, explanation: {explanation}}});'
+                    f'        entries.push({{path: "{path}", label: "{label}", description: {description}, explanation: {explanation}}});'
                 )
         print(
-            f'        groups.push({{ title: "{title}", alwaysVisible: {always_visible_str}, entries: entries }});'
+            f'    groups.push({{ title: "{title}", alwaysVisible: {always_visible_str}, entries: entries }});'
         )
         print()
 
         if title == "T factory parameters":
-            print("        }")
+            print("    }")
 
         always_visible = False
         entries.clear()
@@ -221,7 +232,13 @@ with open("output_data.md", "r") as f:
 
 # Add assumptions
 assert title == "Assumptions"
-print("        const assumptions = [")
+print("    const assumptions = [")
 for assumption in assumptions:
-    print(f"            '{assumption}',")
-print("        ];")
+    print(f"        '{assumption}',")
+print("    ];")
+print()
+print("    return { groups: groups, assumptions: assumptions };")
+print("}")
+print("// END OF AUTOMATICALLY GENERATED CODE")
+print()
+print()

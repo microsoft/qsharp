@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 // Data structures and functions for the scatter chart and the results table.
 
 import { FrontierEntry, ReData } from "./reTable.js";
