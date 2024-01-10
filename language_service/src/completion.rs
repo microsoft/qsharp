@@ -365,6 +365,9 @@ impl CompletionListBuilder {
             if let Some(item_id) = i.parent {
                 if let Some(parent) = package.items.get(item_id) {
                     if let ItemKind::Namespace(namespace, _) = &parent.kind {
+                        if namespace.name.starts_with("Microsoft.Quantum.Unstable") {
+                            return None;
+                        }
                         return match &i.kind {
                             ItemKind::Callable(callable_decl) => {
                                 let name = callable_decl.name.name.as_ref();
