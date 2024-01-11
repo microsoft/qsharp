@@ -900,6 +900,7 @@ dependencies = [
  "qsc_hir",
  "qsc_passes",
  "qsc_project",
+ "qsc_rca",
  "rand",
  "regex-lite",
  "rustc-hash",
@@ -1040,6 +1041,18 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "qsc_rca"
+version = "0.0.0"
+dependencies = [
+ "qsc",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_frontend",
+ "qsc_passes",
 ]
 
 [[package]]

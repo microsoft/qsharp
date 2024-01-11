@@ -279,6 +279,16 @@ pub struct ItemId {
     pub item: LocalItemId,
 }
 
+/// A unique identifier for an item within a package store.
+#[derive(Debug)]
+// TODO (cesarzc): Consider replacing the above struct.
+pub struct StoreItemId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The item ID.
+    pub item: LocalItemId,
+}
+
 impl Display for ItemId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.package {
