@@ -229,29 +229,7 @@ fn ignore_internal_callable() {
                         additional_text_edits: None,
                     },
                 ),
-                Some(
-                    CompletionItem {
-                        label: "Hidden",
-                        kind: Function,
-                        sort_text: Some(
-                            "0700Hidden",
-                        ),
-                        detail: Some(
-                            "operation Hidden() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                (
-                                    Span {
-                                        start: 38,
-                                        end: 38,
-                                    },
-                                    "open FakeStdLib;\n            ",
-                                ),
-                            ],
-                        ),
-                    },
-                ),
+                None,
             ]
         "#]],
     );
