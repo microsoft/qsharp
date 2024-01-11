@@ -1,5 +1,5 @@
 /// # Sample
-/// Resource Estimation from pre-calculated logical counts
+/// Using pre-calculated logical counts in resource estimation
 ///
 /// # Description
 /// This sample demonstrates how to use the `AccountForEstimates` function to

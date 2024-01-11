@@ -1,5 +1,5 @@
 /// # Sample
-/// Resource Estimation for Shor's algorithm
+/// Estimating resources for Shor's algorithm
 ///
 /// # Description
 /// In this sample we concentrate on costing the `EstimateFrequency`

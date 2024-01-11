@@ -1,5 +1,5 @@
 /// # Sample
-/// Resource Estimation for Quantum Dynamics
+/// Estimating Resources for Quantum Dynamics
 ///
 /// # Description
 /// This example demonstrates resource estimation for quantum dynamics,
