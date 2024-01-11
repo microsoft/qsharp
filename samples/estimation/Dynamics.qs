@@ -1,11 +1,12 @@
 /// # Sample
-/// Estimating Resources for Quantum Dynamics
+/// Quantum Dynamics
 ///
 /// # Description
-/// This example demonstrates resource estimation for quantum dynamics,
-/// specifically the simulation of an Ising model Hamiltonian on an
-/// NxN 2D lattice using a fourth-order Trotter Suzuki product formula
-/// assuming a 2D qubit architecture with nearest-neighbor connectivity.
+/// This example demonstrates quantum dynamics in a style tailed for
+/// resource estimation. The sample is specifically the simulation
+/// of an Ising model Hamiltonian on an NxN 2D lattice using a
+/// fourth-order Trotter Suzuki product formula, assuming
+/// a 2D qubit architecture with nearest-neighbor connectivity.
 /// The is an example of a program that is not amenable to simulating
 /// classically, but can be run through resource estimation to determine
 /// what size of quantum system would be needed to solve the problem.

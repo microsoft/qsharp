@@ -1,10 +1,11 @@
 /// # Sample
-/// Estimating resources for Shor's algorithm
+/// Estimating Frequency for Shor's algorithm
 ///
 /// # Description
 /// In this sample we concentrate on costing the `EstimateFrequency`
 /// operation, which is the core quantum operation in Shor's algorithm, and
-/// we omit the classical pre- and post-processing.
+/// we omit the classical pre- and post-processing. This makes it ideal for
+/// use with the Azure Quantum Resource Estimator.
 namespace Shors {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Canon;
@@ -99,7 +100,7 @@ namespace Shors {
     ///
     /// # Input
     /// ## generator
-    /// The unsigned integer multiplicative order ( period )
+    /// The unsigned integer multiplicative order (period)
     /// of which is being estimated. Must be co-prime to `modulus`.
     /// ## modulus
     /// The modulus which defines the residue ring Z mod `modulus`
@@ -107,7 +108,7 @@ namespace Shors {
     /// ## power
     /// Power of `generator` by which `target` is multiplied.
     /// ## target
-    /// Register interpreted as  little-endian which is multiplied by
+    /// Register interpreted as little-endian which is multiplied by
     /// given power of the generator. The multiplication is performed modulo
     /// `modulus`.
     internal operation ApplyOrderFindingOracle(
@@ -119,9 +120,10 @@ namespace Shors {
         // also use `ExpModI` to compute a by which x must be multiplied. Also
         // note that we interpret target as unsigned integer in little-endian
         // format.
-        ModularMultiplyByConstant(modulus,
-                                    ExpModI(generator, power, modulus),
-                                    target);
+        ModularMultiplyByConstant(
+            modulus,
+            ExpModI(generator, power, modulus),
+            target);
     }
 
     /// # Summary

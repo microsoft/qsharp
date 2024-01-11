@@ -304,7 +304,7 @@ namespace Sample {
     ///
     /// # Input
     /// ## generator
-    /// The unsigned integer multiplicative order ( period )
+    /// The unsigned integer multiplicative order (period)
     /// of which is being estimated. Must be co-prime to `modulus`.
     /// ## modulus
     /// The modulus which defines the residue ring Z mod `modulus`
@@ -312,7 +312,7 @@ namespace Sample {
     /// ## power
     /// Power of `generator` by which `target` is multiplied.
     /// ## target
-    /// Register interpreted as  little-endian which is multiplied by
+    /// Register interpreted as little-endian which is multiplied by
     /// given power of the generator. The multiplication is performed modulo
     /// `modulus`.
     internal operation ApplyOrderFindingOracle(
@@ -324,9 +324,10 @@ namespace Sample {
         // also use `ExpModI` to compute a by which x must be multiplied. Also
         // note that we interpret target as unsigned integer in little-endian
         // format.
-        ModularMultiplyByConstant(modulus,
-                                    ExpModI(generator, power, modulus),
-                                    target);
+        ModularMultiplyByConstant(
+            modulus,
+            ExpModI(generator, power, modulus),
+            target);
     }
 
     /// # Summary
