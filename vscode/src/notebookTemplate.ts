@@ -164,7 +164,7 @@ operation RandomNBits(N: Int): Result[] {
 
 operation = qsharp.compile("RandomNBits(4)")
 target = workspace.get_targets("rigetti.sim.qvm")
-job = target.submit(operation, "my-azure-quantum-job", input_params={ "count": 100 })
+job = target.submit(operation, "my-azure-quantum-job", shots=100)
 
 # Wait for the job to complete
 job.get_results()
