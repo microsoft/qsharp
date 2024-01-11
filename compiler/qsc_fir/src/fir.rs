@@ -310,6 +310,55 @@ impl Display for Res {
     }
 }
 
+/// A unique identifier for an item within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreItemId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The item ID.
+    pub item: LocalItemId,
+}
+
+/// A unique identifier for a block within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreBlockId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The item ID.
+    pub block: BlockId,
+}
+
+/// A unique identifier for an expression within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreExprId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The expression ID.
+    pub expr: ExprId,
+}
+
+/// A unique identifier for a pattern within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StorePatId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The pat ID.
+    pub pat: PatId,
+}
+
+/// A unique identifier for a statement within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreStmtId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The statement ID.
+    pub stmt: StmtId,
+}
+
+/// A FIR package store.
+#[derive(Debug)]
+pub struct PackageStore(IndexMap<PackageId, Package>);
+
 /// The root node of the FIR.
 /// ### Notes
 /// We maintain a dense map of ids within the package.
