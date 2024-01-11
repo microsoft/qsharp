@@ -10,9 +10,6 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{ExprId, LocalItemId, Package, PackageId, PatId};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 
-// TODO (cesarzc): Consider whether higher-level container structs `PackageStoreComputeProps`, `PackageComputeProps` and
-//                 `ItemComputeProps` can be visible just at the crate level.
-
 /// The compute properties of a package store.
 #[derive(Debug)]
 pub struct PackageStoreComputeProps(IndexMap<PackageId, PackageComputeProps>);
@@ -89,22 +86,20 @@ pub enum QuantumSource {
 #[derive(Debug)]
 pub struct Analyzer {
     /// The compute properties of the package store.
-    _package_store_compute_props: PackageStoreComputeProps,
+    package_store_compute_props: PackageStoreComputeProps,
     /// The ID of the opened package.
     _open_package_id: PackageId,
 }
 
 impl Analyzer {
+    pub fn get_package_store_compute_props(&self) -> &PackageStoreComputeProps {
+        &self.package_store_compute_props
+    }
+
     pub fn new(fir_store: IndexMap<PackageId, Package>, open_package_id: PackageId) -> Self {
         Self {
-            _package_store_compute_props: PackageStoreComputeProps::with_default_packages(
-                fir_store,
-            ),
+            package_store_compute_props: PackageStoreComputeProps::with_default_packages(fir_store),
             _open_package_id: open_package_id,
         }
     }
-
-    // TODO (cesarzc): Implement functions to access callables, statements and expressions.
-    //                 Compute properties should only be accessed through the analyzer.
-    //pub fn get_callable_compute_props(&self, LocalItemId) -> &CallableComputeProps {}
 }
