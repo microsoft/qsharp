@@ -107,7 +107,7 @@ namespace Shors {
     /// ## power
     /// Power of `generator` by which `target` is multiplied.
     /// ## target
-    /// Register interpreted as LittleEndian which is multiplied by
+    /// Register interpreted as  little-endian which is multiplied by
     /// given power of the generator. The multiplication is performed modulo
     /// `modulus`.
     internal operation ApplyOrderFindingOracle(
@@ -118,7 +118,7 @@ namespace Shors {
         // The oracle we use for order finding implements |x⟩ ↦ |x⋅a mod N⟩. We
         // also use `ExpModI` to compute a by which x must be multiplied. Also
         // note that we interpret target as unsigned integer in little-endian
-        // encoding by using the `LittleEndian` type.
+        // format.
         ModularMultiplyByConstant(modulus,
                                     ExpModI(generator, power, modulus),
                                     target);
@@ -128,9 +128,9 @@ namespace Shors {
     /// Performs modular in-place multiplication by a classical constant.
     ///
     /// # Description
-    /// Given the classical constants `c` and `modulus`, and an input
-    /// quantum register (as LittleEndian) |𝑦⟩, this operation
-    /// computes `(c*x) % modulus` into |𝑦⟩.
+    /// Given the classical constants `c` and `modulus`, and an input quantum
+    /// register |𝑦⟩ in little-endian format, this operation computes
+    /// `(x+c) % modulus` into |𝑦⟩.
     ///
     /// # Input
     /// ## modulus
@@ -177,13 +177,13 @@ namespace Shors {
         }
         controlled (ctrls, ...) {
             // We apply a custom strategy to control this operation instead of
-            // letting the compiler create the controlled variant for us in which
-            // the `Controlled` functor would be distributed over each operation
-            // in the body.
+            // letting the compiler create the controlled variant for us in
+            // which the `Controlled` functor would be distributed over each
+            // operation in the body.
             //
-            // Here we can use some scratch memory to save ensure that at most one
-            // control qubit is used for costly operations such as `AddConstant`
-            // and `CompareGreaterThenOrEqualConstant`.
+            // Here we can use some scratch memory to save ensure that at most
+            // one control qubit is used for costly operations such as
+            // `AddConstant` and `CompareGreaterThenOrEqualConstant`.
             if Length(ctrls) >= 2 {
                 use control = Qubit();
                 within {
