@@ -73,7 +73,7 @@ function renderChart({ model, el }: RenderArgs) {
 function renderSummary({ model, el }: RenderArgs) {
   const onChange = () => {
     const results = model.get("estimates");
-    const colors = model.get("colors") as string[] | null;
+    const colors = model.get("colors");
 
     const estimates = [];
     if (results[0] == null) {

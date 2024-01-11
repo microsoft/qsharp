@@ -41,7 +41,7 @@ class Summary(anywidget.AnyWidget):
 
         Parameters:
         estimates: data for the table and the chart.
-        colors(optional): the list of colors which could be provided in the hex form or by the name.
+        colors (optional): the list of colors which could be provided in the hex form or by the name.
         If the length of the list does not match the number of the estimates, the colors parameter will be ignored and replaced with defaults.
 
         Returns:
@@ -49,7 +49,7 @@ class Summary(anywidget.AnyWidget):
         """
         super().__init__()
         self.estimates = estimates
-        self.colors = colors
+        self.colors = [] if colors is None else colors
 
 
 class EstimateDetails(anywidget.AnyWidget):
