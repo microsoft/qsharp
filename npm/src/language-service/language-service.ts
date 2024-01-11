@@ -50,7 +50,7 @@ export interface ILanguageService {
     }[],
   ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
-  closeNotebookDocument(notebookUri: string, cellUris: string[]): Promise<void>;
+  closeNotebookDocument(notebookUri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
   getDefinition(
@@ -177,12 +177,8 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.close_document(documentUri);
   }
 
-  async closeNotebookDocument(
-    documentUri: string,
-    cellUris: string[],
-  ): Promise<void> {
-    cellUris.forEach((uri) => delete this.code[uri]);
-    this.languageService.close_notebook_document(documentUri, cellUris);
+  async closeNotebookDocument(documentUri: string): Promise<void> {
+    this.languageService.close_notebook_document(documentUri);
   }
 
   async getCompletions(

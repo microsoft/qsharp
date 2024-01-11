@@ -1,33 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import {
-  DocumentFilter,
-  TextDocument,
-  Uri,
-  languages,
-  workspace,
-} from "vscode";
+import { TextDocument, Uri, workspace } from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 
-// Matches all Q# documents, including unsaved files, notebook cells, etc.
-export const qsharpDocumentFilter: DocumentFilter = {
-  language: qsharpLanguageId,
-};
-
-// Matches only Q# notebook cell documents.
-export const qsharpNotebookCellDocumentFilter: DocumentFilter = {
-  language: qsharpLanguageId,
-  notebookType: "jupyter-notebook",
-};
-
+// Returns true for all Q# documents, including unsaved files, notebook cells, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
-  return languages.match(qsharpDocumentFilter, document) > 0;
+  return document.languageId === qsharpLanguageId;
 }
 
+// Returns true for only Q# notebook cell documents.
 export function isQsharpNotebookCell(document: TextDocument): boolean {
-  return languages.match(qsharpNotebookCellDocumentFilter, document) > 0;
+  return (
+    document.languageId === qsharpLanguageId &&
+    document.uri.scheme === "vscode-notebook-cell"
+  );
 }
 
 export const qsharpExtensionId = "qsharp-vscode";

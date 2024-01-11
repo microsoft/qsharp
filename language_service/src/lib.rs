@@ -158,15 +158,10 @@ impl LanguageService {
     /// the notebook in the previous `update_notebook_document` call.
     ///
     /// LSP: notebookDocument/didClose
-    pub fn close_notebook_document<'b>(
-        &mut self,
-        notebook_uri: &str,
-        cell_uris: impl Iterator<Item = &'b str>,
-    ) {
+    pub fn close_notebook_document(&mut self, notebook_uri: &str) {
         trace!("close_notebook_document: {notebook_uri}");
         self.send_update(Update::CloseNotebookDocument {
             notebook_uri: notebook_uri.into(),
-            cell_uris: cell_uris.map(Into::into).collect(),
         });
     }
 
@@ -385,10 +380,9 @@ async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update)
                 .iter()
                 .map(|(uri, version, contents)| (uri.as_ref(), *version, contents.as_ref())),
         ),
-        Update::CloseNotebookDocument {
-            notebook_uri,
-            cell_uris,
-        } => updater.close_notebook_document(&notebook_uri, cell_uris.iter().map(AsRef::as_ref)),
+        Update::CloseNotebookDocument { notebook_uri } => {
+            updater.close_notebook_document(&notebook_uri);
+        }
         Update::Configuration { changed } => {
             updater.update_configuration(changed);
         }
@@ -414,6 +408,5 @@ enum Update {
     },
     CloseNotebookDocument {
         notebook_uri: String,
-        cell_uris: Vec<String>,
     },
 }

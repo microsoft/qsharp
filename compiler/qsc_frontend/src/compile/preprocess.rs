@@ -127,7 +127,7 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> 
                     // the target. We can't do membership tests on the capabilities because
                     // Base is not a subset of any capabilities, it is a lack of capabilities.
                     ExprKind::Path(path) => match ConfigAttr::from_str(path.name.name.as_ref()) {
-                        Ok(ConfigAttr::Full) => capabilities.is_all(),
+                        Ok(ConfigAttr::Unrestricted) => capabilities.is_all(),
                         Ok(ConfigAttr::Base) => capabilities.is_empty(),
                         _ => true,
                     },

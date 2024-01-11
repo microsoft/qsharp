@@ -120,18 +120,6 @@ def eval(source: str) -> Any:
     return get_interpreter().interpret(source, callback)
 
 
-def eval_file(path: str) -> Any:
-    """
-    Reads Q# source code from a file and evaluates it.
-    :param path: The path to the Q# source file.
-    :returns: The value returned by the last statement in the file.
-    :raises: QSharpError
-    """
-    from ._fs import read_file
-
-    return eval(read_file(path))
-
-
 class ShotResult(TypedDict):
     """
     A single result of a shot.

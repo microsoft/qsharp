@@ -1,6 +1,6 @@
 {
   "name": "qsharp-lang-vscode-dev",
-  "displayName": "[DEV BUILD] Azure Quantum Development Kit (QDK) Preview",
+  "displayName": "[DEV BUILD] Azure Quantum Development Kit (QDK)",
   "description": "Q# Language Support",
   "version": "0.0.0",
   "publisher": "quantum",
@@ -227,7 +227,7 @@
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to Azure Quantum\n[Add an existing workspace](command:qsharp-vscode.workspacesAdd)\nNote: For the first workspace added there may be several consent prompts to grant VS Code access.\nTo learn more visit the [Azure Quantum Development Kit wiki](https://github.com/microsoft/qsharp/wiki)"
+        "contents": "Connect to Azure Quantum\n[Add an existing workspace](command:qsharp-vscode.workspacesAdd)\nNote: For the first workspace added there may be several consent prompts to grant VS Code access.\nFor more information about the QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation)."
       }
     ],
     "commands": [

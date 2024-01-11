@@ -3,7 +3,7 @@
 
 import { ILanguageService, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpDocumentFilter, qsharpLanguageId } from "./common.js";
+import { isQsharpNotebookCell, qsharpLanguageId } from "./common.js";
 import { WorkspaceTreeProvider } from "./azure/treeView.js";
 import { getPythonCodeForWorkspace } from "./azure/workspaceActions.js";
 import { notebookTemplate } from "./notebookTemplate.js";
@@ -157,10 +157,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
   function closeIfKnownQsharpNotebook(notebook: vscode.NotebookDocument) {
     const notebookUri = notebook.uri.toString();
     if (openQSharpNotebooks.has(notebookUri)) {
-      languageService.closeNotebookDocument(
-        notebookUri,
-        getQSharpCells(notebook).map((cell) => cell.document.uri.toString()),
-      );
+      languageService.closeNotebookDocument(notebookUri);
       openQSharpNotebooks.delete(notebook.uri.toString());
     }
   }
@@ -168,9 +165,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
   function getQSharpCells(notebook: vscode.NotebookDocument) {
     return notebook
       .getCells()
-      .filter((cell) =>
-        vscode.languages.match(qsharpDocumentFilter, cell.document),
-      );
+      .filter((cell) => isQsharpNotebookCell(cell.document));
   }
 
   function getQSharpText(document: vscode.TextDocument) {

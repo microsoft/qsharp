@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// needs to be executed in order to collect and cache estimates.
     /// `false` indicates if cached estimates have been incorporated into the overall costs
     /// and the code fragment should be skipped.
-    @Config(Full)
+    @Config(Unrestricted)
     function BeginEstimateCaching(name: String, variant: Int): Bool {
         body intrinsic;
     }
