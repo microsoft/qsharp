@@ -41,7 +41,7 @@ export async function azureRequest(
           {},
         );
       }
-      throw Error(`Azure request failed: ${response.statusText}`);
+      throw await getAzureQuantumError(response);
     }
 
     log.debug(`Got response ${response.status} ${response.statusText}`);
@@ -58,7 +58,7 @@ export async function azureRequest(
       );
     }
     log.error(`Failed to fetch ${uri}: ${e}`);
-    throw e;
+    throw new Error(getErrorMessage(e));
   }
 }
 
@@ -99,7 +99,7 @@ export async function storageRequest(
           {},
         );
       }
-      throw Error(`Storage request failed: ${response.statusText}`);
+      throw await getAzureStorageError(response);
     }
     log.debug(`Got response ${response.status} ${response.statusText}`);
     return response;
@@ -115,7 +115,55 @@ export async function storageRequest(
         {},
       );
     }
-    throw e;
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+class AzureError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+async function getAzureQuantumError(response: Response): Promise<AzureError> {
+  let error: { code: string; message: string } | undefined = undefined;
+  try {
+    const json = await response.json();
+    // Extract the error data if it conforms to the Azure Quantum error schema defined in
+    // https://github.com/Azure/azure-rest-api-specs/blob/957fd518388828b31126417415b04f859b95c586/specification/quantum/data-plane/Microsoft.Quantum/preview/2022-09-12-preview/quantum.json#L1186
+    if (json && json.error && json.error.code && json.error.message) {
+      error = json.error;
+    }
+  } catch (_) {
+    /* empty */
+  }
+
+  let message;
+  if (error) {
+    message = `Azure Quantum request failed with status ${response.status}.\n${error.code}: ${error.message}`;
+  } else {
+    message = `Azure Quantum request failed with status ${response.status}.`;
+  }
+  return new AzureError(message);
+}
+
+function getAzureStorageError(response: Response): AzureError {
+  // Azure Storage appears to uses headers and xml responses to communicate error data,
+  // but we have not seen yet these in practice.
+  // https://github.com/Azure/azure-rest-api-specs/blob/eb06c34581dc6f56868ee9cc811a51f0e1a50770/specification/storage/data-plane/Microsoft.BlobStorage/preview/2021-12-02/blob.json#L75C30-L75C30
+  return new AzureError(
+    `Storage request failed with status ${response.status}.`,
+  );
+}
+
+// Generate a user friendly error message
+function getErrorMessage(e: any): string {
+  if (e instanceof AzureError) {
+    return e.message;
+  } else if (e instanceof Error) {
+    return `Request failed: ${e.message}`;
+  } else {
+    return `Request failed.`;
   }
 }
 
