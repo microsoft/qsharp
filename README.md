@@ -1,8 +1,8 @@
-# Q# language and tooling
+# Azure Quantum Development Kit
 
-> Under development
+Welcome to the Azure Quantum Development Kit!
 
-This repository contains Q# tooling, specifically:
+This repository contains tooling for the Q# language, specifically:
 
 - **[compiler](./compiler/qsc/)**: core compiler logic and command-line tooling
 - **[fuzz](./fuzz/)**: fuzz testing infrastructure
@@ -14,6 +14,7 @@ This repository contains Q# tooling, specifically:
 - **[playground](./playground/)**: simple website for interacting with Q#
 - **[vscode](./vscode/)**: Visual Studio Code extension
 - **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
+- **[widgets](./widgets)**: The Q# Jupyter widgets Python package
 
 There are also the tutorials and samples in the `./katas` and `./samples` directories, respectively.
 
