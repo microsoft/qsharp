@@ -347,15 +347,19 @@ namespace Sample {
     internal operation ModularMultiplyByConstant(modulus : Int, c : Int, y : Qubit[])
     : Unit is Adj + Ctl {
         use qs = Qubit[Length(y)];
-        for (idx, yq) in Enumerated(y) {
+        for idx in IndexRange(y) {
             let shiftedC = (c <<< idx) % modulus;
-            Controlled ModularAddConstant([yq], (modulus, shiftedC, qs));
+            Controlled ModularAddConstant(
+                [y[idx]],
+                (modulus, shiftedC, qs));
         }
         ApplyToEachCA(SWAP, Zipped(y, qs));
         let invC = InverseModI(c, modulus);
-        for (idx, yq) in Enumerated(y) {
+        for idx in IndexRange(y) {
             let shiftedC = (invC <<< idx) % modulus;
-            Controlled ModularAddConstant([yq], (modulus, modulus - shiftedC, qs));
+            Controlled ModularAddConstant(
+                [y[idx]],
+                (modulus, modulus - shiftedC, qs));
         }
     }
 
