@@ -353,7 +353,9 @@ namespace Sample {
                 [y[idx]],
                 (modulus, shiftedC, qs));
         }
-        ApplyToEachCA(SWAP, Zipped(y, qs));
+        for idx in IndexRange(y) {
+            SWAP(y[idx], qs[idx]);
+        }
         let invC = InverseModI(c, modulus);
         for idx in IndexRange(y) {
             let shiftedC = (invC <<< idx) % modulus;
