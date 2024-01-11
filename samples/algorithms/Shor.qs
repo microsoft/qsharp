@@ -335,7 +335,7 @@ namespace Sample {
     /// # Description
     /// Given the classical constants `c` and `modulus`, and an input quantum
     /// register |𝑦⟩ in little-endian format, this operation computes
-    /// `(x+c) % modulus` into |𝑦⟩.
+    /// `(c*x) % modulus` into |𝑦⟩.
     ///
     /// # Input
     /// ## modulus
@@ -363,10 +363,9 @@ namespace Sample {
     /// Performs modular in-place addition of a classical constant into a
     /// quantum register.
     ///
-    /// # Description
-    /// Given the classical constants `c` and `modulus`, and an input
-    /// quantum register (as LittleEndian) |𝑦⟩, this operation
-    /// computes `(x+c) % modulus` into |𝑦⟩.
+    /// Given the classical constants `c` and `modulus`, and an input quantum
+    /// register |𝑦⟩ in little-endian format, this operation computes
+    /// `(x+c) % modulus` into |𝑦⟩.
     ///
     /// # Input
     /// ## modulus
