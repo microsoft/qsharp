@@ -74,6 +74,7 @@ function renderSummary({ model, el }: RenderArgs) {
   const onChange = () => {
     const results = model.get("estimates");
     const colors = model.get("colors");
+    const runNames = model.get("runNames");
 
     const estimates = [];
     if (results[0] == null) {
@@ -87,6 +88,7 @@ function renderSummary({ model, el }: RenderArgs) {
     prender(
       <Summary
         estimatesData={estimates}
+        runNames={runNames}
         colors={colors}
         isSimplifiedView={true}
         onRowDeleted={() => undefined}

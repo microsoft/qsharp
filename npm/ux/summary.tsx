@@ -136,16 +136,20 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
 export function Summary(props: {
   estimatesData: ReData[];
   colors: string[] | null;
+  runNames: string[] | null;
   isSimplifiedView: boolean;
   onRowDeleted: (rowId: string) => void;
   setEstimate: (estimate: ReData | null) => void;
 }) {
   props.estimatesData.forEach((item, idx) => {
-    if (item.jobParams.runName == null) {
-      if (item.jobParams.label == null) {
-        item.jobParams.runName = `(${String.fromCharCode(0x61 + idx)})`;
-      } else {
-        item.jobParams.runName = item.jobParams.label;
+    if (
+      props.runNames != null &&
+      props.runNames.length == props.estimatesData.length
+    ) {
+      item.jobParams.runName = props.runNames[idx];
+    } else {
+      if (item.jobParams.runName == null) {
+        item.jobParams.runName = `(${idx + 1})`;
       }
     }
   });
