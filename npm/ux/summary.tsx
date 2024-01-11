@@ -135,10 +135,21 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
 
 export function Summary(props: {
   estimatesData: ReData[];
+  colors: string[] | null;
   isSimplifiedView: boolean;
   onRowDeleted: (rowId: string) => void;
   setEstimate: (estimate: ReData | null) => void;
 }) {
+  props.estimatesData.forEach((item, idx) => {
+    if (item.jobParams.runName == null) {
+      if (item.jobParams.label == null) {
+        item.jobParams.runName = `(${String.fromCharCode(0x61 + idx)})`;
+      } else {
+        item.jobParams.runName = item.jobParams.label;
+      }
+    }
+  });
+
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateReData(data, pointIndex));
@@ -164,7 +175,11 @@ export function Summary(props: {
     HideTooltip();
   }
 
-  const colormap = ColorMap(props.estimatesData.length);
+  const colormap =
+    props.colors != null && props.colors.length == props.estimatesData.length
+      ? props.colors
+      : ColorMap(props.estimatesData.length);
+
   if (props.isSimplifiedView) {
     return (
       <>

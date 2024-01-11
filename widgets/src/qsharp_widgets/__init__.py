@@ -8,6 +8,7 @@ import time
 import anywidget
 import traitlets
 
+
 try:
     __version__ = importlib.metadata.version("qsharp_widgets")
 except importlib.metadata.PackageNotFoundError:
@@ -32,10 +33,23 @@ class Summary(anywidget.AnyWidget):
 
     comp = traitlets.Unicode("Summary").tag(sync=True)
     estimates = traitlets.Dict().tag(sync=True)
+    colors = traitlets.List().tag(sync=True)
 
-    def __init__(self, estimates):
+    def __init__(self, estimates, colors=None):
+        """
+        This function generates a summary results table with a scatter chart.
+
+        Parameters:
+        estimates: data for the table and the chart.
+        colors(optional): the list of colors which could be provided in the hex form or by the name.
+        If the length of the list does not match the number of the estimates, the colors parameter will be ignored and replaced with defaults.
+
+        Returns:
+        None
+        """
         super().__init__()
         self.estimates = estimates
+        self.colors = colors
 
 
 class EstimateDetails(anywidget.AnyWidget):

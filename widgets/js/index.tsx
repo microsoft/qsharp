@@ -73,6 +73,7 @@ function renderChart({ model, el }: RenderArgs) {
 function renderSummary({ model, el }: RenderArgs) {
   const onChange = () => {
     const results = model.get("estimates");
+    const colors = model.get("colors") as string[] | null;
 
     const estimates = [];
     if (results[0] == null) {
@@ -83,14 +84,10 @@ function renderSummary({ model, el }: RenderArgs) {
       }
     }
 
-    (estimates as Array<any>).forEach(
-      (item, idx) =>
-        (item.jobParams.runName = `(${String.fromCharCode(0x61 + idx)})`),
-    );
-
     prender(
       <Summary
         estimatesData={estimates}
+        colors={colors}
         isSimplifiedView={true}
         onRowDeleted={() => undefined}
         setEstimate={() => undefined}
@@ -101,6 +98,7 @@ function renderSummary({ model, el }: RenderArgs) {
 
   onChange();
   model.on("change:estimates", onChange);
+  model.on("change:colors", onChange);
 }
 
 function renderHistogram({ model, el }: RenderArgs) {
