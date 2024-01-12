@@ -151,6 +151,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
             payload,
             providerId,
             target.id,
+            context,
           );
           if (jobId) {
             // The job submitted fine. Refresh the workspace until it shows up

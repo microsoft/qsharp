@@ -229,6 +229,8 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   if (!packageJson) {
     return;
   }
+  log.error("here", process.platform);
+  log.error( JSON.stringify(process));
   reporter = new TelemetryReporter(packageJson.aiKey);
 
   sendTelemetryEvent(EventType.InitializePlugin, {}, {});
@@ -250,3 +252,59 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
     )}`,
   );
 }
+
+interface NavigatorUA {
+    readonly userAgentData?: NavigatorUAData;
+}
+
+// https://wicg.github.io/ua-client-hints/#dictdef-navigatoruabrandversion
+interface NavigatorUABrandVersion {
+    readonly brand: string;
+    readonly version: string;
+}
+
+// https://wicg.github.io/ua-client-hints/#dictdef-uadatavalues
+interface UADataValues {
+    readonly brands?: NavigatorUABrandVersion[];
+    readonly mobile?: boolean;
+    readonly platform?: string;
+    readonly architecture?: string;
+    readonly bitness?: string;
+    readonly formFactor?: string[];
+    readonly model?: string;
+    readonly platformVersion?: string;
+    /** @deprecated in favour of fullVersionList */
+    readonly uaFullVersion?: string;
+    readonly fullVersionList?: NavigatorUABrandVersion[];
+    readonly wow64?: boolean;
+}
+
+// https://wicg.github.io/ua-client-hints/#dictdef-ualowentropyjson
+interface UALowEntropyJSON {
+    readonly brands: NavigatorUABrandVersion[];
+    readonly mobile: boolean;
+    readonly platform: string;
+}
+
+// https://wicg.github.io/ua-client-hints/#navigatoruadata
+interface NavigatorUAData extends UALowEntropyJSON {
+    getHighEntropyValues(hints: string[]): Promise<UADataValues>;
+    toJSON(): UALowEntropyJSON;
+}
+
+function getBrowserRelease(): string {
+  const navigatorUa: NavigatorUA = navigator as NavigatorUA;
+	if (navigatorUa.userAgentData) {
+		const browser = navigatorUa.userAgentData.brands[navigatorUa.userAgentData.brands.length - 1];
+    return `${browser.brand}/${browser.version}`
+	} else {
+    return ""
+  }
+}
+
+export function getUserAgent(context: vscode.ExtensionContext): string {
+  let version = context.extension?.packageJSON?.version;
+  let browserAndRelease = getBrowserRelease();
+  return `VSCode/${version} ${browserAndRelease}`;
+}
+
