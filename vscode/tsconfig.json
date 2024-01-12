@@ -13,5 +13,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["test", "src/webview"]
+  "exclude": ["test", "src/webview"],
+  "include": ["../node_modules/user-agent-data-types"]
 }
