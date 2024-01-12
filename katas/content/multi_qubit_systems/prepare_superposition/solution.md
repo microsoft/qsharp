@@ -6,6 +6,8 @@ $$ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 0 \\\ -1 \\\ 0 \end{bmatrix} = \frac{1
 
 This means that the first qubit is already in the state we want it to be, but the second qubit needs to be transformed from the $ \begin{bmatrix} 1 \\\ 0 \end{bmatrix} $ into $ \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ -1\end{bmatrix}$ state.
 
+> Note that because these examples use a little-endian format, the "first" qubit (`qs[0]`) refers to the least-significant qubit whose target state is described by the right-hand operand of the tensor product, while the "second" qubit (`qs[1]`) refers to the most-significant qubit whose target state is described by the left-hand operand of the tensor product.
+
 First, we apply the **X** gate to the second qubit; this performs the following transformation:
 $$ X |0\rangle = \begin{bmatrix}0 & 1 \\\ 1 & 0 \end{bmatrix} \cdot \begin{bmatrix}1 \\\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\\ 1 \end{bmatrix} = |1\rangle  $$
 

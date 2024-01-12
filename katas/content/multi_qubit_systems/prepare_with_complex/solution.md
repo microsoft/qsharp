@@ -10,6 +10,8 @@ $$
 
 We will again need to adjust the states of both qubits independently.
 
+> Note that because these examples use a little-endian format, the "first" qubit (`qs[0]`) refers to the least-significant qubit whose target state is described by the right-hand operand of the tensor product, while the "second" qubit (`qs[1]`) refers to the most-significant qubit whose target state is described by the left-hand operand of the tensor product.
+
 For the first qubit, we'll start by applying the **H** gate, getting the state $\frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix}$, as we've seen in the previous task. Afterwards we'll apply the **S** gate with the following result:
 
 $$ \begin{bmatrix} 1 & 0 \\\ 0 & i \end{bmatrix} \cdot \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ i \end{bmatrix}$$
