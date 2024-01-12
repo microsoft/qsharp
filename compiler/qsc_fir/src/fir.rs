@@ -449,8 +449,6 @@ pub trait PackageStoreLookup {
     fn get_expr(&self, id: StoreExprId) -> &Expr;
     /// Gets a global.
     fn get_global(&self, id: StoreItemId) -> Option<Global>;
-    /// Gets an item.
-    fn get_item(&self, id: StoreItemId) -> &Item;
     /// Gets a pat.
     fn get_pat(&self, id: StorePatId) -> &Pat;
     /// Gets a statement.
@@ -477,12 +475,6 @@ impl PackageStoreLookup for PackageStore {
     fn get_global(&self, id: StoreItemId) -> Option<Global> {
         self.get(id.package)
             .and_then(|package| package.get_global(id.item))
-    }
-
-    fn get_item(&self, id: StoreItemId) -> &Item {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_item(id.item)
     }
 
     fn get_pat(&self, id: StorePatId) -> &Pat {
@@ -517,7 +509,6 @@ impl PackageStore {
     }
 
     /// Gets a package store iterator.
-    #[allow(clippy::iter_not_returning_iterator)]
     #[must_use]
     pub fn iter(&self) -> Iter<PackageId, Package> {
         self.0.iter()
