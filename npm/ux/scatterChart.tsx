@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { CreateIntegerTicks, CreateTimeTicks, Tick } from "../dist/ux/ticks.js";
+import {
+  CreateIntegerTicks,
+  CreateTimeTicks,
+  Tick,
+} from "qsharp-lang/ux/ticks";
 
 export type ScatterSeries = {
   color: string;
