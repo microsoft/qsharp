@@ -5,23 +5,37 @@ export type Tick = {
   value: number;
   label: string;
 };
+
 // Should be redesigned in case of localization
 type TickTimeDefinition = { tick: Tick; plural: string };
 
 export function CreateIntegerTicks(min: number, max: number): Tick[] {
-  const l = Math.pow(10, Math.floor(Math.log10(min)));
-  const r = Math.pow(10, Math.ceil(Math.log10(max)));
+  if (max < min || min <= 0) {
+    return [];
+  }
+
+  const l = Math.round(10 ** Math.floor(Math.log10(min)));
+  const r = Math.round(10 ** Math.ceil(Math.log10(max)));
 
   const result: Tick[] = [];
-  if (r / l > 10) {
-    for (let i = l * 10; i < r; i = i * 10) {
+
+  for (let i = l; i <= r; i *= 10) {
+    if (i >= min && i <= max) {
       result.push({ value: i, label: i.toString() });
     }
-  } else {
-    for (let i = 1; i < 10; i++) {
-      if (l * i >= min && l * i <= max) {
-        result.push({ value: l * i, label: (l * i).toString() });
+  }
+  if (result.length == 0) {
+    let step = l;
+    while (step >= 1) {
+      let i = Math.ceil(min / step) * step;
+      while (i <= max) {
+        result.push({ value: i, label: i.toString() });
+        i += step;
       }
+      if (result.length > 0) {
+        break;
+      }
+      step /= 10;
     }
   }
 
@@ -44,6 +58,10 @@ const predefinedTimeTicks: TickTimeDefinition[] = [
 ];
 
 export function CreateTimeTicks(min: number, max: number): Tick[] {
+  if (max < min || min <= 0) {
+    return [];
+  }
+
   let l = 0;
   while (
     l < predefinedTimeTicks.length &&
@@ -57,19 +75,29 @@ export function CreateTimeTicks(min: number, max: number): Tick[] {
     l--;
   }
 
+  if (r >= predefinedTimeTicks.length) {
+    r = predefinedTimeTicks.length - 1;
+  }
+
   while (
-    r < predefinedTimeTicks.length &&
+    r < predefinedTimeTicks.length - 1 &&
     predefinedTimeTicks[r].tick.value <= max
   ) {
     r++;
   }
 
   const result: Tick[] = [];
-  if (r - l > 1) {
-    for (let i = l + 1; i < r; i++) {
+
+  for (let i = l; i <= r; i++) {
+    if (
+      predefinedTimeTicks[i].tick.value >= min &&
+      predefinedTimeTicks[i].tick.value <= max
+    ) {
       result.push(predefinedTimeTicks[i].tick);
     }
-  } else {
+  }
+
+  if (result.length == 0) {
     if (l < predefinedTimeTicks.length - 1) {
       let coeff =
         10 **

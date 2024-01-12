@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { CreateIntegerTicks, CreateTimeTicks, Tick } from "./ticks.js";
+import { CreateIntegerTicks, CreateTimeTicks, Tick } from "../dist/ux/ticks.js";
 
 export type ScatterSeries = {
   color: string;
