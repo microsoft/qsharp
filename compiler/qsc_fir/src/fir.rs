@@ -11,7 +11,10 @@
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
 use indenter::{indented, Indented};
 use num_bigint::BigInt;
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::{
+    index_map::{IndexMap, Iter},
+    span::Span,
+};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -506,6 +509,13 @@ impl PackageStore {
     /// Inserts a package to the store.
     pub fn insert(&mut self, id: PackageId, package: Package) {
         self.0.insert(id, package);
+    }
+
+    /// Gets a package store iterator.
+    #[allow(clippy::iter_not_returning_iterator)]
+    #[must_use]
+    pub fn iter(&self) -> Iter<PackageId, Package> {
+        self.0.iter()
     }
 
     /// Creates a package store.
