@@ -336,11 +336,12 @@ impl Display for StoreItemId {
     }
 }
 
-impl StoreItemId {
-    /// Creates a `StoreItemId`.
-    #[must_use]
-    pub fn from(package: PackageId, item: LocalItemId) -> Self {
-        Self { package, item }
+impl From<(PackageId, LocalItemId)> for StoreItemId {
+    fn from(tuple: (PackageId, LocalItemId)) -> Self {
+        Self {
+            package: tuple.0,
+            item: tuple.1,
+        }
     }
 }
 
@@ -359,11 +360,12 @@ impl Display for StoreBlockId {
     }
 }
 
-impl StoreBlockId {
-    /// Creates a `StoreBlockId`.
-    #[must_use]
-    pub fn from(package: PackageId, block: BlockId) -> Self {
-        Self { package, block }
+impl From<(PackageId, BlockId)> for StoreBlockId {
+    fn from(tuple: (PackageId, BlockId)) -> Self {
+        Self {
+            package: tuple.0,
+            block: tuple.1,
+        }
     }
 }
 
@@ -382,11 +384,12 @@ impl Display for StoreExprId {
     }
 }
 
-impl StoreExprId {
-    /// Creates an `StoreExprId`.
-    #[must_use]
-    pub fn from(package: PackageId, expr: ExprId) -> Self {
-        Self { package, expr }
+impl From<(PackageId, ExprId)> for StoreExprId {
+    fn from(tuple: (PackageId, ExprId)) -> Self {
+        Self {
+            package: tuple.0,
+            expr: tuple.1,
+        }
     }
 }
 
@@ -405,11 +408,12 @@ impl Display for StorePatId {
     }
 }
 
-impl StorePatId {
-    /// Creates a `StorePatId`.
-    #[must_use]
-    pub fn from(package: PackageId, pat: PatId) -> Self {
-        Self { package, pat }
+impl From<(PackageId, PatId)> for StorePatId {
+    fn from(tuple: (PackageId, PatId)) -> Self {
+        Self {
+            package: tuple.0,
+            pat: tuple.1,
+        }
     }
 }
 
@@ -428,11 +432,12 @@ impl Display for StoreStmtId {
     }
 }
 
-impl StoreStmtId {
-    /// Creates a `StoreStmtId`.
-    #[must_use]
-    pub fn from(package: PackageId, stmt: StmtId) -> Self {
-        Self { package, stmt }
+impl From<(PackageId, StmtId)> for StoreStmtId {
+    fn from(tuple: (PackageId, StmtId)) -> Self {
+        Self {
+            package: tuple.0,
+            stmt: tuple.1,
+        }
     }
 }
 
