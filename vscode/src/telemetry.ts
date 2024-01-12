@@ -251,14 +251,13 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
   );
 }
 
-
-
 function getBrowserRelease(): string {
-	if (navigator.userAgentData) {
-		const browser = navigator.userAgentData.brands[navigator.userAgentData.brands.length - 1];
-    return `${browser.brand}/${browser.version}`
-	} else {
-    return ""
+  if (navigator.userAgentData) {
+    const browser =
+      navigator.userAgentData.brands[navigator.userAgentData.brands.length - 1];
+    return `${browser.brand}/${browser.version}`;
+  } else {
+    return "";
   }
 }
 
@@ -267,4 +266,3 @@ export function getUserAgent(context: vscode.ExtensionContext): string {
   let browserAndRelease = getBrowserRelease();
   return `VSCode/${version} ${browserAndRelease}`;
 }
-

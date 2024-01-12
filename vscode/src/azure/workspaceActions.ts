@@ -17,7 +17,12 @@ import {
   shouldExcludeTarget,
 } from "./providerProperties";
 import { getRandomGuid } from "../utils";
-import { EventType, getUserAgent, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
+import {
+  EventType,
+  getUserAgent,
+  sendTelemetryEvent,
+  UserFlowStatus,
+} from "../telemetry";
 
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
@@ -493,7 +498,8 @@ export async function submitJob(
   qirFile: Uint8Array | string,
   providerId: string,
   target: string,
-  context: vscode.ExtensionContext) {
+  context: vscode.ExtensionContext,
+) {
   const associationId = getRandomGuid();
   const start = performance.now();
   sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
