@@ -310,6 +310,227 @@ impl Display for Res {
     }
 }
 
+/// A global item.
+pub enum Global<'a> {
+    /// A global callable.
+    Callable(&'a CallableDecl),
+    /// A global user-defined type.
+    Udt,
+}
+
+/// A unique identifier for an item within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreItemId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The item ID.
+    pub item: LocalItemId,
+}
+
+impl Display for StoreItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<item {} in package {}>", self.item, self.package)
+    }
+}
+
+impl StoreItemId {
+    /// Creates a `StoreItemId`.
+    #[must_use]
+    pub fn from(package: PackageId, item: LocalItemId) -> Self {
+        Self { package, item }
+    }
+}
+
+/// A unique identifier for a block within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreBlockId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The item ID.
+    pub block: BlockId,
+}
+
+impl Display for StoreBlockId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<block {} in package {}>", self.block, self.package)
+    }
+}
+
+impl StoreBlockId {
+    /// Creates a `StoreBlockId`.
+    #[must_use]
+    pub fn from(package: PackageId, block: BlockId) -> Self {
+        Self { package, block }
+    }
+}
+
+/// A unique identifier for an expression within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreExprId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The expression ID.
+    pub expr: ExprId,
+}
+
+impl Display for StoreExprId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<expression {} in package {}>", self.expr, self.package)
+    }
+}
+
+impl StoreExprId {
+    /// Creates an `StoreExprId`.
+    #[must_use]
+    pub fn from(package: PackageId, expr: ExprId) -> Self {
+        Self { package, expr }
+    }
+}
+
+/// A unique identifier for a pattern within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StorePatId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The pat ID.
+    pub pat: PatId,
+}
+
+impl Display for StorePatId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<pattern {} in package {}>", self.pat, self.package)
+    }
+}
+
+impl StorePatId {
+    /// Creates a `StorePatId`.
+    #[must_use]
+    pub fn from(package: PackageId, pat: PatId) -> Self {
+        Self { package, pat }
+    }
+}
+
+/// A unique identifier for a statement within a package store.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreStmtId {
+    /// The package ID.
+    pub package: PackageId,
+    /// The statement ID.
+    pub stmt: StmtId,
+}
+
+impl Display for StoreStmtId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<pattern {} in package {}>", self.stmt, self.package)
+    }
+}
+
+impl StoreStmtId {
+    /// Creates a `StoreStmtId`.
+    #[must_use]
+    pub fn from(package: PackageId, stmt: StmtId) -> Self {
+        Self { package, stmt }
+    }
+}
+
+/// A trait to find elements in a package store.
+pub trait PackageStoreLookup {
+    /// Gets a block.
+    fn get_block(&self, id: StoreBlockId) -> &Block;
+    /// Gets an expression.
+    fn get_expr(&self, id: StoreExprId) -> &Expr;
+    /// Gets a global.
+    fn get_global(&self, id: StoreItemId) -> Option<Global>;
+    /// Gets an item.
+    fn get_item(&self, id: StoreItemId) -> &Item;
+    /// Gets a pat.
+    fn get_pat(&self, id: StorePatId) -> &Pat;
+    /// Gets a statement.
+    fn get_stmt(&self, id: StoreStmtId) -> &Stmt;
+}
+
+/// A FIR package store.
+#[derive(Debug, Default)]
+pub struct PackageStore(IndexMap<PackageId, Package>);
+
+impl PackageStoreLookup for PackageStore {
+    fn get_block(&self, id: StoreBlockId) -> &Block {
+        self.get(id.package)
+            .expect("Package not found")
+            .get_block(id.block)
+    }
+
+    fn get_expr(&self, id: StoreExprId) -> &Expr {
+        self.get(id.package)
+            .expect("Package not found")
+            .get_expr(id.expr)
+    }
+
+    fn get_global(&self, id: StoreItemId) -> Option<Global> {
+        self.get(id.package)
+            .and_then(|package| package.get_global(id.item))
+    }
+
+    fn get_item(&self, id: StoreItemId) -> &Item {
+        self.get(id.package)
+            .expect("Package not found")
+            .get_item(id.item)
+    }
+
+    fn get_pat(&self, id: StorePatId) -> &Pat {
+        self.get(id.package)
+            .expect("Package not found")
+            .get_pat(id.pat)
+    }
+
+    fn get_stmt(&self, id: StoreStmtId) -> &Stmt {
+        self.get(id.package)
+            .expect("Package not found")
+            .get_stmt(id.stmt)
+    }
+}
+
+impl PackageStore {
+    /// Gets a package from the store.
+    #[must_use]
+    pub fn get(&self, id: PackageId) -> Option<&Package> {
+        self.0.get(id)
+    }
+
+    /// Gets a mutable package from the store.
+    #[must_use]
+    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut Package> {
+        self.0.get_mut(id)
+    }
+
+    /// Inserts a package to the store.
+    pub fn insert(&mut self, id: PackageId, package: Package) {
+        self.0.insert(id, package);
+    }
+
+    /// Creates a package store.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+/// A trait to find elements in a package.
+pub trait PackageLookup {
+    /// Gets a block.
+    fn get_block(&self, id: BlockId) -> &Block;
+    /// Gets an expression.
+    fn get_expr(&self, id: ExprId) -> &Expr;
+    /// Gets a global.
+    fn get_global(&self, id: LocalItemId) -> Option<Global>;
+    /// Gets an item.
+    fn get_item(&self, id: LocalItemId) -> &Item;
+    /// Gets a pat.
+    fn get_pat(&self, id: PatId) -> &Pat;
+    /// Gets a statement.
+    fn get_stmt(&self, id: StmtId) -> &Stmt;
+}
+
 /// The root node of the FIR.
 /// ### Notes
 /// We maintain a dense map of ids within the package.
@@ -348,6 +569,36 @@ impl Display for Package {
             write!(indent, "\n{item}")?;
         }
         Ok(())
+    }
+}
+
+impl PackageLookup for Package {
+    fn get_block(&self, id: BlockId) -> &Block {
+        self.blocks.get(id).expect("Block not found")
+    }
+
+    fn get_expr(&self, id: ExprId) -> &Expr {
+        self.exprs.get(id).expect("Expression not found")
+    }
+
+    fn get_global(&self, id: LocalItemId) -> Option<Global> {
+        match &self.items.get(id)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        }
+    }
+
+    fn get_item(&self, id: LocalItemId) -> &Item {
+        self.items.get(id).expect("Item not found")
+    }
+
+    fn get_pat(&self, id: PatId) -> &Pat {
+        self.pats.get(id).expect("Pattern not found")
+    }
+
+    fn get_stmt(&self, id: StmtId) -> &Stmt {
+        self.stmts.get(id).expect("Statement not found")
     }
 }
 

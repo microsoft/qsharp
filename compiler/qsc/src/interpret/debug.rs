@@ -5,16 +5,15 @@
 mod tests;
 
 use qsc_eval::debug::{map_fir_package_to_hir, Frame};
+use qsc_fir::fir::{Global, PackageStoreLookup, StoreItemId};
 use qsc_frontend::compile::PackageStore;
-
-use qsc_eval::{val::GlobalId, Global, NodeLookup};
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
 
 #[must_use]
 pub(crate) fn format_call_stack(
     store: &PackageStore,
-    globals: &impl NodeLookup,
+    globals: &impl PackageStoreLookup,
     frames: Vec<Frame>,
     error: &dyn std::error::Error,
 ) -> String {
@@ -26,7 +25,7 @@ pub(crate) fn format_call_stack(
     frames.reverse();
 
     for frame in frames {
-        let Some(Global::Callable(call)) = globals.get(frame.id) else {
+        let Some(Global::Callable(call)) = globals.get_global(frame.id) else {
             panic!("missing global");
         };
 
@@ -56,7 +55,7 @@ pub(crate) fn format_call_stack(
 }
 
 #[must_use]
-fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
+fn get_item_parent(store: &PackageStore, id: StoreItemId) -> Option<Item> {
     let package = map_fir_package_to_hir(id.package);
     let item = hir::LocalItemId::from(usize::from(id.item));
     store.get(package).and_then(|unit| {
@@ -71,7 +70,7 @@ fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
 }
 
 #[must_use]
-fn get_item_file_name(store: &PackageStore, id: GlobalId) -> Option<String> {
+fn get_item_file_name(store: &PackageStore, id: StoreItemId) -> Option<String> {
     let package = map_fir_package_to_hir(id.package);
     let item = hir::LocalItemId::from(usize::from(id.item));
     store.get(package).and_then(|unit| {
