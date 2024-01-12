@@ -310,9 +310,17 @@ impl Display for Res {
     }
 }
 
+/// A global item.
+pub enum Global<'a> {
+    /// A global callable.
+    Callable(&'a CallableDecl),
+    /// A global user-defined type.
+    Udt,
+}
+
 /// A unique identifier for an item within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StoreItemId {
+pub struct ItemLookupId {
     /// The package ID.
     pub package: PackageId,
     /// The item ID.
@@ -321,7 +329,7 @@ pub struct StoreItemId {
 
 /// A unique identifier for a block within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StoreBlockId {
+pub struct BlockLookupId {
     /// The package ID.
     pub package: PackageId,
     /// The item ID.
@@ -330,7 +338,7 @@ pub struct StoreBlockId {
 
 /// A unique identifier for an expression within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StoreExprId {
+pub struct ExprLookupId {
     /// The package ID.
     pub package: PackageId,
     /// The expression ID.
@@ -339,7 +347,7 @@ pub struct StoreExprId {
 
 /// A unique identifier for a pattern within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StorePatId {
+pub struct PatLookupId {
     /// The package ID.
     pub package: PackageId,
     /// The pat ID.
@@ -348,53 +356,81 @@ pub struct StorePatId {
 
 /// A unique identifier for a statement within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StoreStmtId {
+pub struct StmtLookupId {
     /// The package ID.
     pub package: PackageId,
     /// The statement ID.
     pub stmt: StmtId,
 }
 
+/// A trait to find elements in a package store.
+pub trait PackageStoreLookup {
+    /// Gets a block.
+    fn get_block(&self, id: BlockLookupId) -> &Block;
+    /// Gets an expression.
+    fn get_expr(&self, id: ExprLookupId) -> &Expr;
+    /// Gets a global.
+    fn get_global(&self, id: ItemLookupId) -> Option<Global>;
+    /// Gets an item.
+    fn get_item(&self, id: ItemLookupId) -> &Item;
+    /// Gets a pat.
+    fn get_pat(&self, id: PatLookupId) -> &Pat;
+    /// Gets a statement.
+    fn get_stmt(&self, id: StmtLookupId) -> &Stmt;
+}
+
 /// A FIR package store.
 #[derive(Debug)]
 pub struct PackageStore(IndexMap<PackageId, Package>);
 
-impl PackageStore {
-    /// Gets a block from the store.
-    #[must_use]
-    pub fn get_block(&self, id: StoreBlockId) -> &Block {
+impl PackageStoreLookup for PackageStore {
+    fn get_block(&self, id: BlockLookupId) -> &Block {
         self.get_package(id.package).get_block(id.block)
     }
 
-    /// Gets an expression from the store.
-    #[must_use]
-    pub fn get_expr(&self, id: StoreExprId) -> &Expr {
+    fn get_expr(&self, id: ExprLookupId) -> &Expr {
         self.get_package(id.package).get_expr(id.expr)
     }
 
-    /// Gets an item from the store.
-    #[must_use]
-    pub fn get_item(&self, id: StoreItemId) -> &Item {
+    fn get_global(&self, id: ItemLookupId) -> Option<Global> {
+        self.get_package(id.package).get_global(id.item)
+    }
+
+    fn get_item(&self, id: ItemLookupId) -> &Item {
         self.get_package(id.package).get_item(id.item)
     }
 
+    fn get_pat(&self, id: PatLookupId) -> &Pat {
+        self.get_package(id.package).get_pat(id.pat)
+    }
+
+    fn get_stmt(&self, id: StmtLookupId) -> &Stmt {
+        self.get_package(id.package).get_stmt(id.stmt)
+    }
+}
+
+impl PackageStore {
     /// Gets a package from the store.
     #[must_use]
     pub fn get_package(&self, id: PackageId) -> &Package {
         self.0.get(id).expect("Package not found")
     }
+}
 
-    /// Gets a pattern from the store.
-    #[must_use]
-    pub fn get_pat(&self, id: StorePatId) -> &Pat {
-        self.get_package(id.package).get_pat(id.pat)
-    }
-
-    /// Gets a statement from the store.
-    #[must_use]
-    pub fn get_stmt(&self, id: StoreStmtId) -> &Stmt {
-        self.get_package(id.package).get_stmt(id.stmt)
-    }
+/// A trait to find elements in a package.
+pub trait PackageLookup {
+    /// Gets a block.
+    fn get_block(&self, id: BlockId) -> &Block;
+    /// Gets an expression.
+    fn get_expr(&self, id: ExprId) -> &Expr;
+    /// Gets a global.
+    fn get_global(&self, id: LocalItemId) -> Option<Global>;
+    /// Gets an item.
+    fn get_item(&self, id: LocalItemId) -> &Item;
+    /// Gets a pat.
+    fn get_pat(&self, id: PatId) -> &Pat;
+    /// Gets a statement.
+    fn get_stmt(&self, id: StmtId) -> &Stmt;
 }
 
 /// The root node of the FIR.
@@ -438,34 +474,32 @@ impl Display for Package {
     }
 }
 
-impl Package {
-    /// Gets a block from the package.
-    #[must_use]
-    pub fn get_block(&self, id: BlockId) -> &Block {
+impl PackageLookup for Package {
+    fn get_block(&self, id: BlockId) -> &Block {
         self.blocks.get(id).expect("Block not found")
     }
 
-    /// Gets an expression from the package.
-    #[must_use]
-    pub fn get_expr(&self, id: ExprId) -> &Expr {
+    fn get_expr(&self, id: ExprId) -> &Expr {
         self.exprs.get(id).expect("Expression not found")
     }
 
-    /// Gets a block from the package.
-    #[must_use]
-    pub fn get_item(&self, id: LocalItemId) -> &Item {
+    fn get_global(&self, id: LocalItemId) -> Option<Global> {
+        match &self.get_item(id).kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        }
+    }
+
+    fn get_item(&self, id: LocalItemId) -> &Item {
         self.items.get(id).expect("Item not found")
     }
 
-    /// Gets a pattern from the package.
-    #[must_use]
-    pub fn get_pat(&self, id: PatId) -> &Pat {
+    fn get_pat(&self, id: PatId) -> &Pat {
         self.pats.get(id).expect("Pattern not found")
     }
 
-    /// Gets a statement from the package.
-    #[must_use]
-    pub fn get_stmt(&self, id: StmtId) -> &Stmt {
+    fn get_stmt(&self, id: StmtId) -> &Stmt {
         self.stmts.get(id).expect("Statement not found")
     }
 }
