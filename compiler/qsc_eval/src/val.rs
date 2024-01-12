@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use num_bigint::BigInt;
-use qsc_fir::fir::{ItemLookupId, Pauli};
+use qsc_fir::fir::{Pauli, StoreItemId};
 use std::{
     fmt::{self, Display, Formatter},
     iter,
@@ -16,9 +16,9 @@ pub enum Value {
     Array(Rc<Vec<Value>>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(Rc<[Value]>, ItemLookupId, FunctorApp),
+    Closure(Rc<[Value]>, StoreItemId, FunctorApp),
     Double(f64),
-    Global(ItemLookupId, FunctorApp),
+    Global(StoreItemId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
     Qubit(Qubit),
@@ -242,7 +242,7 @@ impl Value {
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Global`].
     #[must_use]
-    pub fn unwrap_global(self) -> (ItemLookupId, FunctorApp) {
+    pub fn unwrap_global(self) -> (StoreItemId, FunctorApp) {
         let Value::Global(id, functor) = self else {
             panic!("value should be Global, got {}", self.type_name());
         };

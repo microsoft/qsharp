@@ -5,7 +5,7 @@
 mod tests;
 
 use qsc_eval::debug::{map_fir_package_to_hir, Frame};
-use qsc_fir::fir::{Global, ItemLookupId, PackageStoreLookup};
+use qsc_fir::fir::{Global, PackageStoreLookup, StoreItemId};
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
@@ -55,7 +55,7 @@ pub(crate) fn format_call_stack(
 }
 
 #[must_use]
-fn get_item_parent(store: &PackageStore, id: ItemLookupId) -> Option<Item> {
+fn get_item_parent(store: &PackageStore, id: StoreItemId) -> Option<Item> {
     let package = map_fir_package_to_hir(id.package);
     let item = hir::LocalItemId::from(usize::from(id.item));
     store.get(package).and_then(|unit| {
@@ -70,7 +70,7 @@ fn get_item_parent(store: &PackageStore, id: ItemLookupId) -> Option<Item> {
 }
 
 #[must_use]
-fn get_item_file_name(store: &PackageStore, id: ItemLookupId) -> Option<String> {
+fn get_item_file_name(store: &PackageStore, id: StoreItemId) -> Option<String> {
     let package = map_fir_package_to_hir(id.package);
     let item = hir::LocalItemId::from(usize::from(id.item));
     store.get(package).and_then(|unit| {

@@ -352,7 +352,7 @@ fn block_qubit_use_array_invalid_count_expr() {
                             lo: 1573,
                             hi: 1625,
                         },
-                        id: ItemLookupId {
+                        id: StoreItemId {
                             package: PackageId(
                                 0,
                             ),
@@ -2913,7 +2913,7 @@ fn call_adjoint_expr() {
                             lo: 190,
                             hi: 214,
                         },
-                        id: ItemLookupId {
+                        id: StoreItemId {
                             package: PackageId(
                                 2,
                             ),
@@ -2977,7 +2977,7 @@ fn call_adjoint_adjoint_expr() {
                             lo: 124,
                             hi: 145,
                         },
-                        id: ItemLookupId {
+                        id: StoreItemId {
                             package: PackageId(
                                 2,
                             ),
@@ -3036,7 +3036,7 @@ fn call_adjoint_self_expr() {
                             lo: 116,
                             hi: 137,
                         },
-                        id: ItemLookupId {
+                        id: StoreItemId {
                             package: PackageId(
                                 2,
                             ),

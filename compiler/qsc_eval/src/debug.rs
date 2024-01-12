@@ -5,13 +5,13 @@ use qsc_data_structures::span::Span;
 
 use crate::val::FunctorApp;
 use qsc_fir::fir;
-use qsc_fir::fir::{ItemLookupId, PackageId};
+use qsc_fir::fir::{PackageId, StoreItemId};
 use qsc_hir::hir;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Frame {
     pub span: Span,
-    pub id: ItemLookupId,
+    pub id: StoreItemId,
     pub caller: PackageId,
     pub functor: FunctorApp,
 }
