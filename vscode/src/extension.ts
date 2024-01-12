@@ -44,8 +44,6 @@ import { getManifest, readFile, listDir } from "./projectSystem.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
-  log.error("here", process.platform);
-  log.error( JSON.stringify(process));
   log.info("Q# extension activating.");
   initTelemetry(context);
 

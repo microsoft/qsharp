@@ -229,8 +229,6 @@ export function initTelemetry(context: vscode.ExtensionContext) {
   if (!packageJson) {
     return;
   }
-  log.error("here", process.platform);
-  log.error( JSON.stringify(process));
   reporter = new TelemetryReporter(packageJson.aiKey);
 
   sendTelemetryEvent(EventType.InitializePlugin, {}, {});
