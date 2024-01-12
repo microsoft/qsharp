@@ -359,6 +359,44 @@ pub struct StoreStmtId {
 #[derive(Debug)]
 pub struct PackageStore(IndexMap<PackageId, Package>);
 
+impl PackageStore {
+    /// Gets a block from the store.
+    #[must_use]
+    pub fn get_block(&self, id: StoreBlockId) -> &Block {
+        self.get_package(id.package).get_block(id.block)
+    }
+
+    /// Gets an expression from the store.
+    #[must_use]
+    pub fn get_expr(&self, id: StoreExprId) -> &Expr {
+        self.get_package(id.package).get_expr(id.expr)
+    }
+
+    /// Gets an item from the store.
+    #[must_use]
+    pub fn get_item(&self, id: StoreItemId) -> &Item {
+        self.get_package(id.package).get_item(id.item)
+    }
+
+    /// Gets a package from the store.
+    #[must_use]
+    pub fn get_package(&self, id: PackageId) -> &Package {
+        self.0.get(id).expect("Package not found")
+    }
+
+    /// Gets a pattern from the store.
+    #[must_use]
+    pub fn get_pat(&self, id: StorePatId) -> &Pat {
+        self.get_package(id.package).get_pat(id.pat)
+    }
+
+    /// Gets a statement from the store.
+    #[must_use]
+    pub fn get_stmt(&self, id: StoreStmtId) -> &Stmt {
+        self.get_package(id.package).get_stmt(id.stmt)
+    }
+}
+
 /// The root node of the FIR.
 /// ### Notes
 /// We maintain a dense map of ids within the package.
@@ -397,6 +435,38 @@ impl Display for Package {
             write!(indent, "\n{item}")?;
         }
         Ok(())
+    }
+}
+
+impl Package {
+    /// Gets a block from the package.
+    #[must_use]
+    pub fn get_block(&self, id: BlockId) -> &Block {
+        self.blocks.get(id).expect("Block not found")
+    }
+
+    /// Gets an expression from the package.
+    #[must_use]
+    pub fn get_expr(&self, id: ExprId) -> &Expr {
+        self.exprs.get(id).expect("Expression not found")
+    }
+
+    /// Gets a block from the package.
+    #[must_use]
+    pub fn get_item(&self, id: LocalItemId) -> &Item {
+        self.items.get(id).expect("Item not found")
+    }
+
+    /// Gets a pattern from the package.
+    #[must_use]
+    pub fn get_pat(&self, id: PatId) -> &Pat {
+        self.pats.get(id).expect("Pattern not found")
+    }
+
+    /// Gets a statement from the package.
+    #[must_use]
+    pub fn get_stmt(&self, id: StmtId) -> &Stmt {
+        self.stmts.get(id).expect("Statement not found")
     }
 }
 
