@@ -75,9 +75,8 @@ export const log = {
    * @param args - The format string and args to log, e.g. ["Index of %s is %i", str, index]
    */
   logWithLevel(level: number, target: string, ...args: any) {
-    // Convert to a format string containing the target (if present)
-    const [, ...trailingArgs] = args; // All but first element of args
-    const outArgs = [`[%s] ${args[0]}`, target || "", ...trailingArgs];
+    const [firstArg, ...trailingArgs] = args;
+    const outArgs = [`[${target || ""}] ${firstArg}`, ...trailingArgs];
     switch (level) {
       case 1:
         log.error(...outArgs);

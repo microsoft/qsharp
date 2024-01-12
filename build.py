@@ -410,6 +410,6 @@ if build_jupyterlab:
 
 if args.integration_tests:
     step_start("Running the VS Code integration tests")
-    vscode_args = [npm_cmd, "test", "--", "--verbose"]
+    vscode_args = [npm_cmd, "test"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
     step_end()
