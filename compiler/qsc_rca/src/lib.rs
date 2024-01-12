@@ -7,7 +7,7 @@
 mod tests;
 
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{ExprId, LocalItemId, Package, PackageId, PatId};
+use qsc_fir::fir::{ExprId, LocalItemId, PackageId, PackageStore, PatId};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 
 /// The compute properties of a package store.
@@ -15,9 +15,9 @@ use qsc_frontend::compile::RuntimeCapabilityFlags;
 pub struct PackageStoreComputeProps(IndexMap<PackageId, PackageComputeProps>);
 
 impl PackageStoreComputeProps {
-    pub fn with_default_packages(fir_store: IndexMap<PackageId, Package>) -> Self {
+    pub fn with_default_packages(fir_store: &PackageStore) -> Self {
         let mut package_store_compute_props = IndexMap::new();
-        for (id, _) in fir_store {
+        for (id, _) in fir_store.iter() {
             package_store_compute_props.insert(id, PackageComputeProps::default());
         }
         Self(package_store_compute_props)
@@ -96,7 +96,7 @@ impl Analyzer {
         &self.package_store_compute_props
     }
 
-    pub fn new(fir_store: IndexMap<PackageId, Package>, open_package_id: PackageId) -> Self {
+    pub fn new(fir_store: &PackageStore, open_package_id: PackageId) -> Self {
         Self {
             package_store_compute_props: PackageStoreComputeProps::with_default_packages(fir_store),
             _open_package_id: open_package_id,
