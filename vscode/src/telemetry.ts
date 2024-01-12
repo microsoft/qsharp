@@ -262,7 +262,7 @@ function getBrowserRelease(): string {
 }
 
 export function getUserAgent(context: vscode.ExtensionContext): string {
-  let version = context.extension?.packageJSON?.version;
-  let browserAndRelease = getBrowserRelease();
+  const version = context.extension?.packageJSON?.version;
+  const browserAndRelease = getBrowserRelease();
   return `VSCode/${version} ${browserAndRelease}`;
 }

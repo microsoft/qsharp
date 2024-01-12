@@ -17,12 +17,7 @@ import {
   shouldExcludeTarget,
 } from "./providerProperties";
 import { getRandomGuid } from "../utils";
-import {
-  EventType,
-  getUserAgent,
-  sendTelemetryEvent,
-  UserFlowStatus,
-} from "../telemetry";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
@@ -120,9 +115,9 @@ workspace = azure.quantum.Workspace(
   return pythonCode;
 }
 
-export async function queryWorkspaces(): Promise<
-  WorkspaceConnection | undefined
-> {
+export async function queryWorkspaces(
+  context: vscode.ExtensionContext,
+): Promise<WorkspaceConnection | undefined> {
   log.debug("Querying for account workspaces");
   const associationId = getRandomGuid();
   const start = performance.now();
@@ -153,6 +148,7 @@ export async function queryWorkspaces(): Promise<
   const tenants: ResponseTypes.TenantList = await azureRequest(
     azureUris.tenants(),
     firstToken,
+    context,
     associationId,
   );
   log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
@@ -229,6 +225,7 @@ export async function queryWorkspaces(): Promise<
   const subs: ResponseTypes.SubscriptionList = await azureRequest(
     azureUris.subscriptions(),
     tenantToken,
+    context,
     associationId,
   );
   log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
@@ -270,6 +267,7 @@ export async function queryWorkspaces(): Promise<
   const workspaces: ResponseTypes.WorkspaceList = await azureRequest(
     azureUris.workspaces(subId),
     tenantToken,
+    context,
     associationId,
   );
   if (log.getLogLevel() >= 5) {
@@ -363,7 +361,10 @@ export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
 // Reference for existing queries in Python SDK and Azure schema:
 // - https://github.com/microsoft/qdk-python/blob/main/azure-quantum/azure/quantum/_client/aio/operations/_operations.py
 // - https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/data-plane/Microsoft.Quantum/preview/2022-09-12-preview/quantum.json
-export async function queryWorkspace(workspace: WorkspaceConnection) {
+export async function queryWorkspace(
+  workspace: WorkspaceConnection,
+  context: vscode.ExtensionContext,
+) {
   const start = performance.now();
   const token = await getTokenForWorkspace(workspace);
 
@@ -375,6 +376,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   const providerStatus: ResponseTypes.ProviderStatusList = await azureRequest(
     quantumUris.providerStatus(),
     token,
+    context,
     associationId,
   );
   if (log.getLogLevel() >= 5) {
@@ -402,6 +404,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   const jobs: ResponseTypes.JobList = await azureRequest(
     quantumUris.jobs(),
     token,
+    context,
     associationId,
   );
   log.debug(`Query returned ${jobs.value.length} jobs`);
@@ -446,6 +449,7 @@ export async function getJobFiles(
   blobName: string,
   token: string,
   quantumUris: QuantumUris,
+  context: vscode.ExtensionContext,
 ): Promise<string> {
   const start = performance.now();
   const associationId = getRandomGuid();
@@ -456,6 +460,7 @@ export async function getJobFiles(
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
+    context,
     associationId,
     "POST",
     body,
@@ -466,6 +471,7 @@ export async function getJobFiles(
   const file = await storageRequest(
     sasUri,
     "GET",
+    context,
     useProxy ? token : undefined,
     useProxy ? quantumUris.storageProxy() : undefined,
   );
@@ -541,6 +547,7 @@ export async function submitJob(
   const sasResponse = await azureRequest(
     quantumUris.sasUri(),
     token,
+    context,
     associationId,
     "POST",
     body,
@@ -562,9 +569,10 @@ export async function submitJob(
   await storageRequest(
     containerPutUri,
     "PUT",
+    context,
     useProxy ? token : undefined,
     useProxy ? quantumUris.storageProxy() : undefined,
-    [["UserAgent", getUserAgent(context)]],
+    undefined,
     undefined,
     associationId,
   );
@@ -574,6 +582,7 @@ export async function submitJob(
   await storageRequest(
     inputDataUri,
     "PUT",
+    context,
     useProxy ? token : undefined,
     useProxy ? quantumUris.storageProxy() : undefined,
     [
@@ -607,6 +616,7 @@ export async function submitJob(
   await azureRequest(
     putJobUri,
     token,
+    context,
     associationId,
     "PUT",
     JSON.stringify(payload),

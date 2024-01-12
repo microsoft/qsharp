@@ -1,8 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import * as vscode from "vscode";
 import { log } from "qsharp-lang";
-import { EventType, UserFlowStatus, sendTelemetryEvent } from "../telemetry";
+import {
+  EventType,
+  UserFlowStatus,
+  getUserAgent,
+  sendTelemetryEvent,
+} from "../telemetry";
 import { getRandomGuid } from "../utils";
 
 const publicMgmtEndpoint = "https://management.azure.com";
@@ -12,6 +18,7 @@ export const useProxy = true;
 export async function azureRequest(
   uri: string,
   token: string,
+  context: vscode.ExtensionContext,
   associationId?: string,
   method = "GET",
   body?: string,
@@ -19,6 +26,7 @@ export async function azureRequest(
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
     ["Content-Type", "application/json"],
+    ["User-Agent", getUserAgent(context)],
   ];
 
   try {
@@ -66,6 +74,7 @@ export async function azureRequest(
 export async function storageRequest(
   uri: string,
   method: string,
+  context: vscode.ExtensionContext,
   token?: string,
   proxy?: string,
   extraHeaders?: [string, string][],
@@ -75,6 +84,7 @@ export async function storageRequest(
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
+    ["User-Agent", getUserAgent(context)],
   ];
   if (token) headers.push(["Authorization", `Bearer ${token}`]);
 
@@ -200,7 +210,11 @@ export class StorageUris {
   }
 }
 
-export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
+export async function checkCorsConfig(
+  token: string,
+  quantumUris: QuantumUris,
+  context: vscode.ExtensionContext,
+) {
   const associationId = getRandomGuid();
   const start = performance.now();
   sendTelemetryEvent(EventType.CheckCorsStart, { associationId }, {});
@@ -212,6 +226,7 @@ export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
+    context,
     associationId,
     "POST",
     body,
