@@ -884,13 +884,11 @@ dependencies = [
  "criterion",
  "env_logger",
  "expect-test",
- "fasteval",
  "indoc",
  "log",
  "miette",
  "num-bigint",
  "num-complex",
- "probability",
  "qsc_ast",
  "qsc_codegen",
  "qsc_data_structures",
@@ -900,11 +898,7 @@ dependencies = [
  "qsc_hir",
  "qsc_passes",
  "qsc_project",
- "rand",
- "regex-lite",
  "rustc-hash",
- "serde",
- "serde_json",
  "thiserror",
 ]
 
@@ -1061,6 +1055,7 @@ dependencies = [
  "qsc_codegen",
  "qsc_project",
  "qsls",
+ "resource_estimator",
  "rustc-hash",
  "serde",
  "serde-wasm-bindgen",
@@ -1078,6 +1073,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
+ "resource_estimator",
  "rustc-hash",
 ]
 
@@ -1207,6 +1203,26 @@ name = "regex-syntax"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
+
+[[package]]
+name = "resource_estimator"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "fasteval",
+ "indoc",
+ "miette",
+ "num-bigint",
+ "num-complex",
+ "probability",
+ "qsc",
+ "rand",
+ "regex-lite",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
 
 [[package]]
 name = "rustc-demangle"

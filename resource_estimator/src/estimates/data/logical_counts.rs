@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::interpret::stateful::re::LogicalResources;
+use crate::LogicalResources;
 use serde::{Deserialize, Serialize};
 use std::convert::From;
 

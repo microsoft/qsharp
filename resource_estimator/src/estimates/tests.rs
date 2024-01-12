@@ -3,7 +3,7 @@
 
 use serde_json::Value;
 
-use crate::interpret::stateful::re::LogicalResources;
+use crate::LogicalResources;
 
 use super::estimate_physical_resources;
 
