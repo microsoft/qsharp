@@ -327,6 +327,20 @@ pub struct ItemLookupId {
     pub item: LocalItemId,
 }
 
+impl Display for ItemLookupId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<item {} in package {}>", self.item, self.package)
+    }
+}
+
+impl ItemLookupId {
+    /// Creates a `ItemLookupId`.
+    #[must_use]
+    pub fn from(package: PackageId, item: LocalItemId) -> Self {
+        Self { package, item }
+    }
+}
+
 /// A unique identifier for a block within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BlockLookupId {
@@ -334,6 +348,20 @@ pub struct BlockLookupId {
     pub package: PackageId,
     /// The item ID.
     pub block: BlockId,
+}
+
+impl Display for BlockLookupId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<block {} in package {}>", self.block, self.package)
+    }
+}
+
+impl BlockLookupId {
+    /// Creates a `BlockLookupId`.
+    #[must_use]
+    pub fn from(package: PackageId, block: BlockId) -> Self {
+        Self { package, block }
+    }
 }
 
 /// A unique identifier for an expression within a package store.
@@ -345,6 +373,20 @@ pub struct ExprLookupId {
     pub expr: ExprId,
 }
 
+impl Display for ExprLookupId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<expression {} in package {}>", self.expr, self.package)
+    }
+}
+
+impl ExprLookupId {
+    /// Creates an `ExprLookupId`.
+    #[must_use]
+    pub fn from(package: PackageId, expr: ExprId) -> Self {
+        Self { package, expr }
+    }
+}
+
 /// A unique identifier for a pattern within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PatLookupId {
@@ -354,6 +396,20 @@ pub struct PatLookupId {
     pub pat: PatId,
 }
 
+impl Display for PatLookupId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<pattern {} in package {}>", self.pat, self.package)
+    }
+}
+
+impl PatLookupId {
+    /// Creates a `PatLookupId`.
+    #[must_use]
+    pub fn from(package: PackageId, pat: PatId) -> Self {
+        Self { package, pat }
+    }
+}
+
 /// A unique identifier for a statement within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StmtLookupId {
@@ -361,6 +417,20 @@ pub struct StmtLookupId {
     pub package: PackageId,
     /// The statement ID.
     pub stmt: StmtId,
+}
+
+impl Display for StmtLookupId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<pattern {} in package {}>", self.stmt, self.package)
+    }
+}
+
+impl StmtLookupId {
+    /// Creates a `StmtLookupId`.
+    #[must_use]
+    pub fn from(package: PackageId, stmt: StmtId) -> Self {
+        Self { package, stmt }
+    }
 }
 
 /// A trait to find elements in a package store.
@@ -380,40 +450,68 @@ pub trait PackageStoreLookup {
 }
 
 /// A FIR package store.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PackageStore(IndexMap<PackageId, Package>);
 
 impl PackageStoreLookup for PackageStore {
     fn get_block(&self, id: BlockLookupId) -> &Block {
-        self.get_package(id.package).get_block(id.block)
+        self.get(id.package)
+            .expect("Package not found")
+            .get_block(id.block)
     }
 
     fn get_expr(&self, id: ExprLookupId) -> &Expr {
-        self.get_package(id.package).get_expr(id.expr)
+        self.get(id.package)
+            .expect("Package not found")
+            .get_expr(id.expr)
     }
 
     fn get_global(&self, id: ItemLookupId) -> Option<Global> {
-        self.get_package(id.package).get_global(id.item)
+        self.get(id.package)
+            .and_then(|package| package.get_global(id.item))
     }
 
     fn get_item(&self, id: ItemLookupId) -> &Item {
-        self.get_package(id.package).get_item(id.item)
+        self.get(id.package)
+            .expect("Package not found")
+            .get_item(id.item)
     }
 
     fn get_pat(&self, id: PatLookupId) -> &Pat {
-        self.get_package(id.package).get_pat(id.pat)
+        self.get(id.package)
+            .expect("Package not found")
+            .get_pat(id.pat)
     }
 
     fn get_stmt(&self, id: StmtLookupId) -> &Stmt {
-        self.get_package(id.package).get_stmt(id.stmt)
+        self.get(id.package)
+            .expect("Package not found")
+            .get_stmt(id.stmt)
     }
 }
 
 impl PackageStore {
     /// Gets a package from the store.
     #[must_use]
-    pub fn get_package(&self, id: PackageId) -> &Package {
-        self.0.get(id).expect("Package not found")
+    pub fn get(&self, id: PackageId) -> Option<&Package> {
+        self.0.get(id)
+    }
+
+    /// Gets a mutable package from the store.
+    #[must_use]
+    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut Package> {
+        self.0.get_mut(id)
+    }
+
+    /// Inserts a package to the store.
+    pub fn insert(&mut self, id: PackageId, package: Package) {
+        self.0.insert(id, package);
+    }
+
+    /// Creates a package store.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -484,7 +582,7 @@ impl PackageLookup for Package {
     }
 
     fn get_global(&self, id: LocalItemId) -> Option<Global> {
-        match &self.get_item(id).kind {
+        match &self.items.get(id)?.kind {
             ItemKind::Callable(callable) => Some(Global::Callable(callable)),
             ItemKind::Namespace(..) => None,
             ItemKind::Ty(..) => Some(Global::Udt),

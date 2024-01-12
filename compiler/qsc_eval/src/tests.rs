@@ -7,17 +7,15 @@ use crate::{
     backend::{Backend, SparseSim},
     debug::{map_hir_package_to_fir, Frame},
     output::{GenericReceiver, Receiver},
-    val::{self, GlobalId},
-    Env, Error, Global, NodeLookup, State, StepAction, StepResult, Value,
+    val, Env, Error, State, StepAction, StepResult, Value,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::index_map::IndexMap;
-
-use qsc_fir::fir::{BlockId, ExprId, ItemKind, PackageId, PatId, StmtId};
+use qsc_fir::fir;
+use qsc_fir::fir::{ExprId, PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
-
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
+
 /// Evaluates the given expression with the given context.
 /// Creates a new environment and simulator.
 /// # Errors
@@ -25,7 +23,7 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 pub(super) fn eval_expr(
     expr: ExprId,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    globals: &impl NodeLookup,
+    globals: &impl PackageStoreLookup,
     package: PackageId,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
@@ -38,61 +36,6 @@ pub(super) fn eval_expr(
         unreachable!("eval_expr should always return a value");
     };
     Ok(value)
-}
-
-struct Lookup<'a> {
-    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
-}
-
-impl<'a> Lookup<'a> {
-    fn get_package(&self, package: PackageId) -> &qsc_fir::fir::Package {
-        self.fir_store
-            .get(package)
-            .expect("Package should be in FIR store")
-    }
-}
-
-impl<'a> NodeLookup for Lookup<'a> {
-    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
-        get_global(self.fir_store, id)
-    }
-    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
-        self.get_package(package)
-            .blocks
-            .get(id)
-            .expect("BlockId should have been lowered")
-    }
-    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr {
-        self.get_package(package)
-            .exprs
-            .get(id)
-            .expect("ExprId should have been lowered")
-    }
-    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat {
-        self.get_package(package)
-            .pats
-            .get(id)
-            .expect("PatId should have been lowered")
-    }
-    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt {
-        self.get_package(package)
-            .stmts
-            .get(id)
-            .expect("StmtId should have been lowered")
-    }
-}
-
-pub(super) fn get_global(
-    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
-    id: GlobalId,
-) -> Option<Global> {
-    fir_store
-        .get(id.package)
-        .and_then(|package| match &package.items.get(id.item)?.kind {
-            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
-            ItemKind::Namespace(..) => None,
-            ItemKind::Ty(..) => Some(Global::Udt),
-        })
 }
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
@@ -128,7 +71,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let entry = unit_fir.entry.expect("package should have entry");
     let id = store.insert(unit);
 
-    let mut fir_store = IndexMap::new();
+    let mut fir_store = fir::PackageStore::new();
     fir_store.insert(
         map_hir_package_to_fir(qsc_hir::hir::PackageId::CORE),
         core_fir,
@@ -137,13 +80,10 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
     let mut out = Vec::new();
-    let lookup = Lookup {
-        fir_store: &fir_store,
-    };
     match eval_expr(
         entry,
         &mut SparseSim::new(),
-        &lookup,
+        &fir_store,
         map_hir_package_to_fir(id),
         &mut GenericReceiver::new(&mut out),
     ) {
@@ -412,7 +352,7 @@ fn block_qubit_use_array_invalid_count_expr() {
                             lo: 1573,
                             hi: 1625,
                         },
-                        id: GlobalId {
+                        id: ItemLookupId {
                             package: PackageId(
                                 0,
                             ),
@@ -2973,7 +2913,7 @@ fn call_adjoint_expr() {
                             lo: 190,
                             hi: 214,
                         },
-                        id: GlobalId {
+                        id: ItemLookupId {
                             package: PackageId(
                                 2,
                             ),
@@ -3037,7 +2977,7 @@ fn call_adjoint_adjoint_expr() {
                             lo: 124,
                             hi: 145,
                         },
-                        id: GlobalId {
+                        id: ItemLookupId {
                             package: PackageId(
                                 2,
                             ),
@@ -3096,7 +3036,7 @@ fn call_adjoint_self_expr() {
                             lo: 116,
                             hi: 137,
                         },
-                        id: GlobalId {
+                        id: ItemLookupId {
                             package: PackageId(
                                 2,
                             ),
