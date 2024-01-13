@@ -134,6 +134,11 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
                     Fake();
                 }
                 operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
+                internal operation Hidden() : Unit {}
+            }
+
+            namespace Microsoft.Quantum.Unstable {
+                operation UnstableFake() : Unit {}
             }"#
             .into(),
         )],

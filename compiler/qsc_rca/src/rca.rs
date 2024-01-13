@@ -16,20 +16,12 @@ pub fn analyze_package_and_update_compute_props(
 
     // Analyze all items in the package.
     for (item_id, _) in &package.items {
-        analyze_item_and_update_compute_props(
-            StoreItemId::from(id, item_id),
-            package_store,
-            compute_props,
-        );
+        analyze_item_and_update_compute_props((id, item_id).into(), package_store, compute_props);
     }
 
     // Analyze all statements in the package.
     for (stmt_id, _) in &package.stmts {
-        analyze_stmt_and_update_compute_props(
-            StoreStmtId::from(id, stmt_id),
-            package_store,
-            compute_props,
-        );
+        analyze_stmt_and_update_compute_props((id, stmt_id).into(), package_store, compute_props);
     }
 }
 
