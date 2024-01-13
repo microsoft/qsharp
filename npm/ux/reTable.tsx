@@ -17,24 +17,6 @@ export type ReData = {
   frontierEntries: FrontierEntry[];
 };
 
-export type ReportData = {
-  groups: ReportGroup[];
-  assumptions: string[];
-};
-
-export type ReportGroup = {
-  title: string;
-  alwaysVisible: boolean;
-  entries: ReportEntry[];
-};
-
-export type ReportEntry = {
-  path: string;
-  label: string;
-  description: string;
-  explanation: string;
-};
-
 export type FrontierEntry = {
   logicalQubit: any;
   tfactory: any;
@@ -43,16 +25,52 @@ export type FrontierEntry = {
   physicalCountsFormatted: any;
 };
 
+export function CreateReData(
+  input: ReData,
+  frontierEntryIndex: number | null = null,
+): ReData {
+  if (
+    input.frontierEntries == null ||
+    input.frontierEntries.length === 0 ||
+    frontierEntryIndex == null
+  ) {
+    return input;
+  } else {
+    if (
+      frontierEntryIndex < 0 ||
+      frontierEntryIndex >= input.frontierEntries.length
+    ) {
+      frontierEntryIndex = 0;
+    }
+
+    const entry = input.frontierEntries[frontierEntryIndex];
+    return {
+      status: input.status,
+      jobParams: input.jobParams,
+      physicalCounts: entry.physicalCounts,
+      physicalCountsFormatted: entry.physicalCountsFormatted,
+      logicalQubit: entry.logicalQubit,
+      tfactory: entry.tfactory,
+      errorBudget: entry.errorBudget,
+      logicalCounts: input.logicalCounts,
+      frontierEntries: input.frontierEntries,
+      new: input.new,
+    };
+  }
+}
+
 export function ReTable(props: {
   mdRenderer: (input: string) => string;
   estimatesData: ReData;
+  index: number | null;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const toggleDetail = () => {
     setShowDetail(!showDetail);
   };
 
-  const reportData = CreateReport(props.estimatesData);
+  const estimatesData = CreateReData(props.estimatesData, props.index);
+  const reportData = CreateReport(estimatesData);
 
   return (
     <div>
@@ -77,7 +95,7 @@ export function ReTable(props: {
                 const path = entry.path.split("/");
                 let value = path.reduce(
                   (obj, key) => obj[key],
-                  props.estimatesData as any,
+                  estimatesData as any,
                 );
                 // Check if value is not a primitive type
                 if (typeof value === "object") {

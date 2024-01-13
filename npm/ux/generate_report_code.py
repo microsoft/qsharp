@@ -41,7 +41,7 @@ path_map = {
     "jobParams/qecScheme/logicalCycleTime": "result.jobParams.qecScheme.logicalCycleTime",
     "jobParams/qecScheme/physicalQubitsPerLogicalQubit": "result.jobParams.qecScheme.physicalQubitsPerLogicalQubit",
     "jobParams/qubitParams/tGateErrorRate": "result.jobParams.qubitParams.tGateErrorRate",
-    "logicalCounts/ccixCount": "formatThousandSep(result.logicalCounts.fccixCount)",
+    "logicalCounts/ccixCount": "formatThousandSep(result.logicalCounts.ccixCount)",
     "logicalCounts/cczCount": "formatThousandSep(result.logicalCounts.cczCount)",
     "logicalCounts/measurementCount": "formatThousandSep(result.logicalCounts.measurementCount)",
     "logicalCounts/numQubits": "formatThousandSep(result.logicalCounts.numQubits)",
@@ -49,37 +49,37 @@ path_map = {
     "logicalCounts/rotationDepth": "formatThousandSep(result.logicalCounts.rotationDepth)",
     "logicalCounts/tCount": "formatThousandSep(result.logicalCounts.tCount)",
     "logicalQubit/codeDistance": "result.logicalQubit.codeDistance",
-    "logicalQubit/logicalCyclesPerSecond": "formatThousandSepF64(result.logicalQubit.logicalCyclesPerSecond)",
+    "logicalQubit/logicalCyclesPerSecond": "formatThousandSepF64(result.physicalCounts.breakdown.clockFrequency)",
     "logicalQubit/logicalCycleTime": "formatThousandSep(result.logicalQubit.logicalCycleTime)",
     "logicalQubit/physicalQubits": "formatThousandSep(result.logicalQubit.physicalQubits)",
-    "physicalCounts/breakdown/algorithmicLogicalDepth": "formatThousandSep(result.algorithmicLogicalDepth)",
-    "physicalCounts/breakdown/algorithmicLogicalQubits": "formatThousandSep(result.layoutOverhead.logicalQubits)",
-    "physicalCounts/breakdown/cliffordErrorRate": "result.logicalQubit.physicalQubit.cliffordErrorRate",
-    "physicalCounts/breakdown/logicalDepth": "formatThousandSep(result.physcialCounts.breakdown.numCycles)",
-    "physicalCounts/breakdown/physicalQubitsForAlgorithm": "formatThousandSep(result.physcialCounts.breakdown.physicalQubitsForAlgorithm)",
-    "physicalCounts/breakdown/physicalQubitsForTfactories": "formatThousandSep(result.physcialCounts.breakdown.physicalQubitsForTfactories)",
-    "physicalCounts/breakdown/numTfactories": "formatThousandSep(result.physcialCounts.breakdown.numTfactories)",
-    "physicalCounts/breakdown/numTfactoryRuns": "formatThousandSep(result.physcialCounts.breakdown.numTfactoryRuns)",
-    "physicalCounts/breakdown/numTstates": "formatThousandSep(result.physcialCounts.breakdown.numTstates)",
-    "physicalCounts/breakdown/requiredLogicalQubitErrorRate": "result.physcialCounts.breakdown.requiredLogicalQubitErrorRate",
-    "physicalCounts/physicalQubits": "formatThousandSep(result.physcialCounts.breakdown.physicalQubits)",
-    "physicalCounts/runtime": "formatThousandSep(result.physcialCounts.breakdown.runtime)",
-    "physicalCountsFormatted/clockFrequency": "result.physcialCountFormatted.clockFrequency",
-    "physicalCountsFormatted/errorBudget": "result.physcialCountFormatted.errorBudget",
-    "physicalCountsFormatted/errorBudgetLogical": "result.physcialCountFormatted.errorBudgetLogical",
-    "physicalCountsFormatted/errorBudgetRotations": "result.physcialCountFormatted.errorBudgetRotations",
-    "physicalCountsFormatted/errorBudgetTstates": "result.physcialCountFormatted.errorBudgetTstates",
-    "physicalCountsFormatted/logicalCycleTime": "result.physcialCountFormatted.logicalCycleTime",
-    "physicalCountsFormatted/numTsPerRotation": "result.physcialCountFormatted.numTsPerRotation",
-    "physicalCountsFormatted/requiredLogicalQubitErrorRate": "result.physcialCountFormatteds.requiredLogicalQubitErrorRate",
-    "physicalCountsFormatted/requiredLogicalTstateErrorRate": "result.physcialCountFormatted.requiredLogicalTstateErrorRate",
-    "physicalCountsFormatted/runtime": "result.physcialCountFormatted.runtime",
-    "physicalCountsFormatted/tfactoryRuntime": "result.physcialCountFormatted.tfactory_runtime",
-    "physicalCountsFormatted/tstateLogicalErrorRate": "result.physcialCountFormatted.tstateLogicalErrorRate",
-    "tfactory/physicalQubits": "formatThousandSep(result.tfactory == null ? 0 result.tfactory.physical_qubits)",
-    "tfactory/numInputTstates": "formatThousandSep(result.tfactory == null ? 0 result.tfactory.input_t_count)",
-    "tfactory/numTstates": "formatThousandSep(result.tfactory == null ? 0 result.tfactory.output_t_count)",
-    "tfactory/runtime": "formatThousandSep(result.tfactory == null ? 0 result.tfactory.duration)",
+    "physicalCounts/breakdown/algorithmicLogicalDepth": "formatThousandSep(result.physicalCountsFormatted.algorithmicLogicalDepth)",
+    "physicalCounts/breakdown/algorithmicLogicalQubits": "formatThousandSep(result.physicalCounts.breakdown.algorithmicLogicalQubits)",
+    "physicalCounts/breakdown/cliffordErrorRate": "result.physicalCounts.breakdown.cliffordErrorRate",
+    "physicalCounts/breakdown/logicalDepth": "formatThousandSep(result.physicalCounts.breakdown.logicalDepth)",
+    "physicalCounts/breakdown/physicalQubitsForAlgorithm": "formatThousandSep(result.physicalCounts.breakdown.physicalQubitsForAlgorithm)",
+    "physicalCounts/breakdown/physicalQubitsForTfactories": "formatThousandSep(result.physicalCounts.breakdown.physicalQubitsForTfactories)",
+    "physicalCounts/breakdown/numTfactories": "formatThousandSep(result.physicalCounts.breakdown.numTfactories)",
+    "physicalCounts/breakdown/numTfactoryRuns": "formatThousandSep(result.physicalCounts.breakdown.numTfactoryRuns)",
+    "physicalCounts/breakdown/numTstates": "formatThousandSep(result.physicalCounts.breakdown.numTstates)",
+    "physicalCounts/breakdown/requiredLogicalQubitErrorRate": "result.physicalCounts.breakdown.requiredLogicalQubitErrorRate",
+    "physicalCounts/physicalQubits": "formatThousandSep(result.physicalCounts.physicalQubits)",
+    "physicalCounts/runtime": "formatThousandSep(result.physicalCounts.runtime)",
+    "physicalCountsFormatted/clockFrequency": "result.physicalCountsFormatted.clockFrequency",
+    "physicalCountsFormatted/errorBudget": "result.physicalCountsFormatted.errorBudget",
+    "physicalCountsFormatted/errorBudgetLogical": "result.physicalCountsFormatted.errorBudgetLogical",
+    "physicalCountsFormatted/errorBudgetRotations": "result.physicalCountsFormatted.errorBudgetRotations",
+    "physicalCountsFormatted/errorBudgetTstates": "result.physicalCountsFormatted.errorBudgetTstates",
+    "physicalCountsFormatted/logicalCycleTime": "result.physicalCountsFormatted.logicalCycleTime",
+    "physicalCountsFormatted/numTsPerRotation": "result.physicalCountsFormatted.numTsPerRotation",
+    "physicalCountsFormatted/requiredLogicalQubitErrorRate": "result.physicalCountsFormatted.requiredLogicalQubitErrorRate",
+    "physicalCountsFormatted/requiredLogicalTstateErrorRate": "result.physicalCountsFormatted.requiredLogicalTstateErrorRate",
+    "physicalCountsFormatted/runtime": "result.physicalCountsFormatted.runtime",
+    "physicalCountsFormatted/tfactoryRuntime": "result.physicalCountsFormatted.tfactoryRuntime",
+    "physicalCountsFormatted/tstateLogicalErrorRate": "result.physicalCountsFormatted.tstateLogicalErrorRate",
+    "tfactory/physicalQubits": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.physicalQubits)",
+    "tfactory/numInputTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numresultTstates)",
+    "tfactory/numTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numTstates)",
+    "tfactory/runtime": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.runtime)",
 }
 
 print()
@@ -155,7 +155,7 @@ def create_fmt_string(string):
         if path in ignore_paths:
             pos = string.find("`", pos2 + 1)
         else:
-            string = string[:pos] + "{" + path_map[path] + "}" + string[pos2 + 1 :]
+            string = string[:pos] + "${" + path_map[path] + "}" + string[pos2 + 1 :]
             pos = string.find("`", pos + 1)
 
     # Find in-math \mathtt{paths}
@@ -164,7 +164,7 @@ def create_fmt_string(string):
         pos2 = string.find("}", pos + 1)
         path = string[pos + 8 : pos2]
 
-        string = string[:pos] + "{" + path_map[path] + "}" + string[pos2 + 1 :]
+        string = string[:pos] + "${" + path_map[path] + "}" + string[pos2 + 1 :]
         pos = string.find("\\mathtt{", pos + 1)
 
     if len(args) != 0:
@@ -181,14 +181,9 @@ def create_fmt_string(string):
             else:
                 cur += 1
 
-        # return f'&format!(r#"{string}"#, {args_list})'
-        string = string.replace("`", "\\`")
-        string = string.replace("'", "\\'")
-        return f"'{string}'"
-    else:
-        string = string.replace("`", "\\`")
-        string = string.replace("'", "\\'")
-        return f"'{string}'"
+    string = string.replace("\\", "\\\\")
+    string = string.replace("`", "\\`")
+    return f"`{string}`"
 
 
 with open("output_data.md", "r") as f:

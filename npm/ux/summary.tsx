@@ -5,7 +5,7 @@
 // The results table is also a legend for the scatter chart.
 
 import { ColorMap } from "./colormap.js";
-import { FrontierEntry, ReData } from "./reTable.js";
+import { CreateReData, FrontierEntry, ReData } from "./reTable.js";
 import { ResultsTable, Row } from "./resultsTable.js";
 import {
   Axis,
@@ -43,29 +43,6 @@ const yAxis: Axis = {
   isTime: false,
   label: "Physical Qubits",
 };
-
-export function CreateReData(
-  input: ReData,
-  frontierEntryIndex: number,
-): ReData {
-  if (input.frontierEntries == null || input.frontierEntries.length === 0) {
-    return input;
-  } else {
-    const entry = input.frontierEntries[frontierEntryIndex];
-    return {
-      status: input.status,
-      jobParams: input.jobParams,
-      physicalCounts: entry.physicalCounts,
-      physicalCountsFormatted: entry.physicalCountsFormatted,
-      logicalQubit: entry.logicalQubit,
-      tfactory: entry.tfactory,
-      errorBudget: entry.errorBudget,
-      logicalCounts: input.logicalCounts,
-      frontierEntries: input.frontierEntries,
-      new: input.new,
-    };
-  }
-}
 
 function reDataToRow(input: ReData, color: string): Row {
   const data = CreateReData(input, 0);
@@ -149,7 +126,8 @@ export function Summary(props: {
       item.jobParams.runName = props.runNames[idx];
     } else {
       if (item.jobParams.runName == null) {
-        item.jobParams.runName = `(${idx + 1})`;
+        // Start indexing with 0 to match with the original object indexing.
+        item.jobParams.runName = `(${idx})`;
       }
     }
   });

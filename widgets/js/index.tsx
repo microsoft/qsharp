@@ -50,24 +50,35 @@ export function render({ model, el }: RenderArgs) {
 function renderTable({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
+    const index = model.get("index");
     prender(
-      <ReTable estimatesData={estimates} mdRenderer={mdRenderer}></ReTable>,
+      <ReTable
+        estimatesData={estimates}
+        index={index}
+        mdRenderer={mdRenderer}
+      ></ReTable>,
       el,
     );
   };
 
   onChange();
   model.on("change:estimates", onChange);
+  model.on("change:index", onChange);
 }
 
 function renderChart({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
-    prender(<SpaceChart estimatesData={estimates}></SpaceChart>, el);
+    const index = model.get("index");
+    prender(
+      <SpaceChart estimatesData={estimates} index={index}></SpaceChart>,
+      el,
+    );
   };
 
   onChange();
   model.on("change:estimates", onChange);
+  model.on("change:index", onChange);
 }
 
 function renderSummary({ model, el }: RenderArgs) {

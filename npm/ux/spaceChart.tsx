@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ReData } from "./reTable.js";
+import { CreateReData, ReData } from "./reTable.js";
 
 function getPieSegment(
   x: number,
@@ -26,8 +26,12 @@ function getPieSegment(
   return d;
 }
 
-export function SpaceChart(props: { estimatesData: ReData }) {
-  const breakdown = props.estimatesData.physicalCounts.breakdown;
+export function SpaceChart(props: {
+  estimatesData: ReData;
+  index: number | null;
+}) {
+  const estimatesData = CreateReData(props.estimatesData, props.index);
+  const breakdown = estimatesData.physicalCounts.breakdown;
 
   // The values to be shown on the pie chart
   const physicalQubitsAlgorithm = breakdown.physicalQubitsForAlgorithm;
@@ -72,7 +76,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
           Total physical qubits
         </text>
         <text x="250" y="220" text-anchor="middle" font-size="32">
-          {props.estimatesData.physicalCountsFormatted.physicalQubits}
+          {estimatesData.physicalCountsFormatted.physicalQubits}
         </text>
         <rect
           x="125"
@@ -110,7 +114,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
         <div class="spaceReportRow">
           <div class="spaceDetailText">Total physical qubits</div>
           <div>
-            {props.estimatesData.physicalCounts.physicalQubits.toLocaleString()}
+            {estimatesData.physicalCounts.physicalQubits.toLocaleString()}
           </div>
         </div>
         <div class="spaceReportHeader">T factory parameters</div>
@@ -139,7 +143,7 @@ export function SpaceChart(props: { estimatesData: ReData }) {
         <div class="spaceReportRow">
           <div class="spaceDetailText">Physical qubits</div>
           <div>
-            {props.estimatesData.logicalQubit.physicalQubits.toLocaleString()}
+            {estimatesData.logicalQubit.physicalQubits.toLocaleString()}
           </div>
         </div>
       </div>

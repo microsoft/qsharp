@@ -65,6 +65,8 @@ export function RePage(props: {
         isSimplifiedView={false}
         onRowDeleted={props.onRowDeleted}
         setEstimate={setEstimate}
+        runNames={null}
+        colors={null}
       ></Summary>
       {!estimate ? null : (
         <>
@@ -72,7 +74,7 @@ export function RePage(props: {
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
               Space diagram
             </summary>
-            <SpaceChart estimatesData={estimate} />
+            <SpaceChart estimatesData={estimate} index={null} />
           </details>
           <details open>
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
