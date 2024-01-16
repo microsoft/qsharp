@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::interpret::stateful::re::estimates::modeling::GateBasedPhysicalQubit;
+use crate::interpret::stateful::re::estimates::modeling::{DistanceLookup, GateBasedPhysicalQubit};
 
 use super::{
     super::super::{
@@ -824,6 +824,14 @@ fn code_distance_tests() {
 
     let ftp = Protocol::surface_code_gate_based();
 
+    let DistanceLookup::ByFormula {
+        error_correction_threshold,
+        crossing_prefactor,
+    } = ftp.code_distance_lookup()
+    else {
+        unreachable!("surface_code_gate_based has formula specification")
+    };
+
     for logical_qubits in (50..=1000).step_by(50) {
         for num_cycles in (50_000..=500_000).step_by(50_000) {
             for exp in 1..=15 {
@@ -833,10 +841,8 @@ fn code_distance_tests() {
                     budget_logical / (logical_qubits * num_cycles) as f64;
 
                 let qubit = params.qubit_params().clone();
-                let numerator =
-                    2.0 * (ftp.crossing_prefactor() / required_logical_qubit_error_rate).ln();
-                let denominator =
-                    (ftp.error_correction_threshold() / qubit.clifford_error_rate()).ln();
+                let numerator = 2.0 * (crossing_prefactor / required_logical_qubit_error_rate).ln();
+                let denominator = (error_correction_threshold / qubit.clifford_error_rate()).ln();
                 let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
 
                 assert!(code_distance <= ftp.max_code_distance());
