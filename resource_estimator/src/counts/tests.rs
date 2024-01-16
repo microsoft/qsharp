@@ -5,13 +5,13 @@
 
 use std::convert::Into;
 
-use crate::{
+use expect_test::{expect, Expect};
+use indoc::indoc;
+use qsc::{
     interpret::{stateful::Interpreter, GenericReceiver},
     target::Profile,
     PackageType, SourceMap,
 };
-use expect_test::{expect, Expect};
-use indoc::indoc;
 
 use super::LogicalCounter;
 
