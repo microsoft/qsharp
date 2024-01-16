@@ -10,9 +10,11 @@ pub fn analyze_package_and_update_compute_props(
     compute_props: &mut PackageStoreComputeProps,
 ) {
     // Clear current compute properties of the package to make sure we are performing a coherent analysis on it.
-    let package_compute_props = compute_props.get_mut(id);
+    let package_compute_props = compute_props
+        .get_mut(id)
+        .expect("package compute properties should exist");
     package_compute_props.clear();
-    let package = package_store.get(id).expect("package does not exist");
+    let package = package_store.get(id).expect("package should exist");
 
     // Analyze all items in the package.
     for (item_id, _) in &package.items {
