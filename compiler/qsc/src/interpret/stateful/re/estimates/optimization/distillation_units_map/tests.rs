@@ -24,7 +24,7 @@ fn create_default_units_for_distance<'a>(
 ) -> Vec<&'a TFactoryDistillationUnit<'a>> {
     if position == 0 && distance == 1 {
         (0..distillation_units_map.num_physical_distillation_units)
-            .map(|idx| {
+            .filter_map(|idx| {
                 distillation_units_map.get(
                     position,
                     distance,
@@ -34,7 +34,7 @@ fn create_default_units_for_distance<'a>(
             .collect::<Vec<_>>()
     } else {
         (0..distillation_units_map.num_logical_distillation_units)
-            .map(|idx| distillation_units_map.get(position, distance, idx))
+            .filter_map(|idx| distillation_units_map.get(position, distance, idx))
             .collect::<Vec<_>>()
     }
 }
@@ -273,13 +273,13 @@ fn test_map_creation_no_purely_physical_templates_filtered_out_by_is_valid_condi
     assert!(map.num_physical_distillation_units == 0);
     assert!(map.num_logical_distillation_units == 2);
     assert!(map.num_combined_distillation_units == 2);
-    assert_eq!(map.get(0, 1, 0).name, "combined1");
-    assert_eq!(map.get(0, 1, 1).name, "combined2");
+    assert_eq!(map.get(0, 1, 0).map(|i| i.name.as_str()), Some("combined1"));
+    assert_eq!(map.get(0, 1, 1).map(|i| i.name.as_str()), Some("combined2"));
 
-    assert_eq!(map.get(0, 3, 0).name, "combined1");
-    assert_eq!(map.get(0, 3, 1).name, "combined2");
-    assert_eq!(map.get(0, 3, 2).name, "logical1");
-    assert_eq!(map.get(0, 3, 3).name, "logical2");
+    assert_eq!(map.get(0, 3, 0).map(|i| i.name.as_str()), Some("combined1"));
+    assert_eq!(map.get(0, 3, 1).map(|i| i.name.as_str()), Some("combined2"));
+    assert_eq!(map.get(0, 3, 2).map(|i| i.name.as_str()), Some("logical1"));
+    assert_eq!(map.get(0, 3, 3).map(|i| i.name.as_str()), Some("logical2"));
 }
 
 #[test]
@@ -290,15 +290,15 @@ fn test_map_creation_with_purely_physical_templates() {
     assert!(map.num_physical_distillation_units == 2);
     assert!(map.num_logical_distillation_units == 2);
     assert!(map.num_combined_distillation_units == 2);
-    assert_eq!(map.get(0, 1, 0).name, "combined1");
-    assert_eq!(map.get(0, 1, 1).name, "combined2");
-    assert_eq!(map.get(0, 1, 4).name, "physical1");
-    assert_eq!(map.get(0, 1, 5).name, "physical2");
+    assert_eq!(map.get(0, 1, 0).map(|i| i.name.as_str()), Some("combined1"));
+    assert_eq!(map.get(0, 1, 1).map(|i| i.name.as_str()), Some("combined2"));
+    assert_eq!(map.get(0, 1, 4).map(|i| i.name.as_str()), Some("physical1"));
+    assert_eq!(map.get(0, 1, 5).map(|i| i.name.as_str()), Some("physical2"));
 
-    assert_eq!(map.get(0, 3, 0).name, "combined1");
-    assert_eq!(map.get(0, 3, 1).name, "combined2");
-    assert_eq!(map.get(0, 3, 2).name, "logical1");
-    assert_eq!(map.get(0, 3, 3).name, "logical2");
+    assert_eq!(map.get(0, 3, 0).map(|i| i.name.as_str()), Some("combined1"));
+    assert_eq!(map.get(0, 3, 1).map(|i| i.name.as_str()), Some("combined2"));
+    assert_eq!(map.get(0, 3, 2).map(|i| i.name.as_str()), Some("logical1"));
+    assert_eq!(map.get(0, 3, 3).map(|i| i.name.as_str()), Some("logical2"));
 }
 
 #[test]
@@ -309,9 +309,9 @@ fn test_map_creation_with_purely_physical_and_no_combined_templates() {
     assert!(map.num_physical_distillation_units == 1);
     assert!(map.num_logical_distillation_units == 2);
     assert!(map.num_combined_distillation_units == 0);
-    assert_eq!(map.get(0, 1, 2).name, "physical1");
-    assert_eq!(map.get(0, 3, 0).name, "logical1");
-    assert_eq!(map.get(0, 3, 1).name, "logical2");
+    assert_eq!(map.get(0, 1, 2).map(|i| i.name.as_str()), Some("physical1"));
+    assert_eq!(map.get(0, 3, 0).map(|i| i.name.as_str()), Some("logical1"));
+    assert_eq!(map.get(0, 3, 1).map(|i| i.name.as_str()), Some("logical2"));
 }
 
 #[test]
@@ -327,52 +327,60 @@ fn test_first_round_overrides_applied() {
     assert!(map.num_combined_distillation_units == 4);
 
     // physical
-    let unit1_1 = map.get(0, 1, 2);
-    assert_eq!(unit1_1.name, "combined with override");
-    assert_eq!(unit1_1.physical_qubits(0), 1);
-    assert_eq!(unit1_1.duration(0), 200);
+    assert_eq!(
+        map.get(0, 1, 2)
+            .map(|i| (i.name.as_str(), i.physical_qubits(0), i.duration(0))),
+        Some(("combined with override", 1, 200))
+    );
 
     // physical
-    let unit1_2 = map.get(0, 1, 3);
-    assert_eq!(unit1_2.name, "combined without override");
-    assert_eq!(unit1_2.physical_qubits(0), 1);
-    assert_eq!(unit1_2.duration(0), 200);
+    assert_eq!(
+        map.get(0, 1, 3)
+            .map(|i| (i.name.as_str(), i.physical_qubits(0), i.duration(0))),
+        Some(("combined without override", 1, 200))
+    );
 
     // logical at subsequent round
-    let unit2_1 = map.get(1, 1, 2);
-    assert_eq!(unit2_1.name, "combined with override");
-    assert_eq!(unit2_1.physical_qubits(1), 12);
-    assert_eq!(unit2_1.duration(1), 1200);
+    assert_eq!(
+        map.get(1, 1, 2)
+            .map(|i| (i.name.as_str(), i.physical_qubits(1), i.duration(1))),
+        Some(("combined with override", 12, 1200))
+    );
 
     // logical at subsequent round
-    let unit2_2 = map.get(1, 1, 3);
-    assert_eq!(unit2_2.name, "combined without override");
-    assert_eq!(unit2_2.physical_qubits(1), 12);
-    assert_eq!(unit2_2.duration(1), 1200);
+    assert_eq!(
+        map.get(1, 1, 3)
+            .map(|i| (i.name.as_str(), i.physical_qubits(1), i.duration(1))),
+        Some(("combined without override", 12, 1200))
+    );
 
     // logical at first round. override
-    let unit3_1 = map.get(0, 3, 2);
-    assert_eq!(unit3_1.name, "combined with override");
-    assert_eq!(unit3_1.physical_qubits(0), 260);
-    assert_eq!(unit3_1.duration(0), 5400);
+    assert_eq!(
+        map.get(0, 3, 2)
+            .map(|i| (i.name.as_str(), i.physical_qubits(0), i.duration(0))),
+        Some(("combined with override", 260, 5400))
+    );
 
     // logical at first round. no override
-    let unit3_2 = map.get(0, 3, 3);
-    assert_eq!(unit3_2.name, "combined without override");
-    assert_eq!(unit3_2.physical_qubits(0), 156);
-    assert_eq!(unit3_2.duration(0), 3600);
+    assert_eq!(
+        map.get(0, 3, 3)
+            .map(|i| (i.name.as_str(), i.physical_qubits(0), i.duration(0))),
+        Some(("combined without override", 156, 3600))
+    );
 
     // logical at subsequent round
-    let unit4_1 = map.get(1, 3, 2);
-    assert_eq!(unit4_1.name, "combined with override");
-    assert_eq!(unit4_1.physical_qubits(1), 156);
-    assert_eq!(unit4_1.duration(1), 3600);
+    assert_eq!(
+        map.get(1, 3, 2)
+            .map(|i| (i.name.as_str(), i.physical_qubits(1), i.duration(1))),
+        Some(("combined with override", 156, 3600))
+    );
 
     // logical at subsequent round
-    let unit4_2 = map.get(1, 3, 3);
-    assert_eq!(unit4_2.name, "combined without override");
-    assert_eq!(unit4_2.physical_qubits(1), 156);
-    assert_eq!(unit4_2.duration(1), 3600);
+    assert_eq!(
+        map.get(1, 3, 3)
+            .map(|i| (i.name.as_str(), i.physical_qubits(1), i.duration(1))),
+        Some(("combined without override", 156, 3600))
+    );
 }
 
 #[test]

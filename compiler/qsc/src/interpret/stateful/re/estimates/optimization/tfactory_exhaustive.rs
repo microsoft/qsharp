@@ -86,6 +86,10 @@ where
         &mut self,
         units: &[&TFactoryDistillationUnit],
     ) -> bool {
+        if units.is_empty() {
+            return false;
+        }
+
         // This is the success probability of producing the expected number of T
         // states in sufficient quality (see Appendix C in paper)
         let (status, factory) = TFactory::build(units, 0.01);

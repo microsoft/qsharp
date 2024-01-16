@@ -137,7 +137,7 @@ impl<'a> DistillationUnitsMap<'a> {
             .collect()
     }
 
-    fn get(&self, position: usize, distance: u64, idx: usize) -> &TFactoryDistillationUnit {
+    fn get(&self, position: usize, distance: u64, idx: usize) -> Option<&TFactoryDistillationUnit> {
         // physical: combined, purely physical
         // logical: combined, purely logical
         // enumeration: combined, purely logical, purely physical
@@ -148,9 +148,11 @@ impl<'a> DistillationUnitsMap<'a> {
                 idx - self.num_logical_distillation_units
             };
 
-            &self.physical_distillation_units[index]
+            Some(&self.physical_distillation_units[index])
+        } else if idx < self.logical_distillation_units[distance as usize].len() {
+            Some(&self.logical_distillation_units[distance as usize][idx])
         } else {
-            &self.logical_distillation_units[distance as usize][idx]
+            None
         }
     }
 
@@ -216,7 +218,7 @@ impl<'a> DistillationUnitsMap<'a> {
             .iter()
             .zip(distance_indexes)
             .enumerate()
-            .map(|(position, (&idx, &distance_index))| {
+            .filter_map(|(position, (&idx, &distance_index))| {
                 self.get(position, self.distances[distance_index], idx)
             })
             .collect()

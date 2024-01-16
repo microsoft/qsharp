@@ -23,6 +23,13 @@ pub enum IO {
     #[error("cannot parse JSON: '{0}'")]
     #[diagnostic(code("Qsc.Estimates.IOError.CannotParseJSON"))]
     CannotParseJSON(serde_json::error::Error),
+    /// Captures various reasons that CSV cannot be parsed
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("cannot parse CSV")]
+    #[diagnostic(code("Qsc.Estimates.IOError.CannotParseCSV"))]
+    CannotParseCSV,
 }
 
 #[derive(Debug, Error, Diagnostic)]
@@ -84,6 +91,13 @@ pub enum InvalidInput {
     #[error("The computed code distance {0} is too high; maximum allowed code distance is {1}; try increasing the total logical error budget")]
     #[diagnostic(code("Qsc.Estimates.InvalidInputError.InvalidCodeDistance"))]
     InvalidCodeDistance(u64, u64),
+    /// Cannot lookup suitable code distance in table
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("There is no entry in the code distance table that is compatible with the provided physical error rate and required logical error rate")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.NoSuitableCodeDistance"))]
+    NoSuitableCodeDistance,
     /// Both constraints for maximal time and
     /// maximal number of qubits are provided
     ///

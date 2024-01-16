@@ -5,7 +5,7 @@
 mod tests;
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fs::read_to_string, path::Path};
 
 use super::{
     super::{
@@ -18,10 +18,10 @@ use super::{
         },
         error::{
             InvalidInput::{
-                InvalidFaultToleranceProtocol, NonPositiveLogicalCycleTime,
+                InvalidFaultToleranceProtocol, NoSuitableCodeDistance, NonPositiveLogicalCycleTime,
                 NonPositivePhysicalQubitsPerLogicalQubit,
             },
-            IO::CannotParseJSON,
+            IO::{CannotOpenFile, CannotParseCSV, CannotParseJSON},
         },
         Error, Result,
     },
@@ -59,10 +59,37 @@ impl Default for ProtocolSpecification {
 }
 
 #[derive(Debug)]
+pub struct DistanceTableEntry {
+    physical_error_rate: f64,
+    logical_error_rate: f64,
+    code_distance: u64,
+}
+
+impl DistanceTableEntry {
+    fn code_distance_filter(&self, code_distance: u64, physical_error_rate: f64) -> Option<f64> {
+        (self.code_distance == code_distance && self.physical_error_rate >= physical_error_rate)
+            .then_some(self.logical_error_rate)
+    }
+
+    fn logical_error_rate_filter(
+        &self,
+        logical_error_rate: f64,
+        physical_error_rate: f64,
+    ) -> Option<u64> {
+        (self.logical_error_rate <= logical_error_rate
+            && self.physical_error_rate >= physical_error_rate)
+            .then_some(self.code_distance)
+    }
+}
+
+#[derive(Debug)]
 pub enum DistanceLookup {
     ByFormula {
         error_correction_threshold: f64,
         crossing_prefactor: f64,
+    },
+    ByTable {
+        entries: Vec<DistanceTableEntry>,
     },
 }
 
@@ -102,6 +129,41 @@ impl DistanceLookup {
                             .powi((code_distance as i32 + 1) / 2)))
                 }
             }
+            Self::ByTable { entries } => entries
+                .iter()
+                .filter_map(|row| row.code_distance_filter(code_distance, physical_error_rate))
+                .reduce(f64::min)
+                .ok_or(Error::InvalidInput(NoSuitableCodeDistance)),
+        }
+    }
+
+    pub(crate) fn compute_code_distance(
+        &self,
+        qubit: &PhysicalQubit,
+        required_logical_qubit_error_rate: f64,
+    ) -> Result<u64> {
+        let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
+
+        match self {
+            &DistanceLookup::ByFormula {
+                error_correction_threshold,
+                crossing_prefactor,
+            } => {
+                let numerator = 2.0 * (crossing_prefactor / required_logical_qubit_error_rate).ln();
+                let denominator = (error_correction_threshold / physical_error_rate).ln();
+
+                Ok((((numerator / denominator) - 1.0).ceil() as u64) | 0x1)
+            }
+            DistanceLookup::ByTable { entries } => entries
+                .iter()
+                .filter_map(|row| {
+                    row.logical_error_rate_filter(
+                        required_logical_qubit_error_rate,
+                        physical_error_rate,
+                    )
+                })
+                .min()
+                .ok_or(Error::InvalidInput(NoSuitableCodeDistance)),
         }
     }
 }
@@ -191,6 +253,70 @@ impl Protocol {
         }
 
         Ok(ftp)
+    }
+
+    pub(crate) fn load_from_code_distance_table(
+        csvfile: impl AsRef<Path>,
+        instruction_set: PhysicalInstructionSet,
+        logical_cycle_time_expr: &str,
+        physical_qubits_per_logical_qubit_expr: &str,
+    ) -> Result<Self> {
+        let logical_cycle_time =
+            CompiledExpression::from_string(logical_cycle_time_expr, "logicalCycleTime")?;
+        let physical_qubits_per_logical_qubit = CompiledExpression::from_string(
+            physical_qubits_per_logical_qubit_expr,
+            "physicalQubitsPerLogicalQubit",
+        )?;
+
+        let mut max_code_distance = 0;
+        let mut entries = vec![];
+
+        for line in read_to_string(&csvfile)
+            .map_err(|_| {
+                Error::IO(CannotOpenFile(
+                    csvfile.as_ref().as_os_str().to_string_lossy().into(),
+                ))
+            })?
+            .lines()
+        {
+            let mut parts = line.trim().split(',');
+
+            if let (
+                Some(physical_error_rate),
+                Some(logical_error_rate),
+                Some(code_distance),
+                None,
+            ) = (
+                parts.next().and_then(|p| p.parse().ok()),
+                parts.next().and_then(|p| p.parse().ok()),
+                parts.next().and_then(|p| p.parse().ok()),
+                parts.next(),
+            ) {
+                if code_distance > max_code_distance {
+                    max_code_distance = code_distance;
+                }
+
+                entries.push(DistanceTableEntry {
+                    physical_error_rate,
+                    logical_error_rate,
+                    code_distance,
+                });
+            } else {
+                return Err(Error::IO(CannotParseCSV));
+            }
+        }
+
+        let code_distance_lookup = DistanceLookup::ByTable { entries };
+
+        Ok(Self {
+            instruction_set,
+            code_distance_lookup,
+            logical_cycle_time_expr: logical_cycle_time_expr.into(),
+            logical_cycle_time,
+            physical_qubits_per_logical_qubit_expr: physical_qubits_per_logical_qubit_expr.into(),
+            physical_qubits_per_logical_qubit,
+            max_code_distance,
+        })
     }
 
     fn base_protocol(

@@ -4,8 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use crate::interpret::stateful::re::estimates::modeling::DistanceLookup;
-
 use super::{
     super::{
         error::InvalidInput::{
@@ -1022,31 +1020,17 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
 
     // Compute code distance d (Equation (E2) in paper)
     fn compute_code_distance(&self, required_logical_qubit_error_rate: f64) -> u64 {
-        match self.ftp.code_distance_lookup() {
-            &DistanceLookup::ByFormula {
-                error_correction_threshold,
-                crossing_prefactor,
-            } => {
-                let numerator = 2.0 * (crossing_prefactor / required_logical_qubit_error_rate).ln();
-                let denominator =
-                    (error_correction_threshold / self.qubit.clifford_error_rate()).ln();
-
-                (((numerator / denominator) - 1.0).ceil() as u64) | 0x1
-            }
-        }
+        self.ftp
+            .code_distance_lookup()
+            .compute_code_distance(&self.qubit, required_logical_qubit_error_rate)
+            .expect("cannot fail at this moment")
     }
 
     fn compute_logical_error_rate(&self, code_distance: u64) -> f64 {
-        match self.ftp.code_distance_lookup() {
-            &DistanceLookup::ByFormula {
-                error_correction_threshold,
-                crossing_prefactor,
-            } => {
-                crossing_prefactor
-                    / (error_correction_threshold / self.qubit.clifford_error_rate())
-                        .powf(((code_distance + 1) / 2) as f64)
-            }
-        }
+        self.ftp
+            .code_distance_lookup()
+            .logical_failure_probability(&self.qubit, code_distance)
+            .expect("cannot fail at this moment")
     }
 
     // Possibly adjusts number of cycles C from initial starting point C_min
