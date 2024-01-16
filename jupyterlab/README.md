@@ -12,11 +12,11 @@ To install the Q# JupyterLab extension, run:
 pip install qsharp-jupyterlab
 ```
 
-To run Q# in Jupyter notebooks, remember to also install the `qsharp-lang` package: [https://pypi.org/project/qsharp-lang].
+To run Q# in Jupyter notebooks, remember to also install the `qsharp` package: [https://pypi.org/project/qsharp].
 
 ## Support
 
-For more documentation and to browse issues, please visit the Q# project wiki at [https://github.com/microsoft/qsharp/wiki].
+For more information about the Azure Quantum Development Kit, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
 
 ## Contributing
 

@@ -69,9 +69,9 @@ export function HelpPage() {
       <h2>Learn more</h2>
       <p>
         You can find out more about the latest features in the Azure Quantum
-        Development Kit by visiting the&nbsp;
-        <a href="https://github.com/microsoft/qsharp/wiki/Editing-Q%23-in-VS-Code">
-          wiki on our open source GitHub repository
+        Development Kit by visiting&nbsp;
+        <a href="https://aka.ms/AQ/Documentation">
+          https://aka.ms/AQ/Documentation.
         </a>
         .&nbsp;Happy coding!
       </p>

@@ -10,7 +10,6 @@ use crate::{
     },
     serializable_type,
 };
-use js_sys::JsString;
 use qsc::{self, target::Profile, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
@@ -131,13 +130,8 @@ impl LanguageService {
         );
     }
 
-    pub fn close_notebook_document(&mut self, notebook_uri: &str, cell_uris: Vec<JsString>) {
-        let cell_uris = cell_uris
-            .iter()
-            .map(|s| s.as_string().expect("expected string"))
-            .collect::<Vec<_>>();
-        self.0
-            .close_notebook_document(notebook_uri, cell_uris.iter().map(|s| s.as_str()));
+    pub fn close_notebook_document(&mut self, notebook_uri: &str) {
+        self.0.close_notebook_document(notebook_uri);
     }
 
     pub fn get_completions(&self, uri: &str, offset: u32) -> ICompletionList {

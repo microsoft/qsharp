@@ -1,7 +1,7 @@
 # Q# Language Support for Python
 
 Q# is an open-source, high-level programming language for developing and running quantum algorithms.
-The `qsharp-lang` package for Python provides interoperability with the Q# interpreter, making it easy
+The `qsharp` package for Python provides interoperability with the Q# interpreter, making it easy
 to simulate Q# programs within Python.
 
 ## Installation
@@ -9,7 +9,7 @@ to simulate Q# programs within Python.
 To install the Q# language package, run:
 
 ```bash
-pip install qsharp-lang
+pip install qsharp
 ```
 
 ## Usage
@@ -41,7 +41,7 @@ BellState()
 
 ## Support
 
-For more documentation and to browse issues, please visit the Q# project wiki at [https://github.com/microsoft/qsharp/wiki].
+For more information about the Azure Quantum Development Kit, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
 
 ## Contributing
 

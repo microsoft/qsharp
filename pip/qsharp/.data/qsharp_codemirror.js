@@ -47,7 +47,7 @@ if (window.require && window.CodeMirror && window.Jupyter) {
       },
       {
         token: "operatorKeyword",
-        regex: String.raw`(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)|(\\|)|(\\&\\&\\&)|(\\~\\~\\~)|(\\.\\.\\.)|(\\.\\.)|(\\?)`,
+        regex: String.raw`(=)|(!)|(<)|(>)|(\+)|(-)|(\*)|(/)|(\^)|(%)|(\|)|(&&&)|(~~~)|(\.\.\.)|(\.\.)|(\?)`,
         beginWord: false,
       },
       {

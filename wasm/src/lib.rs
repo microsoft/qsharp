@@ -9,19 +9,17 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::*;
 use qsc::{
-    compile::{self},
+    compile,
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
-        stateful::{
-            self,
-            re::{self, estimate_entry},
-        },
+        stateful,
     },
     target::Profile,
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
+use resource_estimator::{self as re, estimate_entry};
 use serde_json::json;
 use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;

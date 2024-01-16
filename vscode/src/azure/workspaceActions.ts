@@ -475,7 +475,7 @@ export async function getJobFiles(
       },
       { timeToCompleteMs: performance.now() - start },
     );
-    throw "No file returned";
+    throw new Error("Storage service did not return a file.");
   }
 
   const blob = await file.text();

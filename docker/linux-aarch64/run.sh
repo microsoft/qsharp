@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "SCRIPT_DIR: ${SCRIPT_DIR}"
 
-TAG="${TAG:-qsharp-lang-linux-aarch64-runner}"
+TAG="${TAG:-qsharp-linux-aarch64-runner}"
 echo "TAG: ${TAG}"
 
 VOLUME_ROOT=$(realpath ${SCRIPT_DIR}/../..)

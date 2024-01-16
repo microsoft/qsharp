@@ -254,7 +254,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///   Phys. Rev. A 87, 022328, 2013
     ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
     ///   doi:10.1103/PhysRevA.87.022328
-    @Config(Full)
+    @Config(Unrestricted)
     internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
     : Unit is Adj { // NOTE: Eventually this operation will be public and intrinsic.
         body (...) {

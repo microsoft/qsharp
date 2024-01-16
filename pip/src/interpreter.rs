@@ -20,16 +20,13 @@ use qsc::{
     fir,
     interpret::{
         output::{Error, Receiver},
-        stateful::{
-            self,
-            re::{self, estimate_expr},
-        },
-        Value,
+        stateful, Value,
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
     PackageType, SourceMap,
 };
+use resource_estimator::{self as re, estimate_expr};
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
 

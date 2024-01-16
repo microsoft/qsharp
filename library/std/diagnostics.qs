@@ -8,12 +8,12 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    @Config(Full)
+    @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
-    @Config(Full)
+    @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
             if not CheckZero(q) {
@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.Diagnostics {
             fail message;
         }
     }
-    
+
     /// # Summary
     /// Given two operations, checks that they act identically for all input states.
     ///
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Diagnostics {
     /// Operation defining the expected behavior for the operation under test.
     /// # Output
     /// True if operations are equal, false otherwise.
-    @Config(Full)
+    @Config(Unrestricted)
     operation CheckOperationsAreEqual (
         nQubits : Int,
         actual : (Qubit[] => Unit),

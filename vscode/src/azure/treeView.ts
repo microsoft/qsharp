@@ -134,6 +134,7 @@ export type Job = {
   endExecutionTime?: string;
   cancellationTime?: string;
   costEstimate?: any;
+  errorData?: { code: string; message: string };
 };
 
 function shouldShowQueueTime(target: Target) {
@@ -252,22 +253,26 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
             break;
         }
         // Tooltip
-        const hover = new vscode.MarkdownString(
-          `__Created__: ${localDate(job.creationTime)}<br>
-          __Target__: ${job.target}<br>
-          __Status__: ${job.status}<br>
-          ${
-            job.beginExecutionTime
-              ? `__Started__: ${localDate(job.beginExecutionTime)}<br>`
-              : ""
-          }
-          ${
-            job.endExecutionTime
-              ? `__Completed__: ${localDate(job.endExecutionTime)}<br>`
-              : ""
-          }
-        `,
-        );
+        const md = `__Created__: ${localDate(job.creationTime)}<br>
+__Target__: ${job.target}<br>
+__Status__: ${job.status}<br>
+${
+  job.beginExecutionTime
+    ? `__Started__: ${localDate(job.beginExecutionTime)}<br>`
+    : ""
+}
+${
+  job.endExecutionTime
+    ? `__Completed__: ${localDate(job.endExecutionTime)}<br>`
+    : ""
+}
+${
+  job.errorData
+    ? `__Error__: <br>\n\`\`\`\n${job.errorData.code}: ${job.errorData.message}\n\`\`\`\n<br>`
+    : ""
+}
+`;
+        const hover = new vscode.MarkdownString(md);
         hover.supportHtml = true;
         this.tooltip = hover;
         break;

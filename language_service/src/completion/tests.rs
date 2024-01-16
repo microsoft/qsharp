@@ -95,6 +95,147 @@ fn assert_no_duplicates(mut actual_completions: CompletionList) {
 }
 
 #[test]
+fn ignore_unstable_namespace() {
+    check(
+        r#"
+        namespace Test {
+            open ↘
+        }"#,
+        &["FakeStdLib", "Microsoft.Quantum.Unstable"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "FakeStdLib",
+                        kind: Module,
+                        sort_text: Some(
+                            "1101FakeStdLib",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn ignore_unstable_callable() {
+    check(
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Unstable;
+            operation Foo() : Unit {
+                ↘
+            }
+        }"#,
+        &["Fake", "UnstableFake"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 38,
+                                        end: 38,
+                                    },
+                                    "open FakeStdLib;\n            ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn ignore_internal_callable() {
+    check(
+        r#"
+        namespace Test {
+            internal operation Foo() : Unit {}
+            operation Bar() : Unit {
+                ↘
+            }
+        }
+
+        namespace Test {
+            internal operation Baz() : Unit {}
+        }"#,
+        &["Fake", "Foo", "Baz", "Hidden"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 38,
+                                        end: 38,
+                                    },
+                                    "open FakeStdLib;\n            ",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Baz",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Baz",
+                        ),
+                        detail: Some(
+                            "operation Baz() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn in_block_contains_std_functions_from_open_namespace() {
     check(
         r#"
@@ -814,6 +955,82 @@ fn notebook_block() {
                         ),
                         detail: None,
                         additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_auto_open_start_of_cell_empty() {
+    check_notebook(
+        &[
+            ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
+            ("cell2", "↘"),
+        ],
+        &["Fake"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0800Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 0,
+                                        end: 0,
+                                    },
+                                    "open FakeStdLib;\n",
+                                ),
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_auto_open_start_of_cell() {
+    check_notebook(
+        &[
+            ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
+            ("cell2", r#"   Message("hi") ↘"#),
+        ],
+        &["Fake"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0800Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                (
+                                    Span {
+                                        start: 3,
+                                        end: 3,
+                                    },
+                                    "open FakeStdLib;\n   ",
+                                ),
+                            ],
+                        ),
                     },
                 ),
             ]
