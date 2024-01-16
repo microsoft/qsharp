@@ -100,19 +100,31 @@ def test_qsharp_estimation_with_multiple_params() -> None:
     params = EstimatorParams(3)
     params.items[0].qubit_params.name = QubitParams.GATE_US_E3
     params.items[0].error_budget = 0.333
+    params.items[0].estimate_type = "singlePoint"
     params.items[1].qubit_params.name = QubitParams.GATE_US_E4
     params.items[1].error_budget = 0.333
+    params.items[1].estimate_type = "singlePoint"
     params.items[2].qubit_params.name = QubitParams.MAJ_NS_E6
     params.items[2].qec_scheme.name = QECScheme.FLOQUET_CODE
     params.items[2].error_budget = 0.333
+    params.items[2].estimate_type = "singlePoint"
     assert params.as_dict() == {
         "items": [
-            {"qubitParams": {"name": "qubit_gate_us_e3"}, "errorBudget": 0.333},
-            {"qubitParams": {"name": "qubit_gate_us_e4"}, "errorBudget": 0.333},
+            {
+                "qubitParams": {"name": "qubit_gate_us_e3"},
+                "errorBudget": 0.333,
+                "estimateType": "singlePoint",
+            },
+            {
+                "qubitParams": {"name": "qubit_gate_us_e4"},
+                "errorBudget": 0.333,
+                "estimateType": "singlePoint",
+            },
             {
                 "qubitParams": {"name": "qubit_maj_ns_e6"},
                 "qecScheme": {"name": "floquet_code"},
                 "errorBudget": 0.333,
+                "estimateType": "singlePoint",
             },
         ],
         "resumeAfterFailedItem": True,
@@ -181,6 +193,7 @@ def test_estimation_from_logical_counts_with_single_params() -> None:
     params = EstimatorParams()
     params.error_budget = 0.333
     params.qubit_params.name = QubitParams.MAJ_NS_E4
+    params.estimate_type = "singlePoint"
     res = logical_counts.estimate(params=params)
 
     assert res["status"] == "success"
@@ -204,11 +217,14 @@ def test_estimation_from_logical_counts_with_multiple_params() -> None:
     params = EstimatorParams(3)
     params.items[0].qubit_params.name = QubitParams.GATE_US_E3
     params.items[0].error_budget = 0.333
+    params.items[0].estimate_type = "singlePoint"
     params.items[1].qubit_params.name = QubitParams.GATE_US_E4
     params.items[1].error_budget = 0.333
+    params.items[1].estimate_type = "singlePoint"
     params.items[2].qubit_params.name = QubitParams.MAJ_NS_E6
     params.items[2].qec_scheme.name = QECScheme.FLOQUET_CODE
     params.items[2].error_budget = 0.333
+    params.items[2].estimate_type = "singlePoint"
     res = logical_counts.estimate(params=params)
 
     for idx in res:
