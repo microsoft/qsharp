@@ -2,8 +2,6 @@
 
 $$ \frac{1}{2}\big(|00\rangle + |01\rangle - |10\rangle - |11\rangle\big) = \frac{1}{2}\begin{bmatrix} 1 \\\ 1 \\\ -1 \\\ -1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ -1 \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big)$$
 
-> Note that because these examples use a little-endian format, the "first" qubit (`qs[0]`) refers to the least-significant qubit whose target state is described by the right-hand operand of the tensor product, while the "second" qubit (`qs[1]`) refers to the most-significant qubit whose target state is described by the left-hand operand of the tensor product.
-
 This time we need to transform both the first and the second qubits. Let's start with the first qubit. Applying the **H** gate transforms its state as follows:
 
 $$ H|0\rangle = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} \cdot \begin{bmatrix} 1 \\\ 0 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big)$$
