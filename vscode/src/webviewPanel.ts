@@ -150,33 +150,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
         return;
       }
 
-      const estimateType = await window.showQuickPick(
-        [
-          {
-            label: "Pareto frontier",
-            detail: "Full Pareto Frontier",
-            params: {
-              estimateType: "frontier",
-            },
-          },
-          {
-            label: "Shortest runtime estimate",
-            detail: "Single estimate for the shortest runtime",
-            params: {
-              estimateType: "singlePoint",
-            },
-          },
-        ],
-        {
-          canPickMany: false,
-          title: "Estimate type",
-        },
-      );
-
-      if (!estimateType) {
-        return;
-      }
-
       // use document uri path to get the project name, since it is normalized to `/` separators
       // see https://code.visualstudio.com/api/references/vscode-api#Uri for difference between
       // path and fsPath
@@ -194,7 +167,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       const params = qubitType.map((item) => ({
         ...item.params,
         errorBudget: parseFloat(errorBudget),
-        estimateType: estimateType.params.estimateType,
+        estimateType: "frontier",
       }));
 
       log.info("RE params", params);
