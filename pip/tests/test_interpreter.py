@@ -199,7 +199,9 @@ def test_run_with_shots() -> None:
     e.interpret('operation Foo() : Unit { Message("Hello, world!"); }', callback)
     assert called == 0
 
-    value = e.run("Foo()", 5, callback)
+    value = []
+    for _ in range(5):
+        value.append(e.run("Foo()", callback))
     assert called == 5
 
     assert value == [None, None, None, None, None]

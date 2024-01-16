@@ -163,9 +163,9 @@ def run(
     for _ in range(shots):
         results.append({"result": None, "events": []})
         run_results = get_interpreter().run(
-            entry_expr, 1, on_save_events if save_events else print_output
+            entry_expr, on_save_events if save_events else print_output
         )
-        results[-1]["result"] = run_results[0]
+        results[-1]["result"] = run_results
         if on_result:
             on_result(results[-1])
 

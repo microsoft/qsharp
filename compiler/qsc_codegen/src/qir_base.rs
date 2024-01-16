@@ -437,10 +437,6 @@ impl Backend for BaseProfSim {
         // true to avoid a panic.
         true
     }
-
-    fn reinit(&mut self) {
-        *self = Self::default();
-    }
 }
 
 struct Qubit(HardwareId);
