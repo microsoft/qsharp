@@ -270,7 +270,7 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
             / (self.layout_overhead.logical_qubits() * num_cycles_required_by_layout_overhead)
                 as f64;
 
-        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate);
+        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate)?;
         let max_code_distance = self.ftp.max_code_distance();
 
         if min_code_distance > max_code_distance {
@@ -306,7 +306,8 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
         for code_distance in (min_code_distance..=max_odd_code_distance).rev().step_by(2) {
             let logical_qubit = LogicalQubit::new(&self.ftp, code_distance, self.qubit.clone())?;
 
-            let allowed_logical_qubit_error_rate = self.compute_logical_error_rate(code_distance);
+            let allowed_logical_qubit_error_rate =
+                self.compute_logical_error_rate(code_distance)?;
 
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
@@ -415,7 +416,7 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
             let required_logical_qubit_error_rate = self.error_budget.logical()
                 / ((self.layout_overhead.logical_qubits()) * num_cycles) as f64;
 
-            let code_distance = self.compute_code_distance(required_logical_qubit_error_rate);
+            let code_distance = self.compute_code_distance(required_logical_qubit_error_rate)?;
 
             if code_distance > self.ftp.max_code_distance() {
                 if !loaded_tfactories_at_least_once {
@@ -466,7 +467,7 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
                 logical_qubit.code_distance(),
             );
 
-            let max_allowed_error_rate = self.compute_logical_error_rate(code_distance);
+            let max_allowed_error_rate = self.compute_logical_error_rate(code_distance)?;
             let max_allowed_num_cycles_for_code_distance = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * max_allowed_error_rate))
                 .floor() as u64;
@@ -563,7 +564,7 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
             / ((self.layout_overhead.logical_qubits() * num_cycles_required_by_layout_overhead)
                 as f64);
 
-        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate);
+        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate)?;
         let max_code_distance = self.ftp.max_code_distance();
 
         if min_code_distance > max_code_distance {
@@ -610,7 +611,8 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
                 continue;
             }
 
-            let allowed_logical_qubit_error_rate = self.compute_logical_error_rate(code_distance);
+            let allowed_logical_qubit_error_rate =
+                self.compute_logical_error_rate(code_distance)?;
 
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
@@ -715,7 +717,7 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
             / ((self.layout_overhead.logical_qubits()) * min_num_cycles_required_by_layout_overhead)
                 as f64;
 
-        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate);
+        let min_code_distance = self.compute_code_distance(required_logical_qubit_error_rate)?;
         let max_code_distance = self.ftp.max_code_distance();
 
         if min_code_distance > max_code_distance {
@@ -763,7 +765,7 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
                 max_num_qubits - physical_qubits_for_algorithm;
 
             let min_allowed_logical_qubit_error_rate =
-                self.compute_logical_error_rate(code_distance);
+                self.compute_logical_error_rate(code_distance)?;
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64
                     * min_allowed_logical_qubit_error_rate))
@@ -1019,18 +1021,16 @@ impl<L: Overhead + Clone> PhysicalResourceEstimation<L> {
     }
 
     // Compute code distance d (Equation (E2) in paper)
-    fn compute_code_distance(&self, required_logical_qubit_error_rate: f64) -> u64 {
+    fn compute_code_distance(&self, required_logical_qubit_error_rate: f64) -> Result<u64> {
         self.ftp
             .code_distance_lookup()
             .compute_code_distance(&self.qubit, required_logical_qubit_error_rate)
-            .expect("cannot fail at this moment")
     }
 
-    fn compute_logical_error_rate(&self, code_distance: u64) -> f64 {
+    fn compute_logical_error_rate(&self, code_distance: u64) -> Result<f64> {
         self.ftp
             .code_distance_lookup()
             .logical_failure_probability(&self.qubit, code_distance)
-            .expect("cannot fail at this moment")
     }
 
     // Possibly adjusts number of cycles C from initial starting point C_min
