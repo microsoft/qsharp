@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
-    operation AssertEqualOnZeroState(
+    operation CheckEqualOnZeroState(
         testImpl : (Qubit[] => Unit is Adj + Ctl),
         refImpl : (Qubit[] => Unit is Adj + Ctl)) : Bool {
 

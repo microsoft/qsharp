@@ -9,6 +9,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        AssertEqualOnZeroState(Kata.PrepareWithReal, PrepareWithReal_Reference)
+        CheckEqualOnZeroState(Kata.PrepareWithReal, PrepareWithReal_Reference)
     }
 }

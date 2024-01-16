@@ -8,6 +8,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        AssertEqualOnZeroState(Kata.PrepareBasisState, PrepareBasisState_Reference)
+        CheckEqualOnZeroState(Kata.PrepareBasisState, PrepareBasisState_Reference)
     }
 }
