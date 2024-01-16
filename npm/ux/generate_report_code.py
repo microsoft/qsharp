@@ -77,7 +77,7 @@ path_map = {
     "physicalCountsFormatted/tfactoryRuntime": "result.physicalCountsFormatted.tfactoryRuntime",
     "physicalCountsFormatted/tstateLogicalErrorRate": "result.physicalCountsFormatted.tstateLogicalErrorRate",
     "tfactory/physicalQubits": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.physicalQubits)",
-    "tfactory/numInputTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numresultTstates)",
+    "tfactory/numInputTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numInputTstates)",
     "tfactory/numTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numTstates)",
     "tfactory/runtime": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.runtime)",
 }

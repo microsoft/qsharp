@@ -80,7 +80,11 @@ export function RePage(props: {
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
               Resource Estimates
             </summary>
-            <ReTable mdRenderer={props.renderer} estimatesData={estimate} />
+            <ReTable
+              mdRenderer={props.renderer}
+              estimatesData={estimate}
+              index={null}
+            />
           </details>
         </>
       )}
