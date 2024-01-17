@@ -190,6 +190,6 @@ pub enum EstimateType {
 
 impl Default for EstimateType {
     fn default() -> Self {
-        Self::Frontier
+        Self::SinglePoint
     }
 }

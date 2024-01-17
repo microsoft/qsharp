@@ -167,6 +167,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       const params = qubitType.map((item) => ({
         ...item.params,
         errorBudget: parseFloat(errorBudget),
+        estimateType: "frontier",
       }));
 
       log.info("RE params", params);
