@@ -1,8 +1,11 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// <reference types="user-agent-data-types" />
+
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
-
-/// <reference types="user-agent-data-types" />
 
 export enum EventType {
   InitializePlugin = "Qsharp.InitializePlugin",
@@ -260,9 +263,7 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
 function getBrowserRelease(): string {
   if (navigator.userAgentData?.brands) {
     const browser =
-      navigator.userAgentData.brands[
-        navigator.userAgentData.brands.length - 1
-      ];
+      navigator.userAgentData.brands[navigator.userAgentData.brands.length - 1];
     return `${browser.brand}/${browser.version}`;
   } else {
     return "";
