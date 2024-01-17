@@ -14,7 +14,7 @@ members = [
     "fuzz",
     "katas",
     "language_service",
-    "library/tests",
+    "library",
     "pip",
     "resource_estimator",
     "wasm",

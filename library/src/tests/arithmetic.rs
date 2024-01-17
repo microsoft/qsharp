@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{test_expression, test_expression_with_lib};
+use super::{test_expression, test_expression_with_lib};
 use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.Unstable.Arithmetic namespace
