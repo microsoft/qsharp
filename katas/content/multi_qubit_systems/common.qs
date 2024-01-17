@@ -1,28 +1,21 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Katas;
 
-    operation AssertEqualOnZeroState(
-        testImpl : (Qubit[] => Unit is Ctl),
-        refImpl : (Qubit[] => Unit is Adj+Ctl)) : Bool {
+    operation CheckEqualOnZeroState(
+        testImpl : (Qubit[] => Unit is Adj + Ctl),
+        refImpl : (Qubit[] => Unit is Adj + Ctl)) : Bool {
 
-        use qs = Qubit[3];
-        within {
-            H(qs[0]);
+        let isCorrect = CheckOperationsEquivalenceOnZeroStateStrict(testImpl, refImpl, 2);
+
+        // Output different feedback to the user depending on whether the exercise was correct.
+        if isCorrect {
+            Message("Correct!");
+        } else {
+            Message("Incorrect.");
+            use target = Qubit[2]; // |00〉
+            ShowQuantumStateComparison(target, testImpl, refImpl);
+            ResetAll(target);
         }
-        apply {
-            // apply operation that needs to be tested
-            Controlled testImpl([qs[0]], qs[1..2]);
-
-            // apply adjoint reference operation
-            Adjoint Controlled refImpl([qs[0]], qs[1..2]);
-        }
-
-        // Implementation is correct when all qubits end up in |0⟩ state
-        let isCorrect = CheckAllZero(qs);
-        if not isCorrect {
-            Message("The prepared state is not the same as reference state.");
-        }
-        ResetAll(qs);
         isCorrect
     }
 

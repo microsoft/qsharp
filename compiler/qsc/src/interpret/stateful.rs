@@ -7,8 +7,6 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
-pub mod re;
-
 use super::debug::format_call_stack;
 use crate::{
     error::{self, WithStack},
@@ -18,17 +16,18 @@ use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::BaseProfSim;
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::span::Span;
 use qsc_eval::{
     backend::{Backend, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir, Frame},
     eval_expr, eval_stmt,
     output::{GenericReceiver, Receiver},
-    val::{self, GlobalId, Value},
-    Env, Global, NodeLookup, State, StepAction, StepResult, VariableInfo,
+    val::{self, Value},
+    Env, State, StepAction, StepResult, VariableInfo,
 };
+use qsc_fir::fir::{self, Global, PackageStoreLookup};
 use qsc_fir::{
-    fir::{Block, BlockId, Expr, ExprId, ItemKind, Package, PackageId, Pat, PatId, Stmt, StmtId},
+    fir::{Block, BlockId, Expr, ExprId, Package, PackageId, Pat, PatId, Stmt, StmtId},
     visit::{self, Visitor},
 };
 use qsc_frontend::{
@@ -68,48 +67,6 @@ pub enum Error {
     UnsupportedRuntimeCapabilities,
 }
 
-struct Lookup<'a> {
-    fir_store: &'a IndexMap<PackageId, qsc_fir::fir::Package>,
-}
-
-impl<'a> Lookup<'a> {
-    fn get_package(&self, package: PackageId) -> &qsc_fir::fir::Package {
-        self.fir_store
-            .get(package)
-            .expect("Package should be in FIR store")
-    }
-}
-
-impl<'a> NodeLookup for Lookup<'a> {
-    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
-        get_global(self.fir_store, id)
-    }
-    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block {
-        self.get_package(package)
-            .blocks
-            .get(id)
-            .expect("BlockId should have been lowered")
-    }
-    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr {
-        self.get_package(package)
-            .exprs
-            .get(id)
-            .expect("ExprId should have been lowered")
-    }
-    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat {
-        self.get_package(package)
-            .pats
-            .get(id)
-            .expect("PatId should have been lowered")
-    }
-    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt {
-        self.get_package(package)
-            .stmts
-            .get(id)
-            .expect("StmtId should have been lowered")
-    }
-}
-
 /// A Q# interpreter.
 pub struct Interpreter {
     /// The incremental Q# compiler.
@@ -121,7 +78,7 @@ pub struct Interpreter {
     /// for each line evaluated with `eval_fragments`.
     lines: u32,
     // The FIR store
-    fir_store: IndexMap<PackageId, qsc_fir::fir::Package>,
+    fir_store: fir::PackageStore,
     /// FIR lowerer
     lowerer: qsc_eval::lower::Lowerer,
     /// The ID of the current package.
@@ -152,7 +109,7 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
-        let mut fir_store = IndexMap::new();
+        let mut fir_store = fir::PackageStore::new();
 
         let compiler =
             Compiler::new(std, sources, package_type, capabilities).map_err(into_errors)?;
@@ -201,13 +158,9 @@ impl Interpreter {
         breakpoints: &[StmtId],
         step: StepAction,
     ) -> Result<StepResult, Vec<Error>> {
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-        };
-
         self.state
             .eval(
-                &globals,
+                &self.fir_store,
                 &mut self.env,
                 &mut self.sim,
                 receiver,
@@ -229,14 +182,10 @@ impl Interpreter {
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-        };
-
         eval_expr(
             &mut State::new(self.source_package),
             expr,
-            &globals,
+            &self.fir_store,
             &mut Env::with_empty_scope(),
             &mut self.sim,
             receiver,
@@ -259,14 +208,10 @@ impl Interpreter {
         receiver: &mut impl Receiver,
     ) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-        };
-
         eval_expr(
             &mut State::new(self.source_package),
             expr,
-            &globals,
+            &self.fir_store,
             &mut Env::with_empty_scope(),
             sim,
             receiver,
@@ -321,13 +266,9 @@ impl Interpreter {
         let mut result = Value::unit();
 
         for stmt_id in stmts {
-            let globals = Lookup {
-                fir_store: &self.fir_store,
-            };
-
             match eval_stmt(
                 stmt_id,
-                &globals,
+                &self.fir_store,
                 &mut self.env,
                 &mut self.sim,
                 self.package,
@@ -405,16 +346,12 @@ impl Interpreter {
         stmt_id: StmtId,
         shots: u32,
     ) -> Vec<InterpretResult> {
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-        };
-
         let mut results: Vec<InterpretResult> = Vec::new();
         for i in 0..shots {
             results.push(
                 match eval_stmt(
                     stmt_id,
-                    &globals,
+                    &self.fir_store,
                     &mut Env::with_empty_scope(),
                     sim,
                     self.package,
@@ -464,7 +401,6 @@ impl Interpreter {
             .fir_store
             .get_mut(self.package)
             .expect("package should be in store");
-
         self.lowerer
             .lower_and_update_package(fir_package, &unit_addition.hir)
     }
@@ -484,14 +420,14 @@ impl Interpreter {
 
     #[must_use]
     pub fn get_stack_frames(&self) -> Vec<StackFrame> {
-        let globals = Lookup {
-            fir_store: &self.fir_store,
-        };
         let frames = self.state.get_stack_frames();
         let stack_frames = frames
             .iter()
             .map(|frame| {
-                let callable = globals.get(frame.id).expect("frame should exist");
+                let callable = self
+                    .fir_store
+                    .get_global(frame.id)
+                    .expect("frame should exist");
                 let functor = format!("{}", frame.functor);
                 let name = match callable {
                     Global::Callable(decl) => decl.name.name.to_string(),
@@ -573,19 +509,6 @@ pub struct StackFrame {
     pub lo: u32,
     /// The end of the call site span in utf8 characters.
     pub hi: u32,
-}
-
-fn get_global(
-    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
-    id: GlobalId,
-) -> Option<Global<'_>> {
-    fir_store
-        .get(id.package)
-        .and_then(|package| match &package.items.get(id.item)?.kind {
-            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
-            ItemKind::Namespace(..) => None,
-            ItemKind::Ty(..) => Some(Global::Udt),
-        })
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -683,7 +606,7 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
 
 fn eval_error(
     package_store: &PackageStore,
-    fir_store: &IndexMap<PackageId, qsc_fir::fir::Package>,
+    fir_store: &fir::PackageStore,
     call_stack: Vec<Frame>,
     error: qsc_eval::Error,
 ) -> Vec<Error> {
@@ -692,7 +615,7 @@ fn eval_error(
     } else {
         Some(format_call_stack(
             package_store,
-            &Lookup { fir_store },
+            fir_store,
             call_stack,
             &error,
         ))

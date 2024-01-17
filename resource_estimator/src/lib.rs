@@ -6,13 +6,13 @@ mod estimates;
 
 pub use estimates::estimate_physical_resources_from_json;
 
-use crate::interpret::{
-    stateful::{self, Interpreter},
-    GenericReceiver,
-};
 use counts::LogicalCounter;
 use estimates::estimate_physical_resources;
 use miette::Diagnostic;
+use qsc::interpret::{
+    stateful::{self, Interpreter},
+    GenericReceiver,
+};
 use thiserror::Error;
 
 #[derive(Debug)]

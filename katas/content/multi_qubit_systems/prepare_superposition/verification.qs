@@ -1,4 +1,6 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Katas;
+
     operation PrepareSuperposition_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         X(qs[1]);
         H(qs[1]);
@@ -6,12 +8,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let isCorrect = AssertEqualOnZeroState(Kata.PrepareSuperposition, PrepareSuperposition_Reference);
-        if isCorrect {
-            Message("Correct!");
-        } else {
-            Message("Incorrect.");
-        }
-        return isCorrect;
+        CheckEqualOnZeroState(Kata.PrepareSuperposition, PrepareSuperposition_Reference)
     }
 }

@@ -16,6 +16,7 @@ members = [
     "language_service",
     "library/tests",
     "pip",
+    "resource_estimator",
     "wasm",
 ]
 resolver = "2"

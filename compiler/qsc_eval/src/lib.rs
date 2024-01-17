@@ -24,10 +24,10 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
-    self, BinOp, CallableDecl, ExprKind, Field, Functor, Lit, LocalItemId, Mutability, NodeId,
-    PackageId, PatKind, PrimField, Res, SpecBody, SpecGen, StmtKind, StringComponent, UnOp,
+    self, BinOp, BlockId, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId, Mutability,
+    NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, SpecBody, SpecGen,
+    StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
 };
-use qsc_fir::fir::{BlockId, ExprId, PatId, StmtId};
 use qsc_fir::ty::Ty;
 use rustc_hash::FxHashMap;
 use std::{
@@ -38,7 +38,6 @@ use std::{
     rc::Rc,
 };
 use thiserror::Error;
-use val::GlobalId;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -179,7 +178,7 @@ impl Display for Spec {
 pub fn eval_expr(
     state: &mut State,
     expr: ExprId,
-    globals: &impl NodeLookup,
+    globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     out: &mut impl Receiver,
@@ -199,7 +198,7 @@ pub fn eval_expr(
 /// On internal error where no result is returned.
 pub fn eval_stmt(
     stmt: StmtId,
-    globals: &impl NodeLookup,
+    globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     package: PackageId,
@@ -306,19 +305,6 @@ impl Range {
             curr: start,
         }
     }
-}
-
-pub enum Global<'a> {
-    Callable(&'a CallableDecl),
-    Udt,
-}
-
-pub trait NodeLookup {
-    fn get(&self, id: GlobalId) -> Option<Global>;
-    fn get_block(&self, package: PackageId, id: BlockId) -> &qsc_fir::fir::Block;
-    fn get_expr(&self, package: PackageId, id: ExprId) -> &qsc_fir::fir::Expr;
-    fn get_pat(&self, package: PackageId, id: PatId) -> &qsc_fir::fir::Pat;
-    fn get_stmt(&self, package: PackageId, id: StmtId) -> &qsc_fir::fir::Stmt;
 }
 
 #[derive(Default)]
@@ -470,7 +456,7 @@ impl State {
         self.stack.push(Cont::Expr(expr));
     }
 
-    fn push_frame(&mut self, id: GlobalId, functor: FunctorApp) {
+    fn push_frame(&mut self, id: StoreItemId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
             id,
@@ -501,8 +487,8 @@ impl State {
         self.stack.push(Cont::Stmt(stmt));
     }
 
-    fn push_block(&mut self, env: &mut Env, globals: &impl NodeLookup, block: BlockId) {
-        let block = globals.get_block(self.package, block);
+    fn push_block(&mut self, env: &mut Env, globals: &impl PackageStoreLookup, block: BlockId) {
+        let block = globals.get_block((self.package, block).into());
         self.push_scope(env);
         for stmt in block.stmts.iter().rev() {
             self.push_stmt(*stmt);
@@ -544,7 +530,7 @@ impl State {
     /// When returning a value in the middle of execution.
     pub fn eval(
         &mut self,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         out: &mut impl Receiver,
@@ -615,10 +601,10 @@ impl State {
     fn cont_expr(
         &mut self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         expr: ExprId,
     ) -> Result<(), Error> {
-        let expr = globals.get_expr(self.package, expr);
+        let expr = globals.get_expr((self.package, expr).into());
         self.current_span = expr.span;
 
         match &expr.kind {
@@ -681,8 +667,8 @@ impl State {
         }
     }
 
-    fn cont_arr_repeat(&mut self, globals: &impl NodeLookup, item: ExprId, size: ExprId) {
-        let size_expr = globals.get_expr(self.package, size);
+    fn cont_arr_repeat(&mut self, globals: &impl PackageStoreLookup, item: ExprId, size: ExprId) {
+        let size_expr = globals.get_expr((self.package, size).into());
         self.push_action(Action::ArrayRepeat(size_expr.span));
         self.push_expr(size);
         self.push_expr(item);
@@ -709,9 +695,20 @@ impl State {
         self.push_val(Value::unit());
     }
 
-    fn cont_assign_op(&mut self, globals: &impl NodeLookup, op: BinOp, lhs: ExprId, rhs: ExprId) {
+    fn cont_assign_op(
+        &mut self,
+        globals: &impl PackageStoreLookup,
+        op: BinOp,
+        lhs: ExprId,
+        rhs: ExprId,
+    ) {
         // If we know the assign op is an array append, as in `set arr += other;`, we should perform it in-place.
-        if op == BinOp::Add && matches!(globals.get_expr(self.package, lhs).ty, Ty::Array(_)) {
+        if op == BinOp::Add
+            && matches!(
+                globals.get_expr((self.package, lhs).into()).ty,
+                Ty::Array(_)
+            )
+        {
             self.push_action(Action::ArrayAppendInPlace(lhs));
             self.push_expr(rhs);
             self.push_val(Value::unit());
@@ -731,12 +728,12 @@ impl State {
 
     fn cont_assign_index(
         &mut self,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
         mid: ExprId,
         rhs: ExprId,
     ) {
-        let span = globals.get_expr(self.package, mid).span;
+        let span = globals.get_expr((self.package, mid).into()).span;
         self.push_action(Action::UpdateIndexInPlace(lhs, span));
         self.push_expr(rhs);
         self.push_expr(mid);
@@ -748,8 +745,8 @@ impl State {
         self.push_expr(expr);
     }
 
-    fn cont_index(&mut self, globals: &impl NodeLookup, arr: ExprId, index: ExprId) {
-        let index_expr = globals.get_expr(self.package, index);
+    fn cont_index(&mut self, globals: &impl PackageStoreLookup, arr: ExprId, index: ExprId) {
+        let index_expr = globals.get_expr((self.package, index).into());
         self.push_action(Action::Index(index_expr.span));
         self.push_expr(index);
         self.push_expr(arr);
@@ -792,16 +789,22 @@ impl State {
         self.push_expr(cond_expr);
     }
 
-    fn cont_call(&mut self, globals: &impl NodeLookup, callee: ExprId, args: ExprId) {
-        let callee_expr = globals.get_expr(self.package, callee);
-        let args_expr = globals.get_expr(self.package, args);
+    fn cont_call(&mut self, globals: &impl PackageStoreLookup, callee: ExprId, args: ExprId) {
+        let callee_expr = globals.get_expr((self.package, callee).into());
+        let args_expr = globals.get_expr((self.package, args).into());
         self.push_action(Action::Call(callee_expr.span, args_expr.span));
         self.push_expr(args);
         self.push_expr(callee);
     }
 
-    fn cont_binop(&mut self, globals: &impl NodeLookup, op: BinOp, rhs: ExprId, lhs: ExprId) {
-        let rhs_expr = globals.get_expr(self.package, rhs);
+    fn cont_binop(
+        &mut self,
+        globals: &impl PackageStoreLookup,
+        op: BinOp,
+        rhs: ExprId,
+        lhs: ExprId,
+    ) {
+        let rhs_expr = globals.get_expr((self.package, rhs).into());
         match op {
             BinOp::Add
             | BinOp::AndB
@@ -831,8 +834,14 @@ impl State {
         }
     }
 
-    fn update_index(&mut self, globals: &impl NodeLookup, lhs: ExprId, mid: ExprId, rhs: ExprId) {
-        let span = globals.get_expr(self.package, mid).span;
+    fn update_index(
+        &mut self,
+        globals: &impl PackageStoreLookup,
+        lhs: ExprId,
+        mid: ExprId,
+        rhs: ExprId,
+    ) {
+        let span = globals.get_expr((self.package, mid).into()).span;
         self.push_action(Action::UpdateIndex(span));
         self.push_expr(lhs);
         self.push_expr(rhs);
@@ -850,8 +859,8 @@ impl State {
         self.push_expr(record);
     }
 
-    fn cont_stmt(&mut self, globals: &impl NodeLookup, stmt: StmtId) {
-        let stmt = globals.get_stmt(self.package, stmt);
+    fn cont_stmt(&mut self, globals: &impl PackageStoreLookup, stmt: StmtId) {
+        let stmt = globals.get_stmt((self.package, stmt).into());
         self.current_span = stmt.span;
 
         match &stmt.kind {
@@ -875,7 +884,7 @@ impl State {
         &mut self,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         action: Action,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
@@ -929,10 +938,10 @@ impl State {
     fn eval_array_append_in_place(
         &mut self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
     ) -> Result<(), Error> {
-        let lhs = globals.get_expr(self.package, lhs);
+        let lhs = globals.get_expr((self.package, lhs).into());
         let rhs = self.pop_val();
         match (&lhs.kind, rhs) {
             (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
@@ -966,7 +975,7 @@ impl State {
     fn eval_assign(
         &mut self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
     ) -> Result<(), Error> {
         let rhs = self.pop_val();
@@ -976,7 +985,7 @@ impl State {
     fn eval_bind(
         &mut self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         pat: PatId,
         mutability: Mutability,
     ) {
@@ -1051,7 +1060,7 @@ impl State {
         &mut self,
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         callee_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
@@ -1066,7 +1075,7 @@ impl State {
         let callee_span = self.to_global_span(callee_span);
         let arg_span = self.to_global_span(arg_span);
 
-        let callee = match globals.get(callee_id) {
+        let callee = match globals.get_global(callee_id) {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
                 self.push_val(arg);
@@ -1257,7 +1266,7 @@ impl State {
     fn eval_update_index_in_place(
         &mut self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
         span: Span,
     ) -> Result<(), Error> {
@@ -1342,7 +1351,7 @@ impl State {
     fn eval_while(
         &mut self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         cond_expr: ExprId,
         block: BlockId,
     ) {
@@ -1359,12 +1368,12 @@ impl State {
     fn bind_value(
         &self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         pat: PatId,
         val: Value,
         mutability: Mutability,
     ) {
-        let pat = globals.get_pat(self.package, pat);
+        let pat = globals.get_pat((self.package, pat).into());
         match &pat.kind {
             PatKind::Bind(variable) => {
                 let scope = env.0.last_mut().expect("binding should have a scope");
@@ -1392,11 +1401,11 @@ impl State {
     fn update_binding(
         &self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
         rhs: Value,
     ) -> Result<(), Error> {
-        let lhs = globals.get_expr(self.package, lhs);
+        let lhs = globals.get_expr((self.package, lhs).into());
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => {}
             (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
@@ -1421,13 +1430,13 @@ impl State {
     fn update_array_index_single(
         &self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
         span: PackageSpan,
         index: usize,
         rhs: Value,
     ) -> Result<(), Error> {
-        let lhs = globals.get_expr(self.package, lhs);
+        let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
             &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
                 Some(var) if var.is_mutable() => {
@@ -1449,13 +1458,13 @@ impl State {
     fn update_array_index_range(
         &self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         lhs: ExprId,
         range_span: PackageSpan,
         range: &Value,
         update: Value,
     ) -> Result<(), Error> {
-        let lhs = globals.get_expr(self.package, lhs);
+        let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
             &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
                 Some(var) if var.is_mutable() => {
@@ -1494,7 +1503,7 @@ impl State {
     fn bind_args_for_spec(
         &self,
         env: &mut Env,
-        globals: &impl NodeLookup,
+        globals: &impl PackageStoreLookup,
         decl_pat: PatId,
         spec_pat: Option<PatId>,
         args_val: Value,
@@ -1563,7 +1572,7 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
     Ok(match res {
         Res::Err => panic!("resolution error"),
         Res::Item(item) => Value::Global(
-            GlobalId {
+            StoreItemId {
                 package: item.package.unwrap_or(package),
                 item: item.item,
             },
@@ -1604,7 +1613,7 @@ fn resolve_closure(
         package: map_fir_package_to_hir(package),
         span,
     }))?;
-    let callable = GlobalId {
+    let callable = StoreItemId {
         package,
         item: callable,
     };

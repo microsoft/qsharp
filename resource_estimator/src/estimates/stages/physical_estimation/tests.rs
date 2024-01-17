@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::interpret::stateful::re::estimates::modeling::GateBasedPhysicalQubit;
+use crate::estimates::modeling::GateBasedPhysicalQubit;
 
 use super::{
     super::super::{
