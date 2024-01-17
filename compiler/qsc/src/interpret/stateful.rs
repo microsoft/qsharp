@@ -7,8 +7,6 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
-pub mod re;
-
 use super::debug::format_call_stack;
 use crate::{
     error::{self, WithStack},

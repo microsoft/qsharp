@@ -25,14 +25,8 @@ qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
 qsc_project = { path = "../qsc_project", features = ["fs"] }
-rand = { workspace = true }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
-probability = { workspace = true }
-regex-lite = { workspace = true }
-serde = { workspace = true, features = ["derive", "rc"] }
-serde_json = { workspace = true }
-fasteval = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
