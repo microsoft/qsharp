@@ -223,6 +223,7 @@ export enum DebugEvent {
 }
 
 let reporter: TelemetryReporter | undefined;
+let userAgentString: string | undefined;
 
 export function initTelemetry(context: vscode.ExtensionContext) {
   const packageJson = context.extension?.packageJSON;
@@ -230,6 +231,9 @@ export function initTelemetry(context: vscode.ExtensionContext) {
     return;
   }
   reporter = new TelemetryReporter(packageJson.aiKey);
+  const version = context.extension?.packageJSON?.version;
+  const browserAndRelease = getBrowserRelease();
+  userAgentString = `VSCode/${version} ${browserAndRelease}`;
 
   sendTelemetryEvent(EventType.InitializePlugin, {}, {});
 }
@@ -254,15 +258,15 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
 function getBrowserRelease(): string {
   if (navigator.userAgentData) {
     const browser =
-      navigator.userAgentData.brands[navigator.userAgentData.brands.length - 1];
+      navigator.userAgentData?.brands[
+        navigator.userAgentData.brands.length - 1
+      ];
     return `${browser.brand}/${browser.version}`;
   } else {
     return "";
   }
 }
 
-export function getUserAgent(context: vscode.ExtensionContext): string {
-  const version = context.extension?.packageJSON?.version;
-  const browserAndRelease = getBrowserRelease();
-  return `VSCode/${version} ${browserAndRelease}`;
+export function getUserAgent(): string {
+  return userAgentString || "";
 }

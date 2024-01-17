@@ -18,7 +18,6 @@ export const useProxy = true;
 export async function azureRequest(
   uri: string,
   token: string,
-  context: vscode.ExtensionContext,
   associationId?: string,
   method = "GET",
   body?: string,
@@ -26,7 +25,7 @@ export async function azureRequest(
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
     ["Content-Type", "application/json"],
-    ["User-Agent", getUserAgent(context)],
+    ["User-Agent", getUserAgent()],
   ];
 
   try {
@@ -74,7 +73,6 @@ export async function azureRequest(
 export async function storageRequest(
   uri: string,
   method: string,
-  context: vscode.ExtensionContext,
   token?: string,
   proxy?: string,
   extraHeaders?: [string, string][],
@@ -84,7 +82,7 @@ export async function storageRequest(
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
-    ["User-Agent", getUserAgent(context)],
+    ["User-Agent", getUserAgent()],
   ];
   if (token) headers.push(["Authorization", `Bearer ${token}`]);
 
@@ -226,7 +224,6 @@ export async function checkCorsConfig(
   const sasResponse: ResponseTypes.SasUri = await azureRequest(
     quantumUris.sasUri(),
     token,
-    context,
     associationId,
     "POST",
     body,
