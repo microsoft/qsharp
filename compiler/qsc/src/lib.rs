@@ -3,7 +3,6 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-#![allow(irrefutable_let_patterns)]
 
 pub mod compile;
 pub mod error;
