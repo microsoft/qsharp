@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
 
+/// <reference types="user-agent-data-types" />
+
 export enum EventType {
   InitializePlugin = "Qsharp.InitializePlugin",
   LoadLanguageService = "Qsharp.LoadLanguageService",
@@ -268,5 +270,5 @@ function getBrowserRelease(): string {
 }
 
 export function getUserAgent(): string {
-  return userAgentString || "";
+  return userAgentString || navigator.userAgent;
 }
