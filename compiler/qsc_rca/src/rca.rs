@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::data_structures::{FlattenedInputParamsElmnts, InputParamElmnt};
+use crate::data_structures::{
+    CallableVarMap, FlattenedInputParamsElmnts, InputParamElmntKind, InputParams,
+};
+use crate::fir_extensions::CallableDeclExt;
 use crate::{ComputePropsLookup, ItemComputeProps, PackageStoreComputeProps, PatComputeProps};
 use qsc_fir::fir::{
     CallableDecl, Global, PackageId, PackageStore, PackageStoreLookup, StoreItemId, StoreStmtId,
@@ -42,7 +45,7 @@ fn analyze_and_update_callable_compute_props(
     }
 
     // First, set the compute properties of all the patterns that make the input parameters.
-    let input_params_elmnts = FlattenedInputParamsElmnts::from_callable(
+    let input_params_elmnts = FlattenedInputParamsElmnts::new(
         callable,
         &package_store
             .get(id.package)
@@ -50,6 +53,26 @@ fn analyze_and_update_callable_compute_props(
             .pats,
     );
     analyze_and_update_callable_input_params(id, &input_params_elmnts, compute_props);
+
+    // Analyze the callable depending on its type.
+    let input_params = InputParams::new(&input_params_elmnts);
+    if callable.is_intrinsic() {
+        analyze_and_update_intrinsic_callable_compute_props(
+            id,
+            callable,
+            &input_params,
+            package_store,
+            compute_props,
+        );
+    } else {
+        analyze_and_update_non_intrinsic_callable_compute_props(
+            id,
+            callable,
+            &input_params,
+            package_store,
+            compute_props,
+        );
+    }
 }
 
 fn analyze_and_update_callable_input_params(
@@ -57,22 +80,42 @@ fn analyze_and_update_callable_input_params(
     input_params_elmnts: &FlattenedInputParamsElmnts,
     compute_props: &mut PackageStoreComputeProps,
 ) {
+    // This function is only called when a callable has not already been analyzed.
+    if compute_props.find_item(callable_id).is_some() {
+        panic!("callable is already analyzed");
+    }
+
     for elmnt in input_params_elmnts.iter() {
-        match elmnt {
-            InputParamElmnt::Discard(pat_id, _) => compute_props.insert_pat(
-                (callable_id.package, *pat_id).into(),
+        match &elmnt.kind {
+            InputParamElmntKind::Discard => compute_props.insert_pat(
+                (callable_id.package, elmnt.pat).into(),
                 PatComputeProps::InputParamDiscard,
             ),
-            InputParamElmnt::Node(pat_id, node_id, _) => compute_props.insert_pat(
-                (callable_id.package, *pat_id).into(),
+            InputParamElmntKind::Node(node_id) => compute_props.insert_pat(
+                (callable_id.package, elmnt.pat).into(),
                 PatComputeProps::InputParamNode(*node_id),
             ),
-            InputParamElmnt::Tuple(pat_id, tuple_pats, _) => compute_props.insert_pat(
-                (callable_id.package, *pat_id).into(),
+            InputParamElmntKind::Tuple(tuple_pats) => compute_props.insert_pat(
+                (callable_id.package, elmnt.pat).into(),
                 PatComputeProps::InputParamTuple(tuple_pats.clone()),
             ),
         }
     }
+}
+
+fn analyze_and_update_intrinsic_callable_compute_props(
+    id: StoreItemId,
+    _callable: &CallableDecl,
+    _input_params: &InputParams,
+    _package_store: &PackageStore,
+    compute_props: &mut PackageStoreComputeProps,
+) {
+    // This function is only called when a callable has not already been analyzed.
+    if compute_props.find_item(id).is_some() {
+        panic!("callable is already analyzed");
+    }
+
+    // TODO (cesarzc): Implement.
 }
 
 fn analyze_and_update_item_compute_props(
@@ -80,7 +123,7 @@ fn analyze_and_update_item_compute_props(
     package_store: &PackageStore,
     compute_props: &mut PackageStoreComputeProps,
 ) {
-    // If the item has already been analyzed, there's nothing else left to do.
+    // If the item has already been analyzed, there's nothing left to do.
     if compute_props.find_item(id).is_some() {
         return;
     }
@@ -92,9 +135,32 @@ fn analyze_and_update_item_compute_props(
     }
 }
 
-fn analyze_and_update_stmt_compute_props(
-    _id: StoreStmtId,
+fn analyze_and_update_non_intrinsic_callable_compute_props(
+    id: StoreItemId,
+    _callable: &CallableDecl,
+    input_params: &InputParams,
     _package_store: &PackageStore,
-    _compute_props: &mut PackageStoreComputeProps,
+    compute_props: &mut PackageStoreComputeProps,
 ) {
+    // This function is only called when a callable has not already been analyzed.
+    if compute_props.find_item(id).is_some() {
+        panic!("callable is already analyzed");
+    }
+
+    let _var_map = CallableVarMap::new(input_params);
+    // TODO (cesarzc): Implement.
+}
+
+fn analyze_and_update_stmt_compute_props(
+    id: StoreStmtId,
+    package_store: &PackageStore,
+    compute_props: &mut PackageStoreComputeProps,
+) {
+    // If the item has already been analyzed, there's nothing left to do.
+    if compute_props.find_stmt(id).is_some() {
+        return;
+    }
+
+    let _stmt = package_store.get_stmt(id);
+    // TODO (cesarzc): Implement.
 }

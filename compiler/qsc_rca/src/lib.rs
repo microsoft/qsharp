@@ -4,6 +4,7 @@
 //! Runtime Capabilities Analysis (RCA)...
 
 mod data_structures;
+mod fir_extensions;
 mod rca;
 #[cfg(test)]
 mod tests;

@@ -1053,6 +1053,7 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_passes",
+ "rustc-hash",
 ]
 
 [[package]]
