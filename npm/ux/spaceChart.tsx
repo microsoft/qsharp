@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { CreateReData, ReData } from "./reTable.js";
+import { CreateReData, ReData } from "./data.js";
 
 function getPieSegment(
   x: number,

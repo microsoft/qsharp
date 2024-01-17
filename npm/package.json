@@ -21,6 +21,7 @@
     "./language-service-worker": "./dist/language-service/worker-browser.js",
     "./debug-service-worker": "./dist/debug-service/worker-browser.js",
     "./ux/ticks": "./src/ux/ticks.ts",
+    "./ux/utils": "./src/ux/utils.ts",
     "./ux": "./ux/index.ts"
   },
   "scripts": {

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { ReData } from "./reTable.js";
+import { formatThousandSep, formatThousandSepF64 } from "qsharp-lang/ux/utils";
 
 type ReportData = {
   groups: ReportGroup[];
@@ -20,29 +21,6 @@ type ReportEntry = {
   description: string;
   explanation: string;
 };
-
-// no-unused-vars is disabled because it is used in code executed dynamically
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function formatThousandSepF64(val: number): string {
-  // Assuming val is 92592.5925925926
-  const formatted = val.toFixed(2);
-  const [integerPart, fractionalPart] = formatted.split(".");
-
-  return `${formatThousandSep(integerPart)}.${fractionalPart}`;
-}
-
-function formatThousandSep(str: string | number): string {
-  if (typeof str === "number") {
-    str = str.toString();
-  }
-  const parts = [];
-
-  for (let i = str.length; i > 0; i -= 3) {
-    parts.unshift(str.slice(Math.max(0, i - 3), i));
-  }
-
-  return parts.join(",");
-}
 
 // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH generate_report_code.py from output_data.md
 export function CreateReport(result: ReData): ReportData {

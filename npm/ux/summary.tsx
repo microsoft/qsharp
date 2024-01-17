@@ -5,7 +5,7 @@
 // The results table is also a legend for the scatter chart.
 
 import { ColorMap } from "./colormap.js";
-import { CreateReData, FrontierEntry, ReData } from "./reTable.js";
+import { CreateReData, FrontierEntry, ReData } from "./data.js";
 import { ResultsTable, Row } from "./resultsTable.js";
 import {
   Axis,

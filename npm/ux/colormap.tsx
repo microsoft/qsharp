@@ -1,116 +1,51 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/*
- * This file is a derivative work based on the colormap project
- * https://www.npmjs.com/package/colormap
- * https://github.com/bpostlethwaite/colormap
- *  originally developed by ICRL.
- *
- * Original MIT License:
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in the
- * Software without restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
- * Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THIS SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
 export function ColorMap(colorsCount: number): string[] {
-  if (colorsCount <= predefinedColors.length) {
-    return predefinedColors.slice(0, colorsCount);
+  const colors: string[] = [];
+  const saturationIncrement = 1.4142135623730951; // square root of 2
+  const hueIncrement = 0.618033988749895; // golden ratio
+  const lightnessIncrement = 2.718281828459045; // euler's number
+
+  for (let i = 0; i < colorsCount; i++) {
+    const hue = (i * hueIncrement) % 1;
+    const saturation = (1 - ((i * saturationIncrement) % 1)) * 0.5 + 0.5;
+    const lightness = ((i * lightnessIncrement) % 1) * 0.3 + 0.35;
+    const rgbColor = hslToRgb(hue, saturation, lightness);
+    const hexColor = rgbToHex(rgbColor[0], rgbColor[1], rgbColor[2]);
+    colors.push(hexColor);
+  }
+  return colors;
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  let r, g, b;
+
+  if (s === 0) {
+    r = g = b = l; // Grayscale
   } else {
-    const cmap = jetColorMap;
-    const alpha = 1;
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
 
-    // map index points from 0..1 to 0..n-1
-    const indicies = cmap.map(function (c) {
-      return Math.round(c.index * colorsCount);
-    });
-
-    const steps = cmap.map((c, i) => {
-      const rgba = cmap[i].rgb.slice();
-
-      // if user supplies their own map use it
-      if (rgba.length === 4 && rgba[3] >= 0 && rgba[3] <= 1) {
-        return rgba;
-      }
-      rgba[3] = alpha;
-
-      return rgba;
-    });
-
-    /*
-     * map increasing linear values between indicies to
-     * linear steps in colorvalues
-     */
-    const colors = [];
-    for (let i = 0; i < indicies.length - 1; ++i) {
-      const nsteps = indicies[i + 1] - indicies[i];
-      const fromrgba = steps[i];
-      const torgba = steps[i + 1];
-
-      for (let j = 0; j < nsteps; j++) {
-        const amt = j / nsteps;
-        colors.push([
-          Math.round(linear(fromrgba[0], torgba[0], amt)),
-          Math.round(linear(fromrgba[1], torgba[1], amt)),
-          Math.round(linear(fromrgba[2], torgba[2], amt)),
-          linear(fromrgba[3], torgba[3], amt),
-        ]);
-      }
-    }
-
-    //add 1 step as last value
-    colors.push(cmap[cmap.length - 1].rgb.concat(alpha));
-
-    return colors.map(rgb2hex);
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
   }
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
-function linear(a: number, b: number, t: number) {
-  return a + (b - a) * t;
+function rgbToHex(r: number, g: number, b: number): string {
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b)
+    .toString(16)
+    .slice(1)
+    .toUpperCase()}`;
 }
-
-function rgb2hex(rgba: number[]): string {
-  let hex = "#";
-  for (let i = 0; i < 3; ++i) {
-    const dig = rgba[i].toString(16);
-    hex += ("00" + dig).slice(dig.length);
-  }
-  return hex;
-}
-
-const predefinedColors = [
-  "#FF0000", // Red
-  "#0000FF", // Blue
-  "#00FF00", // Green
-  "#800080", // Purple
-  "#FFA500", // Orange
-  "#008080", // Teal
-  "#FFC0CB", // Pink
-  "#FFFF00", // Yellow
-  "#A52A2A", // Brown
-  "#00FFFF", // Cyan
-];
-
-// https://github.com/bpostlethwaite/colormap/blob/master/colorScale.js
-const jetColorMap = [
-  { index: 0, rgb: [0, 0, 131] },
-  { index: 0.125, rgb: [0, 60, 170] },
-  { index: 0.375, rgb: [5, 255, 255] },
-  { index: 0.625, rgb: [255, 255, 0] },
-  { index: 0.875, rgb: [250, 0, 0] },
-  { index: 1, rgb: [128, 0, 0] },
-];

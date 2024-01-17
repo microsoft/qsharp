@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { formatThousandSep } from "./utils.js";
+
 export type Tick = {
   value: number;
   label: string;
@@ -21,7 +23,7 @@ export function CreateIntegerTicks(min: number, max: number): Tick[] {
 
   for (let i = l; i <= r; i *= 10) {
     if (i >= min && i <= max) {
-      result.push({ value: i, label: i.toString() });
+      result.push({ value: i, label: formatThousandSep(i) });
     }
   }
   if (result.length == 0) {
@@ -29,7 +31,7 @@ export function CreateIntegerTicks(min: number, max: number): Tick[] {
     while (step >= 1) {
       let i = Math.ceil(min / step) * step;
       while (i <= max) {
-        result.push({ value: i, label: i.toString() });
+        result.push({ value: i, label: formatThousandSep(i) });
         i += step;
       }
       if (result.length > 0) {
