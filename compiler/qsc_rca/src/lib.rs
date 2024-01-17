@@ -9,13 +9,16 @@ mod rca;
 #[cfg(test)]
 mod tests;
 
+use data_structures::InputParams;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
-    BlockId, ExprId, LocalItemId, NodeId, PackageId, PackageStore, PatId, StmtId, StoreBlockId,
-    StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+    BlockId, CallableDecl, CallableKind, ExprId, LocalItemId, NodeId, PackageId, PackageStore,
+    PatId, StmtId, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use rca::analyze_package_and_update_compute_props;
+
+use crate::fir_extensions::{CallableDeclExt, TyExt};
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropsLookup {
@@ -209,6 +212,70 @@ pub struct CallableComputeProps {
     pub ctl_adj: Option<AppsTbl>,
 }
 
+impl CallableComputeProps {
+    pub fn from_instrinsic(callable: &CallableDecl, input_params: &InputParams) -> Self {
+        assert!(callable.is_intrinsic());
+        match callable.kind {
+            CallableKind::Function => Self::from_instrinsic_function(callable, input_params),
+            CallableKind::Operation => Self::from_instrinsic_operation(callable, input_params),
+        }
+    }
+
+    fn from_instrinsic_function(callable: &CallableDecl, input_params: &InputParams) -> Self {
+        assert!(matches!(callable.kind, CallableKind::Function));
+
+        // Functions are purely classical, so no runtime capabilities are needed and cannot be an inherent quantum
+        // source.
+        let inherent = ComputeProps {
+            rt_caps: RuntimeCapabilityFlags::empty(),
+            quantum_source: None,
+        };
+
+        // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
+        // on the parameter type.
+        let mut dyn_params = Vec::new();
+        for param in input_params.iter() {
+            let param_rt_caps = param.ty.infer_rt_caps();
+            let param_compute_props = ComputeProps {
+                rt_caps: param_rt_caps,
+                quantum_source: Some(QuantumSource::Intrinsic),
+            };
+            dyn_params.push(param_compute_props);
+        }
+
+        // Construct the callable compute properties.
+        let body = AppsTbl {
+            inherent,
+            dyn_params,
+        };
+        Self {
+            body,
+            adj: None,
+            ctl: None,
+            ctl_adj: None,
+        }
+    }
+
+    fn from_instrinsic_operation(callable: &CallableDecl, _input_params: &InputParams) -> Self {
+        assert!(matches!(callable.kind, CallableKind::Operation));
+
+        // TODO (cesarzc): Implement this properly.
+        let body = AppsTbl {
+            inherent: ComputeProps {
+                rt_caps: RuntimeCapabilityFlags::empty(),
+                quantum_source: None,
+            },
+            dyn_params: Vec::new(),
+        };
+        Self {
+            body,
+            adj: None,
+            ctl: None,
+            ctl_adj: None,
+        }
+    }
+}
+
 /// The compute properties of pattern.
 #[derive(Debug)]
 pub enum PatComputeProps {
@@ -240,8 +307,9 @@ pub enum ElmntComputeProps {
 pub struct AppsTbl {
     /// The inherent compute properties of all applications.
     pub inherent: ComputeProps,
-    /// The compute properties for each dynamic parameter in the application.
-    pub dynamic_params: Vec<ComputeProps>,
+    /// The compute properties for each parameter when it corresponds to a dynamic argument in a particular callable
+    /// application.
+    pub dyn_params: Vec<ComputeProps>,
 }
 
 /// The tracked compute properties.
