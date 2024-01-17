@@ -3,6 +3,7 @@
 
 //! Runtime Capabilities Analysis (RCA)...
 
+mod nodes;
 mod rca;
 #[cfg(test)]
 mod tests;
@@ -216,6 +217,8 @@ pub enum PatComputeProps {
     LocalNode(NodeId, ElmntComputeProps),
     /// A local tuple. No compute properties tracked because it is not a node.
     LocalTuple(Vec<PatId>),
+    ///
+    InputParamDiscard,
     /// An input parameter. No compute properties tracked.
     InputParamNode(NodeId),
     /// An input parameter(s) tuple. No compute properties tracked.

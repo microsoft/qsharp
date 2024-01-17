@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{ComputePropsLookup, ItemComputeProps, PackageStoreComputeProps};
+use crate::nodes::{FlattenedInputParamsElmnts, InputParamElmnt};
+use crate::{ComputePropsLookup, ItemComputeProps, PackageStoreComputeProps, PatComputeProps};
 use qsc_fir::fir::{
     CallableDecl, Global, PackageId, PackageStore, PackageStoreLookup, StoreItemId, StoreStmtId,
 };
@@ -30,16 +31,53 @@ pub fn analyze_package_and_update_compute_props(
 }
 
 fn analyze_and_update_callable_compute_props(
-    _id: StoreItemId,
-    _callable: &CallableDecl,
-    _package_store: &impl PackageStoreLookup,
-    _compute_props: &mut PackageStoreComputeProps,
+    id: StoreItemId,
+    callable: &CallableDecl,
+    package_store: &PackageStore,
+    compute_props: &mut PackageStoreComputeProps,
 ) {
+    // This function is only called when a callable has not already been analyzed.
+    if compute_props.find_item(id).is_some() {
+        panic!("callable is already analyzed");
+    }
+
+    // First, set the compute properties of all the patterns that make the input parameters.
+    let input_params_elmnts = FlattenedInputParamsElmnts::from_callable(
+        callable,
+        &package_store
+            .get(id.package)
+            .expect("package should exist")
+            .pats,
+    );
+    analyze_and_update_callable_input_params(id, &input_params_elmnts, compute_props);
+}
+
+fn analyze_and_update_callable_input_params(
+    callable_id: StoreItemId,
+    input_params_elmnts: &FlattenedInputParamsElmnts,
+    compute_props: &mut PackageStoreComputeProps,
+) {
+    for elmnt in input_params_elmnts.iter() {
+        match elmnt {
+            InputParamElmnt::Discard(pat_id) => compute_props.insert_pat(
+                (callable_id.package, *pat_id).into(),
+                PatComputeProps::InputParamDiscard,
+            ),
+            InputParamElmnt::Node(pat_id, node_id) => compute_props.insert_pat(
+                (callable_id.package, *pat_id).into(),
+                PatComputeProps::InputParamNode(*node_id),
+            ),
+            InputParamElmnt::Tuple(pat_id, tuple_pats) => compute_props.insert_pat(
+                (callable_id.package, *pat_id).into(),
+                PatComputeProps::InputParamTuple(tuple_pats.clone()),
+            ),
+        }
+    }
 }
 
 fn analyze_and_update_item_compute_props(
     id: StoreItemId,
-    package_store: &impl PackageStoreLookup,
+    package_store: &PackageStore,
     compute_props: &mut PackageStoreComputeProps,
 ) {
     // If the item has already been analyzed, there's nothing else left to do.
@@ -56,7 +94,7 @@ fn analyze_and_update_item_compute_props(
 
 fn analyze_and_update_stmt_compute_props(
     _id: StoreStmtId,
-    _package_store: &impl PackageStoreLookup,
+    _package_store: &PackageStore,
     _compute_props: &mut PackageStoreComputeProps,
 ) {
 }
