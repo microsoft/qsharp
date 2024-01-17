@@ -8,7 +8,6 @@ import time
 import anywidget
 import traitlets
 
-
 try:
     __version__ = importlib.metadata.version("qsharp_widgets")
 except importlib.metadata.PackageNotFoundError:

@@ -19,7 +19,6 @@ fn estimate_single() {
     };
 
     let params: &str = "[{}]";
-
     let result = estimate_physical_resources(&logical_resources, params);
 
     let json_value: Vec<Value> =
