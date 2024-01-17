@@ -18,9 +18,8 @@ fn estimate_single() {
         measurement_count: 0,
     };
 
-    let params: &str = r#"[{
-        "estimateType": "singlePoint"
-    }]"#;
+    let params: &str = "[{}]";
+
     let result = estimate_physical_resources(&logical_resources, params);
 
     let json_value: Vec<Value> =
@@ -45,7 +44,9 @@ fn estimate_frontier() {
         measurement_count: 0,
     };
 
-    let params: &str = "[{}]";
+    let params: &str = r#"[{
+        "estimateType": "frontier"
+    }]"#;
 
     let result = estimate_physical_resources(&logical_resources, params);
 
