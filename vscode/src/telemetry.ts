@@ -258,9 +258,9 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
 }
 
 function getBrowserRelease(): string {
-  if (navigator.userAgentData) {
+  if (navigator.userAgentData?.brands) {
     const browser =
-      navigator.userAgentData?.brands[
+      navigator.userAgentData.brands[
         navigator.userAgentData.brands.length - 1
       ];
     return `${browser.brand}/${browser.version}`;
