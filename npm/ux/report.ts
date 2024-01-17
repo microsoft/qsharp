@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ReData } from "./reTable.js";
+import { ReData } from "./data.js";
 import { formatThousandSep, formatThousandSepF64 } from "qsharp-lang/ux/utils";
 
 type ReportData = {
