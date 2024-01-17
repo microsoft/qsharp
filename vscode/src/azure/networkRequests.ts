@@ -211,7 +211,6 @@ export class StorageUris {
 export async function checkCorsConfig(
   token: string,
   quantumUris: QuantumUris,
-  context: vscode.ExtensionContext,
 ) {
   const associationId = getRandomGuid();
   const start = performance.now();
