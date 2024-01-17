@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::interpret::stateful::Interpreter;
+use crate::interpret::Interpreter;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -38,30 +38,21 @@ fn expect_bp(interpreter: &mut Interpreter, ids: &[StmtId], expected_id: StmtId)
 fn step_in(
     interpreter: &mut Interpreter,
     breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     step(interpreter, breakpoints, qsc_eval::StepAction::In)
 }
 
 fn step_next(
     interpreter: &mut Interpreter,
     breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     step(interpreter, breakpoints, qsc_eval::StepAction::Next)
 }
 
 fn step_out(
     interpreter: &mut Interpreter,
     breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     step(interpreter, breakpoints, qsc_eval::StepAction::Out)
 }
 
@@ -69,10 +60,7 @@ fn step(
     interpreter: &mut Interpreter,
     breakpoints: &[StmtId],
     step: StepAction,
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (
@@ -137,7 +125,7 @@ mod given_interpreter_with_sources {
         use super::*;
 
         #[test]
-        fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter = Interpreter::new(
                 true,
@@ -161,7 +149,7 @@ mod given_interpreter_with_sources {
         }
 
         #[test]
-        fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter = Interpreter::new(
                 true,
@@ -181,7 +169,7 @@ mod given_interpreter_with_sources {
         }
 
         #[test]
-        fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter = Interpreter::new(
                 true,
@@ -208,7 +196,7 @@ mod given_interpreter_with_sources {
         }
 
         #[test]
-        fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut interpreter = Interpreter::new(
                 true,

@@ -24,7 +24,7 @@ mod test_table_lookup;
 mod tests;
 
 use qsc::{
-    interpret::{stateful, GenericReceiver, Value},
+    interpret::{GenericReceiver, Interpreter, Value},
     target::Profile,
     PackageType, SourceMap,
 };
@@ -53,9 +53,8 @@ pub fn test_expression_with_lib_and_profile(
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let mut interpreter =
-        stateful::Interpreter::new(true, sources, PackageType::Exe, profile.into())
-            .expect("test should compile");
+    let mut interpreter = Interpreter::new(true, sources, PackageType::Exe, profile.into())
+        .expect("test should compile");
     let result = interpreter
         .eval_entry(&mut out)
         .expect("test should run successfully");
