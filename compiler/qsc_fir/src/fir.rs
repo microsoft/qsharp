@@ -521,6 +521,15 @@ impl PackageStore {
     }
 }
 
+impl<'a> IntoIterator for &'a PackageStore {
+    type IntoIter = qsc_data_structures::index_map::Iter<'a, PackageId, Package>;
+    type Item = (PackageId, &'a Package);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// A trait to find elements in a package.
 pub trait PackageLookup {
     /// Gets a block.
