@@ -60,12 +60,12 @@ class Interpreter:
         self, entry_expr: str, output_fn: Callable[[Output], None]
     ) -> Any:
         """
-        Runs the given Q# expressin with an independent instance of the simulator.
+        Runs the given Q# expression with an independent instance of the simulator.
 
         :param entry_expr: The entry expression.
         :param output_fn: A callback function that will be called with each output.
 
-        :returns values: A results or runtime errors.
+        :returns values: A result or runtime errors.
 
         :raises QSharpError: If there is an error interpreting the input.
         """
