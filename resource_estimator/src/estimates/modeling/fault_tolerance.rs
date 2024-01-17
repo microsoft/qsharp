@@ -255,6 +255,7 @@ impl Protocol {
         Ok(ftp)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn load_from_code_distance_table(
         csvfile: impl AsRef<Path>,
         instruction_set: PhysicalInstructionSet,
