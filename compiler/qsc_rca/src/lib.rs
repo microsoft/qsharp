@@ -3,7 +3,7 @@
 
 //! Runtime Capabilities Analysis (RCA)...
 
-mod nodes;
+mod data_structures;
 mod rca;
 #[cfg(test)]
 mod tests;

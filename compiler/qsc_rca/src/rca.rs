@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::nodes::{FlattenedInputParamsElmnts, InputParamElmnt};
+use crate::data_structures::{FlattenedInputParamsElmnts, InputParamElmnt};
 use crate::{ComputePropsLookup, ItemComputeProps, PackageStoreComputeProps, PatComputeProps};
 use qsc_fir::fir::{
     CallableDecl, Global, PackageId, PackageStore, PackageStoreLookup, StoreItemId, StoreStmtId,
@@ -59,15 +59,15 @@ fn analyze_and_update_callable_input_params(
 ) {
     for elmnt in input_params_elmnts.iter() {
         match elmnt {
-            InputParamElmnt::Discard(pat_id) => compute_props.insert_pat(
+            InputParamElmnt::Discard(pat_id, _) => compute_props.insert_pat(
                 (callable_id.package, *pat_id).into(),
                 PatComputeProps::InputParamDiscard,
             ),
-            InputParamElmnt::Node(pat_id, node_id) => compute_props.insert_pat(
+            InputParamElmnt::Node(pat_id, node_id, _) => compute_props.insert_pat(
                 (callable_id.package, *pat_id).into(),
                 PatComputeProps::InputParamNode(*node_id),
             ),
-            InputParamElmnt::Tuple(pat_id, tuple_pats) => compute_props.insert_pat(
+            InputParamElmnt::Tuple(pat_id, tuple_pats, _) => compute_props.insert_pat(
                 (callable_id.package, *pat_id).into(),
                 PatComputeProps::InputParamTuple(tuple_pats.clone()),
             ),

@@ -2,14 +2,17 @@
 // Licensed under the MIT License.
 
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{CallableDecl, NodeId, Pat, PatId, PatKind};
+use qsc_fir::{
+    fir::{CallableDecl, NodeId, Pat, PatId, PatKind},
+    ty::Ty,
+};
 use std::ops::Deref;
 
 /// An element of an input parameter pattern.
 pub enum InputParamElmnt {
-    Discard(PatId),
-    Node(PatId, NodeId),
-    Tuple(PatId, Vec<PatId>),
+    Discard(PatId, Ty),
+    Node(PatId, NodeId, Ty),
+    Tuple(PatId, Vec<PatId>, Ty),
 }
 
 pub struct FlattenedInputParamsElmnts(Vec<InputParamElmnt>);
@@ -29,17 +32,21 @@ impl FlattenedInputParamsElmnts {
             let pat = pats.get(pat_id).expect("pattern should exist");
             match &pat.kind {
                 PatKind::Bind(ident) => {
-                    vec![InputParamElmnt::Node(pat_id, ident.id)]
+                    vec![InputParamElmnt::Node(pat_id, ident.id, pat.ty.clone())]
                 }
                 PatKind::Tuple(tuple_pats) => {
-                    let mut tuple_params = vec![InputParamElmnt::Tuple(pat_id, tuple_pats.clone())];
+                    let mut tuple_params = vec![InputParamElmnt::Tuple(
+                        pat_id,
+                        tuple_pats.clone(),
+                        pat.ty.clone(),
+                    )];
                     for tuple_item_pat_id in tuple_pats {
                         let mut tuple_item_params = as_vector(*tuple_item_pat_id, pats);
                         tuple_params.append(&mut tuple_item_params);
                     }
                     tuple_params
                 }
-                PatKind::Discard => vec![InputParamElmnt::Discard(pat_id)],
+                PatKind::Discard => vec![InputParamElmnt::Discard(pat_id, pat.ty.clone())],
             }
         }
 
