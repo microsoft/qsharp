@@ -522,10 +522,6 @@ impl Backend for LogicalCounter {
         true
     }
 
-    fn reinit(&mut self) {
-        *self = Self::default();
-    }
-
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
             "BeginEstimateCaching" => {

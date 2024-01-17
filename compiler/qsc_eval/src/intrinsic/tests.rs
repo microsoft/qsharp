@@ -134,10 +134,6 @@ impl Backend for CustomSim {
         self.sim.qubit_is_zero(q)
     }
 
-    fn reinit(&mut self) {
-        self.sim.reinit();
-    }
-
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
             "Add1" => Some(Ok(Value::Int(arg.unwrap_int() + 1))),

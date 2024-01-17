@@ -57,17 +57,15 @@ class Interpreter:
         """
         ...
     def run(
-        self, entry_expr: str, shots: int, output_fn: Callable[[Output], None]
+        self, entry_expr: str, output_fn: Callable[[Output], None]
     ) -> Any:
         """
-        Runs the given Q# expressin for the given number of shots.
-        Each shot uses an independent instance of the simulator.
+        Runs the given Q# expression with an independent instance of the simulator.
 
         :param entry_expr: The entry expression.
-        :param shots: The number of shots to run.
         :param output_fn: A callback function that will be called with each output.
 
-        :returns values: A list of results or runtime errors.
+        :returns values: A result or runtime errors.
 
         :raises QSharpError: If there is an error interpreting the input.
         """

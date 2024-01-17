@@ -24,11 +24,10 @@ mod given_interpreter {
     fn run(
         interpreter: &mut Interpreter,
         expr: &str,
-        shots: u32,
-    ) -> (Result<Vec<InterpretResult>, Vec<Error>>, String) {
+    ) -> (Result<InterpretResult, Vec<Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.run(&mut receiver, expr, shots), receiver.dump())
+        (interpreter.run(&mut receiver, expr), receiver.dump())
     }
 
     fn entry(
@@ -960,47 +959,45 @@ mod given_interpreter {
         #[test]
         fn run_with_shots() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");
+            let (result, output) = line(&mut interpreter, "operation Foo(qs : Qubit[]) : Unit { Microsoft.Quantum.Diagnostics.DumpMachine(); }");
             is_only_value(&result, &output, &Value::unit());
-            let (results, output) = run(&mut interpreter, "Foo()", 5);
-            assert_eq!(output, String::new());
-            let results = results.expect("run() should succeed");
-            assert_eq!(results.len(), 5);
-            for r in results {
-                let val = r.expect("individual run should succeed");
-                assert_eq!(val, Value::Int(1));
+            for _ in 0..4 {
+                let (results, output) = run(&mut interpreter, "{use qs = Qubit[2]; Foo(qs)}");
+                is_unit_with_output(
+                    &results.expect("compilation should succeed"),
+                    &output,
+                    "STATE:\n|00⟩: 1+0i",
+                );
             }
         }
 
         #[test]
         fn run_parse_error() {
             let mut interpreter = get_interpreter();
-            let (results, _) = run(&mut interpreter, "Foo)", 5);
+            let (results, _) = run(&mut interpreter, "Foo)");
             results.expect_err("run() should fail");
         }
 
         #[test]
         fn run_compile_error() {
             let mut interpreter = get_interpreter();
-            let (results, _) = run(&mut interpreter, "Foo()", 5);
+            let (results, _) = run(&mut interpreter, "Foo()");
             results.expect_err("run() should fail");
         }
 
         #[test]
-        fn run_multiple_statements() {
+        fn run_multiple_statements_with_return_value() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "operation Foo() : Int { 1 }");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "operation Bar() : Int { 2 }");
             is_only_value(&result, &output, &Value::unit());
-            let (results, output) = run(&mut interpreter, "{ Foo(); Bar() }", 5);
-            assert_eq!(output, String::new());
-            let results = results.expect("run() should succeed");
-            assert_eq!(results.len(), 5);
-            for r in results {
-                let val = r.expect("individual run should succeed");
-                assert_eq!(val, Value::Int(2));
-            }
+            let (result, output) = run(&mut interpreter, "{ Foo(); Bar() }");
+            is_only_value(
+                &result.expect("compilation should succeed"),
+                &output,
+                &Value::Int(2),
+            );
         }
 
         #[test]
@@ -1011,12 +1008,16 @@ mod given_interpreter {
                 r#"operation Foo() : Int { fail "failed" }"#,
             );
             is_only_value(&result, &output, &Value::unit());
-            let (results, output) = run(&mut interpreter, "Foo()", 5);
-            assert_eq!(output, String::new());
-            let results = results.expect("run() should succeed");
-            assert_eq!(results.len(), 5);
-            for r in results {
-                r.expect_err("individual run should fail");
+            for _ in 0..1 {
+                let (result, output) = run(&mut interpreter, "Foo()");
+                is_only_error(
+                    &result.expect("compilation should succeed"),
+                    &output,
+                    &expect![[r#"
+                        runtime error: program failed: failed
+                          explicit fail [line_0] [fail "failed"]
+                    "#]],
+                );
             }
         }
 
@@ -1028,19 +1029,13 @@ mod given_interpreter {
                 r#"operation Foo() : Unit { Message("hello!") }"#,
             );
             is_only_value(&result, &output, &Value::unit());
-            let (results, output) = run(&mut interpreter, "Foo()", 5);
-            expect![[r#"
-                hello!
-                hello!
-                hello!
-                hello!
-                hello!"#]]
-            .assert_eq(&output);
-            let results = results.expect("run() should succeed");
-            assert_eq!(results.len(), 5);
-            for r in results {
-                let val = r.expect("individual run should succeed");
-                assert_eq!(val, Value::unit());
+            for _ in 0..4 {
+                let (result, output) = run(&mut interpreter, "Foo()");
+                is_unit_with_output(
+                    &result.expect("compilation should succeed"),
+                    &output,
+                    "hello!",
+                );
             }
         }
     }
