@@ -1,3 +1,8 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// <reference types="user-agent-data-types" />
+
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
@@ -223,6 +228,7 @@ export enum DebugEvent {
 }
 
 let reporter: TelemetryReporter | undefined;
+let userAgentString: string | undefined;
 
 export function initTelemetry(context: vscode.ExtensionContext) {
   const packageJson = context.extension?.packageJSON;
@@ -230,6 +236,9 @@ export function initTelemetry(context: vscode.ExtensionContext) {
     return;
   }
   reporter = new TelemetryReporter(packageJson.aiKey);
+  const version = context.extension?.packageJSON?.version;
+  const browserAndRelease = getBrowserRelease();
+  userAgentString = `VSCode/${version} ${browserAndRelease}`;
 
   sendTelemetryEvent(EventType.InitializePlugin, {}, {});
 }
@@ -249,4 +258,18 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
       measurements,
     )}`,
   );
+}
+
+function getBrowserRelease(): string {
+  if (navigator.userAgentData?.brands) {
+    const browser =
+      navigator.userAgentData.brands[navigator.userAgentData.brands.length - 1];
+    return `${browser.brand}/${browser.version}`;
+  } else {
+    return "";
+  }
+}
+
+export function getUserAgent(): string {
+  return userAgentString || navigator.userAgent;
 }
