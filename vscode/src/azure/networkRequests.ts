@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
 import { log } from "qsharp-lang";
 import {
   EventType,
@@ -256,10 +255,7 @@ export class StorageUris {
   }
 }
 
-export async function checkCorsConfig(
-  token: string,
-  quantumUris: QuantumUris,
-) {
+export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
   const associationId = getRandomGuid();
   const start = performance.now();
   sendTelemetryEvent(EventType.CheckCorsStart, { associationId }, {});
