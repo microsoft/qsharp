@@ -31,7 +31,7 @@ class FCIDumpFileContent:
             # Use the whole URL as the file path
             file_name = file_url
         else:
-            raise f"Unknown file location {file_url}"
+            raise f"Unsupported file location {file_url}"
 
         with open(file_name, "r") as f:
             lines = [str.strip() for str in f.readlines()]
@@ -141,7 +141,7 @@ class DoubleFactorization:
                                        eigenvalue_signs,
                                        two_electron_vectors)
 
-        assert len(one_body_eigenvectors) == structure.num_orbitals ** 2
+        assert len(one_body_eigenvectors) == structure.num_orbitals**2
 
         # This computes the second sum of Eq. (9), it computes the eigenvalues
         # \lambda_m^{(r)} and eigenvectors $\vec R_{m,i}^{(r)}$.  It does not
@@ -168,7 +168,7 @@ class DoubleFactorization:
         for i in range(len(two_body_result.eigenvectors)):
             cols = structure.num_orbitals
             rows = int(len(two_body_result.eigenvectors[i]) / cols)
-            assert rows*cols == len(two_body_result.eigenvectors[i])
+            assert rows * cols == len(two_body_result.eigenvectors[i])
 
             # Reshape the two body eigenvectors so that they represented
             # row-wise in a 2D array
@@ -376,8 +376,8 @@ class DoubleFactorization:
         total_error = 0
         truncate = len(values_with_error)
         for (i, (error, _, _)) in enumerate(values_with_error):
-            error_compare = error ** 2
-            if total_error + error_compare < error_eigenvalues ** 2:
+            error_compare = error**2
+            if total_error + error_compare < error_eigenvalues**2:
                 total_error += error_compare
             else:
                 truncate = i
@@ -438,14 +438,14 @@ parser.add_argument('-f', '--fcidumpfile',
                     help='Path to the FCIDUMP file describing the Hamiltonian')
 args = parser.parse_args()
 
-# ----- Read the fcidump file and get Q# resource estimates -----
+# ----- Read the FCIDUMP file and get resource estimates from Q# algorithm -----
 structure = FCIDumpFileContent.from_file(args.fcidumpfile)
 df = DoubleFactorization.process_fcidump(structure, 0.001)
 
 # Load Q# project
 qsharp.init(project_root=".")
 
-# Construct the Q# string for which we need to perform resource estimate
+# Construct the Q# operation call for which we need to perform resource estimate
 str_one_body_eigenvalues = np.array2string(df.one_body_eigenvalues,
                                            separator=',')
 
@@ -473,8 +473,8 @@ res = qsharp.estimate(qsharp_string,
                               "qecScheme": {"name": "floquet_code"}})
 
 # Store estimates in json file
-f = open('resource_estimate.json', 'w')
-f.write(res.json)
+with open('resource_estimate.json', 'w') as f:
+    f.write(res.json)
 
 # Print high-level resource estimation results
 print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")

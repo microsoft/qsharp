@@ -1,6 +1,6 @@
 # Resource Estimation for Double-factorized Chemistry
 
-In this notebook we evaluate the physical resource estimates of using the so-called double-factorized qubitization algorithm described in [[Phys. Rev. Research 3, 033055 (2021)](https://doi.org/10.1103/PhysRevResearch.3.033055)] to calculate the energy of a user provided Hamiltonian to chemical accuracy of 1 mHa. 
+In this sample we evaluate the physical resource estimates of using the so-called double-factorized qubitization algorithm described in [[Phys. Rev. Research 3, 033055 (2021)](https://doi.org/10.1103/PhysRevResearch.3.033055)] to calculate the energy of a user provided Hamiltonian to chemical accuracy of 1 mHa. 
 
 The Hamiltonian is provided as an FCIDUMP file that is available on your machine or can be downloaded via an HTTPS URL.
 For example, you can choose some of the following URLs to download the file:
