@@ -74,7 +74,7 @@ export function RePage(props: {
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
               Space diagram
             </summary>
-            <SpaceChart estimatesData={estimate} index={null} />
+            <SpaceChart estimatesData={estimate} index={0} />
           </details>
           <details open>
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
@@ -83,7 +83,7 @@ export function RePage(props: {
             <ReTable
               mdRenderer={props.renderer}
               estimatesData={estimate}
-              index={null}
+              index={0}
             />
           </details>
         </>

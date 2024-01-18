@@ -24,13 +24,9 @@ export type FrontierEntry = {
 
 export function CreateReData(
   input: ReData,
-  frontierEntryIndex: number | null = null,
+  frontierEntryIndex: number,
 ): ReData {
-  if (
-    input.frontierEntries == null ||
-    input.frontierEntries.length === 0 ||
-    frontierEntryIndex == null
-  ) {
+  if (input.frontierEntries == null || input.frontierEntries.length === 0) {
     return input;
   } else {
     if (

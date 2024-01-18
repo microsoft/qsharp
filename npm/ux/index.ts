@@ -11,3 +11,4 @@ export { ReTable } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";
 export { ScatterChart } from "./scatterChart.js";
 export { Summary } from "./summary.js";
+export { CreateIntegerTicks, CreateTimeTicks, type Tick } from "./ticks.js";

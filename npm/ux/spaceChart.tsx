@@ -26,10 +26,7 @@ function getPieSegment(
   return d;
 }
 
-export function SpaceChart(props: {
-  estimatesData: ReData;
-  index: number | null;
-}) {
+export function SpaceChart(props: { estimatesData: ReData; index: number }) {
   const estimatesData = CreateReData(props.estimatesData, props.index);
   const breakdown = estimatesData.physicalCounts.breakdown;
 

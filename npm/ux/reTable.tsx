@@ -8,7 +8,7 @@ import { CreateReport } from "./report.js";
 export function ReTable(props: {
   mdRenderer: (input: string) => string;
   estimatesData: ReData;
-  index: number | null;
+  index: number;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const toggleDetail = () => {
