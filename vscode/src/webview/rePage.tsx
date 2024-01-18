@@ -6,7 +6,7 @@ import {
   SpaceChart,
   ReTable,
   type ReData,
-  OverviewPanel,
+  EstimatesOverview,
 } from "qsharp-lang/ux";
 import { SingleEstimateResult } from "qsharp-lang/ux/data";
 
@@ -66,14 +66,14 @@ export function RePage(props: {
         ) : null}
         <h1>Azure Quantum Resource Estimator</h1>
       </div>
-      <OverviewPanel
+      <EstimatesOverview
         estimatesData={props.estimatesData}
         isSimplifiedView={false}
         onRowDeleted={props.onRowDeleted}
         setEstimate={setEstimate}
         runNames={null}
         colors={null}
-      ></OverviewPanel>
+      ></EstimatesOverview>
       {!estimate ? null : (
         <>
           <details open>

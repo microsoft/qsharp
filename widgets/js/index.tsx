@@ -6,8 +6,8 @@ import {
   ReTable,
   SpaceChart,
   Histogram,
-  OverviewPanel,
   CreateSingleEstimateResult,
+  EstimatesOverview,
 } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
@@ -39,8 +39,8 @@ export function render({ model, el }: RenderArgs) {
     case "SpaceChart":
       renderChart({ model, el });
       break;
-    case "Overview":
-      renderOverviewPanel({ model, el });
+    case "EstimatesOverview":
+      renderEstimatesOverview({ model, el });
       break;
     case "EstimateDetails":
       renderTable({ model, el });
@@ -85,7 +85,7 @@ function renderChart({ model, el }: RenderArgs) {
   model.on("change:index", onChange);
 }
 
-function renderOverviewPanel({ model, el }: RenderArgs) {
+function renderEstimatesOverview({ model, el }: RenderArgs) {
   const onChange = () => {
     const results = model.get("estimates");
     const colors = model.get("colors");
@@ -101,14 +101,14 @@ function renderOverviewPanel({ model, el }: RenderArgs) {
     }
 
     prender(
-      <OverviewPanel
+      <EstimatesOverview
         estimatesData={estimates}
         runNames={runNames}
         colors={colors}
         isSimplifiedView={true}
         onRowDeleted={() => undefined}
         setEstimate={() => undefined}
-      ></OverviewPanel>,
+      ></EstimatesOverview>,
       el,
     );
   };

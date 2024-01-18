@@ -115,7 +115,7 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
   };
 }
 
-export function OverviewPanel(props: {
+export function EstimatesOverview(props: {
   estimatesData: ReData[];
   colors: string[] | null;
   runNames: string[] | null;

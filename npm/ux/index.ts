@@ -10,4 +10,4 @@ export { Histogram } from "./histogram.js";
 export { ReTable } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";
 export { ScatterChart } from "./scatterChart.js";
-export { OverviewPanel } from "./overviewPanel.js";
+export { EstimatesOverview } from "./estimatesOverview.js";

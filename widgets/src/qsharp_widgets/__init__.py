@@ -35,11 +35,11 @@ class SpaceChart(anywidget.AnyWidget):
         self.index = 0 if index is None else index
 
 
-class Overview(anywidget.AnyWidget):
+class EstimatesOverview(anywidget.AnyWidget):
     _esm = pathlib.Path(__file__).parent / "static" / "index.js"
     _css = pathlib.Path(__file__).parent / "static" / "index.css"
 
-    comp = traitlets.Unicode("Overview").tag(sync=True)
+    comp = traitlets.Unicode("EstimatesOverview").tag(sync=True)
     estimates = traitlets.Dict().tag(sync=True)
     colors = traitlets.List().tag(sync=True)
     runNames = traitlets.List().tag(sync=True)
