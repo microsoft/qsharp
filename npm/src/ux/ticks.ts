@@ -45,18 +45,18 @@ export function CreateIntegerTicks(min: number, max: number): Tick[] {
 }
 
 const predefinedTimeTicks: TickTimeDefinition[] = [
-  { tick: { value: 1, label: "nanosecond" }, plural: "nanoseconds" },
-  { tick: { value: 1e3, label: "microsecond" }, plural: "microseconds" },
-  { tick: { value: 1e6, label: "millisecond" }, plural: "milliseconds" },
-  { tick: { value: 1e9, label: "second" }, plural: "seconds" },
-  { tick: { value: 6e10, label: "minute" }, plural: "minutes" },
-  { tick: { value: 3.6e12, label: "hour" }, plural: "hours" },
-  { tick: { value: 8.64e13, label: "day" }, plural: "days" },
-  { tick: { value: 6.048e14, label: "week" }, plural: "weeks" },
-  { tick: { value: 2.592e15, label: "month" }, plural: "months" },
-  { tick: { value: 3.1536e16, label: "year" }, plural: "years" },
-  { tick: { value: 3.1536e17, label: "decade" }, plural: "decades" },
-  { tick: { value: 3.1536e18, label: "century" }, plural: "centuries" },
+  { tick: { value: 1, label: "1 nanosecond" }, plural: "nanoseconds" },
+  { tick: { value: 1e3, label: "1 microsecond" }, plural: "microseconds" },
+  { tick: { value: 1e6, label: "1 millisecond" }, plural: "milliseconds" },
+  { tick: { value: 1e9, label: "1 second" }, plural: "seconds" },
+  { tick: { value: 6e10, label: "1 minute" }, plural: "minutes" },
+  { tick: { value: 3.6e12, label: "1 hour" }, plural: "hours" },
+  { tick: { value: 8.64e13, label: "1 day" }, plural: "days" },
+  { tick: { value: 6.048e14, label: "1 week" }, plural: "weeks" },
+  { tick: { value: 2.592e15, label: "1 month" }, plural: "months" },
+  { tick: { value: 3.1536e16, label: "1 year" }, plural: "years" },
+  { tick: { value: 3.1536e17, label: "1 decade" }, plural: "decades" },
+  { tick: { value: 3.1536e18, label: "1 century" }, plural: "centuries" },
 ];
 
 export function CreateTimeTicks(min: number, max: number): Tick[] {

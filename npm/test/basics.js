@@ -928,16 +928,16 @@ const decade = 10 * year;
 const century = 10 * decade;
 
 test("CreateTimeTicks: nanoseconds below 100", () => {
-  runAndAssertTimeTicks(1, 1, ["nanosecond"]);
+  runAndAssertTimeTicks(1, 1, ["1 nanosecond"]);
   runAndAssertTimeTicks(3, 3, ["3 nanoseconds"]);
   runAndAssertTimeTicks(4, 6, [
     "4 nanoseconds",
     "5 nanoseconds",
     "6 nanoseconds",
   ]);
-  runAndAssertTimeTicks(1, 100, ["nanosecond"]);
-  runAndAssertTimeTicks(1, 10, ["nanosecond"]);
-  runAndAssertTimeTicks(1, 9, ["nanosecond"]);
+  runAndAssertTimeTicks(1, 100, ["1 nanosecond"]);
+  runAndAssertTimeTicks(1, 10, ["1 nanosecond"]);
+  runAndAssertTimeTicks(1, 9, ["1 nanosecond"]);
   runAndAssertTimeTicks(2, 10, ["10 nanoseconds"]);
   runAndAssertTimeTicks(2, 9, [
     "2 nanoseconds",
@@ -952,80 +952,94 @@ test("CreateTimeTicks: nanoseconds below 100", () => {
 });
 
 test("CreateTimeTicks: microseconds", () => {
-  runAndAssertTimeTicks(800, 1000, ["microsecond"]);
-  runAndAssertTimeTicks(800, 2000, ["microsecond"]);
-  runAndAssertTimeTicks(800, 11000, ["microsecond"]);
-  runAndAssertTimeTicks(800, 21000, ["microsecond"]);
-  runAndAssertTimeTicks(800, 111000, ["microsecond"]);
+  runAndAssertTimeTicks(800, 1000, ["1 microsecond"]);
+  runAndAssertTimeTicks(800, 2000, ["1 microsecond"]);
+  runAndAssertTimeTicks(800, 11000, ["1 microsecond"]);
+  runAndAssertTimeTicks(800, 21000, ["1 microsecond"]);
+  runAndAssertTimeTicks(800, 111000, ["1 microsecond"]);
   runAndAssertTimeTicks(1001, 21000, ["10 microseconds"]);
   runAndAssertTimeTicks(10001, 21000, ["20 microseconds"]);
   runAndAssertTimeTicks(10001, 30000, ["20 microseconds", "30 microseconds"]);
 });
 
 test("CreateTimeTicks: milliseconds", () => {
-  runAndAssertTimeTicks(800, 999999, ["microsecond"]);
-  runAndAssertTimeTicks(800, 1000000, ["microsecond", "millisecond"]);
-  runAndAssertTimeTicks(800000, 2000000, ["millisecond"]);
-  runAndAssertTimeTicks(800000, 11000000, ["millisecond"]);
-  runAndAssertTimeTicks(800000, 21000000, ["millisecond"]);
-  runAndAssertTimeTicks(800000, 111000000, ["millisecond"]);
+  runAndAssertTimeTicks(800, 999999, ["1 microsecond"]);
+  runAndAssertTimeTicks(800, 1000000, ["1 microsecond", "1 millisecond"]);
+  runAndAssertTimeTicks(800000, 2000000, ["1 millisecond"]);
+  runAndAssertTimeTicks(800000, 11000000, ["1 millisecond"]);
+  runAndAssertTimeTicks(800000, 21000000, ["1 millisecond"]);
+  runAndAssertTimeTicks(800000, 111000000, ["1 millisecond"]);
   runAndAssertTimeTicks(1000001, 111000000, ["100 milliseconds"]);
 });
 
 test("CreateTimeTicks: seconds", () => {
-  runAndAssertTimeTicks(800000, second - 1, ["millisecond"]);
-  runAndAssertTimeTicks(800000, second, ["millisecond", "second"]);
-  runAndAssertTimeTicks(800000000, 2 * second, ["second"]);
-  runAndAssertTimeTicks(800000000, 11 * second, ["second"]);
-  runAndAssertTimeTicks(800000000, 21 * second, ["second"]);
-  runAndAssertTimeTicks(800000000, 111 * second, ["second", "minute"]);
-  runAndAssertTimeTicks(second + 1, 111 * second, ["minute"]);
+  runAndAssertTimeTicks(800000, second - 1, ["1 millisecond"]);
+  runAndAssertTimeTicks(800000, second, ["1 millisecond", "1 second"]);
+  runAndAssertTimeTicks(800000000, 2 * second, ["1 second"]);
+  runAndAssertTimeTicks(800000000, 11 * second, ["1 second"]);
+  runAndAssertTimeTicks(800000000, 21 * second, ["1 second"]);
+  runAndAssertTimeTicks(800000000, 111 * second, ["1 second", "1 minute"]);
+  runAndAssertTimeTicks(second + 1, 111 * second, ["1 minute"]);
 });
 
 test("CreateTimeTicks: minutes", () => {
-  runAndAssertTimeTicks(second - 1, minute, ["second", "minute"]);
-  runAndAssertTimeTicks(minute - second, 2 * minute, ["minute"]);
-  runAndAssertTimeTicks(minute, 11 * minute, ["minute"]);
+  runAndAssertTimeTicks(second - 1, minute, ["1 second", "1 minute"]);
+  runAndAssertTimeTicks(minute - second, 2 * minute, ["1 minute"]);
+  runAndAssertTimeTicks(minute, 11 * minute, ["1 minute"]);
   runAndAssertTimeTicks(minute + 1, 21 * minute, ["10 minutes"]);
-  runAndAssertTimeTicks(second, 111 * minute, ["second", "minute", "hour"]);
-  runAndAssertTimeTicks(minute + 1, 111 * minute, ["hour"]);
+  runAndAssertTimeTicks(second, 111 * minute, [
+    "1 second",
+    "1 minute",
+    "1 hour",
+  ]);
+  runAndAssertTimeTicks(minute + 1, 111 * minute, ["1 hour"]);
 });
 
 test("CreateTimeTicks: hours", () => {
-  runAndAssertTimeTicks(minute - 1, hour, ["minute", "hour"]);
-  runAndAssertTimeTicks(hour - minute, 2 * hour, ["hour"]);
-  runAndAssertTimeTicks(hour, 11 * hour, ["hour"]);
+  runAndAssertTimeTicks(minute - 1, hour, ["1 minute", "1 hour"]);
+  runAndAssertTimeTicks(hour - minute, 2 * hour, ["1 hour"]);
+  runAndAssertTimeTicks(hour, 11 * hour, ["1 hour"]);
   runAndAssertTimeTicks(hour + 1, 21 * hour, ["10 hours"]);
-  runAndAssertTimeTicks(minute, 111 * hour, ["minute", "hour", "day"]);
-  runAndAssertTimeTicks(hour + 1, 111 * hour, ["day"]);
+  runAndAssertTimeTicks(minute, 111 * hour, ["1 minute", "1 hour", "1 day"]);
+  runAndAssertTimeTicks(hour + 1, 111 * hour, ["1 day"]);
 });
 
 test("CreateTimeTicks: days", () => {
-  runAndAssertTimeTicks(hour - 1, day, ["hour", "day"]);
-  runAndAssertTimeTicks(day - hour, 2 * day, ["day"]);
-  runAndAssertTimeTicks(day, 11 * day, ["day", "week"]);
-  runAndAssertTimeTicks(day + 1, 21 * day, ["week"]);
-  runAndAssertTimeTicks(hour, 111 * day, ["hour", "day", "week", "month"]);
-  runAndAssertTimeTicks(day + 1, 111 * day, ["week", "month"]);
+  runAndAssertTimeTicks(hour - 1, day, ["1 hour", "1 day"]);
+  runAndAssertTimeTicks(day - hour, 2 * day, ["1 day"]);
+  runAndAssertTimeTicks(day, 11 * day, ["1 day", "1 week"]);
+  runAndAssertTimeTicks(day + 1, 21 * day, ["1 week"]);
+  runAndAssertTimeTicks(hour, 111 * day, [
+    "1 hour",
+    "1 day",
+    "1 week",
+    "1 month",
+  ]);
+  runAndAssertTimeTicks(day + 1, 111 * day, ["1 week", "1 month"]);
 });
 
 test("CreateTimeTicks: weeks", () => {
-  runAndAssertTimeTicks(day, week, ["day", "week"]);
-  runAndAssertTimeTicks(day + 1, week, ["week"]);
+  runAndAssertTimeTicks(day, week, ["1 day", "1 week"]);
+  runAndAssertTimeTicks(day + 1, week, ["1 week"]);
   runAndAssertTimeTicks(day * 8, day * 27, ["2 weeks", "3 weeks"]);
-  runAndAssertTimeTicks(week - day, 2 * week, ["week"]);
-  runAndAssertTimeTicks(week, 11 * week, ["week", "month"]);
-  runAndAssertTimeTicks(week + 1, 35 * week, ["month"]);
-  runAndAssertTimeTicks(day, 111 * week, ["day", "week", "month", "year"]);
-  runAndAssertTimeTicks(week + 1, 111 * week, ["month", "year"]);
+  runAndAssertTimeTicks(week - day, 2 * week, ["1 week"]);
+  runAndAssertTimeTicks(week, 11 * week, ["1 week", "1 month"]);
+  runAndAssertTimeTicks(week + 1, 35 * week, ["1 month"]);
+  runAndAssertTimeTicks(day, 111 * week, [
+    "1 day",
+    "1 week",
+    "1 month",
+    "1 year",
+  ]);
+  runAndAssertTimeTicks(week + 1, 111 * week, ["1 month", "1 year"]);
 });
 
 test("CreateTimeTicks: months", () => {
-  runAndAssertTimeTicks(week - 1, month, ["week", "month"]);
-  runAndAssertTimeTicks(month - 1, 2 * month, ["month"]);
-  runAndAssertTimeTicks(month, 11 * month, ["month"]);
-  runAndAssertTimeTicks(month, 12 * month, ["month"]);
-  runAndAssertTimeTicks(month, 12 * month + 5 * day, ["month", "year"]);
+  runAndAssertTimeTicks(week - 1, month, ["1 week", "1 month"]);
+  runAndAssertTimeTicks(month - 1, 2 * month, ["1 month"]);
+  runAndAssertTimeTicks(month, 11 * month, ["1 month"]);
+  runAndAssertTimeTicks(month, 12 * month, ["1 month"]);
+  runAndAssertTimeTicks(month, 12 * month + 5 * day, ["1 month", "1 year"]);
   runAndAssertTimeTicks(month + 1, 12 * month, ["10 months"]);
   // due to precision issues month + 1 == month
   runAndAssertTimeTicks(month + hour, 10 * month - hour, [
@@ -1038,13 +1052,13 @@ test("CreateTimeTicks: months", () => {
     "8 months",
     "9 months",
   ]);
-  runAndAssertTimeTicks(week, 111 * month, ["week", "month", "year"]);
-  runAndAssertTimeTicks(month + 1, 111 * month, ["year"]);
+  runAndAssertTimeTicks(week, 111 * month, ["1 week", "1 month", "1 year"]);
+  runAndAssertTimeTicks(month + 1, 111 * month, ["1 year"]);
 });
 
 test("CreateTimeTicks: years", () => {
-  runAndAssertTimeTicks(month - 1, year, ["month", "year"]);
-  runAndAssertTimeTicks(year - month, 2 * year, ["year"]);
+  runAndAssertTimeTicks(month - 1, year, ["1 month", "1 year"]);
+  runAndAssertTimeTicks(year - month, 2 * year, ["1 year"]);
   // due to precision issues year + 1 == year and decade - 1 == decade
   runAndAssertTimeTicks(year + day, decade - day, [
     "2 years",
@@ -1058,30 +1072,34 @@ test("CreateTimeTicks: years", () => {
   ]);
 
   runAndAssertTimeTicks(month, 111 * year, [
-    "month",
-    "year",
-    "decade",
-    "century",
+    "1 month",
+    "1 year",
+    "1 decade",
+    "1 century",
   ]);
 });
 
 test("CreateTimeTicks: decades", () => {
   // due to precision issues year + 1 == year
-  runAndAssertTimeTicks(year + day, 21 * year, ["decade"]);
-  runAndAssertTimeTicks(year, decade, ["year", "decade"]);
-  runAndAssertTimeTicks(decade - year, 2 * decade, ["decade"]);
-  runAndAssertTimeTicks(year, 111 * decade, ["year", "decade", "century"]);
+  runAndAssertTimeTicks(year + day, 21 * year, ["1 decade"]);
+  runAndAssertTimeTicks(year, decade, ["1 year", "1 decade"]);
+  runAndAssertTimeTicks(decade - year, 2 * decade, ["1 decade"]);
+  runAndAssertTimeTicks(year, 111 * decade, [
+    "1 year",
+    "1 decade",
+    "1 century",
+  ]);
   // due to precision issues decade + 1 == decade
-  runAndAssertTimeTicks(decade + month, 111 * decade, ["century"]);
+  runAndAssertTimeTicks(decade + month, 111 * decade, ["1 century"]);
 });
 
 test("CreateTimeTicks: centuries", () => {
-  runAndAssertTimeTicks(decade - 1, century, ["decade", "century"]);
-  runAndAssertTimeTicks(century - decade, 2 * century, ["century"]);
-  runAndAssertTimeTicks(century, 11 * century, ["century"]);
-  runAndAssertTimeTicks(century + 1, 21 * century, ["century"]);
-  runAndAssertTimeTicks(decade, 111 * century, ["decade", "century"]);
-  runAndAssertTimeTicks(century + 1, 111 * century, ["century"]);
+  runAndAssertTimeTicks(decade - 1, century, ["1 decade", "1 century"]);
+  runAndAssertTimeTicks(century - decade, 2 * century, ["1 century"]);
+  runAndAssertTimeTicks(century, 11 * century, ["1 century"]);
+  runAndAssertTimeTicks(century + 1, 21 * century, ["1 century"]);
+  runAndAssertTimeTicks(decade, 111 * century, ["1 decade", "1 century"]);
+  runAndAssertTimeTicks(century + 1, 111 * century, ["1 century"]);
 });
 
 test("CreateTimeTicks: above centuries", () => {
