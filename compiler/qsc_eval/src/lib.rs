@@ -171,6 +171,7 @@ impl Display for Spec {
 }
 
 /// An id either representing a statement or an expression to be evaluated.
+#[derive(Clone, Copy)]
 pub enum EvalId {
     Expr(ExprId),
     Stmt(StmtId),
@@ -195,7 +196,7 @@ impl From<StmtId> for EvalId {
 /// On internal error where no result is returned.
 pub fn eval(
     package: PackageId,
-    id: &EvalId,
+    id: EvalId,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
@@ -203,8 +204,8 @@ pub fn eval(
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
     match id {
-        EvalId::Expr(expr) => state.push_expr(*expr),
-        EvalId::Stmt(stmt) => state.push_stmt(*stmt),
+        EvalId::Expr(expr) => state.push_expr(expr),
+        EvalId::Stmt(stmt) => state.push_stmt(stmt),
     }
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {

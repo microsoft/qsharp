@@ -48,7 +48,7 @@ pub fn generate_qir(
     let mut out = GenericReceiver::new(&mut stdout);
     let result = eval(
         package,
-        &entry_expr.into(),
+        entry_expr.into(),
         &fir_store,
         &mut Env::default(),
         &mut sim,

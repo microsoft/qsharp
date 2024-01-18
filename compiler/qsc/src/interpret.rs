@@ -193,7 +193,7 @@ impl Interpreter {
         let expr = self.get_entry_expr()?;
         eval(
             self.source_package,
-            &expr.into(),
+            expr.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -212,7 +212,7 @@ impl Interpreter {
         let expr = self.get_entry_expr()?;
         eval(
             self.source_package,
-            &expr.into(),
+            expr.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -263,7 +263,7 @@ impl Interpreter {
         for stmt_id in stmts {
             result = eval(
                 self.package,
-                &stmt_id.into(),
+                stmt_id.into(),
                 self.compiler.package_store(),
                 &self.fir_store,
                 &mut self.env,
@@ -318,7 +318,7 @@ impl Interpreter {
 
         Ok(eval(
             self.package,
-            &stmt_id.into(),
+            stmt_id.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -450,7 +450,7 @@ impl Interpreter {
 /// Wrapper function for `qsc_eval::eval` that handles error conversion.
 fn eval(
     package: PackageId,
-    id: &EvalId,
+    id: EvalId,
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
     env: &mut Env,
