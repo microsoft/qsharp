@@ -115,7 +115,7 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
   };
 }
 
-export function Summary(props: {
+export function OverviewPanel(props: {
   estimatesData: ReData[];
   colors: string[] | null;
   runNames: string[] | null;
@@ -211,7 +211,7 @@ export function Summary(props: {
       </details>
       <details open>
         <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Scatter chart
+          Qubit-time diagram
         </summary>
         <ScatterChart
           xAxis={xAxis}

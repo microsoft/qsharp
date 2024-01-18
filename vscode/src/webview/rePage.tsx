@@ -2,7 +2,12 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import { SpaceChart, ReTable, type ReData, Summary } from "qsharp-lang/ux";
+import {
+  SpaceChart,
+  ReTable,
+  type ReData,
+  OverviewPanel,
+} from "qsharp-lang/ux";
 import { SingleEstimateResult } from "qsharp-lang/ux/data";
 
 export function RePage(props: {
@@ -61,14 +66,14 @@ export function RePage(props: {
         ) : null}
         <h1>Azure Quantum Resource Estimator</h1>
       </div>
-      <Summary
+      <OverviewPanel
         estimatesData={props.estimatesData}
         isSimplifiedView={false}
         onRowDeleted={props.onRowDeleted}
         setEstimate={setEstimate}
         runNames={null}
         colors={null}
-      ></Summary>
+      ></OverviewPanel>
       {!estimate ? null : (
         <>
           <details open>

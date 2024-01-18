@@ -35,21 +35,21 @@ class SpaceChart(anywidget.AnyWidget):
         self.index = 0 if index is None else index
 
 
-class Summary(anywidget.AnyWidget):
+class Overview(anywidget.AnyWidget):
     _esm = pathlib.Path(__file__).parent / "static" / "index.js"
     _css = pathlib.Path(__file__).parent / "static" / "index.css"
 
-    comp = traitlets.Unicode("Summary").tag(sync=True)
+    comp = traitlets.Unicode("Overview").tag(sync=True)
     estimates = traitlets.Dict().tag(sync=True)
     colors = traitlets.List().tag(sync=True)
     runNames = traitlets.List().tag(sync=True)
 
     def __init__(self, estimates, colors=None, runNames=None):
         """
-        This function generates a summary results table with a scatter chart.
+        This function generates a summary results table with a qubit-time diagram.
 
         Parameters:
-        - estimates: data for the table and the chart.
+        - estimates: data for the table and the diagram.
         - colors (optional): the list of colors which could be provided in the hex form or by name. If the length of the list does not match the number of the estimates, the colors parameter will be ignored and replaced with defaults.
         - runNames (optional): the list of the run names. If the length of the list does not match the number of the estimates, the runNames parameter will be ignored and replaced with defaults.
 
