@@ -9,16 +9,15 @@ mod rca;
 #[cfg(test)]
 mod tests;
 
-use data_structures::InputParams;
+use crate::data_structures::InputParam;
+use crate::fir_extensions::{CallableDeclExt, TyExt};
+use crate::rca::analyze_package_and_update_compute_props;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
     BlockId, CallableDecl, CallableKind, ExprId, LocalItemId, NodeId, PackageId, PackageStore,
     PatId, StmtId, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
-use rca::analyze_package_and_update_compute_props;
-
-use crate::fir_extensions::{CallableDeclExt, TyExt};
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropsLookup {
@@ -213,7 +212,10 @@ pub struct CallableComputeProps {
 }
 
 impl CallableComputeProps {
-    pub fn from_instrinsic(callable: &CallableDecl, input_params: &InputParams) -> Self {
+    pub fn from_instrinsic<'a>(
+        callable: &CallableDecl,
+        input_params: impl Iterator<Item = &'a InputParam>,
+    ) -> Self {
         assert!(callable.is_intrinsic());
         match callable.kind {
             CallableKind::Function => Self::from_instrinsic_function(callable, input_params),
@@ -221,7 +223,10 @@ impl CallableComputeProps {
         }
     }
 
-    fn from_instrinsic_function(callable: &CallableDecl, input_params: &InputParams) -> Self {
+    fn from_instrinsic_function<'a>(
+        callable: &CallableDecl,
+        input_params: impl Iterator<Item = &'a InputParam>,
+    ) -> Self {
         assert!(matches!(callable.kind, CallableKind::Function));
 
         // Functions are purely classical, so no runtime capabilities are needed and cannot be an inherent quantum
@@ -234,7 +239,7 @@ impl CallableComputeProps {
         // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
         // on the parameter type.
         let mut dyn_params = Vec::new();
-        for param in input_params.iter() {
+        for param in input_params {
             let param_rt_caps = param.ty.infer_rt_caps();
             let param_compute_props = ComputeProps {
                 rt_caps: param_rt_caps,
@@ -256,7 +261,10 @@ impl CallableComputeProps {
         }
     }
 
-    fn from_instrinsic_operation(callable: &CallableDecl, _input_params: &InputParams) -> Self {
+    fn from_instrinsic_operation<'a>(
+        callable: &CallableDecl,
+        _input_params: impl Iterator<Item = &'a InputParam>,
+    ) -> Self {
         assert!(matches!(callable.kind, CallableKind::Operation));
 
         // TODO (cesarzc): Implement this properly.

@@ -7,72 +7,62 @@ use qsc_fir::{
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
-use std::ops::Deref;
 
-/// An element of an input parameter pattern.
+/// A callable input element.
 #[derive(Debug)]
-pub struct InputParamElmnt {
+pub struct CallableInputElement {
     pub pat: PatId,
     pub ty: Ty,
-    pub kind: InputParamElmntKind,
+    pub kind: CallableInputElementKind,
 }
 
-/// A kind of element in an input parameter pattern.
+/// A kind of callable input element.
 #[derive(Debug)]
-pub enum InputParamElmntKind {
+pub enum CallableInputElementKind {
     Discard,
     Node(NodeId),
     Tuple(Vec<PatId>),
 }
 
-/// A flat list of input parameter elements.
-#[derive(Debug)]
-pub struct FlattenedInputParamsElmnts(Vec<InputParamElmnt>);
-
-impl Deref for FlattenedInputParamsElmnts {
-    type Target = Vec<InputParamElmnt>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl FlattenedInputParamsElmnts {
-    /// Creates a flattened vector of input parameters elements.
-    pub fn new(callable: &CallableDecl, pats: &IndexMap<PatId, Pat>) -> Self {
-        fn as_vector(pat_id: PatId, pats: &IndexMap<PatId, Pat>) -> Vec<InputParamElmnt> {
-            let pat = pats.get(pat_id).expect("pattern should exist");
-            match &pat.kind {
-                PatKind::Bind(ident) => {
-                    vec![InputParamElmnt {
-                        pat: pat_id,
-                        ty: pat.ty.clone(),
-                        kind: InputParamElmntKind::Node(ident.id),
-                    }]
-                }
-                PatKind::Tuple(tuple_pats) => {
-                    let mut tuple_params = vec![InputParamElmnt {
-                        pat: pat_id,
-                        ty: pat.ty.clone(),
-                        kind: InputParamElmntKind::Tuple(tuple_pats.clone()),
-                    }];
-                    for tuple_item_pat_id in tuple_pats {
-                        let mut tuple_item_params = as_vector(*tuple_item_pat_id, pats);
-                        tuple_params.append(&mut tuple_item_params);
-                    }
-                    tuple_params
-                }
-                PatKind::Discard => vec![InputParamElmnt {
+/// Creates a vector of flattened callable input elements.
+pub fn derive_callable_input_elements(
+    callable: &CallableDecl,
+    pats: &IndexMap<PatId, Pat>,
+) -> Vec<CallableInputElement> {
+    fn create_input_elements(
+        pat_id: PatId,
+        pats: &IndexMap<PatId, Pat>,
+    ) -> Vec<CallableInputElement> {
+        let pat = pats.get(pat_id).expect("pattern should exist");
+        match &pat.kind {
+            PatKind::Bind(ident) => {
+                vec![CallableInputElement {
                     pat: pat_id,
                     ty: pat.ty.clone(),
-                    kind: InputParamElmntKind::Discard,
-                }],
+                    kind: CallableInputElementKind::Node(ident.id),
+                }]
             }
+            PatKind::Tuple(tuple_pats) => {
+                let mut tuple_params = vec![CallableInputElement {
+                    pat: pat_id,
+                    ty: pat.ty.clone(),
+                    kind: CallableInputElementKind::Tuple(tuple_pats.clone()),
+                }];
+                for tuple_item_pat_id in tuple_pats {
+                    let mut tuple_item_params = create_input_elements(*tuple_item_pat_id, pats);
+                    tuple_params.append(&mut tuple_item_params);
+                }
+                tuple_params
+            }
+            PatKind::Discard => vec![CallableInputElement {
+                pat: pat_id,
+                ty: pat.ty.clone(),
+                kind: CallableInputElementKind::Discard,
+            }],
         }
-
-        let flat_pat = as_vector(callable.input, pats);
-        Self(flat_pat)
     }
+
+    create_input_elements(callable.input, pats)
 }
 
 /// The index corresponding to an input parameter node.
@@ -88,47 +78,36 @@ pub struct InputParam {
     pub node: Option<NodeId>,
 }
 
-/// A vector of input parameters.
-#[derive(Debug)]
-pub struct InputParams(Vec<InputParam>);
+/// Creates a vector of callable input parameters.
+pub fn derive_callable_input_params<'a>(
+    input_elements: impl Iterator<Item = &'a CallableInputElement>,
+) -> Vec<InputParam> {
+    let mut input_params = Vec::new();
+    let mut param_idx = InputParamIdx(0);
+    for elmnt in input_elements {
+        let maybe_input_param = match &elmnt.kind {
+            CallableInputElementKind::Discard => Some(InputParam {
+                idx: param_idx,
+                pat: elmnt.pat,
+                ty: elmnt.ty.clone(),
+                node: None,
+            }),
+            CallableInputElementKind::Node(node_id) => Some(InputParam {
+                idx: param_idx,
+                pat: elmnt.pat,
+                ty: elmnt.ty.clone(),
+                node: Some(*node_id),
+            }),
+            CallableInputElementKind::Tuple(_) => None,
+        };
 
-impl Deref for InputParams {
-    type Target = Vec<InputParam>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl InputParams {
-    pub fn new(input_params_elmnts: &FlattenedInputParamsElmnts) -> Self {
-        let mut input_params = Vec::new();
-        let mut param_idx = InputParamIdx(0);
-        for elmnt in input_params_elmnts.iter() {
-            let maybe_input_param = match &elmnt.kind {
-                InputParamElmntKind::Discard => Some(InputParam {
-                    idx: param_idx,
-                    pat: elmnt.pat,
-                    ty: elmnt.ty.clone(),
-                    node: None,
-                }),
-                InputParamElmntKind::Node(node_id) => Some(InputParam {
-                    idx: param_idx,
-                    pat: elmnt.pat,
-                    ty: elmnt.ty.clone(),
-                    node: Some(*node_id),
-                }),
-                InputParamElmntKind::Tuple(_) => None,
-            };
-
-            if let Some(input_param) = maybe_input_param {
-                input_params.push(input_param);
-                param_idx.0 += 1;
-            }
+        if let Some(input_param) = maybe_input_param {
+            input_params.push(input_param);
+            param_idx.0 += 1;
         }
-
-        Self(input_params)
     }
+
+    input_params
 }
 
 /// A represenation of a variable within a callable.
@@ -147,26 +126,23 @@ pub enum CallableVarKind {
     InputParam(InputParamIdx),
 }
 
-/// A map of variables associated to a callable.
-#[derive(Debug)]
-pub struct CallableVarMap(FxHashMap<NodeId, CallableVar>);
-
-impl CallableVarMap {
-    pub fn new(input_params: &InputParams) -> Self {
-        let mut var_map = FxHashMap::<NodeId, CallableVar>::default();
-        for param in input_params.iter() {
-            if let Some(node) = param.node {
-                var_map.insert(
+/// Creates a hash map of node IDs to callable variables.
+pub fn initialize_callable_variables_map<'a>(
+    input_params: impl Iterator<Item = &'a InputParam>,
+) -> FxHashMap<NodeId, CallableVar> {
+    let mut var_map = FxHashMap::<NodeId, CallableVar>::default();
+    for param in input_params {
+        if let Some(node) = param.node {
+            var_map.insert(
+                node,
+                CallableVar {
                     node,
-                    CallableVar {
-                        node,
-                        pat: param.pat,
-                        ty: param.ty.clone(),
-                        kind: CallableVarKind::InputParam(param.idx),
-                    },
-                );
-            }
+                    pat: param.pat,
+                    ty: param.ty.clone(),
+                    kind: CallableVarKind::InputParam(param.idx),
+                },
+            );
         }
-        Self(var_map)
     }
+    var_map
 }
