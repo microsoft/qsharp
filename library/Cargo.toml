@@ -1,5 +1,5 @@
 [package]
-name = "stdlib_tests"
+name = "library"
 
 version.workspace = true
 authors.workspace = true
@@ -8,12 +8,10 @@ repository.workspace = true
 edition.workspace = true
 license.workspace = true
 
-[dependencies]
-num-bigint = { workspace = true }
-qsc = { path = "../../compiler/qsc" }
-
 [dev-dependencies]
 indoc = { workspace = true }
+num-bigint = { workspace = true }
+qsc = { path = "../compiler/qsc" }
 
 [lib]
 doctest = false

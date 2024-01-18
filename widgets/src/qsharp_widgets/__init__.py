@@ -20,10 +20,46 @@ class SpaceChart(anywidget.AnyWidget):
 
     comp = traitlets.Unicode("SpaceChart").tag(sync=True)
     estimates = traitlets.Dict().tag(sync=True)
+    index = traitlets.Integer().tag(sync=True)
 
-    def __init__(self, estimates):
+    def __init__(self, estimates, index=None):
+        """
+        This function generates a chart for the qubit utilization of the estimates.
+
+        Parameters:
+        - estimates: data for the chart.
+        - index (optional): the index of the estimate to be displayed. In case of a single point estimate, the parameter is ignored. In case of the frontier estimate, indexes correspond to points on frontier from the shortest runtime to the longest one. If not provided, the shortest runtime estimate is displayed.
+        """
         super().__init__()
         self.estimates = estimates
+        self.index = 0 if index is None else index
+
+
+class EstimatesOverview(anywidget.AnyWidget):
+    _esm = pathlib.Path(__file__).parent / "static" / "index.js"
+    _css = pathlib.Path(__file__).parent / "static" / "index.css"
+
+    comp = traitlets.Unicode("EstimatesOverview").tag(sync=True)
+    estimates = traitlets.Dict().tag(sync=True)
+    colors = traitlets.List().tag(sync=True)
+    runNames = traitlets.List().tag(sync=True)
+
+    def __init__(self, estimates, colors=None, runNames=None):
+        """
+        This function generates a summary results table with a qubit-time diagram.
+
+        Parameters:
+        - estimates: data for the table and the diagram.
+        - colors (optional): the list of colors which could be provided in the hex form or by name. If the length of the list does not match the number of the estimates, the colors parameter will be ignored and replaced with defaults.
+        - runNames (optional): the list of the run names. If the length of the list does not match the number of the estimates, the runNames parameter will be ignored and replaced with defaults.
+
+        Returns:
+        None
+        """
+        super().__init__()
+        self.estimates = estimates
+        self.colors = [] if colors is None else colors
+        self.runNames = [] if runNames is None else runNames
 
 
 class EstimateDetails(anywidget.AnyWidget):
@@ -32,10 +68,19 @@ class EstimateDetails(anywidget.AnyWidget):
 
     comp = traitlets.Unicode("EstimateDetails").tag(sync=True)
     estimates = traitlets.Dict().tag(sync=True)
+    index = traitlets.Integer().tag(sync=True)
 
-    def __init__(self, estimates):
+    def __init__(self, estimates, index=None):
+        """
+        This function generates a report for the qubit utilization of the estimates.
+
+        Parameters:
+        - estimates: data for the report.
+        - index (optional): the index of the estimate to be displayed. In case of a single point estimate, the parameter is ignored. In case of the frontier estimate, indexes correspond to points on frontier from the shortest runtime to the longest one. If not provided, the shortest runtime estimate is displayed.
+        """
         super().__init__()
         self.estimates = estimates
+        self.index = 0 if index is None else index
 
 
 class Histogram(anywidget.AnyWidget):

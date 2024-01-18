@@ -2,7 +2,12 @@
 // Licensed under the MIT License.
 
 import { log } from "qsharp-lang";
-import { EventType, UserFlowStatus, sendTelemetryEvent } from "../telemetry";
+import {
+  EventType,
+  UserFlowStatus,
+  getUserAgent,
+  sendTelemetryEvent,
+} from "../telemetry";
 import { getRandomGuid } from "../utils";
 
 const publicMgmtEndpoint = "https://management.azure.com";
@@ -19,6 +24,7 @@ export async function azureRequest(
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
     ["Content-Type", "application/json"],
+    ["User-Agent", getUserAgent()],
   ];
 
   try {
@@ -75,6 +81,7 @@ export async function storageRequest(
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
+    ["User-Agent", getUserAgent()],
   ];
   if (token) headers.push(["Authorization", `Bearer ${token}`]);
 
