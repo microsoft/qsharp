@@ -92,8 +92,6 @@ pub struct Interpreter {
     sim: SparseSim,
     /// The evaluator environment.
     env: Env,
-    /// The current state of the evaluator.
-    state: State,
 }
 
 pub type InterpretResult = Result<Value, Vec<Error>>;
@@ -132,49 +130,9 @@ impl Interpreter {
             lowerer,
             env: Env::with_empty_scope(),
             sim: SparseSim::new(),
-            state: State::new(map_hir_package_to_fir(source_package_id)),
             package: map_hir_package_to_fir(package_id),
             source_package: map_hir_package_to_fir(source_package_id),
         })
-    }
-
-    /// Loads the entry expression to the top of the evaluation stack.
-    /// This is needed for debugging so that when begging to debug with
-    /// a step action the system is already in the correct state.
-    /// # Errors
-    /// Returns a vector of errors if loading the entry point fails.
-    pub fn set_entry(&mut self) -> Result<(), Vec<Error>> {
-        let expr = self.get_entry_expr()?;
-        qsc_eval::eval_push_expr(&mut self.state, expr);
-        Ok(())
-    }
-
-    /// Resumes execution with specified `StepAction`.
-    /// # Errors
-    /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval_step(
-        &mut self,
-        receiver: &mut impl Receiver,
-        breakpoints: &[StmtId],
-        step: StepAction,
-    ) -> Result<StepResult, Vec<Error>> {
-        self.state
-            .eval(
-                &self.fir_store,
-                &mut self.env,
-                &mut self.sim,
-                receiver,
-                breakpoints,
-                step,
-            )
-            .map_err(|(error, call_stack)| {
-                eval_error(
-                    self.compiler.package_store(),
-                    &self.fir_store,
-                    call_stack,
-                    error,
-                )
-            })
     }
 
     /// Executes the entry expression until the end of execution.
@@ -385,17 +343,69 @@ impl Interpreter {
             .lower_and_update_package(fir_package, &unit_addition.hir)
     }
 
-    fn source_package(&self) -> &CompileUnit {
-        self.compiler
-            .package_store()
-            .get(map_fir_package_to_hir(self.source_package))
-            .expect("Could not load package")
-    }
-
     fn next_line_label(&mut self) -> String {
         let label = format!("line_{}", self.lines);
         self.lines += 1;
         label
+    }
+}
+
+pub struct Debugger {
+    interpreter: Interpreter,
+    /// The current state of the evaluator.
+    state: State,
+}
+
+impl Debugger {
+    pub fn new(
+        sources: SourceMap,
+        capabilities: RuntimeCapabilityFlags,
+    ) -> Result<Self, Vec<Error>> {
+        let interpreter = Interpreter::new(true, sources, PackageType::Exe, capabilities)?;
+        let source_package_id = interpreter.source_package;
+        Ok(Self {
+            interpreter,
+            state: State::new(source_package_id),
+        })
+    }
+
+    /// Loads the entry expression to the top of the evaluation stack.
+    /// This is needed for debugging so that when begging to debug with
+    /// a step action the system is already in the correct state.
+    /// # Errors
+    /// Returns a vector of errors if loading the entry point fails.
+    pub fn set_entry(&mut self) -> Result<(), Vec<Error>> {
+        let expr = self.interpreter.get_entry_expr()?;
+        qsc_eval::eval_push_expr(&mut self.state, expr);
+        Ok(())
+    }
+
+    /// Resumes execution with specified `StepAction`.
+    /// # Errors
+    /// Returns a vector of errors if evaluating the entry point fails.
+    pub fn eval_step(
+        &mut self,
+        receiver: &mut impl Receiver,
+        breakpoints: &[StmtId],
+        step: StepAction,
+    ) -> Result<StepResult, Vec<Error>> {
+        self.state
+            .eval(
+                &self.interpreter.fir_store,
+                &mut self.interpreter.env,
+                &mut self.interpreter.sim,
+                receiver,
+                breakpoints,
+                step,
+            )
+            .map_err(|(error, call_stack)| {
+                eval_error(
+                    self.interpreter.compiler.package_store(),
+                    &self.interpreter.fir_store,
+                    call_stack,
+                    error,
+                )
+            })
     }
 
     #[must_use]
@@ -405,6 +415,7 @@ impl Interpreter {
             .iter()
             .map(|frame| {
                 let callable = self
+                    .interpreter
                     .fir_store
                     .get_global(frame.id)
                     .expect("frame should exist");
@@ -415,6 +426,7 @@ impl Interpreter {
                 };
 
                 let hir_package = self
+                    .interpreter
                     .compiler
                     .package_store()
                     .get(map_fir_package_to_hir(frame.id.package))
@@ -437,7 +449,7 @@ impl Interpreter {
     }
 
     pub fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
-        self.sim.capture_quantum_state()
+        self.interpreter.sim.capture_quantum_state()
     }
 
     #[must_use]
@@ -446,8 +458,9 @@ impl Interpreter {
 
         if let Some(source) = unit.sources.find_by_name(path) {
             let package = self
+                .interpreter
                 .fir_store
-                .get(self.source_package)
+                .get(self.interpreter.source_package)
                 .expect("package should have been lowered");
             let mut collector = BreakpointCollector::new(&unit.sources, source.offset, package);
             collector.visit_package(package);
@@ -469,11 +482,20 @@ impl Interpreter {
 
     #[must_use]
     pub fn get_locals(&self) -> Vec<VariableInfo> {
-        self.env
+        self.interpreter
+            .env
             .get_variables_in_top_frame()
             .into_iter()
             .filter(|v| !v.name.starts_with('@'))
             .collect()
+    }
+
+    fn source_package(&self) -> &CompileUnit {
+        self.interpreter
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(self.interpreter.source_package))
+            .expect("Could not load package")
     }
 }
 

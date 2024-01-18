@@ -1130,6 +1130,7 @@ mod given_interpreter {
         use std::sync::Arc;
 
         use super::*;
+        use crate::interpret::stateful::Debugger;
         use expect_test::expect;
         use indoc::indoc;
         use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -1226,6 +1227,7 @@ mod given_interpreter {
                     r#"
             namespace Test2 {
                 open Test;
+                @EntryPoint()
                 operation Main() : String {
                     Hello();
                     Hello()
@@ -1236,16 +1238,11 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
-            )
-            .expect("interpreter should be created");
-            let bps = interpreter.get_breakpoints("a.qs");
+            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())
+                .expect("debugger should be created");
+            let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
-            let bps = interpreter.get_breakpoints("b.qs");
+            let bps = debugger.get_breakpoints("b.qs");
             assert_eq!(2, bps.len());
         }
 

@@ -3,22 +3,21 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::interpret::stateful::Interpreter;
+use crate::interpret::stateful::Debugger;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
-use qsc_passes::PackageType;
 use std::io::Cursor;
 
-fn get_breakpoint_ids(interpreter: &Interpreter, path: &str) -> Vec<StmtId> {
-    let mut bps = interpreter.get_breakpoints(path);
+fn get_breakpoint_ids(debugger: &Debugger, path: &str) -> Vec<StmtId> {
+    let mut bps = debugger.get_breakpoints(path);
     bps.sort_by_key(|f| f.id);
     let ids = bps.iter().map(|f| f.id.into()).collect::<Vec<_>>();
     ids
 }
 
-fn expect_return(mut interpreter: Interpreter, expected: &str) {
-    let r = step_next(&mut interpreter, &[]);
+fn expect_return(mut debugger: Debugger, expected: &str) {
+    let r = step_next(&mut debugger, &[]);
     match r.0 {
         Ok(StepResult::Return(value)) => assert_eq!(value.to_string(), expected),
         Ok(v) => panic!("Expected Return, got {v:?}"),
@@ -26,8 +25,8 @@ fn expect_return(mut interpreter: Interpreter, expected: &str) {
     }
 }
 
-fn expect_bp(interpreter: &mut Interpreter, ids: &[StmtId], expected_id: StmtId) {
-    let r = step_next(interpreter, ids);
+fn expect_bp(debugger: &mut Debugger, ids: &[StmtId], expected_id: StmtId) {
+    let r = step_next(debugger, ids);
     match r.0 {
         Ok(StepResult::BreakpointHit(actual_id)) => assert!(actual_id == expected_id),
         Ok(v) => panic!("Expected BP, got {v:?}"),
@@ -36,37 +35,37 @@ fn expect_bp(interpreter: &mut Interpreter, ids: &[StmtId], expected_id: StmtId)
 }
 
 fn step_in(
-    interpreter: &mut Interpreter,
+    debugger: &mut Debugger,
     breakpoints: &[StmtId],
 ) -> (
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,
 ) {
-    step(interpreter, breakpoints, qsc_eval::StepAction::In)
+    step(debugger, breakpoints, qsc_eval::StepAction::In)
 }
 
 fn step_next(
-    interpreter: &mut Interpreter,
+    debugger: &mut Debugger,
     breakpoints: &[StmtId],
 ) -> (
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,
 ) {
-    step(interpreter, breakpoints, qsc_eval::StepAction::Next)
+    step(debugger, breakpoints, qsc_eval::StepAction::Next)
 }
 
 fn step_out(
-    interpreter: &mut Interpreter,
+    debugger: &mut Debugger,
     breakpoints: &[StmtId],
 ) -> (
     Result<StepResult, Vec<crate::interpret::stateful::Error>>,
     String,
 ) {
-    step(interpreter, breakpoints, qsc_eval::StepAction::Out)
+    step(debugger, breakpoints, qsc_eval::StepAction::Out)
 }
 
 fn step(
-    interpreter: &mut Interpreter,
+    debugger: &mut Debugger,
     breakpoints: &[StmtId],
     step: StepAction,
 ) -> (
@@ -76,13 +75,13 @@ fn step(
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (
-        interpreter.eval_step(&mut receiver, breakpoints, step),
+        debugger.eval_step(&mut receiver, breakpoints, step),
         receiver.dump(),
     )
 }
 
-fn expect_next(interpreter: &mut Interpreter) {
-    let result = step_next(interpreter, &[]);
+fn expect_next(debugger: &mut Debugger) {
+    let result = step_next(debugger, &[]);
     match result.0 {
         Ok(StepResult::Next) => (),
         Ok(v) => panic!("Expected Next, got {v:?}"),
@@ -90,8 +89,8 @@ fn expect_next(interpreter: &mut Interpreter) {
     }
 }
 
-fn expect_in(interpreter: &mut Interpreter) {
-    let result = step_in(interpreter, &[]);
+fn expect_in(debugger: &mut Debugger) {
+    let result = step_in(debugger, &[]);
     match result.0 {
         Ok(StepResult::StepIn) => (),
         Ok(v) => panic!("Expected StepIn, got {v:?}"),
@@ -99,8 +98,8 @@ fn expect_in(interpreter: &mut Interpreter) {
     }
 }
 
-fn expect_out(interpreter: &mut Interpreter) {
-    let result = step_out(interpreter, &[]);
+fn expect_out(debugger: &mut Debugger) {
+    let result = step_out(debugger, &[]);
     match result.0 {
         Ok(StepResult::StepOut) => (),
         Ok(v) => panic!("Expected StepOut, got {v:?}"),
@@ -139,96 +138,76 @@ mod given_interpreter_with_sources {
         #[test]
         fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
-            )?;
-            interpreter.set_entry()?;
-            let ids = get_breakpoint_ids(&interpreter, "test");
+            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            debugger.set_entry()?;
+            let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
-            expect_bp(&mut interpreter, &ids, expected_id);
-            expect_in(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
+            expect_bp(&mut debugger, &ids, expected_id);
+            expect_in(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
             let expected = "42";
-            expect_return(interpreter, expected);
+            expect_return(debugger, expected);
             Ok(())
         }
 
         #[test]
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
-            )?;
-            interpreter.set_entry()?;
-            let ids = get_breakpoint_ids(&interpreter, "test");
+            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            debugger.set_entry()?;
+            let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
-            expect_bp(&mut interpreter, &ids, expected_id);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
+            expect_bp(&mut debugger, &ids, expected_id);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
             let expected = "42";
-            expect_return(interpreter, expected);
+            expect_return(debugger, expected);
             Ok(())
         }
 
         #[test]
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
-            )?;
-            interpreter.set_entry()?;
-            let ids = get_breakpoint_ids(&interpreter, "test");
+            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            debugger.set_entry()?;
+            let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
-            expect_bp(&mut interpreter, &ids, expected_id);
-            expect_in(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_in(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
+            expect_bp(&mut debugger, &ids, expected_id);
+            expect_in(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_in(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
             let expected = "42";
-            expect_return(interpreter, expected);
+            expect_return(debugger, expected);
             Ok(())
         }
 
         #[test]
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
-            )?;
-            interpreter.set_entry()?;
-            let ids = get_breakpoint_ids(&interpreter, "test");
+            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            debugger.set_entry()?;
+            let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
-            expect_bp(&mut interpreter, &ids, expected_id);
-            expect_in(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_next(&mut interpreter);
-            expect_in(&mut interpreter);
-            expect_out(&mut interpreter);
-            expect_out(&mut interpreter);
-            expect_next(&mut interpreter);
+            expect_bp(&mut debugger, &ids, expected_id);
+            expect_in(&mut debugger);
+            expect_next(&mut debugger);
+            expect_next(&mut debugger);
+            expect_in(&mut debugger);
+            expect_out(&mut debugger);
+            expect_out(&mut debugger);
+            expect_next(&mut debugger);
             let expected = "42";
-            expect_return(interpreter, expected);
+            expect_return(debugger, expected);
             Ok(())
         }
     }
