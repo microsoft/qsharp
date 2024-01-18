@@ -2,21 +2,19 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import { CreateReData, ReData } from "./data.js";
+import { SingleEstimateResult } from "./data.js";
 import { CreateReport } from "./report.js";
 
 export function ReTable(props: {
   mdRenderer: (input: string) => string;
-  estimatesData: ReData;
-  index: number;
+  estimatesData: SingleEstimateResult;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const toggleDetail = () => {
     setShowDetail(!showDetail);
   };
 
-  const estimatesData = CreateReData(props.estimatesData, props.index);
-  const reportData = CreateReport(estimatesData);
+  const reportData = CreateReport(props.estimatesData);
 
   return (
     <div>
@@ -41,7 +39,7 @@ export function ReTable(props: {
                 const path = entry.path.split("/");
                 let value = path.reduce(
                   (obj, key) => obj[key],
-                  estimatesData as any,
+                  props.estimatesData as any,
                 );
                 // Check if value is not a primitive type
                 if (typeof value === "object") {

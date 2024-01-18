@@ -5,7 +5,12 @@
 // The results table is also a legend for the scatter chart.
 
 import { ColorMap } from "./colormap.js";
-import { CreateReData, FrontierEntry, ReData } from "./data.js";
+import {
+  CreateSingleEstimateResult,
+  FrontierEntry,
+  ReData,
+  SingleEstimateResult,
+} from "./data.js";
 import { ResultsTable, Row } from "./resultsTable.js";
 import {
   Axis,
@@ -45,11 +50,11 @@ const yAxis: Axis = {
 };
 
 function reDataToRow(input: ReData, color: string): Row {
-  const data = CreateReData(input, 0);
+  const data = CreateSingleEstimateResult(input, 0);
   const estimateType =
-    data.frontierEntries == null
+    input.frontierEntries == null
       ? "Single"
-      : "Frontier (" + data.frontierEntries.length + "  items)";
+      : "Frontier (" + input.frontierEntries.length + "  items)";
 
   return {
     cells: [
@@ -116,7 +121,7 @@ export function Summary(props: {
   runNames: string[] | null;
   isSimplifiedView: boolean;
   onRowDeleted: (rowId: string) => void;
-  setEstimate: (estimate: ReData | null) => void;
+  setEstimate: (estimate: SingleEstimateResult | null) => void;
 }) {
   props.estimatesData.forEach((item, idx) => {
     if (
@@ -134,7 +139,7 @@ export function Summary(props: {
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
-    props.setEstimate(CreateReData(data, pointIndex));
+    props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
   }
 
   function onRowSelected(rowId: string) {
@@ -150,7 +155,7 @@ export function Summary(props: {
       if (estimateFound == null) {
         props.setEstimate(null);
       } else {
-        props.setEstimate(CreateReData(estimateFound, 0));
+        props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
       }
     }
 

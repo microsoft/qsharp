@@ -14,6 +14,18 @@ export type ReData = {
   frontierEntries: FrontierEntry[];
 };
 
+export type SingleEstimateResult = {
+  status: string;
+  jobParams: any;
+  physicalCounts: any;
+  physicalCountsFormatted: any;
+  logicalQubit: any;
+  tfactory: any;
+  errorBudget: any;
+  logicalCounts: any;
+  new: boolean;
+};
+
 export type FrontierEntry = {
   logicalQubit: any;
   tfactory: any;
@@ -22,11 +34,15 @@ export type FrontierEntry = {
   physicalCountsFormatted: any;
 };
 
-export function CreateReData(
+export function CreateSingleEstimateResult(
   input: ReData,
-  frontierEntryIndex: number,
-): ReData {
-  if (input.frontierEntries == null || input.frontierEntries.length === 0) {
+  frontierEntryIndex?: number,
+): SingleEstimateResult {
+  if (
+    frontierEntryIndex == undefined ||
+    input.frontierEntries == null ||
+    input.frontierEntries.length === 0
+  ) {
     return input;
   } else {
     if (
@@ -46,7 +62,6 @@ export function CreateReData(
       tfactory: entry.tfactory,
       errorBudget: entry.errorBudget,
       logicalCounts: input.logicalCounts,
-      frontierEntries: input.frontierEntries,
       new: input.new,
     };
   }

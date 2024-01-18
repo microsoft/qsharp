@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ReData } from "./data.js";
+import { SingleEstimateResult } from "./data.js";
 
 type ReportData = {
   groups: ReportGroup[];
@@ -22,7 +22,7 @@ type ReportEntry = {
 };
 
 // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH generate_report_code.py from output_data.md
-export function CreateReport(result: ReData): ReportData {
+export function CreateReport(result: SingleEstimateResult): ReportData {
   const groups = [] as ReportGroup[];
   let entries = [] as ReportEntry[];
   const numberFormat = new Intl.NumberFormat();

@@ -2,7 +2,13 @@
 // Licensed under the MIT License.
 
 import { render as prender } from "preact";
-import { ReTable, SpaceChart, Histogram, Summary } from "qsharp-lang/ux";
+import {
+  ReTable,
+  SpaceChart,
+  Histogram,
+  Summary,
+  CreateSingleEstimateResult,
+} from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -51,10 +57,10 @@ function renderTable({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
     const index = model.get("index");
+    const singleEstimateResult = CreateSingleEstimateResult(estimates, index);
     prender(
       <ReTable
-        estimatesData={estimates}
-        index={index}
+        estimatesData={singleEstimateResult}
         mdRenderer={mdRenderer}
       ></ReTable>,
       el,
@@ -70,10 +76,8 @@ function renderChart({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
     const index = model.get("index");
-    prender(
-      <SpaceChart estimatesData={estimates} index={index}></SpaceChart>,
-      el,
-    );
+    const singleEstimateResult = CreateSingleEstimateResult(estimates, index);
+    prender(<SpaceChart estimatesData={singleEstimateResult}></SpaceChart>, el);
   };
 
   onChange();

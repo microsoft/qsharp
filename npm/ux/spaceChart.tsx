@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { CreateReData, ReData } from "./data.js";
+import { SingleEstimateResult } from "./data.js";
 
 function getPieSegment(
   x: number,
@@ -26,9 +26,8 @@ function getPieSegment(
   return d;
 }
 
-export function SpaceChart(props: { estimatesData: ReData; index: number }) {
-  const estimatesData = CreateReData(props.estimatesData, props.index);
-  const breakdown = estimatesData.physicalCounts.breakdown;
+export function SpaceChart(props: { estimatesData: SingleEstimateResult }) {
+  const breakdown = props.estimatesData.physicalCounts.breakdown;
 
   // The values to be shown on the pie chart
   const physicalQubitsAlgorithm = breakdown.physicalQubitsForAlgorithm;
@@ -73,7 +72,7 @@ export function SpaceChart(props: { estimatesData: ReData; index: number }) {
           Total physical qubits
         </text>
         <text x="250" y="220" text-anchor="middle" font-size="32">
-          {estimatesData.physicalCountsFormatted.physicalQubits}
+          {props.estimatesData.physicalCountsFormatted.physicalQubits}
         </text>
         <rect
           x="125"
@@ -111,7 +110,7 @@ export function SpaceChart(props: { estimatesData: ReData; index: number }) {
         <div class="spaceReportRow">
           <div class="spaceDetailText">Total physical qubits</div>
           <div>
-            {estimatesData.physicalCounts.physicalQubits.toLocaleString()}
+            {props.estimatesData.physicalCounts.physicalQubits.toLocaleString()}
           </div>
         </div>
         <div class="spaceReportHeader">T factory parameters</div>
@@ -140,7 +139,7 @@ export function SpaceChart(props: { estimatesData: ReData; index: number }) {
         <div class="spaceReportRow">
           <div class="spaceDetailText">Physical qubits</div>
           <div>
-            {estimatesData.logicalQubit.physicalQubits.toLocaleString()}
+            {props.estimatesData.logicalQubit.physicalQubits.toLocaleString()}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 
 import { useState } from "preact/hooks";
 import { SpaceChart, ReTable, type ReData, Summary } from "qsharp-lang/ux";
+import { SingleEstimateResult } from "qsharp-lang/ux/data";
 
 export function RePage(props: {
   estimatesData: ReData[];
@@ -10,7 +11,7 @@ export function RePage(props: {
   renderer: (input: string) => string;
   onRowDeleted: (rowId: string) => void;
 }) {
-  const [estimate, setEstimate] = useState<ReData | null>(null);
+  const [estimate, setEstimate] = useState<SingleEstimateResult | null>(null);
 
   return (
     <>
@@ -74,17 +75,13 @@ export function RePage(props: {
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
               Space diagram
             </summary>
-            <SpaceChart estimatesData={estimate} index={0} />
+            <SpaceChart estimatesData={estimate} />
           </details>
           <details open>
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
               Resource Estimates
             </summary>
-            <ReTable
-              mdRenderer={props.renderer}
-              estimatesData={estimate}
-              index={0}
-            />
+            <ReTable mdRenderer={props.renderer} estimatesData={estimate} />
           </details>
         </>
       )}
