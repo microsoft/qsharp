@@ -9,13 +9,11 @@ mod rca;
 #[cfg(test)]
 mod tests;
 
-use crate::data_structures::InputParam;
-use crate::fir_extensions::{CallableDeclExtension, TyExtension};
 use crate::rca::analyze_package_compute_properties;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
-    BlockId, CallableDecl, CallableKind, ExprId, LocalItemId, NodeId, PackageId, PackageStore,
-    PatId, StmtId, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+    BlockId, ExprId, LocalItemId, NodeId, PackageId, PackageStore, PatId, StmtId, StoreBlockId,
+    StoreExprId, StoreItemId, StorePatId, StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 
@@ -209,79 +207,6 @@ pub struct CallableComputeProperties {
     pub ctl: Option<ApplicationsTable>,
     /// The compute properties of the controlled adjoint specialization.
     pub ctl_adj: Option<ApplicationsTable>,
-}
-
-impl CallableComputeProperties {
-    pub fn from_instrinsic<'a>(
-        callable: &CallableDecl,
-        input_params: impl Iterator<Item = &'a InputParam>,
-    ) -> Self {
-        assert!(callable.is_intrinsic());
-        match callable.kind {
-            CallableKind::Function => Self::from_instrinsic_function(callable, input_params),
-            CallableKind::Operation => Self::from_instrinsic_operation(callable, input_params),
-        }
-    }
-
-    fn from_instrinsic_function<'a>(
-        callable: &CallableDecl,
-        input_params: impl Iterator<Item = &'a InputParam>,
-    ) -> Self {
-        assert!(matches!(callable.kind, CallableKind::Function));
-
-        // Functions are purely classical, so no runtime capabilities are needed and cannot be an inherent quantum
-        // source.
-        let inherent = ComputeProperties {
-            runtime_capabilities: RuntimeCapabilityFlags::empty(),
-            quantum_source: None,
-        };
-
-        // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
-        // on the parameter type.
-        let mut dyn_params = Vec::new();
-        for param in input_params {
-            let param_rt_caps = param.ty.derive_runtime_capabilities();
-            let param_compute_props = ComputeProperties {
-                runtime_capabilities: param_rt_caps,
-                quantum_source: Some(QuantumSource::Intrinsic),
-            };
-            dyn_params.push(param_compute_props);
-        }
-
-        // Construct the callable compute properties.
-        let body = ApplicationsTable {
-            inherent_properties: inherent,
-            dynamic_params_properties: dyn_params,
-        };
-        Self {
-            body,
-            adj: None,
-            ctl: None,
-            ctl_adj: None,
-        }
-    }
-
-    fn from_instrinsic_operation<'a>(
-        callable: &CallableDecl,
-        _input_params: impl Iterator<Item = &'a InputParam>,
-    ) -> Self {
-        assert!(matches!(callable.kind, CallableKind::Operation));
-
-        // TODO (cesarzc): Implement this properly.
-        let body = ApplicationsTable {
-            inherent_properties: ComputeProperties {
-                runtime_capabilities: RuntimeCapabilityFlags::empty(),
-                quantum_source: None,
-            },
-            dynamic_params_properties: Vec::new(),
-        };
-        Self {
-            body,
-            adj: None,
-            ctl: None,
-            ctl_adj: None,
-        }
-    }
 }
 
 /// The compute properties of pattern.
