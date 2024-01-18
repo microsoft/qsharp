@@ -917,6 +917,16 @@ test("CreateTimeTicks: invalid inputs", () => {
   runAndAssertTimeTicks(-5, 100, []);
 });
 
+const second = 1e9;
+const minute = 60 * second;
+const hour = 60 * minute;
+const day = 24 * hour;
+const week = 7 * day;
+const month = 30 * day;
+const year = 365 * day;
+const decade = 10 * year;
+const century = 10 * decade;
+
 test("CreateTimeTicks: nanoseconds below 100", () => {
   runAndAssertTimeTicks(1, 1, ["nanosecond"]);
   runAndAssertTimeTicks(3, 3, ["3 nanoseconds"]);
@@ -1092,16 +1102,6 @@ test("CreateTimeTicks: above centuries", () => {
     "236 years",
   ]);
 });
-
-const second = 1e9;
-const minute = 60 * second;
-const hour = 60 * minute;
-const day = 24 * hour;
-const week = 7 * day;
-const month = 30 * day;
-const year = 365 * day;
-const decade = 10 * year;
-const century = 10 * decade;
 
 function getValues(ticks) {
   return ticks.map((tick) => tick.value);
