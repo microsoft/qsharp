@@ -43,6 +43,10 @@ struct Cli {
     /// Exit after loading the files or running the given file(s)/entry on the command line.
     #[arg(long)]
     exec: bool,
+
+    /// Path to a Q# manifest for a project
+    #[arg(short, long)]
+    qsharp_json: Option<PathBuf>,
 }
 
 struct TerminalReceiver;
@@ -78,7 +82,7 @@ fn main() -> miette::Result<ExitCode> {
 
     if sources.is_empty() {
         let fs = StdFs;
-        let manifest = Manifest::load()?;
+        let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
             let project = fs.load_project(&manifest)?;
             let mut project_sources = project.sources;
