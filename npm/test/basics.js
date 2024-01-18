@@ -16,7 +16,7 @@ import {
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
-import { CreateIntegerTicks, CreateTimeTicks } from "../ux/index.js";
+import { CreateIntegerTicks, CreateTimeTicks } from "../dist/ux/ticks.js";
 
 /** @type {import("../dist/log.js").TelemetryEvent[]} */
 const telemetryEvents = [];

@@ -20,7 +20,8 @@
     "./compiler-worker": "./dist/compiler/worker-browser.js",
     "./language-service-worker": "./dist/language-service/worker-browser.js",
     "./debug-service-worker": "./dist/debug-service/worker-browser.js",
-    "./ux": "./ux/index.ts"
+    "./ux": "./ux/index.ts",
+    "./ux/ticks": "./dist/ux/ticks.js"
   },
   "scripts": {
     "build": "npm run generate && npm run build:tsc",
