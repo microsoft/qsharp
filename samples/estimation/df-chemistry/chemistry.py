@@ -459,14 +459,14 @@ str_two_body_eigenvectors = "[" + \
     ','.join([ndarray2d_to_string(eigenvectors)
               for eigenvectors in df.two_body_eigenvectors]) + "]"
 
-qsharp_string = \
-    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistry(" + \
-    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryProblem(" + \
-    f"{df.num_orbitals}, {df.one_body_norm}, {df.two_body_norm}, " + \
-    f"{str_one_body_eigenvalues}, {str_one_body_eigenvectors}, " + \
-    f"[1.0, size = {df.rank}], {str_two_body_eigenvalues}, " + \
-    f"{str_two_body_eigenvectors})," + \
-    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryParameters(0.001,))"
+qsharp_string = (
+    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistry("
+    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryProblem("
+    f"{df.num_orbitals}, {df.one_body_norm}, {df.two_body_norm}, "
+    f"{str_one_body_eigenvalues}, {str_one_body_eigenvectors}, "
+    f"[1.0, size = {df.rank}], {str_two_body_eigenvalues}, "
+    f"{str_two_body_eigenvectors}),"
+    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryParameters(0.001,))")
 
 # Get resource estimates
 res = qsharp.estimate(qsharp_string,
