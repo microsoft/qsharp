@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 namespace Microsoft.Quantum.Applications.Chemistry {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Canon;
@@ -208,7 +210,6 @@ namespace Microsoft.Quantum.Applications.Chemistry {
                     prepare::Prepare(prepQubits, [sign], helper);
                 }
                 H(spin);
-                // NOTE: optimize this?
                 for i in IndexRange(register0) {
                     Controlled SWAP([spin], (register0[i], register1[i]));
                 }
@@ -217,7 +218,6 @@ namespace Microsoft.Quantum.Applications.Chemistry {
                 }
                 Select(bitstrings, prepQubits, rotationQubits);
             } apply {
-                // NOTE: may require more T-states than original implementation (but less cycles)?
                 ApplyGivensRotations(phaseGradientRegister, Chunks(precision, rotationQubits), register0);
                 Z(sign);
             }
