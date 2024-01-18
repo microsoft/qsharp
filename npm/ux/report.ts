@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 import { ReData } from "./data.js";
-import { formatThousandSep, formatThousandSepF64 } from "qsharp-lang/ux/utils";
 
 type ReportData = {
   groups: ReportGroup[];
@@ -26,17 +25,22 @@ type ReportEntry = {
 export function CreateReport(result: ReData): ReportData {
   const groups = [] as ReportGroup[];
   let entries = [] as ReportEntry[];
+  const numberFormat = new Intl.NumberFormat();
+  const numberFormatF64 = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
 
   entries = [];
   entries.push({
     path: "physicalCountsFormatted/runtime",
     label: "Runtime",
     description: `Total runtime`,
-    explanation: `This is a runtime estimate for the execution time of the algorithm. In general, the execution time corresponds to the duration of one logical cycle (${formatThousandSep(
+    explanation: `This is a runtime estimate for the execution time of the algorithm. In general, the execution time corresponds to the duration of one logical cycle (${numberFormat.format(
       result.logicalQubit.logicalCycleTime,
-    )} nanosecs) multiplied by the ${formatThousandSep(
+    )} nanosecs) multiplied by the ${numberFormat.format(
       result.physicalCountsFormatted.algorithmicLogicalDepth,
-    )} logical cycles to run the algorithm. If however the duration of a single T factory (here: ${formatThousandSep(
+    )} logical cycles to run the algorithm. If however the duration of a single T factory (here: ${numberFormat.format(
       result.tfactory == null ? 0 : result.tfactory.runtime,
     )} nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory.`,
   });
@@ -44,11 +48,11 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/rqops",
     label: "rQOPS",
     description: `Reliable quantum operations per second`,
-    explanation: `The value is computed as the number of logical qubits after layout (${formatThousandSep(
+    explanation: `The value is computed as the number of logical qubits after layout (${numberFormat.format(
       result.physicalCounts.breakdown.algorithmicLogicalQubits,
     )}) (with a logical error rate of ${
       result.physicalCountsFormatted.requiredLogicalQubitErrorRate
-    }) multiplied by the clock frequency (${formatThousandSepF64(
+    }) multiplied by the clock frequency (${numberFormatF64.format(
       result.physicalCounts.breakdown.clockFrequency,
     )}), which is the number of logical cycles per second.`,
   });
@@ -56,9 +60,9 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/physicalQubits",
     label: "Physical qubits",
     description: `Number of physical qubits`,
-    explanation: `This value represents the total number of physical qubits, which is the sum of ${formatThousandSep(
+    explanation: `This value represents the total number of physical qubits, which is the sum of ${numberFormat.format(
       result.physicalCounts.breakdown.physicalQubitsForAlgorithm,
-    )} physical qubits to implement the algorithm logic, and ${formatThousandSep(
+    )} physical qubits to implement the algorithm logic, and ${numberFormat.format(
       result.physicalCounts.breakdown.physicalQubitsForTfactories,
     )} physical qubits to execute the T factories that are responsible to produce the T states that are consumed by the algorithm.`,
   });
@@ -73,9 +77,9 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/algorithmicLogicalQubits",
     label: "Logical algorithmic qubits",
     description: `Number of logical qubits for the algorithm after layout`,
-    explanation: `Laying out the logical qubits in the presence of nearest-neighbor constraints requires additional logical qubits. In particular, to layout the $Q_{\\rm alg} = ${formatThousandSep(
+    explanation: `Laying out the logical qubits in the presence of nearest-neighbor constraints requires additional logical qubits. In particular, to layout the $Q_{\\rm alg} = ${numberFormat.format(
       result.logicalCounts.numQubits,
-    )}$ logical qubits in the input algorithm, we require in total $2 \\cdot Q_{\\rm alg} + \\lceil \\sqrt{8 \\cdot Q_{\\rm alg}}\\rceil + 1 = ${formatThousandSep(
+    )}$ logical qubits in the input algorithm, we require in total $2 \\cdot Q_{\\rm alg} + \\lceil \\sqrt{8 \\cdot Q_{\\rm alg}}\\rceil + 1 = ${numberFormat.format(
       result.physicalCounts.breakdown.algorithmicLogicalQubits,
     )}$ logical qubits.`,
   });
@@ -83,19 +87,19 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/algorithmicLogicalDepth",
     label: "Algorithmic depth",
     description: `Number of logical cycles for the algorithm`,
-    explanation: `To execute the algorithm using _Parallel Synthesis Sequential Pauli Computation_ (PSSPC), operations are scheduled in terms of multi-qubit Pauli measurements, for which assume an execution time of one logical cycle. Based on the input algorithm, we require one multi-qubit measurement for the ${formatThousandSep(
+    explanation: `To execute the algorithm using _Parallel Synthesis Sequential Pauli Computation_ (PSSPC), operations are scheduled in terms of multi-qubit Pauli measurements, for which assume an execution time of one logical cycle. Based on the input algorithm, we require one multi-qubit measurement for the ${numberFormat.format(
       result.logicalCounts.measurementCount,
-    )} single-qubit measurements, the ${formatThousandSep(
+    )} single-qubit measurements, the ${numberFormat.format(
       result.logicalCounts.rotationCount,
-    )} arbitrary single-qubit rotations, and the ${formatThousandSep(
+    )} arbitrary single-qubit rotations, and the ${numberFormat.format(
       result.logicalCounts.tCount,
-    )} T gates, three multi-qubit measurements for each of the ${formatThousandSep(
+    )} T gates, three multi-qubit measurements for each of the ${numberFormat.format(
       result.logicalCounts.cczCount,
-    )} CCZ and ${formatThousandSep(
+    )} CCZ and ${numberFormat.format(
       result.logicalCounts.ccixCount,
     )} CCiX gates in the input program, as well as ${
       result.physicalCountsFormatted.numTsPerRotation
-    } multi-qubit measurements for each of the ${formatThousandSep(
+    } multi-qubit measurements for each of the ${numberFormat.format(
       result.logicalCounts.rotationDepth,
     )} non-Clifford layers in which there is at least one single-qubit rotation with an arbitrary angle rotation.`,
   });
@@ -103,7 +107,7 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/logicalDepth",
     label: "Logical depth",
     description: `Number of logical cycles performed`,
-    explanation: `This number is usually equal to the logical depth of the algorithm, which is ${formatThousandSep(
+    explanation: `This number is usually equal to the logical depth of the algorithm, which is ${numberFormat.format(
       result.physicalCountsFormatted.algorithmicLogicalDepth,
     )}. However, in the case in which a single T factory is slower than the execution time of the algorithm, we adjust the logical cycle depth to exceed the T factory's execution time.`,
   });
@@ -117,33 +121,33 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/numTstates",
     label: "Number of T states",
     description: `Number of T states consumed by the algorithm`,
-    explanation: `To execute the algorithm, we require one T state for each of the ${formatThousandSep(
+    explanation: `To execute the algorithm, we require one T state for each of the ${numberFormat.format(
       result.logicalCounts.tCount,
-    )} T gates, four T states for each of the ${formatThousandSep(
+    )} T gates, four T states for each of the ${numberFormat.format(
       result.logicalCounts.cczCount,
-    )} CCZ and ${formatThousandSep(
+    )} CCZ and ${numberFormat.format(
       result.logicalCounts.ccixCount,
     )} CCiX gates, as well as ${
       result.physicalCountsFormatted.numTsPerRotation
-    } for each of the ${formatThousandSep(
+    } for each of the ${numberFormat.format(
       result.logicalCounts.rotationCount,
     )} single-qubit rotation gates with arbitrary angle rotation.`,
   });
   entries.push({
     path: "physicalCountsFormatted/numTfactories",
     label: "Number of T factories",
-    description: `Number of T factories capable of producing the demanded ${formatThousandSep(
+    description: `Number of T factories capable of producing the demanded ${numberFormat.format(
       result.physicalCounts.breakdown.numTstates,
     )} T states during the algorithm's runtime`,
-    explanation: `The total number of T factories ${formatThousandSep(
+    explanation: `The total number of T factories ${numberFormat.format(
       result.physicalCounts.breakdown.numTfactories,
-    )} that are executed in parallel is computed as $\\left\\lceil\\dfrac{\\text{T states}\\cdot\\text{T factory duration}}{\\text{T states per T factory}\\cdot\\text{algorithm runtime}}\\right\\rceil = \\left\\lceil\\dfrac{${formatThousandSep(
+    )} that are executed in parallel is computed as $\\left\\lceil\\dfrac{\\text{T states}\\cdot\\text{T factory duration}}{\\text{T states per T factory}\\cdot\\text{algorithm runtime}}\\right\\rceil = \\left\\lceil\\dfrac{${numberFormat.format(
       result.physicalCounts.breakdown.numTstates,
-    )} \\cdot ${formatThousandSep(
+    )} \\cdot ${numberFormat.format(
       result.tfactory == null ? 0 : result.tfactory.runtime,
-    )}\\;\\text{ns}}{${formatThousandSep(
+    )}\\;\\text{ns}}{${numberFormat.format(
       result.tfactory == null ? 0 : result.tfactory.numTstates,
-    )} \\cdot ${formatThousandSep(
+    )} \\cdot ${numberFormat.format(
       result.physicalCounts.runtime,
     )}\\;\\text{ns}}\\right\\rceil$`,
   });
@@ -151,11 +155,11 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/numTfactoryRuns",
     label: "Number of T factory invocations",
     description: `Number of times all T factories are invoked`,
-    explanation: `In order to prepare the ${formatThousandSep(
+    explanation: `In order to prepare the ${numberFormat.format(
       result.physicalCounts.breakdown.numTstates,
-    )} T states, the ${formatThousandSep(
+    )} T states, the ${numberFormat.format(
       result.physicalCounts.breakdown.numTfactories,
-    )} copies of the T factory are repeatedly invoked ${formatThousandSep(
+    )} copies of the T factory are repeatedly invoked ${numberFormat.format(
       result.physicalCounts.breakdown.numTfactoryRuns,
     )} times.`,
   });
@@ -163,11 +167,11 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/physicalQubitsForAlgorithm",
     label: "Physical algorithmic qubits",
     description: `Number of physical qubits for the algorithm after layout`,
-    explanation: `The ${formatThousandSep(
+    explanation: `The ${numberFormat.format(
       result.physicalCounts.breakdown.physicalQubitsForAlgorithm,
-    )} are the product of the ${formatThousandSep(
+    )} are the product of the ${numberFormat.format(
       result.physicalCounts.breakdown.algorithmicLogicalQubits,
-    )} logical qubits after layout and the ${formatThousandSep(
+    )} logical qubits after layout and the ${numberFormat.format(
       result.logicalQubit.physicalQubits,
     )} physical qubits that encode a single logical qubit.`,
   });
@@ -175,15 +179,15 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/physicalQubitsForTfactories",
     label: "Physical T factory qubits",
     description: `Number of physical qubits for the T factories`,
-    explanation: `Each T factory requires ${formatThousandSep(
+    explanation: `Each T factory requires ${numberFormat.format(
       result.tfactory == null ? 0 : result.tfactory.physicalQubits,
-    )} physical qubits and we run ${formatThousandSep(
+    )} physical qubits and we run ${numberFormat.format(
       result.physicalCounts.breakdown.numTfactories,
-    )} in parallel, therefore we need $${formatThousandSep(
+    )} in parallel, therefore we need $${numberFormat.format(
       result.physicalCounts.breakdown.physicalQubitsForTfactories,
-    )} = ${formatThousandSep(
+    )} = ${numberFormat.format(
       result.tfactory == null ? 0 : result.tfactory.physicalQubits,
-    )} \\cdot ${formatThousandSep(
+    )} \\cdot ${numberFormat.format(
       result.physicalCounts.breakdown.numTfactories,
     )}$ qubits.`,
   });
@@ -193,9 +197,9 @@ export function CreateReport(result: ReData): ReportData {
     description: `The minimum logical qubit error rate required to run the algorithm within the error budget`,
     explanation: `The minimum logical qubit error rate is obtained by dividing the logical error probability ${
       result.physicalCountsFormatted.errorBudgetLogical
-    } by the product of ${formatThousandSep(
+    } by the product of ${numberFormat.format(
       result.physicalCounts.breakdown.algorithmicLogicalQubits,
-    )} logical qubits and the total cycle count ${formatThousandSep(
+    )} logical qubits and the total cycle count ${numberFormat.format(
       result.physicalCounts.breakdown.logicalDepth,
     )}.`,
   });
@@ -205,7 +209,7 @@ export function CreateReport(result: ReData): ReportData {
     description: `The minimum T state error rate required for distilled T states`,
     explanation: `The minimum T state error rate is obtained by dividing the T distillation error probability ${
       result.physicalCountsFormatted.errorBudgetTstates
-    } by the total number of T states ${formatThousandSep(
+    } by the total number of T states ${numberFormat.format(
       result.physicalCounts.breakdown.numTstates,
     )}.`,
   });
@@ -213,7 +217,7 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/numTsPerRotation",
     label: "Number of T states per rotation",
     description: `Number of T states to implement a rotation with an arbitrary angle`,
-    explanation: `The number of T states to implement a rotation with an arbitrary angle is $\\lceil 0.53 \\log_2(${formatThousandSep(
+    explanation: `The number of T states to implement a rotation with an arbitrary angle is $\\lceil 0.53 \\log_2(${numberFormat.format(
       result.logicalCounts.rotationCount,
     )} / ${
       result.errorBudget.rotations
@@ -272,7 +276,7 @@ export function CreateReport(result: ReData): ReportData {
     path: "jobParams/qecScheme/logicalCycleTime",
     label: "Logical cycle time formula",
     description: `QEC scheme formula used to compute logical cycle time`,
-    explanation: `This is the formula that is used to compute the logical cycle time ${formatThousandSep(
+    explanation: `This is the formula that is used to compute the logical cycle time ${numberFormat.format(
       result.logicalQubit.logicalCycleTime,
     )} ns.`,
   });
@@ -280,7 +284,7 @@ export function CreateReport(result: ReData): ReportData {
     path: "jobParams/qecScheme/physicalQubitsPerLogicalQubit",
     label: "Physical qubits formula",
     description: `QEC scheme formula used to compute number of physical qubits per logical qubit`,
-    explanation: `This is the formula that is used to compute the number of physical qubits per logical qubits ${formatThousandSep(
+    explanation: `This is the formula that is used to compute the number of physical qubits per logical qubits ${numberFormat.format(
       result.logicalQubit.physicalQubits,
     )}.`,
   });
@@ -308,11 +312,11 @@ export function CreateReport(result: ReData): ReportData {
       path: "tfactory/numTstates",
       label: "Number of output T states per run",
       description: `Number of output T states produced in a single run of T factory`,
-      explanation: `The T factory takes as input ${formatThousandSep(
+      explanation: `The T factory takes as input ${numberFormat.format(
         result.tfactory == null ? 0 : result.tfactory.numInputTstates,
       )} noisy physical T states with an error rate of ${
         result.jobParams.qubitParams.tGateErrorRate
-      } and produces ${formatThousandSep(
+      } and produces ${numberFormat.format(
         result.tfactory == null ? 0 : result.tfactory.numTstates,
       )} T states with an error rate of ${
         result.physicalCountsFormatted.tstateLogicalErrorRate
@@ -377,7 +381,7 @@ export function CreateReport(result: ReData): ReportData {
     path: "physicalCountsFormatted/logicalCountsNumQubits",
     label: "Logical qubits (pre-layout)",
     description: `Number of logical qubits in the input quantum program`,
-    explanation: `We determine ${formatThousandSep(
+    explanation: `We determine ${numberFormat.format(
       result.physicalCounts.breakdown.algorithmicLogicalQubits,
     )} algorithmic logical qubits from this number by assuming to align them in a 2D grid. Auxiliary qubits are added to allow for sufficient space to execute multi-qubit Pauli measurements on all or a subset of the logical qubits.`,
   });
@@ -567,13 +571,7 @@ export function CreateReport(result: ReData): ReportData {
   entries.push({
     path: "physicalCountsFormatted/maxPhysicalQubits",
     label: "Maximum number of physical qubits",
-    description: `The maximum runtime duration allowed for the algorithm runtime`,
-    explanation: `\\_The maximum number of physical qubits allowed for utilization to the algorithm`,
-  });
-  entries.push({
-    path: "physicalCountsFormatted/maxPhysicalQubits",
-    label: "Maximum number of physical qubits",
-    description: `The maximum runtime duration allowed for the algorithm runtime`,
+    description: `The maximum number of physical qubits allowed for utilization to the algorithm`,
     explanation: `This is the maximum number of physical qubits available to the algorithm. If specified, the estimator targets to minimize the runtime of the algorithm with number of physical qubits consumed not exceeding this maximum.`,
   });
   groups.push({ title: "Constraints", alwaysVisible: false, entries: entries });

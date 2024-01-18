@@ -522,7 +522,7 @@ This is the maximum time allowed to the algorithm. If specified, the estimator t
 
 [//]: # "physicalCountsFormatted/maxPhysicalQubits"
 
-\_The maximum number of physical qubits allowed for utilization to the algorithm
+_The maximum number of physical qubits allowed for utilization to the algorithm_
 
 This is the maximum number of physical qubits available to the algorithm. If specified, the estimator targets to minimize the runtime of the algorithm with number of physical qubits consumed not exceeding this maximum.
 

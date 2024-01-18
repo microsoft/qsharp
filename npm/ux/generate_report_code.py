@@ -41,29 +41,29 @@ path_map = {
     "jobParams/qecScheme/logicalCycleTime": "result.jobParams.qecScheme.logicalCycleTime",
     "jobParams/qecScheme/physicalQubitsPerLogicalQubit": "result.jobParams.qecScheme.physicalQubitsPerLogicalQubit",
     "jobParams/qubitParams/tGateErrorRate": "result.jobParams.qubitParams.tGateErrorRate",
-    "logicalCounts/ccixCount": "formatThousandSep(result.logicalCounts.ccixCount)",
-    "logicalCounts/cczCount": "formatThousandSep(result.logicalCounts.cczCount)",
-    "logicalCounts/measurementCount": "formatThousandSep(result.logicalCounts.measurementCount)",
-    "logicalCounts/numQubits": "formatThousandSep(result.logicalCounts.numQubits)",
-    "logicalCounts/rotationCount": "formatThousandSep(result.logicalCounts.rotationCount)",
-    "logicalCounts/rotationDepth": "formatThousandSep(result.logicalCounts.rotationDepth)",
-    "logicalCounts/tCount": "formatThousandSep(result.logicalCounts.tCount)",
+    "logicalCounts/ccixCount": "numberFormat.format(result.logicalCounts.ccixCount)",
+    "logicalCounts/cczCount": "numberFormat.format(result.logicalCounts.cczCount)",
+    "logicalCounts/measurementCount": "numberFormat.format(result.logicalCounts.measurementCount)",
+    "logicalCounts/numQubits": "numberFormat.format(result.logicalCounts.numQubits)",
+    "logicalCounts/rotationCount": "numberFormat.format(result.logicalCounts.rotationCount)",
+    "logicalCounts/rotationDepth": "numberFormat.format(result.logicalCounts.rotationDepth)",
+    "logicalCounts/tCount": "numberFormat.format(result.logicalCounts.tCount)",
     "logicalQubit/codeDistance": "result.logicalQubit.codeDistance",
-    "logicalQubit/logicalCyclesPerSecond": "formatThousandSepF64(result.physicalCounts.breakdown.clockFrequency)",
-    "logicalQubit/logicalCycleTime": "formatThousandSep(result.logicalQubit.logicalCycleTime)",
-    "logicalQubit/physicalQubits": "formatThousandSep(result.logicalQubit.physicalQubits)",
-    "physicalCounts/breakdown/algorithmicLogicalDepth": "formatThousandSep(result.physicalCountsFormatted.algorithmicLogicalDepth)",
-    "physicalCounts/breakdown/algorithmicLogicalQubits": "formatThousandSep(result.physicalCounts.breakdown.algorithmicLogicalQubits)",
+    "logicalQubit/logicalCyclesPerSecond": "numberFormatF64.format(result.physicalCounts.breakdown.clockFrequency)",
+    "logicalQubit/logicalCycleTime": "numberFormat.format(result.logicalQubit.logicalCycleTime)",
+    "logicalQubit/physicalQubits": "numberFormat.format(result.logicalQubit.physicalQubits)",
+    "physicalCounts/breakdown/algorithmicLogicalDepth": "numberFormat.format(result.physicalCountsFormatted.algorithmicLogicalDepth)",
+    "physicalCounts/breakdown/algorithmicLogicalQubits": "numberFormat.format(result.physicalCounts.breakdown.algorithmicLogicalQubits)",
     "physicalCounts/breakdown/cliffordErrorRate": "result.physicalCounts.breakdown.cliffordErrorRate",
-    "physicalCounts/breakdown/logicalDepth": "formatThousandSep(result.physicalCounts.breakdown.logicalDepth)",
-    "physicalCounts/breakdown/physicalQubitsForAlgorithm": "formatThousandSep(result.physicalCounts.breakdown.physicalQubitsForAlgorithm)",
-    "physicalCounts/breakdown/physicalQubitsForTfactories": "formatThousandSep(result.physicalCounts.breakdown.physicalQubitsForTfactories)",
-    "physicalCounts/breakdown/numTfactories": "formatThousandSep(result.physicalCounts.breakdown.numTfactories)",
-    "physicalCounts/breakdown/numTfactoryRuns": "formatThousandSep(result.physicalCounts.breakdown.numTfactoryRuns)",
-    "physicalCounts/breakdown/numTstates": "formatThousandSep(result.physicalCounts.breakdown.numTstates)",
+    "physicalCounts/breakdown/logicalDepth": "numberFormat.format(result.physicalCounts.breakdown.logicalDepth)",
+    "physicalCounts/breakdown/physicalQubitsForAlgorithm": "numberFormat.format(result.physicalCounts.breakdown.physicalQubitsForAlgorithm)",
+    "physicalCounts/breakdown/physicalQubitsForTfactories": "numberFormat.format(result.physicalCounts.breakdown.physicalQubitsForTfactories)",
+    "physicalCounts/breakdown/numTfactories": "numberFormat.format(result.physicalCounts.breakdown.numTfactories)",
+    "physicalCounts/breakdown/numTfactoryRuns": "numberFormat.format(result.physicalCounts.breakdown.numTfactoryRuns)",
+    "physicalCounts/breakdown/numTstates": "numberFormat.format(result.physicalCounts.breakdown.numTstates)",
     "physicalCounts/breakdown/requiredLogicalQubitErrorRate": "result.physicalCounts.breakdown.requiredLogicalQubitErrorRate",
-    "physicalCounts/physicalQubits": "formatThousandSep(result.physicalCounts.physicalQubits)",
-    "physicalCounts/runtime": "formatThousandSep(result.physicalCounts.runtime)",
+    "physicalCounts/physicalQubits": "numberFormat.format(result.physicalCounts.physicalQubits)",
+    "physicalCounts/runtime": "numberFormat.format(result.physicalCounts.runtime)",
     "physicalCountsFormatted/clockFrequency": "result.physicalCountsFormatted.clockFrequency",
     "physicalCountsFormatted/errorBudget": "result.physicalCountsFormatted.errorBudget",
     "physicalCountsFormatted/errorBudgetLogical": "result.physicalCountsFormatted.errorBudgetLogical",
@@ -76,10 +76,10 @@ path_map = {
     "physicalCountsFormatted/runtime": "result.physicalCountsFormatted.runtime",
     "physicalCountsFormatted/tfactoryRuntime": "result.physicalCountsFormatted.tfactoryRuntime",
     "physicalCountsFormatted/tstateLogicalErrorRate": "result.physicalCountsFormatted.tstateLogicalErrorRate",
-    "tfactory/physicalQubits": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.physicalQubits)",
-    "tfactory/numInputTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numInputTstates)",
-    "tfactory/numTstates": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.numTstates)",
-    "tfactory/runtime": "formatThousandSep(result.tfactory == null ? 0 : result.tfactory.runtime)",
+    "tfactory/physicalQubits": "numberFormat.format(result.tfactory == null ? 0 : result.tfactory.physicalQubits)",
+    "tfactory/numInputTstates": "numberFormat.format(result.tfactory == null ? 0 : result.tfactory.numInputTstates)",
+    "tfactory/numTstates": "numberFormat.format(result.tfactory == null ? 0 : result.tfactory.numTstates)",
+    "tfactory/runtime": "numberFormat.format(result.tfactory == null ? 0 : result.tfactory.runtime)",
 }
 
 print()
@@ -90,6 +90,10 @@ print(
 print("export function CreateReport(result: ReData): ReportData {")
 print("    const groups = [] as ReportGroup[];")
 print("    let entries = [] as ReportEntry[];")
+print("    const numberFormat = new Intl.NumberFormat();")
+print(
+    "    const numberFormatF64 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2,});"
+)
 print()
 
 
