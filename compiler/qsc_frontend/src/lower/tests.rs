@@ -134,7 +134,7 @@ fn test_target_profile_attr_wrong_args() {
         &expect![[r#"
             [
                 InvalidAttrArgs(
-                    "Full or Base",
+                    "Unrestricted or Base",
                     Span {
                         lo: 29,
                         hi: 34,
