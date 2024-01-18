@@ -578,6 +578,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
+name = "library"
+version = "0.0.0"
+dependencies = [
+ "indoc",
+ "num-bigint",
+ "qsc",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -973,6 +982,7 @@ dependencies = [
  "enum-iterator",
  "expect-test",
  "indoc",
+ "library",
  "miette",
  "num-bigint",
  "num-traits",
@@ -1340,15 +1350,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "322ed043a063dd3cabb4b53b2a37bce115854d94df19acf766d9dacaff218c5a"
 dependencies = [
  "libm",
-]
-
-[[package]]
-name = "stdlib_tests"
-version = "0.0.0"
-dependencies = [
- "indoc",
- "num-bigint",
- "qsc",
 ]
 
 [[package]]
