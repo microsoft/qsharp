@@ -1,0 +1,27 @@
+[package]
+name = "resource_estimator"
+
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+qsc = { path = "../compiler/qsc" }
+thiserror = { workspace = true }
+miette = { workspace = true, features = ["fancy"] }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
+rand = { workspace = true }
+rustc-hash = { workspace = true }
+probability = { workspace = true }
+regex-lite = { workspace = true }
+serde = { workspace = true, features = ["derive", "rc"] }
+serde_json = { workspace = true }
+fasteval = { workspace = true }
+
+[dev-dependencies]
+expect-test = { workspace = true }
+indoc = { workspace = true }

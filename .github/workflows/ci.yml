@@ -20,7 +20,7 @@ env:
   CARGO_TERM_COLOR: always
   NODE_VERSION: "18.17.1"
   PYTHON_VERSION: "3.11"
-  RUST_TOOLCHAIN_VERSION: "1.73"
+  RUST_TOOLCHAIN_VERSION: "1.75"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
@@ -178,13 +178,18 @@ jobs:
       - uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## Memory Report for ${{ github.sha }}
-            | Test                        | This Branch | On Main  |
-            |-----------------------------|-------------|----------|
-            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
-            })
+            if (${{ env.BRANCH_MEASUREMENT }} !== ${{ env.MAIN_MEASUREMENT }}) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `_Change in memory usage detected by benchmark._
+              ## Memory Report for ${{ github.sha }}
+              | Test                        | This Branch | On Main  |
+              |-----------------------------|-------------|----------|
+              | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
+              })
+            } else {
+              console.log("no change in memory usage detected by benchmark");
+            }
         if: ${{ github.base_ref != null }}

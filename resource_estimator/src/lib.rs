@@ -6,13 +6,13 @@ mod estimates;
 
 pub use estimates::estimate_physical_resources_from_json;
 
-use crate::interpret::{
-    stateful::{self, Interpreter},
-    GenericReceiver,
-};
 use counts::LogicalCounter;
 use estimates::estimate_physical_resources;
 use miette::Diagnostic;
+use qsc::interpret::{
+    stateful::{self, Interpreter},
+    GenericReceiver,
+};
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -53,11 +53,8 @@ pub fn estimate_expr(
     let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
     interpreter
-        .run_with_sim(&mut counter, &mut out, expr, 1)
+        .run_with_sim(&mut counter, &mut out, expr)
         .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?
-        .into_iter()
-        .last()
-        .expect("execution should have at least one result")
         .map_err(|e| vec![Error::Interpreter(e[0].clone())])?;
     estimate_physical_resources(&counter.logical_resources(), params)
         .map_err(|e| vec![Error::Estimation(e)])

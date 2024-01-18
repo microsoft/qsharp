@@ -20,16 +20,13 @@ use qsc::{
     fir,
     interpret::{
         output::{Error, Receiver},
-        stateful::{
-            self,
-            re::{self, estimate_expr},
-        },
-        Value,
+        stateful, Value,
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
     PackageType, SourceMap,
 };
+use resource_estimator::{self as re, estimate_expr};
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
@@ -170,19 +167,14 @@ impl Interpreter {
         &mut self,
         py: Python,
         entry_expr: &str,
-        shots: u32,
         callback: Option<PyObject>,
-    ) -> PyResult<Py<PyList>> {
+    ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.run(&mut receiver, entry_expr, shots) {
-            Ok(results) => Ok(PyList::new(
-                py,
-                results.into_iter().map(|res| match res {
-                    Ok(v) => ValueWrapper(v).into_py(py),
-                    Err(errors) => QSharpError::new_err(format_errors(errors)).into_py(py),
-                }),
-            )
-            .into_py(py)),
+        match self.interpreter.run(&mut receiver, entry_expr) {
+            Ok(result) => match result {
+                Ok(v) => Ok(ValueWrapper(v).into_py(py)),
+                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+            },
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }

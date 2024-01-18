@@ -1,4 +1,6 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Katas;
+
     operation PrepareWithComplex_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
         H(qs[1]);
@@ -8,12 +10,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let isCorrect = AssertEqualOnZeroState(Kata.PrepareWithComplex, PrepareWithComplex_Reference);
-        if isCorrect {
-            Message("Correct!");
-        } else {
-            Message("Incorrect.");
-        }
-        return isCorrect;
+        CheckEqualOnZeroState(Kata.PrepareWithComplex, PrepareWithComplex_Reference)
     }
 }

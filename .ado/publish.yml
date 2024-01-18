@@ -5,7 +5,7 @@ pr: none
 
 variables:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.73"
+  RUST_TOOLCHAIN_VERSION: "1.75"
 
 # variables set by pipeline
 # - BASE_IMAGE

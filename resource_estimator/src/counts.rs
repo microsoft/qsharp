@@ -5,9 +5,9 @@
 mod tests;
 
 use super::LogicalResources;
-use crate::{interpret::Value, Backend};
 use num_bigint::BigUint;
 use num_complex::Complex;
+use qsc::{interpret::Value, Backend};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
 use std::{
@@ -22,7 +22,6 @@ use std::{
 ///
 /// This counter tracks all resources while executing a QIR program.  It takes
 /// care of qubit management, gate counting, and depth calculation.
-#[allow(clippy::module_name_repetitions)]
 pub struct LogicalCounter {
     /// Stack of free qubits
     free_list: Vec<usize>,
@@ -521,10 +520,6 @@ impl Backend for LogicalCounter {
 
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
         true
-    }
-
-    fn reinit(&mut self) {
-        *self = Self::default();
     }
 
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {

@@ -7,8 +7,6 @@ mod tests;
 #[cfg(test)]
 mod stepping_tests;
 
-pub mod re;
-
 use super::debug::format_call_stack;
 use crate::{
     error::{self, WithStack},
@@ -297,9 +295,8 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         expr: &str,
-        shots: u32,
-    ) -> Result<Vec<InterpretResult>, Vec<Error>> {
-        self.run_with_sim(&mut SparseSim::new(), receiver, expr, shots)
+    ) -> Result<InterpretResult, Vec<Error>> {
+        self.run_with_sim(&mut SparseSim::new(), receiver, expr)
     }
 
     /// Gets the current quantum state of the simulator.
@@ -318,11 +315,7 @@ impl Interpreter {
         let mut stdout = std::io::sink();
         let mut out = GenericReceiver::new(&mut stdout);
 
-        let val = self
-            .run_with_sim(&mut sim, &mut out, expr, 1)?
-            .into_iter()
-            .last()
-            .expect("execution should have at least one result")?;
+        let val = self.run_with_sim(&mut sim, &mut out, expr)??;
 
         Ok(sim.finish(&val))
     }
@@ -334,11 +327,10 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         expr: &str,
-        shots: u32,
-    ) -> Result<Vec<InterpretResult>, Vec<Error>> {
+    ) -> Result<InterpretResult, Vec<Error>> {
         let stmt_id = self.compile_expr_to_stmt(expr)?;
 
-        Ok(self.run_internal(sim, receiver, stmt_id, shots))
+        Ok(self.run_internal(sim, receiver, stmt_id))
     }
 
     fn run_internal(
@@ -346,37 +338,23 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         stmt_id: StmtId,
-        shots: u32,
-    ) -> Vec<InterpretResult> {
-        let mut results: Vec<InterpretResult> = Vec::new();
-        for i in 0..shots {
-            results.push(
-                match eval_stmt(
-                    stmt_id,
-                    &self.fir_store,
-                    &mut Env::with_empty_scope(),
-                    sim,
-                    self.package,
-                    receiver,
-                ) {
-                    Ok(value) => Ok(value),
-                    Err((error, call_stack)) => Err(eval_error(
-                        self.compiler.package_store(),
-                        &self.fir_store,
-                        call_stack,
-                        error,
-                    )),
-                },
-            );
-
-            if i != 0 {
-                // If running more than one shot, re-initialize the simulator to start the next shot
-                // from a clean state.
-                sim.reinit();
-            }
+    ) -> InterpretResult {
+        match eval_stmt(
+            stmt_id,
+            &self.fir_store,
+            &mut Env::with_empty_scope(),
+            sim,
+            self.package,
+            receiver,
+        ) {
+            Ok(value) => Ok(value),
+            Err((error, call_stack)) => Err(eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )),
         }
-
-        results
     }
 
     fn compile_expr_to_stmt(&mut self, expr: &str) -> Result<StmtId, Vec<Error>> {
