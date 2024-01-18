@@ -1181,7 +1181,7 @@ fn ternop_update_array_range_takes_array() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-112 "{\n        let xs = [0, 1, 2];\n        let ys = xs w/ 0..1 <- [3, 4];\n    }" : Unit
             #10 52-54 "xs" : Int[]
@@ -1198,7 +1198,7 @@ fn ternop_update_array_range_takes_array() {
             #26 99-105 "[3, 4]" : Int[]
             #27 100-101 "3" : Int
             #28 103-104 "4" : Int
-        "##]],
+        "#]],
     );
 }
 
@@ -1214,7 +1214,7 @@ fn ternop_update_array_range_with_non_array_error() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #8 38-107 "{\n        let xs = [0, 1, 2];\n        let ys = xs w/ 0..1 <- 3;\n    }" : Unit
             #10 52-54 "xs" : Int[]
@@ -1230,7 +1230,7 @@ fn ternop_update_array_range_with_non_array_error() {
             #25 94-95 "1" : Int
             #26 99-100 "3" : Int
             Error(Type(Error(TyMismatch("Int[]", "Int", Span { lo: 85, hi: 100 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -3585,6 +3585,48 @@ fn inference_infinite_recursion_should_fail() {
             Error(Type(Error(TyMismatch("Bool", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 181 }))))
             Error(Type(Error(TyMismatch("Unit", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn use_range_field_names_in_udt() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype B = (
+                    Start : Int,
+                    Step : Int,
+                    End : Int
+                );
+                function C() : Unit {
+                    let udt = B(1, 2, 3);
+                    let start = udt::Start;
+                    let step = udt::Step;
+                    let end = udt::End;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #24 112-114 "()" : Unit
+            #28 122-249 "{\n        let udt = B(1, 2, 3);\n        let start = udt::Start;\n        let step = udt::Step;\n        let end = udt::End;\n    }" : Unit
+            #30 136-139 "udt" : UDT<"B": Item 1>
+            #32 142-152 "B(1, 2, 3)" : UDT<"B": Item 1>
+            #33 142-143 "B" : ((Int, Int, Int) -> UDT<"B": Item 1>)
+            #36 143-152 "(1, 2, 3)" : (Int, Int, Int)
+            #37 144-145 "1" : Int
+            #38 147-148 "2" : Int
+            #39 150-151 "3" : Int
+            #41 166-171 "start" : Int
+            #43 174-184 "udt::Start" : Int
+            #44 174-177 "udt" : UDT<"B": Item 1>
+            #49 198-202 "step" : Int
+            #51 205-214 "udt::Step" : Int
+            #52 205-208 "udt" : UDT<"B": Item 1>
+            #57 228-231 "end" : Int
+            #59 234-242 "udt::End" : Int
+            #60 234-237 "udt" : UDT<"B": Item 1>
         "#]],
     );
 }
