@@ -1,6 +1,8 @@
-use std::{convert::Infallible, path::PathBuf, sync::Arc};
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 use crate::{DirEntry, EntryType};
+use std::{convert::Infallible, path::PathBuf, sync::Arc};
 
 #[derive(Debug)]
 pub struct JSFileEntry {
