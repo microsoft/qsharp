@@ -2,25 +2,13 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import { ResultsTable, SpaceChart, ReTable, type ReData } from "qsharp-lang/ux";
-
-const columnNames = [
-  "Run name",
-  "Qubit type",
-  "QEC scheme",
-  "Error budget",
-  "Logical qubits",
-  "Logical depth",
-  "Code distance",
-  "T states",
-  "T factories",
-  "T factory fraction",
-  "Runtime",
-  "rQOPS",
-  "Physical qubits",
-];
-
-const initialColumns = [0, 1, 2, 3, 4, 10, 11, 12];
+import {
+  SpaceChart,
+  ReTable,
+  type ReData,
+  EstimatesOverview,
+} from "qsharp-lang/ux";
+import { SingleEstimateResult } from "qsharp-lang/ux/data";
 
 export function RePage(props: {
   estimatesData: ReData[];
@@ -28,25 +16,7 @@ export function RePage(props: {
   renderer: (input: string) => string;
   onRowDeleted: (rowId: string) => void;
 }) {
-  const [estimate, setEstimate] = useState<ReData | null>(null);
-
-  function onRowSelected(rowId: string) {
-    // On any selection, clear the "new" flag on all rows. This ensures that
-    // new rows do not steal focus from the user selected row.
-    props.estimatesData.forEach((data) => (data.new = false));
-    if (!rowId) {
-      setEstimate(null);
-    } else {
-      setEstimate(
-        props.estimatesData.find((data) => data.jobParams.runName === rowId) ||
-          null,
-      );
-    }
-  }
-
-  function onRowDeleted(rowId: string) {
-    props.onRowDeleted(rowId);
-  }
+  const [estimate, setEstimate] = useState<SingleEstimateResult | null>(null);
 
   return (
     <>
@@ -96,19 +66,14 @@ export function RePage(props: {
         ) : null}
         <h1>Azure Quantum Resource Estimator</h1>
       </div>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Results
-        </summary>
-        <ResultsTable
-          columnNames={columnNames}
-          data={props.estimatesData}
-          initialColumns={initialColumns}
-          ensureSelected={true}
-          onRowSelected={onRowSelected}
-          onRowDeleted={onRowDeleted}
-        />
-      </details>
+      <EstimatesOverview
+        estimatesData={props.estimatesData}
+        isSimplifiedView={false}
+        onRowDeleted={props.onRowDeleted}
+        setEstimate={setEstimate}
+        runNames={null}
+        colors={null}
+      ></EstimatesOverview>
       {!estimate ? null : (
         <>
           <details open>
