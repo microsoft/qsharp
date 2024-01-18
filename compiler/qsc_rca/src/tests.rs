@@ -16,7 +16,7 @@ fn core_library_analysis_is_correct() {
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
     )
-    .expect("Should be able to create a new compiler");
+    .expect("should be able to create a new compiler");
     let mut lowerer = Lowerer::new();
     let mut fir_store = PackageStore::new();
     for (id, unit) in compiler.package_store() {

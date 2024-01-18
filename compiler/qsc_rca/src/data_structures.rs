@@ -67,12 +67,12 @@ pub fn derive_callable_input_elements(
 
 /// The index corresponding to an input parameter node.
 #[derive(Clone, Copy, Debug)]
-pub struct InputParamIdx(usize);
+pub struct InputParamIndex(usize);
 
 /// An input parameter node.
 #[derive(Debug)]
 pub struct InputParam {
-    pub idx: InputParamIdx,
+    pub index: InputParamIndex,
     pub pat: PatId,
     pub ty: Ty,
     pub node: Option<NodeId>,
@@ -83,19 +83,19 @@ pub fn derive_callable_input_params<'a>(
     input_elements: impl Iterator<Item = &'a CallableInputElement>,
 ) -> Vec<InputParam> {
     let mut input_params = Vec::new();
-    let mut param_idx = InputParamIdx(0);
-    for elmnt in input_elements {
-        let maybe_input_param = match &elmnt.kind {
+    let mut param_index = InputParamIndex(0);
+    for element in input_elements {
+        let maybe_input_param = match &element.kind {
             CallableInputElementKind::Discard => Some(InputParam {
-                idx: param_idx,
-                pat: elmnt.pat,
-                ty: elmnt.ty.clone(),
+                index: param_index,
+                pat: element.pat,
+                ty: element.ty.clone(),
                 node: None,
             }),
             CallableInputElementKind::Node(node_id) => Some(InputParam {
-                idx: param_idx,
-                pat: elmnt.pat,
-                ty: elmnt.ty.clone(),
+                index: param_index,
+                pat: element.pat,
+                ty: element.ty.clone(),
                 node: Some(*node_id),
             }),
             CallableInputElementKind::Tuple(_) => None,
@@ -103,7 +103,7 @@ pub fn derive_callable_input_params<'a>(
 
         if let Some(input_param) = maybe_input_param {
             input_params.push(input_param);
-            param_idx.0 += 1;
+            param_index.0 += 1;
         }
     }
 
@@ -112,38 +112,38 @@ pub fn derive_callable_input_params<'a>(
 
 /// A represenation of a variable within a callable.
 #[derive(Debug)]
-pub struct CallableVar {
+pub struct CallableVariable {
     pub node: NodeId,
     pub pat: PatId,
     pub ty: Ty,
-    pub kind: CallableVarKind,
+    pub kind: CallableVariableKind,
 }
 
 /// Kinds of callable variables.
 #[derive(Debug)]
-pub enum CallableVarKind {
+pub enum CallableVariableKind {
     #[allow(dead_code)] // TODO (ceasarzc): Remove.
     Local,
-    InputParam(InputParamIdx),
+    InputParam(InputParamIndex),
 }
 
 /// Creates a hash map of node IDs to callable variables.
 pub fn initialize_callable_variables_map<'a>(
     input_params: impl Iterator<Item = &'a InputParam>,
-) -> FxHashMap<NodeId, CallableVar> {
-    let mut var_map = FxHashMap::<NodeId, CallableVar>::default();
+) -> FxHashMap<NodeId, CallableVariable> {
+    let mut variable_map = FxHashMap::<NodeId, CallableVariable>::default();
     for param in input_params {
         if let Some(node) = param.node {
-            var_map.insert(
+            variable_map.insert(
                 node,
-                CallableVar {
+                CallableVariable {
                     node,
                     pat: param.pat,
                     ty: param.ty.clone(),
-                    kind: CallableVarKind::InputParam(param.idx),
+                    kind: CallableVariableKind::InputParam(param.index),
                 },
             );
         }
     }
-    var_map
+    variable_map
 }
