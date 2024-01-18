@@ -39,9 +39,9 @@ use thiserror::Error;
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct RuntimeCapabilityFlags: u32 {
-        const ConditionalForwardBranching = 0b0000_0001;
+        const ForwardBranching = 0b0000_0001;
         const IntegerComputations = 0b0000_0010;
-        const FloatingPointComputation = 0b0000_0100;
+        const FloatingPointComputations = 0b0000_0100;
         const BackwardsBranching = 0b0000_1000;
         const HigherLevelConstructs = 0b0001_0000;
     }
